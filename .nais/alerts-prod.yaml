@@ -1,0 +1,44 @@
+apiVersion: "monitoring.coreos.com/v1"
+kind: "PrometheusRule"
+metadata:
+  name: "ebxml-processor"
+  namespace: "team-emottak"
+  labels:
+    "team": "team-emottak"
+  annotations:
+    "start.nais.io/created-by": "me"
+    "start.nais.io/creationTimestamp": "2023-08-22T08:39:57.839038587"
+spec:
+  groups:
+  - name: "ebxml-processor-alerts"
+    rules:
+    - alert: "ebxml-processor er nede"
+      description: "App {{ $labels.app }} er nede i namespace {{ $labels.kubernetes_namespace\
+        \ }}"
+      expr: "kube_deployment_status_replicas_unavailable{deployment=\"ebxml-processor\"\
+        } > 0"
+      for: "2m"
+      action: "kubectl describe pod {{ $labels.kubernetes_pod_name }} -n {{ $labels.kubernetes_namespace\
+        \ }}` for events, og `kubectl logs {{ $labels.kubernetes_pod_name }} -n {{\
+        \ $labels.kubernetes_namespace }}` for logger"
+      labels:
+        "severity": "warning"
+      annotations:
+        "consequence": "ebxml-processor gjør ikke det den skal"
+        "action": "Fiks den!"
+        "sla": "Innen 3 timer i kontortid"
+        "documentation": "https://github.com/navikt/team-emottak/somedoc"
+    - alert: "Mye feil i loggene"
+      expr: "(100 * sum by (log_app, log_namespace) (rate(logd_messages_total{log_app=\"\
+        ebxml-processor\",log_level=~\"Warning|Error\"}[3m])) / sum by (log_app, log_namespace)\
+        \ (rate(logd_messages_total{log_app=\"ebxml-processor\"}[3m]))) > 10"
+      for: "3m"
+      action: "Sjekk loggene til app {{ $labels.log_app }} i namespace {{ $labels.log_namespace\
+        \ }} for å se hvorfor det er så mye feil"
+      labels:
+        "severity": "critical"
+      annotations:
+        "consequence": "ebxml-processor gjør ikke det den skal"
+        "action": "Fiks den!"
+        "sla": "Innen 3 timer i kontortid"
+        "documentation": "https://github.com/navikt/team-emottak/somedoc"

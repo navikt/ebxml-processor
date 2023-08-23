@@ -1,0 +1,43 @@
+apiVersion: "nais.io/v1alpha1"
+kind: "Application"
+metadata:
+  name: "ebxml-processor"
+  namespace: "team-emottak"
+  labels:
+    "team": "team-emottak"
+  annotations:
+    "start.nais.io/created-by": "me"
+    "start.nais.io/creationTimestamp": "2023-08-22T08:39:57.839038587"
+spec:
+  image: {{image}}
+  liveness:
+    path: "/isalive"
+    initialDelay: 20
+    timeout: 60
+  readiness:
+    path: "/isready"
+    initialDelay: 20
+    timeout: 60
+  replicas:
+    min: 2
+    max: 2
+    cpuThresholdPercentage: 50
+  prometheus:
+    enabled: true
+    path: "/metrics"
+  resources:
+    limits:
+      cpu: "200m"
+      memory: "256Mi"
+    requests:
+      cpu: "200m"
+      memory: "256Mi"
+  ingresses: 
+  {{#each ingresses as |url|}}
+    - {{url}}
+  {{/each}}
+  gcp:
+    sqlInstances:
+    - type: "POSTGRES_13"
+      databases:
+        "name": "ebxml-processor-db"
