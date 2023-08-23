@@ -5,26 +5,27 @@ metadata:
   namespace: "team-emottak"
   labels:
     "team": "team-emottak"
-  annotations:
-    "start.nais.io/created-by": "me"
-    "start.nais.io/creationTimestamp": "2023-08-22T08:39:57.839038587"
 spec:
   image: {{image}}
   liveness:
-    path: "/isalive"
-    initialDelay: 20
-    timeout: 60
+    path: "/internal/health/ping"
+    port: 8080
+    initialDelay: 60
+    timeout: 30
+    failureThreshold: 20
   readiness:
-    path: "/isready"
-    initialDelay: 20
-    timeout: 60
+    path: "/internal/health"
+    port: 8080
+    initialDelay: 60
+    timeout: 30
+    failureThreshold: 20
   replicas:
     min: 2
     max: 2
     cpuThresholdPercentage: 50
   prometheus:
     enabled: true
-    path: "/metrics"
+    path: "/"
   resources:
     limits:
       cpu: "200m"
@@ -38,6 +39,9 @@ spec:
   {{/each}}
   gcp:
     sqlInstances:
-    - type: "POSTGRES_13"
+    - type: "POSTGRES_15"
       databases:
-        "name": "ebxml-processor-db"
+        - "name": "ebxml-processor-db"
+      flags:
+        - name: max_connections
+          value: "50"
