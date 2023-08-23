@@ -19,6 +19,7 @@ jobs:
     - uses: "actions/setup-java@v3"
       with:
         "java-version": "17"
+        "distribution": "temurin"
     - name: "compile and run tests"
       run: "mvn install"
     - name: "Login to GitHub Docker Registry"
