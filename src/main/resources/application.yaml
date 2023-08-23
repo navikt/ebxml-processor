@@ -1,0 +1,11 @@
+management:
+  endpoints.web:
+    base-path: '/internal'
+    exposure.include: 'health,prometheus,loggers,info,metrics'
+  endpoint:
+    prometheus:
+      enabled: true
+    loggers:
+      enabled: true
+    health:
+      show-details: always
