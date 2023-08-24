@@ -1,0 +1,40 @@
+version: "3"
+
+services:
+  roundcube:
+    container_name: ebxml-msh-mailclient
+    build: docker/roundcube
+    environment:
+      - IMPORT_FROM_VOLUME=true
+      - ROUNDCUBEMAIL_DEFAULT_HOST=greenmail  # IMAP server - tls:// prefix for STARTTLS, ssl:// for SSL/TLS
+      - ROUNDCUBEMAIL_DEFAULT_PORT=3143       # IMAP port
+      - ROUNDCUBEMAIL_SMTP_SERVER=greenmail   # SMTP server - tls:// prefix for STARTTLS, ssl:// for SSL/TLS
+      - ROUNDCUBEMAIL_SMTP_PORT=3025          # SMTP port
+    ports:
+      - "8000:80"
+  mq:
+    container_name: ebxml-msh-mq-admin
+    image: ibmcom/mq:latest
+    restart: always
+    environment:
+      LICENSE: accept
+      MQ_QMGR_NAME: QM1
+      MQ_APP_PASSWORD: passw0rd
+    volumes:
+      - ./docker/mq/config.mqsc:/etc/mqm/20-config.mqsc
+    ports:
+      - "1414:1414"
+      - "9443:9443"
+  greenmail:
+    container_name: ebxml-msh-mailserver
+    build: docker/greenmail
+    environment:
+      - JAVA_OPTS=-Dgreenmail.verbose -Dgreenmail.users=peder:peder@epost.com,thomas:thomas@epost.com
+    ports:
+      - "3025:3025" #SMTP
+      - "3110:3110" #POP3
+      - "3143:3143" #IMAP
+      - "3465:3465" #SMTPS
+      - "3993:3993" #IMAPS
+      - "3995:3995" #POP3s
+      - "8081:8080" #GreenMail API
