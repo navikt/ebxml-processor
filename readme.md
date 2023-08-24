@@ -11,8 +11,8 @@ docker-compose up -d
 
 ### Epostklient: roundcube
 * http://localhost:8000/
-* user/pass: peder/peder
-* user/pass: thomas/thomas
+* user/pass: peder@epost.com/peder
+* user/pass: thomas@epost.com/thomas
   ![img.png](readme-resources/roundcube.png)
   ![img.png](readme-resources/greenmail.png)
 
