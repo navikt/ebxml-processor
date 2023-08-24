@@ -14,7 +14,7 @@ services:
       - "8000:80"
   mq:
     container_name: ebxml-msh-mq-admin
-    image: ibmcom/mq:latest
+    build: docker/mq
     restart: always
     environment:
       LICENSE: accept
