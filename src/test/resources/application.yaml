@@ -1,0 +1,19 @@
+spring:
+  kafka:
+    bootstrap-servers: localhost:3333
+    properties:
+      security:
+        protocol: PLAINTEXT
+      ssl:
+        key.password: changeit
+        truststore:
+          location:
+          password: changeit
+        keystore:
+          location:
+          password: changeit
+      schema.registry.url: mock://localhost
+      basic:
+        auth:
+          user:
+            info: user:password

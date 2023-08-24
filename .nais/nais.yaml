@@ -45,3 +45,5 @@ spec:
       flags:
         - name: max_connections
           value: "50"
+  kafka:
+    pool: {{kafka.pool}}

@@ -1,2 +1,4 @@
 ingresses:
 - "https://ebxml-processor.intern.dev.nav.no"
+kafka:
+  pool: nav-dev
