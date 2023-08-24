@@ -1,0 +1,47 @@
+apiVersion: kafka.nais.io/v1
+kind: Topic
+metadata:
+  labels:
+    team: team-emottak
+  name: ebxml-payload-outgoing
+  namespace: team-emottak
+spec:
+  pool: {{kafka-pool}}
+  config:
+    cleanupPolicy: delete
+    maxMessageBytes: 1048588
+    minimumInSyncReplicas: 2
+    partitions: 1
+    replication: 3
+    retentionBytes: -1
+    retentionHours: 168
+    segmentHours: 168
+  acl:
+    - access: read
+      application: ebxml-processor
+      team: team-emottak
+
+---
+
+apiVersion: kafka.nais.io/v1
+kind: Topic
+metadata:
+  labels:
+    team: team-emottak
+  name: ebxml-payload-deenveloped
+  namespace: team-emottak
+spec:
+  pool: {{kafka-pool}}
+  config:
+    cleanupPolicy: delete
+    maxMessageBytes: 1048588
+    minimumInSyncReplicas: 2
+    partitions: 1
+    replication: 3
+    retentionBytes: -1
+    retentionHours: 168
+    segmentHours: 168
+  acl:
+    - access: write
+      application: ebxml-processor
+      team: team-emottak
