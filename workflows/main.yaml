@@ -43,16 +43,16 @@ jobs:
         "CLUSTER": "dev-gcp"
         "RESOURCE": ".nais/nais.yaml"
         "VARS": ".nais/dev.yaml"
-  "deployAppToProd":
-    name: "Deploy app to prod"
-    needs: "deployAppToDev"
-    runs-on: "ubuntu-20.04"
-    steps:
-    - uses: "actions/checkout@v3"
-    - name: "Deploy to PROD"
-      uses: "nais/deploy/actions/deploy@v1"
-      env:
-        "APIKEY": "${{ secrets.NAIS_DEPLOY_APIKEY }}"
-        "CLUSTER": "prod-gcp"
-        "RESOURCE": ".nais/nais.yaml"
-        "VARS": ".nais/prod.yaml"
+#  "deployAppToProd":
+#    name: "Deploy app to prod"
+#    needs: "deployAppToDev"
+#    runs-on: "ubuntu-20.04"
+#    steps:
+#    - uses: "actions/checkout@v3"
+#    - name: "Deploy to PROD"
+#      uses: "nais/deploy/actions/deploy@v1"
+#      env:
+#        "APIKEY": "${{ secrets.NAIS_DEPLOY_APIKEY }}"
+#        "CLUSTER": "prod-gcp"
+#        "RESOURCE": ".nais/nais.yaml"
+#        "VARS": ".nais/prod.yaml"
