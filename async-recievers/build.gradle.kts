@@ -20,7 +20,6 @@ tasks.register<Wrapper>("wrapper") {
 }
 
 dependencies {
-    implementation(project(":list"))
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.kafka:spring-kafka")
     implementation("org.springframework.boot:spring-boot-configuration-processor")
