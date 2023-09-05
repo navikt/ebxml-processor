@@ -1,5 +1,8 @@
 # lokalt utviklingsmiljø
 
+ebMS Spec:
+https://www.oasis-open.org/committees/ebxml-msg/documents/ebMS_v2_0.pdf
+
 ## Start opp docker:
 ```
 docker-compose up -d
