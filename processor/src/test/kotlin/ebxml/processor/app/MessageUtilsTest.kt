@@ -3,38 +3,64 @@
  */
 package ebxml.processor.app
 
-
-//import jakarta.xml.bind.JAXBContext
-
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
 import org.xmlsoap.schemas.soap.envelope.Body
 import org.xmlsoap.schemas.soap.envelope.Envelope
 import org.xmlsoap.schemas.soap.envelope.Header
+import org.xmlsoap.schemas.soap.envelope.ObjectFactory
+import java.io.ByteArrayOutputStream
+import javax.xml.XMLConstants
 import javax.xml.bind.JAXBContext
 import javax.xml.stream.XMLInputFactory
+import javax.xml.transform.stream.StreamSource
+import javax.xml.validation.SchemaFactory
 
 class MessageUtilsTest {
-    @Test fun testGetMessage() {
-        val unmarshaller = JAXBContext.newInstance(
+    @Test
+    fun testGetMessage() {
+        val jaxbContext = JAXBContext.newInstance(
             org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ObjectFactory::class.java,
             org.xmlsoap.schemas.soap.envelope.ObjectFactory::class.java,
             org.w3._1999.xlink.ObjectFactory::class.java,
-            org.w3._2009.xmldsig11_.ObjectFactory::class.java,
-        ).createUnmarshaller();
+            org.w3._2009.xmldsig11_.ObjectFactory::class.java
+        );
+        val unmarshaller = jaxbContext.createUnmarshaller()
         //val lines = object {}.javaClass.getResourceAsStream("2023_08_29T12_56_58_328.xml")?.bufferedReader()?.readLines()
-        val xmlFile = MessageUtilsTest::class.java.classLoader.getResourceAsStream("oppgjørsmelding/2023_08_29T12_56_58_328.xml");
+        val xmlFile =
+            MessageUtilsTest::class.java.classLoader.getResourceAsStream("oppgjørsmelding/2023_08_29T12_56_58_328.xml");
         val envelopeJaxbElement = unmarshaller.unmarshal(
-            XMLInputFactory.newInstance().createXMLStreamReader(xmlFile.reader())
-            , Envelope::class.java)
+            XMLInputFactory.newInstance().createXMLStreamReader(xmlFile.reader()), Envelope::class.java
+        )
         val envelope = envelopeJaxbElement.value;
         assertTrue(envelope is Envelope)
         assertTrue(envelope.body is Body)
         assertTrue(envelope.header is Header)
         assertTrue((envelope.header as Header).any[0] is MessageHeader)
 
+        val outputStream = ByteArrayOutputStream()
+        jaxbContext.createMarshaller().marshal(
+            ObjectFactory().createEnvelope(envelope), outputStream
+        )
+        val xmlString = String(outputStream.toByteArray());
+        print(xmlString);
 
+        SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
+            // .setResourceResolver() // TODO impl me
+            .newSchema( // TODO fixme, den forstår kun 1 skjema av gangen... prøv setResourceResolver( needsImpl )
+                arrayOf(
+                    getResource("xml.xsd"),
+                    getResource("xlink.xsd"),
+                    getResource("envelope.xsd"),
+                    getResource("msg-header-2_0.xsd"),
+                )
+            )
+            .newValidator()
+            .validate(StreamSource(xmlString))
+    }
 
+    fun getResource(resource: String): StreamSource {
+        return StreamSource(this::class.java.classLoader.getResource(resource).openStream())
     }
 }
