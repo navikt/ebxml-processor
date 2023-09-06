@@ -3,12 +3,38 @@
  */
 package ebxml.processor.app
 
-import org.junit.jupiter.api.Test
 
-import org.junit.jupiter.api.Assertions.assertEquals
+//import jakarta.xml.bind.JAXBContext
+
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
+import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
+import org.xmlsoap.schemas.soap.envelope.Body
+import org.xmlsoap.schemas.soap.envelope.Envelope
+import org.xmlsoap.schemas.soap.envelope.Header
+import javax.xml.bind.JAXBContext
+import javax.xml.stream.XMLInputFactory
 
 class MessageUtilsTest {
     @Test fun testGetMessage() {
-        assertEquals("Hello      World!", MessageUtils.getMessage())
+        val unmarshaller = JAXBContext.newInstance(
+            org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ObjectFactory::class.java,
+            org.xmlsoap.schemas.soap.envelope.ObjectFactory::class.java,
+            org.w3._1999.xlink.ObjectFactory::class.java,
+            org.w3._2009.xmldsig11_.ObjectFactory::class.java,
+        ).createUnmarshaller();
+        //val lines = object {}.javaClass.getResourceAsStream("2023_08_29T12_56_58_328.xml")?.bufferedReader()?.readLines()
+        val xmlFile = MessageUtilsTest::class.java.classLoader.getResourceAsStream("oppgjørsmelding/2023_08_29T12_56_58_328.xml");
+        val envelopeJaxbElement = unmarshaller.unmarshal(
+            XMLInputFactory.newInstance().createXMLStreamReader(xmlFile.reader())
+            , Envelope::class.java)
+        val envelope = envelopeJaxbElement.value;
+        assertTrue(envelope is Envelope)
+        assertTrue(envelope.body is Body)
+        assertTrue(envelope.header is Header)
+        assertTrue((envelope.header as Header).any[0] is MessageHeader)
+
+
+
     }
 }
