@@ -3,15 +3,17 @@
  */
 package ebxml.processor.app
 
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
 import org.xmlsoap.schemas.soap.envelope.Body
 import org.xmlsoap.schemas.soap.envelope.Envelope
 import org.xmlsoap.schemas.soap.envelope.Header
 import org.xmlsoap.schemas.soap.envelope.ObjectFactory
 import java.io.ByteArrayOutputStream
-import java.io.InputStream
+import java.net.URL
 import javax.xml.XMLConstants
 import javax.xml.bind.JAXBContext
 import javax.xml.stream.XMLInputFactory
@@ -20,7 +22,7 @@ import javax.xml.validation.SchemaFactory
 
 class MessageUtilsTest {
     @Test
-    fun testGetMessage() {
+    fun testSerdeValidateEbxmlMessage() {
         val jaxbContext = JAXBContext.newInstance(
             org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ObjectFactory::class.java,
             org.xmlsoap.schemas.soap.envelope.ObjectFactory::class.java,
@@ -47,14 +49,50 @@ class MessageUtilsTest {
         //print(xmlString);
         SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
             .newSchema(
-                StreamSource(
-                    getResource("envelope.xsd"))
+                getResourceURL("envelope.xsd")
             )
             .newValidator()
             .validate(StreamSource(xmlString.byteInputStream()))
     }
 
-    fun getResource(resource: String): InputStream? {
-        return this::class.java.classLoader.getResourceAsStream(resource)
+    @Test
+    fun testSerdeValidateCPA() {
+        val jaxbContext = JAXBContext.newInstance(
+            org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.ObjectFactory::class.java,
+            org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ObjectFactory::class.java,
+            org.xmlsoap.schemas.soap.envelope.ObjectFactory::class.java,
+            org.w3._1999.xlink.ObjectFactory::class.java,
+            org.w3._2009.xmldsig11_.ObjectFactory::class.java
+        );
+
+        val unmarshaller = jaxbContext.createUnmarshaller()
+        val xmlFile =
+            MessageUtilsTest::class.java.classLoader.getResourceAsStream("cpa/nav-qass-35065.xml");
+        val cpaJaxbElement = unmarshaller.unmarshal(
+            XMLInputFactory.newInstance().createXMLStreamReader(xmlFile.reader()), CollaborationProtocolAgreement::class.java
+        )
+        val cpa = cpaJaxbElement.value;
+
+        assertTrue(cpa is CollaborationProtocolAgreement)
+        assertEquals(cpa.cpaid, "nav:qass:35065")
+        assertEquals(cpa.version, "2_0b")
+
+        val outputStream = ByteArrayOutputStream()
+        jaxbContext.createMarshaller().marshal(
+            cpa,
+            outputStream
+        )
+        val xmlString = String(outputStream.toByteArray());
+        print(xmlString);
+        SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
+            .newSchema(
+                getResourceURL("cpp-cpa-2_0.xsd")
+            )
+            .newValidator()
+            .validate(StreamSource(xmlString.byteInputStream()))
+    }
+
+    fun getResourceURL(resource: String): URL? {
+        return this::class.java.classLoader.getResource(resource)
     }
 }
