@@ -11,6 +11,7 @@ import org.xmlsoap.schemas.soap.envelope.Envelope
 import org.xmlsoap.schemas.soap.envelope.Header
 import org.xmlsoap.schemas.soap.envelope.ObjectFactory
 import java.io.ByteArrayOutputStream
+import java.io.InputStream
 import javax.xml.XMLConstants
 import javax.xml.bind.JAXBContext
 import javax.xml.stream.XMLInputFactory
@@ -27,7 +28,6 @@ class MessageUtilsTest {
             org.w3._2009.xmldsig11_.ObjectFactory::class.java
         );
         val unmarshaller = jaxbContext.createUnmarshaller()
-        //val lines = object {}.javaClass.getResourceAsStream("2023_08_29T12_56_58_328.xml")?.bufferedReader()?.readLines()
         val xmlFile =
             MessageUtilsTest::class.java.classLoader.getResourceAsStream("oppgjørsmelding/2023_08_29T12_56_58_328.xml");
         val envelopeJaxbElement = unmarshaller.unmarshal(
@@ -44,23 +44,17 @@ class MessageUtilsTest {
             ObjectFactory().createEnvelope(envelope), outputStream
         )
         val xmlString = String(outputStream.toByteArray());
-        print(xmlString);
-
+        //print(xmlString);
         SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
-            // .setResourceResolver() // TODO impl me
-            .newSchema( // TODO fixme, den forstår kun 1 skjema av gangen... prøv setResourceResolver( needsImpl )
-                arrayOf(
-                    getResource("xml.xsd"),
-                    getResource("xlink.xsd"),
-                    getResource("envelope.xsd"),
-                    getResource("msg-header-2_0.xsd"),
-                )
+            .newSchema(
+                StreamSource(
+                    getResource("envelope.xsd"))
             )
             .newValidator()
-            .validate(StreamSource(xmlString))
+            .validate(StreamSource(xmlString.byteInputStream()))
     }
 
-    fun getResource(resource: String): StreamSource {
-        return StreamSource(this::class.java.classLoader.getResource(resource).openStream())
+    fun getResource(resource: String): InputStream? {
+        return this::class.java.classLoader.getResourceAsStream(resource)
     }
 }
