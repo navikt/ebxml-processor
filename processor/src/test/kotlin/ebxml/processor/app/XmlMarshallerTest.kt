@@ -3,6 +3,8 @@
  */
 package ebxml.processor.app
 
+import no.nav.emottak.jaxb.marshal
+import no.nav.emottak.jaxb.unmarshal
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -20,32 +22,22 @@ import javax.xml.stream.XMLInputFactory
 import javax.xml.transform.stream.StreamSource
 import javax.xml.validation.SchemaFactory
 
-class MessageUtilsTest {
+class XmlMarshallerTest {
     @Test
     fun testSerdeValidateEbxmlMessage() {
-        val jaxbContext = JAXBContext.newInstance(
-            org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ObjectFactory::class.java,
-            org.xmlsoap.schemas.soap.envelope.ObjectFactory::class.java,
-            org.w3._1999.xlink.ObjectFactory::class.java,
-            org.w3._2009.xmldsig11_.ObjectFactory::class.java
-        );
-        val unmarshaller = jaxbContext.createUnmarshaller()
+
+
         val xmlFile =
-            MessageUtilsTest::class.java.classLoader.getResourceAsStream("oppgjørsmelding/2023_08_29T12_56_58_328.xml");
-        val envelopeJaxbElement = unmarshaller.unmarshal(
-            XMLInputFactory.newInstance().createXMLStreamReader(xmlFile.reader()), Envelope::class.java
-        )
-        val envelope = envelopeJaxbElement.value;
+            XmlMarshallerTest::class.java.classLoader.getResourceAsStream("oppgjørsmelding/2023_08_29T12_56_58_328.xml");
+
+        val envelope = unmarshal(xmlFile.reader().readText(), Envelope::class.java)
         assertTrue(envelope is Envelope)
         assertTrue(envelope.body is Body)
         assertTrue(envelope.header is Header)
         assertTrue((envelope.header as Header).any[0] is MessageHeader)
 
-        val outputStream = ByteArrayOutputStream()
-        jaxbContext.createMarshaller().marshal(
-            ObjectFactory().createEnvelope(envelope), outputStream
-        )
-        val xmlString = String(outputStream.toByteArray());
+
+        val xmlString = marshal( ObjectFactory().createEnvelope(envelope) )
         //print(xmlString);
         SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
             .newSchema(
@@ -67,7 +59,7 @@ class MessageUtilsTest {
 
         val unmarshaller = jaxbContext.createUnmarshaller()
         val xmlFile =
-            MessageUtilsTest::class.java.classLoader.getResourceAsStream("cpa/nav-qass-35065.xml");
+            XmlMarshallerTest::class.java.classLoader.getResourceAsStream("cpa/nav-qass-35065.xml");
         val cpaJaxbElement = unmarshaller.unmarshal(
             XMLInputFactory.newInstance().createXMLStreamReader(xmlFile.reader()), CollaborationProtocolAgreement::class.java
         )
