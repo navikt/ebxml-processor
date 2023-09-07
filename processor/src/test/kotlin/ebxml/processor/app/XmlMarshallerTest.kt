@@ -25,17 +25,15 @@ import javax.xml.validation.SchemaFactory
 class XmlMarshallerTest {
     @Test
     fun testSerdeValidateEbxmlMessage() {
-
-
         val xmlFile =
-            XmlMarshallerTest::class.java.classLoader.getResourceAsStream("oppgjørsmelding/2023_08_29T12_56_58_328.xml");
+            XmlMarshallerTest::class.java.classLoader
+                .getResourceAsStream("oppgjørsmelding/2023_08_29T12_56_58_328.xml");
 
         val envelope = unmarshal(xmlFile.reader().readText(), Envelope::class.java)
         assertTrue(envelope is Envelope)
         assertTrue(envelope.body is Body)
         assertTrue(envelope.header is Header)
         assertTrue((envelope.header as Header).any[0] is MessageHeader)
-
 
         val xmlString = marshal( ObjectFactory().createEnvelope(envelope) )
         //print(xmlString);
@@ -49,33 +47,16 @@ class XmlMarshallerTest {
 
     @Test
     fun testSerdeValidateCPA() {
-        val jaxbContext = JAXBContext.newInstance(
-            org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.ObjectFactory::class.java,
-            org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ObjectFactory::class.java,
-            org.xmlsoap.schemas.soap.envelope.ObjectFactory::class.java,
-            org.w3._1999.xlink.ObjectFactory::class.java,
-            org.w3._2009.xmldsig11_.ObjectFactory::class.java
-        );
-
-        val unmarshaller = jaxbContext.createUnmarshaller()
         val xmlFile =
             XmlMarshallerTest::class.java.classLoader.getResourceAsStream("cpa/nav-qass-35065.xml");
-        val cpaJaxbElement = unmarshaller.unmarshal(
-            XMLInputFactory.newInstance().createXMLStreamReader(xmlFile.reader()), CollaborationProtocolAgreement::class.java
-        )
-        val cpa = cpaJaxbElement.value;
+        val cpa = unmarshal(xmlFile.reader().readText(), CollaborationProtocolAgreement::class.java)
 
         assertTrue(cpa is CollaborationProtocolAgreement)
         assertEquals(cpa.cpaid, "nav:qass:35065")
         assertEquals(cpa.version, "2_0b")
 
-        val outputStream = ByteArrayOutputStream()
-        jaxbContext.createMarshaller().marshal(
-            cpa,
-            outputStream
-        )
-        val xmlString = String(outputStream.toByteArray());
-        print(xmlString);
+        val xmlString = marshal(cpa)
+        //print(xmlString);
         SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
             .newSchema(
                 getResourceURL("cpp-cpa-2_0.xsd")
