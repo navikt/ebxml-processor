@@ -15,28 +15,7 @@
  */
 package no.nav.emottak.ebms.model
 
-import java.io.IOException
-import java.io.InputStream
-import java.io.OutputStream
-import javax.activation.DataSource
 
-class EbMSAttachment(private val dataSource: DataSource, val contentId: String) : DataSource {
+import java.nio.ByteBuffer
 
-    override fun getContentType(): String {
-        return dataSource.contentType
-    }
-
-    @Throws(IOException::class)
-    override fun getInputStream(): InputStream {
-        return dataSource.inputStream
-    }
-
-    override fun getName(): String {
-        return dataSource.name
-    }
-
-    @Throws(IOException::class)
-    override fun getOutputStream(): OutputStream {
-        return dataSource.outputStream
-    }
-}
+data class EbMSAttachment(private val dataSource: ByteArray,val contentType: String, val contentId: String)

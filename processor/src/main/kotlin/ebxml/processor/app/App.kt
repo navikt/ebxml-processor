@@ -11,6 +11,10 @@ import io.ktor.server.netty.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import no.nav.emottak.ebms.model.EbMSAttachment
+import no.nav.emottak.ebms.model.EbMSDocument
+import java.nio.ByteBuffer
+import javax.xml.parsers.DocumentBuilderFactory
 
 fun main() {
     embeddedServer(Netty, port = 8080) {
@@ -19,11 +23,13 @@ fun main() {
                 call.respondText("Hello, world!")
             }
             post("/ebms") {
-                call.receiveMultipart().forEachPart {
-                    print( it is PartData.BinaryItem)
-                    print(it.contentDisposition?.disposition)
-                    print( it is PartData.FileItem)
+                val allParts = call.receiveMultipart().readAllParts()
+                val dokument = allParts.find {
+                    it.contentType?.toString() == "text/xml" && it.contentDisposition == null
                 }
+                val attachments = allParts.filter { it.contentDisposition == ContentDisposition.Attachment}
+                val dokumentWithAttachment = EbMSDocument("",(dokument as PartData.FormItem).value.toByteArray(),attachments.map { EbMSAttachment( (it as PartData.FormItem).value.toByteArray(), it.contentType!!.contentType ,"contentId") })
+                println(dokumentWithAttachment)
                 call.respondText("Hello")
             }
         }
