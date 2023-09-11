@@ -21,6 +21,7 @@ fun main() {
             post("/ebms") {
                 call.receiveMultipart().forEachPart {
                     print( it is PartData.BinaryItem)
+                    print(it.contentDisposition?.disposition)
                     print( it is PartData.FileItem)
                 }
                 call.respondText("Hello")
