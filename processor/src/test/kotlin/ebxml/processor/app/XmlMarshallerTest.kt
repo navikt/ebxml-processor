@@ -3,8 +3,8 @@
  */
 package ebxml.processor.app
 
-import no.nav.emottak.jaxb.marshal
-import no.nav.emottak.jaxb.unmarshal
+import no.nav.emottak.xml.marshal
+import no.nav.emottak.xml.unmarshal
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -14,11 +14,8 @@ import org.xmlsoap.schemas.soap.envelope.Body
 import org.xmlsoap.schemas.soap.envelope.Envelope
 import org.xmlsoap.schemas.soap.envelope.Header
 import org.xmlsoap.schemas.soap.envelope.ObjectFactory
-import java.io.ByteArrayOutputStream
 import java.net.URL
 import javax.xml.XMLConstants
-import javax.xml.bind.JAXBContext
-import javax.xml.stream.XMLInputFactory
 import javax.xml.transform.stream.StreamSource
 import javax.xml.validation.SchemaFactory
 

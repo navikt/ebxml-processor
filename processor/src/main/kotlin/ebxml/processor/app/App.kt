@@ -13,8 +13,11 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import no.nav.emottak.ebms.model.EbMSAttachment
 import no.nav.emottak.ebms.model.EbMSDocument
+import no.nav.emottak.xml.EbmsMessageBuilder
 import java.nio.ByteBuffer
 import javax.xml.parsers.DocumentBuilderFactory
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
 
 fun main() {
     embeddedServer(Netty, port = 8080) {
@@ -28,10 +31,18 @@ fun main() {
                     it.contentType?.toString() == "text/xml" && it.contentDisposition == null
                 }
                 val attachments = allParts.filter { it.contentDisposition == ContentDisposition.Attachment}
-                val dokumentWithAttachment = EbMSDocument("",(dokument as PartData.FormItem).value.toByteArray(),attachments.map { EbMSAttachment( (it as PartData.FormItem).value.toByteArray(), it.contentType!!.contentType ,"contentId") })
+                val dokumentWithAttachment = EbMSDocument("",(dokument as PartData.FormItem).payload(),attachments.map { EbMSAttachment( (it as PartData.FormItem).payload(), it.contentType!!.contentType ,"contentId") })
                 println(dokumentWithAttachment)
+                val message = EbmsMessageBuilder().buildEbmMessage(dokumentWithAttachment)
+                println(message)
                 call.respondText("Hello")
             }
         }
     }.start(wait = true)
+}
+
+
+@OptIn(ExperimentalEncodingApi::class)
+fun PartData.FormItem.payload() : ByteArray {
+    return java.util.Base64.getMimeDecoder().decode(this.value)
 }
