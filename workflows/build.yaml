@@ -41,7 +41,7 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
     - name: "Build and push the Docker image"
-      run: "docker build --pull --tag ${IMAGE} . && docker push ${IMAGE}"
+      run: "docker build processor --pull --tag ${IMAGE} . && docker push ${IMAGE}"
 #  "deployAppToDev":
 #    name: "Deploy app to dev"
 #    needs: "build"
