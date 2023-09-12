@@ -1,25 +1,25 @@
-name: Deploy kafka topics to dev
-on:
-  push:
-    branches:
-      - 'main'
-    paths:
-      - '.nais/kafka/kafka-dev.yaml'
-      - '.github/workflows/kafka-dev.yaml'
-env:
-  TOPIC_FILE: .nais/kafka/kafka-dev.yaml
+#name: Deploy kafka topics to dev
+#on:
+#  push:
+#    branches:
+#      - 'main'
+#    paths:
+#      - '.nais/kafka/kafka-dev.yaml'
+#      - '.github/workflows/kafka-dev.yaml'
+#env:
+#  TOPIC_FILE: .nais/kafka/kafka-dev.yaml
 
-jobs:
-  deploy-to-dev:
-    name: Deploy to dev-gcp
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Deploy topics to dev
-        uses: nais/deploy/actions/deploy@v1
-        env:
-          APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
-          CLUSTER: dev-gcp
-          VAR: kafka-pool=nav-dev
-          RESOURCE: ${{ env.TOPIC_FILE }}
+#jobs:
+#  deploy-to-dev:
+#    name: Deploy to dev-gcp
+#    runs-on: ubuntu-latest
+#    steps:
+#      - name: Checkout
+#        uses: actions/checkout@v2
+#      - name: Deploy topics to dev
+#        uses: nais/deploy/actions/deploy@v1
+#        env:
+#          APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
+#          CLUSTER: dev-gcp
+#          VAR: kafka-pool=nav-dev
+#          RESOURCE: ${{ env.TOPIC_FILE }}
