@@ -9,6 +9,10 @@ jobs:
   "build":
     name: "build"
     runs-on: "ubuntu-20.04"
+    permissions: 
+        packages: write
+        repository-projects: write
+        contents: write
     steps:
     - uses: "actions/checkout@v3"
     - uses: "actions/setup-java@v3"
@@ -41,7 +45,7 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
     - name: "Build and push the Docker image"
-      run: "docker build processor --pull --tag ${IMAGE} . && docker push ${IMAGE}"
+      run: "docker build processor --pull --tag ${IMAGE} -f Dockerfile && docker push ${IMAGE}"
 #  "deployAppToDev":
 #    name: "Deploy app to dev"
 #    needs: "build"
