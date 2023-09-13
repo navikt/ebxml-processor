@@ -18,5 +18,5 @@ spec:
     requests:
       cpu: "200m"
       memory: "256Mi"
-  inngresses:
+  ingresses:
     - "https://ebms-provider.intern.dev.nav.no"
