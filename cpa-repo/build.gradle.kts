@@ -45,5 +45,5 @@ dependencies {
 }
 
 application {
-    mainClass.set("no.nav.emottak.cpa.app.AppKt")
+    mainClass.set("no.nav.emottak.cpa.AppKt")
 }
