@@ -57,7 +57,7 @@ jobs:
       env:
         "APIKEY": "${{ secrets.NAIS_DEPLOY_APIKEY }}"
         "CLUSTER": "dev-gcp"
-        "RESOURCE": ".nais/processor-dev.yml"
+        "RESOURCE": ".nais/processor-dev.yaml"
 #  "deployAppToDev":
 #    name: "Deploy app to dev"
 #    needs: "build"
