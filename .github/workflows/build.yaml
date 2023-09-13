@@ -33,7 +33,7 @@ jobs:
         restore-keys: |
             ${{ runner.os }}-gradle-cache-
     
-    - name: "compile and run tests"
+    - name: "Build and tests"
       run: ./gradlew test build
       env:
           ORG_GRADLE_PROJECT_githubUser: x-access-token
