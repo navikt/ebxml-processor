@@ -9,6 +9,14 @@ plugins {
     id("io.ktor.plugin") version "2.3.4"
 }
 
+tasks {
+
+        shadowJar {
+            archiveFileName.set("app.jar")
+        }
+    
+}
+
 repositories {
     mavenCentral()
     maven {
