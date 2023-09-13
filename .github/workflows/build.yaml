@@ -58,10 +58,10 @@ jobs:
     - name: "Deploy to DEV"
       uses: "nais/deploy/actions/deploy@v1"
       env:
-        "APIKEY": "${{ secrets.NAIS_DEPLOY_APIKEY }}"
-        "CLUSTER": "dev-gcp"
-        "RESOURCE": ".nais/processor-dev.yaml"
-        "VAR": image=${IMAGE_EBMS}
+        APIKEY: "${{ secrets.NAIS_DEPLOY_APIKEY }}"
+        CLUSTER: "dev-gcp"
+        RESOURCE: ".nais/processor-dev.yaml"
+        IMAGE: ${{env.IMAGE_EBMS}}
   deploy-cpa-repo:
     name: "Deploy cpa-repo to dev"
     needs: "build"
@@ -71,10 +71,10 @@ jobs:
     - name: "Deploy to DEV"
       uses: "nais/deploy/actions/deploy@v1"
       env:
-        "APIKEY": "${{ secrets.NAIS_DEPLOY_APIKEY }}"
-        "CLUSTER": "dev-gcp"
-        "RESOURCE": ".nais/cpa-repo-dev.yaml"
-        "VAR": image=${IMAGE_CPA}
+        APIKEY: "${{ secrets.NAIS_DEPLOY_APIKEY }}"
+        CLUSTER: "dev-gcp"
+        RESOURCE: ".nais/cpa-repo-dev.yaml"
+        IMAGE: ${{env.IMAGE_CPA}}
 #  "deployAppToDev":
 #    name: "Deploy app to dev"
 #    needs: "build"
