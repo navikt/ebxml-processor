@@ -1,4 +1,4 @@
-name: "Build and deploy ebxml-processor"
+name: "Build and deploy ebms-provider"
 on:
   push:
     branches:
@@ -6,7 +6,7 @@ on:
 env:
   "IMAGE": "ghcr.io/${{ github.repository }}:${{ github.sha }}"
 jobs:
-  "build":
+  build:
     name: "build"
     runs-on: "ubuntu-20.04"
     permissions: 
@@ -46,8 +46,8 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
     - name: "Build and push the Docker image"
       run: "docker build processor --pull --tag ${IMAGE} -f Dockerfile && docker push ${IMAGE}"
-deploy-processor:
-    name: "Deploy processor to dev"
+  deploy-processor:
+    name: "Deploy ebms provider to dev"
     needs: "build"
     runs-on: "ubuntu-20.04"
     steps:
