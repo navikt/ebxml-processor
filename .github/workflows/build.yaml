@@ -46,6 +46,18 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
     - name: "Build and push the Docker image"
       run: "docker build processor --pull --tag ${IMAGE} -f Dockerfile && docker push ${IMAGE}"
+deploy-processor:
+    name: "Deploy processor to dev"
+    needs: "build"
+    runs-on: "ubuntu-20.04"
+    steps:
+    - uses: "actions/checkout@v3"
+    - name: "Deploy to DEV"
+      uses: "nais/deploy/actions/deploy@v1"
+      env:
+        "APIKEY": "${{ secrets.NAIS_DEPLOY_APIKEY }}"
+        "CLUSTER": "dev-gcp"
+        "RESOURCE": ".nais/processor-dev.yml"
 #  "deployAppToDev":
 #    name: "Deploy app to dev"
 #    needs: "build"
