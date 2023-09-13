@@ -1,10 +1,12 @@
 apiVersion: "nais.io/v1alpha1"
 kind: "Application"
 metadata:
-  name: "ebxml-processor"
+  name: "ebms-provider"
   namespace: "team-emottak"
   labels:
     "team": "team-emottak"
+  inngress:
+    - "https://ebms-provider.intern.dev.nav.no"
 spec:
   image: {{image}}
   replicas:
