@@ -4,8 +4,8 @@ on:
     branches:
     - "main"
 env:
-  "IMAGE_EBMS": "ghcr.io/${{ github.repository }}:${{ github.sha }}-ebms"
-  "IMAGE_CPA": "ghcr.io/${{ github.repository }}:${{ github.sha }}-cpa"
+  "IMAGE_EBMS": "ghcr.io/${{ github.repository }}/ebms-provider:${{ github.sha }}"
+  "IMAGE_CPA": "ghcr.io/${{ github.repository }}/cpa-repo:${{ github.sha }}"
 jobs:
   build:
     name: "build"
