@@ -19,4 +19,4 @@ spec:
       cpu: "200m"
       memory: "256Mi"
   ingresses:
-    - "https://cpa-repo.dev.intern.nav.no"
+    - "https://cpa-repo.intern.dev.nav.no"
