@@ -2,14 +2,17 @@ package no.nav.emottak;
 
 import io.ktor.http.content.PartData
 import io.ktor.http.content.forEachPart
+import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.call
 import io.ktor.server.application.install
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.callloging.CallLogging
+import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.request.path
 import io.ktor.server.request.receiveMultipart
+import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
@@ -33,6 +36,10 @@ private fun Application.serverSetup() {
     install(CallLogging) {
         level = Level.INFO
         filter { call -> call.request.path().startsWith("/") }
+    }
+
+    install(ContentNegotiation) {
+        json()
     }
     routing {
         registerHealthEndpoints()
@@ -63,7 +70,7 @@ private fun Application.serverSetup() {
                 processedPayload = testByteArray
             )
             val prosessertMelding = processor.processOutgoing(melding)
-            call.respondText(prosessertMelding.toString())
+            call.respond(prosessertMelding)
         }
 
         post("/payload") {
