@@ -63,7 +63,7 @@ private fun Application.serverSetup() {
                 processedPayload = testByteArray
             )
             val prosessertMelding = processor.processOutgoing(melding)
-            call.respondText(prosessertMelding.header.messageId)
+            call.respondText(prosessertMelding.toString())
         }
 
         post("/payload") {

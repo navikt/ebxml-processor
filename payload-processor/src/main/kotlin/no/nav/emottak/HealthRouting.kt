@@ -12,10 +12,10 @@ import io.prometheus.client.exporter.common.TextFormat
 fun Routing.registerHealthEndpoints(
     collectorRegistry: CollectorRegistry = CollectorRegistry.defaultRegistry,
 ) {
-    get("/alive") {
+    get("/internal/health/liveness") {
         call.respondText("I'm alive! :)")
     }
-    get("/ready") {
+    get("/internal/health/readiness") {
         call.respondText("I'm ready! :)")
     }
     get("/prometheus") {

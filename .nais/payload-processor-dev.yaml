@@ -7,6 +7,18 @@ metadata:
     "team": "team-emottak"
 spec:
   image: {{image}}
+  liveness:
+    path: "/internal/health/liveness"
+    port: 8080
+    initialDelay: 30
+    timeout: 10
+    failureThreshold: 10
+  readiness:
+    path: "/internal/health/readiness"
+    port: 8080
+    initialDelay: 30
+    timeout: 10
+    failureThreshold: 10
   replicas:
     min: 1
     max: 1
