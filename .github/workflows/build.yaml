@@ -51,7 +51,7 @@ jobs:
     - name: "Build and push cpa-repo Docker image"
       run: "docker build cpa-repo --pull --tag ${IMAGE_CPA} -f Dockerfile && docker push ${IMAGE_CPA}"
     - name: "Build and push payload-processor Docker image"
-      run: "docker build payload-processor --pull --tag ${IMAGE_CPA} -f Dockerfile && docker push ${IMAGE_PAYLOAD}"
+      run: "docker build payload-processor --pull --tag ${IMAGE_PAYLOAD} -f Dockerfile && docker push ${IMAGE_PAYLOAD}"
   deploy-processor:
     name: "Deploy ebms provider to dev"
     needs: "build"
