@@ -47,7 +47,7 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
     - name: "Build and push ebms-provider Docker image"
-      run: "docker build processor --pull --tag ${IMAGE_EBMS} -f Dockerfile && docker push ${IMAGE_EBMS}"
+      run: "docker build ebms-provider --pull --tag ${IMAGE_EBMS} -f Dockerfile && docker push ${IMAGE_EBMS}"
     - name: "Build and push cpa-repo Docker image"
       run: "docker build cpa-repo --pull --tag ${IMAGE_CPA} -f Dockerfile && docker push ${IMAGE_CPA}"
     - name: "Build and push payload-processor Docker image"
@@ -63,7 +63,7 @@ jobs:
       env:
         APIKEY: "${{ secrets.NAIS_DEPLOY_APIKEY }}"
         CLUSTER: "dev-gcp"
-        RESOURCE: ".nais/processor-dev.yaml"
+        RESOURCE: ".nais/ebms-provider-dev.yaml"
         IMAGE: ${{env.IMAGE_EBMS}}
   deploy-cpa-repo:
     name: "Deploy cpa-repo to dev"
@@ -91,29 +91,3 @@ jobs:
           CLUSTER: "dev-gcp"
           RESOURCE: ".nais/payload-processor-dev.yaml"
           IMAGE: ${{env.IMAGE_PAYLOAD}}
-#  "deployAppToDev":
-#    name: "Deploy app to dev"
-#    needs: "build"
-#    runs-on: "ubuntu-20.04"
-#    steps:
-#    - uses: "actions/checkout@v3"
-#    - name: "Deploy to DEV"
-#      uses: "nais/deploy/actions/deploy@v1"
-#      env:
-#        "APIKEY": "${{ secrets.NAIS_DEPLOY_APIKEY }}"
-#        "CLUSTER": "dev-gcp"
-#        "RESOURCE": ".nais/nais.yaml"
-#        "VARS": ".nais/dev.yaml"
-#  "deployAppToProd":
-#    name: "Deploy app to prod"
-#    needs: "deployAppToDev"
-#    runs-on: "ubuntu-20.04"
-#    steps:
-#    - uses: "actions/checkout@v3"
-#    - name: "Deploy to PROD"
-#      uses: "nais/deploy/actions/deploy@v1"
-#      env:
-#        "APIKEY": "${{ secrets.NAIS_DEPLOY_APIKEY }}"
-#        "CLUSTER": "prod-gcp"
-#        "RESOURCE": ".nais/nais.yaml"
-#        "VARS": ".nais/prod.yaml"

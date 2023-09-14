@@ -10,11 +10,9 @@ plugins {
 }
 
 tasks {
-
         shadowJar {
             archiveFileName.set("app.jar")
         }
-    
 }
 
 repositories {
@@ -46,5 +44,5 @@ dependencies {
 }
 
 application {
-    mainClass.set("ebxml.processor.app.AppKt")
+    mainClass.set("no.nav.emottak.ebms.AppKt")
 }

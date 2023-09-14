@@ -1,4 +1,4 @@
-package no.nav.emottak.xml
+package no.nav.emottak.ebms.xml
 
 import java.io.StringWriter
 import javax.xml.bind.JAXBContext

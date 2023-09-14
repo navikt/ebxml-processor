@@ -1,7 +1,7 @@
-package no.nav.emottak.processing
+package no.nav.emottak.ebms.processing
 
 import no.nav.emottak.ebms.model.EbMSDocument
-import no.nav.emottak.xml.EbmsMessageBuilder
+import no.nav.emottak.ebms.xml.EbmsMessageBuilder
 
 class EbmsMessageProcessor {
 

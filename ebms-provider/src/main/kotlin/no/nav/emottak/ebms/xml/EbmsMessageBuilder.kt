@@ -1,4 +1,4 @@
-package no.nav.emottak.xml
+package no.nav.emottak.ebms.xml
 
 import no.nav.emottak.ebms.model.EbMSDocument
 import org.xmlsoap.schemas.soap.envelope.Envelope
