@@ -17,7 +17,8 @@ internal fun Melding.verifiserSignatur(): Melding {
     return this.copy(
         processedPayload = getByteArrayFromDocument(
             signatureVerifisering.validerSignatur(createDocument( ByteArrayInputStream(this.processedPayload)))
-        )
+        ),
+        signaturVerifisert = true
     )
 }
 

@@ -26,7 +26,8 @@ fun dekrypter(byteArray: ByteArray, isBase64: Boolean) = dekryptering.dekrypter(
 
 fun Melding.dekrypter(isBase64: Boolean = false): Melding {
     return this.copy(
-        processedPayload = dekryptering.dekrypter(this.processedPayload, isBase64)
+        processedPayload = dekryptering.dekrypter(this.processedPayload, isBase64),
+        dekryptert = true
     )
 }
 

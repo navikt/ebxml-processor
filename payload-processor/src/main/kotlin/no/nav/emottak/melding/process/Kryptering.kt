@@ -1,6 +1,7 @@
 package no.nav.emottak.melding.process
 
 import io.ktor.server.plugins.BadRequestException
+import no.nav.emottak.melding.model.Header
 import no.nav.emottak.melding.model.Melding
 import org.bouncycastle.asn1.ASN1ObjectIdentifier
 import org.bouncycastle.cms.CMSAlgorithm
@@ -23,20 +24,29 @@ fun krypter(byteArray: ByteArray, sertifikat: ByteArray) = kryptering.krypter(by
 
 fun Melding.krypter(): Melding {
     return this.copy(
-        processedPayload = kryptering.krypter(this.processedPayload, this.header.to.krypteringSertifikat)
+        processedPayload = kryptering.krypter(this.processedPayload, this.header),
+        kryptert = true
     )
 }
 
 class Kryptering {
 
+    fun krypter(byteArray: ByteArray, header: Header): ByteArray {
+        val krypteringSertifikat = hentKrypteringssertifikat(header.cpaId, header.to.herID)
+        return krypter(byteArray, krypteringSertifikat)
+    }
     fun krypter(byteArray: ByteArray, krypteringSertifikat: ByteArray): ByteArray {
         if (byteArray.isEmpty()) {
             throw BadRequestException("Meldingen er tom.")
         }
-
         val sertifikat = createX509Certificate(krypteringSertifikat)
         return krypterDokument(byteArray, sertifikat)
 
+    }
+
+    fun hentKrypteringssertifikat(cpaId: String, herId: String): ByteArray {
+        //TODO Hent krypteringssertifikat fra CPA
+        return this::class.java.classLoader.getResource("xml/cert.pem").readBytes()
     }
 
 }

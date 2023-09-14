@@ -25,7 +25,8 @@ fun Melding.signer(): Melding {
     return this.copy(
         processedPayload = getByteArrayFromDocument(
             signering.signerXML(createDocument( ByteArrayInputStream(this.processedPayload)))
-        )
+        ),
+        signert = true
     )
 }
 

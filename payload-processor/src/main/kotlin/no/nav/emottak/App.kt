@@ -20,7 +20,7 @@ import io.ktor.server.routing.routing
 import no.nav.emottak.melding.Processor
 import no.nav.emottak.melding.model.Header
 import no.nav.emottak.melding.model.Melding
-import no.nav.emottak.melding.model.Part
+import no.nav.emottak.melding.model.Party
 import org.slf4j.event.Level
 import java.util.UUID
 
@@ -46,25 +46,21 @@ private fun Application.serverSetup() {
 
         get("/payload/test") {
             val testByteArray = this::class.java.classLoader.getResource("xml/test.xml").readBytes()
-            val testKrypteringSertifikat = this::class.java.classLoader.getResource("xml/cert.pem").readBytes()
-            val testSigneringSertifikat = this::class.java.classLoader.getResource("xml/cert.pem").readBytes()
             val melding = Melding(
                 header = Header(
                     messageId = UUID.randomUUID().toString(),
                     conversationId = UUID.randomUUID().toString(),
-                    to = Part(
-                        krypteringSertifikat = testKrypteringSertifikat,
-                        signeringSertifikat = testSigneringSertifikat,
-                        "12345"
+                    cpaId = UUID.randomUUID().toString(),
+                    to = Party(
+                        "12345",
+                        role = "mottaker"
                     ),
-                    from = Part(
-                        krypteringSertifikat = testKrypteringSertifikat,
-                        signeringSertifikat = testSigneringSertifikat,
-                        "54321"
+                    from = Party(
+                        "54321",
+                        role = "sender"
                     ),
-                    role = "",
-                    service = "",
-                    action = ""
+                    service = "melding",
+                    action = "send"
                 ),
                 originalPayload = testByteArray,
                 processedPayload = testByteArray

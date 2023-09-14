@@ -6,23 +6,29 @@ import kotlinx.serialization.Serializable
 data class Melding(
     val header: Header,
     val originalPayload: ByteArray,
-    val processedPayload: ByteArray
+    val processedPayload: ByteArray,
+    val kryptert: Boolean = false,
+    val dekryptert: Boolean = false,
+    val signert: Boolean = false,
+    val signaturVerifisert: Boolean = false,
+    val sertifikatSjekket: Boolean = false,
+    val komprimert: Boolean = false,
+    val dekomprimert: Boolean = false
 )
 
 @Serializable
 data class Header(
     val messageId: String,
     val conversationId: String,
-    val to: Part,
-    val from: Part,
-    val role: String,
+    val cpaId: String,
+    val to: Party,
+    val from: Party,
     val service: String,
     val action: String
 )
 
 @Serializable
-data class Part(
-    val krypteringSertifikat: ByteArray,
-    val signeringSertifikat: ByteArray,
-    val herID: String
+data class Party(
+    val herID: String,
+    val role: String
 )
