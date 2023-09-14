@@ -20,7 +20,3 @@ fun main() {
         }
     }.start(wait = true)
 }
-
-fun PartData.FormItem.payload() : ByteArray {
-    return java.util.Base64.getMimeDecoder().decode(this.value)
-}

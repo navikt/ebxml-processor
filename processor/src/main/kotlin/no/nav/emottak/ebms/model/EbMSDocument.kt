@@ -18,4 +18,4 @@ package no.nav.emottak.ebms.model
 import org.w3c.dom.Document
 import java.nio.ByteBuffer
 
-data class EbMSDocument(val contentId: String, val dokument: ByteArray, val attachments: List<EbMSAttachment>)
+data class EbMSDocument(val conversationId: String, val dokument: ByteArray, val attachments: List<EbMSAttachment>)
