@@ -13,4 +13,4 @@ plugins {
 }
 
 rootProject.name = "ebxml-processor"
-include("async-recievers","cpa-repo","processor")
+include("async-recievers","cpa-repo","processor", "payload-processor")
