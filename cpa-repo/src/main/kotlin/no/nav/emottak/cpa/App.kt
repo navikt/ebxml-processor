@@ -8,6 +8,8 @@ import io.ktor.server.plugins.NotFoundException
 import io.ktor.server.response.respond
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
+import no.nav.emottak.cpa.config.DatabaseConfig
+import no.nav.emottak.cpa.config.mapHikariConfig
 
 fun main() {
     val database = Database(mapHikariConfig(DatabaseConfig()))
