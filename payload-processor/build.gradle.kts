@@ -35,6 +35,8 @@ dependencies {
     implementation("io.ktor:ktor-server-call-logging-jvm:2.3.4")
     implementation("io.ktor:ktor-server-content-negotiation:2.3.4")
     implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.4")
+    implementation("io.ktor:ktor-client-core:2.3.4")
+    implementation("io.ktor:ktor-client-cio:2.3.4")
     implementation("jakarta.xml.bind:jakarta.xml.bind-api:4.0.0", )
     implementation("org.glassfish.jaxb:jaxb-runtime:4.0.3")
     implementation("org.bouncycastle:bcprov-jdk18on:1.76")
