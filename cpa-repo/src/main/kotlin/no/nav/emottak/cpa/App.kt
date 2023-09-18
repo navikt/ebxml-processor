@@ -10,6 +10,8 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 
 fun main() {
+    val database = Database(mapHikariConfig(DatabaseConfig()))
+    database.migrate()
 
     embeddedServer(Netty, port = 8080) {
 
