@@ -9,8 +9,12 @@ import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import no.nav.emottak.cpa.config.DatabaseConfig
+import no.nav.emottak.cpa.config.mapHikariConfig
 
 fun main() {
+    val database = Database(mapHikariConfig(DatabaseConfig()))
+    database.migrate()
 
     embeddedServer(Netty, port = 8080) {
         routing {
