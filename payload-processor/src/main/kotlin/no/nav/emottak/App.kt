@@ -1,4 +1,4 @@
-package no.nav.emottak;
+package no.nav.emottak
 
 import io.ktor.http.content.PartData
 import io.ktor.http.content.forEachPart
@@ -10,17 +10,18 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.callloging.CallLogging
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.server.request.path
-import io.ktor.server.request.receiveMultipart
+import io.ktor.server.request.*
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
+import kotlinx.serialization.json.Json
 import no.nav.emottak.melding.Processor
 import no.nav.emottak.melding.model.Header
 import no.nav.emottak.melding.model.Melding
 import no.nav.emottak.melding.model.Party
+import no.nav.emottak.melding.model.PayloadRequest
 import org.slf4j.event.Level
 import java.util.UUID
 
@@ -70,10 +71,9 @@ private fun Application.serverSetup() {
         }
 
         post("/payload") {
-            call.receiveMultipart().forEachPart {
-                print(it is PartData.BinaryItem)
-                print(it is PartData.FileItem)
-            }
+
+            val request: PayloadRequest = call.receive(PayloadRequest::class)
+            println(Json.encodeToString(PayloadRequest.serializer(),request))
             call.respondText("Hello")
         }
 

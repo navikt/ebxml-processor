@@ -17,6 +17,22 @@ data class Melding(
 )
 
 @Serializable
+data class PayloadRequest(
+    val header: Header,
+    val payload: ByteArray
+)
+
+@Serializable
+data class PayloadResponse(
+    val processedPayload: ByteArray,
+    val error: Error? = null
+)
+
+@Serializable
+data class Error(val message:String)
+
+
+@Serializable
 data class Header(
     val messageId: String,
     val conversationId: String,
