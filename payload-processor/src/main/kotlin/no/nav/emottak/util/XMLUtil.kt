@@ -1,6 +1,7 @@
 package no.nav.emottak.util
 
 import io.ktor.server.plugins.BadRequestException
+import no.nav.emottak.util.signatur.KeyValueKeySelector
 import org.w3c.dom.Document
 import org.w3c.dom.Node
 import org.w3c.dom.NodeList

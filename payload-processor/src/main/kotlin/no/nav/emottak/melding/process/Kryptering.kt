@@ -3,7 +3,7 @@ package no.nav.emottak.melding.process
 import io.ktor.server.plugins.BadRequestException
 import no.nav.emottak.melding.model.Header
 import no.nav.emottak.melding.model.Melding
-import no.nav.emottak.util.sertifikat.createX509Certificate
+import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.hentKrypteringssertifikat
 import org.bouncycastle.asn1.ASN1ObjectIdentifier
 import org.bouncycastle.cms.CMSAlgorithm
