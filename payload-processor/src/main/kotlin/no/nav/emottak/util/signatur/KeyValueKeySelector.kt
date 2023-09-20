@@ -1,4 +1,4 @@
-package no.nav.emottak.util
+package no.nav.emottak.util.signatur
 
 import java.security.Key
 import java.security.KeyException

@@ -1,4 +1,4 @@
-package no.nav.emottak.util
+package no.nav.emottak.util.signatur
 
 import io.ktor.server.plugins.BadRequestException
 import javax.xml.crypto.dsig.DigestMethod

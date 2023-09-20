@@ -47,7 +47,7 @@ private fun Application.serverSetup() {
 
         get("/payload/test") {
             val testByteArray = this::class.java.classLoader.getResource("xml/test.xml").readBytes()
-            val melding = Melding(
+            val request = PayloadRequest(
                 header = Header(
                     messageId = UUID.randomUUID().toString(),
                     conversationId = UUID.randomUUID().toString(),
@@ -63,34 +63,18 @@ private fun Application.serverSetup() {
                     service = "melding",
                     action = "send"
                 ),
-                originalPayload = testByteArray,
-                processedPayload = testByteArray
+                payload = testByteArray
             )
-            val prosessertMelding = processor.processOutgoing(melding)
-            call.respond(prosessertMelding)
+            val response = processor.processOutgoing(request)
+            call.respond(response)
         }
 
         post("/payload") {
-
             val request: PayloadRequest = call.receive(PayloadRequest::class)
             println(Json.encodeToString(PayloadRequest.serializer(),request))
-            call.respondText("Hello")
+            val response = processor.process(request)
+            call.respond(response)
         }
 
-        post("/payload/incoming") {
-            call.receiveMultipart().forEachPart {
-                print(it is PartData.BinaryItem)
-                print(it is PartData.FileItem)
-            }
-            call.respondText("Hello")
-        }
-
-        post("/payload/outgoing") {
-            call.receiveMultipart().forEachPart {
-                print(it is PartData.BinaryItem)
-                print(it is PartData.FileItem)
-            }
-            call.respondText("Hello")
-        }
     }
 }

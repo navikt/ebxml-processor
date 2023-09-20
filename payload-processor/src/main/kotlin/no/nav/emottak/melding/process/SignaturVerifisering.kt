@@ -4,7 +4,7 @@ import io.ktor.server.plugins.BadRequestException
 import no.nav.emottak.melding.model.Melding
 import no.nav.emottak.util.createValidateContext
 import no.nav.emottak.util.retrieveXMLSignature
-import no.nav.emottak.util.validateAlgorithms
+import no.nav.emottak.util.signatur.validateAlgorithms
 import no.nav.emottak.util.createDocument
 import no.nav.emottak.util.getByteArrayFromDocument
 import org.w3c.dom.Document
