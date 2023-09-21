@@ -12,15 +12,15 @@ tasks.register<Wrapper>("wrapper") {
 }
 
 dependencies {
-    implementation("no.nav.emottak:ebxml-protokoll:0.0.4")
-    implementation("com.zaxxer:HikariCP:5.0.1")
-    implementation("org.flywaydb:flyway-core:9.16.3")
-    implementation("ch.qos.logback:logback-classic:1.4.11")
-    implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.4")
-    api("org.bouncycastle:bcprov-jdk18on:1.76")
-    api("org.bouncycastle:bcpkix-jdk18on:1.76")
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.1")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.1")
+    implementation(libs.ebxml.protokoll)
+    implementation(libs.hikari)
+    implementation(libs.flyway.core)
+    implementation(libs.logback.classic)
+    implementation(libs.ktor.serialization.kotlinx.json)
+    api(libs.bcprov.jdk18on)
+    api(libs.bcpkix.jdk18on)
+    testImplementation(testLibs.junit.jupiter.api)
+    testRuntimeOnly(testLibs.junit.jupiter.engine)
 
     runtimeOnly("org.postgresql:postgresql:42.6.0")
 }
