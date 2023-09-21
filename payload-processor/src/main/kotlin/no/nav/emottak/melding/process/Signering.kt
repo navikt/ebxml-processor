@@ -1,8 +1,8 @@
 package no.nav.emottak.melding.process
 
 import no.nav.emottak.melding.model.Melding
-import no.nav.emottak.util.getSignerCertificate
-import no.nav.emottak.util.getSignerKey
+import no.nav.emottak.util.crypto.getSignerCertificate
+import no.nav.emottak.util.crypto.getSignerKey
 import no.nav.emottak.util.createDocument
 import no.nav.emottak.util.getByteArrayFromDocument
 import org.w3c.dom.Document

@@ -1,5 +1,6 @@
-package no.nav.emottak.util
+package no.nav.emottak.util.crypto
 
+import no.nav.emottak.util.getEnvVar
 import java.io.ByteArrayInputStream
 import java.io.FileInputStream
 import java.io.FileNotFoundException
@@ -14,12 +15,11 @@ private val keystorePass = getEnvVar("KEYSTORE_PWD", "123456789")
 private val keystoreType = getEnvVar("KEYSTORE_TYPE", "PKCS12")
 
 internal val keyStoreUtil = KeyStoreUtil()
+fun getSignerCertificate(alias: String) = keyStoreUtil.getCertificate(alias)
+fun getSignerKey(alias: String) = keyStoreUtil.getKey(alias)
 
-internal fun getSignerCertificate(alias: String) = keyStoreUtil.getCertificate(alias)
-internal fun getSignerKey(alias: String) = keyStoreUtil.getKey(alias)
-
-internal fun getDekrypteringKey(alias: String) = keyStoreUtil.getKey(alias) as PrivateKey
-internal fun getPrivateCertificates() = keyStoreUtil.getPrivateCertificates()
+fun getDekrypteringKey(alias: String) = keyStoreUtil.getKey(alias) as PrivateKey
+fun getPrivateCertificates() = keyStoreUtil.getPrivateCertificates()
 
 internal class KeyStoreUtil {
 

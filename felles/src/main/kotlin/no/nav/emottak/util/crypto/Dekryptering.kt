@@ -1,9 +1,6 @@
-package no.nav.emottak.melding.process
+package no.nav.emottak.util.crypto
 
-import io.ktor.server.plugins.BadRequestException
-import no.nav.emottak.melding.model.Melding
-import no.nav.emottak.util.getDekrypteringKey
-import no.nav.emottak.util.getPrivateCertificates
+
 import org.bouncycastle.asn1.x500.X500Name
 import org.bouncycastle.cms.CMSEnvelopedData
 import org.bouncycastle.cms.KeyTransRecipientId
@@ -18,18 +15,6 @@ import java.security.Security
 import java.security.cert.X509Certificate
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
-
-private val dekryptering = Dekryptering()
-
-fun dekrypter(byteArray: ByteArray) = dekryptering.dekrypter(byteArray, false)
-fun dekrypter(byteArray: ByteArray, isBase64: Boolean) = dekryptering.dekrypter(byteArray, isBase64)
-
-fun Melding.dekrypter(isBase64: Boolean = false): Melding {
-    return this.copy(
-        processedPayload = dekryptering.dekrypter(this.processedPayload, isBase64),
-        dekryptert = true
-    )
-}
 
 class Dekryptering {
 
@@ -59,7 +44,7 @@ class Dekryptering {
 
 
     private fun getDeenvelopedContent(recipient: RecipientInformation, key: PrivateKey): ByteArray {
-        return recipient.getContent(JceKeyTransEnvelopedRecipient(key)) ?: throw BadRequestException("Meldingen er tom.")
+        return recipient.getContent(JceKeyTransEnvelopedRecipient(key)) ?: throw DecryptionException("Meldingen er tom.")
     }
 
     private fun getPrivateKeyMatch(recipient: RecipientInformation): PrivateKey {
@@ -72,9 +57,9 @@ class Dekryptering {
                 issuer == certificateIssuer && cert.serialNumber == rid.serialNumber
             }.firstOrNull { entry ->
                 return getDekrypteringKey(entry.key)
-            } ?: throw BadRequestException("Fant ingen gyldige privatsertifikat for dekryptering")
+            } ?: throw DecryptionException("Fant ingen gyldige privatsertifikat for dekryptering")
         }
-        throw BadRequestException("Fant ikke riktig sertifikat for mottaker: ")
+        throw DecryptionException("Fant ikke riktig sertifikat for mottaker: ")
     }
 
 }

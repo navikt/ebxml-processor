@@ -1,7 +1,7 @@
 package no.nav.emottak.cpa.config
 
 import com.zaxxer.hikari.HikariConfig
-import no.nav.emottak.cpa.fromEnv
+import no.nav.emottak.util.fromEnv
 
 private const val prefix = "NAIS_DATABASE_CPA_REPO_CPA_REPO_DB"
 

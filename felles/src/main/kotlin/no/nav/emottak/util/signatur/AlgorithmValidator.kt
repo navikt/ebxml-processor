@@ -1,6 +1,5 @@
 package no.nav.emottak.util.signatur
 
-import io.ktor.server.plugins.BadRequestException
 import javax.xml.crypto.dsig.DigestMethod
 import javax.xml.crypto.dsig.Reference
 import javax.xml.crypto.dsig.SignatureMethod
@@ -11,7 +10,7 @@ private const val SIGNATURE_ALGORITHM_DEFAULT = "http://www.w3.org/2000/09/xmlds
 private const val ALGORITHM_TYPE_SIGNATURE = "Signature"
 private const val ALGORITHM_TYPE_DIGEST = "Message digest"
 
-internal fun validateAlgorithms(
+fun validateAlgorithms(
     signedInfo: SignedInfo,
     minimumSignatureAlgorithm: String = SIGNATURE_ALGORITHM_DEFAULT,
     minimumDigestAlgorithm: String = DIGEST_ALGORITHM_DEFAULT
@@ -62,19 +61,19 @@ private fun validateMinimum(algorithmList: List<String>, algorithm: String, mini
 
 private fun isMinimumAlgorithmSupported(minIndex: Int, minimum: String, type: String) {
     if (minIndex < 0) {
-        throw BadRequestException("Unsupported specified minimum $type algorithm: $minimum")
+        throw AlgorithmNotSupportedException("Unsupported specified minimum $type algorithm: $minimum")
     }
 }
 
 private fun isAlgorithmSupported(index: Int, algorithm: String, type: String) {
     if (index < 0) {
-        throw BadRequestException("Unsupported $type algorithm: $algorithm")
+        throw AlgorithmNotSupportedException("Unsupported $type algorithm: $algorithm")
     }
 }
 
 private fun isAlgorithmLessThanMinimum(index: Int, minIndex: Int, algorithm: String, minimum: String, type: String) {
     if (index < minIndex) {
-        throw BadRequestException(
+        throw AlgorithmNotSupportedException(
             "$type algorithm ($algorithm) is less than the specified minimum $type algorithm: $minimum"
         )
     }

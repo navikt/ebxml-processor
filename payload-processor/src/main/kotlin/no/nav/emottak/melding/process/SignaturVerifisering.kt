@@ -7,6 +7,7 @@ import no.nav.emottak.util.retrieveXMLSignature
 import no.nav.emottak.util.signatur.validateAlgorithms
 import no.nav.emottak.util.createDocument
 import no.nav.emottak.util.getByteArrayFromDocument
+import no.nav.emottak.util.signatur.AlgorithmNotSupportedException
 import org.w3c.dom.Document
 import java.io.ByteArrayInputStream
 import javax.xml.crypto.dsig.XMLSignatureException
@@ -45,6 +46,8 @@ class SignaturVerifisering {
             }
         } catch (signatureException: XMLSignatureException) {
             throw signatureException
+        } catch (algorithmNotSupported: AlgorithmNotSupportedException) {
+            throw BadRequestException(algorithmNotSupported.message,algorithmNotSupported)
         }
     }
 

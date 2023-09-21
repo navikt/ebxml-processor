@@ -1,7 +1,9 @@
 package no.nav.emottak.melding.process
 
+import no.nav.emottak.melding.model.dekrypter
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
 class DekrypteringTest {
@@ -14,7 +16,7 @@ class DekrypteringTest {
 
         val expectedOutput = createInputstreamFromFile("src/test/resources/xml/testfil.xml").readBytes()
 
-        assertTrue(expectedOutput.contentEquals(dekryptert))
+        assertTrue(expectedOutput.contentEquals(dekryptert.also { println("dekryptert" + String(dekryptert)) }).also { println("expected" + String(expectedOutput))  })
 
     }
 

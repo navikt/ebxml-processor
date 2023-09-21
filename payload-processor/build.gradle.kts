@@ -48,8 +48,6 @@ dependencies {
     implementation("io.ktor:ktor-client-cio:2.3.4")
     implementation("jakarta.xml.bind:jakarta.xml.bind-api:4.0.0", )
     implementation("org.glassfish.jaxb:jaxb-runtime:4.0.3")
-    implementation("org.bouncycastle:bcprov-jdk18on:1.76")
-    implementation("org.bouncycastle:bcpkix-jdk18on:1.76")
     implementation("ch.qos.logback:logback-classic:1.4.11")
     implementation("io.micrometer:micrometer-registry-prometheus:1.11.3")
 

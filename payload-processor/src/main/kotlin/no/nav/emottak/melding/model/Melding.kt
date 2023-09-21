@@ -1,6 +1,7 @@
 package no.nav.emottak.melding.model
 
 import kotlinx.serialization.Serializable
+import no.nav.emottak.util.crypto.Dekryptering
 
 @Serializable
 data class Melding(
@@ -21,35 +22,14 @@ data class Melding(
         processedPayload = payloadRequest.payload)
 }
 
-@Serializable
-data class PayloadRequest(
-    val header: Header,
-    val payload: ByteArray
-)
+val dekryptering = Dekryptering()
 
-@Serializable
-data class PayloadResponse(
-    val processedPayload: ByteArray,
-    val error: Error? = null
-)
+fun dekrypter(byteArray: ByteArray) = dekryptering.dekrypter(byteArray, false)
+fun dekrypter(byteArray: ByteArray, isBase64: Boolean) = dekryptering.dekrypter(byteArray, isBase64)
 
-@Serializable
-data class Error(val message:String)
-
-
-@Serializable
-data class Header(
-    val messageId: String,
-    val conversationId: String,
-    val cpaId: String,
-    val to: Party,
-    val from: Party,
-    val service: String,
-    val action: String
-)
-
-@Serializable
-data class Party(
-    val herID: String,
-    val role: String
-)
+fun Melding.dekrypter(isBase64: Boolean = false): Melding {
+    return this.copy(
+        processedPayload = dekryptering.dekrypter(this.processedPayload, isBase64),
+        dekryptert = true
+    )
+}

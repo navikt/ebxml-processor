@@ -40,3 +40,5 @@ build
 buildSrc/
 ebms-provider/out/
 cpa-repo/out/
+felles/out/
+payload-processor/out/
