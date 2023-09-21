@@ -11,6 +11,9 @@ import io.ktor.server.netty.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import no.nav.emottak.ebms.db.Database
+import no.nav.emottak.ebms.db.DatabaseConfig
+import no.nav.emottak.ebms.db.mapHikariConfig
 import no.nav.emottak.ebms.model.EbMSAttachment
 import no.nav.emottak.ebms.model.EbMSDocument
 import no.nav.emottak.ebms.processing.EbmsMessageProcessor
@@ -20,6 +23,8 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 fun main() {
 
     val processor = EbmsMessageProcessor()
+    val database = Database(mapHikariConfig(DatabaseConfig()))
+    database.migrate()
 
     embeddedServer(Netty, port = 8080) {
         routing {
