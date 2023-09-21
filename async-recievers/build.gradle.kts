@@ -11,14 +11,6 @@ plugins {
 
 apply(plugin = "io.spring.dependency-management")
 
-repositories {
-    mavenCentral()
-}
-
-tasks.register<Wrapper>("wrapper") {
-    gradleVersion="8.1.1"
-}
-
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.kafka:spring-kafka")

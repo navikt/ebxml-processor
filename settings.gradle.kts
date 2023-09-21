@@ -6,5 +6,20 @@
  * Detailed information about configuring a multi-project build in Gradle can be found
  * in the user manual at https://docs.gradle.org/8.1.1/userguide/multi_project_builds.html
  */
+
+dependencyResolutionManagement {
+    repositories {
+        mavenCentral()
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/navikt/ebxml-protokoll")
+            credentials {
+                username = "token"
+                password = System.getenv("GITHUB_TOKEN")
+            }
+        }
+    }
+}
+
 rootProject.name = "ebxml-processor"
 include("felles","async-recievers","cpa-repo","ebms-provider", "payload-processor")
