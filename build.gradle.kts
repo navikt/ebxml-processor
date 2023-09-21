@@ -24,24 +24,21 @@ tasks.test {
 
 dependencies {
     implementation(project(":felles"))
-    implementation("io.ktor:ktor-server-core:2.3.4")
-    implementation("io.ktor:ktor-server-netty:2.3.4")
-    implementation("com.github.labai:labai-jsr305x-annotations:0.0.2")
-    implementation("jakarta.xml.bind:jakarta.xml.bind-api:4.0.0", )
-    implementation("org.glassfish.jaxb:jaxb-runtime:2.4.0-b180830.0438")
-    implementation("com.zaxxer:HikariCP:5.0.1")
-    implementation("org.flywaydb:flyway-core:9.16.3")
-    implementation("org.jetbrains.exposed:exposed-core:0.43.0")
-    implementation("org.jetbrains.exposed:exposed-dao:0.43.0")
-    implementation("org.jetbrains.exposed:exposed-jdbc:0.43.0")
-    implementation("org.jetbrains.exposed:exposed-java-time:0.43.0")
+    implementation(libs.ktor.server.core)
+    implementation(libs.ktor.server.netty)
+    implementation(libs.labai.jsr305x.annotations)
+    implementation(libs.jakarta.xml.bind.api)
+    implementation(libs.jaxb.runtime)
+    implementation(libs.hikari)
+    implementation(libs.flyway.core)
+    implementation(libs.exposed.core)
+    implementation(libs.exposed.dao)
+    implementation(libs.exposed.jdbc)
+    implementation(libs.exposed.java.time)
     //implementation("org.glassfish.jaxb:jaxb-runtime:4.0.3") // TODO: Latest. Krever at protokoll oppdateres
-    implementation("no.nav.emottak:ebxml-protokoll:0.0.4")
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.1")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.1")
-
-    runtimeOnly("org.postgresql:postgresql:42.6.0")
-
+    implementation(libs.ebxml.protokoll)
+    testImplementation(testLibs.junit.jupiter.api)
+    testRuntimeOnly(testLibs.junit.jupiter.engine)
 }
 
 application {
