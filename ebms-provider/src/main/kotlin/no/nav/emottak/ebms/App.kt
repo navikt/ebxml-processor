@@ -16,9 +16,11 @@ import no.nav.emottak.ebms.db.DatabaseConfig
 import no.nav.emottak.ebms.db.mapHikariConfig
 import no.nav.emottak.ebms.model.EbMSAttachment
 import no.nav.emottak.ebms.model.EbMSDocument
+import no.nav.emottak.ebms.model.getAttachmentId
+import no.nav.emottak.ebms.model.getConversationId
 import no.nav.emottak.ebms.processing.EbmsMessageProcessor
-import no.nav.emottak.ebms.xml.EbmsMessageBuilder
-import kotlin.io.encoding.ExperimentalEncodingApi
+import no.nav.emottak.ebms.xml.xmlMarshaller
+import org.xmlsoap.schemas.soap.envelope.Envelope
 
 fun main() {
 
@@ -42,6 +44,27 @@ fun main() {
                 println(dokumentWithAttachment)
 
                 call.respondText("Hello")
+            }
+            post("/ebmsTest") {
+                val allParts = call.receiveMultipart().readAllParts()
+                val dokument = allParts.find {
+                    it.contentType?.toString() == "text/xml" && it.contentDisposition == null
+                }
+                val envelope = xmlMarshaller.unmarshal(String((dokument as PartData.FormItem).payload()), Envelope::class.java)
+
+                val conversationId = envelope.getConversationId()
+                println(conversationId)
+                val attachmentId = envelope.getAttachmentId()
+                println(attachmentId)
+                val attachments = allParts
+                    .filter { it.contentDisposition == ContentDisposition.Attachment }
+                    .filter { it.headers.get("Content-Id")?.contains(attachmentId, true) ?: false }
+                    .map { (it as PartData.FormItem).payload() }
+                    .first()
+                println(
+                    String(attachments)
+                )
+                call.respondText("Hello2")
             }
         }
     }.start(wait = true)

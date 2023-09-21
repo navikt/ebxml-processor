@@ -3,6 +3,7 @@
  */
 package no.nav.emottak.ebms
 
+import no.nav.emottak.ebms.model.getConversationId
 import no.nav.emottak.ebms.xml.marshal
 import no.nav.emottak.ebms.xml.unmarshal
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -24,7 +25,7 @@ class XmlMarshallerTest {
     fun testSerdeValidateEbxmlMessage() {
         val xmlFile =
             XmlMarshallerTest::class.java.classLoader
-                .getResourceAsStream("oppgjørsmelding/2023_08_29T12_56_58_328.xml");
+                .getResourceAsStream("oppgjørsmelding/2023_08_29T12_56_58_328.xml")
 
         val envelope = unmarshal(xmlFile.reader().readText(), Envelope::class.java)
         assertTrue(envelope is Envelope)
