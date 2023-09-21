@@ -8,6 +8,47 @@
  */
 
 dependencyResolutionManagement {
+
+    versionCatalogs {
+        create("libs") {
+            version("bouncycastle", "1.76")
+            version("exposed", "0.43.0")
+            version("ktor", "2.3.4")
+
+            library("bcpkix-jdk18on", "org.bouncycastle", "bcpkix-jdk18on").versionRef("bouncycastle")
+            library("bcprov-jdk18on", "org.bouncycastle", "bcprov-jdk18on").versionRef("bouncycastle")
+
+            library("exposed-core", "org.jetbrains.exposed", "exposed-core").versionRef("exposed")
+            library("exposed-dao", "org.jetbrains.exposed", "exposed-dao").versionRef("exposed")
+            library("exposed-java-time", "org.jetbrains.exposed", "exposed-java-time").versionRef("exposed")
+            library("exposed-jdbc", "org.jetbrains.exposed", "exposed-jdbc").versionRef("exposed")
+
+            library("ktor-server-core", "io.ktor", "ktor-server-core").versionRef("ktor")
+            library("ktor-server-netty", "io.ktor", "ktor-server-netty").versionRef("ktor")
+            library("ktor-server-call-logging-jvm", "io.ktor", "ktor-server-call-logging-jvm").versionRef("ktor")
+            library("ktor-server-content-negotiation", "io.ktor", "ktor-server-content-negotiation").versionRef("ktor")
+            library("ktor-serialization-kotlinx-json", "io.ktor", "ktor-serialization-kotlinx-json").versionRef("ktor")
+            library("ktor-client-core", "io.ktor", "ktor-client-core").versionRef("ktor")
+            library("ktor-client-cio", "io.ktor", "ktor-client-cio").versionRef("ktor")
+
+            library("logback-classic", "ch.qos.logback:logback-classic:1.4.11")
+            library("hikari", "com.zaxxer:HikariCP:5.0.1")
+            library("labai-jsr305x-annotations", "com.github.labai:labai-jsr305x-annotations:0.0.2")
+            library("jakarta.xml.bind-api", "jakarta.xml.bind:jakarta.xml.bind-api:4.0.0")
+            library("ebxml-protokoll", "no.nav.emottak:ebxml-protokoll:0.0.4")
+            library("flyway-core", "org.flywaydb:flyway-core:9.16.3")
+            library("jaxb-runtime", "org.glassfish.jaxb:jaxb-runtime:2.4.0-b180830.0438")
+        }
+
+        create("testLibs") {
+            version("junit", "5.9.2")
+
+            library("junit-jupiter-api", "org.junit.jupiter", "junit-jupiter-api").versionRef("junit")
+            library("junit-jupiter-engine", "org.junit.jupiter", "junit-jupiter-engine").versionRef("junit")
+        }
+    }
+
+
     repositories {
         mavenCentral()
         maven {
