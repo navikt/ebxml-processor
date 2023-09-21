@@ -12,6 +12,14 @@ plugins {
 
 repositories {
     mavenCentral()
+    maven {
+        name = "GitHubPackages"
+        url = uri("https://maven.pkg.github.com/navikt/ebxml-protokoll")
+        credentials {
+            username = "x-access-token"
+            password = githubPassword
+        }
+    }
 }
 
 
@@ -30,6 +38,7 @@ tasks {
 }
 
 dependencies {
+    implementation(project(":felles"))
     implementation("io.ktor:ktor-server-core:2.3.4")
     implementation("io.ktor:ktor-server-netty:2.3.4")
     implementation("io.ktor:ktor-server-call-logging-jvm:2.3.4")

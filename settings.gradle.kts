@@ -7,4 +7,4 @@
  * in the user manual at https://docs.gradle.org/8.1.1/userguide/multi_project_builds.html
  */
 rootProject.name = "ebxml-processor"
-include("async-recievers","cpa-repo","ebms-provider", "payload-processor")
+include("felles","async-recievers","cpa-repo","ebms-provider", "payload-processor")
