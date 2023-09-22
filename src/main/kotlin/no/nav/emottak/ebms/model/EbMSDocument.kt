@@ -21,7 +21,7 @@ import org.xmlsoap.schemas.soap.envelope.Envelope
 data class EbMSDocument(val conversationId: String, val dokument: ByteArray, val attachments: List<EbMSAttachment>)
 
 
-fun EbMSDocument.buildEbmMessage(): EbMSMessage? {
+fun EbMSDocument.buildEbmMessage(): EbMSMessage {
     println(String( this.dokument))
     val envelope = xmlMarshaller.unmarshal( String( this.dokument), Envelope::class.java)
     return EbMSMessage(envelope.header(),envelope.ackRequested(),this.attachments )
