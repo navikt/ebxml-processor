@@ -31,10 +31,7 @@ dependencies {
     implementation(libs.jaxb.runtime)
     implementation(libs.hikari)
     implementation(libs.flyway.core)
-    implementation(libs.exposed.core)
-    implementation(libs.exposed.dao)
-    implementation(libs.exposed.jdbc)
-    implementation(libs.exposed.java.time)
+    implementation(libs.bundles.exposed)
     //implementation("org.glassfish.jaxb:jaxb-runtime:4.0.3") // TODO: Latest. Krever at protokoll oppdateres
     implementation(libs.ebxml.protokoll)
     testImplementation(testLibs.junit.jupiter.api)
