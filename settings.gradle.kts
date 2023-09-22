@@ -38,6 +38,9 @@ dependencyResolutionManagement {
             library("ebxml-protokoll", "no.nav.emottak:ebxml-protokoll:0.0.4")
             library("flyway-core", "org.flywaydb:flyway-core:9.16.3")
             library("jaxb-runtime", "org.glassfish.jaxb:jaxb-runtime:2.4.0-b180830.0438")
+
+            bundle("bouncycastle", listOf("bcpkix-jdk18on", "bcprov-jdk18on"))
+            bundle("exposed", listOf("exposed-core", "exposed-dao", "exposed-java-time", "exposed-jdbc"))
         }
 
         create("testLibs") {
