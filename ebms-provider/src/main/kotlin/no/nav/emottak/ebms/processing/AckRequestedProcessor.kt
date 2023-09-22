@@ -16,16 +16,17 @@ import kotlin.coroutines.Continuation
 
 class AckRequestedProcessor(): Processor {
 
-    fun createAcknowledgement(envelope: Envelope): Acknowledgment {
+    fun createAcknowledgement(message: EbMSMessage): Acknowledgment {
         val acknowledgment = Acknowledgment()
         acknowledgment.id = "ACK_ID" // Identifier for Acknowledgment elementet, IKKE message ID. // TODO avklar, dette er såvidt jeg vet en arbitrær verdi?
-        acknowledgment.version = envelope.getVersion()
+        acknowledgment.version = message.messageHeader.version
         acknowledgment.isMustUnderstand = true // Alltid
-        acknowledgment.actor = envelope.getActor()
+        acknowledgment.actor = message.messageHeader.getActor()
         acknowledgment.timestamp = Date.from(Instant.now()) // TODO dette skal være message received date, hente fra context?
-        acknowledgment.refToMessageId = envelope.getMessageId()
-        acknowledgment.from = envelope.getFrom()
-        if(envelope.getAckRequestedSigned()) {
+        //@TODO legg til messageID fra messageData
+        //acknowledgment.refToMessageId = envelope.getMessageId()
+        acknowledgment.from = message.messageHeader.from
+        if(message.messageHeader.getAckRequestedSigned() == true) {
             // TODO vi må signere responsen, kan kanskje alltid gjøres uansett?
             acknowledgment.reference.addAll(getReferences())
         }
@@ -37,7 +38,7 @@ class AckRequestedProcessor(): Processor {
         return emptyList() // TODO XMLDSIG elements fra signaturen vår
     }
 
-    override fun process() {
+    override fun process(message: EbMSMessage) {
         TODO("Not yet implemented")
     }
 }

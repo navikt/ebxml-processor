@@ -44,12 +44,11 @@ fun Envelope.ackRequested() : AckRequested? {
     return this.header.any.filterIsInstance<AckRequested>().first()
 }
 
-fun Envelope.getActor(): String {
-    return this.header.any.filterIsInstance<AckRequested>().stream()
-        .filter{ isNotBlank(it.actor) }.map { it.actor }.findFirst().get()
+fun MessageHeader.getActor(): String {
+    return this.any!!.filterIsInstance<AckRequested>()
+        .filter{ isNotBlank(it.actor) }.map { it.actor }.filterNotNull().first()
 }
 
-fun Envelope.getAckRequestedSigned(): Boolean {
-    return this.header.any.filterIsInstance<AckRequested>().stream()
-        .anyMatch { it.isSigned } // Kotlin quirk. Med isSigned menes at en signed Ack er ønsket
+fun MessageHeader.getAckRequestedSigned(): Boolean? {
+    return this.any!!.filterIsInstance<AckRequested>().find { it.isSigned }?.isSigned // Kotlin quirk. Med isSigned menes at en signed Ack er ønsket
 }
