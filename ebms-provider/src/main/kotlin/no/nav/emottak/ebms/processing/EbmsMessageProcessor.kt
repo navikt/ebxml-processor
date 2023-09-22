@@ -1,13 +1,11 @@
 package no.nav.emottak.ebms.processing
 
 import no.nav.emottak.ebms.model.EbMSDocument
+import no.nav.emottak.ebms.model.EbMSMessage
 import no.nav.emottak.ebms.xml.EbmsMessageBuilder
 
-class EbmsMessageProcessor {
+class EbmsMessageProcessor : Processor {
 
-
-    fun process(dokument: EbMSDocument) {
-        val message = EbmsMessageBuilder().buildEbmMessage(dokument)
-        println(message)
+    override fun process(dokument: EbMSMessage) {
     }
 }

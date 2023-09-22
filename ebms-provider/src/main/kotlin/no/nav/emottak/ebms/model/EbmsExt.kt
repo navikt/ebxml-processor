@@ -36,6 +36,14 @@ fun Envelope.getMessageId(): String {
         .map { it.messageId }.findFirst().get()
 }
 
+fun Envelope.header(): MessageHeader {
+    return this.header.any.filterIsInstance<MessageHeader>().first()
+}
+
+fun Envelope.ackRequested() : AckRequested? {
+    return this.header.any.filterIsInstance<AckRequested>().first()
+}
+
 fun Envelope.getActor(): String {
     return this.header.any.filterIsInstance<AckRequested>().stream()
         .filter{ isNotBlank(it.actor) }.map { it.actor }.findFirst().get()

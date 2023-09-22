@@ -15,7 +15,14 @@
  */
 package no.nav.emottak.ebms.model
 
-import org.w3c.dom.Document
-import java.nio.ByteBuffer
+import no.nav.emottak.ebms.xml.xmlMarshaller
+import org.xmlsoap.schemas.soap.envelope.Envelope
 
 data class EbMSDocument(val conversationId: String, val dokument: ByteArray, val attachments: List<EbMSAttachment>)
+
+
+fun EbMSDocument.buildEbmMessage(): EbMSMessage? {
+    println(String( this.dokument))
+    val envelope = xmlMarshaller.unmarshal( String( this.dokument), Envelope::class.java)
+    return EbMSMessage(envelope.header(),envelope.ackRequested(),this.attachments )
+}
