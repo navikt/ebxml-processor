@@ -16,6 +16,7 @@ import no.nav.emottak.ebms.db.DatabaseConfig
 import no.nav.emottak.ebms.db.mapHikariConfig
 import no.nav.emottak.ebms.model.EbMSAttachment
 import no.nav.emottak.ebms.model.EbMSDocument
+import no.nav.emottak.ebms.model.buildEbmMessage
 import no.nav.emottak.ebms.model.getAttachmentId
 import no.nav.emottak.ebms.model.getConversationId
 import no.nav.emottak.ebms.processing.EbmsMessageProcessor
@@ -58,7 +59,7 @@ fun Application.myApplicationModule() {
                         "contentId"
                     )
                 })
-            processor.process(dokumentWithAttachment)
+            processor.process(dokumentWithAttachment.buildEbmMessage())
             println(dokumentWithAttachment)
 
             call.respondText("Hello")
