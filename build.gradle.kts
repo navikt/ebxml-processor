@@ -17,8 +17,7 @@ dependencies {
     implementation(libs.flyway.core)
     implementation(libs.logback.classic)
     implementation(libs.ktor.serialization.kotlinx.json)
-    api(libs.bcprov.jdk18on)
-    api(libs.bcpkix.jdk18on)
+    api(libs.bundles.bouncycastle)
     testImplementation(testLibs.junit.jupiter.api)
     testRuntimeOnly(testLibs.junit.jupiter.engine)
 
