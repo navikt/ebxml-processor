@@ -1,10 +1,7 @@
 package no.nav.emottak.ebms.model
 
 import org.apache.commons.lang3.StringUtils.isNotBlank
-import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.AckRequested
-import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.From
-import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Manifest
-import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
+import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.*
 import org.xmlsoap.schemas.soap.envelope.Envelope
 
 // TODO kan sikkert flytte alt dette til der det brukes.
@@ -27,16 +24,16 @@ fun Envelope.getFrom (): From {
     return (this.header.any.find { it is MessageHeader } as MessageHeader).from
 }
 
-fun Envelope.getMessageId(): String {
-    return this.header.any.filterIsInstance<MessageHeader>()
-        .stream().filter { isNotBlank(it.id) }
-        .map { it.id }.findFirst().get()
-}
-
 fun Envelope.getVersion(): String {
     return this.header.any.filterIsInstance<MessageHeader>()
         .stream().filter { isNotBlank(it.version) }
         .map { it.version }.findFirst().get()
+}
+
+fun Envelope.getMessageId(): String {
+    return this.header.any.filterIsInstance<MessageData>()
+        .stream().filter { isNotBlank(it.messageId) }
+        .map { it.messageId }.findFirst().get()
 }
 
 fun Envelope.getActor(): String {
