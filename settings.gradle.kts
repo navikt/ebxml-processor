@@ -22,6 +22,7 @@ dependencyResolutionManagement {
             library("exposed-dao", "org.jetbrains.exposed", "exposed-dao").versionRef("exposed")
             library("exposed-java-time", "org.jetbrains.exposed", "exposed-java-time").versionRef("exposed")
             library("exposed-jdbc", "org.jetbrains.exposed", "exposed-jdbc").versionRef("exposed")
+            library("exposed-json","org.jetbrains.exposed","exposed-json").versionRef("exposed")
 
             library("ktor-server-core", "io.ktor", "ktor-server-core").versionRef("ktor")
             library("ktor-server-netty", "io.ktor", "ktor-server-netty").versionRef("ktor")
@@ -40,7 +41,7 @@ dependencyResolutionManagement {
             library("jaxb-runtime", "org.glassfish.jaxb:jaxb-runtime:2.4.0-b180830.0438")
 
             bundle("bouncycastle", listOf("bcpkix-jdk18on", "bcprov-jdk18on"))
-            bundle("exposed", listOf("exposed-core", "exposed-dao", "exposed-java-time", "exposed-jdbc"))
+            bundle("exposed", listOf("exposed-core", "exposed-dao", "exposed-java-time", "exposed-jdbc","exposed-json"))
         }
 
         create("testLibs") {

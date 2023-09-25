@@ -5,11 +5,13 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.plugins.NotFoundException
+import io.ktor.server.request.*
 import io.ktor.server.response.respond
+import io.ktor.server.routing.*
 import io.ktor.server.routing.get
-import io.ktor.server.routing.routing
 import no.nav.emottak.cpa.config.DatabaseConfig
 import no.nav.emottak.cpa.config.mapHikariConfig
+import no.nav.emottak.melding.model.Header
 
 fun main() {
     val database = Database(mapHikariConfig(DatabaseConfig()))
@@ -22,6 +24,12 @@ fun main() {
                 val cpaId = call.parameters["id"] ?: throw BadRequestException("Mangler CPA ID")
                 val cpa = getCpa(cpaId) ?: throw NotFoundException("Fant ikke CPA")
                 call.respond(cpa)
+            }
+
+            post("cpa/validate") {
+                val validateRequest = call.receive(Header::class)
+                getCpa(validateRequest.cpaId)!!.validate(validateRequest)
+
             }
 
             get("/cpa/{id}/{herId}/certificate/encryption") {
