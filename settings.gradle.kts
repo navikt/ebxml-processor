@@ -36,7 +36,7 @@ dependencyResolutionManagement {
             library("hikari", "com.zaxxer:HikariCP:5.0.1")
             library("labai-jsr305x-annotations", "com.github.labai:labai-jsr305x-annotations:0.0.2")
             library("jakarta.xml.bind-api", "jakarta.xml.bind:jakarta.xml.bind-api:4.0.0")
-            library("ebxml-protokoll", "no.nav.emottak:ebxml-protokoll:0.0.4")
+            library("ebxml-protokoll", "no.nav.emottak:ebxml-protokoll:0.0.6")
             library("flyway-core", "org.flywaydb:flyway-core:9.16.3")
             library("jaxb-runtime", "org.glassfish.jaxb:jaxb-runtime:2.4.0-b180830.0438")
 
@@ -46,10 +46,27 @@ dependencyResolutionManagement {
 
         create("testLibs") {
             version("junit", "5.9.2")
+            version("hamcrest", "2.2")
+            version("mockk", "1.13.8")
             version("testPostgres","1.18.0")
-            library("postgresql","org.testcontainers","postgresql").versionRef("testPostgres")
+            version("xmlunit", "2.9.1")
+
             library("junit-jupiter-api", "org.junit.jupiter", "junit-jupiter-api").versionRef("junit")
             library("junit-jupiter-engine", "org.junit.jupiter", "junit-jupiter-engine").versionRef("junit")
+            library("junit-jupiter-params", "org.junit.jupiter", "junit-jupiter-params").versionRef("junit")
+
+            library("hamcrest", "org.hamcrest", "hamcrest").versionRef("hamcrest")
+
+            library("mockk-jvm", "io.mockk", "mockk-jvm").versionRef("mockk")
+            library("mockk-dsl-jvm", "io.mockk", "mockk-dsl-jvm").versionRef("mockk")
+
+            library("postgresql","org.testcontainers","postgresql").versionRef("testPostgres")
+
+            library("xmlunit-core", "org.xmlunit", "xmlunit-core").versionRef("xmlunit")
+            library("xmlunit-matchers", "org.xmlunit", "xmlunit-matchers").versionRef("xmlunit")
+
+            bundle("mockk", listOf("mockk-jvm", "mockk-dsl-jvm"))
+            bundle("xmlunit", listOf("xmlunit-core", "xmlunit-matchers"))
         }
     }
 
