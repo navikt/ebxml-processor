@@ -1,10 +1,6 @@
-package no.nav.emottak.melding.process
+package no.nav.emottak.util.crypto
 
-import io.ktor.server.plugins.BadRequestException
-import no.nav.emottak.melding.model.Header
-import no.nav.emottak.melding.model.Melding
 import no.nav.emottak.util.createX509Certificate
-import no.nav.emottak.util.hentKrypteringssertifikat
 import org.bouncycastle.asn1.ASN1ObjectIdentifier
 import org.bouncycastle.cms.CMSAlgorithm
 import org.bouncycastle.cms.CMSEnvelopedDataGenerator
@@ -17,30 +13,14 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider
 import java.security.cert.CertificateEncodingException
 import java.security.cert.X509Certificate
 
-private val kryptering = Kryptering()
-
-fun krypter(byteArray: ByteArray, sertifikat: ByteArray) = kryptering.krypter(byteArray, sertifikat)
-
-fun Melding.krypter(): Melding {
-    return this.copy(
-        processedPayload = kryptering.krypter(this.processedPayload, this.header),
-        kryptert = true
-    )
-}
-
 class Kryptering {
 
-    fun krypter(byteArray: ByteArray, header: Header): ByteArray {
-        val krypteringSertifikat = hentKrypteringssertifikat(header.cpaId, header.to.herID)
-        return krypter(byteArray, krypteringSertifikat)
-    }
     fun krypter(byteArray: ByteArray, krypteringSertifikat: ByteArray): ByteArray {
         if (byteArray.isEmpty()) {
-            throw BadRequestException("Meldingen er tom.")
+            throw EncryptionException("Meldingen er tom.")
         }
         val sertifikat = createX509Certificate(krypteringSertifikat)
         return krypterDokument(byteArray, sertifikat)
-
     }
 
 }
@@ -55,7 +35,7 @@ private fun krypterDokument(doc: ByteArray, certificate: X509Certificate): ByteA
     return try {
         krypterDokument(doc, listOf(certificate))
     } catch (e: Exception) {
-        throw e
+        throw EncryptionException("Feil ved kryptering av dokument", e)
     }
 }
 
@@ -75,8 +55,8 @@ private fun krypterDokument(input: ByteArray, certificates: List<X509Certificate
         )
         envelopedData.encoded
     } catch (e: CertificateEncodingException) {
-        throw e
+        throw EncryptionException("Feil ved kryptering av dokument", e)
     } catch (e: CMSException) {
-        throw e
+        throw EncryptionException("Feil ved kryptering av dokument", e)
     }
 }

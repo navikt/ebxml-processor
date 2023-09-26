@@ -1,32 +1,10 @@
-package no.nav.emottak.melding.process;
+package no.nav.emottak.util;
 
 import io.ktor.server.plugins.BadRequestException
-import no.nav.emottak.melding.model.Melding
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.util.zip.GZIPInputStream
 import java.util.zip.GZIPOutputStream
-
-private val gZipUtil = GZipUtil()
-
-fun compress(byteArray: ByteArray) = gZipUtil.compress(byteArray)
-fun uncompress(byteArray: ByteArray) = gZipUtil.uncompress(byteArray)
-fun isCompressed(byteArray: ByteArray) = gZipUtil.isCompressed(byteArray)
-
-fun Melding.dekomprimer(): Melding {
-    return this.copy(
-        processedPayload = gZipUtil.uncompress(this.processedPayload),
-        dekomprimert = true
-    )
-}
-
-fun Melding.komprimer(): Melding {
-    return this.copy(
-        processedPayload = gZipUtil.compress(this.processedPayload),
-        komprimert = true
-    )
-}
-
 
 class GZipUtil {
     val GZIP_ENCODE_UTF_8 = "UTF-8"
