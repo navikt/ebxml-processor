@@ -3,12 +3,15 @@ package no.nav.emottak.melding
 import no.nav.emottak.melding.model.Melding
 import no.nav.emottak.melding.model.PayloadRequest
 import no.nav.emottak.melding.model.PayloadResponse
-import no.nav.emottak.melding.model.dekrypter
-import no.nav.emottak.melding.process.dekomprimer
-import no.nav.emottak.melding.process.komprimer
-import no.nav.emottak.melding.process.krypter
-import no.nav.emottak.melding.process.signer
-import no.nav.emottak.melding.process.verifiserSignatur
+import no.nav.emottak.util.GZipUtil
+import no.nav.emottak.util.signatur.SignaturVerifisering
+import no.nav.emottak.util.createDocument
+import no.nav.emottak.util.crypto.Dekryptering
+import no.nav.emottak.util.crypto.Kryptering
+import no.nav.emottak.util.getByteArrayFromDocument
+import no.nav.emottak.util.hentKrypteringssertifikat
+import no.nav.emottak.util.signatur.Signering
+import java.io.ByteArrayInputStream
 
 class Processor {
 
@@ -47,3 +50,57 @@ fun PayloadRequest.isIncomingMessage(): Boolean {
     //TODO
     return true
 }
+
+private val kryptering = Kryptering()
+private val dekryptering = Dekryptering()
+private val signering = Signering()
+private val gZipUtil = GZipUtil()
+private val signatureVerifisering = SignaturVerifisering()
+
+fun Melding.dekrypter(isBase64: Boolean = false): Melding {
+    return this.copy(
+        processedPayload = dekryptering.dekrypter(this.processedPayload, isBase64),
+        dekryptert = true
+    )
+}
+
+fun Melding.signer(): Melding {
+    return this.copy(
+        processedPayload = getByteArrayFromDocument(
+            signering.signerXML(createDocument( ByteArrayInputStream(this.processedPayload)))
+        ),
+        signert = true
+    )
+}
+
+fun Melding.dekomprimer(): Melding {
+    return this.copy(
+        processedPayload = gZipUtil.uncompress(this.processedPayload),
+        dekomprimert = true
+    )
+}
+
+fun Melding.komprimer(): Melding {
+    return this.copy(
+        processedPayload = gZipUtil.compress(this.processedPayload),
+        komprimert = true
+    )
+}
+
+fun Melding.verifiserSignatur(): Melding {
+    return this.copy(
+        processedPayload = getByteArrayFromDocument(
+            signatureVerifisering.validerSignatur(createDocument( ByteArrayInputStream(this.processedPayload)))
+        ),
+        signaturVerifisert = true
+    )
+}
+
+fun Melding.krypter(): Melding {
+    val krypteringSertifikat = hentKrypteringssertifikat(header.cpaId, header.to.herID)
+    return this.copy(
+        processedPayload = kryptering.krypter(this.processedPayload, krypteringSertifikat),
+        kryptert = true
+    )
+}
+

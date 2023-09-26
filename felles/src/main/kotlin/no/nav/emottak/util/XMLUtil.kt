@@ -1,7 +1,7 @@
 package no.nav.emottak.util
 
-import io.ktor.server.plugins.BadRequestException
 import no.nav.emottak.util.signatur.KeyValueKeySelector
+import no.nav.emottak.util.signatur.SignatureException
 import org.w3c.dom.Document
 import org.w3c.dom.Node
 import org.w3c.dom.NodeList
@@ -31,7 +31,7 @@ internal fun retrieveXMLSignature(validateContext: DOMValidateContext): XMLSigna
 
 private fun retrieveSignatureElement(document: Document): Node {
     val nodeList: NodeList = document.getElementsByTagNameNS(XMLSignature.XMLNS, "Signature")
-    return nodeList.item(0) ?: throw BadRequestException("MANGLER_XML_SIGNATUR")
+    return nodeList.item(0) ?: throw SignatureException("Mangler xmldsig")
 }
 
 internal fun retrievePublicCertificateFromSignature(document: Document): X509Certificate {
@@ -46,13 +46,13 @@ private fun retrievePublicCertificateFromSignature(signature: XMLSignature): X50
 }
 
 
-internal fun createDocument(inputstream: InputStream): Document {
+fun createDocument(inputstream: InputStream): Document {
     val dbf = DocumentBuilderFactory.newInstance()
     dbf.isNamespaceAware = true
     return dbf.newDocumentBuilder().parse(inputstream)
 }
 
-internal fun getByteArrayFromDocument(doc: Document): ByteArray {
+fun getByteArrayFromDocument(doc: Document): ByteArray {
     val outputStream = ByteArrayOutputStream()
     val xmlSource = DOMSource(doc)
     val result = StreamResult(outputStream)
