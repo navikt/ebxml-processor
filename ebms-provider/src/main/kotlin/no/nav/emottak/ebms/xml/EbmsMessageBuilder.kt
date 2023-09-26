@@ -5,6 +5,7 @@ import no.nav.emottak.ebms.model.EbMSMessage
 import no.nav.emottak.ebms.model.ackRequested
 import no.nav.emottak.ebms.model.header
 import org.xmlsoap.schemas.soap.envelope.Envelope
+import java.time.LocalDateTime
 
 class EbmsMessageBuilder {
     val xmlMarshaller = XmlMarshaller()
@@ -13,6 +14,6 @@ class EbmsMessageBuilder {
         println(String( dokument.dokument))
 
         val envelope = xmlMarshaller.unmarshal( String( dokument.dokument), Envelope::class.java)
-        return EbMSMessage(envelope.header(),envelope.ackRequested(),dokument.attachments )
+        return EbMSMessage(envelope.header(),envelope.ackRequested(),dokument.attachments, LocalDateTime.now() )
     }
 }
