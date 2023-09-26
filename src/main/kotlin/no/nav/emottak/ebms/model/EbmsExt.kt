@@ -20,22 +20,6 @@ fun Envelope.getAttachmentId() : String { // TODO: egentlig kan vel det være n+
         .first().replace("cid:", ""); // quickndirty
 }
 
-fun Envelope.getFrom (): From {
-    return (this.header.any.find { it is MessageHeader } as MessageHeader).from
-}
-
-fun Envelope.getVersion(): String {
-    return this.header.any.filterIsInstance<MessageHeader>()
-        .stream().filter { isNotBlank(it.version) }
-        .map { it.version }.findFirst().get()
-}
-
-fun Envelope.getMessageId(): String {
-    return this.header.any.filterIsInstance<MessageData>()
-        .stream().filter { isNotBlank(it.messageId) }
-        .map { it.messageId }.findFirst().get()
-}
-
 fun Envelope.header(): MessageHeader {
     return this.header.any.filterIsInstance<MessageHeader>().first()
 }

@@ -17,6 +17,7 @@ package no.nav.emottak.ebms.model
 
 import no.nav.emottak.ebms.xml.xmlMarshaller
 import org.xmlsoap.schemas.soap.envelope.Envelope
+import java.time.LocalDateTime
 
 data class EbMSDocument(val conversationId: String, val dokument: ByteArray, val attachments: List<EbMSAttachment>)
 
@@ -24,5 +25,5 @@ data class EbMSDocument(val conversationId: String, val dokument: ByteArray, val
 fun EbMSDocument.buildEbmMessage(): EbMSMessage {
     println(String( this.dokument))
     val envelope = xmlMarshaller.unmarshal( String( this.dokument), Envelope::class.java)
-    return EbMSMessage(envelope.header(),envelope.ackRequested(),this.attachments )
+    return EbMSMessage(envelope.header(),envelope.ackRequested(),this.attachments, LocalDateTime.now())
 }

@@ -11,20 +11,21 @@ import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ObjectFactory
 import org.w3._2000._09.xmldsig_.ReferenceType
 import org.xmlsoap.schemas.soap.envelope.Envelope
 import java.time.Instant
+import java.time.ZoneOffset
 import java.util.*
 import kotlin.coroutines.Continuation
 
 class AckRequestedProcessor(): Processor {
 
+    // Merk. Ifølge EH spec (s. 15) skal ack først sendes når dekryptering av payload(?) har gått bra.
     fun createAcknowledgement(message: EbMSMessage): Acknowledgment {
         val acknowledgment = Acknowledgment()
         acknowledgment.id = "ACK_ID" // Identifier for Acknowledgment elementet, IKKE message ID. // TODO avklar, dette er såvidt jeg vet en arbitrær verdi?
         acknowledgment.version = message.messageHeader.version
         acknowledgment.isMustUnderstand = true // Alltid
         acknowledgment.actor = message.messageHeader.getActor()
-        acknowledgment.timestamp = Date.from(Instant.now()) // TODO dette skal være message received date, hente fra context?
-        //@TODO legg til messageID fra messageData
-        //acknowledgment.refToMessageId = envelope.getMessageId()
+        acknowledgment.timestamp = Date.from(message.mottatt.toInstant(ZoneOffset.UTC))
+        acknowledgment.refToMessageId = message.messageHeader.messageData.messageId
         acknowledgment.from = message.messageHeader.from
         if(message.messageHeader.getAckRequestedSigned() == true) {
             // TODO vi må signere responsen, kan kanskje alltid gjøres uansett?
