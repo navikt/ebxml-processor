@@ -1,5 +1,6 @@
 package no.nav.emottak.ebms.processing
 
+import io.ktor.server.plugins.BadRequestException
 import no.nav.emottak.ebms.model.EbMSMessage
 import no.nav.emottak.ebms.postPayloadRequest
 import no.nav.emottak.melding.model.Header
@@ -26,22 +27,22 @@ class PayloadProcessor: Processor {
 
 fun MessageHeader.payloadRequestHeader(): Header {
     return Header(
-        messageId = this.id ?: throw RuntimeException("MessageID mangler fra header"),
-        cpaId = this.cpaId ?: throw RuntimeException("CPAID mangler fra header"),
+        messageId = this.id ?: throw BadRequestException("MessageID mangler fra header"),
+        cpaId = this.cpaId ?: throw BadRequestException("CPAID mangler fra header"),
         conversationId = this.conversationId,
         to = Party(
             herID = this.to.partyId.herID(),
-            role = this.to.role ?: throw RuntimeException("Melding mangler role for en eller flere parter")
+            role = this.to.role ?: throw BadRequestException("Melding mangler role for en eller flere parter")
         ),
         from = Party(
             herID = this.from.partyId.herID(),
-            role = this.from.role ?: throw RuntimeException("Melding mangler role for en eller flere parter")
+            role = this.from.role ?: throw BadRequestException("Melding mangler role for en eller flere parter")
         ),
-        service = this.service.value ?: throw RuntimeException("Service mangler fra header"),
+        service = this.service.value ?: throw BadRequestException("Service mangler fra header"),
         action = this.action
     )
 }
 
 fun List<PartyId>.herID(): String {
-    return this.firstOrNull() { partyId -> partyId.type == "HER" }?.value ?: throw RuntimeException("Melding mangler HER-ID for en eller flere parter")
+    return this.firstOrNull() { partyId -> partyId.type == "HER" }?.value ?: throw BadRequestException("Melding mangler HER-ID for en eller flere parter")
 }
