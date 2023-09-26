@@ -26,6 +26,8 @@ dependencies {
     implementation(project(":felles"))
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.netty)
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.cio)
     implementation(libs.labai.jsr305x.annotations)
     implementation(libs.jakarta.xml.bind.api)
     implementation(libs.jaxb.runtime)

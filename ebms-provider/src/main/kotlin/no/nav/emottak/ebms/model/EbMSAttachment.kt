@@ -18,4 +18,4 @@ package no.nav.emottak.ebms.model
 
 import java.nio.ByteBuffer
 
-data class EbMSAttachment(private val dataSource: ByteArray,val contentType: String, val contentId: String)
+data class EbMSAttachment(val dataSource: ByteArray,val contentType: String, val contentId: String)
