@@ -7,8 +7,8 @@ import org.jetbrains.exposed.sql.ColumnType
 import org.jetbrains.exposed.sql.Table
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 
-class CPA : Table("cpa") {
-    val id: Column<String> = varchar("id",256)
+object CPA : Table("cpa") {
+    val id: Column<String> = varchar("cpa_id",256)
     val cpa = json("cpa", CollaborationProtocolAgreement::class.java)
 }
 

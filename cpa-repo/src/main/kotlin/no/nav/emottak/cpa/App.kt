@@ -1,5 +1,6 @@
 package no.nav.emottak.cpa
 
+import io.ktor.server.application.Application
 import io.ktor.server.application.call
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
@@ -17,29 +18,30 @@ fun main() {
     val database = Database(mapHikariConfig(DatabaseConfig()))
     database.migrate()
 
-    embeddedServer(Netty, port = 8080) {
+    embeddedServer(Netty, port = 8080, module = Application::myApplicationModule).start(wait = true)
 
-        routing {
-            get("/cpa/{id}") {
-                val cpaId = call.parameters["id"] ?: throw BadRequestException("Mangler CPA ID")
-                val cpa = getCpa(cpaId) ?: throw NotFoundException("Fant ikke CPA")
-                call.respond(cpa)
-            }
+}
 
-            post("cpa/validate") {
-                val validateRequest = call.receive(Header::class)
-                getCpa(validateRequest.cpaId)!!.validate(validateRequest)
-
-            }
-
-            get("/cpa/{id}/{herId}/certificate/encryption") {
-                val cpaId = call.parameters["id"] ?: throw BadRequestException("Mangler CPA ID")
-                val herId = call.parameters["herId"] ?: throw BadRequestException("Mangler HER ID")
-                val cpa = getCpa(cpaId) ?: throw NotFoundException("Fant ikke CPA")
-
-                call.respond(cpa.getCertificateForEncryption(herId))
-            }
+fun Application.myApplicationModule() {
+    routing {
+        get("/cpa/{id}") {
+            val cpaId = call.parameters["id"] ?: throw BadRequestException("Mangler CPA ID")
+            val cpa = getCpa(cpaId) ?: throw NotFoundException("Fant ikke CPA")
+            call.respond(cpa)
         }
-    }.start(wait = true)
 
+        post("cpa/validate") {
+            val validateRequest = call.receive(Header::class)
+            getCpa(validateRequest.cpaId)!!.validate(validateRequest)
+
+        }
+
+        get("/cpa/{id}/{herId}/certificate/encryption") {
+            val cpaId = call.parameters["id"] ?: throw BadRequestException("Mangler CPA ID")
+            val herId = call.parameters["herId"] ?: throw BadRequestException("Mangler HER ID")
+            val cpa = getCpa(cpaId) ?: throw NotFoundException("Fant ikke CPA")
+
+            call.respond(cpa.getCertificateForEncryption(herId))
+        }
+    }
 }

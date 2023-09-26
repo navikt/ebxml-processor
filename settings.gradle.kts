@@ -46,7 +46,8 @@ dependencyResolutionManagement {
 
         create("testLibs") {
             version("junit", "5.9.2")
-
+            version("testPostgres","1.18.0")
+            library("postgresql","org.testcontainers","postgresql").versionRef("testPostgres")
             library("junit-jupiter-api", "org.junit.jupiter", "junit-jupiter-api").versionRef("junit")
             library("junit-jupiter-engine", "org.junit.jupiter", "junit-jupiter-engine").versionRef("junit")
         }
