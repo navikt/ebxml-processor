@@ -30,9 +30,9 @@ dependencies {
     implementation(libs.bundles.exposed)
     implementation(libs.logback.classic)
     implementation(libs.ktor.serialization.kotlinx.json)
-    testImplementation(testLibs.junit.jupiter.api)
     implementation(testLibs.postgresql)
     testRuntimeOnly(testLibs.junit.jupiter.engine)
+    testImplementation(kotlin("test"))
 
     runtimeOnly("org.postgresql:postgresql:42.6.0")
 }

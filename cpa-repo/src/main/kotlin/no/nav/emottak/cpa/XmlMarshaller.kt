@@ -4,7 +4,7 @@ import java.io.StringWriter
 import javax.xml.bind.JAXBContext
 import javax.xml.stream.XMLInputFactory
 
-private val xmlMarshaller = XmlMarshaller()
+val xmlMarshaller = XmlMarshaller()
 
 fun marshal(objekt: Any) = xmlMarshaller.marshal(objekt)
 fun <T> unmarshal(xml: String, clazz: Class<T>) : T = xmlMarshaller.unmarshal(xml , clazz)
