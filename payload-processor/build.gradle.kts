@@ -38,6 +38,9 @@ dependencies {
     testImplementation(testLibs.junit.jupiter.api)
     testRuntimeOnly(testLibs.junit.jupiter.engine)
     implementation(kotlin("stdlib-jdk8"))
+    implementation("ch.qos.logback:logback-classic:1.2.6")
+    implementation("org.apache.logging.log4j:log4j-core")
+    implementation("org.apache.logging.log4j:log4j-slf4j-impl")
 }
 
 application {
