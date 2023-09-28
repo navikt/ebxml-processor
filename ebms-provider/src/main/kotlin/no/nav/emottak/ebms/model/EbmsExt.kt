@@ -25,7 +25,7 @@ fun Envelope.header(): MessageHeader {
 }
 
 fun Envelope.ackRequested() : AckRequested? {
-    return this.header.any.filterIsInstance<AckRequested>().first()
+    return this.header.any.filterIsInstance<AckRequested>().firstOrNull()
 }
 
 fun MessageHeader.getActor(): String {
