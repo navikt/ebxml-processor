@@ -24,13 +24,9 @@ import no.nav.emottak.ebms.xml.xmlMarshaller
 import org.xmlsoap.schemas.soap.envelope.Envelope
 
 
-val processor = EbmsMessageProcessor()
 fun main() {
-
-
-    val database = Database(mapHikariConfig(DatabaseConfig()))
-    database.migrate()
-
+    //val database = Database(mapHikariConfig(DatabaseConfig()))
+    //database.migrate()
     embeddedServer(Netty, port = 8080, module = Application::myApplicationModule).start(wait = true)
 }
 
@@ -41,6 +37,7 @@ fun PartData.FormItem.payload() : ByteArray {
 fun Application.myApplicationModule() {
     routing {
         get("/") {
+            call.application.environment.log.info("TESTEST")
             call.respondText("Hello, world!")
         }
         post("/ebms") {
@@ -48,6 +45,7 @@ fun Application.myApplicationModule() {
             val dokument = allParts.find {
                 it.contentType?.toString() == "text/xml" && it.contentDisposition == null
             }
+            call.attributes
             val attachments = allParts.filter { it.contentDisposition == ContentDisposition.Attachment }
             val dokumentWithAttachment = EbMSDocument(
                 "",
@@ -59,12 +57,12 @@ fun Application.myApplicationModule() {
                         "contentId"
                     )
                 })
-            processor.process(dokumentWithAttachment.buildEbmMessage())
+            val processor = EbmsMessageProcessor(dokumentWithAttachment.buildEbmMessage())
+            processor.runAll()
             println(dokumentWithAttachment)
 
             call.respondText("Hello")
         }
-
 
         post("/ebmsTest") {
             val allParts = call.receiveMultipart().readAllParts()
@@ -73,19 +71,14 @@ fun Application.myApplicationModule() {
             }
             val envelope =
                 xmlMarshaller.unmarshal(String((dokument as PartData.FormItem).payload()), Envelope::class.java)
-
-            val conversationId = envelope.getConversationId()
-            println(conversationId)
-            val attachmentId = envelope.getAttachmentId()
-            println(attachmentId)
-            val attachments = allParts
-                .filter { it.contentDisposition == ContentDisposition.Attachment }
-                .filter { it.headers.get("Content-Id")?.contains(attachmentId, true) ?: false }
-                .map { (it as PartData.FormItem).payload() }
-                .first()
-            println(
-                String(attachments)
-            )
+           //val attachments = allParts
+           //    .filter { it.contentDisposition == ContentDisposition.Attachment }
+           //    .filter { it.headers.get("Content-Id")?.contains(attachmentId, true) ?: false }
+           //    .map { (it as PartData.FormItem).payload() }
+           //    .first()
+           //println(
+           //    String(attachments)
+           //)
             call.respondText("Hello2")
         }
     }

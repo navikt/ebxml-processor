@@ -15,8 +15,12 @@ import java.time.ZoneOffset
 import java.util.*
 import kotlin.coroutines.Continuation
 
-class AckRequestedProcessor(): Processor {
+class AckRequestedProcessor(ebMSMessage: EbMSMessage): Processor(ebMSMessage) {
 
+    override fun process() {
+        //TODO("Not yet implemented")
+
+    }
     // Merk. Ifølge EH spec (s. 15) skal ack først sendes når dekryptering av payload(?) har gått bra.
     fun createAcknowledgement(message: EbMSMessage): Acknowledgment {
         val acknowledgment = Acknowledgment()
@@ -37,10 +41,6 @@ class AckRequestedProcessor(): Processor {
 
     fun getReferences():  List<@NotNull ReferenceType> {
         return emptyList() // TODO XMLDSIG elements fra signaturen vår
-    }
-
-    override fun process(message: EbMSMessage) {
-        TODO("Not yet implemented")
     }
 }
 
