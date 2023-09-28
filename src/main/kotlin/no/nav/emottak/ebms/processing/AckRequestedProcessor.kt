@@ -1,24 +1,13 @@
 package no.nav.emottak.ebms.processing
 
 import com.github.labai.jsr305x.api.NotNull
-import kotlinx.serialization.SerializationStrategy
-import kotlinx.serialization.builtins.PairSerializer
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
-import no.nav.emottak.ebms.model.*
+import no.nav.emottak.ebms.model.EbMSMessage
+import no.nav.emottak.ebms.model.getAckRequestedSigned
 import no.nav.emottak.ebms.xml.marshal
-import no.nav.emottak.ebms.xml.xmlMarshaller
-import org.apache.commons.lang3.StringUtils.isNotBlank
-import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.AckRequested
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Acknowledgment
-import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
-import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ObjectFactory
 import org.w3._2000._09.xmldsig_.ReferenceType
-import org.xmlsoap.schemas.soap.envelope.Envelope
-import java.time.Instant
 import java.time.ZoneOffset
 import java.util.*
-import kotlin.coroutines.Continuation
 
 class AckRequestedProcessor(ebMSMessage: EbMSMessage): Processor(ebMSMessage) {
 
@@ -29,8 +18,7 @@ class AckRequestedProcessor(ebMSMessage: EbMSMessage): Processor(ebMSMessage) {
             val createdAcknowledgement = createAcknowledgement(ebMSMessage)
             log.info(createdAcknowledgement.toXmlString())
         }
-        //TODO("Not yet implemented")
-
+        // TODO resten
     }
     fun Acknowledgment.toXmlString(): String {
         return marshal(this)
