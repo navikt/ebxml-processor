@@ -14,14 +14,11 @@ import io.ktor.server.routing.*
 import no.nav.emottak.ebms.db.Database
 import no.nav.emottak.ebms.db.DatabaseConfig
 import no.nav.emottak.ebms.db.mapHikariConfig
-import no.nav.emottak.ebms.model.EbMSAttachment
-import no.nav.emottak.ebms.model.EbMSDocument
-import no.nav.emottak.ebms.model.buildEbmMessage
-import no.nav.emottak.ebms.model.getAttachmentId
-import no.nav.emottak.ebms.model.getConversationId
+import no.nav.emottak.ebms.model.*
 import no.nav.emottak.ebms.processing.EbmsMessageProcessor
 import no.nav.emottak.ebms.xml.xmlMarshaller
 import org.xmlsoap.schemas.soap.envelope.Envelope
+import java.time.LocalDateTime
 
 
 fun main() {
@@ -45,7 +42,6 @@ fun Application.myApplicationModule() {
             val dokument = allParts.find {
                 it.contentType?.toString() == "text/xml" && it.contentDisposition == null
             }
-            call.attributes
             val attachments = allParts.filter { it.contentDisposition == ContentDisposition.Attachment }
             val dokumentWithAttachment = EbMSDocument(
                 "",
@@ -62,6 +58,12 @@ fun Application.myApplicationModule() {
             println(dokumentWithAttachment)
 
             call.respondText("Hello")
+        }
+
+        post("/ebxmlMessage") {
+            val envelope = xmlMarshaller.unmarshal(call.receiveText(), Envelope::class.java)
+            val ebMSMessage = EbMSMessage(envelope.header(), envelope.ackRequested(), emptyList(), LocalDateTime.now())
+            EbmsMessageProcessor(ebMSMessage).runAll()
         }
 
         post("/ebmsTest") {
