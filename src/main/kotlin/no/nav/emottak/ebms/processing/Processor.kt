@@ -7,7 +7,7 @@ import org.slf4j.LoggerFactory
 abstract class Processor(val ebMSMessage: EbMSMessage) {
     // TODO: vurder å ta fra RAY: processorer returnerer Events med status
 
-    private val log = LoggerFactory.getLogger(this.javaClass)
+    val log = LoggerFactory.getLogger(this.javaClass)
     abstract fun process() // TODO kan sikkert ta imot en context. EbmsMessageContext?
     fun processWithEvents() {
         lagOgLagreHendelse(Event.Status.STARTED)
@@ -23,7 +23,7 @@ abstract class Processor(val ebMSMessage: EbMSMessage) {
     fun lagOgLagreHendelse(status: Event.Status){
         persisterHendelse(
             Event(
-                this.javaClass.name,
+                this.javaClass.simpleName,
                 status,
                 correlationId = ebMSMessage.messageHeader.conversationId + ebMSMessage.messageHeader.messageData.messageId // TODO placeholder
             )
