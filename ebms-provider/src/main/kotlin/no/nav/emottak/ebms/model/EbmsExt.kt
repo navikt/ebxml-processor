@@ -25,13 +25,13 @@ fun Envelope.header(): MessageHeader {
 }
 
 fun Envelope.ackRequested() : AckRequested? {
-    return this.header.any.filterIsInstance<AckRequested>().first()
+    return this.header.any.filterIsInstance<AckRequested>().firstOrNull()
 }
 
-fun MessageHeader.getActor(): String {
-    return this.any!!.filterIsInstance<AckRequested>()
-        .filter{ isNotBlank(it.actor) }.map { it.actor }.filterNotNull().first()
-}
+//fun .getActor(): String {
+//    return this.any!!.filterIsInstance<AckRequested>()
+//        .filter{ isNotBlank(it.actor) }.map { it.actor }.filterNotNull().first()
+//}
 
 fun MessageHeader.getAckRequestedSigned(): Boolean? {
     return this.any!!.filterIsInstance<AckRequested>().find { it.isSigned }?.isSigned // Kotlin quirk. Med isSigned menes at en signed Ack er ønsket
