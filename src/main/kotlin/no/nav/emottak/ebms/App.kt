@@ -16,6 +16,7 @@ import no.nav.emottak.ebms.db.DatabaseConfig
 import no.nav.emottak.ebms.db.mapHikariConfig
 import no.nav.emottak.ebms.model.*
 import no.nav.emottak.ebms.processing.EbmsMessageProcessor
+import no.nav.emottak.ebms.validation.validateMime
 import no.nav.emottak.ebms.xml.xmlMarshaller
 import org.xmlsoap.schemas.soap.envelope.Envelope
 import java.time.LocalDateTime
@@ -38,6 +39,11 @@ fun Application.myApplicationModule() {
             call.respondText("Hello, world!")
         }
         post("/ebms") {
+
+            // KRAV 5.5.2.1 validate MIME
+            call.request.headers.validateMime()
+            val test = call.receiveMultipart()
+            test.readAllParts()
             val allParts = call.receiveMultipart().readAllParts()
             val dokument = allParts.find {
                 it.contentType?.toString() == "text/xml" && it.contentDisposition == null
