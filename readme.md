@@ -3,7 +3,9 @@
 Oasis ebMS Spec:
 https://www.oasis-open.org/committees/ebxml-msg/documents/ebMS_v2_0.pdf
 
+
 Videre er målet å være i tråd med spesifikasjon fra e-helse ["Basert på ebXML"](https://git.sarepta.ehelse.no/publisert/standarder/raw/master/kravdokument/EBXMLrammeverk/HIS%201037_2011%20Rammeverk%20for%20meldingsutveksling%20v1.1%20-oppdatert.pdf)
+Validering krav: https://git.sarepta.ehelse.no/publisert/standarder/raw/master/kravdokument/ValideringAvebXMLMeldinger/HITS%201172_2017%20Validering%20av%20ebXML-meldinger%20-oppdatert.pdf
 
 ## Start opp docker:
 ```

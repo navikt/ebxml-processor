@@ -1,6 +1,5 @@
 package no.nav.emottak.cpa.persistence
 
-import org.jetbrains.exposed.sql.transactions.transaction
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
