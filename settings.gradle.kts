@@ -17,6 +17,7 @@ dependencyResolutionManagement {
 
             library("bcpkix-jdk18on", "org.bouncycastle", "bcpkix-jdk18on").versionRef("bouncycastle")
             library("bcprov-jdk18on", "org.bouncycastle", "bcprov-jdk18on").versionRef("bouncycastle")
+            library("apache-santuario", "org.apache.santuario:xmlsec:3.0.2")
 
             library("exposed-core", "org.jetbrains.exposed", "exposed-core").versionRef("exposed")
             library("exposed-dao", "org.jetbrains.exposed", "exposed-dao").versionRef("exposed")

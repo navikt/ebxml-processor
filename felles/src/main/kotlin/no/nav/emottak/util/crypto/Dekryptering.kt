@@ -1,6 +1,7 @@
 package no.nav.emottak.util.crypto
 
 
+import no.nav.emottak.util.decodeBase64
 import org.bouncycastle.asn1.x500.X500Name
 import org.bouncycastle.cms.CMSEnvelopedData
 import org.bouncycastle.cms.KeyTransRecipientId
@@ -13,8 +14,6 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider
 import java.security.PrivateKey
 import java.security.Security
 import java.security.cert.X509Certificate
-import kotlin.io.encoding.Base64
-import kotlin.io.encoding.ExperimentalEncodingApi
 
 class Dekryptering {
 
@@ -63,6 +62,3 @@ class Dekryptering {
     }
 
 }
-
-@OptIn(ExperimentalEncodingApi::class)
-internal fun decodeBase64(base64String: ByteArray): ByteArray = Base64.decode(base64String)

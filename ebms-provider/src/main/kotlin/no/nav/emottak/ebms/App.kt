@@ -53,7 +53,7 @@ fun Application.myApplicationModule() {
                         "contentId"
                     )
                 })
-            val processor = EbmsMessageProcessor(dokumentWithAttachment.buildEbmMessage())
+            val processor = EbmsMessageProcessor(dokumentWithAttachment, dokumentWithAttachment.buildEbmMessage())
             processor.runAll()
             println(dokumentWithAttachment)
 
@@ -63,7 +63,8 @@ fun Application.myApplicationModule() {
         post("/ebxmlMessage") {
             val envelope = xmlMarshaller.unmarshal(call.receiveText(), Envelope::class.java)
             val ebMSMessage = EbMSMessage(envelope.header(), envelope.ackRequested(), emptyList(), LocalDateTime.now())
-            EbmsMessageProcessor(ebMSMessage).runAll()
+            //TODO ordentlig ebmsdocument
+            EbmsMessageProcessor(EbMSDocument("", byteArrayOf(), emptyList()), ebMSMessage).runAll()
         }
 
         post("/ebmsTest") {
