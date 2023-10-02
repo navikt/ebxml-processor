@@ -34,6 +34,7 @@ dependencies {
     implementation(libs.hikari)
     implementation(libs.flyway.core)
     implementation(libs.bundles.exposed)
+    implementation(libs.apache.santuario)
     //implementation("org.glassfish.jaxb:jaxb-runtime:4.0.3") // TODO: Latest. Krever at protokoll oppdateres
     implementation(libs.ebxml.protokoll)
     testImplementation(testLibs.junit.jupiter.api)
