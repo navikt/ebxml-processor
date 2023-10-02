@@ -2,6 +2,7 @@ package no.nav.emottak.util
 
 import no.nav.emottak.util.signatur.KeyValueKeySelector
 import no.nav.emottak.util.signatur.SignatureException
+import org.apache.xml.security.utils.Constants
 import org.w3c.dom.Document
 import org.w3c.dom.Node
 import org.w3c.dom.NodeList
@@ -29,8 +30,8 @@ internal fun retrieveXMLSignature(validateContext: DOMValidateContext): XMLSigna
     return factory.unmarshalXMLSignature(validateContext)
 }
 
-private fun retrieveSignatureElement(document: Document): Node {
-    val nodeList: NodeList = document.getElementsByTagNameNS(XMLSignature.XMLNS, "Signature")
+fun retrieveSignatureElement(document: Document): Node {
+    val nodeList: NodeList = document.getElementsByTagNameNS(Constants.SignatureSpecNS, Constants._TAG_SIGNATURE)
     return nodeList.item(0) ?: throw SignatureException("Mangler xmldsig")
 }
 
