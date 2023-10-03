@@ -11,9 +11,9 @@ object MimeHeaders {
 }
 
 object ContentTypeRegex {
-        val CONTEN_TYPE = Regex("^(?<contentType>[^;]+);\\s*")
-        val BOUNDARY = Regex("\\s*boundary=\"----=?(?<boundary>[^=\"]+)\"?;")
-        val START = Regex("\\s*start=\"?(?<start>[^=\"]+)\"?;")
+        val CONTEN_TYPE = Regex("\\s*^(?<contentType>[^;]+);\\s*")
+        val BOUNDARY = Regex("\\s*boundary=\"----=?(?<boundary>[^=\"]+)\"?")
+        val START = Regex("\\s*start=\"?(?<start>[^=\"]+)\"?")
         val TYPE = Regex("type=\"?(?<type>[^=\"]+)\"?")
 }
 
@@ -45,7 +45,7 @@ private fun Headers.validateMultipartAttributter() {
 
                 val contentType = ContentTypeRegex.CONTEN_TYPE.find(contentTypeHeader)?.groups?.get("contentType")?.value?: throw MimeValidationException("Missing content type from ContentType header")
                 if (contentType!="multipart/related") throw MimeValidationException("Content type should be multipart/related")
-                val boundary = ContentTypeRegex.BOUNDARY.find(contentTypeHeader)?.groups?.get("boundary")?.value?: throw MimeValidationException("Boundary is mandatory on multipart related content")
+                ContentTypeRegex.BOUNDARY.find(contentTypeHeader)?.groups?.get("boundary")?.value?: throw MimeValidationException("Boundary is mandatory on multipart related content")
                 ContentTypeRegex.START.find(contentTypeHeader)?.groups?.get("start")?.value?: throw MimeValidationException("Start on multipart request not defined")
                 val type = ContentTypeRegex.TYPE.find(contentTypeHeader)?.groups?.get("type")?.value?: throw MimeValidationException("type of multipart / related is undefined")
 
