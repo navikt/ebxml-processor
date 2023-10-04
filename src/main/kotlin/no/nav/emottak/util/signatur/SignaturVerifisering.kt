@@ -1,34 +1,24 @@
 package no.nav.emottak.util.signatur
 
-import no.nav.emottak.util.createValidateContext
-import no.nav.emottak.util.retrieveXMLSignature
-import org.w3c.dom.Document
-import javax.xml.crypto.dsig.XMLSignatureException
+import no.nav.emottak.util.createDocument
+import no.nav.emottak.util.retrieveSignatureElement
+import org.apache.xml.security.signature.MissingResourceFailureException
+import java.io.ByteArrayInputStream
 
 
 class SignaturVerifisering {
 
-    fun validerSignatur(document: Document): Document {
-
-        val validateContext = createValidateContext(document)
-        val signature = retrieveXMLSignature(validateContext)
+    @Throws(SignatureException::class)
+    fun validate(document: ByteArray) {
+        //TODO Sjekk isNonRepudiation?
+        val signature = retrieveSignatureElement(createDocument(ByteArrayInputStream(document)))
+        val certificateFromSignature = signature.keyInfo.x509Certificate
 
         try {
-            return if (signature.validate(validateContext)) {
-                validateAlgorithms(signature.signedInfo)
-                document
-            } else {
-                val sv: Boolean = signature.signatureValue.validate(validateContext)
-                var status = "Signature validation status: $sv"
-                signature.signedInfo.references.forEach {
-                    status += ", ${it.digestMethod.algorithm} validation status: ${it.validate(validateContext)}"
-                }
-                throw SignatureException("Sertifikat er ugyldig: $status")
-            }
-        } catch (signatureException: XMLSignatureException) {
-            throw SignatureException("Feil ved validering av signatur", signatureException)
-        } catch (algorithmNotSupported: AlgorithmNotSupportedException) {
-            throw SignatureException("Feil ved validering av signatur", algorithmNotSupported)
+            if (!signature.checkSignatureValue(certificateFromSignature) //Regel ID 50)
+            ) throw SignatureException("Invalid Signature!")
+        } catch (e: MissingResourceFailureException) {
+            throw SignatureException("Invalid Signature!", e)
         }
     }
 
