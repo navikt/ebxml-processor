@@ -16,8 +16,8 @@ import no.nav.emottak.melding.model.PayloadResponse
 import no.nav.emottak.melding.model.SignatureDetailsResponse
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.decodeBase64
-import no.nav.emottak.util.signatur.DIGEST_ALGORITHM_SHA256
-import no.nav.emottak.util.signatur.SIGNATURE_ALGORITHM_SHA256
+import org.apache.xml.security.algorithms.MessageDigestAlgorithm
+import org.apache.xml.security.signature.XMLSignature
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
 import java.security.cert.X509Certificate
 
@@ -40,8 +40,8 @@ fun MessageHeader.getPublicSigningDetails(): SignatureDetailsResponse {
     //SecurityUtils.validateCertificate(trustStore, certificate, timestamp)
     return SignatureDetailsResponse(
         certificate = cert,
-        signatureAlgorithm = SIGNATURE_ALGORITHM_SHA256,
-        hashFunction = DIGEST_ALGORITHM_SHA256
+        signatureAlgorithm = XMLSignature.ALGO_ID_SIGNATURE_RSA_SHA256,
+        hashFunction = MessageDigestAlgorithm.ALGO_ID_DIGEST_SHA256
     )
 }
 

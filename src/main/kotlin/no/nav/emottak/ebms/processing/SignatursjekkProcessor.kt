@@ -9,20 +9,14 @@ import no.nav.emottak.ebms.validation.EbMSAttachmentResolver
 import no.nav.emottak.util.createDocument
 import no.nav.emottak.util.retrievePublicX509Certificate
 import no.nav.emottak.util.retrieveSignatureElement
-import no.nav.emottak.util.signatur.DIGEST_ALGORITHM_SHA1
-import no.nav.emottak.util.signatur.DIGEST_ALGORITHM_SHA256
-import no.nav.emottak.util.signatur.REC_XML
-import no.nav.emottak.util.signatur.REC_XPATH
-import no.nav.emottak.util.signatur.SIGNATURE_ALGORITHM_SHA1
-import no.nav.emottak.util.signatur.SIGNATURE_ALGORITHM_SHA256
 import no.nav.emottak.util.signatur.SignatureException
-import no.nav.emottak.util.signatur.XMLDSIG_ENVELOPED_SIGNATURE
 import org.apache.xml.security.algorithms.MessageDigestAlgorithm
 import org.apache.xml.security.algorithms.SignatureAlgorithm
 import org.apache.xml.security.keys.KeyInfo
 import org.apache.xml.security.signature.MissingResourceFailureException
 import org.apache.xml.security.signature.SignedInfo
 import org.apache.xml.security.signature.XMLSignature
+import org.apache.xml.security.transforms.Transforms
 import org.apache.xml.security.utils.Constants
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
 import java.io.ByteArrayInputStream
@@ -105,9 +99,9 @@ private fun SignedInfo.validateReferences() {
         if (uri == "") {
             foundRootReference = true
             if (reference.transforms.length != 3) throw SignatureException("Root reference skal ha 3 references, har ${reference.transforms.length}")
-            if (reference.transforms.item(0).uri != XMLDSIG_ENVELOPED_SIGNATURE) throw SignatureException("Transform 1 har feil uri! ${reference.transforms.item(0).uri}")
-            if (reference.transforms.item(1).uri != REC_XPATH) throw SignatureException(("Transform 2 har feil uri! ${reference.transforms.item(1).uri}"))
-            if (reference.transforms.item(2).uri != REC_XML) throw SignatureException(("Transform 3 har feil uri! ${reference.transforms.item(2).uri}"))
+            if (reference.transforms.item(0).uri != Transforms.TRANSFORM_ENVELOPED_SIGNATURE) throw SignatureException("Transform 1 har feil uri! ${reference.transforms.item(0).uri}")
+            if (reference.transforms.item(1).uri != Transforms.TRANSFORM_XPATH) throw SignatureException(("Transform 2 har feil uri! ${reference.transforms.item(1).uri}"))
+            if (reference.transforms.item(2).uri != Transforms.TRANSFORM_C14N_OMIT_COMMENTS) throw SignatureException(("Transform 3 har feil uri! ${reference.transforms.item(2).uri}"))
         } else if (!uri.startsWith(CID)) throw SignatureException("Ugyldig URI $uri! Kun reference uri som starter med $CID er tillatt")
     }
     if(!foundRootReference) throw SignatureException("Root reference mangler!")
@@ -115,12 +109,12 @@ private fun SignedInfo.validateReferences() {
 
 
 private fun SignatureAlgorithm.isValidSignatureMethodAlgorithm() {
-    if (this.algorithmURI != SIGNATURE_ALGORITHM_SHA256 && this.algorithmURI != SIGNATURE_ALGORITHM_SHA1) {
+    if (this.algorithmURI != XMLSignature.ALGO_ID_SIGNATURE_RSA_SHA256 && this.algorithmURI != XMLSignature.ALGO_ID_SIGNATURE_RSA_SHA1) {
         throw SignatureException("Ugyldig signaturalgoritme $algorithmURI")
     }
 }
 private fun MessageDigestAlgorithm.isValidDigestMethodAlgorithm() {
-    if (this.algorithmURI != DIGEST_ALGORITHM_SHA256 && this.algorithmURI != DIGEST_ALGORITHM_SHA1) {
+    if (this.algorithmURI != MessageDigestAlgorithm.ALGO_ID_DIGEST_SHA256 && this.algorithmURI != MessageDigestAlgorithm.ALGO_ID_DIGEST_SHA1) {
         throw SignatureException("Ugyldig digest method $algorithmURI")
     }
 }
