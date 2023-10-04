@@ -9,7 +9,7 @@ import org.junit.jupiter.api.assertThrows
 
 class SignatursjekkProcessorTest {
     @Test
-    fun testSigneringvalideringAvDokument() {
+    fun `Validering av signatur`() {
 
         val dokument = this::class.java.classLoader
             .getResourceAsStream("oppgjørsmelding/2023_08_29T12_56_58_328.xml").readAllBytes()
@@ -31,7 +31,7 @@ class SignatursjekkProcessorTest {
     }
 
     @Test
-    fun testSigneringvalideringAvDokumentUtenAttachment() {
+    fun `Validering av signatur uten attachments feiler`() {
 
         val dokument = this::class.java.classLoader
             .getResourceAsStream("oppgjørsmelding/2023_08_29T12_56_58_328.xml").readAllBytes()
