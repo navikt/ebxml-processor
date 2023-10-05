@@ -1,13 +1,17 @@
 package no.nav.emottak.ebms.validation
 
 import io.ktor.http.*
+import io.ktor.http.content.*
 import kotlin.streams.asStream
 
 
 object MimeHeaders {
-        const val MIME_VERSION   = "MIME-Version"
-        const val SOAP_ACTION    = "SOAPAction"
-        const val CONTENT_TYPE   = "Content-Type"
+        const val MIME_VERSION                  = "MIME-Version"
+        const val SOAP_ACTION                   = "SOAPAction"
+        const val CONTENT_TYPE                  = "Content-Type"
+        const val CONTENT_ID                    = "Content-Id"
+        const val CONTENT_TRANSFER_ENCODING     = "Content-Transfer-Encoding"
+        const val CONTENT_DISPOSITION           = "Content-Disposition"
 }
 
 object ContentTypeRegex {
@@ -18,13 +22,33 @@ object ContentTypeRegex {
 }
 
 
-
 fun Headers.validateMime() {
 
                 validateMimeHeaders()
                 validateMultipartAttributter()
 
+}
 
+//KRAV 5.5.2.3 Valideringsdokument
+fun PartData.validateMimeSoapEnvelope() {
+        ContentTypeRegex.CONTEN_TYPE.find(this.contentType?.toString() ?: "")
+                .takeIf {
+                        it?.groups?.get("contentType")?.value == "text/xml" } ?: throw MimeValidationException("Content type is missing or wrong ")
+
+        this.headers[MimeHeaders.CONTENT_ID].takeUnless { it.isNullOrBlank() }
+                ?: throw MimeValidationException("Content ID is missing")
+        this.headers["Content-Transfer-Encoding"].takeUnless { it.isNullOrBlank() }?.let {
+                it.takeIf {  listOf("8bit","base64","binary","quoted-printable").contains(it) } ?: throw MimeValidationException("Content-Transfer-Encoding should be 8 bit")
+        } ?: throw MimeValidationException("Mandatory header Content-Transfer-Encoding is undefined")
+}
+
+// Krav 5.5.2.4 Valideringsdokument
+fun PartData.validateMimeAttachment() {
+        takeIf { this.contentDisposition?.disposition == "attachment"} ?: throw MimeValidationException("This is not attachment")
+        takeIf { this.headers[MimeHeaders.CONTENT_TRANSFER_ENCODING] == "base64" } ?: throw MimeValidationException("Feil content transfer encoding")
+        this.contentType?.toString()?.takeIf {
+                ContentTypeRegex.CONTEN_TYPE.find(it)?.groups?.get("contentType")?.value == "application/pkcs7-mime"
+        }?: throw MimeValidationException("Incompatible content type on attachment")
 }
 
 // KRAV 5.5.2.1 validate MIME
