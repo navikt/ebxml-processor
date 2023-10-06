@@ -88,10 +88,8 @@ fun Melding.komprimer(): Melding {
 }
 
 fun Melding.verifiserSignatur(): Melding {
+    signatureVerifisering.validate(this.processedPayload)
     return this.copy(
-        processedPayload = getByteArrayFromDocument(
-            signatureVerifisering.validerSignatur(createDocument( ByteArrayInputStream(this.processedPayload)))
-        ),
         signaturVerifisert = true
     )
 }
