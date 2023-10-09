@@ -32,7 +32,7 @@ dependencies {
     implementation(libs.ktor.client.cio)
     implementation(libs.jakarta.xml.bind.api)
     implementation("org.glassfish.jaxb:jaxb-runtime:4.0.3")
-    implementation(libs.logback.classic)
+    implementation(libs.bundles.logging)
     implementation("io.micrometer:micrometer-registry-prometheus:1.11.3")
 
     testImplementation(testLibs.junit.jupiter.api)
