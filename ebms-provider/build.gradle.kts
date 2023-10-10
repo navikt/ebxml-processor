@@ -36,6 +36,7 @@ dependencies {
     implementation(libs.hikari)
     implementation(libs.flyway.core)
     implementation(libs.bundles.exposed)
+    implementation(libs.bundles.logging)
     implementation(libs.apache.santuario)
     implementation("com.sun.xml.messaging.saaj:saaj-impl:3.0.2")
     //implementation("org.glassfish.jaxb:jaxb-runtime:4.0.3") // TODO: Latest. Krever at protokoll oppdateres
