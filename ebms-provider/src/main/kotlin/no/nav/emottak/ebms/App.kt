@@ -11,11 +11,8 @@ import io.ktor.server.netty.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import no.nav.emottak.ebms.db.Database
-import no.nav.emottak.ebms.db.DatabaseConfig
-import no.nav.emottak.ebms.db.mapHikariConfig
 import no.nav.emottak.ebms.model.*
-import no.nav.emottak.ebms.processing.EbmsMessageProcessor
+import no.nav.emottak.ebms.processing.EbmsFlowHandler
 import no.nav.emottak.ebms.validation.validateMime
 import no.nav.emottak.ebms.xml.xmlMarshaller
 import org.xmlsoap.schemas.soap.envelope.Envelope
@@ -59,8 +56,8 @@ fun Application.myApplicationModule() {
                         "contentId"
                     )
                 })
-            val processor = EbmsMessageProcessor(dokumentWithAttachment, dokumentWithAttachment.buildEbmMessage())
-            processor.runAll()
+            val processFlow = EbmsFlowHandler(dokumentWithAttachment, dokumentWithAttachment.buildEbmMessage())
+            processFlow.run()
             println(dokumentWithAttachment)
 
             call.respondText("Hello")
@@ -70,7 +67,7 @@ fun Application.myApplicationModule() {
             val envelope = xmlMarshaller.unmarshal(call.receiveText(), Envelope::class.java)
             val ebMSMessage = EbMSMessage(envelope.header(), envelope.ackRequested(), emptyList(), LocalDateTime.now())
             //TODO ordentlig ebmsdocument
-            EbmsMessageProcessor(EbMSDocument("", byteArrayOf(), emptyList()), ebMSMessage).runAll()
+            EbmsFlowHandler(EbMSDocument("", byteArrayOf(), emptyList()), ebMSMessage).run()
         }
 
         post("/ebmsTest") {
@@ -89,6 +86,7 @@ fun Application.myApplicationModule() {
            //    String(attachments)
            //)
             call.respondText("Hello2")
+
         }
     }
 }

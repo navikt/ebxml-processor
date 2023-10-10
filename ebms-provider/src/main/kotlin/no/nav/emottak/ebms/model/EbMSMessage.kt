@@ -16,4 +16,8 @@ class EbMSMessage(override val messageHeader: MessageHeader,
         eventLogg.add(event)
     }
 
+    fun harHendelse(event: Event): Boolean {
+        return eventLogg.contains(event)
+    }
+
 }

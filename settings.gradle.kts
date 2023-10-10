@@ -14,6 +14,7 @@ dependencyResolutionManagement {
             version("bouncycastle", "1.76")
             version("exposed", "0.43.0")
             version("ktor", "2.3.4")
+            version("kotlin", "")
 
             library("bcpkix-jdk18on", "org.bouncycastle", "bcpkix-jdk18on").versionRef("bouncycastle")
             library("bcprov-jdk18on", "org.bouncycastle", "bcprov-jdk18on").versionRef("bouncycastle")
@@ -32,6 +33,9 @@ dependencyResolutionManagement {
             library("ktor-serialization-kotlinx-json", "io.ktor", "ktor-serialization-kotlinx-json").versionRef("ktor")
             library("ktor-client-core", "io.ktor", "ktor-client-core").versionRef("ktor")
             library("ktor-client-cio", "io.ktor", "ktor-client-cio").versionRef("ktor")
+            //library("ktor-server-test", "io.ktor", "ktor-server-test").versionRef("ktor")
+            //library("kotlin-test", "io.ktor", "ktor-server-test")//.versionRef("kotlin")
+
 
             library("logback-classic", "ch.qos.logback:logback-classic:1.4.11")
             library("hikari", "com.zaxxer:HikariCP:5.0.1")

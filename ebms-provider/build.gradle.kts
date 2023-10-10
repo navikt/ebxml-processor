@@ -28,6 +28,8 @@ dependencies {
     implementation(libs.ktor.server.netty)
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.cio)
+    implementation("io.ktor:ktor-server-test-host")
+    implementation(libs.ktor.client.cio)
     implementation(libs.labai.jsr305x.annotations)
     implementation(libs.jakarta.xml.bind.api)
     implementation(libs.jaxb.runtime)
@@ -38,6 +40,7 @@ dependencies {
     //implementation("org.glassfish.jaxb:jaxb-runtime:4.0.3") // TODO: Latest. Krever at protokoll oppdateres
     implementation(libs.ebxml.protokoll)
     testImplementation(testLibs.junit.jupiter.api)
+    testImplementation(kotlin("test"))
     testRuntimeOnly(testLibs.junit.jupiter.engine)
 }
 
