@@ -1,7 +1,13 @@
 package no.nav.emottak.ebms.validation
 
+import com.sun.xml.messaging.saaj.soap.ver1_1.SOAPMessageFactory1_1Impl
 import io.ktor.http.*
 import io.ktor.http.content.*
+import jakarta.xml.soap.SOAPConstants
+import jakarta.xml.soap.SOAPFault
+import jakarta.xml.soap.SOAPMessage
+import java.io.ByteArrayOutputStream
+import javax.xml.namespace.QName
 import kotlin.streams.asStream
 
 
@@ -23,17 +29,19 @@ object ContentTypeRegex {
 
 
 fun Headers.validateMime() {
-
+        runCatching {
                 validateMimeHeaders()
                 validateMultipartAttributter()
+        }.onFailure {
+                if (it !is MimeValidationException) throw MimeValidationException("Unexpected validation fail.",it) else throw it
+        }
 
 }
 
 //KRAV 5.5.2.3 Valideringsdokument
 fun PartData.validateMimeSoapEnvelope() {
-        ContentTypeRegex.CONTEN_TYPE.find(this.contentType?.toString() ?: "")
-                .takeIf {
-                        it?.groups?.get("contentType")?.value == "text/xml" } ?: throw MimeValidationException("Content type is missing or wrong ")
+        this.contentType?.takeIf {
+                        it.contentType + "/" + it.contentSubtype == "text/xml" } ?: throw MimeValidationException("Content type is missing or wrong ")
 
         this.headers[MimeHeaders.CONTENT_ID].takeUnless { it.isNullOrBlank() }
                 ?: throw MimeValidationException("Content ID is missing")
@@ -46,8 +54,8 @@ fun PartData.validateMimeSoapEnvelope() {
 fun PartData.validateMimeAttachment() {
         takeIf { this.contentDisposition?.disposition == "attachment"} ?: throw MimeValidationException("This is not attachment")
         takeIf { this.headers[MimeHeaders.CONTENT_TRANSFER_ENCODING] == "base64" } ?: throw MimeValidationException("Feil content transfer encoding")
-        this.contentType?.toString()?.takeIf {
-                ContentTypeRegex.CONTEN_TYPE.find(it)?.groups?.get("contentType")?.value == "application/pkcs7-mime"
+        this.contentType?.takeIf {
+                it.contentType + "/" + it.contentSubtype == "application/pkcs7-mime"
         }?: throw MimeValidationException("Incompatible content type on attachment")
 }
 
@@ -80,4 +88,15 @@ private fun Headers.validateMultipartAttributter() {
 }
 
 
-class MimeValidationException(message:String) : Exception(message)
+class MimeValidationException(message:String,cause: Throwable? = null) : Exception(message,cause)
+
+fun MimeValidationException.asParseAsSoapFault() : String {
+        val faultNs: QName = QName(SOAPConstants.URI_NS_SOAP_ENVELOPE, "Server")
+        val message: SOAPMessage = SOAPMessageFactory1_1Impl.newInstance().createMessage()
+        val fault: SOAPFault = message.soapBody.addFault()
+        fault.setFaultCode(faultNs)
+        fault.faultString  = this.message
+        val out = ByteArrayOutputStream()
+        message.writeTo(out)
+        return String(out.toByteArray())
+}
