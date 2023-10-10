@@ -2,6 +2,7 @@ package no.nav.emottak.ebms.processing
 
 import no.nav.emottak.Event
 import no.nav.emottak.ebms.model.EbMSMessage
+import no.nav.emottak.util.marker
 import org.slf4j.LoggerFactory
 
 abstract class Processor(val ebMSMessage: EbMSMessage) {
@@ -32,7 +33,7 @@ abstract class Processor(val ebMSMessage: EbMSMessage) {
     
     fun persisterHendelse(event: Event): Boolean {
         ebMSMessage.addHendelse(event)
-        log.info("Hendelse persistert: [%s]".format(event.toString()))
+        log.info(this.ebMSMessage.messageHeader.marker(), "Hendelse persistert: $event")
         return true; // TODO publiser hendelse
     }
     
