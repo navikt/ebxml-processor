@@ -38,6 +38,8 @@ dependencyResolutionManagement {
 
 
             library("logback-classic", "ch.qos.logback:logback-classic:1.4.11")
+            library("logback-logstash", "net.logstash.logback:logstash-logback-encoder:7.4")
+
             library("hikari", "com.zaxxer:HikariCP:5.0.1")
             library("labai-jsr305x-annotations", "com.github.labai:labai-jsr305x-annotations:0.0.2")
             library("jakarta.xml.bind-api", "jakarta.xml.bind:jakarta.xml.bind-api:4.0.0")
@@ -47,6 +49,7 @@ dependencyResolutionManagement {
 
             bundle("bouncycastle", listOf("bcpkix-jdk18on", "bcprov-jdk18on"))
             bundle("exposed", listOf("exposed-core", "exposed-dao", "exposed-java-time", "exposed-jdbc","exposed-json"))
+            bundle("logging", listOf("logback-classic", "logback-logstash"))
         }
 
         create("testLibs") {

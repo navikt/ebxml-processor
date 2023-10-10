@@ -2,6 +2,7 @@ package no.nav.emottak.ebms.processing
 
 import no.nav.emottak.Event
 import no.nav.emottak.ebms.model.EbMSMessage
+import no.nav.emottak.util.marker
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Error
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
 import org.slf4j.LoggerFactory
@@ -12,7 +13,6 @@ abstract class Processor(val ebMSMessage: EbMSMessage) {
 
     val log = LoggerFactory.getLogger(this.javaClass)
     abstract fun process() // TODO kan sikkert ta imot en context. EbmsMessageContext?
-    abstract fun createEbmsErrorElement(): Error
 
     fun processWithEvents() {
         lagOgLagreHendelse(Event.Status.STARTED)
@@ -39,15 +39,15 @@ abstract class Processor(val ebMSMessage: EbMSMessage) {
     fun korrelasjonsId(): String { //TODO PLACEHOLDER for correlationId
         return ebMSMessage.messageHeader.conversationId + "_" + ebMSMessage.messageHeader.messageData.messageId // TODO placeholder
     }
-
+    
     fun persisterHendelse(event: Event): Boolean {
         ebMSMessage.addHendelse(event)
-        log.info("Hendelse persistert: [%s]".format(event.toString()))
+        log.info(this.ebMSMessage.messageHeader.marker(), "Hendelse persistert: $event")
         return true; // TODO publiser hendelse
     }
 
     open class EbxmlProcessException(message: String, val ebxmlError: Error): RuntimeException(message) {
 
     }
-    
+
 }
