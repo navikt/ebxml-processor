@@ -15,6 +15,10 @@ import java.security.PrivateKey
 import java.security.Security
 import java.security.cert.X509Certificate
 
+/**
+ *
+ * 5.15.1 Dekryptering av vedlegg
+ */
 class Dekryptering {
 
     init {
@@ -29,15 +33,19 @@ class Dekryptering {
         } else {
             byteArray
         }
-        val envelopedData = CMSEnvelopedData(bytes)
-        val recipients: RecipientInformationStore = envelopedData.recipientInfos
-        for (recipient in recipients.recipients as Collection<RecipientInformation?>) {
-            if (recipient is KeyTransRecipientInformation) {
-                val key: PrivateKey = getPrivateKeyMatch(recipient)
-                return getDeenvelopedContent(recipient, key)
+        try {
+            val envelopedData = CMSEnvelopedData(bytes) //Regel ID 263
+            val recipients: RecipientInformationStore = envelopedData.recipientInfos
+            for (recipient in recipients.recipients as Collection<RecipientInformation?>) {
+                if (recipient is KeyTransRecipientInformation) {
+                    val key: PrivateKey = getPrivateKeyMatch(recipient)
+                    return getDeenvelopedContent(recipient, key)
+                }
             }
+            throw DecryptionException("Fant ikke PrivateKey for dekryptering med recipients ${recipients.recipients}")
+        } catch (e: Exception) {
+            throw DecryptionException("Feil ved dekryptering", e)
         }
-        return byteArrayOf()
     }
 
 
