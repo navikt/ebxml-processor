@@ -1,18 +1,17 @@
 package no.nav.emottak.ebms.processing
 
+import no.nav.emottak.ebms.model.EbMSBaseMessage
 import no.nav.emottak.ebms.model.EbMSDocument
-import no.nav.emottak.ebms.model.EbMSMessage
 
-class EbmsMessageProcessor(ebMSDocument: EbMSDocument, ebMSMessage: EbMSMessage) {
+class EbmsMessageProcessor(ebMSDocument: EbMSDocument, ebMSMessage: EbMSBaseMessage) {
     // TODO tenk over processor-sett, flow struktur, overall state oversikt
 
     val processCollection =
         listOf(
-            AckRequestedProcessor(ebMSMessage),
             CPAValidationProcessor(ebMSMessage),
-            PayloadProcessor(ebMSMessage),
+       //     PayloadProcessor(ebMSMessage),
             SertifikatsjekkProcessor(ebMSMessage),
-            SignatursjekkProcessor(ebMSDocument, ebMSMessage),
+            SignatursjekkProcessor(ebMSDocument.dokument, ebMSMessage),
         )
 
     fun runAll() {

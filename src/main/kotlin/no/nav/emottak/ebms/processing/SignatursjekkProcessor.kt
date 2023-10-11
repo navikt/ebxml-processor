@@ -2,11 +2,11 @@ package no.nav.emottak.ebms.processing
 
 import no.nav.emottak.ebms.getPublicSigningCertificate
 import no.nav.emottak.ebms.model.EbMSAttachment
+import no.nav.emottak.ebms.model.EbMSBaseMessage
 import no.nav.emottak.ebms.model.EbMSDocument
-import no.nav.emottak.ebms.model.EbMSMessage
+import no.nav.emottak.ebms.model.EbMSPayloadMessage
 import no.nav.emottak.ebms.validation.CID
 import no.nav.emottak.ebms.validation.EbMSAttachmentResolver
-import no.nav.emottak.util.createDocument
 import no.nav.emottak.util.retrievePublicX509Certificate
 import no.nav.emottak.util.retrieveSignatureElement
 import no.nav.emottak.util.signatur.SignatureException
@@ -19,7 +19,7 @@ import org.apache.xml.security.signature.XMLSignature
 import org.apache.xml.security.transforms.Transforms
 import org.apache.xml.security.utils.Constants
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
-import java.io.ByteArrayInputStream
+import org.w3c.dom.Document
 import java.security.cert.X509Certificate
 
 /**
@@ -30,10 +30,11 @@ import java.security.cert.X509Certificate
  * Mangler: 104 (sertifikatsjekk), 105 (sertifikatsjekk) //TODO
  *
  */
-class SignatursjekkProcessor(val ebMSDocument: EbMSDocument, ebMSMessage: EbMSMessage): Processor(ebMSMessage) {
+class SignatursjekkProcessor(val dokument: Document, ebMSMessage: EbMSBaseMessage): Processor(ebMSMessage) {
 
     override fun process() {
-        validate(ebMSMessage.messageHeader, ebMSDocument.dokument, ebMSMessage.attachments)
+        val attachments = if (ebMSMessage is EbMSPayloadMessage) ebMSMessage.attachments else emptyList()
+        validate(ebMSMessage.messageHeader, dokument, attachments)
     }
 
     init {
@@ -41,9 +42,9 @@ class SignatursjekkProcessor(val ebMSDocument: EbMSDocument, ebMSMessage: EbMSMe
     }
 
     @Throws(SignatureException::class)
-    private fun validate(messageHeader: MessageHeader, document: ByteArray, attachments: List<EbMSAttachment>) {
+    private fun validate(messageHeader: MessageHeader, dokument: Document, attachments: List<EbMSAttachment>) {
         //TODO Sjekk isNonRepudiation?
-        val xmlSignature = retrieveSignatureElement(createDocument(ByteArrayInputStream(document)))
+        val xmlSignature = retrieveSignatureElement(dokument)
         val certificateFraCPA = messageHeader.getPublicSigningCertificate()
         val certificateFraSignatur = xmlSignature.retrievePublicX509Certificate()
         if (certificateFraSignatur != certificateFraCPA) throw SignatureException("Signert med annet sertifikat enn definert i CPA")

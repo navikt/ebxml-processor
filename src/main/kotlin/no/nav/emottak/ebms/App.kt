@@ -22,8 +22,10 @@ import no.nav.emottak.ebms.validation.asParseAsSoapFault
 import no.nav.emottak.ebms.validation.validateMime
 import no.nav.emottak.ebms.validation.validateMimeAttachment
 import no.nav.emottak.ebms.validation.validateMimeSoapEnvelope
+import no.nav.emottak.ebms.xml.getDocumentBuilder
 import no.nav.emottak.ebms.xml.xmlMarshaller
 import org.xmlsoap.schemas.soap.envelope.Envelope
+import java.io.ByteArrayInputStream
 import java.time.LocalDateTime
 import javax.xml.namespace.QName
 
@@ -55,8 +57,8 @@ fun Application.myApplicationModule() {
             // KRAV 5.5.2.1 validate MIME
             try {
                 call.request.headers.validateMime()
-            } catch(it:MimeValidationException) {
-                call.respond(HttpStatusCode.InternalServerError,it.asParseAsSoapFault())
+            } catch (it: MimeValidationException) {
+                call.respond(HttpStatusCode.InternalServerError, it.asParseAsSoapFault())
                 return@post
 
             }
@@ -64,21 +66,23 @@ fun Application.myApplicationModule() {
             val dokument = allParts.find {
                 it.contentType?.contentType + "/" + it.contentType?.contentSubtype == "text/xml" && it.contentDisposition == null
             }
-            val attachments = allParts.filter { it.contentDisposition?.disposition == ContentDisposition.Attachment.disposition }
+            val attachments =
+                allParts.filter { it.contentDisposition?.disposition == ContentDisposition.Attachment.disposition }
             try {
-                 dokument?.validateMimeSoapEnvelope() ?: throw MimeValidationException("Unable to find soap envelope multipart")
+                dokument?.validateMimeSoapEnvelope()
+                    ?: throw MimeValidationException("Unable to find soap envelope multipart")
                 attachments.forEach {
-                        it.validateMimeAttachment()
-                 }
+                    it.validateMimeAttachment()
+                }
 
-            }catch (ex: MimeValidationException) {
-                call.respond(HttpStatusCode.InternalServerError,ex.asParseAsSoapFault())
+            } catch (ex: MimeValidationException) {
+                call.respond(HttpStatusCode.InternalServerError, ex.asParseAsSoapFault())
                 return@post
             }
 
             val dokumentWithAttachment = EbMSDocument(
                 "",
-                dokument!!.payload(),
+                getDocumentBuilder().parse(ByteArrayInputStream(dokument!!.payload())),
                 attachments.map {
                     EbMSAttachment(
                         it.payload(),
@@ -94,30 +98,6 @@ fun Application.myApplicationModule() {
 
             call.respondText("Hello")
         }
-
-        post("/ebxmlMessage") {
-            val envelope = xmlMarshaller.unmarshal(call.receiveText(), Envelope::class.java)
-            val ebMSMessage = EbMSMessage(envelope.header(), envelope.ackRequested(), emptyList(), LocalDateTime.now())
-            //TODO ordentlig ebmsdocument
-            EbmsMessageProcessor(EbMSDocument("", byteArrayOf(), emptyList()), ebMSMessage).runAll()
-        }
-
-        post("/ebmsTest") {
-            val allParts = call.receiveMultipart().readAllParts()
-            val dokument = allParts.find {
-                it.contentType?.toString() == "text/xml" && it.contentDisposition == null
-            }
-            val envelope =
-                xmlMarshaller.unmarshal(String((dokument as PartData.FormItem).payload()), Envelope::class.java)
-           //val attachments = allParts
-           //    .filter { it.contentDisposition == ContentDisposition.Attachment }
-           //    .filter { it.headers.get("Content-Id")?.contains(attachmentId, true) ?: false }
-           //    .map { (it as PartData.FormItem).payload() }
-           //    .first()
-           //println(
-           //    String(attachments)
-           //)
-            call.respondText("Hello2")
-        }
     }
+
 }
