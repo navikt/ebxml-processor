@@ -16,14 +16,20 @@
 package no.nav.emottak.ebms.model
 
 import no.nav.emottak.ebms.xml.xmlMarshaller
+import org.w3c.dom.Document
 import org.xmlsoap.schemas.soap.envelope.Envelope
 import java.time.LocalDateTime
 
-data class EbMSDocument(val conversationId: String, val dokument: ByteArray, val attachments: List<EbMSAttachment>)
+data class EbMSDocument(val conversationId: String, val dokument: Document, val attachments: List<EbMSAttachment>){
+    fun test() {
+
+    }
+}
 
 
-fun EbMSDocument.buildEbmMessage(): EbMSMessage {
-    println(String( this.dokument))
-    val envelope = xmlMarshaller.unmarshal( String( this.dokument), Envelope::class.java)
-    return EbMSMessage(envelope.header(),envelope.ackRequested(),this.attachments, LocalDateTime.now())
+fun EbMSDocument.buildEbmMessage(): EbMSPayloadMessage {
+
+
+    val envelope: Envelope = xmlMarshaller.unmarshal( this.dokument)
+    return EbMSPayloadMessage(this.dokument,envelope.header(),envelope.ackRequested(),this.attachments, LocalDateTime.now())
 }

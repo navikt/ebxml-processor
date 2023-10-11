@@ -1,7 +1,7 @@
 package no.nav.emottak.ebms.processing
 
 import io.ktor.server.plugins.BadRequestException
-import no.nav.emottak.ebms.model.EbMSMessage
+import no.nav.emottak.ebms.model.EbMSPayloadMessage
 import no.nav.emottak.ebms.postPayloadRequest
 import no.nav.emottak.melding.model.Header
 import no.nav.emottak.melding.model.Party
@@ -9,7 +9,7 @@ import no.nav.emottak.melding.model.PayloadRequest
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.PartyId
 
-class PayloadProcessor(ebMSMessage: EbMSMessage) : Processor(ebMSMessage) {
+class PayloadProcessor(override val ebMSMessage: EbMSPayloadMessage) : Processor(ebMSMessage) {
     override fun process() {
         val payloads = ebMSMessage.attachments
         val header = ebMSMessage.messageHeader.payloadRequestHeader()
