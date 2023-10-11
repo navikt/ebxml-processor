@@ -3,7 +3,6 @@
  */
 package no.nav.emottak.ebms
 
-import com.sun.xml.messaging.saaj.soap.ver1_1.SOAPMessageFactory1_1Impl
 import io.ktor.http.*
 import io.ktor.http.content.*
 import io.ktor.server.application.*
@@ -12,9 +11,6 @@ import io.ktor.server.netty.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import jakarta.xml.soap.SOAPConstants
-import jakarta.xml.soap.SOAPFault
-import jakarta.xml.soap.SOAPMessage
 import no.nav.emottak.ebms.model.*
 import no.nav.emottak.ebms.processing.EbmsMessageProcessor
 import no.nav.emottak.ebms.validation.MimeValidationException
@@ -27,7 +23,6 @@ import no.nav.emottak.ebms.xml.xmlMarshaller
 import org.xmlsoap.schemas.soap.envelope.Envelope
 import java.io.ByteArrayInputStream
 import java.time.LocalDateTime
-import javax.xml.namespace.QName
 
 
 fun main() {
@@ -37,13 +32,14 @@ fun main() {
 }
 
 fun PartData.payload() : ByteArray {
-    if (this is PartData.FormItem) return java.util.Base64.getMimeDecoder().decode(this.value)
-    if (this is PartData.FileItem) {
-        val bytes = this.streamProvider.invoke().readAllBytes()
-        return java.util.Base64.getMimeDecoder().decode(bytes)
+    return when(this) {
+        is PartData.FormItem -> java.util.Base64.getMimeDecoder().decode(this.value)
+        is PartData.FileItem -> {
+            val bytes = this.streamProvider.invoke().readAllBytes()
+            java.util.Base64.getMimeDecoder().decode(bytes)
+        }
+        else -> byteArrayOf()
     }
-    return byteArrayOf()
-
 }
 
 fun Application.myApplicationModule() {
