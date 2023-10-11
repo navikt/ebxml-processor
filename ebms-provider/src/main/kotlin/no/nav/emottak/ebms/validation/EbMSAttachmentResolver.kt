@@ -8,24 +8,24 @@ import org.apache.xml.security.utils.resolver.ResourceResolverSpi
 import java.io.ByteArrayInputStream
 import java.io.IOException
 
-const val CID = "cid:"
+const val CID_PREFIX = "cid:"
 
 class EbMSAttachmentResolver(private val attachments: List<EbMSAttachment>) : ResourceResolverSpi() {
     override fun engineCanResolveURI(context: ResourceResolverContext): Boolean {
-        return if (context.uriToResolve.startsWith(CID))
-            attachments.any { att -> context.uriToResolve.substring(CID.length) == att.contentId }
+        return if (context.uriToResolve.startsWith(CID_PREFIX))
+            attachments.any { att -> context.uriToResolve.substring(CID_PREFIX.length) == att.contentId }
         else false
     }
 
     override fun engineResolveURI(context: ResourceResolverContext): XMLSignatureInput {
-        if (!context.uriToResolve.startsWith(CID)) throw ResourceResolverException(
+        if (!context.uriToResolve.startsWith(CID_PREFIX)) throw ResourceResolverException(
             context.uriToResolve,
-            arrayOf("Reference URI does not start with $CID"),
+            arrayOf("Reference URI does not start with $CID_PREFIX"),
             context.uriToResolve,
             context.baseUri
         )
         val result = attachments.firstOrNull {
-            att -> context.uriToResolve.substring(CID.length) == att.contentId
+            att -> context.uriToResolve.substring(CID_PREFIX.length) == att.contentId
         } ?: throw ResourceResolverException(
                 context.uriToResolve,
                 arrayOf("Reference URI ${context.uriToResolve} does not exist!"),

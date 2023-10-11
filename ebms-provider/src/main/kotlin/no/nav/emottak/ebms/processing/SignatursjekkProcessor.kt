@@ -5,7 +5,7 @@ import no.nav.emottak.ebms.model.EbMSAttachment
 import no.nav.emottak.ebms.model.EbMSBaseMessage
 import no.nav.emottak.ebms.model.EbMSDocument
 import no.nav.emottak.ebms.model.EbMSPayloadMessage
-import no.nav.emottak.ebms.validation.CID
+import no.nav.emottak.ebms.validation.CID_PREFIX
 import no.nav.emottak.ebms.validation.EbMSAttachmentResolver
 import no.nav.emottak.util.retrievePublicX509Certificate
 import no.nav.emottak.util.retrieveSignatureElement
@@ -103,22 +103,26 @@ private fun SignedInfo.validateReferences() {
             if (reference.transforms.item(0).uri != Transforms.TRANSFORM_ENVELOPED_SIGNATURE) throw SignatureException("Transform 1 har feil uri! ${reference.transforms.item(0).uri}")
             if (reference.transforms.item(1).uri != Transforms.TRANSFORM_XPATH) throw SignatureException(("Transform 2 har feil uri! ${reference.transforms.item(1).uri}"))
             if (reference.transforms.item(2).uri != Transforms.TRANSFORM_C14N_OMIT_COMMENTS) throw SignatureException(("Transform 3 har feil uri! ${reference.transforms.item(2).uri}"))
-        } else if (!uri.startsWith(CID)) throw SignatureException("Ugyldig URI $uri! Kun reference uri som starter med $CID er tillatt")
+        } else if (!uri.startsWith(CID_PREFIX)) throw SignatureException("Ugyldig URI $uri! Kun reference uri som starter med $CID_PREFIX er tillatt")
     }
     if(!foundRootReference) throw SignatureException("Root reference mangler!")
 }
 
 
 private fun SignatureAlgorithm.isValidSignatureMethodAlgorithm() {
-    if (this.algorithmURI != XMLSignature.ALGO_ID_SIGNATURE_RSA_SHA256 && this.algorithmURI != XMLSignature.ALGO_ID_SIGNATURE_RSA_SHA1) {
-        throw SignatureException("Ugyldig signaturalgoritme $algorithmURI")
-    }
+    if (!validSignatureAlgorithms.contains(this.algorithmURI))
+        throw SignatureException("Ugyldig signaturalgoritme. ($algorithmURI) ikke en av $validSignatureAlgorithms")
 }
 private fun MessageDigestAlgorithm.isValidDigestMethodAlgorithm() {
-    if (this.algorithmURI != MessageDigestAlgorithm.ALGO_ID_DIGEST_SHA256 && this.algorithmURI != MessageDigestAlgorithm.ALGO_ID_DIGEST_SHA1) {
-        throw SignatureException("Ugyldig digest method $algorithmURI")
-    }
+    if (!validMessageDigestAlgorithms.contains(this.algorithmURI))
+        throw SignatureException("Ugyldig digest method algoritme. ($algorithmURI) ikke en av $validMessageDigestAlgorithms\")")
 }
 
-
-
+private val validMessageDigestAlgorithms = listOf(
+    MessageDigestAlgorithm.ALGO_ID_DIGEST_SHA256,
+    MessageDigestAlgorithm.ALGO_ID_DIGEST_SHA1 //TODO Burde vi fjerne sha1?
+)
+private val validSignatureAlgorithms = listOf(
+    XMLSignature.ALGO_ID_SIGNATURE_RSA_SHA256,
+    XMLSignature.ALGO_ID_SIGNATURE_RSA_SHA1 //TODO Burde vi fjerne sha1?
+)
