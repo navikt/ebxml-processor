@@ -17,6 +17,7 @@ package no.nav.emottak.ebms.model
 
 import no.nav.emottak.ebms.xml.xmlMarshaller
 import no.nav.emottak.util.marker
+import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
 import org.slf4j.LoggerFactory
 import org.w3c.dom.Document
 import org.xmlsoap.schemas.soap.envelope.Envelope
@@ -43,4 +44,11 @@ fun EbMSDocument.buildEbmMessage(): EbMSBaseMessage {
         log.info(header.messageHeader().marker(), "Mottak melding av type payload")
         EbMSPayloadMessage(this.dokument,header.messageHeader(),header.ackRequested(),this.attachments, LocalDateTime.now())
     }
+}
+
+fun EbMSDocument.sendResponse(messageHeader: MessageHeader) {
+    log.info(messageHeader.marker(), "TODO return response message")
+}
+fun EbMSDocument.sendErrorResponse(messageHeader: MessageHeader) {
+    log.error(messageHeader.marker(), "TODO return response message")
 }
