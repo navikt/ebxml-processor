@@ -3,6 +3,7 @@ package no.nav.emottak.ebms.model
 import no.nav.emottak.ebms.processing.CPAValidationProcessor
 import no.nav.emottak.ebms.processing.SertifikatsjekkProcessor
 import no.nav.emottak.ebms.processing.SignatursjekkProcessor
+import no.nav.emottak.ebms.processing.signer
 import no.nav.emottak.ebms.xml.xmlMarshaller
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Acknowledgment
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
@@ -39,7 +40,7 @@ class EbmsAcknowledgment(override val messageHeader: MessageHeader,
         }.let {
             xmlMarshaller.marshal(it)
         }.let {
-            EbMSDocument("contentID",it, emptyList())
+            EbMSDocument("contentID",it, emptyList()).signer(this.messageHeader)
         }
     }
 
