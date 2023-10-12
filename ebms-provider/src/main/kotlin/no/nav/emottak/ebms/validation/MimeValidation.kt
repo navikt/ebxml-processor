@@ -21,7 +21,7 @@ object MimeHeaders {
 }
 
 object ContentTypeRegex {
-        val CONTEN_TYPE = Regex("\\s*^(?<contentType>[^;]+);\\s*")
+        val CONTENT_TYPE = Regex("\\s*^(?<contentType>[^;]+);\\s*")
         val BOUNDARY = Regex("\\s*boundary=\"----=?(?<boundary>[^=\"]+)\"?")
         val START = Regex("\\s*start=\"?(?<start>[^=\"]+)\"?")
         val TYPE = Regex("type=\"?(?<type>[^=\"]+)\"?")
@@ -75,7 +75,7 @@ private fun Headers.validateMultipartAttributter() {
 
         if (contentTypeHeader != "text/xml")  {
 
-                val contentType = ContentTypeRegex.CONTEN_TYPE.find(contentTypeHeader)?.groups?.get("contentType")?.value?: throw MimeValidationException("Missing content type from ContentType header")
+                val contentType = ContentTypeRegex.CONTENT_TYPE.find(contentTypeHeader)?.groups?.get("contentType")?.value?: throw MimeValidationException("Missing content type from ContentType header")
                 if (contentType!="multipart/related") throw MimeValidationException("Content type should be multipart/related")
                 ContentTypeRegex.BOUNDARY.find(contentTypeHeader)?.groups?.get("boundary")?.value?: throw MimeValidationException("Boundary is mandatory on multipart related content")
                 ContentTypeRegex.START.find(contentTypeHeader)?.groups?.get("start")?.value?: throw MimeValidationException("Start on multipart request not defined")
@@ -87,6 +87,10 @@ private fun Headers.validateMultipartAttributter() {
         }
 }
 
+fun String.parseContentType(): String {
+        if (this == "text/xml") return this
+        return ContentTypeRegex.CONTENT_TYPE.find(this)?.groups?.get("contentType")?.value ?: throw MimeValidationException("Missing content-type")
+}
 
 class MimeValidationException(message:String,cause: Throwable? = null) : Exception(message,cause)
 

@@ -2,6 +2,7 @@ package no.nav.emottak.ebms.model
 
 import no.nav.emottak.Event
 import no.nav.emottak.ebms.processing.CPAValidationProcessor
+import no.nav.emottak.ebms.processing.DekrypteringProcessor
 import no.nav.emottak.ebms.processing.SertifikatsjekkProcessor
 import no.nav.emottak.ebms.processing.SignatursjekkProcessor
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.AckRequested
@@ -16,10 +17,12 @@ import kotlin.collections.ArrayList
 
 
 //EbmsPayloadMessage
-class EbMSPayloadMessage(private val dokument:Document, override val messageHeader: MessageHeader,
-                         val ackRequested: AckRequested? = null,
-                         val attachments: List<EbMSAttachment>,
-                         val mottatt:  LocalDateTime
+class EbMSPayloadMessage(
+    override val dokument:Document,
+    override val messageHeader: MessageHeader,
+    val ackRequested: AckRequested? = null,
+    val attachments: List<EbMSAttachment>,
+    val mottatt:  LocalDateTime
                   ) : EbMSBaseMessage
 {
     private val eventLogg: ArrayList<Event> = ArrayList() // TODO tenk over
@@ -60,17 +63,18 @@ class EbMSPayloadMessage(private val dokument:Document, override val messageHead
     }
 
     fun process() : EbMSBaseMessage {
-        try {
-           listOf(
+        return try {
+            listOf(
                 CPAValidationProcessor(this),
                 SertifikatsjekkProcessor(this),
-                SignatursjekkProcessor(dokument, this)
-           )
-               .forEach { it.processWithEvents() }
-           return this.createAcknowledgment()
-       }catch (ex: Exception) {
-           return createFail()
-       }
+                SignatursjekkProcessor(dokument, this),
+                DekrypteringProcessor(this)
+            )
+                .forEach { it.processWithEvents() }
+            this.createAcknowledgment()
+        } catch (ex: Exception) {
+            createFail()
+        }
     }
 
 }
