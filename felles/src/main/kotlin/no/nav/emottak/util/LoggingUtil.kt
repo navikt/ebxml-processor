@@ -38,9 +38,9 @@ private const val UKJENT_VERDI = "Ukjent"
 
 //Kibana log indekser
 private const val MARKER_MOTTAK_ID = "mottakId"
-private const val MARKER_CONVERSATION_ID = "conversationId"
-private const val FROM_HER_ID = "avsenderId"
-private const val TO_HER_ID = "mottakerId"
+private const val MARKER_CONVERSATION_ID = "ebConversationId"
+private const val FROM_HER_ID = "ebAvsenderId"
+private const val TO_HER_ID = "ebMottakerId"
 private const val TO_ROLE = "toRole"
 private const val FROM_ROLE = "fromRole"
 private const val SERVICE = "ebxmlService"
