@@ -46,7 +46,7 @@ fun Application.myApplicationModule() {
             call.respondText("Hello, world!")
         }
         post("/ebms") {
-
+            call.application.environment.log.info("Mottok melding")
             // KRAV 5.5.2.1 validate MIME
             try {
                 call.request.headers.validateMime()
@@ -55,8 +55,7 @@ fun Application.myApplicationModule() {
                 return@post
 
             }
-            val contentType = call.request.headers["Content-Type"]!!.parseContentType()
-            val ebMSDocument = when (contentType) {
+            val ebMSDocument = when (val contentType = call.request.headers["Content-Type"]!!.parseContentType()) {
                 "multipart/related" -> {
                     val allParts = call.receiveMultipart().readAllParts()
                     try {
@@ -92,7 +91,8 @@ fun Application.myApplicationModule() {
                     )
                 }
                 else -> {
-                    throw RuntimeException()
+                    call.respond(HttpStatusCode.BadRequest, "Ukjent request body med Content-Type $contentType")
+                    return@post
                 }
             }
 
