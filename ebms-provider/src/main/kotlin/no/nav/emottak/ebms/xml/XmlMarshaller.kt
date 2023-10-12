@@ -7,8 +7,8 @@ import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.StringWriter
 import javax.xml.bind.JAXBContext
+import javax.xml.bind.JAXBElement
 import javax.xml.stream.XMLInputFactory
-import javax.xml.stream.XMLStreamWriter
 
 val xmlMarshaller = XmlMarshaller()
 
@@ -47,7 +47,7 @@ class XmlMarshaller {
     }
 
     fun <T> unmarshal(document:Node) : T {
-        return unmarshaller.unmarshal(document) as T
+        return (unmarshaller.unmarshal(document) as JAXBElement<T>).value
     }
 
 }

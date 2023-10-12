@@ -28,8 +28,6 @@ data class EbMSDocument(val conversationId: String, val dokument: Document, val 
 
 
 fun EbMSDocument.buildEbmMessage(): EbMSPayloadMessage {
-
-
     val envelope: Envelope = xmlMarshaller.unmarshal( this.dokument)
     return EbMSPayloadMessage(this.dokument,envelope.header(),envelope.ackRequested(),this.attachments, LocalDateTime.now())
 }
