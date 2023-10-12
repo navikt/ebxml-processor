@@ -19,6 +19,7 @@ import no.nav.emottak.ebms.validation.validateMime
 import no.nav.emottak.ebms.validation.validateMimeAttachment
 import no.nav.emottak.ebms.validation.validateMimeSoapEnvelope
 import no.nav.emottak.ebms.xml.getDocumentBuilder
+import no.nav.emottak.util.marker
 import java.io.ByteArrayInputStream
 
 
@@ -46,7 +47,6 @@ fun Application.myApplicationModule() {
             call.respondText("Hello, world!")
         }
         post("/ebms") {
-            call.application.environment.log.info("Mottok melding")
             // KRAV 5.5.2.1 validate MIME
             try {
                 call.request.headers.validateMime()
@@ -96,15 +96,22 @@ fun Application.myApplicationModule() {
                 }
             }
 
-            when (val message = ebMSDocument.buildEbmMessage()) {
-                is EbmsAcknowledgment -> message.process()
-                is EbMSMessageError -> message.process()
-                is EbMSPayloadMessage -> {
-                    when (val response = message.process()) {
-                        is EbmsAcknowledgment -> response.toEbmsDokument().sendResponse(response.messageHeader)
-                        is EbMSMessageError -> response.toEbmsDokument().sendErrorResponse(response.messageHeader)
+            val message = ebMSDocument.buildEbmMessage()
+            try {
+                when (message) {
+                    is EbmsAcknowledgment -> message.process()
+                    is EbMSMessageError -> message.process()
+                    is EbMSPayloadMessage -> {
+                        when (val response = message.process()) {
+                            is EbmsAcknowledgment -> response.toEbmsDokument().sendResponse(response.messageHeader)
+                            is EbMSMessageError -> response.toEbmsDokument().sendErrorResponse(response.messageHeader)
+                        }
                     }
                 }
+            } catch (e: Exception) {
+                call.application.environment.log.error(message.messageHeader.marker(), "Feil ved prosessering av melding", e)
+                call.respond(HttpStatusCode.InternalServerError, "Feil ved prosessering av melding")
+                return@post
             }
 
             //call payload processor
