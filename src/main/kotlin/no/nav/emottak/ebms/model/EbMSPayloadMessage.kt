@@ -8,8 +8,12 @@ import no.nav.emottak.ebms.processing.SignatursjekkProcessor
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.AckRequested
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Acknowledgment
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ErrorList
+import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.From
+import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageData
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
+import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.To
 import org.w3c.dom.Document
+import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.util.*
@@ -42,7 +46,25 @@ class EbMSPayloadMessage(
     }
 
     private fun createAcknowledgmentMessageHeader(): MessageHeader {
-        return MessageHeader()
+        val messageHeader = MessageHeader()
+        messageHeader.conversationId = this.messageHeader.conversationId
+        messageHeader.from = From().also {
+            it.partyId.addAll(this.messageHeader.to.partyId)
+            it.role = "ACK_SENDER"
+        }
+        messageHeader.to = To().also {
+            it.partyId.addAll(this.messageHeader.from.partyId)
+            it.role = "ACK_RECEIVER"
+        }
+        messageHeader.service = this.messageHeader.service
+        messageHeader.action = this.messageHeader.action
+        messageHeader.cpaId = this.messageHeader.cpaId
+        messageHeader.messageData = MessageData().also {
+            it.messageId = this.messageHeader.messageData.messageId + "_RESPONSE"
+            it.refToMessageId = this.messageHeader.messageData.messageId
+            it.timestamp = Date.from(Instant.now())
+        }
+        return messageHeader
     }
 
     private fun createAcknowledgementJaxB(): Acknowledgment {
