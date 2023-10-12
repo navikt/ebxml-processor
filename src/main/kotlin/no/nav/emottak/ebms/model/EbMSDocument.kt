@@ -16,10 +16,13 @@
 package no.nav.emottak.ebms.model
 
 import no.nav.emottak.ebms.xml.xmlMarshaller
+import no.nav.emottak.util.marker
+import org.slf4j.LoggerFactory
 import org.w3c.dom.Document
 import org.xmlsoap.schemas.soap.envelope.Envelope
 import java.time.LocalDateTime
 
+val log = LoggerFactory.getLogger("no.nav.emottak.ebms.model")
 data class EbMSDocument(val conversationId: String, val dokument: Document, val attachments: List<EbMSAttachment>){
     fun test() {
 
@@ -29,11 +32,15 @@ data class EbMSDocument(val conversationId: String, val dokument: Document, val 
 
 fun EbMSDocument.buildEbmMessage(): EbMSBaseMessage {
     val envelope: Envelope = xmlMarshaller.unmarshal( this.dokument)
-    return if (envelope.header.acknowledgment() != null) {
-        EbmsAcknowledgment(envelope.header.messageHeader(), envelope.header.acknowledgment()!!, this.dokument)
-    } else if (envelope.header.errorList() != null) {
-        EbMSMessageError(envelope.header.messageHeader(), envelope.header.errorList()!!, this.dokument)
+    val header = envelope.header
+    return if (header.acknowledgment() != null) {
+        log.info(header.messageHeader().marker(), "Mottak melding av type Acknowledgment")
+        EbmsAcknowledgment(header.messageHeader(), header.acknowledgment()!!, this.dokument)
+    } else if (header.errorList() != null) {
+        log.info(header.messageHeader().marker(), "Mottak melding av type ErrorList")
+        EbMSMessageError(header.messageHeader(), header.errorList()!!, this.dokument)
     } else {
-        EbMSPayloadMessage(this.dokument,envelope.header.messageHeader(),envelope.header.ackRequested(),this.attachments, LocalDateTime.now())
+        log.info(header.messageHeader().marker(), "Mottak melding av type payload")
+        EbMSPayloadMessage(this.dokument,header.messageHeader(),header.ackRequested(),this.attachments, LocalDateTime.now())
     }
 }
