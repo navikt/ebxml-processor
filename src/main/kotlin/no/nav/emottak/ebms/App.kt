@@ -100,8 +100,10 @@ fun Application.myApplicationModule() {
                 is EbmsAcknowledgment -> message.process()
                 is EbMSMessageError -> message.process()
                 is EbMSPayloadMessage -> {
-                    val response = message.process()
-                    //sendResponse(response)
+                    when (val response = message.process()) {
+                        is EbmsAcknowledgment -> response.toEbmsDokument().sendResponse(response.messageHeader)
+                        is EbMSMessageError -> response.toEbmsDokument().sendErrorResponse(response.messageHeader)
+                    }
                 }
             }
 

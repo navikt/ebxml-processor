@@ -2,7 +2,6 @@ package no.nav.emottak.ebms.processing
 
 import no.nav.emottak.Event
 import no.nav.emottak.ebms.model.EbMSBaseMessage
-import no.nav.emottak.ebms.model.EbMSPayloadMessage
 import no.nav.emottak.util.marker
 import org.slf4j.LoggerFactory
 
@@ -34,7 +33,11 @@ abstract class Processor(open val ebMSMessage: EbMSBaseMessage) {
     
     fun persisterHendelse(event: Event): Boolean {
         // Vi vil se på det ebMSMessage.addHendelse(event)
-        log.info(this.ebMSMessage.messageHeader.marker(), "$event")
+        when (event.eventStatus) {
+            Event.Status.STARTED -> log.info(this.ebMSMessage.messageHeader.marker(), "$event")
+            Event.Status.OK -> log.info(this.ebMSMessage.messageHeader.marker(), "$event")
+            Event.Status.FAILED -> log.error(this.ebMSMessage.messageHeader.marker(), "$event")
+        }
         return true; // TODO publiser hendelse
     }
     
