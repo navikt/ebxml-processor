@@ -12,17 +12,14 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import no.nav.emottak.ebms.model.*
-import no.nav.emottak.ebms.processing.EbmsMessageProcessor
 import no.nav.emottak.ebms.validation.MimeValidationException
 import no.nav.emottak.ebms.validation.asParseAsSoapFault
+import no.nav.emottak.ebms.validation.parseContentType
 import no.nav.emottak.ebms.validation.validateMime
 import no.nav.emottak.ebms.validation.validateMimeAttachment
 import no.nav.emottak.ebms.validation.validateMimeSoapEnvelope
 import no.nav.emottak.ebms.xml.getDocumentBuilder
-import no.nav.emottak.ebms.xml.xmlMarshaller
-import org.xmlsoap.schemas.soap.envelope.Envelope
 import java.io.ByteArrayInputStream
-import java.time.LocalDateTime
 
 
 fun main() {
@@ -58,39 +55,58 @@ fun Application.myApplicationModule() {
                 return@post
 
             }
-            val allParts = call.receiveMultipart().readAllParts()
-            val dokument = allParts.find {
-                it.contentType?.contentType + "/" + it.contentType?.contentSubtype == "text/xml" && it.contentDisposition == null
-            }
-            val attachments =
-                allParts.filter { it.contentDisposition?.disposition == ContentDisposition.Attachment.disposition }
-            try {
-                dokument?.validateMimeSoapEnvelope()
-                    ?: throw MimeValidationException("Unable to find soap envelope multipart")
-                attachments.forEach {
-                    it.validateMimeAttachment()
+            val contentType = call.request.headers["Content-Type"]!!.parseContentType()
+            val ebMSDocument = when (contentType) {
+                "multipart/related" -> {
+                    val allParts = call.receiveMultipart().readAllParts()
+                    try {
+                        val dokument = allParts.find {
+                            it.contentType?.contentType + "/" + it.contentType?.contentSubtype == "text/xml" && it.contentDisposition == null
+                        }.also { it?.validateMimeSoapEnvelope() ?: throw MimeValidationException("Unable to find soap envelope multipart") }!!.payload()
+                        val attachments =
+                            allParts.filter { it.contentDisposition?.disposition == ContentDisposition.Attachment.disposition }
+                        attachments.forEach {
+                            it.validateMimeAttachment()
+                        }
+                        EbMSDocument(
+                            "",
+                            getDocumentBuilder().parse(ByteArrayInputStream(dokument)),
+                            attachments.map {
+                                EbMSAttachment(
+                                    it.payload(),
+                                    it.contentType!!.contentType,
+                                    it.headers["Content-Id"]!!
+                                )
+                            })
+                    } catch (ex: MimeValidationException) {
+                        call.respond(HttpStatusCode.InternalServerError, ex.asParseAsSoapFault())
+                        return@post
+                    }
                 }
-
-            } catch (ex: MimeValidationException) {
-                call.respond(HttpStatusCode.InternalServerError, ex.asParseAsSoapFault())
-                return@post
+                "text/xml" -> {
+                    val dokument = call.receiveStream().readAllBytes()
+                    EbMSDocument(
+                        "",
+                        getDocumentBuilder().parse(ByteArrayInputStream(dokument)),
+                        emptyList()
+                    )
+                }
+                else -> {
+                    throw RuntimeException()
+                }
             }
 
-            val dokumentWithAttachment = EbMSDocument(
-                "",
-                getDocumentBuilder().parse(ByteArrayInputStream(dokument!!.payload())),
-                attachments.map {
-                    EbMSAttachment(
-                        it.payload(),
-                        it.contentType!!.contentType,
-                        it.headers["Content-Id"]!!
-                    )
-                })
-            val processor = EbmsMessageProcessor(dokumentWithAttachment, dokumentWithAttachment.buildEbmMessage())
-            processor.runAll()
+            when (val message = ebMSDocument.buildEbmMessage()) {
+                is EbmsAcknowledgment -> message.process()
+                is EbMSMessageError -> message.process()
+                is EbMSPayloadMessage -> {
+                    val response = message.process()
+                    //sendResponse(response)
+                }
+            }
 
             //call payload processor
-            println(dokumentWithAttachment)
+            println(ebMSDocument)
 
             call.respondText("Hello")
         }

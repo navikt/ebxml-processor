@@ -27,7 +27,13 @@ data class EbMSDocument(val conversationId: String, val dokument: Document, val 
 }
 
 
-fun EbMSDocument.buildEbmMessage(): EbMSPayloadMessage {
+fun EbMSDocument.buildEbmMessage(): EbMSBaseMessage {
     val envelope: Envelope = xmlMarshaller.unmarshal( this.dokument)
-    return EbMSPayloadMessage(this.dokument,envelope.header(),envelope.ackRequested(),this.attachments, LocalDateTime.now())
+    return if (envelope.header.acknowledgment() != null) {
+        EbmsAcknowledgment(envelope.header.messageHeader(), envelope.header.acknowledgment()!!, this.dokument)
+    } else if (envelope.header.errorList() != null) {
+        EbMSMessageError(envelope.header.messageHeader(), envelope.header.errorList()!!, this.dokument)
+    } else {
+        EbMSPayloadMessage(this.dokument,envelope.header.messageHeader(),envelope.header.ackRequested(),this.attachments, LocalDateTime.now())
+    }
 }

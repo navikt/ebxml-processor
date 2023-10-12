@@ -1,5 +1,8 @@
 package no.nav.emottak.ebms.model
 
+import no.nav.emottak.ebms.processing.CPAValidationProcessor
+import no.nav.emottak.ebms.processing.SertifikatsjekkProcessor
+import no.nav.emottak.ebms.processing.SignatursjekkProcessor
 import no.nav.emottak.ebms.xml.xmlMarshaller
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ErrorList
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
@@ -11,13 +14,21 @@ import org.xmlsoap.schemas.soap.envelope.ObjectFactory
 
 class EbMSMessageError(
     override val messageHeader: MessageHeader,
-    var errorList: ErrorList
+    var errorList: ErrorList,
+    override val dokument: Document? = null
 ) : EbMSBaseMessage {
 
-
-    fun process() : EbMSBaseMessage? {
-
-        return null
+    fun process() {
+        try {
+            listOf(
+                CPAValidationProcessor(this),
+                SertifikatsjekkProcessor(this),
+                SignatursjekkProcessor(dokument!!, this)
+            )
+                .forEach { it.processWithEvents() }
+        }catch (ex: Exception) {
+            return
+        }
     }
 
     fun toEbmsDokument(): EbMSDocument {
