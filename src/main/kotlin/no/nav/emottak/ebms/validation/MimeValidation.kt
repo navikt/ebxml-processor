@@ -3,6 +3,7 @@ package no.nav.emottak.ebms.validation
 import com.sun.xml.messaging.saaj.soap.ver1_1.SOAPMessageFactory1_1Impl
 import io.ktor.http.*
 import io.ktor.http.content.*
+import io.ktor.server.request.*
 import jakarta.xml.soap.SOAPConstants
 import jakarta.xml.soap.SOAPFault
 import jakarta.xml.soap.SOAPMessage
@@ -27,7 +28,7 @@ object ContentTypeRegex {
         val TYPE = Regex("type=\"?(?<type>[^=\"]+)\"?")
 }
 
-
+/*
 fun Headers.validateMime() {
         runCatching {
                 validateMimeHeaders()
@@ -36,6 +37,32 @@ fun Headers.validateMime() {
                 if (it !is MimeValidationException) throw MimeValidationException("Unexpected validation fail.",it) else throw it
         }
 
+}
+
+ */
+
+fun ApplicationRequest.validateMime() {
+        runCatching {
+                this.headers.validateMimeHeaders()
+                this.validateContentType()
+        }.onFailure {
+                if (it !is MimeValidationException) throw MimeValidationException("Unexpected validation fail.",it) else throw it
+        }
+}
+
+
+// KRAV 5.5.2.2 validate MIME
+
+fun ApplicationRequest.validateContentType() {
+        val contentType = this.contentType()
+        if (contentType == ContentType.Any) throw MimeValidationException("Content  type is undefined")
+        if(contentType.withoutParameters() == ContentType.parse("text/xml")) return
+
+        if (contentType.withoutParameters() != ContentType.parse("multipart/related")) throw MimeValidationException("Content type should be multipart/related")
+        contentType.parameter("boundary")?:throw MimeValidationException("Boundary is mandatory on multipart related content")
+        contentType.parameter("start")?:throw MimeValidationException("Start on multipart request not defined")
+        contentType.parameter("type") ?: throw MimeValidationException("type of multipart / related is undefined")
+        if (contentType.parameter("type") != "text/xml") throw MimeValidationException("Type of multipart related should be text/xml")
 }
 
 //KRAV 5.5.2.3 Valideringsdokument
@@ -69,23 +96,10 @@ private fun Headers.validateMimeHeaders() {
                 ?: throw MimeValidationException("Content  type is wrong")
 }
 
-// KRAV 5.5.2.2 validate MIME
-private fun Headers.validateMultipartAttributter() {
-        val contentTypeHeader = this[MimeHeaders.CONTENT_TYPE]!!
-
-        if (contentTypeHeader != "text/xml")  {
-
-                val contentType = ContentTypeRegex.CONTENT_TYPE.find(contentTypeHeader)?.groups?.get("contentType")?.value?: throw MimeValidationException("Missing content type from ContentType header")
-                if (contentType!="multipart/related") throw MimeValidationException("Content type should be multipart/related")
-                ContentTypeRegex.BOUNDARY.find(contentTypeHeader)?.groups?.get("boundary")?.value?: throw MimeValidationException("Boundary is mandatory on multipart related content")
-                ContentTypeRegex.START.find(contentTypeHeader)?.groups?.get("start")?.value?: throw MimeValidationException("Start on multipart request not defined")
-                val type = ContentTypeRegex.TYPE.find(contentTypeHeader)?.groups?.get("type")?.value?: throw MimeValidationException("type of multipart / related is undefined")
 
 
-                if (type != "text/xml") throw MimeValidationException("Type of multipart related should be text/xml")
 
-        }
-}
+
 
 fun String.parseContentType(): String {
         if (this == "text/xml") return this

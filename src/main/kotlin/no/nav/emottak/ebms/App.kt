@@ -48,15 +48,17 @@ fun Application.myApplicationModule() {
         }
         post("/ebms") {
             // KRAV 5.5.2.1 validate MIME
+
             try {
-                call.request.headers.validateMime()
+                call.request.validateMime()
             } catch (it: MimeValidationException) {
                 call.respond(HttpStatusCode.InternalServerError, it.asParseAsSoapFault())
                 return@post
 
             }
-            val ebMSDocument = when (val contentType = call.request.headers["Content-Type"]!!.parseContentType()) {
-                "multipart/related" -> {
+            
+            val ebMSDocument = when (val contentType = call.request.contentType().withoutParameters()) {
+                ContentType.parse("multipart/related") -> {
                     val allParts = call.receiveMultipart().readAllParts()
                     try {
                         val dokument = allParts.find {
@@ -82,7 +84,7 @@ fun Application.myApplicationModule() {
                         return@post
                     }
                 }
-                "text/xml" -> {
+                ContentType.parse("text/xml") -> {
                     val dokument = call.receiveStream().readAllBytes()
                     EbMSDocument(
                         "",
