@@ -1,3 +1,4 @@
+import org.gradle.kotlin.dsl.testLibs
 import org.jetbrains.kotlin.ir.backend.js.lower.collectNativeImplementations
 
 /*
@@ -42,6 +43,9 @@ dependencies {
     //implementation("org.glassfish.jaxb:jaxb-runtime:4.0.3") // TODO: Latest. Krever at protokoll oppdateres
     implementation(libs.ebxml.protokoll)
     testImplementation(testLibs.junit.jupiter.api)
+    testImplementation(testLibs.mockk.jvm)
+    testImplementation(testLibs.mockk.dsl.jvm)
+   // testImplementation(testLibs.mockk.jvm)
     testRuntimeOnly(testLibs.junit.jupiter.engine)
 }
 

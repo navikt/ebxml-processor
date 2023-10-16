@@ -25,9 +25,7 @@ import java.time.LocalDateTime
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.model")
 data class EbMSDocument(val conversationId: String, val dokument: Document, val attachments: List<EbMSAttachment>){
-    fun test() {
 
-    }
 }
 
 
