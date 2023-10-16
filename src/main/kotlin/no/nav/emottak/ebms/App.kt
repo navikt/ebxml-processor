@@ -14,7 +14,6 @@ import io.ktor.server.routing.*
 import no.nav.emottak.ebms.model.*
 import no.nav.emottak.ebms.validation.MimeValidationException
 import no.nav.emottak.ebms.validation.asParseAsSoapFault
-import no.nav.emottak.ebms.validation.parseContentType
 import no.nav.emottak.ebms.validation.validateMime
 import no.nav.emottak.ebms.validation.validateMimeAttachment
 import no.nav.emottak.ebms.validation.validateMimeSoapEnvelope
@@ -62,7 +61,7 @@ fun Application.myApplicationModule() {
                     val allParts = call.receiveMultipart().readAllParts()
                     try {
                         val dokument = allParts.find {
-                            it.contentType?.contentType + "/" + it.contentType?.contentSubtype == "text/xml" && it.contentDisposition == null
+                            it.contentType?.withoutParameters() == ContentType.parse("text/xml") && it.contentDisposition == null
                         }.also { it?.validateMimeSoapEnvelope() ?: throw MimeValidationException("Unable to find soap envelope multipart") }!!.payload()
                         val attachments =
                             allParts.filter { it.contentDisposition?.disposition == ContentDisposition.Attachment.disposition }

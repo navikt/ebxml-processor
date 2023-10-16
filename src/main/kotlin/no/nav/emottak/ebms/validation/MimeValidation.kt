@@ -67,8 +67,7 @@ fun ApplicationRequest.validateContentType() {
 
 //KRAV 5.5.2.3 Valideringsdokument
 fun PartData.validateMimeSoapEnvelope() {
-        this.contentType?.takeIf {
-                        it.contentType + "/" + it.contentSubtype == "text/xml" } ?: throw MimeValidationException("Content type is missing or wrong ")
+        this.contentType?.withoutParameters().takeIf {it == ContentType.parse("text/xml") } ?: throw MimeValidationException("Content type is missing or wrong ")
 
         this.headers[MimeHeaders.CONTENT_ID].takeUnless { it.isNullOrBlank() }
                 ?: throw MimeValidationException("Content ID is missing")
@@ -81,8 +80,8 @@ fun PartData.validateMimeSoapEnvelope() {
 fun PartData.validateMimeAttachment() {
         takeIf { this.contentDisposition?.disposition == "attachment"} ?: throw MimeValidationException("This is not attachment")
         takeIf { this.headers[MimeHeaders.CONTENT_TRANSFER_ENCODING] == "base64" } ?: throw MimeValidationException("Feil content transfer encoding")
-        this.contentType?.takeIf {
-                it.contentType + "/" + it.contentSubtype == "application/pkcs7-mime"
+        this.contentType?.withoutParameters().takeIf {
+                it == ContentType.parse("application/pkcs7-mime")
         }?: throw MimeValidationException("Incompatible content type on attachment")
 }
 
@@ -96,15 +95,6 @@ private fun Headers.validateMimeHeaders() {
                 ?: throw MimeValidationException("Content  type is wrong")
 }
 
-
-
-
-
-
-fun String.parseContentType(): String {
-        if (this == "text/xml") return this
-        return ContentTypeRegex.CONTENT_TYPE.find(this)?.groups?.get("contentType")?.value ?: throw MimeValidationException("Missing content-type")
-}
 
 class MimeValidationException(message:String,cause: Throwable? = null) : Exception(message,cause)
 
