@@ -1,6 +1,7 @@
 package no.nav.emottak.util.crypto
 
 
+import no.nav.emottak.util.decodeBase64
 import org.bouncycastle.asn1.x500.X500Name
 import org.bouncycastle.cms.CMSEnvelopedData
 import org.bouncycastle.cms.KeyTransRecipientId
@@ -13,9 +14,11 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider
 import java.security.PrivateKey
 import java.security.Security
 import java.security.cert.X509Certificate
-import kotlin.io.encoding.Base64
-import kotlin.io.encoding.ExperimentalEncodingApi
 
+/**
+ *
+ * 5.15.1 Dekryptering av vedlegg
+ */
 class Dekryptering {
 
     init {
@@ -30,15 +33,19 @@ class Dekryptering {
         } else {
             byteArray
         }
-        val envelopedData = CMSEnvelopedData(bytes)
-        val recipients: RecipientInformationStore = envelopedData.recipientInfos
-        for (recipient in recipients.recipients as Collection<RecipientInformation?>) {
-            if (recipient is KeyTransRecipientInformation) {
-                val key: PrivateKey = getPrivateKeyMatch(recipient)
-                return getDeenvelopedContent(recipient, key)
+        try {
+            val envelopedData = CMSEnvelopedData(bytes) //Regel ID 263
+            val recipients: RecipientInformationStore = envelopedData.recipientInfos
+            for (recipient in recipients.recipients as Collection<RecipientInformation?>) {
+                if (recipient is KeyTransRecipientInformation) {
+                    val key: PrivateKey = getPrivateKeyMatch(recipient)
+                    return getDeenvelopedContent(recipient, key)
+                }
             }
+            throw DecryptionException("Fant ikke PrivateKey for dekryptering med recipients ${recipients.recipients}")
+        } catch (e: Exception) {
+            throw DecryptionException("Feil ved dekryptering", e)
         }
-        return byteArrayOf()
     }
 
 
@@ -63,6 +70,3 @@ class Dekryptering {
     }
 
 }
-
-@OptIn(ExperimentalEncodingApi::class)
-internal fun decodeBase64(base64String: ByteArray): ByteArray = Base64.decode(base64String)

@@ -1,7 +1,7 @@
 package no.nav.emottak.ebms.processing
 
 import io.ktor.server.plugins.BadRequestException
-import no.nav.emottak.ebms.model.EbMSMessage
+import no.nav.emottak.ebms.model.EbMSPayloadMessage
 import no.nav.emottak.ebms.postPayloadRequest
 import no.nav.emottak.melding.model.Header
 import no.nav.emottak.melding.model.Party
@@ -9,8 +9,8 @@ import no.nav.emottak.melding.model.PayloadRequest
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.PartyId
 
-class PayloadProcessor: Processor {
-    override fun process(ebMSMessage: EbMSMessage) {
+class PayloadProcessor(override val ebMSMessage: EbMSPayloadMessage) : Processor(ebMSMessage) {
+    override fun process() {
         val payloads = ebMSMessage.attachments
         val header = ebMSMessage.messageHeader.payloadRequestHeader()
         payloads.forEach { payload ->
@@ -22,12 +22,11 @@ class PayloadProcessor: Processor {
             val response = postPayloadRequest(payloadRequest)
         }
     }
-
 }
 
 fun MessageHeader.payloadRequestHeader(): Header {
     return Header(
-        messageId = this.id ?: throw BadRequestException("MessageID mangler fra header"),
+        messageId = this.messageData.messageId ?: throw BadRequestException("MessageID mangler fra header"),
         cpaId = this.cpaId ?: throw BadRequestException("CPAID mangler fra header"),
         conversationId = this.conversationId,
         to = Party(

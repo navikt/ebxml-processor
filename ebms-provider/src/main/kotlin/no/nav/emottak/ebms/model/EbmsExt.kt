@@ -1,8 +1,8 @@
 package no.nav.emottak.ebms.model
 
-import org.apache.commons.lang3.StringUtils.isNotBlank
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.*
 import org.xmlsoap.schemas.soap.envelope.Envelope
+import org.xmlsoap.schemas.soap.envelope.Header
 
 // TODO kan sikkert flytte alt dette til der det brukes.
 
@@ -20,18 +20,26 @@ fun Envelope.getAttachmentId() : String { // TODO: egentlig kan vel det være n+
         .first().replace("cid:", ""); // quickndirty
 }
 
-fun Envelope.header(): MessageHeader {
-    return this.header.any.filterIsInstance<MessageHeader>().first()
+fun Header.messageHeader(): MessageHeader {
+    return this.any.filterIsInstance<MessageHeader>().first()
 }
 
-fun Envelope.ackRequested() : AckRequested? {
-    return this.header.any.filterIsInstance<AckRequested>().first()
+fun Header.ackRequested() : AckRequested? {
+    return this.any.filterIsInstance<AckRequested>().firstOrNull()
 }
 
-fun MessageHeader.getActor(): String {
-    return this.any!!.filterIsInstance<AckRequested>()
-        .filter{ isNotBlank(it.actor) }.map { it.actor }.filterNotNull().first()
+fun Header.acknowledgment() : Acknowledgment? {
+    return this.any.filterIsInstance<Acknowledgment>().firstOrNull()
 }
+
+fun Header.errorList() : ErrorList? {
+    return this.any.filterIsInstance<ErrorList>().firstOrNull()
+}
+
+//fun .getActor(): String {
+//    return this.any!!.filterIsInstance<AckRequested>()
+//        .filter{ isNotBlank(it.actor) }.map { it.actor }.filterNotNull().first()
+//}
 
 fun MessageHeader.getAckRequestedSigned(): Boolean? {
     return this.any!!.filterIsInstance<AckRequested>().find { it.isSigned }?.isSigned // Kotlin quirk. Med isSigned menes at en signed Ack er ønsket
