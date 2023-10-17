@@ -24,8 +24,8 @@ fun main() {
 
 fun Application.myApplicationModule() {
     routing {
-        get("/cpa/{id}") {
-            val cpaId = call.parameters["id"] ?: throw BadRequestException("Mangler CPA ID")
+        get("/cpa/{$CPA_ID}") {
+            val cpaId = call.parameters[CPA_ID] ?: throw BadRequestException("Mangler $CPA_ID")
             val cpa = getCpa(cpaId) ?: throw NotFoundException("Fant ikke CPA")
             call.respond(cpa)
         }
@@ -33,15 +33,32 @@ fun Application.myApplicationModule() {
         post("cpa/validate") {
             val validateRequest = call.receive(Header::class)
             getCpa(validateRequest.cpaId)!!.validate(validateRequest)
-
         }
 
-        get("/cpa/{id}/{herId}/certificate/encryption") {
-            val cpaId = call.parameters["id"] ?: throw BadRequestException("Mangler CPA ID")
-            val herId = call.parameters["herId"] ?: throw BadRequestException("Mangler HER ID")
-            val cpa = getCpa(cpaId) ?: throw NotFoundException("Fant ikke CPA")
+        get("/cpa/{$CPA_ID}/her/{$HER_ID}/encryption/certificate") {
+            val cpaId = call.parameters[CPA_ID] ?: throw BadRequestException("Mangler $CPA_ID")
+            val herId = call.parameters[HER_ID] ?: throw BadRequestException("Mangler $HER_ID")
+            val cpa = getCpa(cpaId) ?: throw NotFoundException("Ingen CPA med ID $cpaId funnet")
+            val partyInfo = cpa.getHERPartyInfo(herId)
+            call.respond(partyInfo.getCertificateForEncryption())
+        }
 
-            call.respond(cpa.getCertificateForEncryption(herId))
+        get("/cpa/{$CPA_ID}/her/{$HER_ID}/signing/certificate/{$ROLE}/{$SERVICE}/{$ACTION}/") {
+            val cpaId = call.parameters[CPA_ID] ?: throw BadRequestException("Mangler $CPA_ID")
+            val herId = call.parameters[HER_ID] ?: throw BadRequestException("Mangler $HER_ID")
+            val role = call.parameters[ROLE] ?: throw BadRequestException("Mangler $ROLE")
+            val service = call.parameters[SERVICE] ?: throw BadRequestException("Mangler $SERVICE")
+            val action = call.parameters[ACTION] ?: throw BadRequestException("Mangler $ACTION")
+            val cpa = getCpa(cpaId) ?: throw NotFoundException("Ingen CPA med ID $cpaId funnet")
+            val partyInfo = cpa.getHERPartyInfo(herId)
+
+            call.respond(partyInfo.getCertificateForSignatureValidation(role, service, action))
         }
     }
 }
+
+private const val CPA_ID = "cpaId"
+private const val HER_ID = "herId"
+private const val ROLE = "role"
+private const val SERVICE = "service"
+private const val ACTION = "action"
