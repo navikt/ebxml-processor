@@ -45,6 +45,7 @@ dependencies {
     implementation(libs.ebxml.protokoll)
     testImplementation(testLibs.junit.jupiter.api)
     testImplementation(kotlin("test"))
+    implementation("io.mockk:mockk:1.13.8")
     testRuntimeOnly(testLibs.junit.jupiter.engine)
 }
 

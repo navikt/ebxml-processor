@@ -3,7 +3,6 @@
  */
 package no.nav.emottak.ebms
 
-import com.sun.xml.messaging.saaj.soap.ver1_1.SOAPMessageFactory1_1Impl
 import io.ktor.http.*
 import io.ktor.http.content.*
 import io.ktor.server.application.*
@@ -12,20 +11,16 @@ import io.ktor.server.netty.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import jakarta.xml.soap.SOAPConstants
-import jakarta.xml.soap.SOAPFault
-import jakarta.xml.soap.SOAPMessage
 import no.nav.emottak.ebms.model.*
 import no.nav.emottak.ebms.validation.MimeValidationException
 import no.nav.emottak.ebms.validation.asParseAsSoapFault
-import no.nav.emottak.ebms.processing.EbmsFlowHandler
+import no.nav.emottak.ebms.processing.flow.EbMSProcessingService
+import no.nav.emottak.ebms.processing.flow.ValidatorService
 import no.nav.emottak.ebms.validation.validateMime
 import no.nav.emottak.ebms.validation.validateMimeAttachment
 import no.nav.emottak.ebms.validation.validateMimeSoapEnvelope
 import no.nav.emottak.ebms.xml.xmlMarshaller
 import org.xmlsoap.schemas.soap.envelope.Envelope
-import java.time.LocalDateTime
-import javax.xml.namespace.QName
 
 
 fun main() {
@@ -86,18 +81,16 @@ fun Application.myApplicationModule() {
                         it.headers["Content-Id"]!!
                     )
                 })
-            val processFlow = EbmsFlowHandler(dokumentWithAttachment, dokumentWithAttachment.buildEbmMessage())
-            processFlow.run()
-            println(dokumentWithAttachment)
-
+            //val processFlow = EbMSFlowHandler(dokumentWithAttachment, dokumentWithAttachment.buildEbmMessage())
+            //processFlow.run()
+            //println(dokumentWithAttachment)
+//
             call.respondText("Hello")
         }
 
         post("/ebxmlMessage") {
-            val envelope = xmlMarshaller.unmarshal(call.receiveText(), Envelope::class.java)
-            val ebMSMessage = EbMSMessage(envelope.header(), envelope.ackRequested(), emptyList(), LocalDateTime.now())
-            //TODO ordentlig ebmsdocument
-            EbmsFlowHandler(EbMSDocument("", byteArrayOf(), emptyList()), ebMSMessage).run()
+
+            EbMSProcessingService(call).run()
         }
 
         post("/ebmsTest") {

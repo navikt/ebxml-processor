@@ -30,7 +30,7 @@ import java.security.cert.X509Certificate
  * Mangler: 104 (sertifikatsjekk), 105 (sertifikatsjekk) //TODO
  *
  */
-class SignatursjekkProcessor(val ebMSDocument: EbMSDocument, ebMSMessage: EbMSMessage): Processor(ebMSMessage) {
+class SignatursjekkProcessor(val ebMSDocument: EbMSDocument, ebMSMessage: EbMSMessage): EbMSMessageProcessor(ebMSMessage) {
 
     override fun process() {
         validate(ebMSMessage.messageHeader, ebMSDocument.dokument, ebMSMessage.attachments)

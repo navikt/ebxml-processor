@@ -6,6 +6,9 @@ import io.ktor.http.content.*
 import jakarta.xml.soap.SOAPConstants
 import jakarta.xml.soap.SOAPFault
 import jakarta.xml.soap.SOAPMessage
+import no.nav.emottak.ebms.model.EbMSError
+import no.nav.emottak.ebms.processing.EbMSMessageProcessor
+import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Error
 import java.io.ByteArrayOutputStream
 import javax.xml.namespace.QName
 import kotlin.streams.asStream
@@ -88,7 +91,9 @@ private fun Headers.validateMultipartAttributter() {
 }
 
 
-class MimeValidationException(message:String,cause: Throwable? = null) : Exception(message,cause)
+class MimeValidationException(message:String,cause: Throwable? = null) :
+        EbMSMessageProcessor.EbxmlProcessException(message, EbMSError.createError(EbMSError.Code.MIME_PROBLEM, message)
+)
 
 fun MimeValidationException.asParseAsSoapFault() : String {
         val faultNs: QName = QName(SOAPConstants.URI_NS_SOAP_ENVELOPE, "Server")

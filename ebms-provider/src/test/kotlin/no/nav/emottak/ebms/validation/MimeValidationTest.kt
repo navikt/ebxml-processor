@@ -2,7 +2,10 @@ package no.nav.emottak.ebms.validation
 
 import io.ktor.http.*
 import io.ktor.http.content.*
+import io.ktor.server.request.*
 import io.ktor.util.reflect.*
+import io.mockk.every
+import io.mockk.mockk
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.fail
 

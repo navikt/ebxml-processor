@@ -20,4 +20,12 @@ class EbMSMessage(override val messageHeader: MessageHeader,
         return eventLogg.contains(event)
     }
 
+    open fun type(): Type {
+        return Type.PAYLOAD
+    }
+
+    enum class Type {
+        ACK, ERROR, PAYLOAD
+    }
+
 }

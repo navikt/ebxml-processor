@@ -10,7 +10,7 @@ import org.w3._2000._09.xmldsig_.ReferenceType
 import java.time.ZoneOffset
 import java.util.*
 
-class AckRequestedProcessor(ebMSMessage: EbMSMessage): Processor(ebMSMessage) {
+class AckRequestedProcessor(ebMSMessage: EbMSMessage): EbMSMessageProcessor(ebMSMessage) {
     override fun process() {
         sjekkBetingelser()
         if (ebMSMessage.ackRequested != null) {
