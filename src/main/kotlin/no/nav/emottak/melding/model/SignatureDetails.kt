@@ -1,6 +1,6 @@
 package no.nav.emottak.melding.model
 
-data class SignatureDetailsResponse(
+data class SignatureDetails(
     val certificate: ByteArray,
     val signatureAlgorithm: String,
     val hashFunction: String
