@@ -15,17 +15,30 @@
  */
 package no.nav.emottak.ebms.model
 
+import no.nav.emottak.ebms.xml.unmarshal
 import no.nav.emottak.ebms.xml.xmlMarshaller
+import no.nav.emottak.util.getFirstChildElement
 import no.nav.emottak.util.marker
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
 import org.slf4j.LoggerFactory
 import org.w3c.dom.Document
 import org.xmlsoap.schemas.soap.envelope.Envelope
+import java.lang.RuntimeException
 import java.time.LocalDateTime
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.model")
 data class EbMSDocument(val conversationId: String, val dokument: Document, val attachments: List<EbMSAttachment>){
+  fun dokumentType(): DokumentType {
+      if (attachments.size>0) return DokumentType.PAYLOAD
+      if (dokument.getElementsByTagName("Acknowledgment").item(0)!=null) return DokumentType.ACKNOWLEDGMENT
+      if (dokument.getElementsByTagName("ErrorList").item(0)) return DokumentType.FAIL
+      throw RuntimeException("Unrecognized dokument type")
 
+  }
+}
+
+enum class DokumentType {
+    PAYLOAD, ACKNOWLEDGMENT,FAIL,STATUS,PING
 }
 
 
