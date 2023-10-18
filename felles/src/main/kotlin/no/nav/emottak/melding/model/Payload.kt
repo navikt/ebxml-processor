@@ -35,3 +35,8 @@ data class Party(
     val herID: String,
     val role: String
 )
+
+@Serializable
+data class ValidationResult(
+    val valid: Boolean
+)

@@ -70,7 +70,7 @@ fun Application.myApplicationModule() {
             try {
                 DokumentValidator().validate(ebMSDocument)
             }catch(ex:Exception) {
-                // parse fail
+                call.respond(HttpStatusCode.InternalServerError,"Validation feilet")
             }
 
             val message = ebMSDocument.buildEbmMessage()

@@ -1,5 +1,6 @@
 package no.nav.emottak.cpa
 
+import io.ktor.http.*
 import io.ktor.server.application.Application
 import io.ktor.server.application.call
 import io.ktor.server.engine.embeddedServer
@@ -13,6 +14,7 @@ import io.ktor.server.routing.get
 import no.nav.emottak.cpa.config.DatabaseConfig
 import no.nav.emottak.cpa.config.mapHikariConfig
 import no.nav.emottak.melding.model.Header
+import no.nav.emottak.melding.model.ValidationResult
 
 fun main() {
     val database = Database(mapHikariConfig(DatabaseConfig()))
@@ -33,6 +35,7 @@ fun Application.myApplicationModule() {
         post("cpa/validate") {
             val validateRequest = call.receive(Header::class)
             getCpa(validateRequest.cpaId)!!.validate(validateRequest)
+            call.respond(HttpStatusCode.OK,ValidationResult(true))
         }
 
         get("/cpa/{$CPA_ID}/her/{$HER_ID}/encryption/certificate") {
