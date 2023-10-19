@@ -12,15 +12,15 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import no.nav.emottak.ebms.model.*
+import no.nav.emottak.ebms.processing.flow.postEbmsMessageEndpoint
 import no.nav.emottak.ebms.validation.MimeValidationException
 import no.nav.emottak.ebms.validation.asParseAsSoapFault
-import no.nav.emottak.ebms.processing.flow.EbMSProcessingService
-import no.nav.emottak.ebms.processing.flow.ValidatorService
 import no.nav.emottak.ebms.validation.validateMime
 import no.nav.emottak.ebms.validation.validateMimeAttachment
 import no.nav.emottak.ebms.validation.validateMimeSoapEnvelope
-import no.nav.emottak.ebms.xml.xmlMarshaller
-import org.xmlsoap.schemas.soap.envelope.Envelope
+import no.nav.emottak.ebms.xml.getDocumentBuilder
+import no.nav.emottak.util.marker
+import java.io.ByteArrayInputStream
 
 
 fun main() {
@@ -30,86 +30,99 @@ fun main() {
 }
 
 fun PartData.payload() : ByteArray {
-    if (this is PartData.FormItem) return java.util.Base64.getMimeDecoder().decode(this.value)
-    if (this is PartData.FileItem) {
-        val bytes = this.streamProvider.invoke().readAllBytes()
-        return java.util.Base64.getMimeDecoder().decode(bytes)
+    return when(this) {
+        is PartData.FormItem -> java.util.Base64.getMimeDecoder().decode(this.value)
+        is PartData.FileItem -> {
+            val bytes = this.streamProvider.invoke().readAllBytes()
+            java.util.Base64.getMimeDecoder().decode(bytes)
+        }
+        else -> byteArrayOf()
     }
-    return byteArrayOf()
-
 }
 
 fun Application.myApplicationModule() {
     routing {
+
         get("/") {
             call.application.environment.log.info("TESTEST")
             call.respondText("Hello, world!")
         }
+        postEbmsMessageEndpoint()
         post("/ebms") {
-
             // KRAV 5.5.2.1 validate MIME
+
             try {
-                call.request.headers.validateMime()
-            } catch(it:MimeValidationException) {
-                call.respond(HttpStatusCode.InternalServerError,it.asParseAsSoapFault())
+                call.request.validateMime()
+            } catch (it: MimeValidationException) {
+                call.respond(HttpStatusCode.InternalServerError, it.asParseAsSoapFault())
                 return@post
 
             }
-            val allParts = call.receiveMultipart().readAllParts()
-            val dokument = allParts.find {
-                it.contentType?.contentType + "/" + it.contentType?.contentSubtype == "text/xml" && it.contentDisposition == null
-            }
-            val attachments = allParts.filter { it.contentDisposition?.disposition == ContentDisposition.Attachment.disposition }
-            try {
-                 dokument?.validateMimeSoapEnvelope() ?: throw MimeValidationException("Unable to find soap envelope multipart")
-                attachments.forEach {
-                        it.validateMimeAttachment()
-                 }
 
-            }catch (ex: MimeValidationException) {
-                call.respond(HttpStatusCode.InternalServerError,ex.asParseAsSoapFault())
-                return@post
-            }
-
-            val dokumentWithAttachment = EbMSDocument(
-                "",
-                dokument!!.payload(),
-                attachments.map {
-                    EbMSAttachment(
-                        it.payload(),
-                        it.contentType!!.contentType,
-                        it.headers["Content-Id"]!!
+            val ebMSDocument = when (val contentType = call.request.contentType().withoutParameters()) {
+                ContentType.parse("multipart/related") -> {
+                    val allParts = call.receiveMultipart().readAllParts()
+                    try {
+                        val dokument = allParts.find {
+                            it.contentType?.withoutParameters() == ContentType.parse("text/xml") && it.contentDisposition == null
+                        }.also { it?.validateMimeSoapEnvelope() ?: throw MimeValidationException("Unable to find soap envelope multipart") }!!.payload()
+                        val attachments =
+                            allParts.filter { it.contentDisposition?.disposition == ContentDisposition.Attachment.disposition }
+                        attachments.forEach {
+                            it.validateMimeAttachment()
+                        }
+                        EbMSDocument(
+                            "",
+                            getDocumentBuilder().parse(ByteArrayInputStream(dokument)),
+                            attachments.map {
+                                EbMSAttachment(
+                                    it.payload(),
+                                    it.contentType!!.contentType,
+                                    it.headers["Content-Id"]!!
+                                )
+                            })
+                    } catch (ex: MimeValidationException) {
+                        call.respond(HttpStatusCode.InternalServerError, ex.asParseAsSoapFault())
+                        return@post
+                    }
+                }
+                ContentType.parse("text/xml") -> {
+                    val dokument = call.receiveStream().readAllBytes()
+                    EbMSDocument(
+                        "",
+                        getDocumentBuilder().parse(ByteArrayInputStream(dokument)),
+                        emptyList()
                     )
-                })
-            //val processFlow = EbMSFlowHandler(dokumentWithAttachment, dokumentWithAttachment.buildEbmMessage())
-            //processFlow.run()
-            //println(dokumentWithAttachment)
-//
+                }
+                else -> {
+                    call.respond(HttpStatusCode.BadRequest, "Ukjent request body med Content-Type $contentType")
+                    return@post
+                }
+            }
+
+            val message = ebMSDocument.buildEbmMessage()
+            try {
+                //when (message) {
+                //    is EbMSAcknowledgment -> message.process()
+                //    is EbMSMessageError -> message.process()
+                //    is EbMSPayloadMessage -> {
+                //        when (val response = message.process()) {
+                //            is EbMSAcknowledgment -> response.toEbmsDokument().sendResponse(response.messageHeader)
+                //            is EbMSMessageError -> response.toEbmsDokument().sendErrorResponse(response.messageHeader)
+                //        }
+                //    }
+                //}
+            } catch (e: Exception) {
+                call.application.environment.log.error(message.messageHeader.marker(), "Feil ved prosessering av melding", e)
+                call.respond(HttpStatusCode.InternalServerError, "Feil ved prosessering av melding")
+                return@post
+            }
+
+            //call payload processor
+            println(ebMSDocument)
+
             call.respondText("Hello")
         }
-
-        post("/ebxmlMessage") {
-
-            EbMSProcessingService(call).run()
-        }
-
-        post("/ebmsTest") {
-            val allParts = call.receiveMultipart().readAllParts()
-            val dokument = allParts.find {
-                it.contentType?.toString() == "text/xml" && it.contentDisposition == null
-            }
-            val envelope =
-                xmlMarshaller.unmarshal(String((dokument as PartData.FormItem).payload()), Envelope::class.java)
-           //val attachments = allParts
-           //    .filter { it.contentDisposition == ContentDisposition.Attachment }
-           //    .filter { it.headers.get("Content-Id")?.contains(attachmentId, true) ?: false }
-           //    .map { (it as PartData.FormItem).payload() }
-           //    .first()
-           //println(
-           //    String(attachments)
-           //)
-            call.respondText("Hello2")
-
-        }
     }
+
 }

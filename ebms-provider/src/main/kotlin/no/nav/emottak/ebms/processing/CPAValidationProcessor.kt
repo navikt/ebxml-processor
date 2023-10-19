@@ -1,8 +1,9 @@
 package no.nav.emottak.ebms.processing
 
-import no.nav.emottak.ebms.model.EbMSMessage
+import no.nav.emottak.ebms.model.EbMSBaseMessage
+import no.nav.emottak.ebms.model.EbMSPayloadMessage
 
-class CPAValidationProcessor(ebMSMessage: EbMSMessage): EbMSMessageProcessor(ebMSMessage) {
+class CPAValidationProcessor(ebMSMessage: EbMSBaseMessage): EbMSMessageProcessor(ebMSMessage) {
     override fun process() {
         //TODO("Not yet implemented")
     }

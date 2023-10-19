@@ -4,17 +4,23 @@ import io.ktor.http.*
 import io.ktor.http.content.*
 import io.ktor.server.request.*
 import io.ktor.util.reflect.*
+import io.mockk.clearAllMocks
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkStatic
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.fail
 
 class MimeValidationTest {
 
+    val MULTIPART_CONTENT_TYPE: String = """multipart/related;type="text/xml";boundary="----=_Part_495_-1172936255.1665395092859";start="<soapId-6ae68a32-8b0e-4de2-baad-f4d841aacce1>";"""
+
     val valid = Headers.build {
         append(MimeHeaders.MIME_VERSION,"1.0")
         append(MimeHeaders.SOAP_ACTION,"ebXML")
-        append(MimeHeaders.CONTENT_TYPE,"""multipart/related;type="text/xml";boundary="----=_Part_495_-1172936255.1665395092859";start="<soapId-6ae68a32-8b0e-4de2-baad-f4d841aacce1>";""")
+        append(MimeHeaders.CONTENT_TYPE,MULTIPART_CONTENT_TYPE)
     }
 
     val validSoapMimeHeaders =  Headers.build {
@@ -37,19 +43,42 @@ class MimeValidationTest {
         }
     }
 
-    @Test
-    fun `5-2-2-1 When all headers are valid`() {
+    private fun Headers.mockApplicationRequest() : ApplicationRequest {
+       val appRquest = mockk<ApplicationRequest>()
+        every {
+            appRquest.headers
+        } returns this@mockApplicationRequest
 
-        valid.validateMime()
+        every { appRquest.contentType() } returns this@mockApplicationRequest[MimeHeaders.CONTENT_TYPE].takeUnless { it == null}.let {
+            if (it == null) ContentType.Any else ContentType.parse(it)
+        }
 
+        return appRquest
+    }
+
+    @BeforeEach
+    fun setup() {
+        clearAllMocks()
+        mockkStatic(ApplicationRequest::validateMime)
+        mockkStatic(ApplicationRequest::contentType)
     }
 
     @Test
+    fun `5-2-2-1 When all headers are valid`() {
+        val applicationRequest = valid.mockApplicationRequest()
+
+        applicationRequest.validateMime()
+
+    }
+
+
+    @Test
     fun `5-2-2-1 Content type is text xml`() {
-        val headers = valid.modify {
+        val appRequest = valid.modify {
             it[MimeHeaders.CONTENT_TYPE] = "text/xml"
-        }
-        headers.validateMime()
+        }.mockApplicationRequest()
+
+        appRequest.validateMime()
     }
     @Test
     fun `5-2-2-1 Mime versjon er feil`() {
@@ -61,10 +90,15 @@ class MimeValidationTest {
             valid.modify { it[MimeHeaders.SOAP_ACTION] = "noeannet" },
             valid.modify { it.remove(MimeHeaders.CONTENT_TYPE)}
         )
-       notValid.forEach {
+
+
+       notValid.map { it.mockApplicationRequest() }.forEach {
+
            runCatching {
+
                it.validateMime()
            }.onFailure {
+               it.printStackTrace()
                assert(it.instanceOf(MimeValidationException::class))
            }.onSuccess {
                fail { "Should have failed" }
@@ -74,10 +108,12 @@ class MimeValidationTest {
 
     @Test
     fun `5-2-2-2 endre rekkefølge på multipart attributene`() {
-        val headers = valid.modify {
+        valid.modify {
             it[MimeHeaders.CONTENT_TYPE] = """multipart/related;type="text/xml";start="<soapId-6ae68a32-8b0e-4de2-baad-f4d841aacce1>";boundary="----=_Part_495_-1172936255.1665395092859""""
         }
-        headers.validateMime()
+            .mockApplicationRequest()
+            .validateMime()
+
     }
 
     @Test
@@ -91,7 +127,7 @@ class MimeValidationTest {
             valid.modify { it.remove(MimeHeaders.CONTENT_TYPE)}
         )
 
-        notValid.forEach {
+        notValid.map { it.mockApplicationRequest() }.forEach {
             runCatching {
                 it.validateMime()
             }.onFailure {
@@ -126,9 +162,9 @@ class MimeValidationTest {
             },
         )
 
-        notValid.forEach {
+        notValid.map { it.mockApplicationRequest() }.forEach {
             runCatching {
-                PartData.FormItem("body", {}, it).validateMimeSoapEnvelope()
+                PartData.FormItem("body", {}, it.headers).validateMimeSoapEnvelope()
             }
                 .onFailure {
                     assert(it.instanceOf(MimeValidationException::class))
@@ -162,9 +198,9 @@ class MimeValidationTest {
             },
         )
 
-        notValid.forEach {
+        notValid.map { it.mockApplicationRequest() }.forEach {
             runCatching {
-                PartData.FormItem("body", {}, it).validateMimeSoapEnvelope()
+                PartData.FormItem("body", {}, it.headers).validateMimeSoapEnvelope()
             }
                 .onFailure {
                     assert(it.instanceOf(MimeValidationException::class))

@@ -3,6 +3,7 @@ package no.nav.emottak.ebms.processing
 import no.nav.emottak.ebms.model.EbMSAttachment
 import no.nav.emottak.ebms.model.EbMSDocument
 import no.nav.emottak.ebms.model.buildEbmMessage
+import no.nav.emottak.ebms.xml.getDocumentBuilder
 import no.nav.emottak.util.signatur.SignatureException
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -11,8 +12,8 @@ class SignatursjekkProcessorTest {
     @Test
     fun `Validering av signatur`() {
 
-        val dokument = this::class.java.classLoader
-            .getResourceAsStream("oppgjørsmelding/2023_08_29T12_56_58_328.xml").readAllBytes()
+        val dokument = getDocumentBuilder().parse(this::class.java.classLoader
+            .getResourceAsStream("oppgjørsmelding/2023_08_29T12_56_58_328.xml"))
         val attachment = this::class.java.classLoader
             .getResourceAsStream("oppgjørsmelding/2023_08_29T12_56_58_328.p7m").readAllBytes()
         val ebMSDocument = EbMSDocument(
@@ -33,8 +34,8 @@ class SignatursjekkProcessorTest {
     @Test
     fun `Validering av signatur uten attachments feiler`() {
 
-        val dokument = this::class.java.classLoader
-            .getResourceAsStream("oppgjørsmelding/2023_08_29T12_56_58_328.xml").readAllBytes()
+        val dokument = getDocumentBuilder().parse(this::class.java.classLoader
+            .getResourceAsStream("oppgjørsmelding/2023_08_29T12_56_58_328.xml"))
         val ebMSDocument = EbMSDocument(
             "Test",
             dokument,

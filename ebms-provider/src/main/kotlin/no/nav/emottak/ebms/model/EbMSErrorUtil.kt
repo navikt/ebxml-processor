@@ -6,7 +6,7 @@ import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ErrorList
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.SeverityType
 
 //4.2.3.4.1 https://www.oasis-open.org/committees/ebxml-msg/documents/ebMS_v2_0.pdf#page=31
-class EbMSError {
+class EbMSErrorUtil {
     companion object {
         // ebXml errors
         const val VALUE_NOT_RECOGNIZED = "ValueNotRecognized"
@@ -122,6 +122,10 @@ class EbMSError {
             errorList.isMustUnderstand = true; // Alltid
             return errorList
         }
+
+    }
+
+    open class EbxmlProcessException(message: String, val ebxmlError: Error): RuntimeException(message) {
 
     }
 

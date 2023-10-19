@@ -28,7 +28,7 @@ class Event (
     }
 
     override fun toString(): String {
-        return processName + "_" + eventStatus.name
+        return "$processName ${eventStatus.name}"
     }
 
 }

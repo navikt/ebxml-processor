@@ -1,7 +1,13 @@
 package no.nav.emottak.ebms.xml
 
+import org.w3c.dom.Document
+import org.w3c.dom.Node
+import org.xmlsoap.schemas.soap.envelope.Envelope
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 import java.io.StringWriter
 import javax.xml.bind.JAXBContext
+import javax.xml.bind.JAXBElement
 import javax.xml.stream.XMLInputFactory
 
 val xmlMarshaller = XmlMarshaller()
@@ -29,8 +35,19 @@ class XmlMarshaller {
         return writer.toString()
     }
 
+    fun marshal(envelope: Envelope) : Document {
+        val out = ByteArrayOutputStream()
+        marshaller.marshal(envelope,out)
+        return getDocumentBuilder().parse(ByteArrayInputStream(out.toByteArray()))
+    }
+
     fun <T> unmarshal(xml: String, clazz: Class<T>) : T  {
         val reader =  XMLInputFactory.newInstance().createXMLStreamReader(xml.reader())
         return unmarshaller.unmarshal(reader, clazz).value
     }
+
+    fun <T> unmarshal(document:Node) : T {
+        return (unmarshaller.unmarshal(document) as JAXBElement<T>).value
+    }
+
 }

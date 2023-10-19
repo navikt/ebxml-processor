@@ -1,3 +1,4 @@
+import org.gradle.kotlin.dsl.testLibs
 import org.jetbrains.kotlin.ir.backend.js.lower.collectNativeImplementations
 
 /*
@@ -30,7 +31,6 @@ dependencies {
     implementation(libs.ktor.server.netty)
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.cio)
-    implementation("io.ktor:ktor-server-test-host")
     implementation(libs.ktor.client.cio)
     implementation(libs.labai.jsr305x.annotations)
     implementation(libs.jakarta.xml.bind.api)
@@ -43,9 +43,11 @@ dependencies {
     implementation("com.sun.xml.messaging.saaj:saaj-impl:3.0.2")
     //implementation("org.glassfish.jaxb:jaxb-runtime:4.0.3") // TODO: Latest. Krever at protokoll oppdateres
     implementation(libs.ebxml.protokoll)
+    testImplementation("io.ktor:ktor-server-test-host")
     testImplementation(testLibs.junit.jupiter.api)
-    testImplementation(kotlin("test"))
-    implementation("io.mockk:mockk:1.13.8")
+    testImplementation(testLibs.mockk.jvm)
+    testImplementation(testLibs.mockk.dsl.jvm)
+   // testImplementation(testLibs.mockk.jvm)
     testRuntimeOnly(testLibs.junit.jupiter.engine)
 }
 
