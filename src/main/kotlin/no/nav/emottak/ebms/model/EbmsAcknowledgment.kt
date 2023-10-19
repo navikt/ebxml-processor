@@ -22,8 +22,7 @@ class EbmsAcknowledgment(override val messageHeader: MessageHeader,
         try {
             listOf(
                 CPAValidationProcessor(this),
-                SertifikatsjekkProcessor(this),
-                SignatursjekkProcessor(dokument!!, this)
+                SertifikatsjekkProcessor(this)
             )
                 .forEach { it.processWithEvents() }
 

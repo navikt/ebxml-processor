@@ -89,7 +89,6 @@ class EbMSPayloadMessage(
             listOf(
                 CPAValidationProcessor(this),
                 SertifikatsjekkProcessor(this),
-                SignatursjekkProcessor(dokument, this),
                 DekrypteringProcessor(this)
             )
                 .forEach { it.processWithEvents() }
