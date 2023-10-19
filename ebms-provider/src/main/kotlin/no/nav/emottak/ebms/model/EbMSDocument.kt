@@ -22,6 +22,7 @@ import no.nav.emottak.util.marker
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
 import org.slf4j.LoggerFactory
 import org.w3c.dom.Document
+import org.w3c.dom.Node
 import org.xmlsoap.schemas.soap.envelope.Envelope
 import java.lang.RuntimeException
 import java.time.LocalDateTime
@@ -36,7 +37,7 @@ data class EbMSDocument(val messageId: String, val dokument: Document, val attac
 
     }
     fun messageHeader():MessageHeader {
-         val node =this.dokument.getElementsByTagName("MessageHeader").item(0)
+         val node: Node =this.dokument.getElementsByTagName("eb:MessageHeader").item(0)
          return xmlMarshaller.unmarshal(node)
     }
 
