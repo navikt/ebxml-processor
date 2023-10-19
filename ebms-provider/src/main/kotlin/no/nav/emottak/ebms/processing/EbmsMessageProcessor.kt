@@ -10,8 +10,7 @@ class EbmsMessageProcessor(ebMSDocument: EbMSDocument, ebMSMessage: EbMSBaseMess
         listOf(
             CPAValidationProcessor(ebMSMessage),
        //     PayloadProcessor(ebMSMessage),
-            SertifikatsjekkProcessor(ebMSMessage),
-            SignatursjekkProcessor(ebMSDocument.dokument, ebMSMessage),
+            SertifikatsjekkProcessor(ebMSMessage)
         )
 
     fun runAll() {

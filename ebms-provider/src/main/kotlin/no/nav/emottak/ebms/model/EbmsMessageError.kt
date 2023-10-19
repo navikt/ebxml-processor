@@ -24,7 +24,6 @@ class EbMSMessageError(
             listOf(
                 CPAValidationProcessor(this),
                 SertifikatsjekkProcessor(this),
-                SignatursjekkProcessor(dokument!!, this)
             )
                 .forEach { it.processWithEvents() }
         }catch (ex: Exception) {
