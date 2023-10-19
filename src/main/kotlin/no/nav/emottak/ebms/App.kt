@@ -12,7 +12,6 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import no.nav.emottak.ebms.model.*
-import no.nav.emottak.ebms.processing.MessageProcessor
 import no.nav.emottak.ebms.validation.DokumentValidator
 import no.nav.emottak.ebms.validation.MimeValidationException
 import no.nav.emottak.ebms.validation.asParseAsSoapFault
@@ -20,10 +19,8 @@ import no.nav.emottak.ebms.validation.validateMime
 import no.nav.emottak.ebms.validation.validateMimeAttachment
 import no.nav.emottak.ebms.validation.validateMimeSoapEnvelope
 import no.nav.emottak.ebms.xml.getDocumentBuilder
-import no.nav.emottak.melding.model.PayloadRequest
 import no.nav.emottak.util.marker
 import java.io.ByteArrayInputStream
-import java.lang.RuntimeException
 
 
 fun main() {
