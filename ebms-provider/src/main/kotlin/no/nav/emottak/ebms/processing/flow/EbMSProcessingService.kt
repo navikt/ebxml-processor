@@ -34,7 +34,7 @@ class EbMSProcessingService(val appRequest: ApplicationRequest) {
     private fun ebxmlProcessCollection(ebMSDocument: EbMSDocument, ebMSMessage: EbMSBaseMessage) = listOf(
         CPAValidationProcessor(ebMSMessage),
         SertifikatsjekkProcessor(ebMSMessage),
-        SignatursjekkProcessor(ebMSDocument, ebMSMessage),
+        //SignatursjekkProcessor(ebMSDocument, ebMSMessage),
         messageTypeProcessor(ebMSMessage)
     )
 

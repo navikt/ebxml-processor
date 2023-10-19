@@ -1,9 +1,11 @@
 package no.nav.emottak.ebms.processing
 
+import no.nav.emottak.ebms.getPublicSigningDetails
 import no.nav.emottak.ebms.model.EbMSAttachment
 import no.nav.emottak.ebms.model.EbMSDocument
 import no.nav.emottak.ebms.model.buildEbmMessage
 import no.nav.emottak.ebms.xml.getDocumentBuilder
+import no.nav.emottak.melding.model.SignatureDetails
 import no.nav.emottak.util.signatur.SignatureException
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -27,8 +29,8 @@ class SignatursjekkProcessorTest {
                 )
             )
         )
-        val signatursjekk = SignatursjekkProcessor(ebMSDocument, ebMSDocument.buildEbmMessage())
-        signatursjekk.process()
+        val signatureDetails: SignatureDetails =  ebMSDocument.messageHeader().getPublicSigningDetails()
+        val signatursjekk = SignatursjekkProcessor().validate(signatureDetails,dokument,ebMSDocument.attachments)
     }
 
     @Test
@@ -41,9 +43,11 @@ class SignatursjekkProcessorTest {
             dokument,
             listOf()
         )
-        val signatursjekk = SignatursjekkProcessor(ebMSDocument, ebMSDocument.buildEbmMessage())
+        val signatureDetails: SignatureDetails =  ebMSDocument.messageHeader().getPublicSigningDetails()
+
+        val signatursjekk = SignatursjekkProcessor()
         assertThrows<SignatureException> {
-            signatursjekk.process()
+            signatursjekk.validate(signatureDetails,dokument,ebMSDocument.attachments)
         }
     }
 }

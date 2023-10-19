@@ -2,7 +2,7 @@ package no.nav.emottak.cpa
 
 import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.plugins.NotFoundException
-import no.nav.emottak.melding.model.SignatureDetailsResponse
+import no.nav.emottak.melding.model.SignatureDetails
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.Certificate
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.DeliveryChannel
@@ -35,9 +35,9 @@ fun PartyInfo.getCertificateForSignatureValidation(
     role: String,
     service: String,
     action: String
-): SignatureDetailsResponse {
+): SignatureDetails {
     val deliveryChannel = this.getSendDeliveryChannel(role, service, action)
-    return SignatureDetailsResponse(
+    return SignatureDetails(
         certificate = deliveryChannel.getSigningCertificate().getX509Certificate(),
         signatureAlgorithm = deliveryChannel.getSignatureAlgorithm(),
         hashFunction = deliveryChannel.getHashFunction()
