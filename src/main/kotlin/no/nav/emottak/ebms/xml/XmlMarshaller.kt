@@ -47,7 +47,8 @@ class XmlMarshaller {
     }
 
     fun <T> unmarshal(document:Node) : T {
-        return (unmarshaller.unmarshal(document) as JAXBElement<T>).value
+        val unmarshaled = unmarshaller.unmarshal(document)
+        return if (unmarshaled is JAXBElement<*>) (unmarshaled as JAXBElement<T>).value else unmarshaled as T
     }
 
 }
