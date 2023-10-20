@@ -15,6 +15,7 @@
  */
 package no.nav.emottak.ebms.model
 
+import no.nav.emottak.ebms.getPublicSigningDetails
 import no.nav.emottak.ebms.processing.SignatursjekkProcessor
 import no.nav.emottak.ebms.xml.xmlMarshaller
 import no.nav.emottak.melding.model.SignatureDetails
@@ -51,6 +52,12 @@ fun EbMSDocument.sjekkSignature(signatureDetails: SignatureDetails) {
     SignatursjekkProcessor().validate(signatureDetails, this.dokument, this.attachments)
 }
 
+fun EbMSDocument.sjekkSignature() {
+    SignatursjekkProcessor().validate(
+        this.messageHeader().getPublicSigningDetails(),
+        this.dokument,
+        this.attachments)
+}
 
 fun EbMSDocument.buildEbmMessage(): EbMSBaseMessage {
     val envelope: Envelope = xmlMarshaller.unmarshal( this.dokument)

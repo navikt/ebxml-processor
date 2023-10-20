@@ -6,6 +6,7 @@ import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.coroutines.runBlocking
 import no.nav.emottak.ebms.model.*
 import no.nav.emottak.ebms.payload
 import no.nav.emottak.ebms.processing.*
@@ -13,12 +14,11 @@ import no.nav.emottak.ebms.validation.*
 import no.nav.emottak.ebms.xml.getDocumentBuilder
 import java.io.ByteArrayInputStream
 import java.util.UUID
-import kotlin.coroutines.coroutineContext
 
 
 fun Routing.postEbmsMessageEndpoint(): Route {
     return post("/ebmsMessage") {
-        EbMSProcessingService(call.request)
+        EbMSProcessingService(call.request).behandle()
     }
 }
 
@@ -38,10 +38,92 @@ class EbMSProcessingService(val appRequest: ApplicationRequest) {
         messageTypeProcessor(ebMSMessage)
     )
 
-    suspend fun test(call: ApplicationCall) {
-        when (appRequest.contentType()) {
+    fun behandle() {
+        try {
+            //val ebms = runBlocking { parseEbmsDoc(appRequest.call) }
+            //ebms.sjekkSignature()
+            runTasks(korrelasjonsId, listOf(
+                Task("Validate Mime") { appRequest.validateMime() },
+                Task("Validate Content Type") { appRequest.contentType().validateContentType() },
+                Task("Parse EBMSdoc") { runBlocking { parseEbmsDoc(appRequest.call) } }
+            ))
+                .first { r -> r is EbMSDocument }
+                .let{ runWithEvents("Sjekk signatur", korrelasjonsId) {(it as EbMSDocument).sjekkSignature()} }
+            println("OK")
+        } catch (e: EbMSErrorUtil.EbxmlProcessException) {
+            e.printStackTrace()
+            no.nav.emottak.ebms.processing.log.info("OH NOOO", e)
+            runBlocking { appRequest.call.respond("Failed") }
+        }
+    }
+    fun run() {
+        suspend {
+            try {
+                TaskFactory(korrelasjonsId)
+                    .addTask("Validate MIME headers") { appRequest.headers.validateMimeHeaders() }
+                    .addTask("Validate Content-Type") { appRequest.contentType().validateContentType() }
+                    .addTask("Validate MIME SOAP envelope") { runBlocking { appRequest.call.receiveMultipart().readAllParts() } }
+                    .runAll()
+
+                runTasks(korrelasjonsId, listOf(
+                    Task("Validate Mime") { appRequest.validateMime() },
+                    Task("Validate Content Type") {appRequest.contentType().validateContentType()},
+                    Task("Parse EBMSdoc") { runBlocking { parseEbmsDoc(appRequest.call)} }
+                )).first { r -> r is EbMSDocument }
+                    .let{ (it as EbMSDocument).sjekkSignature() }
+
+                runWithEvents("Validate MIME headers", korrelasjonsId) { appRequest.headers.validateMimeHeaders() }
+
+                val ebmsDoc: EbMSDocument =
+                    runWithEvents("Parse EbmsDOC", korrelasjonsId) { runBlocking { parseEbmsDoc(appRequest.call) } }
+
+                TaskProcessor("Parse EbmsDoc", korrelasjonsId) { runBlocking { parseEbmsDoc(appRequest.call) } }
+
+                val ebMSDocument =
+                    TaskProcessor("Parse EbmsDoc", korrelasjonsId) { runBlocking { parseEbmsDoc(appRequest.call) } }.result
+
+                TaskProcessor("Sjekk Signatur", korrelasjonsId) { ebMSDocument!!.sjekkSignature() }
+                    .processWithEvents()
+
+
+                //Task("Bygger EBMS", korrelasjonsId) {
+                //    ebMSDocument!!.buildEbmMessage()
+                //}.processWithEvents()
+//
+                //val buildEbmMessage =
+//
+                //task.processWithEvents();
+                //val result: (suspend () -> EbMSDocument)? = task.result
+                //val invoke: EbMSDocument = result!!.invoke()
+//
+                //preProcessorCollection()
+                //    .forEach { p -> p.processWithEvents() }
+//
+                //parseEbmsDocument()
+                //    .let {  ebxmlProcessCollection(it, it.buildEbmMessage()) }
+                //    .forEach { p -> p.processWithEvents() }
+//
+            } catch (e: EbMSErrorUtil.EbxmlProcessException) {
+                // impl errorhandling
+            } catch (it: MimeValidationException) { // TODO generify
+                //applicationCall.respond(HttpStatusCode.InternalServerError,it.asParseAsSoapFault())
+            }
+        }
+    }
+
+     suspend fun parseEbmsDoc(call: ApplicationCall): EbMSDocument {
+        when (appRequest.contentType().withoutParameters()) {
             ContentType.parse("multipart/related") -> {
-                val allParts =  appRequest.call.receiveMultipart().readAllParts()
+
+                lateinit var allParts: List<PartData>
+                try{
+                    allParts = appRequest.call.receiveMultipart().readAllParts()
+                } catch (t: Throwable) {
+                    t.printStackTrace()
+                    throw t;
+                }
+
+                //val allParts =  appRequest.call.receiveMultipart().readAllParts()
                 try {
                     val dokument = allParts.find {
                         it.contentType?.withoutParameters() == ContentType.parse("text/xml") && it.contentDisposition == null
@@ -51,7 +133,7 @@ class EbMSProcessingService(val appRequest: ApplicationRequest) {
                     attachments.forEach {
                         it.validateMimeAttachment()
                     }
-                    EbMSDocument(
+                    return EbMSDocument(
                         "",
                         getDocumentBuilder().parse(ByteArrayInputStream(dokument)),
                         attachments.map {
@@ -67,17 +149,19 @@ class EbMSProcessingService(val appRequest: ApplicationRequest) {
             }
             ContentType.parse("text/xml") -> {
                 val dokument = call.receiveStream().readAllBytes()
-                EbMSDocument(
+                return EbMSDocument(
                     "",
                     getDocumentBuilder().parse(ByteArrayInputStream(dokument)),
                     emptyList()
                 )
             }
             else -> {
+                throw RuntimeException("Ukjent request body med Content-Type: " + appRequest.contentType())
                 //call.respond(HttpStatusCode.BadRequest, "Ukjent request body med Content-Type $contentType")
                 //return
             }
         }
+        throw RuntimeException("Klarte ikke parse EbMSDocument")
     }
 
 
@@ -92,26 +176,6 @@ class EbMSProcessingService(val appRequest: ApplicationRequest) {
     }
     fun handleAck() {}
     fun handleError() {}
-
-    fun run() {
-        suspend {
-            try {
-                preProcessorCollection()
-                    .forEach { p -> p.processWithEvents() }
-
-                //parseEbmsDocument()
-                //    .let {  ebxmlProcessCollection(it, it.buildEbmMessage()) }
-                //    .forEach { p -> p.processWithEvents() }
-
-            } catch (e: EbMSErrorUtil.EbxmlProcessException) {
-                // impl errorhandling
-            } catch (it: MimeValidationException) { // TODO generify
-                //applicationCall.respond(HttpStatusCode.InternalServerError,it.asParseAsSoapFault())
-            }
-        }
-    }
-
-
 
 
 
