@@ -14,6 +14,7 @@ import io.ktor.server.routing.get
 import no.nav.emottak.cpa.config.DatabaseConfig
 import no.nav.emottak.cpa.config.mapHikariConfig
 import no.nav.emottak.melding.model.Header
+import no.nav.emottak.melding.model.SignatureDetailsRequest
 import no.nav.emottak.melding.model.ValidationResult
 
 fun main() {
@@ -47,17 +48,13 @@ fun Application.myApplicationModule() {
             call.respond(partyInfo.getCertificateForEncryption())
         }
 
-        get("/cpa/{$CPA_ID}/party/{$PARTY_TYPE}/{$PARTY_ID}/signing/certificate/{$ROLE}/{$SERVICE}/{$ACTION}") {
-            val cpaId = call.parameters[CPA_ID] ?: throw BadRequestException("Mangler $CPA_ID")
-            val partyType = call.parameters[PARTY_TYPE] ?: throw BadRequestException("Mangler $PARTY_TYPE")
-            val partyId = call.parameters[PARTY_ID] ?: throw BadRequestException("Mangler $PARTY_ID")
-            val role = call.parameters[ROLE] ?: throw BadRequestException("Mangler $ROLE")
-            val service = call.parameters[SERVICE] ?: throw BadRequestException("Mangler $SERVICE")
-            val action = call.parameters[ACTION] ?: throw BadRequestException("Mangler $ACTION")
-            val cpa = getCpa(cpaId) ?: throw NotFoundException("Ingen CPA med ID $cpaId funnet")
-            val partyInfo = cpa.getPartyInfoByTypeAndID(partyType, partyId)
+        post("/signing/certificate") {
+            val signatureDetailsRequest = call.receive(SignatureDetailsRequest::class)
+            val cpa = getCpa(signatureDetailsRequest.cpaId) ?: throw NotFoundException("Ingen CPA med ID ${signatureDetailsRequest.cpaId} funnet")
+            val partyInfo = cpa.getPartyInfoByTypeAndID(signatureDetailsRequest.partyType, signatureDetailsRequest.partyId)
 
-            call.respond(partyInfo.getCertificateForSignatureValidation(role, service, action))
+            call.respond(partyInfo.getCertificateForSignatureValidation(
+                signatureDetailsRequest.role, signatureDetailsRequest.service, signatureDetailsRequest.action))
         }
     }
 }
