@@ -32,7 +32,7 @@ fun getPublicSigningDetails(messageHeader: MessageHeader): SignatureDetails = ru
 }
 
 suspend fun getPublicSigningDetails(cpaId: String, partyType: String, partyId: String, service: String, action: String, role: String): SignatureDetails {
-    return httpClientUtil.makeHttpRequest("/cpa/$cpaId/party/$partyType/$partyId/signing/certificate/$role/$service/$action").body<SignatureDetails>()
+    return httpClientUtil.makeHttpRequest("$cpaRepoEndpoint/cpa/$cpaId/party/$partyType/$partyId/signing/certificate/$role/$service/$action").body<SignatureDetails>()
 }
 
 class HttpClientUtil {
