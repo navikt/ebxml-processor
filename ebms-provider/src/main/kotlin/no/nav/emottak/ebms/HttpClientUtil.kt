@@ -3,12 +3,14 @@ package no.nav.emottak.ebms
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.post
 import io.ktor.client.request.request
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.*
 import io.ktor.http.ContentType.Application.Json
+import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.runBlocking
 import no.nav.emottak.melding.model.Header
 import no.nav.emottak.melding.model.PayloadRequest
@@ -48,6 +50,9 @@ class HttpClientUtil {
 
     private val client = HttpClient(CIO) {
         expectSuccess = true
+        install(ContentNegotiation) {
+            json()
+        }
     }
 
     suspend fun postPayloadRequest(payloadRequest: PayloadRequest): PayloadResponse {
