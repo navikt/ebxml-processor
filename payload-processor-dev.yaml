@@ -32,3 +32,7 @@ spec:
       memory: "256Mi"
   ingresses:
     - "https://emottak-payload-processor.intern.dev.nav.no"
+  accessPolicy:
+    outbound:
+      rules:
+        - application: cpa-repo
