@@ -44,9 +44,7 @@ fun PartData.payload() : ByteArray {
 
 
 fun Application.myApplicationModule() {
-    install(ContentNegotiation) {
-        json()
-    }
+
 
     routing {
         get("/") {
