@@ -34,7 +34,7 @@ abstract class Processor(open val ebMSMessage: EbMSBaseMessage) {
     fun persisterHendelse(event: Event): Boolean {
         // Vi vil se på det ebMSMessage.addHendelse(event)
         when (event.eventStatus) {
-            Event.Status.STARTED -> log.info(this.ebMSMessage.messageHeader.marker(), "$event")
+            Event.Status.STARTED -> log.debug(this.ebMSMessage.messageHeader.marker(), "{}", event)
             Event.Status.OK -> log.info(this.ebMSMessage.messageHeader.marker(), "$event")
             Event.Status.FAILED -> log.error(this.ebMSMessage.messageHeader.marker(), "$event")
         }
