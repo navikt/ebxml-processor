@@ -16,6 +16,7 @@ import no.nav.emottak.ebms.xml.getDocumentBuilder
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayInputStream
+import java.nio.channels.UnresolvedAddressException
 import java.util.UUID
 
 
@@ -59,17 +60,18 @@ class EbMSHandler(val appRequest: ApplicationRequest) {
                 }
             )
             runBlocking { appRequest.call.respond("OK") }
-        } catch (e: EbMSErrorUtil.EbxmlProcessException) {
-            runWithEvents("Error Handling") { handleEbmsError(e) }
-            runBlocking { appRequest.call.respond("Failed") }
+        } catch (t: Throwable) {
+            runWithEvents("Error Handling") { handleEbmsError(t) }
+            runBlocking { appRequest.call.respond(HttpStatusCode(500, "Failed")) }
         }
     }
 
-    fun handleEbmsError(e: EbMSErrorUtil.EbxmlProcessException) {
-        when(e) {
-            is MimeValidationException -> runBlocking { appRequest.call.respond(e.asParseAsSoapFault()) }
+    fun handleEbmsError(t: Throwable) {
+        when(t) {
+            is MimeValidationException -> runBlocking { appRequest.call.respond(t.asParseAsSoapFault()) }
+            is UnresolvedAddressException -> runBlocking { appRequest.call.respond(HttpStatusCode(500, "Tjeneste nede")) }
         }
-        e.printStackTrace()
+        t.printStackTrace()
         // Todo
     }
 
