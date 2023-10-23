@@ -14,6 +14,7 @@ import no.nav.emottak.melding.model.Header
 import no.nav.emottak.melding.model.PayloadRequest
 import no.nav.emottak.melding.model.PayloadResponse
 import no.nav.emottak.melding.model.SignatureDetails
+import no.nav.emottak.melding.model.SignatureDetailsRequest
 import no.nav.emottak.melding.model.ValidationResult
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
 
@@ -32,7 +33,15 @@ fun getPublicSigningDetails(messageHeader: MessageHeader): SignatureDetails = ru
 }
 
 suspend fun getPublicSigningDetails(cpaId: String, partyType: String, partyId: String, service: String, action: String, role: String): SignatureDetails {
-    return httpClientUtil.makeHttpRequest("$cpaRepoEndpoint/cpa/$cpaId/party/$partyType/$partyId/signing/certificate/$role/$service/$action").body<SignatureDetails>()
+    val request = SignatureDetailsRequest(
+        cpaId = cpaId,
+        partyType = partyType,
+        partyId = partyId,
+        role = role,
+        service = service,
+        action = action
+    )
+    return httpClientUtil.postSignatureDetailsRequest("$cpaRepoEndpoint/signing/certificate", request)
 }
 
 class HttpClientUtil {
@@ -53,6 +62,13 @@ class HttpClientUtil {
                 this.path("/cpa/validate")
             }
             setBody(header)
+        }.body()
+    }
+
+    suspend fun postSignatureDetailsRequest(urlString: String, request: SignatureDetailsRequest): SignatureDetails {
+        return client.post(urlString) {
+            setBody(request)
+            contentType(Json)
         }.body()
     }
 
