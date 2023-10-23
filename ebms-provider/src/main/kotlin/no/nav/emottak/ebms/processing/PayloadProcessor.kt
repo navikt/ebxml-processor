@@ -30,18 +30,16 @@ fun MessageHeader.payloadRequestHeader(): Header {
         cpaId = this.cpaId ?: throw BadRequestException("CPAID mangler fra header"),
         conversationId = this.conversationId,
         to = Party(
-            herID = this.to.partyId.herID(),
+            partyType = this.to.partyId.firstOrNull()?.type ?: throw BadRequestException("Melding mangler to partyId"),
+            partyId = this.to.partyId.firstOrNull()?.type ?: throw BadRequestException("Melding mangler to partyId"),
             role = this.to.role ?: throw BadRequestException("Melding mangler role for en eller flere parter")
         ),
         from = Party(
-            herID = this.from.partyId.herID(),
+            partyType = this.from.partyId.firstOrNull()?.type ?: throw BadRequestException("Melding mangler from partyId"),
+            partyId = this.from.partyId.firstOrNull()?.type ?: throw BadRequestException("Melding mangler from partyId"),
             role = this.from.role ?: throw BadRequestException("Melding mangler role for en eller flere parter")
         ),
         service = this.service.value ?: throw BadRequestException("Service mangler fra header"),
         action = this.action
     )
-}
-
-fun List<PartyId>.herID(): String {
-    return this.firstOrNull() { partyId -> partyId.type == "HER" }?.value ?: throw BadRequestException("Melding mangler HER-ID for en eller flere parter")
 }

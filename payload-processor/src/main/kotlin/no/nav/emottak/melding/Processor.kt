@@ -106,7 +106,7 @@ fun Melding.verifiserSignatur(): Melding {
 
 fun Melding.krypter(): Melding {
     log.info(this.header.marker(), "Krypterer melding")
-    val krypteringSertifikat = hentKrypteringssertifikat(header.cpaId, header.to.herID)
+    val krypteringSertifikat = hentKrypteringssertifikat(header.cpaId, header.to.partyType, header.to.partyId)
     return this.copy(
         processedPayload = kryptering.krypter(this.processedPayload, krypteringSertifikat),
         kryptert = true
