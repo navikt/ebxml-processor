@@ -5,9 +5,11 @@ package no.nav.emottak.ebms
 
 import io.ktor.http.*
 import io.ktor.http.content.*
+import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
+import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -42,6 +44,10 @@ fun PartData.payload() : ByteArray {
 
 
 fun Application.myApplicationModule() {
+    install(ContentNegotiation) {
+        json()
+    }
+
     routing {
         get("/") {
             call.application.environment.log.info("TESTEST")
@@ -60,7 +66,7 @@ fun Application.myApplicationModule() {
 
             val ebMSDocument: EbMSDocument
             try {
-                ebMSDocument = call.recieveEbmsDokument()
+                ebMSDocument = call.receiveEbmsDokument()
             } catch (ex: MimeValidationException) {
                 call.respond(HttpStatusCode.InternalServerError, ex.asParseAsSoapFault())
                 return@post
@@ -99,7 +105,7 @@ fun Application.myApplicationModule() {
 }
 
 @Throws(MimeValidationException::class)
-suspend fun ApplicationCall.recieveEbmsDokument() : EbMSDocument {
+suspend fun ApplicationCall.receiveEbmsDokument() : EbMSDocument {
 
     return when (val contentType = this.request.contentType().withoutParameters()) {
         ContentType.parse("multipart/related") -> {
