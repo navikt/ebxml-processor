@@ -2,9 +2,7 @@ package no.nav.emottak.ebms.model
 
 import no.nav.emottak.EBMS_SERVICE_URI
 import no.nav.emottak.Event
-import no.nav.emottak.ebms.processing.CPAValidationProcessor
 import no.nav.emottak.ebms.processing.DekrypteringProcessor
-import no.nav.emottak.ebms.processing.SertifikatsjekkProcessor
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.AckRequested
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Acknowledgment
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ErrorList
@@ -42,11 +40,11 @@ class EbMSPayloadMessage(
 
     private fun createErrorMessageHeader(): MessageHeader {
         return this.messageHeader.createResponseHeader(
-            newFromRole = "ERROR_RESPONDER", newToRole = "ERROR_RECEIVER", newAction = "EBXML_ERROR", newService = EBMS_SERVICE_URI)
+            newFromRole = "ERROR_RESPONDER", newToRole = "ERROR_RECEIVER", newAction = "”MessageError”", newService = EBMS_SERVICE_URI)
     }
     private fun createAcknowledgmentMessageHeader(): MessageHeader {
         return this.messageHeader.createResponseHeader(
-            newFromRole = "ACK_RESPONDER", newToRole = "ACK_RECEIVER", newAction = "EBXML_ACK", newService = EBMS_SERVICE_URI)
+            newFromRole = "ACK_RESPONDER", newToRole = "ACK_RECEIVER", newAction = "Acknowledgment", newService = EBMS_SERVICE_URI)
     }
 
     private fun createAcknowledgementJaxB(): Acknowledgment {

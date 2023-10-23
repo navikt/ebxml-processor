@@ -22,13 +22,9 @@ import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
 
 
 private val httpClientUtil = HttpClientUtil()
-private const val payloadProcessorEndpoint = "http://payload-processor/payload"
+private const val payloadProcessorEndpoint = "http://ebms-payload/payload"
 private const val cpaRepoEndpoint = "http://cpa-repo"
 private const val validatorEndpoint = "$cpaRepoEndpoint/validate"
-
-fun postPayloadRequest(payloadRequest: PayloadRequest): PayloadResponse = runBlocking {
-    httpClientUtil.postPayloadRequest(payloadRequest)
-}
 
 fun getPublicSigningDetails(messageHeader: MessageHeader): SignatureDetails = runBlocking {
     getPublicSigningDetails(messageHeader.cpaId, messageHeader.from.partyId[0].type, messageHeader.from.partyId[0].value, messageHeader.service.value, messageHeader.action, messageHeader.from.role)

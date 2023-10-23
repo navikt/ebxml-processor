@@ -1,8 +1,6 @@
 package no.nav.emottak.ebms.model
 
 import no.nav.emottak.ebms.getPublicSigningDetails
-import no.nav.emottak.ebms.processing.CPAValidationProcessor
-import no.nav.emottak.ebms.processing.SertifikatsjekkProcessor
 import no.nav.emottak.ebms.processing.SignaturValidator
 import no.nav.emottak.ebms.processing.signer
 import no.nav.emottak.ebms.xml.xmlMarshaller

@@ -6,7 +6,6 @@ import no.nav.emottak.ebms.HttpClientUtil
 import no.nav.emottak.ebms.model.EbMSBaseMessage
 import no.nav.emottak.ebms.model.EbMSErrorMessage
 import no.nav.emottak.ebms.model.EbMSPayloadMessage
-import no.nav.emottak.ebms.postPayloadRequest
 import no.nav.emottak.melding.model.Header
 import no.nav.emottak.melding.model.Party
 import no.nav.emottak.melding.model.PayloadRequest
@@ -18,7 +17,7 @@ class ProcessingService() {
     var httpClient = HttpClientUtil()
 
 
-    private fun paylodMessage(payloadMessage: EbMSPayloadMessage) {
+    private fun payloadMessage(payloadMessage: EbMSPayloadMessage) {
         val payloads = payloadMessage.attachments
         val header = payloadMessage.messageHeader.payloadRequestHeader()
         payloads.forEach { payload ->
@@ -41,12 +40,12 @@ fun MessageHeader.payloadRequestHeader(): Header {
         conversationId = this.conversationId,
         to = Party(
             partyType = this.to.partyId.firstOrNull()?.type ?: throw BadRequestException("Melding mangler to partyId"),
-            partyId = this.to.partyId.firstOrNull()?.type ?: throw BadRequestException("Melding mangler to partyId"),
+            partyId = this.to.partyId.firstOrNull()?.value ?: throw BadRequestException("Melding mangler to partyId"),
             role = this.to.role ?: throw BadRequestException("Melding mangler role for en eller flere parter")
         ),
         from = Party(
             partyType = this.from.partyId.firstOrNull()?.type ?: throw BadRequestException("Melding mangler from partyId"),
-            partyId = this.from.partyId.firstOrNull()?.type ?: throw BadRequestException("Melding mangler from partyId"),
+            partyId = this.from.partyId.firstOrNull()?.value ?: throw BadRequestException("Melding mangler from partyId"),
             role = this.from.role ?: throw BadRequestException("Melding mangler role for en eller flere parter")
         ),
         service = this.service.value ?: throw BadRequestException("Service mangler fra header"),

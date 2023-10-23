@@ -18,6 +18,7 @@ class DokumentValidator {
 
         val messageHeader = dokument.messageHeader()
         val signaturedetails: SignatureDetails = getPublicSigningDetails(messageHeader)
+        //TODO valider sertifikat
         val header = Header(messageHeader.messageData.messageId,
                             messageHeader.conversationId,
                             messageHeader.cpaId,
