@@ -14,6 +14,7 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import no.nav.emottak.ebms.model.*
+import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.validation.DokumentValidator
 import no.nav.emottak.ebms.validation.MimeValidationException
 import no.nav.emottak.ebms.validation.asParseAsSoapFault
@@ -77,16 +78,7 @@ fun Application.myApplicationModule() {
 
             val message = ebMSDocument.buildEbmMessage()
             try {
-                when (message) {
-                    is EbmsAcknowledgment ->  message.process()
-                    is EbMSMessageError -> message.process()
-                    is EbMSPayloadMessage -> {
-                        when (val response = message.process()) {
-                            is EbmsAcknowledgment -> response.toEbmsDokument().sendResponse(response.messageHeader)
-                            is EbMSMessageError -> response.toEbmsDokument().sendErrorResponse(response.messageHeader)
-                        }
-                    }
-                }
+                ProcessingService().process(message)
             } catch (e: Exception) {
                 call.application.environment.log.error(message.messageHeader.marker(), "Feil ved prosessering av melding", e)
                 call.respond(HttpStatusCode.InternalServerError, "Feil ved prosessering av melding")

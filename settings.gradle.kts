@@ -90,4 +90,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "ebxml-processor"
-include("felles","async-recievers","cpa-repo","ebms-provider", "payload-processor")
+include("felles","async-recievers","cpa-repo","ebms-provider", "ebms-payload")

@@ -66,10 +66,3 @@ fun EbMSDocument.buildEbmMessage(): EbMSBaseMessage {
         EbMSPayloadMessage(this.dokument,header.messageHeader(),header.ackRequested(),this.attachments, LocalDateTime.now())
     }
 }
-
-fun EbMSDocument.sendResponse(messageHeader: MessageHeader) {
-    log.info(messageHeader.marker(), "TODO return response message")
-}
-fun EbMSDocument.sendErrorResponse(messageHeader: MessageHeader) {
-    log.warn(messageHeader.marker(), "TODO return error response message")
-}
