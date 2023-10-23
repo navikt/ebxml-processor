@@ -1,12 +1,15 @@
 package no.nav.emottak.cpa
 
 import io.ktor.http.*
+import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.call
+import io.ktor.server.application.install
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.plugins.NotFoundException
+import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.request.*
 import io.ktor.server.response.respond
 import io.ktor.server.routing.*
@@ -26,6 +29,9 @@ fun main() {
 }
 
 fun Application.myApplicationModule() {
+    install(ContentNegotiation) {
+        json()
+    }
     routing {
         get("/cpa/{$CPA_ID}") {
             val cpaId = call.parameters[CPA_ID] ?: throw BadRequestException("Mangler $CPA_ID")
@@ -39,7 +45,7 @@ fun Application.myApplicationModule() {
             call.respond(HttpStatusCode.OK,ValidationResult(true))
         }
 
-        get("/cpa/{$CPA_ID}/party/{$PARTY_TYPE}/{$PARTY_ID}encryption/certificate") {
+        get("/cpa/{$CPA_ID}/party/{$PARTY_TYPE}/{$PARTY_ID}/encryption/certificate") {
             val cpaId = call.parameters[CPA_ID] ?: throw BadRequestException("Mangler $CPA_ID")
             val partyType = call.parameters[PARTY_TYPE] ?: throw BadRequestException("Mangler $PARTY_TYPE")
             val partyId = call.parameters[PARTY_ID] ?: throw BadRequestException("Mangler $PARTY_ID")
