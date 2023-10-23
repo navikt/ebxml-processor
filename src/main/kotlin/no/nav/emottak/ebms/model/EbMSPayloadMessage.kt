@@ -73,8 +73,6 @@ class EbMSPayloadMessage(
     fun process() : EbMSBaseMessage {
         return try {
             listOf(
-                CPAValidationProcessor(this),
-                SertifikatsjekkProcessor(this),
                 DekrypteringProcessor(this)
             )
                 .forEach { it.processWithEvents() }

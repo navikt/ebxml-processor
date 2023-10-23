@@ -21,13 +21,7 @@ class EbmsAcknowledgment(override val messageHeader: MessageHeader,
 
     fun process() {
         try {
-            listOf(
-                CPAValidationProcessor(this),
-                SertifikatsjekkProcessor(this)
-            )
-                .forEach { it.processWithEvents() }
-            val signatureDetails = getPublicSigningDetails(messageHeader)
-            SignaturValidator().validate(signatureDetails, this.dokument!!, emptyList())
+
         }catch (ex: Exception) {
             return
         }
