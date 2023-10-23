@@ -104,13 +104,13 @@ fun DeliveryChannel.getHashFunction(): String
     throw BadRequestException("Hash Function eksisterer ikke for DeliveryChannel")
 }
 
-fun CollaborationProtocolAgreement.getHERPartyInfo(herId: String): PartyInfo
+fun CollaborationProtocolAgreement.getPartyInfoByTypeAndID(partyType: String, partyId: String): PartyInfo
 {
     return this.partyInfo.firstOrNull { partyInfo ->
-        partyInfo.partyId.any { partyId ->
-            partyId.type == "HER" && partyId.value == herId
+        partyInfo.partyId.any { party ->
+            party.type == partyType && party.value == partyId
         }
-    } ?: throw NotFoundException("HER ID $herId eksisterer ikke i CPA")
+    } ?: throw NotFoundException("PartyID med type $partyType og id $partyId eksisterer ikke i CPA")
 }
 
 fun Certificate.getX509Certificate(): ByteArray {

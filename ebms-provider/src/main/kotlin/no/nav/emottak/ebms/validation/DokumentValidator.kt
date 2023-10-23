@@ -17,7 +17,7 @@ class DokumentValidator {
     fun validate(dokument: EbMSDocument) {
 
         val messageHeader = dokument.messageHeader()
-        val signaturedetails: SignatureDetails = messageHeader.getPublicSigningDetails()
+        val signaturedetails: SignatureDetails = getPublicSigningDetails(messageHeader)
         val header = Header(messageHeader.messageData.messageId,
                             messageHeader.conversationId,
                             messageHeader.cpaId,
@@ -29,10 +29,6 @@ class DokumentValidator {
             httpClient.postValidate(header)
         }
         dokument.sjekkSignature(signaturedetails)
-
-
-
-
 
     }
 }

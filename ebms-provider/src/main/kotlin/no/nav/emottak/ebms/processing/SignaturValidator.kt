@@ -1,10 +1,6 @@
 package no.nav.emottak.ebms.processing
 
-import no.nav.emottak.ebms.getPublicSigningCertificate
 import no.nav.emottak.ebms.model.EbMSAttachment
-import no.nav.emottak.ebms.model.EbMSBaseMessage
-import no.nav.emottak.ebms.model.EbMSDocument
-import no.nav.emottak.ebms.model.EbMSPayloadMessage
 import no.nav.emottak.ebms.validation.CID_PREFIX
 import no.nav.emottak.ebms.validation.EbMSAttachmentResolver
 import no.nav.emottak.melding.model.SignatureDetails
@@ -19,7 +15,6 @@ import org.apache.xml.security.signature.SignedInfo
 import org.apache.xml.security.signature.XMLSignature
 import org.apache.xml.security.transforms.Transforms
 import org.apache.xml.security.utils.Constants
-import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
 import org.w3c.dom.Document
 import java.security.cert.X509Certificate
 
@@ -31,22 +26,22 @@ import java.security.cert.X509Certificate
  * Mangler: 104 (sertifikatsjekk), 105 (sertifikatsjekk) //TODO
  *
  */
-class SignatursjekkProcessor() {
+class SignaturValidator() {
 
     init {
         org.apache.xml.security.Init.init()
     }
 
     @Throws(SignatureException::class)
-    public fun validate(signatureDetails: SignatureDetails, dokument: Document, attachments: List<EbMSAttachment>) {
+    fun validate(signatureDetails: SignatureDetails, dokument: Document, attachments: List<EbMSAttachment>) {
         //TODO Sjekk isNonRepudiation?
-        val xmlSignature = retrieveSignatureElement(dokument)
-        val certificateFraCPA =  signatureDetails.getPublicSigningCertificate()
-        val certificateFraSignatur = xmlSignature.retrievePublicX509Certificate()
-        if (certificateFraSignatur != certificateFraCPA) throw SignatureException("Signert med annet sertifikat enn definert i CPA")
+        val xmlSignature = dokument.retrieveSignatureElement()
+        val sertfikatFraCPA =  signatureDetails.retrievePublicX509Certificate()
+        val sertifikatFraSignatur = xmlSignature.retrievePublicX509Certificate()
+        if (sertifikatFraSignatur != sertfikatFraCPA) throw SignatureException("Signert med annet sertifikat enn definert i CPA")
         try {
             if (!verify(
-                    certificateFraSignatur,
+                    sertifikatFraSignatur,
                     xmlSignature,
                     attachments
                 )
