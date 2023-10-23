@@ -51,7 +51,7 @@ class EbMSHandler(val appRequest: ApplicationRequest) {
                     when (ebmsMessage) {
                         is EbMSAckMessage -> runWithEvents("Håndterer ACK message") { this::handleAckMessage }
                         is EbMSErrorMessage -> runWithEvents("Håndterer Error Message") { this::handleErrorMessage }
-                        is EbMSPayloadMessage -> PayloadProcessor(ebmsMessage).processWithEvents()
+                        is EbMSPayloadMessage -> ProcessingService() // TODO
                         else -> {
                             throw RuntimeException("Ukjent meldingstype")
                         }

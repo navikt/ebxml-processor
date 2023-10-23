@@ -5,13 +5,17 @@ package no.nav.emottak.ebms
 
 import io.ktor.http.*
 import io.ktor.http.content.*
+import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
+import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import no.nav.emottak.ebms.model.*
+import no.nav.emottak.ebms.processing.ProcessingService
+import no.nav.emottak.ebms.processing.flow.EbMSHandler
 import no.nav.emottak.ebms.processing.flow.postEbmsMessageEndpoint
 import no.nav.emottak.ebms.validation.DokumentValidator
 import no.nav.emottak.ebms.validation.MimeValidationException
@@ -43,6 +47,8 @@ fun PartData.payload() : ByteArray {
 
 
 fun Application.myApplicationModule() {
+
+
     routing {
         get("/") {
             call.application.environment.log.info("TESTEST")
@@ -62,7 +68,7 @@ fun Application.myApplicationModule() {
 
             val ebMSDocument: EbMSDocument
             try {
-                ebMSDocument = call.recieveEbmsDokument()
+                ebMSDocument = call.receiveEbmsDokument()
             } catch (ex: MimeValidationException) {
                 call.respond(HttpStatusCode.InternalServerError, ex.asParseAsSoapFault())
                 return@post
@@ -75,16 +81,7 @@ fun Application.myApplicationModule() {
 
             val message = ebMSDocument.buildEbmMessage()
             try {
-               //when (message) {
-               //    is EbmsAcknowledgment ->  message.process()
-               //    is EbMSMessageError -> message.process()
-               //    is EbMSPayloadMessage -> {
-               //        when (val response = message.process()) {
-               //            is EbmsAcknowledgment -> response.toEbmsDokument().sendResponse(response.messageHeader)
-               //            is EbMSMessageError -> response.toEbmsDokument().sendErrorResponse(response.messageHeader)
-               //        }
-               //    }
-               //}
+                EbMSHandler(call.request).behandle()
             } catch (e: Exception) {
                 call.application.environment.log.error(message.messageHeader.marker(), "Feil ved prosessering av melding", e)
                 call.respond(HttpStatusCode.InternalServerError, "Feil ved prosessering av melding")
@@ -101,7 +98,7 @@ fun Application.myApplicationModule() {
 }
 
 @Throws(MimeValidationException::class)
-suspend fun ApplicationCall.recieveEbmsDokument() : EbMSDocument {
+suspend fun ApplicationCall.receiveEbmsDokument() : EbMSDocument {
 
     return when (val contentType = this.request.contentType().withoutParameters()) {
         ContentType.parse("multipart/related") -> {

@@ -1,12 +1,17 @@
 package no.nav.emottak.ebms.model
 
+import no.nav.emottak.EBMS_SERVICE_URI
 import no.nav.emottak.Event
+import no.nav.emottak.ebms.processing.CPAValidationProcessor
+import no.nav.emottak.ebms.processing.DekrypteringProcessor
+import no.nav.emottak.ebms.processing.SertifikatsjekkProcessor
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.AckRequested
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Acknowledgment
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ErrorList
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.From
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageData
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
+import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Service
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.To
 import org.w3c.dom.Document
 import java.time.Instant
@@ -28,35 +33,20 @@ class EbMSPayloadMessage(
     private val eventLogg: ArrayList<Event> = ArrayList() // TODO tenk over
 
     fun createFail(): EbMSErrorMessage {
-        return EbMSErrorMessage(MessageHeader(), ErrorList())
+        return EbMSErrorMessage(this.createErrorMessageHeader(), ErrorList())
     }
 
     fun createAcknowledgment(): EbMSAckMessage {
-        val acknowledgment = this.createAcknowledgementJaxB()
-        val messageHeader = this.createAcknowledgmentMessageHeader()
-        return EbMSAckMessage(messageHeader,acknowledgment)
+        return EbMSAckMessage(this.createAcknowledgmentMessageHeader(),this.createAcknowledgementJaxB())
     }
 
+    private fun createErrorMessageHeader(): MessageHeader {
+        return this.messageHeader.createResponseHeader(
+            newFromRole = "ERROR_RESPONDER", newToRole = "ERROR_RECEIVER", newAction = "EBXML_ERROR", newService = EBMS_SERVICE_URI)
+    }
     private fun createAcknowledgmentMessageHeader(): MessageHeader {
-        val messageHeader = MessageHeader()
-        messageHeader.conversationId = this.messageHeader.conversationId
-        messageHeader.from = From().also {
-            it.partyId.addAll(this.messageHeader.to.partyId)
-            it.role = "ACK_SENDER"
-        }
-        messageHeader.to = To().also {
-            it.partyId.addAll(this.messageHeader.from.partyId)
-            it.role = "ACK_RECEIVER"
-        }
-        messageHeader.service = this.messageHeader.service
-        messageHeader.action = this.messageHeader.action
-        messageHeader.cpaId = this.messageHeader.cpaId
-        messageHeader.messageData = MessageData().also {
-            it.messageId = this.messageHeader.messageData.messageId + "_RESPONSE"
-            it.refToMessageId = this.messageHeader.messageData.messageId
-            it.timestamp = Date.from(Instant.now())
-        }
-        return messageHeader
+        return this.messageHeader.createResponseHeader(
+            newFromRole = "ACK_RESPONDER", newToRole = "ACK_RECEIVER", newAction = "EBXML_ACK", newService = EBMS_SERVICE_URI)
     }
 
     private fun createAcknowledgementJaxB(): Acknowledgment {
@@ -76,4 +66,26 @@ class EbMSPayloadMessage(
         return acknowledgment
     }
 
+}
+
+fun MessageHeader.createResponseHeader(newFromRole: String, newToRole: String, newAction: String?, newService: String?): MessageHeader {
+    val messageHeader = MessageHeader()
+    messageHeader.conversationId = this.conversationId
+    messageHeader.from = From().also {
+        it.partyId.addAll(this.to.partyId)
+        it.role = newFromRole
+    }
+    messageHeader.to = To().also {
+        it.partyId.addAll(this.from.partyId)
+        it.role = newToRole
+    }
+    messageHeader.service = if (newService != null) Service().also { it.value = newService } else this.service
+    messageHeader.action = newAction ?: this.action
+    messageHeader.cpaId = this.cpaId
+    messageHeader.messageData = MessageData().also {
+        it.messageId = this.messageData.messageId + "_RESPONSE"
+        it.refToMessageId = this.messageData.messageId
+        it.timestamp = Date.from(Instant.now())
+    }
+    return messageHeader
 }

@@ -53,11 +53,13 @@ private fun Application.serverSetup() {
                     conversationId = UUID.randomUUID().toString(),
                     cpaId = UUID.randomUUID().toString(),
                     to = Party(
-                        herID = "8141253",
+                        partyType = "HER",
+                        partyId = "8141253",
                         role = "mottaker"
                     ),
                     from = Party(
-                        herID = "54321",
+                        partyType = "HER",
+                        partyId = "54321",
                         role = "sender"
                     ),
                     service = "melding",

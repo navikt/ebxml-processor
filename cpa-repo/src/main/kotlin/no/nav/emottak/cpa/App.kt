@@ -1,12 +1,15 @@
 package no.nav.emottak.cpa
 
 import io.ktor.http.*
+import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.call
+import io.ktor.server.application.install
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.plugins.NotFoundException
+import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.request.*
 import io.ktor.server.response.respond
 import io.ktor.server.routing.*
@@ -14,6 +17,7 @@ import io.ktor.server.routing.get
 import no.nav.emottak.cpa.config.DatabaseConfig
 import no.nav.emottak.cpa.config.mapHikariConfig
 import no.nav.emottak.melding.model.Header
+import no.nav.emottak.melding.model.SignatureDetailsRequest
 import no.nav.emottak.melding.model.ValidationResult
 
 fun main() {
@@ -25,6 +29,9 @@ fun main() {
 }
 
 fun Application.myApplicationModule() {
+    install(ContentNegotiation) {
+        json()
+    }
     routing {
         get("/cpa/{$CPA_ID}") {
             val cpaId = call.parameters[CPA_ID] ?: throw BadRequestException("Mangler $CPA_ID")
@@ -38,30 +45,29 @@ fun Application.myApplicationModule() {
             call.respond(HttpStatusCode.OK,ValidationResult(true))
         }
 
-        get("/cpa/{$CPA_ID}/her/{$HER_ID}/encryption/certificate") {
+        get("/cpa/{$CPA_ID}/party/{$PARTY_TYPE}/{$PARTY_ID}/encryption/certificate") {
             val cpaId = call.parameters[CPA_ID] ?: throw BadRequestException("Mangler $CPA_ID")
-            val herId = call.parameters[HER_ID] ?: throw BadRequestException("Mangler $HER_ID")
+            val partyType = call.parameters[PARTY_TYPE] ?: throw BadRequestException("Mangler $PARTY_TYPE")
+            val partyId = call.parameters[PARTY_ID] ?: throw BadRequestException("Mangler $PARTY_ID")
             val cpa = getCpa(cpaId) ?: throw NotFoundException("Ingen CPA med ID $cpaId funnet")
-            val partyInfo = cpa.getHERPartyInfo(herId)
+            val partyInfo = cpa.getPartyInfoByTypeAndID(partyType, partyId)
             call.respond(partyInfo.getCertificateForEncryption())
         }
 
-        get("/cpa/{$CPA_ID}/her/{$HER_ID}/signing/certificate/{$ROLE}/{$SERVICE}/{$ACTION}/") {
-            val cpaId = call.parameters[CPA_ID] ?: throw BadRequestException("Mangler $CPA_ID")
-            val herId = call.parameters[HER_ID] ?: throw BadRequestException("Mangler $HER_ID")
-            val role = call.parameters[ROLE] ?: throw BadRequestException("Mangler $ROLE")
-            val service = call.parameters[SERVICE] ?: throw BadRequestException("Mangler $SERVICE")
-            val action = call.parameters[ACTION] ?: throw BadRequestException("Mangler $ACTION")
-            val cpa = getCpa(cpaId) ?: throw NotFoundException("Ingen CPA med ID $cpaId funnet")
-            val partyInfo = cpa.getHERPartyInfo(herId)
+        post("/signing/certificate") {
+            val signatureDetailsRequest = call.receive(SignatureDetailsRequest::class)
+            val cpa = getCpa(signatureDetailsRequest.cpaId) ?: throw NotFoundException("Ingen CPA med ID ${signatureDetailsRequest.cpaId} funnet")
+            val partyInfo = cpa.getPartyInfoByTypeAndID(signatureDetailsRequest.partyType, signatureDetailsRequest.partyId)
 
-            call.respond(partyInfo.getCertificateForSignatureValidation(role, service, action))
+            call.respond(partyInfo.getCertificateForSignatureValidation(
+                signatureDetailsRequest.role, signatureDetailsRequest.service, signatureDetailsRequest.action))
         }
     }
 }
 
 private const val CPA_ID = "cpaId"
-private const val HER_ID = "herId"
+private const val PARTY_TYPE = "partyType"
+private const val PARTY_ID = "partyId"
 private const val ROLE = "role"
 private const val SERVICE = "service"
 private const val ACTION = "action"

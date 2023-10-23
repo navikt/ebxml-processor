@@ -16,7 +16,7 @@
 package no.nav.emottak.ebms.model
 
 import no.nav.emottak.ebms.getPublicSigningDetails
-import no.nav.emottak.ebms.processing.SignatursjekkProcessor
+import no.nav.emottak.ebms.processing.SignaturValidator
 import no.nav.emottak.ebms.xml.xmlMarshaller
 import no.nav.emottak.melding.model.SignatureDetails
 import no.nav.emottak.util.marker
@@ -49,14 +49,11 @@ enum class DokumentType {
 }
 
 fun EbMSDocument.sjekkSignature(signatureDetails: SignatureDetails) {
-    SignatursjekkProcessor().validate(signatureDetails, this.dokument, this.attachments)
+    SignaturValidator().validate(signatureDetails, this.dokument, this.attachments)
 }
 
 fun EbMSDocument.sjekkSignature() {
-    SignatursjekkProcessor().validate(
-        this.messageHeader().getPublicSigningDetails(),
-        this.dokument,
-        this.attachments)
+    SignaturValidator().validate(getPublicSigningDetails(messageHeader()), this.dokument, this.attachments)
 }
 
 fun EbMSDocument.buildEbmMessage(): EbMSBaseMessage {
@@ -72,15 +69,4 @@ fun EbMSDocument.buildEbmMessage(): EbMSBaseMessage {
         log.info(header.messageHeader().marker(), "Mottak melding av type payload")
         EbMSPayloadMessage(this.dokument,header.messageHeader(),header.ackRequested(),this.attachments, LocalDateTime.now())
     }
-}
-
-fun EbMSDocument.checkSignature(signatureDetails: SignatureDetails, dokument: Document, attachments: List<EbMSAttachment>) {
-    SignatursjekkProcessor().validate(signatureDetails, dokument, attachments)
-}
-
-fun EbMSDocument.sendResponse(messageHeader: MessageHeader) {
-    log.info(messageHeader.marker(), "TODO return response message")
-}
-fun EbMSDocument.sendErrorResponse(messageHeader: MessageHeader) {
-    log.error(messageHeader.marker(), "TODO return response message")
 }

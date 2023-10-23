@@ -24,4 +24,8 @@ spec:
     sqlInstances:
         - type: POSTGRES_15
           databases:
-            - name: ebms-db 
+            - name: ebms-db
+  accessPolicy:
+    outbound:
+      rules:
+        - application: cpa-repo

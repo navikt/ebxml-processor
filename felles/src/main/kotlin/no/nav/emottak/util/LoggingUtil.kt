@@ -14,8 +14,8 @@ fun Header.marker(): LogstashMarker {
     map[ACTION] = this.action
     map[TO_ROLE] = this.to.role
     map[FROM_ROLE] = this.from.role
-    map[TO_HER_ID] = this.to.herID
-    map[FROM_HER_ID] = this.from.herID
+    map[TO_PARTY] = this.to.partyType + ":" + this.to.partyId
+    map[FROM_PARTY] = this.from.partyType + ":" + this.from.partyId
     return Markers.appendEntries(map)
 }
 
@@ -28,8 +28,8 @@ fun MessageHeader.marker(): LogstashMarker {
     map[ACTION] = this.action
     map[TO_ROLE] = this.to.role ?: UKJENT_VERDI
     map[FROM_ROLE] = this.from.role ?: UKJENT_VERDI
-    map[TO_HER_ID] = this.to.partyId.firstOrNull{ it.type == PARTY_TYPE_HER }?.value ?: UKJENT_VERDI
-    map[FROM_HER_ID] = this.from.partyId.firstOrNull{ it.type == PARTY_TYPE_HER }?.value ?: UKJENT_VERDI
+    map[TO_PARTY] = (this.to.partyId.firstOrNull()?.type + ":" + this.to.partyId.firstOrNull()?.value)
+    map[FROM_PARTY] = (this.from.partyId.firstOrNull()?.type + ":" + this.from.partyId.firstOrNull()?.value)
     return Markers.appendEntries(map)
 }
 
@@ -39,8 +39,8 @@ private const val UKJENT_VERDI = "Ukjent"
 //Kibana log indekser
 private const val MARKER_MOTTAK_ID = "mottakId"
 private const val MARKER_CONVERSATION_ID = "ebConversationId"
-private const val FROM_HER_ID = "ebAvsenderId"
-private const val TO_HER_ID = "ebMottakerId"
+private const val FROM_PARTY = "ebAvsenderId"
+private const val TO_PARTY = "ebMottakerId"
 private const val TO_ROLE = "toRole"
 private const val FROM_ROLE = "fromRole"
 private const val SERVICE = "ebxmlService"
