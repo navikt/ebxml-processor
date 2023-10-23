@@ -4,7 +4,6 @@ import no.nav.emottak.Event
 import no.nav.emottak.ebms.processing.CPAValidationProcessor
 import no.nav.emottak.ebms.processing.DekrypteringProcessor
 import no.nav.emottak.ebms.processing.SertifikatsjekkProcessor
-import no.nav.emottak.ebms.processing.SignatursjekkProcessor
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.AckRequested
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Acknowledgment
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ErrorList
