@@ -2,6 +2,7 @@ package no.nav.emottak.cpa
 
 import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.plugins.NotFoundException
+import no.nav.emottak.EBMS_SERVICE_URI
 import no.nav.emottak.melding.model.SignatureDetails
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.Certificate
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
@@ -44,7 +45,6 @@ fun PartyInfo.getCertificateForSignatureValidation(
     )
 }
 
-const val EBMS_SERVICE_URI = "urn:oasis:names:tc:ebxml-msg:service"
 fun PartyInfo.getSendDeliveryChannel(
     role: String,
     service: String,
@@ -56,7 +56,7 @@ fun PartyInfo.getSendDeliveryChannel(
     else {
         val roles = this.collaborationRole.filter{ it.role.name == role && it.serviceBinding.service.value == service}
         val canSend = roles.flatMap { it.serviceBinding.canSend.filter { cs -> cs.thisPartyActionBinding.action == action } }
-        return canSend.first().thisPartyActionBinding.channelId?.first()?.value as DeliveryChannel? ?: throw BadRequestException("Fant ikke SendDeliverChannel")
+        return canSend.firstOrNull()?.thisPartyActionBinding?.channelId?.first()?.value as DeliveryChannel? ?: throw BadRequestException("Fant ikke SendDeliverChannel")
     }
 }
 
