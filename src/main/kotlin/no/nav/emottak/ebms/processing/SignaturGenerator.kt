@@ -14,7 +14,7 @@ fun EbMSDocument.signer(signatureDetails: SignatureDetails): EbMSDocument {
     try {
         ebMSSigning.sign(this, signatureDetails)
         return this
-    } catch (e: XMLSecurityException) {
+    } catch (e: Exception) {
         log.error(this.messageHeader().marker(), "Signering av ebms envelope feilet", e)
         throw SignatureException("Signering av ebms envelope feilet", e)
     }
