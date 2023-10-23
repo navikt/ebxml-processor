@@ -20,7 +20,7 @@ private class CPAUtil {
 
     fun getCpa(id: String): CollaborationProtocolAgreement? {
         //TODO
-        val testCpaString = String(this::class.java.classLoader.getResource("nav-qass-35065.xml").readBytes())
+        val testCpaString = String(this::class.java.classLoader.getResource("cpa/nav-qass-35065.xml").readBytes())
         return unmarshal(testCpaString, CollaborationProtocolAgreement::class.java)
     }
 
