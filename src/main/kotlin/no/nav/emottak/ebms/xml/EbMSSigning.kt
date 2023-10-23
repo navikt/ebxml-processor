@@ -1,10 +1,11 @@
 package no.nav.emottak.ebms.xml
 
 import jakarta.xml.soap.SOAPConstants
-import no.nav.emottak.ebms.getPublicSigningDetails
 import no.nav.emottak.ebms.model.EbMSAttachment
+import no.nav.emottak.ebms.model.EbMSDocument
 import no.nav.emottak.ebms.validation.CID_PREFIX
 import no.nav.emottak.ebms.validation.EbMSAttachmentResolver
+import no.nav.emottak.melding.model.SignatureDetails
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.crypto.getCertificateAlias
 import no.nav.emottak.util.crypto.getKeyPair
@@ -14,7 +15,6 @@ import org.apache.xml.security.exceptions.XMLSecurityException
 import org.apache.xml.security.signature.XMLSignature
 import org.apache.xml.security.transforms.Transforms
 import org.apache.xml.security.transforms.params.XPathContainer
-import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
 import org.w3c.dom.Document
 import org.w3c.dom.NodeList
 import java.security.cert.X509Certificate
@@ -25,14 +25,13 @@ class EbMSSigning {
     private val SOAP_ENVELOPE = SOAPConstants.URI_NS_SOAP_1_1_ENVELOPE
     private val SOAP_NEXT_ACTOR = SOAPConstants.URI_SOAP_ACTOR_NEXT
 
-    fun sign(document: Document, messageHeader: MessageHeader, attachments: List<EbMSAttachment> = emptyList()) {
-        val certificateDetails = messageHeader.getPublicSigningDetails()
+    fun sign(ebMSDocument: EbMSDocument, signatureDetails: SignatureDetails) {
         sign(
-            document,
-            attachments,
-            createX509Certificate(certificateDetails.certificate),
-            certificateDetails.signatureAlgorithm,
-            certificateDetails.hashFunction
+            ebMSDocument.dokument,
+            ebMSDocument.attachments,
+            createX509Certificate(signatureDetails.certificate),
+            signatureDetails.signatureAlgorithm,
+            signatureDetails.hashFunction
         )
     }
 

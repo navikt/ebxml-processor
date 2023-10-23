@@ -1,8 +1,9 @@
 package no.nav.emottak.ebms.model
 
+import no.nav.emottak.ebms.getPublicSigningDetails
 import no.nav.emottak.ebms.processing.CPAValidationProcessor
 import no.nav.emottak.ebms.processing.SertifikatsjekkProcessor
-import no.nav.emottak.ebms.processing.SignatursjekkProcessor
+import no.nav.emottak.ebms.processing.SignaturValidator
 import no.nav.emottak.ebms.processing.signer
 import no.nav.emottak.ebms.xml.xmlMarshaller
 import no.nav.emottak.util.marker
@@ -25,14 +26,15 @@ class EbmsAcknowledgment(override val messageHeader: MessageHeader,
                 SertifikatsjekkProcessor(this)
             )
                 .forEach { it.processWithEvents() }
-
+            val signatureDetails = getPublicSigningDetails(messageHeader)
+            SignaturValidator().validate(signatureDetails, this.dokument!!, emptyList())
         }catch (ex: Exception) {
             return
         }
     }
 
     fun toEbmsDokument(): EbMSDocument {
-        log.info(this.messageHeader.marker(), "Oppretter Acknowledgment soap response")
+        log.info(this.messageHeader.marker(), "Oppretter Acknowledgment")
         return ObjectFactory().createEnvelope()!!.also {
             it.header = Header().also {
                 it.any.add(this.messageHeader)
@@ -41,8 +43,9 @@ class EbmsAcknowledgment(override val messageHeader: MessageHeader,
         }.let {
             xmlMarshaller.marshal(it)
         }.let {
-            log.info(this.messageHeader.marker(), "Signerer Acknowledgment soap response")
-            EbMSDocument("contentID",it, emptyList()).signer(this.messageHeader)
+            log.info(this.messageHeader.marker(), "Signerer Acknowledgment (TODO)")
+            val signatureDetails = getPublicSigningDetails(this.messageHeader)
+            EbMSDocument("contentID",it, emptyList()).signer(signatureDetails)
         }
     }
 
