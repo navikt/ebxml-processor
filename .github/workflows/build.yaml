@@ -52,7 +52,7 @@ jobs:
     - name: "Build and push cpa-repo Docker image"
       run: "docker build cpa-repo --pull --tag ${IMAGE_CPA} -f Dockerfile && docker push ${IMAGE_CPA}"
     - name: "Build and push ebms-payload Docker image"
-      run: "docker build payload-processor --pull --tag ${IMAGE_PAYLOAD} -f Dockerfile && docker push ${IMAGE_PAYLOAD}"
+      run: "docker build ebms-payload --pull --tag ${IMAGE_PAYLOAD} -f Dockerfile && docker push ${IMAGE_PAYLOAD}"
   deploy-processor:
     name: "Deploy ebms provider to dev"
     needs: "build"
@@ -79,7 +79,7 @@ jobs:
         CLUSTER: "dev-gcp"
         RESOURCE: ".nais/cpa-repo-dev.yaml"
         IMAGE: ${{env.IMAGE_CPA}}
-  deploy-payload-processor:
+  deploy-ebms-payload:
     name: "Deploy ebms-payload to dev"
     needs: "build"
     runs-on: "ubuntu-20.04"
