@@ -21,8 +21,9 @@ class DokumentValidator {
         val header = Header(messageHeader.messageData.messageId,
                             messageHeader.conversationId,
                             messageHeader.cpaId,
-                            Party(messageHeader.to.partyId.first().value!!,messageHeader.to.role!!),
-                            Party(messageHeader.from.partyId.first().value!!,messageHeader.from.role!!),
+                            //TODO select specific partyID?
+                            Party(messageHeader.to.partyId.first().type!!, messageHeader.to.partyId.first().value!!,messageHeader.to.role!!),
+                            Party(messageHeader.from.partyId.first().type!!, messageHeader.from.partyId.first().value!!,messageHeader.from.role!!),
                             messageHeader.service.value!!,
                             messageHeader.action)
         runBlocking {
