@@ -20,13 +20,7 @@ class EbMSMessageError(
     override val dokument: Document? = null
 ) : EbMSBaseMessage {
 
-    fun process() {
-        try {
 
-        }catch (ex: Exception) {
-            return
-        }
-    }
 
     fun toEbmsDokument(): EbMSDocument {
         log.warn(this.messageHeader.marker(), "Oppretter ErrorList")

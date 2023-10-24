@@ -3,6 +3,7 @@
  */
 package no.nav.emottak.ebms
 
+import com.sun.tools.xjc.util.DOMUtils
 import io.ktor.http.*
 import io.ktor.http.content.*
 import io.ktor.serialization.kotlinx.json.json
@@ -13,15 +14,19 @@ import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.util.*
 import no.nav.emottak.ebms.model.*
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.validation.DokumentValidator
+import no.nav.emottak.ebms.validation.MimeHeaders
 import no.nav.emottak.ebms.validation.MimeValidationException
 import no.nav.emottak.ebms.validation.asParseAsSoapFault
 import no.nav.emottak.ebms.validation.validateMime
 import no.nav.emottak.ebms.validation.validateMimeAttachment
 import no.nav.emottak.ebms.validation.validateMimeSoapEnvelope
+import no.nav.emottak.ebms.xml.asString
 import no.nav.emottak.ebms.xml.getDocumentBuilder
+import no.nav.emottak.ebms.xml.xmlMarshaller
 import no.nav.emottak.util.marker
 import java.io.ByteArrayInputStream
 
@@ -72,8 +77,16 @@ fun Application.myApplicationModule() {
             }
             try {
                 DokumentValidator().validate(ebMSDocument)
-            }catch(ex:Exception) {
-                call.respond(HttpStatusCode.InternalServerError,"Validation feilet")
+            }catch(ex:MimeValidationException) {
+                call.respond(HttpStatusCode.InternalServerError,ex.asParseAsSoapFault())
+            }catch (ex2:Exception) {
+                ebMSDocument
+                    .createFail(EbMSError().createError(EbMSError.Code.OTHER_XML.name,"Validation failed"))
+                    .toEbmsDokument()
+                    .also {
+                        call.respondEbmsDokument(it)
+                        return@post
+                    }
             }
 
             val message = ebMSDocument.buildEbmMessage()
@@ -134,4 +147,13 @@ suspend fun ApplicationCall.receiveEbmsDokument() : EbMSDocument {
             //return@post
         }
     }
+}
+
+suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument:EbMSDocument) {
+
+        val payload = ebmsDokument
+            .dokument
+            .asString()
+          //  .encodeBase64()
+    this.respondText(payload , ContentType.parse("text/xml"))
 }

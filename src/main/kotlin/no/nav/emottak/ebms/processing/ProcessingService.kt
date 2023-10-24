@@ -34,19 +34,19 @@ class ProcessingService() {
         }
     }
 
-    private fun acknowledgment(acknowledgment: Acknowledgment) {
+    private fun acknowledgment(acknowledgment: EbmsAcknowledgment) {
 
     }
 
-    private fun fail(fail:EbMSError) {
+    private fun fail(fail:EbMSMessageError) {
 
     }
 
     fun process(message: EbMSBaseMessage) {
         when (message) {
-            is EbmsAcknowledgment ->  message.process()
-            is EbMSMessageError -> message.process()
-            is EbMSPayloadMessage -> message.process()
+            is EbmsAcknowledgment ->  acknowledgment(message)
+            is EbMSMessageError -> fail(message)
+            is EbMSPayloadMessage -> payloadMessage(message)
             }
         }
     }
