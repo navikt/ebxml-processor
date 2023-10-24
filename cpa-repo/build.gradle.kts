@@ -11,9 +11,12 @@ plugins {
 
 tasks {
 
-        shadowJar {
-            archiveFileName.set("app.jar")
-        }
+    shadowJar {
+        archiveFileName.set("app.jar")
+    }
+    test {
+        useJUnitPlatform()
+    }
     
 }
 
@@ -34,6 +37,9 @@ dependencies {
     implementation(libs.ktor.serialization.kotlinx.json)
     implementation(testLibs.postgresql)
     testRuntimeOnly(testLibs.junit.jupiter.engine)
+    testImplementation(testLibs.junit.jupiter.api)
+    testImplementation(libs.ktor.client.content.negotiation)
+    testImplementation("io.ktor:ktor-server-test-host")
     testImplementation(kotlin("test"))
 
     runtimeOnly("org.postgresql:postgresql:42.6.0")
