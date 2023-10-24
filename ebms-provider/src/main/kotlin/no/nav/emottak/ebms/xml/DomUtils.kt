@@ -1,8 +1,15 @@
 package no.nav.emottak.ebms.xml
 
+import org.w3c.dom.Document
+import java.io.StringWriter
 import javax.xml.parsers.DocumentBuilder
 import javax.xml.parsers.DocumentBuilderFactory
 import javax.xml.parsers.ParserConfigurationException
+import javax.xml.transform.Transformer
+import javax.xml.transform.TransformerFactory
+import javax.xml.transform.dom.DOMSource
+import javax.xml.transform.stream.StreamResult
+
 
 @Throws(ParserConfigurationException::class)
 fun getDocumentBuilder(): DocumentBuilder {
@@ -15,4 +22,15 @@ fun getDocumentBuilder(): DocumentBuilder {
     dbf.isExpandEntityReferences = false
     dbf.isNamespaceAware = true
     return dbf.newDocumentBuilder()
+}
+
+
+
+fun Document.asString() : String {
+    val domSource = DOMSource(this)
+    val transformer: Transformer = TransformerFactory.newInstance().newTransformer()
+    val sw = StringWriter()
+    val sr = StreamResult(sw)
+    transformer.transform(domSource, sr)
+    return sw.toString()
 }

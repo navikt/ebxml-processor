@@ -15,10 +15,14 @@
  */
 package no.nav.emottak.ebms.model
 
+import no.nav.emottak.EBMS_SERVICE_URI
+import no.nav.emottak.ebms.createResponseHeader
 import no.nav.emottak.ebms.processing.SignaturValidator
 import no.nav.emottak.ebms.xml.xmlMarshaller
 import no.nav.emottak.melding.model.SignatureDetails
 import no.nav.emottak.util.marker
+import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Error
+import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ErrorList
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
 import org.slf4j.LoggerFactory
 import org.w3c.dom.Document
@@ -36,6 +40,12 @@ data class EbMSDocument(val messageId: String, val dokument: Document, val attac
         throw RuntimeException("Unrecognized dokument type")
 
     }
+
+    fun createFail(error: Error): EbMSMessageError {
+        return EbMSMessageError(this.messageHeader().createResponseHeader(newFromRole = "ERROR_RESPONDER", newToRole = "ERROR_RECEIVER", newAction = "MessageError", newService = EBMS_SERVICE_URI), ErrorList().also {
+            it.error.add(error)
+        })
+    }
     fun messageHeader():MessageHeader {
          val node: Node =this.dokument.getElementsByTagName("eb:MessageHeader").item(0)
          return xmlMarshaller.unmarshal(node)
@@ -50,6 +60,7 @@ enum class DokumentType {
 fun EbMSDocument.sjekkSignature(signatureDetails: SignatureDetails) {
     SignaturValidator().validate(signatureDetails, this.dokument, this.attachments)
 }
+
 
 
 fun EbMSDocument.buildEbmMessage(): EbMSBaseMessage {

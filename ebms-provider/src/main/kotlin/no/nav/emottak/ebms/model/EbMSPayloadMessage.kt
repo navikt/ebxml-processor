@@ -2,6 +2,7 @@ package no.nav.emottak.ebms.model
 
 import no.nav.emottak.EBMS_SERVICE_URI
 import no.nav.emottak.Event
+import no.nav.emottak.ebms.createResponseHeader
 import no.nav.emottak.ebms.processing.DekrypteringProcessor
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.AckRequested
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Acknowledgment
@@ -80,26 +81,4 @@ class EbMSPayloadMessage(
         }
     }
 
-}
-
-fun MessageHeader.createResponseHeader(newFromRole: String, newToRole: String, newAction: String?, newService: String?): MessageHeader {
-    val messageHeader = MessageHeader()
-    messageHeader.conversationId = this.conversationId
-    messageHeader.from = From().also {
-        it.partyId.addAll(this.to.partyId)
-        it.role = newFromRole
-    }
-    messageHeader.to = To().also {
-        it.partyId.addAll(this.from.partyId)
-        it.role = newToRole
-    }
-    messageHeader.service = if (newService != null) Service().also { it.value = newService } else this.service
-    messageHeader.action = newAction ?: this.action
-    messageHeader.cpaId = this.cpaId
-    messageHeader.messageData = MessageData().also {
-        it.messageId = this.messageData.messageId + "_RESPONSE"
-        it.refToMessageId = this.messageData.messageId
-        it.timestamp = Date.from(Instant.now())
-    }
-    return messageHeader
 }
