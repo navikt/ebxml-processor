@@ -55,7 +55,9 @@ dependencyResolutionManagement {
             version("mockk", "1.13.8")
             version("testPostgres","1.18.0")
             version("xmlunit", "2.9.1")
+            version("ktor-server-test", "2.3.4")
 
+            library("ktor-server-test-host", "io.ktor", "ktor-server-test-host").versionRef("ktor-server-test")
             library("junit-jupiter-api", "org.junit.jupiter", "junit-jupiter-api").versionRef("junit")
             library("junit-jupiter-engine", "org.junit.jupiter", "junit-jupiter-engine").versionRef("junit")
             library("junit-jupiter-params", "org.junit.jupiter", "junit-jupiter-params").versionRef("junit")
