@@ -4,14 +4,12 @@ import io.ktor.server.plugins.BadRequestException
 import kotlinx.coroutines.runBlocking
 import no.nav.emottak.ebms.HttpClientUtil
 import no.nav.emottak.ebms.model.EbMSBaseMessage
-import no.nav.emottak.ebms.model.EbMSError
 import no.nav.emottak.ebms.model.EbMSMessageError
 import no.nav.emottak.ebms.model.EbMSPayloadMessage
 import no.nav.emottak.ebms.model.EbmsAcknowledgment
 import no.nav.emottak.melding.model.Header
 import no.nav.emottak.melding.model.Party
 import no.nav.emottak.melding.model.PayloadRequest
-import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Acknowledgment
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
 
 class ProcessingService() {
