@@ -45,6 +45,7 @@ dependencies {
     implementation("com.sun.xml.messaging.saaj:saaj-impl:3.0.2")
     //implementation("org.glassfish.jaxb:jaxb-runtime:4.0.3") // TODO: Latest. Krever at protokoll oppdateres
     implementation(libs.ebxml.protokoll)
+    testImplementation(testLibs.ktor.server.test.host)
     testImplementation(testLibs.junit.jupiter.api)
     testImplementation(testLibs.mockk.jvm)
     testImplementation(testLibs.mockk.dsl.jvm)
