@@ -86,13 +86,13 @@ fun PartData.validateMimeAttachment() {
 }
 
 // KRAV 5.5.2.1 validate MIME
-private fun Headers.validateMimeHeaders() {
-        takeUnless { (this[MimeHeaders.MIME_VERSION].isNullOrBlank()).or(this[MimeHeaders.MIME_VERSION] != "1.0") }
-                ?: throw MimeValidationException("MIME version is missing or incorrect")
-        takeUnless { this[MimeHeaders.SOAP_ACTION].isNullOrBlank().or(this[MimeHeaders.SOAP_ACTION] != "ebXML") }
-                ?: throw MimeValidationException("SOAPAction is undefined or incorrect")
-        takeUnless { this[MimeHeaders.CONTENT_TYPE].isNullOrBlank().or(this[MimeHeaders.CONTENT_TYPE] == "text/plain") }
-                ?: throw MimeValidationException("Content  type is wrong")
+fun Headers.validateMimeHeaders() {
+        if(this[MimeHeaders.MIME_VERSION] != "1.0")
+                throw MimeValidationException("MIME version is missing or incorrect")
+        if(this[MimeHeaders.SOAP_ACTION] != "ebXML")
+                throw MimeValidationException("SOAPAction is undefined or incorrect")
+        if(this[MimeHeaders.CONTENT_TYPE].isNullOrBlank() || this[MimeHeaders.CONTENT_TYPE] == "text/plain")
+                throw MimeValidationException("Content type is wrong")
 }
 
 
