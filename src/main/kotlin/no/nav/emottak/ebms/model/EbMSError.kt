@@ -6,6 +6,10 @@ import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ErrorList
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.SeverityType
 
 //4.2.3.4.1 https://www.oasis-open.org/committees/ebxml-msg/documents/ebMS_v2_0.pdf#page=31
+
+
+
+
 class EbMSError {
     companion object {
         // ebXml errors
