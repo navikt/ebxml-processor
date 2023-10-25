@@ -17,7 +17,7 @@ package no.nav.emottak.ebms.model
 
 import no.nav.emottak.EBMS_SERVICE_URI
 import no.nav.emottak.ebms.createResponseHeader
-import no.nav.emottak.ebms.processing.SignaturValidator
+import no.nav.emottak.ebms.validation.SignaturValidator
 import no.nav.emottak.ebms.xml.xmlMarshaller
 import no.nav.emottak.melding.model.SignatureDetails
 import no.nav.emottak.util.marker

@@ -1,8 +1,6 @@
-package no.nav.emottak.ebms.processing
+package no.nav.emottak.ebms.validation
 
 import no.nav.emottak.ebms.model.EbMSAttachment
-import no.nav.emottak.ebms.validation.CID_PREFIX
-import no.nav.emottak.ebms.validation.EbMSAttachmentResolver
 import no.nav.emottak.melding.model.SignatureDetails
 import no.nav.emottak.util.retrievePublicX509Certificate
 import no.nav.emottak.util.retrieveSignatureElement

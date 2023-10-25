@@ -1,4 +1,4 @@
-package no.nav.emottak.ebms.processing
+package no.nav.emottak.ebms.validation
 
 import no.nav.emottak.ebms.model.EbMSAttachment
 import no.nav.emottak.ebms.model.EbMSDocument
@@ -9,9 +9,9 @@ import no.nav.emottak.util.signatur.SignatureException
 import org.apache.xml.security.algorithms.MessageDigestAlgorithm
 import org.apache.xml.security.signature.XMLSignature
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 
-class SignaturvalidatorTest {
+class SignaturValidatorTest {
+
     @Test
     fun `Validering av signatur`() {
 
@@ -45,10 +45,11 @@ class SignaturvalidatorTest {
         )
 
         val signatursjekk = SignaturValidator()
-        assertThrows<SignatureException> {
-            signatursjekk.validate(getSignatureDetailsForTest(),dokument,ebMSDocument.attachments)
+        org.junit.jupiter.api.assertThrows<SignatureException> {
+            signatursjekk.validate(getSignatureDetailsForTest(), dokument, ebMSDocument.attachments)
         }
     }
+
 }
 
 fun getSignatureDetailsForTest(): SignatureDetails =
