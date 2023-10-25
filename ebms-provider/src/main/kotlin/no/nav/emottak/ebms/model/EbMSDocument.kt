@@ -21,6 +21,7 @@ import no.nav.emottak.ebms.ebxml.acknowledgment
 import no.nav.emottak.ebms.ebxml.createResponseHeader
 import no.nav.emottak.ebms.ebxml.errorList
 import no.nav.emottak.ebms.ebxml.messageHeader
+import no.nav.emottak.ebms.getPublicSigningDetails
 import no.nav.emottak.ebms.validation.SignaturValidator
 import no.nav.emottak.ebms.xml.xmlMarshaller
 import no.nav.emottak.melding.model.SignatureDetails
@@ -61,10 +62,9 @@ enum class DokumentType {
     PAYLOAD, ACKNOWLEDGMENT,FAIL,STATUS,PING
 }
 
-fun EbMSDocument.sjekkSignature(signatureDetails: SignatureDetails) {
-    SignaturValidator().validate(signatureDetails, this.dokument, this.attachments)
+fun EbMSDocument.sjekkSignature() {
+    SignaturValidator().validate(getPublicSigningDetails(messageHeader()), this.dokument, this.attachments)
 }
-
 
 
 fun EbMSDocument.buildEbmMessage(): EbMSBaseMessage {

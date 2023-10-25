@@ -17,7 +17,6 @@ class DokumentValidator {
     fun validate(dokument: EbMSDocument) {
 
         val messageHeader = dokument.messageHeader()
-        val signaturedetails: SignatureDetails = getPublicSigningDetails(messageHeader)
         //TODO valider sertifikat
         val header = Header(messageHeader.messageData.messageId,
                             messageHeader.conversationId,
@@ -30,7 +29,7 @@ class DokumentValidator {
         runBlocking {
             httpClient.postValidate(header)
         }
-        dokument.sjekkSignature(signaturedetails)
+        dokument.sjekkSignature()
 
     }
 }
