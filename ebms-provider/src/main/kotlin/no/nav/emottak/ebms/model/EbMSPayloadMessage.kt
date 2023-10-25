@@ -2,18 +2,14 @@ package no.nav.emottak.ebms.model
 
 import no.nav.emottak.EBMS_SERVICE_URI
 import no.nav.emottak.Event
-import no.nav.emottak.ebms.createResponseHeader
+import no.nav.emottak.ebms.ebxml.createResponseHeader
+import no.nav.emottak.ebms.ebxml.getAckRequestedSigned
 import no.nav.emottak.ebms.processing.DekrypteringProcessor
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.AckRequested
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Acknowledgment
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ErrorList
-import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.From
-import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageData
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
-import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Service
-import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.To
 import org.w3c.dom.Document
-import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.util.*

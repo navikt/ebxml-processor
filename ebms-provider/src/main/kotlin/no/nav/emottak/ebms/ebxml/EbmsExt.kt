@@ -1,4 +1,4 @@
-package no.nav.emottak.ebms.model
+package no.nav.emottak.ebms.ebxml
 
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.*
 import org.xmlsoap.schemas.soap.envelope.Envelope
