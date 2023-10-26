@@ -80,6 +80,7 @@ class HttpClientUtil {
                 this.path("/cpa/validate")
             }
             setBody(header)
+            contentType(Json)
         }.body()
     }
 
