@@ -23,9 +23,12 @@ import no.nav.emottak.ebms.validation.validateMimeSoapEnvelope
 import no.nav.emottak.ebms.xml.asString
 import no.nav.emottak.ebms.xml.getDocumentBuilder
 import no.nav.emottak.util.marker
+import org.slf4j.LoggerFactory
 import java.io.ByteArrayInputStream
 
+val log = LoggerFactory.getLogger("no.nav.emottak.ebms.App")
 
+fun logger() = log
 fun main() {
     //val database = Database(mapHikariConfig(DatabaseConfig()))
     //database.migrate()
@@ -57,8 +60,9 @@ fun Application.myApplicationModule() {
 
             try {
                 call.request.validateMime()
-            } catch (it: MimeValidationException) {
-                call.respond(HttpStatusCode.InternalServerError, it.asParseAsSoapFault())
+            } catch (ex: MimeValidationException) {
+                logger().error("Mime validation has failed: ${ex.message}", ex)
+                call.respond(HttpStatusCode.InternalServerError, ex.asParseAsSoapFault())
                 return@post
 
             }
@@ -67,14 +71,17 @@ fun Application.myApplicationModule() {
             try {
                 ebMSDocument = call.receiveEbmsDokument()
             } catch (ex: MimeValidationException) {
+                logger().error("Mime validation has failed: ${ex.message}", ex)
                 call.respond(HttpStatusCode.InternalServerError, ex.asParseAsSoapFault())
                 return@post
             }
             try {
                 DokumentValidator().validate(ebMSDocument)
             }catch(ex:MimeValidationException) {
+                logger().error("Mime validation has failed: ${ex.message}", ex)
                 call.respond(HttpStatusCode.InternalServerError,ex.asParseAsSoapFault())
             }catch (ex2:Exception) {
+                logger().error("Validation Failed: ${ex2.message}", ex2)
                 ebMSDocument
                     .createFail(EbMSErrorUtil.createError(EbMSErrorUtil.Code.OTHER_XML.name,"Validation failed"))
                     .toEbmsDokument()
