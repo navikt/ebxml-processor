@@ -36,3 +36,6 @@ spec:
     outbound:
       rules:
         - application: cpa-repo
+    inbound:
+      rules:
+        - application: ebms-provider
