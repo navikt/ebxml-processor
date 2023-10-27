@@ -11,13 +11,9 @@ import no.nav.emottak.melding.model.SignatureDetails
 class DokumentValidator(val httpClient: CpaRepoClient) {
 
 
-    fun validate(dokument: EbMSDocument) {
+    fun validate(dokument: EbMSDocument,signatureDetails: SignatureDetails) {
 
         val messageHeader = dokument.messageHeader()
-        val signaturedetails: SignatureDetails
-        runBlocking {
-            signaturedetails =   httpClient.getPublicSigningDetails(messageHeader)
-        }
 
         //TODO valider sertifikat
         val header = Header(messageHeader.messageData.messageId,
@@ -31,7 +27,7 @@ class DokumentValidator(val httpClient: CpaRepoClient) {
         runBlocking {
             httpClient.postValidate(header)
         }
-        dokument.sjekkSignature(signaturedetails)
+        dokument.sjekkSignature(signatureDetails)
 
     }
 }

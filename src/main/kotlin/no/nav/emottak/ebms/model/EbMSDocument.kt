@@ -22,9 +22,11 @@ import no.nav.emottak.ebms.ebxml.createResponseHeader
 import no.nav.emottak.ebms.ebxml.errorList
 import no.nav.emottak.ebms.ebxml.messageHeader
 import no.nav.emottak.ebms.validation.SignaturValidator
+import no.nav.emottak.ebms.xml.ebMSSigning
 import no.nav.emottak.ebms.xml.xmlMarshaller
 import no.nav.emottak.melding.model.SignatureDetails
 import no.nav.emottak.util.marker
+import no.nav.emottak.util.signatur.SignatureException
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Error
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ErrorList
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
@@ -59,6 +61,16 @@ data class EbMSDocument(val messageId: String, val dokument: Document, val attac
 
 enum class DokumentType {
     PAYLOAD, ACKNOWLEDGMENT,FAIL,STATUS,PING
+}
+
+fun EbMSDocument.signer(signatureDetails: SignatureDetails): EbMSDocument {
+    try {
+        ebMSSigning.sign(this, signatureDetails)
+        return this
+    } catch (e: Exception) {
+        log.error(this.messageHeader().marker(), "Signering av ebms envelope feilet", e)
+        throw SignatureException("Signering av ebms envelope feilet", e)
+    }
 }
 
 fun EbMSDocument.sjekkSignature(signatureDetails: SignatureDetails) {

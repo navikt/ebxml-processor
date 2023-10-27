@@ -19,6 +19,8 @@ import org.w3c.dom.Document
 import org.w3c.dom.NodeList
 import java.security.cert.X509Certificate
 
+
+val ebMSSigning = EbMSSigning()
 class EbMSSigning {
 
     private val canonicalizationMethodAlgorithm = Transforms.TRANSFORM_C14N_OMIT_COMMENTS
