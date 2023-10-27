@@ -56,7 +56,7 @@ fun Route.postEbms(validator: DokumentValidator, processingService: ProcessingSe
             ebMSDocument
                 .createFail(EbMSErrorUtil.createError(EbMSErrorUtil.Code.OTHER_XML.name, "Validation failed"))
                 .toEbmsDokument()
-                .signer(cpa.signatureDetails) //@TODO hva skjer hvis vi klarer ikke å hente signature details ?
+              //  .signer(cpa.signatureDetails) //@TODO hva skjer hvis vi klarer ikke å hente signature details ?
                 .also {
                     call.respondEbmsDokument(it)
                     return@post

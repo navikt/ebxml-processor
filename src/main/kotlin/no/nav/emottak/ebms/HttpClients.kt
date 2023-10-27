@@ -12,9 +12,10 @@ import no.nav.emottak.melding.model.SignatureDetailsRequest
 import no.nav.emottak.melding.model.ValidationResult
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
 
-private const val cpaRepoEndpoint = "http://cpa-repo.com"
+private const val cpaRepoEndpoint = "http://cpa-repo"
 private const val validatorEndpoint = "$cpaRepoEndpoint/validate"
 private const val payloadProcessorEndpoint = "http://ebms-payload/payload"
+
 class CpaRepoClient(clientProvider:()->HttpClient) {
     private var httpClient = clientProvider.invoke()
 
