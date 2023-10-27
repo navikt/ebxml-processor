@@ -1,6 +1,6 @@
 package no.nav.emottak.ebms.model
 
-import no.nav.emottak.ebms.getPublicSigningDetails
+import kotlinx.coroutines.runBlocking
 import no.nav.emottak.ebms.processing.signer
 import no.nav.emottak.ebms.xml.xmlMarshaller
 import no.nav.emottak.util.marker
@@ -30,8 +30,9 @@ class EbMSMessageError(
             xmlMarshaller.marshal(it)
         }.let {
             log.info(this.messageHeader.marker(), "Signerer ErrorList (TODO)")
-            val signatureDetails = getPublicSigningDetails(this.messageHeader)
-            EbMSDocument("contentID",it, emptyList()).signer(signatureDetails)
+         //@TODO   val signatureDetails = runBlocking {  getPublicSigningDetails(this@EbMSMessageError.messageHeader) }
+            EbMSDocument("contentID",it, emptyList())
+          //@TODO      .signer(signatureDetails)
         }
     }
 
