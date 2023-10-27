@@ -1,14 +1,14 @@
 package no.nav.emottak.ebms.model
 
-import kotlinx.coroutines.runBlocking
-import no.nav.emottak.ebms.processing.signer
 import no.nav.emottak.ebms.xml.xmlMarshaller
+import no.nav.emottak.melding.model.SignatureDetails
 import no.nav.emottak.util.marker
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ErrorList
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
 import org.w3c.dom.Document
 import org.xmlsoap.schemas.soap.envelope.Header
 import org.xmlsoap.schemas.soap.envelope.ObjectFactory
+import kotlin.math.sign
 
 
 class EbMSMessageError(

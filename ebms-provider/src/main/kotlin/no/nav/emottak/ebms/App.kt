@@ -25,6 +25,7 @@ import no.nav.emottak.ebms.validation.validateMimeAttachment
 import no.nav.emottak.ebms.validation.validateMimeSoapEnvelope
 import no.nav.emottak.ebms.xml.asString
 import no.nav.emottak.ebms.xml.getDocumentBuilder
+import no.nav.emottak.melding.model.SignatureDetails
 import no.nav.emottak.util.marker
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayInputStream
@@ -50,62 +51,6 @@ fun PartData.payload(): ByteArray {
     }
 }
 
-fun Route.postEbms(validator: DokumentValidator,processingService: ProcessingService): Route =
-    post("/ebms") {
-        // KRAV 5.5.2.1 validate MIME
-
-        try {
-            call.request.validateMime()
-        } catch (ex: MimeValidationException) {
-            logger().error("Mime validation has failed: ${ex.message}", ex)
-            call.respond(HttpStatusCode.InternalServerError, ex.asParseAsSoapFault())
-            return@post
-
-        }
-
-        val ebMSDocument: EbMSDocument
-        try {
-            ebMSDocument = call.receiveEbmsDokument()
-        } catch (ex: MimeValidationException) {
-            logger().error("Mime validation has failed: ${ex.message}", ex)
-            call.respond(HttpStatusCode.InternalServerError, ex.asParseAsSoapFault())
-            return@post
-        }
-        try {
-            validator.validate(ebMSDocument)
-        } catch (ex: MimeValidationException) {
-            logger().error("Mime validation has failed: ${ex.message}", ex)
-            call.respond(HttpStatusCode.InternalServerError, ex.asParseAsSoapFault())
-        } catch (ex2: Exception) {
-            logger().error("Validation Failed: ${ex2.message}", ex2)
-            ebMSDocument
-                .createFail(EbMSErrorUtil.createError(EbMSErrorUtil.Code.OTHER_XML.name, "Validation failed"))
-                .toEbmsDokument()
-                .also {
-                    call.respondEbmsDokument(it)
-                    return@post
-                }
-        }
-
-        val message = ebMSDocument.buildEbmMessage()
-        try {
-            processingService.process(message)
-        } catch (e: Exception) {
-            call.application.environment.log.error(
-                message.messageHeader.marker(),
-                "Feil ved prosessering av melding",
-                e
-            )
-            call.respond(HttpStatusCode.InternalServerError, "Feil ved prosessering av melding")
-            return@post
-        }
-
-        //call payload processor
-        println(ebMSDocument)
-
-        call.respondText("Hello")
-    }
-
 
 fun Application.ebmsProviderModule() {
     val client = { HttpClient(CIO) {
@@ -125,7 +70,7 @@ fun Application.ebmsProviderModule() {
             call.application.environment.log.info("TESTEST")
             call.respondText("Hello, world!")
         }
-        postEbms(validator,processing)
+        postEbms(validator, processing, cpaClient)
 
     }
 

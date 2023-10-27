@@ -1,7 +1,6 @@
 package no.nav.emottak.ebms.model
 
-import kotlinx.coroutines.runBlocking
-import no.nav.emottak.ebms.processing.signer
+
 import no.nav.emottak.ebms.xml.xmlMarshaller
 import no.nav.emottak.util.marker
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Acknowledgment
@@ -35,9 +34,7 @@ class EbmsAcknowledgment(override val messageHeader: MessageHeader,
             xmlMarshaller.marshal(it)
         }.let {
             log.info(this.messageHeader.marker(), "Signerer Acknowledgment (TODO)")
-            //@TODO val signatureDetails = runBlocking { getPublicSigningDetails(this@EbmsAcknowledgment.messageHeader)}
             EbMSDocument("contentID",it, emptyList())
-                //@TODO.signer(signatureDetails)
         }
     }
 
