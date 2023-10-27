@@ -1,23 +1,24 @@
 package no.nav.emottak.ebms.validation
 
 import kotlinx.coroutines.runBlocking
-import no.nav.emottak.ebms.HttpClientUtil
-import no.nav.emottak.ebms.getPublicSigningDetails
+import no.nav.emottak.ebms.CpaRepoClient
 import no.nav.emottak.ebms.model.EbMSDocument
 import no.nav.emottak.ebms.model.sjekkSignature
 import no.nav.emottak.melding.model.Header
 import no.nav.emottak.melding.model.Party
 import no.nav.emottak.melding.model.SignatureDetails
 
-class DokumentValidator {
-
-    var httpClient = HttpClientUtil()
+class DokumentValidator(val httpClient: CpaRepoClient) {
 
 
     fun validate(dokument: EbMSDocument) {
 
         val messageHeader = dokument.messageHeader()
-        val signaturedetails: SignatureDetails = getPublicSigningDetails(messageHeader)
+        val signaturedetails: SignatureDetails
+        runBlocking {
+            signaturedetails =   httpClient.getPublicSigningDetails(messageHeader)
+        }
+
         //TODO valider sertifikat
         val header = Header(messageHeader.messageData.messageId,
                             messageHeader.conversationId,
