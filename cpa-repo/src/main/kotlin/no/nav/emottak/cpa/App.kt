@@ -19,6 +19,7 @@ import no.nav.emottak.cpa.config.mapHikariConfig
 import no.nav.emottak.melding.model.Header
 import no.nav.emottak.melding.model.SignatureDetailsRequest
 import no.nav.emottak.melding.model.ValidationResult
+import org.slf4j.LoggerFactory
 
 fun main() {
     val database = Database(mapHikariConfig(DatabaseConfig()))
@@ -28,6 +29,7 @@ fun main() {
 
 }
 
+internal val log = LoggerFactory.getLogger("no.nav.emottak.cpa.App")
 fun Application.myApplicationModule() {
     install(ContentNegotiation) {
         json()
@@ -41,7 +43,12 @@ fun Application.myApplicationModule() {
 
         post("cpa/validate") {
             val validateRequest = call.receive(Header::class)
-            getCpa(validateRequest.cpaId)!!.validate(validateRequest)
+            try {
+                getCpa(validateRequest.cpaId)!!.validate(validateRequest)
+            } catch (cpaEx: CpaValidationException) {
+                log.info(cpaEx.message, cpaEx) // TODO kanskje logge CPA IDen som indekset verdi til kibana
+                call.respond(HttpStatusCode.OK, ValidationResult(false))
+            }
             call.respond(HttpStatusCode.OK,ValidationResult(true))
         }
 
