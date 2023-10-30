@@ -21,26 +21,6 @@ object MimeHeaders {
         const val CONTENT_DISPOSITION           = "Content-Disposition"
 }
 
-object ContentTypeRegex {
-        val CONTENT_TYPE = Regex("\\s*^(?<contentType>[^;]+);\\s*")
-        val BOUNDARY = Regex("\\s*boundary=\"----=?(?<boundary>[^=\"]+)\"?")
-        val START = Regex("\\s*start=\"?(?<start>[^=\"]+)\"?")
-        val TYPE = Regex("type=\"?(?<type>[^=\"]+)\"?")
-}
-
-/*
-fun Headers.validateMime() {
-        runCatching {
-                validateMimeHeaders()
-                validateMultipartAttributter()
-        }.onFailure {
-                if (it !is MimeValidationException) throw MimeValidationException("Unexpected validation fail.",it) else throw it
-        }
-
-}
-
- */
-
 fun ApplicationRequest.validateMime() {
         runCatching {
                 this.headers.validateMimeHeaders()

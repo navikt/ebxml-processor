@@ -107,7 +107,7 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
         }
 
         ContentType.parse("text/xml") -> {
-            val dokument = this.receiveStream().readAllBytes()
+            val dokument = java.util.Base64.getMimeDecoder().decode(this.receiveStream().readAllBytes())
             EbMSDocument(
                 "",
                 getDocumentBuilder().parse(ByteArrayInputStream(dokument)),
