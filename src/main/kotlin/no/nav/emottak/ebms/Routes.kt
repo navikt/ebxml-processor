@@ -8,6 +8,7 @@ import io.ktor.server.routing.*
 import no.nav.emottak.ebms.model.Cpa
 import no.nav.emottak.ebms.model.EbMSDocument
 import no.nav.emottak.ebms.model.EbMSErrorUtil
+import no.nav.emottak.ebms.model.EbMSPayloadMessage
 import no.nav.emottak.ebms.model.buildEbmMessage
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
@@ -81,6 +82,11 @@ fun Route.postEbms(validator: DokumentValidator, processingService: ProcessingSe
 
         //call payload processor
         println(ebMSDocument)
-
-        call.respondText("Hello")
+        if (message is EbMSPayloadMessage) {
+            message.createAcknowledgment().toEbmsDokument().also {
+                call.respondEbmsDokument(it)
+                return@post
+            }
+        }
+        call.respondText("Processed")
     }
