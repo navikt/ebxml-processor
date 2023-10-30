@@ -2,6 +2,7 @@ package no.nav.emottak.ebms
 
 import io.ktor.http.*
 import io.ktor.server.application.*
+import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import no.nav.emottak.ebms.model.Cpa
@@ -21,7 +22,7 @@ import no.nav.emottak.util.marker
 fun Route.postEbms(validator: DokumentValidator, processingService: ProcessingService, cpaRepoClient: CpaRepoClient): Route =
     post("/ebms") {
         // KRAV 5.5.2.1 validate MIME
-
+        val debug:Boolean = call.request.header("debug")?.isNotBlank()?: false
         try {
             call.request.validateMime()
         } catch (ex: MimeValidationException) {
@@ -65,7 +66,9 @@ fun Route.postEbms(validator: DokumentValidator, processingService: ProcessingSe
 
         val message = ebMSDocument.buildEbmMessage()
         try {
-            processingService.process(message)
+            if (!debug) {
+                processingService.process(message)
+            }
         } catch (e: Exception) {
             call.application.environment.log.error(
                 message.messageHeader.marker(),
