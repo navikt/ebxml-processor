@@ -19,14 +19,10 @@ import no.nav.emottak.ebms.model.*
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.validation.DokumentValidator
 import no.nav.emottak.ebms.validation.MimeValidationException
-import no.nav.emottak.ebms.validation.asParseAsSoapFault
-import no.nav.emottak.ebms.validation.validateMime
 import no.nav.emottak.ebms.validation.validateMimeAttachment
 import no.nav.emottak.ebms.validation.validateMimeSoapEnvelope
 import no.nav.emottak.ebms.xml.asString
 import no.nav.emottak.ebms.xml.getDocumentBuilder
-import no.nav.emottak.melding.model.SignatureDetails
-import no.nav.emottak.util.marker
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayInputStream
 
@@ -78,8 +74,9 @@ fun Application.ebmsProviderModule() {
 
 @Throws(MimeValidationException::class)
 suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
-
+    val clearText = if (request.header("cleartext").isNullOrBlank()) false else true
     return when (val contentType = this.request.contentType().withoutParameters()) {
+
         ContentType.parse("multipart/related") -> {
             val allParts = this.receiveMultipart().readAllParts()
             val dokument = allParts.find {
@@ -88,9 +85,9 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
                 it?.validateMimeSoapEnvelope()
                     ?: throw MimeValidationException("Unable to find soap envelope multipart")
             }!!.let {
-                if (!request.headers["cleartext"].isNullOrBlank())
-                    it.payload(true)
-                else it.payload()
+
+                    it.payload(clearText)
+
             }
             val attachments =
                 allParts.filter { it.contentDisposition?.disposition == ContentDisposition.Attachment.disposition }
@@ -111,7 +108,7 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
         }
 
         ContentType.parse("text/xml") -> {
-            val dokument = java.util.Base64.getMimeDecoder().decode(this.receiveStream().readAllBytes())
+            val dokument = if (clearText) this.receiveStream().readAllBytes() else java.util.Base64.getMimeDecoder().decode(this.receiveStream().readAllBytes())
             EbMSDocument(
                 "",
                 getDocumentBuilder().parse(ByteArrayInputStream(dokument)),
