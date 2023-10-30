@@ -1,5 +1,6 @@
 package no.nav.emottak.ebms
 
+import io.ktor.client.plugins.*
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
@@ -82,6 +83,16 @@ fun Route.postEbms(validator: DokumentValidator, processingService: ProcessingSe
             )
             call.respond(HttpStatusCode.InternalServerError, "Feil ved prosessering av melding")
             return@post
+        } catch(ex: ServerResponseException) {
+            logger().error("Processing failed: ${ex.message}", ex)
+            ebMSDocument
+                .createFail(EbMSErrorUtil.createError(EbMSErrorUtil.Code.OTHER_XML.name, "Processing failed:"))
+                .toEbmsDokument()
+                //  .signer(cpa.signatureDetails) //@TODO hva skjer hvis vi klarer ikke å hente signature details ?
+                .also {
+                    call.respondEbmsDokument(it)
+                    return@post
+                }
         }
 
         //call payload processor
