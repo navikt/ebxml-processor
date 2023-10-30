@@ -39,7 +39,7 @@ fun main() {
     embeddedServer(Netty, port = 8080, module = Application::ebmsProviderModule).start(wait = true)
 }
 
-fun PartData.payload(): ByteArray {
+fun PartData.payload(debug:Boolean = false): ByteArray {
     return when (this) {
         is PartData.FormItem -> java.util.Base64.getMimeDecoder().decode(this.value)
         is PartData.FileItem -> {
@@ -87,7 +87,11 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
             }.also {
                 it?.validateMimeSoapEnvelope()
                     ?: throw MimeValidationException("Unable to find soap envelope multipart")
-            }!!.payload()
+            }!!.let {
+                if (!request.headers["cleartext"].isNullOrBlank())
+                    it.payload(true)
+                else it.payload()
+            }
             val attachments =
                 allParts.filter { it.contentDisposition?.disposition == ContentDisposition.Attachment.disposition }
             attachments.forEach {

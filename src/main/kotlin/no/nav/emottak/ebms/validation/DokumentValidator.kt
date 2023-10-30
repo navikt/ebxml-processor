@@ -27,6 +27,7 @@ class DokumentValidator(val httpClient: CpaRepoClient) {
         runBlocking {
             httpClient.postValidate(header)
         }
+        
         dokument.sjekkSignature(signatureDetails)
 
     }

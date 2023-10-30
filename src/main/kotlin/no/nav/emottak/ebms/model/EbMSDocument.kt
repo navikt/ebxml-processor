@@ -53,6 +53,7 @@ data class EbMSDocument(val messageId: String, val dokument: Document, val attac
         })
     }
     fun messageHeader():MessageHeader {
+        //@TODO eb kan vare noe annet. Vi kan ikke ståle på det
          val node: Node =this.dokument.getElementsByTagName("eb:MessageHeader").item(0)
          return xmlMarshaller.unmarshal(node)
     }
