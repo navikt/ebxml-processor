@@ -39,12 +39,12 @@ fun main() {
     embeddedServer(Netty, port = 8080, module = Application::ebmsProviderModule).start(wait = true)
 }
 
-fun PartData.payload(debug:Boolean = false): ByteArray {
+fun PartData.payload(clearText:Boolean = false): ByteArray {
     return when (this) {
-        is PartData.FormItem -> java.util.Base64.getMimeDecoder().decode(this.value)
+        is PartData.FormItem ->  if (clearText) return this.value.toByteArray() else java.util.Base64.getMimeDecoder().decode(this.value)
         is PartData.FileItem -> {
             val bytes = this.streamProvider.invoke().readAllBytes()
-            java.util.Base64.getMimeDecoder().decode(bytes)
+            if (clearText) return bytes else java.util.Base64.getMimeDecoder().decode(bytes)
         }
 
         else -> byteArrayOf()
