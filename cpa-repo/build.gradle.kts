@@ -33,7 +33,7 @@ dependencies {
     implementation(libs.hikari)
     implementation(libs.flyway.core)
     implementation(libs.bundles.exposed)
-    implementation(libs.logback.classic)
+    implementation(libs.bundles.logging)
     implementation(libs.ktor.serialization.kotlinx.json)
     implementation(testLibs.postgresql)
     testRuntimeOnly(testLibs.junit.jupiter.engine)

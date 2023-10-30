@@ -1,6 +1,6 @@
 package no.nav.emottak.cpa
 
-import io.ktor.http.*
+import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.call
@@ -10,15 +10,17 @@ import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.plugins.NotFoundException
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.server.request.*
+import io.ktor.server.request.receive
 import io.ktor.server.response.respond
-import io.ktor.server.routing.*
 import io.ktor.server.routing.get
+import io.ktor.server.routing.post
+import io.ktor.server.routing.routing
 import no.nav.emottak.cpa.config.DatabaseConfig
 import no.nav.emottak.cpa.config.mapHikariConfig
 import no.nav.emottak.melding.model.Header
 import no.nav.emottak.melding.model.SignatureDetailsRequest
 import no.nav.emottak.melding.model.ValidationResult
+import no.nav.emottak.util.marker
 import org.slf4j.LoggerFactory
 
 fun main() {
@@ -46,10 +48,10 @@ fun Application.myApplicationModule() {
             try {
                 getCpa(validateRequest.cpaId)!!.validate(validateRequest)
             } catch (cpaEx: CpaValidationException) {
-                log.info(cpaEx.message, cpaEx) // TODO kanskje logge CPA IDen som indekset verdi til kibana
+                log.warn(validateRequest.marker(), cpaEx.message, cpaEx)
                 call.respond(HttpStatusCode.OK, ValidationResult(false))
             }
-            call.respond(HttpStatusCode.OK,ValidationResult(true))
+            call.respond(HttpStatusCode.OK, ValidationResult(true))
         }
 
         get("/cpa/{$CPA_ID}/party/{$PARTY_TYPE}/{$PARTY_ID}/encryption/certificate") {

@@ -2,6 +2,7 @@ package no.nav.emottak.cpa
 
 import no.nav.emottak.melding.model.Header
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
+import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PartyInfo
 import java.time.Instant
 import java.util.Date
 
@@ -9,31 +10,38 @@ import java.util.Date
 fun CollaborationProtocolAgreement.validate(header: Header) {
     validateCpaId(header)
     validateCpaDatoGyldig(header)
-    validateRole(header)
-    validateService(header)
-    validateAction(header)
+    hasRoleServiceActionCombo(header)
 }
 
-fun CollaborationProtocolAgreement.validateRole(header: Header) {
-    if(!this.partyInfo.any{ p -> p.collaborationRole.any { c -> c.role.name == header.from.role }})
-        throw CpaValidationException("Role matcher ikke CPA")
+@Throws(CpaValidationException::class)
+fun CollaborationProtocolAgreement.hasRoleServiceActionCombo(header: Header) {
+    val fromParty = this.getPartyInfoByTypeAndID(header.from.partyType, header.from.partyId)
+    val fromRole = header.from.role
+
+    val toParty = this.getPartyInfoByTypeAndID(header.to.partyType, header.to.partyId)
+    val toRole = header.to.role
+
+    partyInfoHasRoleServiceActionCombo(fromParty, fromRole, header.service, header.action, MessageDirection.SEND)
+    partyInfoHasRoleServiceActionCombo(toParty, toRole, header.service, header.action, MessageDirection.RECEIVE)
+}
+
+@Throws(CpaValidationException::class)
+fun partyInfoHasRoleServiceActionCombo(partyInfo: PartyInfo, role: String, service: String, action: String, direction: MessageDirection) {
+    val partyWithRole = partyInfo.collaborationRole.firstOrNull { r -> r.role.name == role }
+        ?: throw CpaValidationException("Role $role matcher ikke party")
+    if (partyWithRole.serviceBinding.service.value != service)
+        throw CpaValidationException("Service $service matcher ikke role $role for party")
+    when (direction) {
+        MessageDirection.SEND -> partyWithRole.serviceBinding.canSend.firstOrNull { a -> a.thisPartyActionBinding.action == action }
+            ?: throw CpaValidationException("Action $action matcher ikke service $service")
+        MessageDirection.RECEIVE -> partyWithRole.serviceBinding.canReceive.firstOrNull { a -> a.thisPartyActionBinding.action == action }
+            ?: throw CpaValidationException("Action $action matcher ikke service $service")
+    }
 }
 
 fun CollaborationProtocolAgreement.validateCpaId(header: Header) {
     if(this.cpaid != header.cpaId)
         throw CpaValidationException("Funnet CPA (ID: ${this.cpaid}) matcher ikke cpaid til melding: ${header.cpaId}")
-}
-fun CollaborationProtocolAgreement.validateAction(header: Header) {
-    if(!this.partyInfo
-            .any{ p -> p.collaborationRole
-                .any { c -> c.serviceBinding.canSend
-                    .any{ action -> action.thisPartyActionBinding.action == header.action }}})
-        throw CpaValidationException("Action matcher ikke CPA")
-}
-
-fun CollaborationProtocolAgreement.validateService(header: Header) {
-    if(!this.partyInfo.any{p -> p.collaborationRole.any{c -> header.service == c.serviceBinding.service.value }})
-        throw CpaValidationException("Service matcher ikke CPA")
 }
 
 fun CollaborationProtocolAgreement.validateCpaDatoGyldig(header: Header) {
@@ -49,3 +57,4 @@ fun CollaborationProtocolAgreement.validateCpaDatoGyldig(header: Header) {
 open class CpaValidationException(
     message: String): Exception(message)
 
+enum class MessageDirection { SEND, RECEIVE }
