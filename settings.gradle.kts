@@ -29,6 +29,7 @@ dependencyResolutionManagement {
             library("ktor-server-netty", "io.ktor", "ktor-server-netty").versionRef("ktor")
             library("ktor-server-call-logging-jvm", "io.ktor", "ktor-server-call-logging-jvm").versionRef("ktor")
             library("ktor-server-content-negotiation", "io.ktor", "ktor-server-content-negotiation").versionRef("ktor")
+            library("ktor-client-content-negotiation", "io.ktor", "ktor-client-content-negotiation").versionRef("ktor")
             library("ktor-serialization-kotlinx-json", "io.ktor", "ktor-serialization-kotlinx-json").versionRef("ktor")
             library("ktor-client-core", "io.ktor", "ktor-client-core").versionRef("ktor")
             library("ktor-client-cio", "io.ktor", "ktor-client-cio").versionRef("ktor")
@@ -54,7 +55,9 @@ dependencyResolutionManagement {
             version("mockk", "1.13.8")
             version("testPostgres","1.18.0")
             version("xmlunit", "2.9.1")
+            version("ktor-server-test", "2.3.4")
 
+            library("ktor-server-test-host", "io.ktor", "ktor-server-test-host").versionRef("ktor-server-test")
             library("junit-jupiter-api", "org.junit.jupiter", "junit-jupiter-api").versionRef("junit")
             library("junit-jupiter-engine", "org.junit.jupiter", "junit-jupiter-engine").versionRef("junit")
             library("junit-jupiter-params", "org.junit.jupiter", "junit-jupiter-params").versionRef("junit")
@@ -89,4 +92,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "ebxml-processor"
-include("felles","async-recievers","cpa-repo","ebms-provider", "payload-processor")
+include("felles","async-recievers","cpa-repo","ebms-provider", "ebms-payload")

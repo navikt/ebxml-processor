@@ -1,19 +1,15 @@
 package no.nav.emottak.ebms.model
 
+import no.nav.emottak.EBMS_SERVICE_URI
 import no.nav.emottak.Event
-import no.nav.emottak.ebms.processing.CPAValidationProcessor
+import no.nav.emottak.ebms.ebxml.createResponseHeader
+import no.nav.emottak.ebms.ebxml.getAckRequestedSigned
 import no.nav.emottak.ebms.processing.DekrypteringProcessor
-import no.nav.emottak.ebms.processing.SertifikatsjekkProcessor
-import no.nav.emottak.ebms.processing.SignatursjekkProcessor
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.AckRequested
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Acknowledgment
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ErrorList
-import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.From
-import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageData
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
-import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.To
 import org.w3c.dom.Document
-import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.util.*
@@ -36,35 +32,20 @@ class EbMSPayloadMessage(
 
 
     fun createFail(): EbMSMessageError {
-        return EbMSMessageError(MessageHeader(), ErrorList())
+        return EbMSMessageError(this.createErrorMessageHeader(), ErrorList())
     }
 
     fun createAcknowledgment(): EbmsAcknowledgment {
-        val acknowledgment = this.createAcknowledgementJaxB()
-        val messageHeader = this.createAcknowledgmentMessageHeader()
-        return EbmsAcknowledgment(messageHeader,acknowledgment)
+        return EbmsAcknowledgment(this.createAcknowledgmentMessageHeader(),this.createAcknowledgementJaxB())
     }
 
+    private fun createErrorMessageHeader(): MessageHeader {
+        return this.messageHeader.createResponseHeader(
+            newFromRole = "ERROR_RESPONDER", newToRole = "ERROR_RECEIVER", newAction = "”MessageError”", newService = EBMS_SERVICE_URI)
+    }
     private fun createAcknowledgmentMessageHeader(): MessageHeader {
-        val messageHeader = MessageHeader()
-        messageHeader.conversationId = this.messageHeader.conversationId
-        messageHeader.from = From().also {
-            it.partyId.addAll(this.messageHeader.to.partyId)
-            it.role = "ACK_SENDER"
-        }
-        messageHeader.to = To().also {
-            it.partyId.addAll(this.messageHeader.from.partyId)
-            it.role = "ACK_RECEIVER"
-        }
-        messageHeader.service = this.messageHeader.service
-        messageHeader.action = this.messageHeader.action
-        messageHeader.cpaId = this.messageHeader.cpaId
-        messageHeader.messageData = MessageData().also {
-            it.messageId = this.messageHeader.messageData.messageId + "_RESPONSE"
-            it.refToMessageId = this.messageHeader.messageData.messageId
-            it.timestamp = Date.from(Instant.now())
-        }
-        return messageHeader
+        return this.messageHeader.createResponseHeader(
+            newFromRole = "ACK_RESPONDER", newToRole = "ACK_RECEIVER", newAction = "Acknowledgment", newService = EBMS_SERVICE_URI)
     }
 
     private fun createAcknowledgementJaxB(): Acknowledgment {
@@ -87,9 +68,6 @@ class EbMSPayloadMessage(
     fun process() : EbMSBaseMessage {
         return try {
             listOf(
-                CPAValidationProcessor(this),
-                SertifikatsjekkProcessor(this),
-                SignatursjekkProcessor(dokument, this),
                 DekrypteringProcessor(this)
             )
                 .forEach { it.processWithEvents() }

@@ -1,7 +1,7 @@
 apiVersion: "nais.io/v1alpha1"
 kind: "Application"
 metadata:
-  name: "emottak-payload-processor"
+  name: "ebms-payload"
   namespace: "team-emottak"
   labels:
     "team": "team-emottak"
@@ -31,4 +31,11 @@ spec:
       cpu: "200m"
       memory: "256Mi"
   ingresses:
-    - "https://emottak-payload-processor.intern.dev.nav.no"
+    - "https://ebms-payload.intern.dev.nav.no"
+  accessPolicy:
+    outbound:
+      rules:
+        - application: cpa-repo
+    inbound:
+      rules:
+        - application: ebms-provider

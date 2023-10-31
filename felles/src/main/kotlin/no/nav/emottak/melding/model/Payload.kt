@@ -32,6 +32,12 @@ data class Header(
 
 @Serializable
 data class Party(
-    val herID: String,
+    val partyType: String,
+    val partyId: String,
     val role: String
+)
+
+@Serializable
+data class ValidationResult(
+    val valid: Boolean
 )

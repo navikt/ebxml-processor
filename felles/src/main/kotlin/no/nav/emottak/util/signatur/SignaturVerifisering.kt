@@ -11,7 +11,8 @@ class SignaturVerifisering {
     @Throws(SignatureException::class)
     fun validate(document: ByteArray) {
         //TODO Sjekk isNonRepudiation?
-        val signature = retrieveSignatureElement(createDocument(ByteArrayInputStream(document)))
+        val dom = createDocument(ByteArrayInputStream(document))
+        val signature = dom.retrieveSignatureElement()
         val certificateFromSignature = signature.keyInfo.x509Certificate
 
         try {

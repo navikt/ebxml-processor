@@ -31,6 +31,9 @@ dependencies {
     implementation(libs.ktor.server.netty)
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.cio)
+    implementation(libs.ktor.server.content.negotiation)
+    implementation(libs.ktor.client.content.negotiation)
+    implementation(libs.ktor.serialization.kotlinx.json)
     implementation(libs.labai.jsr305x.annotations)
     implementation(libs.jakarta.xml.bind.api)
     implementation(libs.jaxb.runtime)
@@ -42,9 +45,12 @@ dependencies {
     implementation("com.sun.xml.messaging.saaj:saaj-impl:3.0.2")
     //implementation("org.glassfish.jaxb:jaxb-runtime:4.0.3") // TODO: Latest. Krever at protokoll oppdateres
     implementation(libs.ebxml.protokoll)
+    implementation("io.ktor:ktor-client-cio-jvm:2.3.4")
+    testImplementation(testLibs.ktor.server.test.host)
     testImplementation(testLibs.junit.jupiter.api)
     testImplementation(testLibs.mockk.jvm)
     testImplementation(testLibs.mockk.dsl.jvm)
+    testImplementation(libs.apache.santuario)
    // testImplementation(testLibs.mockk.jvm)
     testRuntimeOnly(testLibs.junit.jupiter.engine)
 }

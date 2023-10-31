@@ -21,26 +21,6 @@ object MimeHeaders {
         const val CONTENT_DISPOSITION           = "Content-Disposition"
 }
 
-object ContentTypeRegex {
-        val CONTENT_TYPE = Regex("\\s*^(?<contentType>[^;]+);\\s*")
-        val BOUNDARY = Regex("\\s*boundary=\"----=?(?<boundary>[^=\"]+)\"?")
-        val START = Regex("\\s*start=\"?(?<start>[^=\"]+)\"?")
-        val TYPE = Regex("type=\"?(?<type>[^=\"]+)\"?")
-}
-
-/*
-fun Headers.validateMime() {
-        runCatching {
-                validateMimeHeaders()
-                validateMultipartAttributter()
-        }.onFailure {
-                if (it !is MimeValidationException) throw MimeValidationException("Unexpected validation fail.",it) else throw it
-        }
-
-}
-
- */
-
 fun ApplicationRequest.validateMime() {
         runCatching {
                 this.headers.validateMimeHeaders()
@@ -86,13 +66,13 @@ fun PartData.validateMimeAttachment() {
 }
 
 // KRAV 5.5.2.1 validate MIME
-private fun Headers.validateMimeHeaders() {
-        takeUnless { (this[MimeHeaders.MIME_VERSION].isNullOrBlank()).or(this[MimeHeaders.MIME_VERSION] != "1.0") }
-                ?: throw MimeValidationException("MIME version is missing or incorrect")
-        takeUnless { this[MimeHeaders.SOAP_ACTION].isNullOrBlank().or(this[MimeHeaders.SOAP_ACTION] != "ebXML") }
-                ?: throw MimeValidationException("SOAPAction is undefined or incorrect")
-        takeUnless { this[MimeHeaders.CONTENT_TYPE].isNullOrBlank().or(this[MimeHeaders.CONTENT_TYPE] == "text/plain") }
-                ?: throw MimeValidationException("Content  type is wrong")
+fun Headers.validateMimeHeaders() {
+        if(this[MimeHeaders.MIME_VERSION] != "1.0")
+                throw MimeValidationException("MIME version is missing or incorrect")
+        if(this[MimeHeaders.SOAP_ACTION] != "ebXML")
+                throw MimeValidationException("SOAPAction is undefined or incorrect")
+        if(this[MimeHeaders.CONTENT_TYPE].isNullOrBlank() || this[MimeHeaders.CONTENT_TYPE] == "text/plain")
+                throw MimeValidationException("Content type is wrong")
 }
 
 
