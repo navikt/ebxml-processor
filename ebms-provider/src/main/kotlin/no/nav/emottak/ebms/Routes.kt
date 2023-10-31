@@ -53,7 +53,7 @@ fun Route.postEbms(validator: DokumentValidator, processingService: ProcessingSe
 
         try {
 
-            validator.validate(ebMSDocument,cpa.signatureDetails)
+            validator.validate(ebMSDocument,cpa?.signatureDetails)
         } catch (ex: MimeValidationException) {
             logger().error("Mime validation has failed: ${ex.message}", ex)
             call.respond(HttpStatusCode.InternalServerError, ex.asParseAsSoapFault())
