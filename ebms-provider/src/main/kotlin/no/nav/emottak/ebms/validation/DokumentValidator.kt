@@ -11,7 +11,7 @@ import no.nav.emottak.melding.model.SignatureDetails
 class DokumentValidator(val httpClient: CpaRepoClient) {
 
 
-    fun validate(dokument: EbMSDocument,signatureDetails: SignatureDetails) {
+    fun validate(dokument: EbMSDocument,signatureDetails: SignatureDetails?) {
 
         val messageHeader = dokument.messageHeader()
 
@@ -27,7 +27,7 @@ class DokumentValidator(val httpClient: CpaRepoClient) {
         runBlocking {
             httpClient.postValidate(header)
         }
-        
+        if (signatureDetails == null) throw Exception("Unable to retrieve signature details")
         dokument.sjekkSignature(signatureDetails)
 
     }

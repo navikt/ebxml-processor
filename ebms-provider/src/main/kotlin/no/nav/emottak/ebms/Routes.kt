@@ -46,9 +46,9 @@ fun Route.postEbms(validator: DokumentValidator, processingService: ProcessingSe
             call.respond(HttpStatusCode.InternalServerError, MimeValidationException("Unable to transform request into EbmsDokument: ${ex.message}",ex).asParseAsSoapFault())
             return@post
         }
-        var cpa: Cpa = runCatching {
+        var cpa: Cpa? = runCatching {
             Cpa(cpaRepoClient.getPublicSigningDetails(ebMSDocument.messageHeader()))
-        }.getOrThrow()
+        }.getOrNull()
             //@TODO Hva skall vi gjøre hvis vi henter ikke CPA informasjon ? Vi kan ikke signere feilmeldingene
 
         try {
