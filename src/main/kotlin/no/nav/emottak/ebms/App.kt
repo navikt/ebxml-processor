@@ -63,7 +63,6 @@ fun Application.ebmsProviderModule() {
 
     routing {
         get("/") {
-            call.application.environment.log.info("TESTEST")
             call.respondText("Hello, world!")
         }
         postEbms(validator, processing, cpaClient)
