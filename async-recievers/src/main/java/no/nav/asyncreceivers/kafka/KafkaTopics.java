@@ -1,4 +1,4 @@
-package no.nav.ebxmlprocessor.kafka;
+package no.nav.asyncreceivers.kafka;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;

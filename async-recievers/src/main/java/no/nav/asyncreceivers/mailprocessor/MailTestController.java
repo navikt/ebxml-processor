@@ -1,4 +1,4 @@
-package no.nav.ebxmlprocessor.mailprocessor;
+package no.nav.asyncreceivers.mailprocessor;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -13,7 +13,7 @@ public class MailTestController {
     @GetMapping("/send")
     public ResponseEntity<String> get() {
         try {
-            return ResponseEntity.ok().body(new MailSenderService("peder@epost.com", "peder")
+            return ResponseEntity.ok().body(new no.nav.asyncreceivers.mailprocessor.MailSenderService("peder", "peder@epost.com")
                     .sendMail());
         } catch (Exception e) {
             e.printStackTrace();
@@ -23,8 +23,8 @@ public class MailTestController {
     @GetMapping("/inbox")
     public ResponseEntity<ArrayList<String>> getInbox() {
         try {
-            return ResponseEntity.ok().body(new MailReaderService("thomas@epost.com", "thomas")
-                    .readMail("thomas@epost.com", "thomas"));
+            return ResponseEntity.ok().body(new no.nav.asyncreceivers.mailprocessor.MailReaderService("thomas", "thomas@epost.com")
+                    .readMail( "thomas", "thomas@epost.com"));
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.internalServerError().body(new ArrayList<String>());

@@ -11,8 +11,11 @@ docker-compose up -d
 
 ### Epostklient: roundcube
 * http://localhost:8000/
-* user/pass: peder@epost.com/peder
-* user/pass: thomas@epost.com/thomas
+* user: peder
+* pass: peder@epost.com
+* user: thomas
+* pass: thomas@epost.com
+
   ![img.png](readme-resources/roundcube.png)
   ![img.png](readme-resources/greenmail.png)
 
@@ -22,4 +25,10 @@ https://localhost:9443/ibmmq/console/
   ![img_1.png](readme-resources/mq-login.png)
   ![img_2.png](readme-resources/mq.png)
 
+### test-enpoints:
+* http://localhost:8080/mailtest/send 
+  * (sender epost fra peder@epost.com til thomas@epost.com)
+* http://localhost:8080/mailtest/inbox 
+  * (leser alle epostene i mailboksen til thomas@epost.com)
+  * legger alle epostene på Kafka topic: TOPIC_EBXML_PAYLOAD_OUTGOING
 

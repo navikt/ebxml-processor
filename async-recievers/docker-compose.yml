@@ -2,7 +2,7 @@ version: "3"
 
 services:
   roundcube:
-    container_name: ebxml-msh-mailclient
+    container_name: asyncreceivers-mailclient
     build: docker/roundcube
     environment:
       - IMPORT_FROM_VOLUME=true
@@ -13,7 +13,7 @@ services:
     ports:
       - "8000:80"
   mq:
-    container_name: ebxml-msh-mq-admin
+    container_name: asyncreceivers-mq-admin
     build: docker/mq
     restart: always
     environment:
@@ -26,7 +26,7 @@ services:
       - "1414:1414"
       - "9443:9443"
   greenmail:
-    container_name: ebxml-msh-mailserver
+    container_name: asyncreceivers-mailserver
     build: docker/greenmail
     environment:
       - JAVA_OPTS=-Dgreenmail.verbose -Dgreenmail.users=peder:peder@epost.com,thomas:thomas@epost.com
@@ -39,7 +39,7 @@ services:
       - "3995:3995" #POP3s
       - "8081:8080" #GreenMail API
   kafka:
-    container_name: ebxml-msh-kafka
+    container_name: asyncreceivers-kafka
     image: 'bitnami/kafka:latest'
     restart: on-failure
     hostname: localhost

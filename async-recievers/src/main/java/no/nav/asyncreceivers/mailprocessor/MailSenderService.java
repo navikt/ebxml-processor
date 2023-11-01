@@ -1,4 +1,4 @@
-package no.nav.ebxmlprocessor.mailprocessor;
+package no.nav.asyncreceivers.mailprocessor;
 
 import jakarta.mail.Authenticator;
 import jakarta.mail.PasswordAuthentication;
@@ -14,6 +14,8 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
 import java.net.URI;
+import java.sql.Timestamp;
+import java.util.Date;
 import java.util.Properties;
 
 @Slf4j
@@ -43,9 +45,12 @@ public class MailSenderService {
         Message message = new MimeMessage(session);
         message.setFrom(new InternetAddress("peder@epost.com"));
         message.setRecipients(Message.RecipientType.TO, InternetAddress.parse("thomas@epost.com"));
-        message.setSubject("Mail Subject" + System.currentTimeMillis());
+        Timestamp ts
+                = new Timestamp(System.currentTimeMillis());
+        Date date = new Date(ts.getTime());
+        message.setSubject("Mail Subject " + date);
 
-        String msg = "This is my first email using JavaMailer";
+        String msg = "This message was sent " + date ;
 
         MimeBodyPart mimeBodyPart = new MimeBodyPart();
         mimeBodyPart.setContent(msg, "text/html; charset=utf-8");
