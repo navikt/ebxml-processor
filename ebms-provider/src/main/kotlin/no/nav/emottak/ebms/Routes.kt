@@ -75,15 +75,17 @@ fun Route.postEbms(validator: DokumentValidator, processingService: ProcessingSe
             if (!debug) {
                 processingService.process(message)
             }
-        } catch (e: Exception) {
-            call.application.environment.log.error(
-                message.messageHeader.marker(),
-                "Feil ved prosessering av melding",
-                e
-            )
-            call.respond(HttpStatusCode.InternalServerError, "Feil ved prosessering av melding")
-            return@post
         } catch(ex: ServerResponseException) {
+            logger().error("Processing failed: ${ex.message}", ex)
+            ebMSDocument
+                .createFail(EbMSErrorUtil.createError(EbMSErrorUtil.Code.UNKNOWN.name, "Processing failed:"))
+                .toEbmsDokument()
+                //  .signer(cpa.signatureDetails) //@TODO hva skjer hvis vi klarer ikke å hente signature details ?
+                .also {
+                    call.respondEbmsDokument(it)
+                    return@post
+                }
+        } catch(ex: ClientRequestException) {
             logger().error("Processing failed: ${ex.message}", ex)
             ebMSDocument
                 .createFail(EbMSErrorUtil.createError(EbMSErrorUtil.Code.OTHER_XML.name, "Processing failed:"))
@@ -93,6 +95,14 @@ fun Route.postEbms(validator: DokumentValidator, processingService: ProcessingSe
                     call.respondEbmsDokument(it)
                     return@post
                 }
+        } catch (e: Exception) {
+            call.application.environment.log.error(
+                message.messageHeader.marker(),
+                "Feil ved prosessering av melding",
+                e
+            )
+            call.respond(HttpStatusCode.InternalServerError, "Feil ved prosessering av melding")
+            return@post
         }
 
         //call payload processor
