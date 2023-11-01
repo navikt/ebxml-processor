@@ -21,5 +21,4 @@ dependencies {
     implementation("org.eclipse.angus:jakarta.mail:1.0.0")
     testImplementation("org.springframework.kafka:spring-kafka-test")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
-
 }

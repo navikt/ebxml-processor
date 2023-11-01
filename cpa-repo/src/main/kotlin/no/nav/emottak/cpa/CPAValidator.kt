@@ -1,5 +1,6 @@
 package no.nav.emottak.cpa
 
+import no.nav.emottak.EBMS_SERVICE_URI
 import no.nav.emottak.melding.model.Header
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PartyInfo
@@ -15,6 +16,10 @@ fun CollaborationProtocolAgreement.validate(header: Header) {
 
 @Throws(CpaValidationException::class)
 fun CollaborationProtocolAgreement.hasRoleServiceActionCombo(header: Header) {
+    if(header.service == EBMS_SERVICE_URI) {
+        if (header.action != "Acknowledgment" && header.action != "MessageError") throw CpaValidationException("Service $EBMS_SERVICE_URI støtter ikke action ${header.action}")
+        return
+    }
     val fromParty = this.getPartyInfoByTypeAndID(header.from.partyType, header.from.partyId)
     val fromRole = header.from.role
 
@@ -55,6 +60,6 @@ fun CollaborationProtocolAgreement.validateCpaDatoGyldig(header: Header) {
 }
 
 open class CpaValidationException(
-    message: String): Exception(message)
+    message: String, exception: java.lang.Exception? = null): Exception(message, exception)
 
 enum class MessageDirection { SEND, RECEIVE }

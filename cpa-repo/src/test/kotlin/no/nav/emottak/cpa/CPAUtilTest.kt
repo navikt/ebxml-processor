@@ -1,6 +1,5 @@
 package no.nav.emottak.cpa
 
-import io.ktor.server.plugins.NotFoundException
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.decodeBase64
 import org.junit.jupiter.api.assertThrows
@@ -48,7 +47,7 @@ class CPAUtilTest {
         val cpa = TestUtil.createValidTestCPA()
         val type = "orgnummer"
         val id = "79768"
-        val exception = assertThrows<NotFoundException> {
+        val exception = assertThrows<CpaValidationException> {
             cpa.getPartyInfoByTypeAndID(type, id)
         }
         assertEquals("PartyID med type $type og id $id eksisterer ikke i CPA", exception.message)

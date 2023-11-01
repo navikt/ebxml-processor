@@ -17,9 +17,11 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import no.nav.emottak.cpa.config.DatabaseConfig
 import no.nav.emottak.cpa.config.mapHikariConfig
+import no.nav.emottak.cpa.validation.validate
 import no.nav.emottak.melding.model.Header
 import no.nav.emottak.melding.model.SignatureDetailsRequest
 import no.nav.emottak.melding.model.ValidationResult
+import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.marker
 import org.slf4j.LoggerFactory
 
@@ -66,10 +68,21 @@ fun Application.myApplicationModule() {
         post("/signing/certificate") {
             val signatureDetailsRequest = call.receive(SignatureDetailsRequest::class)
             val cpa = getCpa(signatureDetailsRequest.cpaId) ?: throw NotFoundException("Ingen CPA med ID ${signatureDetailsRequest.cpaId} funnet")
-            val partyInfo = cpa.getPartyInfoByTypeAndID(signatureDetailsRequest.partyType, signatureDetailsRequest.partyId)
-
-            call.respond(partyInfo.getCertificateForSignatureValidation(
-                signatureDetailsRequest.role, signatureDetailsRequest.service, signatureDetailsRequest.action))
+            try {
+                val partyInfo = cpa.getPartyInfoByTypeAndID(signatureDetailsRequest.partyType, signatureDetailsRequest.partyId)
+                val signatureDetails = partyInfo.getCertificateForSignatureValidation(
+                    signatureDetailsRequest.role, signatureDetailsRequest.service, signatureDetailsRequest.action)
+                // TODO Strengere signatursjekk. Nå er den snill og resultatet logges bare
+                runCatching {
+                    createX509Certificate(signatureDetails.certificate).validate()
+                }.onFailure {
+                    log.warn(signatureDetailsRequest.marker(), "Signatursjekk feilet", it)
+                }
+                call.respond(signatureDetails)
+            } catch (ex: CpaValidationException) {
+                log.warn(signatureDetailsRequest.marker(), ex.message, ex)
+                call.respond(HttpStatusCode.BadRequest, ex.localizedMessage)
+            }
         }
     }
 }

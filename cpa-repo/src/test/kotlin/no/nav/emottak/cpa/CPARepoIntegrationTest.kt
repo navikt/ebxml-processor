@@ -11,13 +11,12 @@ import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.testing.testApplication
 import no.nav.emottak.melding.model.SignatureDetails
 import no.nav.emottak.melding.model.SignatureDetailsRequest
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class CPARepoIntegrationTest {
-
     @Test
     fun `Hent sertifikat for signatursjekk`() = testApplication {
         application { myApplicationModule() }
@@ -45,4 +44,3 @@ class CPARepoIntegrationTest {
     }
 
 }
-

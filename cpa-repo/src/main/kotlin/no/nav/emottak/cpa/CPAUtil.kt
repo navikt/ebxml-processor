@@ -1,7 +1,5 @@
 package no.nav.emottak.cpa
 
-import io.ktor.server.plugins.BadRequestException
-import io.ktor.server.plugins.NotFoundException
 import no.nav.emottak.EBMS_SERVICE_URI
 import no.nav.emottak.melding.model.SignatureDetails
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.Certificate
@@ -9,22 +7,21 @@ import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProt
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.DeliveryChannel
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.DocExchange
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PartyInfo
+import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.ProtocolType
+import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.Transport
 import org.w3._2000._09.xmldsig_.X509DataType
 import javax.xml.bind.JAXBElement
 
-private val cpaUtil = CPAUtil()
-
-fun getCpa(id: String) = cpaUtil.getCpa(id)
-
+fun getCpa(id: String) = CPAUtil.getCpa(id)
 
 private class CPAUtil {
-
-    fun getCpa(id: String): CollaborationProtocolAgreement? {
-        //TODO
-        val testCpaString = String(this::class.java.classLoader.getResource("cpa/nav-qass-35065.xml").readBytes())
-        return unmarshal(testCpaString, CollaborationProtocolAgreement::class.java)
+    companion object {
+        fun getCpa(id: String): CollaborationProtocolAgreement? {
+            //TODO
+            val testCpaString = String(this::class.java.classLoader.getResource("cpa/nav-qass-35065.xml").readBytes())
+            return unmarshal(testCpaString, CollaborationProtocolAgreement::class.java)
+        }
     }
-
 }
 
 fun PartyInfo.getCertificateForEncryption(): ByteArray {
@@ -56,7 +53,7 @@ fun PartyInfo.getSendDeliveryChannel(
     else {
         val roles = this.collaborationRole.filter{ it.role.name == role && it.serviceBinding.service.value == service}
         val canSend = roles.flatMap { it.serviceBinding.canSend.filter { cs -> cs.thisPartyActionBinding.action == action } }
-        return canSend.firstOrNull()?.thisPartyActionBinding?.channelId?.first()?.value as DeliveryChannel? ?: throw BadRequestException("Fant ikke SendDeliverChannel")
+        return canSend.firstOrNull()?.thisPartyActionBinding?.channelId?.first()?.value as DeliveryChannel? ?: throw CpaValidationException("Fant ikke SendDeliverChannel")
     }
 }
 
@@ -69,17 +66,28 @@ private fun PartyInfo.getDefaultDeliveryChannel(
 
 
 fun DeliveryChannel.getSigningCertificate(): Certificate {
-    val docExchange = this.docExchangeId as DocExchange? ?: throw BadRequestException("Fant ikke DocExchange")
+    val docExchange = this.docExchangeId as DocExchange? ?: throw CpaValidationException("Fant ikke DocExchange")
     return if (
         docExchange.ebXMLSenderBinding != null &&
         docExchange.ebXMLSenderBinding?.senderNonRepudiation != null &&
         docExchange.ebXMLSenderBinding?.senderNonRepudiation?.signingCertificateRef != null
-    ) docExchange.ebXMLSenderBinding!!.senderNonRepudiation!!.signingCertificateRef.certId as Certificate else throw RuntimeException("Finner ikke signeringssertifikat")
+    ) docExchange.ebXMLSenderBinding!!.senderNonRepudiation!!.signingCertificateRef.certId as Certificate else throw CpaValidationException("Finner ikke signeringssertifikat")
+
+}
+
+fun DeliveryChannel.getSenderTransportProtocolType(): ProtocolType {
+    val transport = this.transportId as Transport? ?: throw CpaValidationException("Fant ikke transportkanal")
+    return transport.transportSender?.transportProtocol ?: throw CpaValidationException("Fant ikke transportkanal")
+}
+
+fun DeliveryChannel.getReceiverTransportProtocolType(): ProtocolType {
+    val transport = this.transportId as Transport? ?: throw CpaValidationException("Fant ikke transportkanal")
+    return transport.transportReceiver?.transportProtocol ?: throw CpaValidationException("Fant ikke transportkanal")
 }
 
 fun DeliveryChannel.getSignatureAlgorithm(): String
 {
-    val docExchange = this.docExchangeId as DocExchange? ?: throw BadRequestException("Fant ikke DocExchange")
+    val docExchange = this.docExchangeId as DocExchange? ?: throw CpaValidationException("Fant ikke DocExchange")
     if (docExchange.ebXMLSenderBinding != null
         && docExchange.ebXMLSenderBinding?.senderNonRepudiation != null
         && docExchange.ebXMLSenderBinding?.senderNonRepudiation?.signatureAlgorithm != null
@@ -91,17 +99,17 @@ fun DeliveryChannel.getSignatureAlgorithm(): String
             senderNonRepudiation.signatureAlgorithm[0].w3C!!
         else senderNonRepudiation.signatureAlgorithm[0].value!!
     }
-    throw BadRequestException("Signature algorithm eksisterer ikke for DeliveryChannel")
+    throw CpaValidationException("Signature algorithm eksisterer ikke for DeliveryChannel")
 }
 
 fun DeliveryChannel.getHashFunction(): String
 {
-    val docExchange = this.docExchangeId as DocExchange? ?: throw BadRequestException("Fant ikke DocExchange")
+    val docExchange = this.docExchangeId as DocExchange? ?: throw CpaValidationException("Fant ikke DocExchange")
     if (docExchange.ebXMLSenderBinding != null
         && docExchange.ebXMLSenderBinding?.senderNonRepudiation != null
         && docExchange.ebXMLSenderBinding?.senderNonRepudiation?.hashFunction != null)
         return docExchange.ebXMLSenderBinding!!.senderNonRepudiation!!.hashFunction
-    throw BadRequestException("Hash Function eksisterer ikke for DeliveryChannel")
+    throw CpaValidationException("Hash Function eksisterer ikke for DeliveryChannel")
 }
 
 fun CollaborationProtocolAgreement.getPartyInfoByTypeAndID(partyType: String, partyId: String): PartyInfo
@@ -110,7 +118,7 @@ fun CollaborationProtocolAgreement.getPartyInfoByTypeAndID(partyType: String, pa
         partyInfo.partyId.any { party ->
             party.type == partyType && party.value == partyId
         }
-    } ?: throw NotFoundException("PartyID med type $partyType og id $partyId eksisterer ikke i CPA")
+    } ?: throw CpaValidationException("PartyID med type $partyType og id $partyId eksisterer ikke i CPA")
 }
 
 fun Certificate.getX509Certificate(): ByteArray {
