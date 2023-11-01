@@ -1,5 +1,6 @@
 package no.nav.emottak
 
+import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.call
@@ -19,11 +20,13 @@ import no.nav.emottak.melding.Processor
 import no.nav.emottak.melding.model.Header
 import no.nav.emottak.melding.model.Party
 import no.nav.emottak.melding.model.PayloadRequest
+import no.nav.emottak.util.marker
+import org.slf4j.LoggerFactory
 import org.slf4j.event.Level
 import java.util.UUID
 
 val processor = Processor()
-
+internal val log = LoggerFactory.getLogger("no.nav.emottak.payload.App")
 fun main() {
     embeddedServer(Netty, port = 8080) {
         serverSetup()
@@ -70,9 +73,14 @@ private fun Application.serverSetup() {
 
         post("/payload") {
             val request: PayloadRequest = call.receive(PayloadRequest::class)
-            println(Json.encodeToString(PayloadRequest.serializer(),request))
-            val response = processor.process(request)
-            call.respond(response)
+            runCatching {
+                processor.process(request)
+            }.onSuccess {
+                call.respond(it)
+            }.onFailure {
+                log.warn(request.header.marker(), it.message, it)
+                call.respond(HttpStatusCode.BadRequest, it.localizedMessage)
+            }
         }
 
     }
