@@ -30,3 +30,6 @@ spec:
       rules:
         - application: ebms-provider
         - application: ebms-payload
+    outbound:
+      external:
+        - host: crl.buypassca.com
