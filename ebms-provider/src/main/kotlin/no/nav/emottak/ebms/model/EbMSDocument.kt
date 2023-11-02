@@ -16,6 +16,7 @@
 package no.nav.emottak.ebms.model
 
 import no.nav.emottak.EBMS_SERVICE_URI
+import no.nav.emottak.MESSAGE_ERROR_ACTION
 import no.nav.emottak.ebms.ebxml.ackRequested
 import no.nav.emottak.ebms.ebxml.acknowledgment
 import no.nav.emottak.ebms.ebxml.createResponseHeader
@@ -48,7 +49,7 @@ data class EbMSDocument(val messageId: String, val dokument: Document, val attac
     }
 
     fun createFail(error: Error): EbMSMessageError {
-        return EbMSMessageError(this.messageHeader().createResponseHeader(newFromRole = "ERROR_RESPONDER", newToRole = "ERROR_RECEIVER", newAction = "MessageError", newService = EBMS_SERVICE_URI), ErrorList().also {
+        return EbMSMessageError(this.messageHeader().createResponseHeader(newFromRole = "ERROR_RESPONDER", newToRole = "ERROR_RECEIVER", newAction = MESSAGE_ERROR_ACTION, newService = EBMS_SERVICE_URI), ErrorList().also {
             it.error.add(error)
         })
     }
