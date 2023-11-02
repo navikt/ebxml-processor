@@ -34,11 +34,10 @@ fun main() {
 }
 
 private fun Application.serverSetup() {
-    install(CallLogging) {
-        level = Level.INFO
-        filter { call -> !call.request.path().startsWith("/internal") }
-    }
-
+//    install(CallLogging) {
+//        level = Level.INFO
+//        filter { call -> !call.request.path().startsWith("/internal") }
+//    }
     install(ContentNegotiation) {
         json()
     }
