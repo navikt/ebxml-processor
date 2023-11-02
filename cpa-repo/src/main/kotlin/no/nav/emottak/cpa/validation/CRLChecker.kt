@@ -23,7 +23,7 @@ val issuerList = mapOf(
 ////    Pair("CN=Buypass Class 3 CA G2 HT Person, O=Buypass AS, OID.2.5.4.97=NTRNO-983163327, C=NO","http://crl.buypassca.com/BPCl3CaG2HTPS.crl"),
 //    Pair("CN=Buypass Class 3 CA G2 HT Business, O=Buypass AS, OID.2.5.4.97=NTRNO-983163327, C=NO","http://crl.buypassca.com/BPCl3CaG2HTBS.crl"),
 //    Pair("CN=Buypass Class 3 Test4 CA 3, O=Buypass AS-983163327, C=NO","http://crl.test4.buypass.no/crl/BPClass3T4CA3.crl"),
-//    Pair("CN=Buypass Class 3 Test4 CA G2 ST Business, O=Buypass AS, OID.2.5.4.97=NTRNO-983163327, C=NO","http://crl.test4.buypassca.com/BPCl3CaG2STBS.crl"),
+    Pair("CN=Buypass Class 3 Test4 CA G2 ST Business, O=Buypass AS, OID.2.5.4.97=NTRNO-983163327, C=NO","http://crl.test4.buypassca.com/BPCl3CaG2STBS.crl"),
 ////    Pair("CN=Buypass Class 3 Test4 CA G2 HT Person, O=Buypass AS, OID.2.5.4.97=NTRNO-983163327, C=NO","http://crl.test4.buypassca.com/BPCl3CaG2HTPS.crl"),
 //    Pair("CN=Buypass Class 3 Test4 CA G2 HT Business, O=Buypass AS, OID.2.5.4.97=NTRNO-983163327, C=NO","http://crl.test4.buypassca.com/BPCl3CaG2HTBS.crl"),
 //    Pair("CN=Commfides Legal Person - G3, OID.2.5.4.97=NTRNO-988312495, O=Commfides Norge AS, C=NO","https://crl.commfides.com/G3/CommfidesLegalPersonCA-G3.crl"),
