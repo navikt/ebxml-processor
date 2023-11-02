@@ -35,3 +35,6 @@ spec:
         - host: crl.buypassca.com
           ports:
             - port: 80
+        - host: crl.test4.buypassca.com
+          ports:
+            - port: 80
