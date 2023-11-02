@@ -78,7 +78,7 @@ fun Route.postEbms(validator: DokumentValidator, processingService: ProcessingSe
         } catch(ex: ServerResponseException) {
             logger().error("Processing failed: ${ex.message}", ex)
             ebMSDocument
-                .createFail(EbMSErrorUtil.createError(EbMSErrorUtil.Code.UNKNOWN.name, "Processing failed:"))
+                .createFail(EbMSErrorUtil.createError(EbMSErrorUtil.Code.UNKNOWN.name, "Processing failed: ${ex.message}"))
                 .toEbmsDokument()
                 //  .signer(cpa.signatureDetails) //@TODO hva skjer hvis vi klarer ikke å hente signature details ?
                 .also {
@@ -88,7 +88,7 @@ fun Route.postEbms(validator: DokumentValidator, processingService: ProcessingSe
         } catch(ex: ClientRequestException) {
             logger().error("Processing failed: ${ex.message}", ex)
             ebMSDocument
-                .createFail(EbMSErrorUtil.createError(EbMSErrorUtil.Code.OTHER_XML.name, "Processing failed:"))
+                .createFail(EbMSErrorUtil.createError(EbMSErrorUtil.Code.OTHER_XML.name, "Processing failed: ${ex.message}"))
                 .toEbmsDokument()
                 //  .signer(cpa.signatureDetails) //@TODO hva skjer hvis vi klarer ikke å hente signature details ?
                 .also {
