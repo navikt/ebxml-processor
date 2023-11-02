@@ -55,11 +55,11 @@ fun Route.postEbms(validator: DokumentValidator, processingService: ProcessingSe
 
             validator.validate(ebMSDocument,cpa?.signatureDetails)
         } catch (ex: MimeValidationException) {
-            logger().error("Mime validation has failed: ${ex.message}", ex)
+            logger().error(ebMSDocument.messageHeader().marker(), "Mime validation has failed: ${ex.message}", ex)
             call.respond(HttpStatusCode.InternalServerError, ex.asParseAsSoapFault())
             return@post
         } catch (ex2: Exception) {
-            logger().error("Validation Failed: ${ex2.message}", ex2)
+            logger().error(ebMSDocument.messageHeader().marker(), "Validation Failed: ${ex2.message}", ex2)
             ebMSDocument
                 .createFail(EbMSErrorUtil.createError(EbMSErrorUtil.Code.OTHER_XML.name, "Validation failed"))
                 .toEbmsDokument()
@@ -76,7 +76,7 @@ fun Route.postEbms(validator: DokumentValidator, processingService: ProcessingSe
                 processingService.process(message)
             }
         } catch(ex: ServerResponseException) {
-            logger().error("Processing failed: ${ex.message}", ex)
+            logger().error(message.messageHeader.marker(), "Processing failed: ${ex.message}", ex)
             ebMSDocument
                 .createFail(EbMSErrorUtil.createError(EbMSErrorUtil.Code.UNKNOWN.name, "Processing failed: ${ex.message}"))
                 .toEbmsDokument()
@@ -86,7 +86,7 @@ fun Route.postEbms(validator: DokumentValidator, processingService: ProcessingSe
                     return@post
                 }
         } catch(ex: ClientRequestException) {
-            logger().error("Processing failed: ${ex.message}", ex)
+            logger().error(message.messageHeader.marker(), "Processing failed: ${ex.message}", ex)
             ebMSDocument
                 .createFail(EbMSErrorUtil.createError(EbMSErrorUtil.Code.OTHER_XML.name, "Processing failed: ${ex.message}"))
                 .toEbmsDokument()
@@ -95,12 +95,8 @@ fun Route.postEbms(validator: DokumentValidator, processingService: ProcessingSe
                     call.respondEbmsDokument(it)
                     return@post
                 }
-        } catch (e: Exception) {
-            call.application.environment.log.error(
-                message.messageHeader.marker(),
-                "Feil ved prosessering av melding",
-                e
-            )
+        } catch (ex: Exception) {
+            logger().error(message.messageHeader.marker(), "Processing failed: ${ex.message}", ex)
             call.respond(HttpStatusCode.InternalServerError, "Feil ved prosessering av melding")
             return@post
         }
