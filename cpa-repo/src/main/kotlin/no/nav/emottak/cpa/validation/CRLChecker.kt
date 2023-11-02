@@ -53,9 +53,8 @@ class CRLChecker(
     }
 
     private fun getRevokedCertificate(issuer: X500Name, serialNumber: BigInteger): X509CRLEntry? {
-        // TODO Strengere validering ved manglende CRL fil for issuer
-        val crlFile = crlFiles.get(key = issuer) //?: throw CpaValidationException("Issuer $issuer ikke støttet. CRL liste må oppdateres med issuer om denne skal støttes")
-        return crlFile?.getRevokedCertificate(serialNumber)
+        val crlFile = crlFiles.get(key = issuer) ?: throw CpaValidationException("Issuer $issuer ikke støttet. CRL liste må oppdateres med issuer om denne skal støttes")
+        return crlFile.getRevokedCertificate(serialNumber)
     }
 }
 
