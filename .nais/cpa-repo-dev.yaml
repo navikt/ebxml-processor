@@ -33,3 +33,5 @@ spec:
     outbound:
       external:
         - host: crl.buypassca.com
+          ports:
+            - port: 80
