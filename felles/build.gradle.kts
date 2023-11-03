@@ -20,6 +20,8 @@ dependencies {
     implementation(libs.ktor.serialization.kotlinx.json)
     implementation(libs.apache.santuario)
     implementation(libs.bundles.logging)
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.cio)
     api(libs.bundles.bouncycastle)
     testImplementation(testLibs.junit.jupiter.api)
     testRuntimeOnly(testLibs.junit.jupiter.engine)

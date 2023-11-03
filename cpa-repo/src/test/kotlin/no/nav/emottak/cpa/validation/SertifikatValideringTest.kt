@@ -4,7 +4,9 @@ import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.runs
-import no.nav.emottak.cpa.CpaValidationException
+import no.nav.emottak.util.cert.CRLChecker
+import no.nav.emottak.util.cert.CertificateValidationException
+import no.nav.emottak.util.cert.SertifikatValidering
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.decodeBase64
 import org.junit.jupiter.api.Assertions.*
@@ -22,7 +24,7 @@ class SertifikatValideringTest {
         } just runs
         val sertifikatValidering = SertifikatValidering(crlChecker)
         val sertifikat = createX509Certificate(FileInputStream("src/test/resources/cert.pem").readAllBytes())
-        val exception = assertThrows<CpaValidationException> {
+        val exception = assertThrows<CertificateValidationException> {
             sertifikatValidering.validateCertificate(sertifikat)
         }
         assertEquals("Sertifikat er selvsignert", exception.message)

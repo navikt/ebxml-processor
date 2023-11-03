@@ -1,6 +1,5 @@
-package no.nav.emottak.cpa.validation
+package no.nav.emottak.util.cert
 
-import no.nav.emottak.cpa.CpaValidationException
 import no.nav.emottak.util.crypto.getIntermediateCerts
 import no.nav.emottak.util.crypto.getTrustedRootCerts
 import no.nav.emottak.util.isSelfSigned
@@ -28,12 +27,12 @@ class SertifikatValidering(
     val trustedRootCerts: Set<X509Certificate> = getTrustedRootCerts(),
     val intermediateCerts: Set<X509Certificate> = getIntermediateCerts()
 ) {
-    internal fun validateCertificate(certificate: X509Certificate) {
+    fun validateCertificate(certificate: X509Certificate) {
         if (isSelfSigned(certificate)) {
-            throw CpaValidationException("Sertifikat er selvsignert")
+            throw CertificateValidationException("Sertifikat er selvsignert")
         }
         if (!certificateValidAtTime(certificate, Instant.now())) {
-            throw CpaValidationException("Sertifikat ikke gyldig nå")
+            throw CertificateValidationException("Sertifikat ikke gyldig nå")
         }
         sjekkSertifikatMotTrustedCa(certificate)
         sjekkCRL(certificate)
@@ -57,7 +56,7 @@ class SertifikatValidering(
         try {
             builder.build(pkixParams) as PKIXCertPathBuilderResult
         } catch (e: CertPathBuilderException) {
-            throw CpaValidationException("", e)
+            throw CertificateValidationException("", e)
         }
     }
 
@@ -75,7 +74,7 @@ class SertifikatValidering(
     private fun sjekkCRL(certificate: X509Certificate) {
         try {
             crlChecker.getCRLRevocationInfo(certificate.issuerX500Principal.name, certificate.serialNumber)
-        } catch (e: CpaValidationException) {
+        } catch (e: CertificateValidationException) {
             throw e
         } catch (e: Exception) {
             val crlDistributionPoint = certificate.getExtensionValue(Extension.cRLDistributionPoints.toString())
@@ -87,7 +86,3 @@ class SertifikatValidering(
 
 }
 
-@Throws(CpaValidationException::class)
-fun X509Certificate.validate() {
-    SertifikatValidering(crlChecker).validateCertificate(this)
-}
