@@ -59,9 +59,9 @@ fun Route.postEbms(validator: DokumentValidator, processingService: ProcessingSe
             call.respond(HttpStatusCode.InternalServerError, ex.asParseAsSoapFault())
             return@post
         } catch (ex2: Exception) {
-            logger().error(ebMSDocument.messageHeader().marker(), "Validation Failed: ${ex2.message}", ex2)
+            logger().error(ebMSDocument.messageHeader().marker(), "Validation failed: ${ex2.message}", ex2)
             ebMSDocument
-                .createFail(EbMSErrorUtil.createError(EbMSErrorUtil.Code.OTHER_XML.name, "Validation failed"))
+                .createFail(EbMSErrorUtil.createError(EbMSErrorUtil.Code.OTHER_XML.name, "Validation failed: ${ex2.message}"))
                 .toEbmsDokument()
               //  .signer(cpa.signatureDetails) //@TODO hva skjer hvis vi klarer ikke å hente signature details ?
                 .also {
