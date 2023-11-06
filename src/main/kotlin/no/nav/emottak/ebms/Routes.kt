@@ -40,19 +40,14 @@ fun Route.postEbms(validator: DokumentValidator, processingService: ProcessingSe
             return@post
         } catch (ex: Exception) {
             logger().error("Unable to transform request into EbmsDokument: ${ex.message}", ex)
-
             //@TODO done only for demo fiks!
             call.respond(HttpStatusCode.InternalServerError, MimeValidationException("Unable to transform request into EbmsDokument: ${ex.message}",ex).asParseAsSoapFault())
             return@post
         }
-        var cpa: Cpa? = runCatching {
-            Cpa(cpaRepoClient.getPublicSigningDetails(ebMSDocument.messageHeader()))
-        }.getOrNull()
-            //@TODO Hva skall vi gjøre hvis vi henter ikke CPA informasjon ? Vi kan ikke signere feilmeldingene
 
         try {
 
-            validator.validate(ebMSDocument,cpa?.signatureDetails)
+            validator.validate(ebMSDocument)
         } catch (ex: MimeValidationException) {
             logger().error(ebMSDocument.messageHeader().marker(), "Mime validation has failed: ${ex.message}", ex)
             call.respond(HttpStatusCode.InternalServerError, ex.asParseAsSoapFault())
