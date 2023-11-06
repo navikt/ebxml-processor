@@ -31,9 +31,7 @@ class SertifikatValidering(
         if (isSelfSigned(certificate)) {
             throw CertificateValidationException("Sertifikat er selvsignert")
         }
-        if (!certificateValidAtTime(certificate, Instant.now())) {
-            throw CertificateValidationException("Sertifikat ikke gyldig nå")
-        }
+        sjekkGyldigTidspunkt(certificate, Instant.now())
         sjekkSertifikatMotTrustedCa(certificate)
         sjekkCRL(certificate)
     }
@@ -56,18 +54,17 @@ class SertifikatValidering(
         try {
             builder.build(pkixParams) as PKIXCertPathBuilderResult
         } catch (e: CertPathBuilderException) {
-            throw CertificateValidationException("", e)
+            throw CertificateValidationException("Sertifikatvalidering feilet", e)
         }
     }
 
-    private fun certificateValidAtTime(certificate: X509Certificate, instant: Instant): Boolean {
-        return try {
+    private fun sjekkGyldigTidspunkt(certificate: X509Certificate, instant: Instant) {
+        try {
             certificate.checkValidity(Date(instant.toEpochMilli()))
-            true
         } catch (e: CertificateExpiredException) {
-            false
+            throw CertificateValidationException("Sertifikat utløpt <${e.localizedMessage}>", e)
         } catch (e: CertificateNotYetValidException) {
-            false
+            throw CertificateValidationException("Sertifikat ikke gyldig enda <${e.localizedMessage}>", e)
         }
     }
 
