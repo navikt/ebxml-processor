@@ -51,7 +51,7 @@ fun PartData.validateMimeSoapEnvelope() {
 
         this.headers[MimeHeaders.CONTENT_ID].takeUnless { it.isNullOrBlank() }
                 ?: throw MimeValidationException("Content ID is missing")
-        this.headers["Content-Transfer-Encoding"].takeUnless { it.isNullOrBlank() }?.let {
+        this.headers[MimeHeaders.CONTENT_TRANSFER_ENCODING].takeUnless { it.isNullOrBlank() }?.let {
                 it.takeIf {  listOf("8bit","base64","binary","quoted-printable").contains(it) } ?: throw MimeValidationException("Content-Transfer-Encoding should be 8 bit")
         } ?: throw MimeValidationException("Mandatory header Content-Transfer-Encoding is undefined")
 }
