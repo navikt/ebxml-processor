@@ -15,8 +15,8 @@ fun Header.marker(): LogstashMarker = Markers.appendEntries(
         Pair(ACTION, this.action),
         Pair(TO_ROLE, this.to.role),
         Pair(FROM_ROLE, this.from.role),
-        Pair(TO_PARTY, "${this.to.partyType}:${this.to.partyId}"),
-        Pair(FROM_PARTY, "${this.from.partyType}:${this.from.partyId}"),
+        Pair(TO_PARTY, "${this.to.partyId.firstOrNull()?.type ?: UKJENT_VERDI}:${this.to.partyId.firstOrNull()?.value ?: UKJENT_VERDI}"),
+        Pair(FROM_PARTY, "${this.from.partyId.firstOrNull()?.type ?: UKJENT_VERDI}:${this.from.partyId.firstOrNull()?.value ?: UKJENT_VERDI}"),
     )
 )
 
@@ -44,7 +44,7 @@ fun SignatureDetailsRequest.marker(): LogstashMarker = Markers.appendEntries(
     )
 )
 
-private const val UKJENT_VERDI = "Ukjent"
+private const val UKJENT_VERDI = "Ukjent" // Egentlig null
 
 //Kibana log indekser
 private const val MARKER_MOTTAK_ID = "mottakId"
