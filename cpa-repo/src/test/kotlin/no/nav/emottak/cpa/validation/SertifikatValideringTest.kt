@@ -4,15 +4,15 @@ import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.runs
+import no.nav.emottak.cpa.TestUtil
 import no.nav.emottak.util.cert.CRLChecker
 import no.nav.emottak.util.cert.CertificateValidationException
 import no.nav.emottak.util.cert.SertifikatValidering
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.decodeBase64
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import java.io.FileInputStream
 
 class SertifikatValideringTest {
 
@@ -23,11 +23,51 @@ class SertifikatValideringTest {
             crlChecker.getCRLRevocationInfo(any(), any())
         } just runs
         val sertifikatValidering = SertifikatValidering(crlChecker)
-        val sertifikat = createX509Certificate(FileInputStream("src/test/resources/cert.pem").readAllBytes())
         val exception = assertThrows<CertificateValidationException> {
-            sertifikatValidering.validateCertificate(sertifikat)
+            sertifikatValidering.validateCertificate(TestUtil.selfSignedCertificate)
         }
         assertEquals("Sertifikat er selvsignert", exception.message)
+    }
+
+    @Test
+    fun `Expired sertifikat feiler`() {
+        val crlChecker = mockk<CRLChecker>()
+        every {
+            crlChecker.getCRLRevocationInfo(any(), any())
+        } just runs
+        val sertifikatValidering = SertifikatValidering(crlChecker)
+        val exception = assertThrows<CertificateValidationException> {
+            sertifikatValidering.validateCertificate(TestUtil.expiredCertificate)
+        }
+        assertEquals("Sertifikat utløpt <NotAfter: Sat Nov 02 23:59:00 CET 2019>", exception.message)
+    }
+
+//    @Test
+//    fun `Revokert sertifikat feiler`() {
+//        val crlChecker = mockk<CRLChecker>()
+//        every {
+//            crlChecker.getCRLRevocationInfo(any(), any())
+//        }.throws(
+//            CertificateValidationException("Revokert")
+//        )
+//        val sertifikatValidering = SertifikatValidering(crlChecker)
+//        val exception = assertThrows<CertificateValidationException> {
+//            sertifikatValidering.validateCertificate(TestUtil.revokedCertificate)
+//        }
+//        assertEquals("Sertifikat utløpt <NotAfter: Sat Nov 02 23:59:00 CET 2019>", exception.message)
+//    }
+
+    @Test
+    fun `Gyldig sertifikat med ukjent trust chain feiler`() {
+        val crlChecker = mockk<CRLChecker>()
+        every {
+            crlChecker.getCRLRevocationInfo(any(), any())
+        } just runs
+        val sertifikatValidering = SertifikatValidering(crlChecker)
+        val exception = assertThrows<CertificateValidationException> {
+            sertifikatValidering.validateCertificate(TestUtil.validCertificate)
+        }
+        assertEquals("Sertifikatvalidering feilet", exception.message)
     }
 
     @Test
