@@ -9,17 +9,17 @@ import io.ktor.client.statement.readBytes
 import io.ktor.http.HttpMethod
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.runBlocking
+import no.nav.emottak.melding.model.PartyId
 
 
 private val httpClientUtil = HttpClientUtil()
 private val cpaRepoUrl = "http://cpa-repo"
 
-fun hentKrypteringssertifikat(cpaId: String, partyType: String, partyId: String): ByteArray = runBlocking {
-    httpClientUtil.makeHttpRequest("$cpaRepoUrl/cpa/$cpaId/party/$partyType/$partyId/encryption/certificate").readBytes()
+fun hentKrypteringssertifikat(cpaId: String, partyId: PartyId): ByteArray = runBlocking {
+    httpClientUtil.makeHttpRequest("$cpaRepoUrl/cpa/$cpaId/party/${partyId.type}/${partyId.value }/encryption/certificate").readBytes()
 }
 
 class HttpClientUtil {
-
     private val client = HttpClient(CIO) {
         expectSuccess = true
         install(ContentNegotiation) {

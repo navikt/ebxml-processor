@@ -32,9 +32,14 @@ data class Header(
 
 @Serializable
 data class Party(
-    val partyType: String,
-    val partyId: String,
+    val partyId: List<PartyId>,
     val role: String
+)
+
+@Serializable
+data class PartyId(
+    val type: String,
+    val value: String,
 )
 
 @Serializable

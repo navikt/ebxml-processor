@@ -6,6 +6,7 @@ import no.nav.emottak.ebms.model.EbMSDocument
 import no.nav.emottak.ebms.model.sjekkSignature
 import no.nav.emottak.melding.model.Header
 import no.nav.emottak.melding.model.Party
+import no.nav.emottak.melding.model.PartyId
 import no.nav.emottak.melding.model.SignatureDetails
 
 class DokumentValidator(val httpClient: CpaRepoClient) {
@@ -20,8 +21,9 @@ class DokumentValidator(val httpClient: CpaRepoClient) {
                             messageHeader.conversationId,
                             messageHeader.cpaId,
                             //TODO select specific partyID?
-                            Party(messageHeader.to.partyId.first().type!!, messageHeader.to.partyId.first().value!!,messageHeader.to.role!!),
-                            Party(messageHeader.from.partyId.first().type!!, messageHeader.from.partyId.first().value!!,messageHeader.from.role!!),
+                            Party(messageHeader.to.partyId.map { PartyId(it.type!!, it.value!!) }, messageHeader.to.role!!),
+                            //Party(messageHeader.to.partyId.first().type!!, messageHeader.to.partyId.first().value!!,messageHeader.to.role!!),
+                            Party(messageHeader.from.partyId.map { PartyId(it.type!!, it.value!!) }, messageHeader.from.role!!),
                             messageHeader.service.value!!,
                             messageHeader.action)
         runBlocking {

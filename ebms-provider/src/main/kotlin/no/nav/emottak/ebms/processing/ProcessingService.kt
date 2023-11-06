@@ -9,6 +9,7 @@ import no.nav.emottak.ebms.model.EbMSPayloadMessage
 import no.nav.emottak.ebms.model.EbmsAcknowledgment
 import no.nav.emottak.melding.model.Header
 import no.nav.emottak.melding.model.Party
+import no.nav.emottak.melding.model.PartyId
 import no.nav.emottak.melding.model.PayloadRequest
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
 
@@ -54,14 +55,17 @@ fun MessageHeader.payloadRequestHeader(): Header {
         cpaId = this.cpaId ?: throw BadRequestException("CPAID mangler fra header"),
         conversationId = this.conversationId,
         to = Party(
-            partyType = this.to.partyId.firstOrNull()?.type ?: throw BadRequestException("Melding mangler to partyId"),
-            partyId = this.to.partyId.firstOrNull()?.value ?: throw BadRequestException("Melding mangler to partyId"),
-            role = this.to.role ?: throw BadRequestException("Melding mangler role for en eller flere parter")
-        ),
+            role = this.to.role ?: throw BadRequestException("Melding mangler role for en eller flere parter"),
+            partyId = listOf(PartyId(
+            type = this.to.partyId.firstOrNull()?.type ?: throw BadRequestException("Melding mangler to partyId"),
+            value = this.to.partyId.firstOrNull()?.value ?: throw BadRequestException("Melding mangler to partyId"))
+            )),
         from = Party(
-            partyType = this.from.partyId.firstOrNull()?.type ?: throw BadRequestException("Melding mangler from partyId"),
-            partyId = this.from.partyId.firstOrNull()?.value ?: throw BadRequestException("Melding mangler from partyId"),
-            role = this.from.role ?: throw BadRequestException("Melding mangler role for en eller flere parter")
+            role = this.from.role ?: throw BadRequestException("Melding mangler role for en eller flere parter"),
+            partyId = listOf(PartyId(
+                type = this.from.partyId.firstOrNull()?.type ?: throw BadRequestException("Melding mangler from partyId"),
+                value = this.from.partyId.firstOrNull()?.value ?: throw BadRequestException("Melding mangler from partyId"),
+            ))
         ),
         service = this.service.value ?: throw BadRequestException("Service mangler fra header"),
         action = this.action

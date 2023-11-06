@@ -49,6 +49,10 @@ fun ApplicationRequest.validateContentType() {
 fun PartData.validateMimeSoapEnvelope() {
         this.contentType?.withoutParameters().takeIf {it == ContentType.parse("text/xml") } ?: throw MimeValidationException("Content type is missing or wrong ")
 
+
+        if(this.headers[MimeHeaders.CONTENT_ID].isNullOrBlank())
+                throw MimeValidationException("Content ID is missing")
+        this.headers[MimeHeaders.CONTENT_ID].takeIf { it.isNullOrBlank().not() } ?: throw Exception()
         this.headers[MimeHeaders.CONTENT_ID].takeUnless { it.isNullOrBlank() }
                 ?: throw MimeValidationException("Content ID is missing")
         this.headers[MimeHeaders.CONTENT_TRANSFER_ENCODING].takeUnless { it.isNullOrBlank() }?.let {

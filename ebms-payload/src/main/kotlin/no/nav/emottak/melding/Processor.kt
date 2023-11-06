@@ -6,8 +6,11 @@ import no.nav.emottak.melding.model.PayloadResponse
 import no.nav.emottak.util.GZipUtil
 import no.nav.emottak.util.signatur.SignaturVerifisering
 import no.nav.emottak.util.createDocument
+import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.crypto.Dekryptering
 import no.nav.emottak.util.crypto.Kryptering
+import no.nav.emottak.util.crypto.erGyldig
+import no.nav.emottak.util.crypto.krypterDokument
 import no.nav.emottak.util.getByteArrayFromDocument
 import no.nav.emottak.util.hentKrypteringssertifikat
 import no.nav.emottak.util.marker
@@ -103,12 +106,17 @@ fun Melding.verifiserSignatur(): Melding {
         signaturVerifisert = true
     )
 }
-
 fun Melding.krypter(): Melding {
     log.info(this.header.marker(), "Krypterer melding")
-    val krypteringSertifikat = hentKrypteringssertifikat(header.cpaId, header.to.partyType, header.to.partyId)
+    val gyldigSertifikat = header.to.partyId.map {
+        createX509Certificate(
+            hentKrypteringssertifikat(header.cpaId, it)
+        ) }
+        .filter{ it.erGyldig() }
+        .first() // TODO skal mer til for å bestemme hvilket sertifikat?
+
     return this.copy(
-        processedPayload = kryptering.krypter(this.processedPayload, krypteringSertifikat),
+        processedPayload = krypterDokument(this.processedPayload, gyldigSertifikat),
         kryptert = true
     )
 }

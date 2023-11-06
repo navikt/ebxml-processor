@@ -19,6 +19,7 @@ import kotlinx.serialization.json.Json
 import no.nav.emottak.melding.Processor
 import no.nav.emottak.melding.model.Header
 import no.nav.emottak.melding.model.Party
+import no.nav.emottak.melding.model.PartyId
 import no.nav.emottak.melding.model.PayloadRequest
 import no.nav.emottak.util.marker
 import org.slf4j.LoggerFactory
@@ -52,13 +53,18 @@ private fun Application.serverSetup() {
                     conversationId = UUID.randomUUID().toString(),
                     cpaId = UUID.randomUUID().toString(),
                     to = Party(
-                        partyType = "HER",
-                        partyId = "8141253",
+                        listOf(
+                            PartyId(
+                            type = "HER",
+                            value = "8141253"
+                        )),
                         role = "mottaker"
                     ),
                     from = Party(
-                        partyType = "HER",
-                        partyId = "54321",
+                        listOf(PartyId(
+                            type = "HER",
+                            value = "54321"
+                        )),
                         role = "sender"
                     ),
                     service = "melding",

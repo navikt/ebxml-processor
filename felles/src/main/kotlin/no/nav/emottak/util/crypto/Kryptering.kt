@@ -11,6 +11,8 @@ import org.bouncycastle.cms.jcajce.JceCMSContentEncryptorBuilder
 import org.bouncycastle.cms.jcajce.JceKeyTransRecipientInfoGenerator
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import java.security.cert.CertificateEncodingException
+import java.security.cert.CertificateExpiredException
+import java.security.cert.CertificateNotYetValidException
 import java.security.cert.X509Certificate
 
 class Kryptering {
@@ -31,7 +33,18 @@ private const val keysize: Int = 168
 //private val encryptionAlgorithm: ASN1ObjectIdentifier = CMSAlgorithm.AES256_CBC
 //private const val keysize: Int = 256
 
-private fun krypterDokument(doc: ByteArray, certificate: X509Certificate): ByteArray {
+fun X509Certificate.erGyldig(): Boolean {
+    try {
+        checkValidity()
+    } catch (e: CertificateExpiredException) {
+        return false
+    } catch (e: CertificateNotYetValidException) {
+        return false
+    }
+    return true
+}
+
+fun krypterDokument(doc: ByteArray, certificate: X509Certificate): ByteArray {
     return try {
         krypterDokument(doc, listOf(certificate))
     } catch (e: Exception) {
