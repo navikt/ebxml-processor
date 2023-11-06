@@ -8,6 +8,10 @@ import io.mockk.clearAllMocks
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
+import no.nav.emottak.ebms.modify
+import no.nav.emottak.ebms.valid
+import no.nav.emottak.ebms.validSoapAttachmentHeaders
+import no.nav.emottak.ebms.validSoapMimeHeaders
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
@@ -15,33 +19,9 @@ import org.junit.jupiter.api.fail
 
 class MimeValidationTest {
 
-    val MULTIPART_CONTENT_TYPE: String = """multipart/related;type="text/xml";boundary="----=_Part_495_-1172936255.1665395092859";start="<soapId-6ae68a32-8b0e-4de2-baad-f4d841aacce1>";"""
 
-    val valid = Headers.build {
-        append(MimeHeaders.MIME_VERSION,"1.0")
-        append(MimeHeaders.SOAP_ACTION,"ebXML")
-        append(MimeHeaders.CONTENT_TYPE,MULTIPART_CONTENT_TYPE)
-    }
 
-    val validSoapMimeHeaders =  Headers.build {
-        append(MimeHeaders.CONTENT_ID,"<soapId-6ae68a32-8b0e-4de2-baad-f4d841aacce1>")
-        append(MimeHeaders.CONTENT_TRANSFER_ENCODING,"base64")
-        append(MimeHeaders.CONTENT_TYPE, """text/xml; charset="UTF-8"""")
-    }
 
-    val validSoapAttachmentHeaders =  Headers.build {
-        append(MimeHeaders.CONTENT_ID,"<soapId-6ae68a32-8b0e-4de2-baad-f4d841aacce1>")
-        append(MimeHeaders.CONTENT_TRANSFER_ENCODING,"base64")
-        append(MimeHeaders.CONTENT_DISPOSITION,"attachment")
-        append(MimeHeaders.CONTENT_TYPE, """application/pkcs7-mime; smimetype=enveloped-data"""")
-    }
-
-    private fun Headers.modify(block: (HeadersBuilder) -> Unit) = Headers.build {
-        this@modify.entries().forEach {
-            this.append(it.key, it.value.first())
-            this.apply(block)
-        }
-    }
 
     private fun Headers.mockApplicationRequest() : ApplicationRequest {
        val appRquest = mockk<ApplicationRequest>()
@@ -177,7 +157,7 @@ class MimeValidationTest {
     @Test
     fun `5-2-2-4 validering på SOAP envelope multipart`() {
 
-        PartData.FormItem("body",{},validSoapAttachmentHeaders).validateMimeAttachment()
+        PartData.FormItem("body",{}, validSoapAttachmentHeaders).validateMimeAttachment()
 
     }
 
