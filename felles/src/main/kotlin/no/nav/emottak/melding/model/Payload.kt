@@ -21,7 +21,7 @@ data class PayloadResponse(
 @Serializable
 data class Error(val code:ErrorCode,
                  val descriptionText:String,
-                 val sevirity:String) {
+                 val sevirity:String? = null) {
 
     fun asEbxmlError(location: String? = null):org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Error {
             val error = org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Error()
@@ -68,20 +68,20 @@ data class PartyId(
 )
 
 @Serializable
-data class Processing(val retry:Int = 0) {
-
-}
+data class Processing(
+    val signingCertificate: SignatureDetails,
+    val encryptionCertificate: ByteArray
+)
 
 @Serializable
 data class ValidationResponse(
-    val valid: Boolean
-    /*,
-    val signingCertificate: SignatureDetails,
-    val encryptionCertificate: ByteArray,
-    val processing: Processing,
-    val error: Error?
-*/
-)
+    val processing: Processing?,
+    val error: List<Error>? = null) {
+
+    fun valid(): Boolean = processing != null
+}
+
+
 
 
  enum class ErrorCode(val value:String,val description:String) {
