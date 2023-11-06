@@ -56,6 +56,7 @@ dependencyResolutionManagement {
             version("testPostgres","1.18.0")
             version("xmlunit", "2.9.1")
             version("ktor-server-test", "2.3.4")
+            version("kotest", "5.8.0")
 
             library("ktor-server-test-host", "io.ktor", "ktor-server-test-host").versionRef("ktor-server-test")
             library("junit-jupiter-api", "org.junit.jupiter", "junit-jupiter-api").versionRef("junit")
@@ -71,6 +72,8 @@ dependencyResolutionManagement {
 
             library("xmlunit-core", "org.xmlunit", "xmlunit-core").versionRef("xmlunit")
             library("xmlunit-matchers", "org.xmlunit", "xmlunit-matchers").versionRef("xmlunit")
+
+            library("kotest", "io.kotest", "kotest-runner-junit5").versionRef("kotest")
 
             bundle("mockk", listOf("mockk-jvm", "mockk-dsl-jvm"))
             bundle("xmlunit", listOf("xmlunit-core", "xmlunit-matchers"))

@@ -26,9 +26,10 @@ class DokumentValidator(val httpClient: CpaRepoClient) {
                             Party(messageHeader.from.partyId.map { PartyId(it.type!!, it.value!!) }, messageHeader.from.role!!),
                             messageHeader.service.value!!,
                             messageHeader.action)
-        runBlocking {
+        val validationResponse = runBlocking {
             httpClient.postValidate(header)
         }
+        if (validationResponse.valid == false) throw Exception("Validation failed")
         if (signatureDetails == null) throw Exception("Unable to retrieve signature details")
         dokument.sjekkSignature(signatureDetails)
 
