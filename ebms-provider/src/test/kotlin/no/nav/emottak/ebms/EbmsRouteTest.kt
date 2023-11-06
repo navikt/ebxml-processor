@@ -93,15 +93,12 @@ class EbmsRouteTest {
     fun `Sending valid request should trigger validation`() = mimeTestApp {
         val validationResponse = mockk<ValidationResponse>()
         every {
-            validationResponse.valid
+            validationResponse.valid()
         } returns false
         coEvery {
             cpaRepoClient.postValidate(any())
         } returns validationResponse
-        coEvery {
-            cpaRepoClient.getPublicSigningDetails(any())
-        } returns mockk<SignatureDetails>()
-
+       
         val response = client.post("/ebms",validMultipartRequest.asHttpRequest())
         val envelope =  xmlMarshaller.unmarshal(response.bodyAsText(),Envelope::class.java)
         with(envelope.assertErrorAndGet().error.first()) {
