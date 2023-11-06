@@ -5,15 +5,17 @@ import io.ktor.client.statement.*
 import io.ktor.server.routing.*
 import io.ktor.server.testing.*
 import io.mockk.coEvery
+import io.mockk.every
 import io.mockk.mockk
 import no.nav.emottak.ebms.ebxml.errorList
 import no.nav.emottak.ebms.ebxml.messageHeader
-import no.nav.emottak.ebms.model.EbMSErrorUtil
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.validation.DokumentValidator
 import no.nav.emottak.ebms.validation.MimeHeaders
 import no.nav.emottak.ebms.xml.xmlMarshaller
-import no.nav.emottak.melding.model.ValidationResult
+import no.nav.emottak.melding.model.ErrorCode
+import no.nav.emottak.melding.model.SignatureDetails
+import no.nav.emottak.melding.model.ValidationResponse
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -89,17 +91,23 @@ class EbmsRouteTest {
 
     @Test
     fun `Sending valid request should trigger validation`() = mimeTestApp {
+        val validationResponse = mockk<ValidationResponse>()
+        every {
+            validationResponse.valid
+        } returns false
         coEvery {
             cpaRepoClient.postValidate(any())
-        } returns ValidationResult(valid = false)
+        } returns validationResponse
+        coEvery {
+            cpaRepoClient.getPublicSigningDetails(any())
+        } returns mockk<SignatureDetails>()
 
         val response = client.post("/ebms",validMultipartRequest.asHttpRequest())
         val envelope =  xmlMarshaller.unmarshal(response.bodyAsText(),Envelope::class.java)
         with(envelope.assertErrorAndGet().error.first()) {
-            assertEquals("Validation failed" , this.description.value)
-            assertEquals(EbMSErrorUtil.Code.OTHER_XML.name,this.errorCode)
+            assertEquals("Validation failed: Validation failed" , this.description.value)
+            assertEquals(ErrorCode.OTHER_XML.value,this.errorCode)
         }
-
     }
 
     fun Envelope.assertErrorAndGet(): ErrorList {

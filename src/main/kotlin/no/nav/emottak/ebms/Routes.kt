@@ -8,7 +8,6 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import no.nav.emottak.ebms.model.Cpa
 import no.nav.emottak.ebms.model.EbMSDocument
-import no.nav.emottak.ebms.model.EbMSErrorUtil
 import no.nav.emottak.ebms.model.EbMSPayloadMessage
 import no.nav.emottak.ebms.model.buildEbmMessage
 import no.nav.emottak.ebms.processing.ProcessingService
@@ -16,6 +15,7 @@ import no.nav.emottak.ebms.validation.DokumentValidator
 import no.nav.emottak.ebms.validation.MimeValidationException
 import no.nav.emottak.ebms.validation.asParseAsSoapFault
 import no.nav.emottak.ebms.validation.validateMime
+import no.nav.emottak.melding.model.ErrorCode
 import no.nav.emottak.util.marker
 
 
@@ -29,7 +29,6 @@ fun Route.postEbms(validator: DokumentValidator, processingService: ProcessingSe
             logger().error("Mime validation has failed: ${ex.message}", ex)
             call.respond(HttpStatusCode.InternalServerError, ex.asParseAsSoapFault())
             return@post
-
         }
 
         val ebMSDocument: EbMSDocument
@@ -61,7 +60,7 @@ fun Route.postEbms(validator: DokumentValidator, processingService: ProcessingSe
         } catch (ex2: Exception) {
             logger().error(ebMSDocument.messageHeader().marker(), "Validation failed: ${ex2.message}", ex2)
             ebMSDocument
-                .createFail(EbMSErrorUtil.createError(EbMSErrorUtil.Code.OTHER_XML.name, "Validation failed: ${ex2.message}"))
+                .createFail(ErrorCode.OTHER_XML.createEbxmlError("Validation failed: ${ex2.message}"))
                 .toEbmsDokument()
               //  .signer(cpa.signatureDetails) //@TODO hva skjer hvis vi klarer ikke å hente signature details ?
                 .also {
@@ -78,7 +77,7 @@ fun Route.postEbms(validator: DokumentValidator, processingService: ProcessingSe
         } catch(ex: ServerResponseException) {
             logger().error(message.messageHeader.marker(), "Processing failed: ${ex.message}", ex)
             ebMSDocument
-                .createFail(EbMSErrorUtil.createError(EbMSErrorUtil.Code.UNKNOWN.name, "Processing failed: ${ex.message}"))
+                .createFail(ErrorCode.UNKNOWN.createEbxmlError("Processing failed: ${ex.message}"))
                 .toEbmsDokument()
                 //  .signer(cpa.signatureDetails) //@TODO hva skjer hvis vi klarer ikke å hente signature details ?
                 .also {
@@ -88,7 +87,7 @@ fun Route.postEbms(validator: DokumentValidator, processingService: ProcessingSe
         } catch(ex: ClientRequestException) {
             logger().error(message.messageHeader.marker(), "Processing failed: ${ex.message}", ex)
             ebMSDocument
-                .createFail(EbMSErrorUtil.createError(EbMSErrorUtil.Code.OTHER_XML.name, "Processing failed: ${ex.message}"))
+                .createFail(ErrorCode.OTHER_XML.createEbxmlError("Processing failed: ${ex.message}"))
                 .toEbmsDokument()
                 //  .signer(cpa.signatureDetails) //@TODO hva skjer hvis vi klarer ikke å hente signature details ?
                 .also {
