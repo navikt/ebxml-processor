@@ -19,8 +19,9 @@ import no.nav.emottak.cpa.config.DatabaseConfig
 import no.nav.emottak.cpa.config.mapHikariConfig
 import no.nav.emottak.cpa.validation.validate
 import no.nav.emottak.melding.model.Header
+import no.nav.emottak.melding.model.SignatureDetails
 import no.nav.emottak.melding.model.SignatureDetailsRequest
-import no.nav.emottak.melding.model.ValidationResult
+import no.nav.emottak.melding.model.ValidationResponse
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.marker
 import org.slf4j.LoggerFactory
@@ -51,9 +52,9 @@ fun Application.myApplicationModule() {
                 getCpa(validateRequest.cpaId)!!.validate(validateRequest)
             } catch (cpaEx: CpaValidationException) {
                 log.warn(validateRequest.marker(), cpaEx.message, cpaEx)
-                call.respond(HttpStatusCode.OK, ValidationResult(false))
+                call.respond(HttpStatusCode.OK, ValidationResponse(false))
             }
-            call.respond(HttpStatusCode.OK, ValidationResult(true))
+            call.respond(HttpStatusCode.OK, ValidationResponse(true))
         }
 
         get("/cpa/{$CPA_ID}/party/{$PARTY_TYPE}/{$PARTY_ID}/encryption/certificate") {
