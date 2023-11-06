@@ -23,10 +23,10 @@ fun CollaborationProtocolAgreement.hasRoleServiceActionCombo(header: Header) {
             throw CpaValidationException("Service $EBMS_SERVICE_URI støtter ikke action ${header.action}")
         return
     }
-    val fromParty = this.getPartyInfoByTypeAndID(header.from.partyType, header.from.partyId)
+    val fromParty = this.getPartyInfoByTypeAndID(header.from.partyId)
     val fromRole = header.from.role
 
-    val toParty = this.getPartyInfoByTypeAndID(header.to.partyType, header.to.partyId)
+    val toParty = this.getPartyInfoByTypeAndID(header.to.partyId)
     val toRole = header.to.role
 
     partyInfoHasRoleServiceActionCombo(fromParty, fromRole, header.service, header.action, MessageDirection.SEND)

@@ -1,6 +1,7 @@
 package no.nav.emottak.cpa
 
 import no.nav.emottak.EBMS_SERVICE_URI
+import no.nav.emottak.melding.model.PartyId
 import no.nav.emottak.melding.model.SignatureDetails
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.Certificate
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
@@ -119,6 +120,15 @@ fun CollaborationProtocolAgreement.getPartyInfoByTypeAndID(partyType: String, pa
             party.type == partyType && party.value == partyId
         }
     } ?: throw CpaValidationException("PartyID med type $partyType og id $partyId eksisterer ikke i CPA")
+}
+
+fun CollaborationProtocolAgreement.getPartyInfoByTypeAndID(partyId: List<PartyId>): PartyInfo
+{
+    return this.partyInfo.firstOrNull { partyInfo ->
+        partyInfo.partyId.any { party ->
+            partyId.contains(PartyId(party.type!!, party.value!!)) // TODO O(n^2)...
+        }
+    } ?: throw CpaValidationException("Ingen match blant ${partyId} i CPA")
 }
 
 fun Certificate.getX509Certificate(): ByteArray {

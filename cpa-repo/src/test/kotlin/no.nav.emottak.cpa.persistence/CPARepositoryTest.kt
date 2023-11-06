@@ -10,7 +10,7 @@ class CPARepositoryTest : DBTest() {
 
     val cpaRepository = CPARepository()
     @Test
-    fun `Bør fine CPA i databasen`() {
+    fun `Bør finne CPA i databasen`() {
             cpaRepository.findCpa(CPA_ID).also {
                 assertEquals(CPA_ID,it?.cpaid)
             }
