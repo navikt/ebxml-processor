@@ -7,12 +7,15 @@ import no.nav.emottak.ebms.model.sjekkSignature
 import no.nav.emottak.melding.model.Header
 import no.nav.emottak.melding.model.Party
 import no.nav.emottak.melding.model.PartyId
+import no.nav.emottak.melding.model.Processing
 import no.nav.emottak.melding.model.SignatureDetails
+import kotlin.jvm.Throws
 
 class DokumentValidator(val httpClient: CpaRepoClient) {
 
 
-    fun validate(dokument: EbMSDocument,signatureDetails: SignatureDetails?) {
+    @Throws(Exception::class)
+    fun validate(dokument: EbMSDocument) : Processing {
 
         val messageHeader = dokument.messageHeader()
 
@@ -29,9 +32,8 @@ class DokumentValidator(val httpClient: CpaRepoClient) {
         val validationResponse = runBlocking {
             httpClient.postValidate(header)
         }
-        if (validationResponse.valid == false) throw Exception("Validation failed")
-        if (signatureDetails == null) throw Exception("Unable to retrieve signature details")
-        dokument.sjekkSignature(signatureDetails)
-
+        if (validationResponse.valid() == false) throw Exception("Validation failed")
+        dokument.sjekkSignature(validationResponse.processing!!.signingCertificate)
+        return validationResponse.processing!!
     }
 }
