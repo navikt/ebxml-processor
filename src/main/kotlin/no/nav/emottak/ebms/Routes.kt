@@ -46,7 +46,6 @@ fun Route.postEbms(validator: DokumentValidator, processingService: ProcessingSe
         }
 
         try {
-
             validator.validate(ebMSDocument)
         } catch (ex: MimeValidationException) {
             logger().error(ebMSDocument.messageHeader().marker(), "Mime validation has failed: ${ex.message}", ex)
