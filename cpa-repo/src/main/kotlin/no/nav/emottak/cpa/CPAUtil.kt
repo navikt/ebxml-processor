@@ -3,8 +3,7 @@ package no.nav.emottak.cpa
 import no.nav.emottak.EBMS_SERVICE_URI
 import no.nav.emottak.cpa.feil.CpaValidationException
 import no.nav.emottak.cpa.feil.SecurityException
-import no.nav.emottak.melding.feil.EbmsException
-import no.nav.emottak.melding.model.ErrorCode
+import no.nav.emottak.melding.model.PartyId
 import no.nav.emottak.melding.model.SignatureDetails
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.Certificate
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
@@ -13,7 +12,6 @@ import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.DocExchange
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PartyInfo
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.ProtocolType
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.Transport
-import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.SeverityType
 import org.w3._2000._09.xmldsig_.X509DataType
 import javax.xml.bind.JAXBElement
 

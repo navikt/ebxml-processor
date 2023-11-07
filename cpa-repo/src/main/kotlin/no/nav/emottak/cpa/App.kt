@@ -54,9 +54,10 @@ fun Application.myApplicationModule() {
             try {
                 val cpa = getCpa(validateRequest.cpaId)!!
                 cpa.validate(validateRequest) // Delivery Filure
-                val partyInfo = cpa.getPartyInfoByTypeAndID(validateRequest.from.partyType, validateRequest.from.partyId) // delivery Failure
+                val partyInfo = cpa.getPartyInfoByTypeAndID(validateRequest.from.partyId) // delivery Failure
                 val encryptionCertificate = partyInfo.getCertificateForEncryption()  // Security Failure
-                val signingCertificate = partyInfo.getCertificateForSignatureValidation(validateRequest.from.role,validateRequest.service,validateRequest.action) //Security Failure
+                val signingCertificate = partyInfo.getCertificateForSignatureValidation(
+                    validateRequest.from.role, validateRequest.service, validateRequest.action) //Security Failure
 
                 call.respond(HttpStatusCode.OK, ValidationResponse(Processing(signingCertificate,encryptionCertificate)))
 
