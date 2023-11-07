@@ -25,16 +25,23 @@ val issuerList = mapOf(
 )
 
 class CRLChecker(
-    val crlFiles: HashMap<X500Name, X509CRL>
+    val crlFiles: Map<X500Name, X509CRL>
 ) {
     fun getCRLRevocationInfo(issuer: String, serialNumber: BigInteger) {
         getRevokedCertificate(issuer = X500Name(issuer), serialNumber = serialNumber)?.let {
-            throw CertificateValidationException("Certificate $serialNumber revoked with reason ${it.revocationReason} at ${it.revocationDate}")
+            throw CertificateValidationException("Sertifikat revokert: serienummer <$serialNumber> revokert med reason <${it.revocationReason}> at <${it.revocationDate}>")
         }
     }
 
     private fun getRevokedCertificate(issuer: X500Name, serialNumber: BigInteger): X509CRLEntry? {
-        val crlFile = crlFiles.get(key = issuer) ?: throw CertificateValidationException("Issuer $issuer ikke støttet. CRL liste må oppdateres med issuer om denne skal støttes")
-        return crlFile.getRevokedCertificate(serialNumber)
+        return getCRLFile(issuer).getRevokedCertificate(serialNumber)
+    }
+
+    private fun getCRLFile(issuer: X500Name): X509CRL {
+        val crlFile = crlFiles[issuer]
+            ?: throw CertificateValidationException("Issuer $issuer ikke støttet. CRL liste må oppdateres med issuer om denne skal støttes")
+        if (X500Name(crlFile.issuerX500Principal.name) != issuer)
+            throw CertificateValidationException("Issuer $issuer har ikke utstedt denne CRL-filen, men ${crlFile.issuerX500Principal.name}! Dette skal ikke skje!")
+        return crlFile
     }
 }

@@ -10,15 +10,17 @@ import io.mockk.just
 import io.mockk.mockk
 import io.mockk.runs
 import no.nav.emottak.cpa.TestUtil
+import no.nav.emottak.cpa.TestUtil.Companion.crlFile
 import no.nav.emottak.util.cert.CRLChecker
 import no.nav.emottak.util.cert.CertificateValidationException
 import no.nav.emottak.util.cert.SertifikatValidering
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.decodeBase64
+import org.bouncycastle.asn1.x500.X500Name
 
 class SertifikatValideringTest : FunSpec({
 
-    context("Sertifikatsjekker med mocked CRLChecker") {
+    context("Sertifikatsjekk med mocked CRLChecker") {
         val crlChecker = mockk<CRLChecker>()
         every {
             crlChecker.getCRLRevocationInfo(any(), any())
@@ -29,7 +31,6 @@ class SertifikatValideringTest : FunSpec({
             mapOf(
                 "Selvsignert sertifikat feiler" to row(TestUtil.selfSignedCertificate, "Sertifikat er selvsignert"),
                 "Expired sertifikat feiler" to row(TestUtil.expiredCertificate, "Sertifikat utløpt"),
-//              "Revokert sertifikat feiler" to row(TestUtil.revokedCertificate, "Sertifikat er selvsignert"),
                 "Gyldig sertifikat med ukjent trust chain feiler" to row(TestUtil.validCertificate, "Sertifikatvalidering feilet")
             )
         ) { (certificate, errorMessage) ->
@@ -45,6 +46,22 @@ class SertifikatValideringTest : FunSpec({
             )
         ) { certificate ->
             sertifikatValidering.validateCertificate(certificate)
+        }
+    }
+
+    context("Sertifikatsjekk med CRLChecker med CRL fil") {
+        val crlChecker = CRLChecker(mapOf(Pair(X500Name("CN=Buypass Class 3 CA 2, O=Buypass AS-983163327, C=NO"), crlFile)))
+        val sertifikatValidering = SertifikatValidering(crlChecker)
+
+        withData(
+            mapOf(
+                "Revokert sertifikat feiler" to row(TestUtil.revokedCertificate, "Sertifikat revokert"),
+            )
+        ) { (certificate, errorMessage) ->
+            val exception = shouldThrow<CertificateValidationException> {
+                sertifikatValidering.sjekkCRL(certificate)
+            }
+            exception.message shouldStartWith errorMessage
         }
     }
 })

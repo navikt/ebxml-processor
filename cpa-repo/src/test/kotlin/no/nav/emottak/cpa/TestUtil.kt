@@ -4,6 +4,7 @@ import no.nav.emottak.melding.model.Header
 import no.nav.emottak.melding.model.Party
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.melding.model.PartyId
+import no.nav.emottak.util.createCRLFile
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 
 class TestUtil {
@@ -17,6 +18,8 @@ class TestUtil {
         val expiredCertificate = createX509Certificate(this::class.java.classLoader.getResource("certificates/expired.qcevident.ca23.ssl.buypass.no.cer").readBytes())
         val revokedCertificate = createX509Certificate(this::class.java.classLoader.getResource("certificates/revoked.qcevident.ca23.ssl.buypass.no.cer").readBytes())
         val selfSignedCertificate = createX509Certificate(this::class.java.classLoader.getResource("certificates/cert_selfsigned.pem").readBytes())
+
+        val crlFile = createCRLFile(this::class.java.classLoader.getResource("crl/BPClass3CA2.crl").readBytes())
     }
 }
 

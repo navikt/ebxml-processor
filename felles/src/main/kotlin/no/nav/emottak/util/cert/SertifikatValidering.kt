@@ -36,7 +36,7 @@ class SertifikatValidering(
         sjekkCRL(certificate)
     }
 
-    private fun sjekkSertifikatMotTrustedCa(certificate: X509Certificate) {
+    fun sjekkSertifikatMotTrustedCa(certificate: X509Certificate) {
         val selector = X509CertSelector()
         selector.certificate = certificate
         val trustAnchors = trustedRootCerts.map {
@@ -58,7 +58,7 @@ class SertifikatValidering(
         }
     }
 
-    private fun sjekkGyldigTidspunkt(certificate: X509Certificate, instant: Instant) {
+    fun sjekkGyldigTidspunkt(certificate: X509Certificate, instant: Instant) {
         try {
             certificate.checkValidity(Date(instant.toEpochMilli()))
         } catch (e: CertificateExpiredException) {
@@ -68,7 +68,7 @@ class SertifikatValidering(
         }
     }
 
-    private fun sjekkCRL(certificate: X509Certificate) {
+    fun sjekkCRL(certificate: X509Certificate) {
         try {
             crlChecker.getCRLRevocationInfo(certificate.issuerX500Principal.name, certificate.serialNumber)
         } catch (e: CertificateValidationException) {
