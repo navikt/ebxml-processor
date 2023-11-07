@@ -35,46 +35,11 @@ fun main() {
 }
 
 private fun Application.serverSetup() {
-//    install(CallLogging) {
-//        level = Level.INFO
-//        filter { call -> !call.request.path().startsWith("/internal") }
-//    }
     install(ContentNegotiation) {
         json()
     }
     routing {
         registerHealthEndpoints()
-
-        get("/payload/test") {
-            val testByteArray = this::class.java.classLoader.getResource("xml/test.xml").readBytes()
-            val request = PayloadRequest(
-                header = Header(
-                    messageId = UUID.randomUUID().toString(),
-                    conversationId = UUID.randomUUID().toString(),
-                    cpaId = UUID.randomUUID().toString(),
-                    to = Party(
-                        listOf(
-                            PartyId(
-                            type = "HER",
-                            value = "8141253"
-                        )),
-                        role = "mottaker"
-                    ),
-                    from = Party(
-                        listOf(PartyId(
-                            type = "HER",
-                            value = "54321"
-                        )),
-                        role = "sender"
-                    ),
-                    service = "melding",
-                    action = "send"
-                ),
-                payload = testByteArray
-            )
-            val response = processor.processOutgoing(request)
-            call.respond(response)
-        }
 
         post("/payload") {
             val request: PayloadRequest = call.receive(PayloadRequest::class)
