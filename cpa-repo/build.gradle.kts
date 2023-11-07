@@ -42,7 +42,7 @@ dependencies {
     testImplementation(testLibs.mockk.jvm)
     testImplementation(testLibs.mockk.dsl.jvm)
     testImplementation(testLibs.junit.jupiter.api)
-    testImplementation(testLibs.kotest)
+    testImplementation(testLibs.bundles.kotest)
     testImplementation(libs.ktor.client.content.negotiation)
     testImplementation(testLibs.ktor.server.test.host)
     testImplementation(kotlin("test"))

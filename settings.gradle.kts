@@ -73,8 +73,10 @@ dependencyResolutionManagement {
             library("xmlunit-core", "org.xmlunit", "xmlunit-core").versionRef("xmlunit")
             library("xmlunit-matchers", "org.xmlunit", "xmlunit-matchers").versionRef("xmlunit")
 
-            library("kotest", "io.kotest", "kotest-runner-junit5").versionRef("kotest")
+            library("kotest-runner-junit5", "io.kotest", "kotest-runner-junit5").versionRef("kotest")
+            library("kotest-framework-datatest", "io.kotest", "kotest-framework-datatest").versionRef("kotest")
 
+            bundle("kotest", listOf("kotest-runner-junit5", "kotest-framework-datatest"))
             bundle("mockk", listOf("mockk-jvm", "mockk-dsl-jvm"))
             bundle("xmlunit", listOf("xmlunit-core", "xmlunit-matchers"))
         }
