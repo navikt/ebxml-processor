@@ -1,7 +1,10 @@
 package no.nav.emottak.cpa
 
 import no.nav.emottak.EBMS_SERVICE_URI
-import no.nav.emottak.melding.model.PartyId
+import no.nav.emottak.cpa.feil.CpaValidationException
+import no.nav.emottak.cpa.feil.SecurityException
+import no.nav.emottak.melding.feil.EbmsException
+import no.nav.emottak.melding.model.ErrorCode
 import no.nav.emottak.melding.model.SignatureDetails
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.Certificate
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
@@ -10,6 +13,7 @@ import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.DocExchange
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PartyInfo
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.ProtocolType
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.Transport
+import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.SeverityType
 import org.w3._2000._09.xmldsig_.X509DataType
 import javax.xml.bind.JAXBElement
 
@@ -67,18 +71,18 @@ private fun PartyInfo.getDefaultDeliveryChannel(
 
 
 fun DeliveryChannel.getSigningCertificate(): Certificate {
-    val docExchange = this.docExchangeId as DocExchange? ?: throw CpaValidationException("Fant ikke DocExchange")
+    val docExchange = this.docExchangeId as DocExchange? ?: throw SecurityException("Fant ikke DocExchange")
     return if (
         docExchange.ebXMLSenderBinding != null &&
         docExchange.ebXMLSenderBinding?.senderNonRepudiation != null &&
         docExchange.ebXMLSenderBinding?.senderNonRepudiation?.signingCertificateRef != null
-    ) docExchange.ebXMLSenderBinding!!.senderNonRepudiation!!.signingCertificateRef.certId as Certificate else throw CpaValidationException("Finner ikke signeringssertifikat")
+    ) docExchange.ebXMLSenderBinding!!.senderNonRepudiation!!.signingCertificateRef.certId as Certificate else throw SecurityException("Finner ikke signeringssertifikat")
 
 }
 
 fun DeliveryChannel.getSenderTransportProtocolType(): ProtocolType {
-    val transport = this.transportId as Transport? ?: throw CpaValidationException("Fant ikke transportkanal")
-    return transport.transportSender?.transportProtocol ?: throw CpaValidationException("Fant ikke transportkanal")
+    val transport = this.transportId as Transport? ?: throw SecurityException("Fant ikke transportkanal")
+    return transport.transportSender?.transportProtocol ?: throw SecurityException("Fant ikke transportkanal")
 }
 
 fun DeliveryChannel.getReceiverTransportProtocolType(): ProtocolType {
@@ -88,29 +92,28 @@ fun DeliveryChannel.getReceiverTransportProtocolType(): ProtocolType {
 
 fun DeliveryChannel.getSignatureAlgorithm(): String
 {
-    val docExchange = this.docExchangeId as DocExchange? ?: throw CpaValidationException("Fant ikke DocExchange")
+    val docExchange = this.docExchangeId as DocExchange? ?: throw SecurityException("Fant ikke DocExchange")
     if (docExchange.ebXMLSenderBinding != null
         && docExchange.ebXMLSenderBinding?.senderNonRepudiation != null
         && docExchange.ebXMLSenderBinding?.senderNonRepudiation?.signatureAlgorithm != null
-        && docExchange.ebXMLSenderBinding?.senderNonRepudiation?.signatureAlgorithm?.isNotEmpty() == true
-    )
+        && docExchange.ebXMLSenderBinding?.senderNonRepudiation?.signatureAlgorithm?.isNotEmpty() == true)
     {
         val senderNonRepudiation = docExchange.ebXMLSenderBinding!!.senderNonRepudiation;
         return if (senderNonRepudiation!!.signatureAlgorithm[0].w3C != null)
             senderNonRepudiation.signatureAlgorithm[0].w3C!!
         else senderNonRepudiation.signatureAlgorithm[0].value!!
     }
-    throw CpaValidationException("Signature algorithm eksisterer ikke for DeliveryChannel")
+    throw SecurityException("Signature algorithm eksisterer ikke for DeliveryChannel")
 }
 
 fun DeliveryChannel.getHashFunction(): String
 {
-    val docExchange = this.docExchangeId as DocExchange? ?: throw CpaValidationException("Fant ikke DocExchange")
+    val docExchange = this.docExchangeId as DocExchange? ?: throw SecurityException("Fant ikke DocExchange")
     if (docExchange.ebXMLSenderBinding != null
         && docExchange.ebXMLSenderBinding?.senderNonRepudiation != null
         && docExchange.ebXMLSenderBinding?.senderNonRepudiation?.hashFunction != null)
         return docExchange.ebXMLSenderBinding!!.senderNonRepudiation!!.hashFunction
-    throw CpaValidationException("Hash Function eksisterer ikke for DeliveryChannel")
+    throw SecurityException("Hash Function eksisterer ikke for DeliveryChannel")
 }
 
 fun CollaborationProtocolAgreement.getPartyInfoByTypeAndID(partyType: String, partyId: String): PartyInfo

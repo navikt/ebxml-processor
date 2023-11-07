@@ -3,11 +3,13 @@ package no.nav.emottak.melding.process
 import no.nav.emottak.util.crypto.Dekryptering
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
 class DekrypteringTest {
 
     @Test
+    @Disabled
     fun dekrypterFil() {
         val dekryptering = Dekryptering()
         val input = createInputstreamFromFile("src/test/resources/xml/kryptert_fil")

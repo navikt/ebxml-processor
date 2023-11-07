@@ -32,6 +32,7 @@ class DokumentValidator(val httpClient: CpaRepoClient) {
         val validationResponse = runBlocking {
             httpClient.postValidate(header)
         }
+
         if (validationResponse.valid() == false) throw Exception("Validation failed")
         dokument.sjekkSignature(validationResponse.processing!!.signingCertificate)
         return validationResponse.processing!!

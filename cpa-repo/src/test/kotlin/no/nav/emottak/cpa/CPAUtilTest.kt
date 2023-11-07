@@ -1,5 +1,6 @@
 package no.nav.emottak.cpa
 
+import no.nav.emottak.cpa.feil.CpaValidationException
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.decodeBase64
 import org.junit.jupiter.api.assertThrows

@@ -15,13 +15,13 @@ data class PayloadRequest(
 @Serializable
 data class PayloadResponse(
     val processedPayload: ByteArray,
-    val error: Error? = null
+    val error: Feil? = null
 )
 
 @Serializable
-data class Error(val code:ErrorCode,
-                 val descriptionText:String,
-                 val sevirity:String? = null) {
+data class Feil(val code:ErrorCode,
+                val descriptionText:String,
+                val sevirity:String? = null) {
 
     fun asEbxmlError(location: String? = null):org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Error {
             val error = org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Error()
@@ -76,8 +76,7 @@ data class Processing(
 @Serializable
 data class ValidationResponse(
     val processing: Processing?,
-    val error: List<Error>? = null) {
-
+    val error: List<Feil>? = null) {
     fun valid(): Boolean = processing != null
 }
 
@@ -102,19 +101,29 @@ data class ValidationResponse(
             description.lang = "no" // Default verdi fra spec.
             description.value = descriptionText
             error.description = description
-
             error.severity = severityType ?: SeverityType.ERROR
             error.location = location // Content-ID hvis error er i Payload. Hvis ebxml så er det XPath
             error.id = "ERROR_ID" // Element Id
             //error.any             // Unused?
             //error.otherAttributes // Unused?
-            //error.codeContext = "urn:oasis:names:tc:ebxml-msg:service:errors" // Skal være default ifølge spec. Trenger ikke overstyre / sette
             return error
         }
 
 
  }
 
+@JvmName("asErrorList")
+fun List<Feil>.asErrorList(): ErrorList {
+    if (this.isEmpty()) {
+        throw IllegalArgumentException("(4.2.3 Kan ikke opprette ErrorList uten errors")
+    }
+
+    return this.map {
+        it.code.createEbxmlError(it.descriptionText, SeverityType.fromValue(it.sevirity))
+    }.asErrorList()
+}
+
+@JvmName("toErrorList")
 fun List<org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Error>.asErrorList(): ErrorList {
             if(this.isEmpty()) {
                 throw IllegalArgumentException("(4.2.3 Kan ikke opprette ErrorList uten errors")
