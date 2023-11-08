@@ -9,8 +9,8 @@ import no.nav.emottak.util.createCRLFile
 import org.bouncycastle.asn1.x500.X500Name
 import java.security.cert.X509CRL
 
-class CRLHandler(private val httpClient: HttpClient) {
-    suspend fun updateCRLs(): HashMap<X500Name, X509CRL> {
+class CRLRetriever(private val httpClient: HttpClient) {
+    suspend fun updateAllCRLs(): HashMap<X500Name, X509CRL> {
         val crlFiles = hashMapOf<X500Name, X509CRL>()
         log.info("Oppdatering av alle CRLer startet...")
         issuerList.forEach { issuer ->
