@@ -76,10 +76,10 @@ data class Processing(
 )
 
 @Serializable
-data class ValidationResponse(
+data class ValidationResult(
     val processing: Processing?,
     val error: List<Feil>? = null) {
-    fun valid(): Boolean = processing != null
+    fun valid(): Boolean = error == null
 }
 
 
@@ -121,7 +121,7 @@ fun List<Feil>.asErrorList(): ErrorList {
     }
 
     return this.map {
-        it.code.createEbxmlError(it.descriptionText, SeverityType.fromValue(it.sevirity))
+        it.code.createEbxmlError(it.descriptionText,  if (it.sevirity!=null)  SeverityType.fromValue(it.sevirity) else null)
     }.asErrorList()
 }
 

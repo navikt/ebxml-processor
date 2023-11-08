@@ -48,6 +48,10 @@ data class EbMSDocument(val messageId: String, val dokument: Document, val attac
 
     }
 
+    fun createFail(errorList: ErrorList): EbMSMessageError {
+        return EbMSMessageError( this.messageHeader().createResponseHeader(newFromRole = "ERROR_RESPONDER", newToRole = "ERROR_RECEIVER", newAction = MESSAGE_ERROR_ACTION, newService = EBMS_SERVICE_URI), errorList )
+    }
+
     fun createFail(error: Error): EbMSMessageError {
         return EbMSMessageError(this.messageHeader().createResponseHeader(newFromRole = "ERROR_RESPONDER", newToRole = "ERROR_RECEIVER", newAction = MESSAGE_ERROR_ACTION, newService = EBMS_SERVICE_URI), ErrorList().also {
             it.error.add(error)

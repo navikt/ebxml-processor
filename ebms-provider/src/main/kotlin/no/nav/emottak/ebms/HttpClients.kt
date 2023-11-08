@@ -9,7 +9,7 @@ import no.nav.emottak.melding.model.PayloadRequest
 import no.nav.emottak.melding.model.PayloadResponse
 import no.nav.emottak.melding.model.SignatureDetails
 import no.nav.emottak.melding.model.SignatureDetailsRequest
-import no.nav.emottak.melding.model.ValidationResponse
+import no.nav.emottak.melding.model.ValidationResult
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
 
 private const val cpaRepoEndpoint = "http://cpa-repo"
@@ -19,7 +19,7 @@ private const val payloadProcessorEndpoint = "http://ebms-payload/payload"
 class CpaRepoClient(clientProvider:()->HttpClient) {
     private var httpClient = clientProvider.invoke()
 
-    suspend fun postValidate(header: Header) : ValidationResponse {
+    suspend fun postValidate(header: Header) : ValidationResult {
         return httpClient.post(validatorEndpoint) {
             this.url {
                 this.path("/cpa/validate")

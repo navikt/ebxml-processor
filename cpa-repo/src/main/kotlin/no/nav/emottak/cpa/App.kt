@@ -20,11 +20,12 @@ import no.nav.emottak.cpa.config.mapHikariConfig
 import no.nav.emottak.cpa.feil.CpaValidationException
 import no.nav.emottak.cpa.validation.validate
 import no.nav.emottak.melding.feil.EbmsException
+import no.nav.emottak.melding.model.ErrorCode
 import no.nav.emottak.melding.model.Feil
 import no.nav.emottak.melding.model.Header
 import no.nav.emottak.melding.model.Processing
 import no.nav.emottak.melding.model.SignatureDetailsRequest
-import no.nav.emottak.melding.model.ValidationResponse
+import no.nav.emottak.melding.model.ValidationResult
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.marker
 import org.slf4j.LoggerFactory
@@ -59,11 +60,14 @@ fun Application.myApplicationModule() {
                 val signingCertificate = partyInfo.getCertificateForSignatureValidation(
                     validateRequest.from.role, validateRequest.service, validateRequest.action) //Security Failure
 
-                call.respond(HttpStatusCode.OK, ValidationResponse(Processing(signingCertificate,encryptionCertificate)))
+                call.respond(HttpStatusCode.OK, ValidationResult(Processing(signingCertificate,encryptionCertificate)))
 
             } catch (ebmsEx: EbmsException) {
                 log.warn(validateRequest.marker(), ebmsEx.message, ebmsEx)
-                call.respond(HttpStatusCode.OK, ValidationResponse(processing = null, listOf( Feil(ebmsEx.errorCode, ebmsEx.descriptionText, ebmsEx.severity))))
+                call.respond(HttpStatusCode.OK, ValidationResult(processing = null, listOf( Feil(ebmsEx.errorCode, ebmsEx.descriptionText, ebmsEx.severity))))
+            } catch (ex: Exception) {
+                log.error(validateRequest.marker(),ex.message,ex)
+                call.respond(HttpStatusCode.OK,ValidationResult(processing = null, listOf(Feil(ErrorCode.UNKNOWN,"Unexpected error during cpa validation"))))
             }
 
         }
