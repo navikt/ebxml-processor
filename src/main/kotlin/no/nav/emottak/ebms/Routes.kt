@@ -6,7 +6,6 @@ import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import no.nav.emottak.ebms.model.Cpa
 import no.nav.emottak.ebms.model.EbMSDocument
 import no.nav.emottak.ebms.model.EbMSPayloadMessage
 import no.nav.emottak.ebms.model.buildEbmMessage
@@ -16,6 +15,7 @@ import no.nav.emottak.ebms.validation.MimeValidationException
 import no.nav.emottak.ebms.validation.asParseAsSoapFault
 import no.nav.emottak.ebms.validation.validateMime
 import no.nav.emottak.melding.model.ErrorCode
+import no.nav.emottak.melding.model.asErrorList
 import no.nav.emottak.util.marker
 
 
@@ -23,16 +23,9 @@ fun Route.postEbms(validator: DokumentValidator, processingService: ProcessingSe
     post("/ebms") {
         // KRAV 5.5.2.1 validate MIME
         val debug:Boolean = call.request.header("debug")?.isNotBlank()?: false
+         val ebMSDocument: EbMSDocument
         try {
             call.request.validateMime()
-        } catch (ex: MimeValidationException) {
-            logger().error("Mime validation has failed: ${ex.message}", ex)
-            call.respond(HttpStatusCode.InternalServerError, ex.asParseAsSoapFault())
-            return@post
-        }
-
-        val ebMSDocument: EbMSDocument
-        try {
             ebMSDocument = call.receiveEbmsDokument()
         } catch (ex: MimeValidationException) {
             logger().error("Mime validation has failed: ${ex.message}", ex)
@@ -45,18 +38,11 @@ fun Route.postEbms(validator: DokumentValidator, processingService: ProcessingSe
             return@post
         }
 
-        try {
-            validator.validate(ebMSDocument)
-        } catch (ex: MimeValidationException) {
-            logger().error(ebMSDocument.messageHeader().marker(), "Mime validation has failed: ${ex.message}", ex)
-            call.respond(HttpStatusCode.InternalServerError, ex.asParseAsSoapFault())
-            return@post
-        } catch (ex2: Exception) {
-            logger().error(ebMSDocument.messageHeader().marker(), "Validation failed: ${ex2.message}", ex2)
+        val validationResult = validator.validate(ebMSDocument)
+        if (!validationResult.valid()) {
             ebMSDocument
-                .createFail(ErrorCode.OTHER_XML.createEbxmlError("Validation failed: ${ex2.message}"))
+                .createFail(validationResult.error!!.asErrorList())
                 .toEbmsDokument()
-              //  .signer(cpa.signatureDetails) //@TODO hva skjer hvis vi klarer ikke å hente signature details ?
                 .also {
                     call.respondEbmsDokument(it)
                     return@post

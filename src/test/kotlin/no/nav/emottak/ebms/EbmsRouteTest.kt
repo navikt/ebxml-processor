@@ -14,8 +14,9 @@ import no.nav.emottak.ebms.validation.DokumentValidator
 import no.nav.emottak.ebms.validation.MimeHeaders
 import no.nav.emottak.ebms.xml.xmlMarshaller
 import no.nav.emottak.melding.model.ErrorCode
-import no.nav.emottak.melding.model.SignatureDetails
-import no.nav.emottak.melding.model.ValidationResponse
+import no.nav.emottak.melding.model.Feil
+import no.nav.emottak.melding.model.Processing
+import no.nav.emottak.melding.model.ValidationResult
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -39,6 +40,9 @@ class EbmsRouteTest {
             routing {
                 postEbms(dokumentValidator,processingService,cpaRepoClient)
             }
+
+        }
+        externalServices {
 
         }
         testBlock()
@@ -91,10 +95,7 @@ class EbmsRouteTest {
 
     @Test
     fun `Sending valid request should trigger validation`() = mimeTestApp {
-        val validationResponse = mockk<ValidationResponse>()
-        every {
-            validationResponse.valid()
-        } returns false
+        val validationResponse = ValidationResult(null, listOf(Feil(ErrorCode.SECURITY_FAILURE,"Signature Fail")))
         coEvery {
             cpaRepoClient.postValidate(any())
         } returns validationResponse
@@ -102,10 +103,26 @@ class EbmsRouteTest {
         val response = client.post("/ebms",validMultipartRequest.asHttpRequest())
         val envelope =  xmlMarshaller.unmarshal(response.bodyAsText(),Envelope::class.java)
         with(envelope.assertErrorAndGet().error.first()) {
-            assertEquals("Validation failed: Validation failed" , this.description.value)
-            assertEquals(ErrorCode.OTHER_XML.value,this.errorCode)
+            assertEquals("Signature Fail" , this.description.value)
+            assertEquals(ErrorCode.SECURITY_FAILURE.value,this.errorCode)
         }
     }
+
+    @Test
+    fun `Not valid request should answer with Feil Signal`() {
+
+    }
+
+    @Test
+    fun `Feil på signature should answer with Feil Signal`() {
+
+    }
+
+    @Test
+    fun `If Valid then processing should be triggered`() {
+
+    }
+
 
     fun Envelope.assertErrorAndGet(): ErrorList {
         assertNotNull(this.header.messageHeader())
