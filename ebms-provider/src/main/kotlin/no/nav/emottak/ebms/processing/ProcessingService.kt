@@ -22,6 +22,7 @@ class ProcessingService(val httpClient: PayloadProcessingClient) {
         payloads.forEach { payload ->
             val payloadRequest = PayloadRequest(
                 header = header,
+                payloadId = payload.contentId,
                 payload = payload.dataSource
             )
             //TODO do something with the response?

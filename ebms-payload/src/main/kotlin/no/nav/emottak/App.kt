@@ -7,24 +7,15 @@ import io.ktor.server.application.call
 import io.ktor.server.application.install
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
-import io.ktor.server.plugins.callloging.CallLogging
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.server.request.path
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
-import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
-import kotlinx.serialization.json.Json
 import no.nav.emottak.melding.Processor
-import no.nav.emottak.melding.model.Header
-import no.nav.emottak.melding.model.Party
-import no.nav.emottak.melding.model.PartyId
 import no.nav.emottak.melding.model.PayloadRequest
 import no.nav.emottak.util.marker
 import org.slf4j.LoggerFactory
-import org.slf4j.event.Level
-import java.util.UUID
 
 val processor = Processor()
 internal val log = LoggerFactory.getLogger("no.nav.emottak.payload.App")
@@ -44,11 +35,13 @@ private fun Application.serverSetup() {
         post("/payload") {
             val request: PayloadRequest = call.receive(PayloadRequest::class)
             runCatching {
+                log.info(request.header.marker(), "Payload ${request.payloadId} mottatt for prosessering")
                 processor.process(request)
             }.onSuccess {
+                log.info(request.header.marker(), "Payload ${request.payloadId} prosessert OK")
                 call.respond(it)
             }.onFailure {
-                log.warn(request.header.marker(), it.message, it)
+                log.error(request.header.marker(), "Payload ${request.payloadId}  prosessert med feil: ${it.message}", it)
                 call.respond(HttpStatusCode.BadRequest, it.localizedMessage)
             }
         }

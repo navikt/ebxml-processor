@@ -9,11 +9,13 @@ import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.SeverityType
 @Serializable
 data class PayloadRequest(
     val header: Header,
+    val payloadId: String,
     val payload: ByteArray
 )
 
 @Serializable
 data class PayloadResponse(
+    val payloadId: String,
     val processedPayload: ByteArray,
     val error: Feil? = null
 )

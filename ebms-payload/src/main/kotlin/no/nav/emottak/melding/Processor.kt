@@ -23,7 +23,6 @@ class Processor {
 
 
     fun process(payloadRequest: PayloadRequest): PayloadResponse {
-        log.info(payloadRequest.header.marker(), "Melding mottat for payload prosessering")
         return if (payloadRequest.isIncomingMessage()) {
             processIncoming(payloadRequest)
         } else {
@@ -38,6 +37,7 @@ class Processor {
             //.verifiserXML()
             .verifiserSignatur()
         return PayloadResponse(
+            payloadRequest.payloadId,
             melding.processedPayload
         )
     }
@@ -49,6 +49,7 @@ class Processor {
             .komprimer()
             .krypter()
         return PayloadResponse(
+            payloadRequest.payloadId,
             melding.processedPayload
         )
     }
