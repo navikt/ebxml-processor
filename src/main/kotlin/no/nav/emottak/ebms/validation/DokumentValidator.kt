@@ -33,7 +33,7 @@ class DokumentValidator(val httpClient: CpaRepoClient) {
             httpClient.postValidate(header)
         }
 
-        if (validationResponse.valid() == false) throw Exception("Validation failed")
+        if (!validationResponse.valid()) throw Exception("Validation failed")
         dokument.sjekkSignature(validationResponse.processing!!.signingCertificate)
         return validationResponse.processing!!
     }

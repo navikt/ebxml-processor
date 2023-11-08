@@ -77,6 +77,7 @@ fun EbMSDocument.signer(signatureDetails: SignatureDetails): EbMSDocument {
 
 fun EbMSDocument.sjekkSignature(signatureDetails: SignatureDetails) {
     SignaturValidator().validate(signatureDetails, this.dokument, this.attachments)
+    log.info(this.messageHeader().marker(), "Signatur OK")
 }
 
 
@@ -85,13 +86,13 @@ fun EbMSDocument.buildEbmMessage(): EbMSBaseMessage {
     val envelope: Envelope = xmlMarshaller.unmarshal( this.dokument)
     val header = envelope.header
     return if (header.acknowledgment() != null) {
-        log.info(header.messageHeader().marker(), "Mottak melding av type Acknowledgment")
+        log.info(header.messageHeader().marker(), "Mottatt melding av type Acknowledgment")
         EbmsAcknowledgment(header.messageHeader(), header.acknowledgment()!!, this.dokument)
     } else if (header.errorList() != null) {
-        log.info(header.messageHeader().marker(), "Mottak melding av type ErrorList")
+        log.info(header.messageHeader().marker(), "Mottatt melding av type ErrorList")
         EbMSMessageError(header.messageHeader(), header.errorList()!!, this.dokument)
     } else {
-        log.info(header.messageHeader().marker(), "Mottak melding av type payload")
+        log.info(header.messageHeader().marker(), "Mottatt melding av type payload")
         EbMSPayloadMessage(this.dokument,header.messageHeader(),header.ackRequested(),this.attachments, LocalDateTime.now())
     }
 }
