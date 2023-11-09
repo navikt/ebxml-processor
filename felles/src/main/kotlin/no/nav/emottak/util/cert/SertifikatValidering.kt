@@ -6,7 +6,9 @@ import no.nav.emottak.util.isSelfSigned
 import org.bouncycastle.asn1.x509.CRLDistPoint
 import org.bouncycastle.asn1.x509.Extension
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils
+import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.slf4j.LoggerFactory
+import java.security.Provider
 import java.security.cert.CertPathBuilder
 import java.security.cert.CertPathBuilderException
 import java.security.cert.CertStore
@@ -25,7 +27,8 @@ internal val log = LoggerFactory.getLogger("no.nav.emottak.cpa.validation.Sertif
 class SertifikatValidering(
     val crlChecker: CRLChecker,
     val trustedRootCerts: Set<X509Certificate> = getTrustedRootCerts(),
-    val intermediateCerts: Set<X509Certificate> = getIntermediateCerts()
+    val intermediateCerts: Set<X509Certificate> = getIntermediateCerts(),
+    val provider: Provider = BouncyCastleProvider()
 ) {
     fun validateCertificate(certificate: X509Certificate) {
         if (isSelfSigned(certificate)) {
@@ -47,10 +50,10 @@ class SertifikatValidering(
         pkixParams.isRevocationEnabled = false
         pkixParams.date = Date.from(Instant.now())
 
-        val intermediateCertStore = CertStore.getInstance("Collection", CollectionCertStoreParameters(intermediateCerts), "BC")
+        val intermediateCertStore = CertStore.getInstance("Collection", CollectionCertStoreParameters(intermediateCerts), provider)
         pkixParams.addCertStore(intermediateCertStore)
 
-        val builder = CertPathBuilder.getInstance("PKIX", "BC")
+        val builder = CertPathBuilder.getInstance("PKIX", provider)
         try {
             builder.build(pkixParams) as PKIXCertPathBuilderResult
         } catch (e: CertPathBuilderException) {
@@ -82,4 +85,3 @@ class SertifikatValidering(
     }
 
 }
-
