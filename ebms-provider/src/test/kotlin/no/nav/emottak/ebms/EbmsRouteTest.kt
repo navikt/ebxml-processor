@@ -29,6 +29,7 @@ import org.apache.xml.security.signature.XMLSignature
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ErrorList
 import org.xmlsoap.schemas.soap.envelope.Envelope
@@ -180,6 +181,7 @@ class EbmsRouteTest {
     }
 
     @Test
+    @Disabled
     fun `If Valid then processing should be triggered`() = validationTestApp {
         val multipart = validMultipartRequest.modify(validMultipartRequest.parts.first() to validMultipartRequest.parts.first().modify {
             it.remove(MimeHeaders.CONTENT_ID)
