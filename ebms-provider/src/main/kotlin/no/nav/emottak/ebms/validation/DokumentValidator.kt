@@ -9,10 +9,7 @@ import no.nav.emottak.melding.model.Feil
 import no.nav.emottak.melding.model.Header
 import no.nav.emottak.melding.model.Party
 import no.nav.emottak.melding.model.PartyId
-import no.nav.emottak.melding.model.Processing
-import no.nav.emottak.melding.model.SignatureDetails
 import no.nav.emottak.melding.model.ValidationResult
-import kotlin.jvm.Throws
 
 class DokumentValidator(val httpClient: CpaRepoClient) {
 
@@ -32,7 +29,7 @@ class DokumentValidator(val httpClient: CpaRepoClient) {
                             messageHeader.service.value!!,
                             messageHeader.action)
         val validationResult = runBlocking {
-            httpClient.postValidate(header)
+            httpClient.postValidate(dokument.contentId, header)
         }
 
         if (validationResult.valid() == false) return validationResult

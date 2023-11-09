@@ -50,7 +50,7 @@ fun Application.myApplicationModule() {
             call.respond(cpa)
         }
 
-        post("cpa/validate") {
+        post("cpa/validate/{$CONTENT_ID}") {
             val validateRequest = call.receive(Header::class)
             try {
                 val cpa = getCpa(validateRequest.cpaId)!!
@@ -106,6 +106,7 @@ fun Application.myApplicationModule() {
 private const val CPA_ID = "cpaId"
 private const val PARTY_TYPE = "partyType"
 private const val PARTY_ID = "partyId"
+private const val CONTENT_ID ="contentId"
 private const val ROLE = "role"
 private const val SERVICE = "service"
 private const val ACTION = "action"

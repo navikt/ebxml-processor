@@ -20,6 +20,7 @@ import kotlin.collections.ArrayList
 
 //EbmsPayloadMessage
 class EbMSPayloadMessage(
+    val contentID:String,
     override val dokument:Document,
     override val messageHeader: MessageHeader,
     val ackRequested: AckRequested? = null,

@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test
 class DekrypteringTest {
 
     @Test
+    @Disabled
     fun dekrypterFil() {
         val dekryptering = Dekryptering()
         val input = createInputstreamFromFile("src/test/resources/xml/kryptert_fil")

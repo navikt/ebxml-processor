@@ -29,4 +29,4 @@ fun createCRLFile(byteArray: ByteArray): X509CRL {
 }
 
 @OptIn(ExperimentalEncodingApi::class)
- fun decodeBase64(base64String: ByteArray): ByteArray = Base64.decode(base64String)
+ fun decodeBase64(base64String: ByteArray): ByteArray = java.util.Base64.getMimeDecoder().decode(base64String)
