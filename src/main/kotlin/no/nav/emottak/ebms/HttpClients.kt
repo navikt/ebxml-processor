@@ -19,10 +19,10 @@ private const val payloadProcessorEndpoint = "http://ebms-payload/payload"
 class CpaRepoClient(clientProvider:()->HttpClient) {
     private var httpClient = clientProvider.invoke()
 
-    suspend fun postValidate(header: Header) : ValidationResult {
+    suspend fun postValidate(contentId:String,header: Header) : ValidationResult {
         return httpClient.post(validatorEndpoint) {
             this.url {
-                this.path("/cpa/validate")
+                this.path("/cpa/validate/$contentId")
             }
             setBody(header)
             contentType(ContentType.Application.Json)

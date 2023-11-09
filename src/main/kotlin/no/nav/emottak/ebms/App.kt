@@ -18,6 +18,7 @@ import io.ktor.util.*
 import no.nav.emottak.ebms.model.*
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.validation.DokumentValidator
+import no.nav.emottak.ebms.validation.MimeHeaders
 import no.nav.emottak.ebms.validation.MimeValidationException
 import no.nav.emottak.ebms.validation.validateMimeAttachment
 import no.nav.emottak.ebms.validation.validateMimeSoapEnvelope
@@ -84,8 +85,8 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
                 it?.validateMimeSoapEnvelope()
                     ?: throw MimeValidationException("Unable to find soap envelope multipart")
             }!!.let {
-
-                    it.payload(clearText)
+                 val contentID = Regex("""<(.*?)>""").find(this.request.headers[MimeHeaders.CONTENT_ID]!!)?.groups?.get(1)?.value ?: throw MimeValidationException("ContentId is invalid")
+                 Pair(contentID, it.payload(clearText))
 
             }
             val attachments =
@@ -94,8 +95,8 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
                 it.validateMimeAttachment()
             }
             EbMSDocument(
-                "",
-                getDocumentBuilder().parse(ByteArrayInputStream(dokument)),
+                dokument.first,
+                getDocumentBuilder().parse(ByteArrayInputStream(dokument.second)),
                 attachments.map {
                     EbMSAttachment(
                         it.payload(),
@@ -108,8 +109,9 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
 
         ContentType.parse("text/xml") -> {
             val dokument = if (clearText) this.receiveStream().readAllBytes() else java.util.Base64.getMimeDecoder().decode(this.receiveStream().readAllBytes())
+            val contentID = Regex("""<(.*?)>""").find(this.request.headers[MimeHeaders.CONTENT_ID]!!)?.groups?.get(1)?.value ?: throw MimeValidationException("ContentId is invalid")
             EbMSDocument(
-                "",
+                contentID,
                 getDocumentBuilder().parse(ByteArrayInputStream(dokument)),
                 emptyList()
             )

@@ -18,7 +18,7 @@ class ProcessingService(val httpClient: PayloadProcessingClient) {
 
     private fun payloadMessage(payloadMessage: EbMSPayloadMessage) {
         val payloads = payloadMessage.attachments
-        val header = payloadMessage.messageHeader.payloadRequestHeader()
+        val header = payloadMessage.messageHeader.payloadRequestHeader(payloadMessage.contentID)
         payloads.forEach { payload ->
             val payloadRequest = PayloadRequest(
                 header = header,
@@ -50,7 +50,7 @@ class ProcessingService(val httpClient: PayloadProcessingClient) {
     }
 
 
-fun MessageHeader.payloadRequestHeader(): Header {
+fun MessageHeader.payloadRequestHeader(contentId:String): Header {
     return Header(
         messageId = this.messageData.messageId ?: throw BadRequestException("MessageID mangler fra header"),
         cpaId = this.cpaId ?: throw BadRequestException("CPAID mangler fra header"),
