@@ -85,7 +85,7 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
                 it?.validateMimeSoapEnvelope()
                     ?: throw MimeValidationException("Unable to find soap envelope multipart")
             }!!.let {
-                 val contentID = Regex("""<(.*?)>""").find(this.request.headers[MimeHeaders.CONTENT_ID]!!)?.groups?.get(1)?.value ?: throw MimeValidationException("ContentId is invalid")
+                 val contentID = Regex("""<(.*?)>""").find(it.headers[MimeHeaders.CONTENT_ID]!!)?.groups?.get(1)?.value ?: throw MimeValidationException("ContentId is invalid")
                  Pair(contentID, it.payload(clearText))
 
             }
