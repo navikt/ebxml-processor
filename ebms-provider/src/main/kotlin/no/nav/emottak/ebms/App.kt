@@ -85,7 +85,7 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
                 it?.validateMimeSoapEnvelope()
                     ?: throw MimeValidationException("Unable to find soap envelope multipart")
             }!!.let {
-                 val contentID = Regex("""<(.*?)>""").find(it.headers[MimeHeaders.CONTENT_ID]!!)?.groups?.get(1)?.value ?: throw MimeValidationException("ContentId is invalid")
+                 val contentID = it.headers[MimeHeaders.CONTENT_ID]!!.convertToValidatedContentID()
                  Pair(contentID, it.payload(clearText))
 
             }
@@ -101,7 +101,7 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
                     EbMSAttachment(
                         it.payload(),
                         it.contentType!!.contentType,
-                        it.headers["Content-Id"]!!
+                        it.headers[MimeHeaders.CONTENT_ID]!!.convertToValidatedContentID()
                     )
                 })
 
@@ -109,9 +109,8 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
 
         ContentType.parse("text/xml") -> {
             val dokument = if (clearText) this.receiveStream().readAllBytes() else java.util.Base64.getMimeDecoder().decode(this.receiveStream().readAllBytes())
-            val contentID = Regex("""<(.*?)>""").find(this.request.headers[MimeHeaders.CONTENT_ID]!!)?.groups?.get(1)?.value ?: throw MimeValidationException("ContentId is invalid")
             EbMSDocument(
-                contentID,
+                this.request.headers[MimeHeaders.CONTENT_ID]!!.convertToValidatedContentID(),
                 getDocumentBuilder().parse(ByteArrayInputStream(dokument)),
                 emptyList()
             )
@@ -123,6 +122,10 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
             //return@post
         }
     }
+}
+
+private fun String.convertToValidatedContentID(): String {
+    return Regex("""<(.*?)>""").find(this)?.groups?.get(1)?.value ?: throw MimeValidationException("ContentId is invalid $this")
 }
 
 suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbMSDocument) {
