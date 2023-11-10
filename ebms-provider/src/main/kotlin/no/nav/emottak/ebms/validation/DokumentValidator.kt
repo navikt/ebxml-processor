@@ -10,7 +10,10 @@ import no.nav.emottak.melding.model.Header
 import no.nav.emottak.melding.model.Party
 import no.nav.emottak.melding.model.PartyId
 import no.nav.emottak.melding.model.ValidationResult
+import no.nav.emottak.util.marker
+import org.slf4j.LoggerFactory
 
+val log = LoggerFactory.getLogger("no.nav.emottak.ebms.DokumentValidator")
 class DokumentValidator(val httpClient: CpaRepoClient) {
 
 
@@ -32,10 +35,11 @@ class DokumentValidator(val httpClient: CpaRepoClient) {
             httpClient.postValidate(dokument.contentId, header)
         }
 
-        if (validationResult.valid() == false) return validationResult
+        if (!validationResult.valid()) return validationResult
         runCatching {
             dokument.sjekkSignature(validationResult.processing!!.signingCertificate)
         }.onFailure {
+            log.error(dokument.messageHeader().marker(), "Signaturvalidering feilet ${it.message}", it)
             return ValidationResult(validationResult.processing,
                 (validationResult.error ?: listOf() ) + listOf(
                     Feil(
