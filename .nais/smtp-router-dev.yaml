@@ -22,9 +22,9 @@ spec:
     - "https://smtp-router.intern.dev.nav.no"
   env:
     - name: SMTP_POP3_FACTORY_PORT
-      value: 3110
+      value: "3110"
     - name: SMTP_POP3_PORT
-      value: 3110
+      value: "3110"
     - name: SMTP_POP3_HOST
       value: "localhost"
     - name: SMTP_STORE_PROTOCOL
