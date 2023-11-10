@@ -39,3 +39,11 @@ spec:
     inbound:
       rules:
         - application: ebms-provider
+  env:
+    - name: KEYSTORE_FILE
+      value: /var/run/secrets/ebms-keystore/secret
+  envFrom:
+    - secret: ebms-secrets
+  filesFrom:
+    - secret: ebms-keystore
+      mountPath: /var/run/secrets/ebms-keystore
