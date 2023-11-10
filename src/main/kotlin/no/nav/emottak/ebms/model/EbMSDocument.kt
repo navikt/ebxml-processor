@@ -48,14 +48,14 @@ data class EbMSDocument(val contentId: String, val dokument: Document, val attac
 
     }
 
-    fun createFail(errorList: ErrorList): EbMSMessageError {
-        return EbMSMessageError( this.messageHeader().createResponseHeader(newFromRole = "ERROR_RESPONDER", newToRole = "ERROR_RECEIVER", newAction = MESSAGE_ERROR_ACTION, newService = EBMS_SERVICE_URI), errorList )
+    fun createFail(error: Error): EbMSMessageError {
+        return createFail(ErrorList().also { it.error.add(error) })
     }
 
-    fun createFail(error: Error): EbMSMessageError {
-        return EbMSMessageError(this.messageHeader().createResponseHeader(newFromRole = "ERROR_RESPONDER", newToRole = "ERROR_RECEIVER", newAction = MESSAGE_ERROR_ACTION, newService = EBMS_SERVICE_URI), ErrorList().also {
-            it.error.add(error)
-        })
+    fun createFail(errorList: ErrorList): EbMSMessageError {
+        return EbMSMessageError(
+            this.messageHeader()
+                .createResponseHeader(newFromRole = "ERROR_RESPONDER", newToRole = "ERROR_RECEIVER", newAction = MESSAGE_ERROR_ACTION, newService = EBMS_SERVICE_URI), errorList )
     }
     fun messageHeader():MessageHeader {
         //@TODO eb kan vare noe annet. Vi kan ikke ståle på det
