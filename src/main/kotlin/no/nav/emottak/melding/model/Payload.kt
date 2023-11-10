@@ -96,7 +96,9 @@ data class ValidationResult(
         MIME_PROBLEM("MimeProblem","URI resolve error"),
         UNKNOWN("Unknown","Unknown Error");
 
-     fun createEbxmlError(descriptionText:String, severityType: SeverityType? = null, location: String? = null):org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Error {
+     fun createEbxmlError(descriptionText:String? = this.description,
+                          severityType: SeverityType? = null,
+                          location: String? = null):org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Error {
             val error = org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Error()
             error.errorCode = this.value
             val description = Description()
