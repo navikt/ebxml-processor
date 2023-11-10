@@ -3,6 +3,7 @@ package no.nav.emottak.util.crypto
 import no.nav.emottak.util.getEnvVar
 import no.nav.emottak.util.isSelfSigned
 import org.bouncycastle.jce.provider.BouncyCastleProvider
+import org.slf4j.LoggerFactory
 import java.io.ByteArrayInputStream
 import java.io.FileInputStream
 import java.io.FileNotFoundException
@@ -32,6 +33,7 @@ fun getPrivateCertificates() = keyStoreUtil.getPrivateCertificates()
 fun getTrustedRootCerts() = keyStoreUtil.getTrustedRootCerts()
 fun getIntermediateCerts() = keyStoreUtil.getIntermediateCerts()
 
+internal val log = LoggerFactory.getLogger("no.nav.emottak.crypto.KeyStoreUtil")
 internal class KeyStoreUtil {
 
     init {
@@ -66,6 +68,7 @@ internal class KeyStoreUtil {
                 FileInputStream(storePath)
             } catch (e: FileNotFoundException) {
                 //TODO Kast exception om keystore ikke kan leses
+                log.warn("Feil ved lasting av keystore", e)
                 ByteArrayInputStream(this::class.java.classLoader.getResource("truststore.p12").readBytes())
             }
         keyStore!!.load(fileContent, storePass)
