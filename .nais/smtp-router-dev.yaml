@@ -20,14 +20,16 @@ spec:
       memory: "256Mi"
   ingresses:
     - "https://smtp-router.intern.dev.nav.no"
+  envFrom:
+    - secret: smtp-router-secrets
   env:
     - name: SMTP_POP3_FACTORY_PORT
       value: "3110"
     - name: SMTP_POP3_PORT
       value: "3110"
     - name: SMTP_POP3_HOST
-      value: "localhost"
+      value: "d32mxvl002.oera-t.local"
     - name: SMTP_STORE_PROTOCOL
       value: "pop3"
     - name: SMTP_USERNAME
-      value: "test@test.test"
+      value: "nyebmstest@test-es.nav.no"
