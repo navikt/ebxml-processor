@@ -38,21 +38,26 @@ class MailReader(
 
     @Throws(Exception::class)
     fun readMail(): List<String> {
-        store.connect()
-        val inbox = store.getFolder("INBOX")
-        inbox.open(jakarta.mail.Folder.READ_ONLY)
-        val messages = inbox.getMessages()
-        log.info("Found ${messages.size} messages")
-        val messageSubjects = mutableListOf<String>()
-        for (message in messages) {
-            log.info("Message found in inbox")
-            log.info("Subject: " + message.subject)
-            log.info("From: " + message.from[0])
-//            log.info("Text: " + message.content.toString())
-            messageSubjects.add(message.subject)
+        try {
+            store.connect()
+            val inbox = store.getFolder("INBOX")
+            inbox.open(jakarta.mail.Folder.READ_ONLY)
+            val messages = inbox.getMessages()
+            log.info("Found ${messages.size} messages")
+            val messageSubjects = mutableListOf<String>()
+            for (message in messages) {
+                log.info("Message found in inbox")
+                log.info("Subject: " + message.subject)
+                log.info("From: " + message.from[0])
+                //            log.info("Text: " + message.content.toString())
+                messageSubjects.add(message.subject)
+            }
+            inbox.close(false)
+            store.close()
+            return messageSubjects
+        } catch (e: Exception) {
+            log.error("Error connecting to mail server", e)
+            throw e
         }
-        inbox.close(false)
-        store.close()
-        return messageSubjects
     }
 }
