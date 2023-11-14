@@ -59,6 +59,12 @@ fun Application.myApplicationModule() {
                 val encryptionCertificate = partyInfo.getCertificateForEncryption()  // Security Failure
                 val signingCertificate = partyInfo.getCertificateForSignatureValidation(
                     validateRequest.from.role, validateRequest.service, validateRequest.action) //Security Failure
+                runCatching {
+                    createX509Certificate(signingCertificate.certificate).validate()
+                }.onFailure {
+                    log.warn(validateRequest.marker(), "Validation feilet i sertifikat sjekk", it)
+                    throw it
+                }
 
                 call.respond(HttpStatusCode.OK, ValidationResult(Processing(signingCertificate,encryptionCertificate)))
 

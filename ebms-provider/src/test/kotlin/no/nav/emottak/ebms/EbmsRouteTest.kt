@@ -2,6 +2,7 @@ package no.nav.emottak.ebms
 
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
+import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
@@ -38,6 +39,8 @@ import javax.xml.bind.JAXBElement
 
 
 class EbmsRouteTest {
+
+
     val validMultipartRequest = validMultipartRequest()
     val cpaRepoClient = mockk<CpaRepoClient>()
 
@@ -48,9 +51,9 @@ class EbmsRouteTest {
                 json()
             }
         }
-
+        val cpaRepoClient = CpaRepoClient { client }
         application {
-            val cpaRepoClient = CpaRepoClient { client }
+
             val dokumentValidator = DokumentValidator(cpaRepoClient)
             val processingService = mockk<ProcessingService>()
             routing {
@@ -181,18 +184,14 @@ class EbmsRouteTest {
     }
 
     @Test
-    @Disabled
     fun `If Valid then processing should be triggered`() = validationTestApp {
         val multipart = validMultipartRequest.modify(validMultipartRequest.parts.first() to validMultipartRequest.parts.first().modify {
             it.remove(MimeHeaders.CONTENT_ID)
             it.append(MimeHeaders.CONTENT_ID,"<contentID-validRequest>")
         })
         val response = client.post("/ebms",multipart.asHttpRequest())
-        val envelope =  xmlMarshaller.unmarshal(response.bodyAsText(),Envelope::class.java)
-        with(envelope.assertErrorAndGet().error.first()) {
-            assertEquals("Signature Fail" , this.description.value)
-            assertEquals(ErrorCode.SECURITY_FAILURE.value,this.errorCode)
-        }
+        assertEquals(HttpStatusCode.InternalServerError,response.status)
+        assertEquals(response.bodyAsText(),"Feil ved prosessering av melding")
     }
 
 

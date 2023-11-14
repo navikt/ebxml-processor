@@ -28,6 +28,7 @@ private class CPAUtil {
 }
 
 fun PartyInfo.getCertificateForEncryption(): ByteArray {
+    //@TODO match role service action. ".first()" er ikke nokk
     val encryptionCert = this.collaborationRole.first().applicationCertificateRef.first().certId as Certificate
     return encryptionCert.getX509Certificate()
 }
