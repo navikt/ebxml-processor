@@ -33,8 +33,3 @@ spec:
       value: "pop3"
     - name: SMTP_USERNAME
       value: "nyebmstest@test-es.nav.no"
-  outbound:
-    external:
-      - host: "d32mxvl002.oera-t.local"
-        ports:
-          - port: 110
