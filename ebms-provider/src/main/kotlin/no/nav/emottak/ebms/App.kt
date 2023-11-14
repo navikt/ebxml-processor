@@ -87,7 +87,6 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
             }!!.let {
                  val contentID = it.headers[MimeHeaders.CONTENT_ID]!!.convertToValidatedContentID()
                  Pair(contentID, it.payload(clearText))
-
             }
             val attachments =
                 allParts.filter { it.contentDisposition?.disposition == ContentDisposition.Attachment.disposition }
@@ -109,6 +108,7 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
 
         ContentType.parse("text/xml") -> {
             val dokument = if (clearText) this.receiveStream().readAllBytes() else java.util.Base64.getMimeDecoder().decode(this.receiveStream().readAllBytes())
+            println(dokument)
             EbMSDocument(
                 this.request.headers[MimeHeaders.CONTENT_ID]!!.convertToValidatedContentID(),
                 getDocumentBuilder().parse(ByteArrayInputStream(dokument)),
