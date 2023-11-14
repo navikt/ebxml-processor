@@ -37,24 +37,22 @@ class MailReader(
     }
 
     @Throws(Exception::class)
-    fun readMail(): List<String> {
+    fun readMail(): String {
         try {
             store.connect()
             val inbox = store.getFolder("INBOX")
             inbox.open(jakarta.mail.Folder.READ_ONLY)
             val messages = inbox.getMessages()
             log.info("Found ${messages.size} messages")
-            val messageSubjects = mutableListOf<String>()
             for (message in messages) {
 //                log.info(message.createHeaderMarker(), "From: <${message.from[0]}> Subject: ${message.subject}")
                 log.info("From: <${message.from[0]}> Subject: ${message.subject} X-Mailer: ${message.getHeader("X-Mailer")}")
 //                log.info("Header names: ${message.allHeaders.toList().map { it.name }.toList()}")
                 //TODO Logg x-mailer header for identifikasjon av samhandlingssystem
-                messageSubjects.add(message.subject)
             }
             inbox.close(false)
             store.close()
-            return messageSubjects
+            return "Found ${messages.size} messages"
         } catch (e: Exception) {
             log.error("Error connecting to mail server", e)
             throw e
