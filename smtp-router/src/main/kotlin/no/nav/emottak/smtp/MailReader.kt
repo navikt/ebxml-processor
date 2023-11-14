@@ -46,7 +46,7 @@ class MailReader(
             log.info("Found ${messages.size} messages")
             for (message in messages) {
 //                log.info(message.createHeaderMarker(), "From: <${message.from[0]}> Subject: ${message.subject}")
-                log.info("From: <${message.from[0]}> Subject: ${message.subject} X-Mailer: ${message.getHeader("X-Mailer")}")
+                log.info("From: <${message.from[0]}> Subject: ${message.subject} X-Mailer: ${message.getHeader("X-Mailer").toList()}")
 //                log.info("Header names: ${message.allHeaders.toList().map { it.name }.toList()}")
                 //TODO Logg x-mailer header for identifikasjon av samhandlingssystem
             }
