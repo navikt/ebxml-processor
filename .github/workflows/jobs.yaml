@@ -1,0 +1,11 @@
+name: "Naisjob read mail"
+jobs:
+  build:
+    name: "runjob"
+    steps:
+      - uses: "actions/checkout@v4"
+      - uses: "nais/deploy/actions/deploy@v1"
+        env:
+          APIKEY: "${{ secrets.NAIS_DEPLOY_APIKEY }}"
+          CLUSTER: "dev-fss"
+          RESOURCE: ".nais/naisjob.yaml"
