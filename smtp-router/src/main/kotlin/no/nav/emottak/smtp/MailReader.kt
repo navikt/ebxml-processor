@@ -2,20 +2,23 @@ package no.nav.emottak.smtp;
 
 
 import jakarta.mail.Authenticator
+import jakarta.mail.Folder
+import jakarta.mail.Message
 import jakarta.mail.PasswordAuthentication
 import jakarta.mail.Session
 import jakarta.mail.Store
+import net.logstash.logback.marker.LogstashMarker
+import net.logstash.logback.marker.Markers
 import no.nav.emottak.util.getEnvVar
 import java.util.Properties
 
 
-val properties = Properties().let { props ->
+val properties = Properties().also { props ->
     props["mail.pop3.socketFactory.fallback"] = "false"
     props["mail.pop3.socketFactory.port"] = getEnvVar("SMTP_POP3_FACTORY_PORT", "3110")
     props["mail.pop3.port"] = getEnvVar("SMTP_POP3_PORT", "3110")
     props["mail.pop3.host"] = getEnvVar("SMTP_POP3_HOST", "localhost")
     props["mail.store.protocol"] = getEnvVar("SMTP_STORE_PROTOCOL", "pop3")
-    props
 }
 
 val smtpUsername = getEnvVar("SMTP_USERNAME", "test@test.test")
@@ -37,26 +40,33 @@ class MailReader(
     }
 
     @Throws(Exception::class)
-    fun readMail(): String {
+    fun readMail(): List<Message> {
         try {
             store.connect()
             val inbox = store.getFolder("INBOX")
-            inbox.open(jakarta.mail.Folder.READ_ONLY)
-            val messages = inbox.getMessages()
+            inbox.open(Folder.READ_ONLY) //TODO READ_WRITE
+            val messages = inbox.messages
             log.info("Found ${messages.size} messages")
             for (message in messages) {
-//                log.info(message.createHeaderMarker(), "From: <${message.from[0]}> Subject: ${message.subject}")
-                log.info("From: <${message.from[0]}> Subject: <${message.subject}> X-Mailer: <${message.getHeader("X-Mailer")?.toList()}>")
-//                log.info("Header names: ${message.allHeaders.toList().map { it.name }.toList()}")
-                //TODO Logg x-mailer header for identifikasjon av samhandlingssystem
+                val from = message.from[0]
+                val subject = message.subject
+                val headerXMailer = message.getHeader("X-Mailer")?.toList()?.firstOrNull()
+                //log.info(String(message.inputStream.readAllBytes()))
+                log.info(createHeaderMarker(headerXMailer), "From: <$from> Subject: <$subject>")
             }
-            inbox.close(false)
+            inbox.close(false) //TODO true
             store.close()
-            return "Found ${messages.size} messages"
+            return messages.toList()
         } catch (e: Exception) {
             log.error("Error connecting to mail server", e)
             throw e
         }
+    }
+
+    private fun createHeaderMarker(xMailer: String?): LogstashMarker? {
+        val map = mutableMapOf<String,String>()
+        map["systemkilde"] = xMailer ?: "-"
+        return Markers.appendEntries(map)
     }
 
 //    private fun Message.createHeaderMarker(): LogstashMarker {

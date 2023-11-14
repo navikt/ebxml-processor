@@ -1,5 +1,9 @@
 package no.nav.emottak.smtp
 
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.call
@@ -27,10 +31,17 @@ fun Application.myApplicationModule() {
         }
 
         get("/mail/read") {
+            val client = HttpClient(CIO) {
+                expectSuccess = true
+            }
             runCatching {
-                MailReader().readMail()
+                //client.post("https://ebms-provider.intern.dev.nav.no") {
+                //    setBody(
+                        MailReader().readMail()
+                 //   )
+                //}
             }.onSuccess {
-                call.respond(it)
+                call.respond("Fant meldinger: ${it.size}")
             }.onFailure {
                 call.respond(it.localizedMessage)
             }
