@@ -46,10 +46,10 @@ class MailReader(
             log.info("Found ${messages.size} messages")
             val messageSubjects = mutableListOf<String>()
             for (message in messages) {
-                log.info("Message found in inbox")
-                log.info("Subject: " + message.subject)
-                log.info("From: " + message.from[0])
-                //            log.info("Text: " + message.content.toString())
+//                log.info(message.createHeaderMarker(), "From: <${message.from[0]}> Subject: ${message.subject}")
+                log.info("From: <${message.from[0]}> Subject: ${message.subject} X-Mailer: ${message.getHeader("X-Mailer")}")
+//                log.info("Header names: ${message.allHeaders.toList().map { it.name }.toList()}")
+                //TODO Logg x-mailer header for identifikasjon av samhandlingssystem
                 messageSubjects.add(message.subject)
             }
             inbox.close(false)
@@ -60,4 +60,12 @@ class MailReader(
             throw e
         }
     }
+
+//    private fun Message.createHeaderMarker(): LogstashMarker {
+//        val headerMap = mutableMapOf<String,String>()
+//        this.allHeaders.iterator().forEach {
+//            headerMap[it.name] = it.value
+//        }
+//        return Markers.appendEntries(headerMap)
+//    }
 }
