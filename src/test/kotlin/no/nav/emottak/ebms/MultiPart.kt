@@ -12,7 +12,9 @@ const val FAGMELDING_PAYLOAD: String = """MIIQiAYJKoZIhvcNAQcDoIIQeTCCEHUCAQAxgg
 
 class MultipartRequest(val headers: Headers, val parts:List<Part>)
 
-class Part(val headers: Headers, val payload: String)
+class SinglePartRequest(headers: Headers,payload: String) : Part(headers,payload)
+
+open class Part(val headers: Headers, val payload: String)
 
 
 fun validMultipartRequest(): MultipartRequest {
@@ -35,7 +37,7 @@ val validSoapMimeHeaders =  Headers.build {
     }
 
 val validSoapAttachmentHeaders =  Headers.build {
-        append(MimeHeaders.CONTENT_ID,"3CTGI8UKUKU4.ADHEUDMDCY3Q3@speare.no")
+        append(MimeHeaders.CONTENT_ID,"<3CTGI8UKUKU4.ADHEUDMDCY3Q3@speare.no>")
         append(MimeHeaders.CONTENT_TRANSFER_ENCODING,"base64")
         append(MimeHeaders.CONTENT_DISPOSITION,"attachment")
         append(MimeHeaders.CONTENT_TYPE, """application/pkcs7-mime; smimetype=enveloped-data"""")
