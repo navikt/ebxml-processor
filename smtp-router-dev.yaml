@@ -6,6 +6,7 @@ metadata:
   labels:
     "team": "team-emottak"
 spec:
+  webproxy: true
   image: {{image}}
   replicas:
     min: 1

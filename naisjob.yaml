@@ -2,12 +2,13 @@ apiVersion: nais.io/v1
 kind: Naisjob
 metadata:
   labels:
-    team: emottak
+    team: team-emottak
   name: mailreader
   namespace: team-emottak
 spec:
-  image: ghcr.io/curl/curl-container/curl:latest
-  schedule: "*/2 * * * *"
+  ttlSecondsAfterFinished: 180
+  image: {{image}}
+  schedule: "*/3 * * * *"
   command:
     - curl
-    - https://smtp-router.intern.dev.nav.no/mail/read
+    - http://smtp-router/mail/read
