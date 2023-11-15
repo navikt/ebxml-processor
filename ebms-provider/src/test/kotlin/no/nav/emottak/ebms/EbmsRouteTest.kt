@@ -5,22 +5,23 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
-import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.testing.*
 import io.mockk.coEvery
+import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkStatic
 import no.nav.emottak.ebms.ebxml.errorList
 import no.nav.emottak.ebms.ebxml.messageHeader
+import no.nav.emottak.ebms.model.EbMSDocument
+import no.nav.emottak.ebms.model.sjekkSignature
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.validation.DokumentValidator
 import no.nav.emottak.ebms.validation.MimeHeaders
-import no.nav.emottak.ebms.validation.getSignatureDetailsForTest
 import no.nav.emottak.ebms.xml.xmlMarshaller
 import no.nav.emottak.melding.model.ErrorCode
 import no.nav.emottak.melding.model.Feil
-import no.nav.emottak.melding.model.Header
 import no.nav.emottak.melding.model.Processing
 import no.nav.emottak.melding.model.SignatureDetails
 import no.nav.emottak.melding.model.ValidationResult
@@ -30,7 +31,6 @@ import org.apache.xml.security.signature.XMLSignature
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ErrorList
 import org.xmlsoap.schemas.soap.envelope.Envelope
@@ -195,18 +195,24 @@ class EbmsRouteTest {
     }
 
     @Test
-    @Disabled
     fun `If feilsignal OK should be returned`() = validationTestApp {
 
+        val feilmelding = feilmeldingWithoutSignature.modify {
+            it.append(MimeHeaders.CONTENT_ID,"<contentID-validRequest>")
+        }
+        mockkStatic(EbMSDocument::sjekkSignature)
+
+        every {
+            any<EbMSDocument>().sjekkSignature(any())
+        } returns Unit
         val response = client.post("/ebms") {
-             headers {
-                feilmeldingWithoutSignature.headers.entries().forEach {
+            headers {
+                feilmelding.headers.entries().forEach {
                     append(it.key,it.value.first())
                 }
             }
-            setBody(feilmeldingWithoutSignature.payload)
+            setBody(feilmelding.payload)
         }
-
         println(response.bodyAsText())
 
     }
