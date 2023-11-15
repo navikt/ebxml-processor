@@ -17,6 +17,8 @@ package no.nav.emottak.ebms.model
 
 import no.nav.emottak.EBMS_SERVICE_URI
 import no.nav.emottak.MESSAGE_ERROR_ACTION
+import no.nav.emottak.OASIS_EBXML_MSG_HEADER_TAG
+import no.nav.emottak.OASIS_EBXML_MSG_HEADER_XSD_NS_URI
 import no.nav.emottak.ebms.ebxml.ackRequested
 import no.nav.emottak.ebms.ebxml.acknowledgment
 import no.nav.emottak.ebms.ebxml.createResponseHeader
@@ -58,8 +60,7 @@ data class EbMSDocument(val contentId: String, val dokument: Document, val attac
                 .createResponseHeader(newFromRole = "ERROR_RESPONDER", newToRole = "ERROR_RECEIVER", newAction = MESSAGE_ERROR_ACTION, newService = EBMS_SERVICE_URI), errorList )
     }
     fun messageHeader():MessageHeader {
-        //@TODO eb kan vare noe annet. Vi kan ikke ståle på det
-         val node: Node =this.dokument.getElementsByTagName("eb:MessageHeader").item(0)
+         val node: Node = this.dokument.getElementsByTagNameNS(OASIS_EBXML_MSG_HEADER_XSD_NS_URI, OASIS_EBXML_MSG_HEADER_TAG).item(0)
          return xmlMarshaller.unmarshal(node)
     }
 
