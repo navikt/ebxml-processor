@@ -10,8 +10,10 @@ import io.ktor.server.routing.*
 import io.ktor.server.testing.*
 import io.mockk.coEvery
 import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
 import io.mockk.mockkStatic
+import io.mockk.runs
 import no.nav.emottak.ebms.ebxml.errorList
 import no.nav.emottak.ebms.ebxml.messageHeader
 import no.nav.emottak.ebms.model.EbMSDocument
@@ -56,6 +58,9 @@ class EbmsRouteTest {
 
             val dokumentValidator = DokumentValidator(cpaRepoClient)
             val processingService = mockk<ProcessingService>()
+            every {
+                processingService.process(any())
+            } just  runs
             routing {
                 postEbms(dokumentValidator,processingService,cpaRepoClient)
             }
@@ -213,7 +218,9 @@ class EbmsRouteTest {
             }
             setBody(feilmelding.payload)
         }
-        println(response.bodyAsText())
+
+        assertEquals("Processed", response.bodyAsText())
+        assertEquals(HttpStatusCode.OK, response.status)
 
     }
 
