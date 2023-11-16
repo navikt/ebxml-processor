@@ -195,8 +195,8 @@ class EbmsRouteTest {
             it.append(MimeHeaders.CONTENT_ID,"<contentID-validRequest>")
         })
         val response = client.post("/ebms",multipart.asHttpRequest())
-        assertEquals(HttpStatusCode.InternalServerError,response.status)
-        assertEquals(response.bodyAsText(),"Feil ved prosessering av melding")
+        assertEquals(HttpStatusCode.OK,response.status)
+        assertEquals("Processed", response.bodyAsText())
     }
 
     @Test
