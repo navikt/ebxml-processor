@@ -44,7 +44,7 @@ class MailReader(
         try {
             store.connect()
             val inbox = store.getFolder("INBOX")
-            inbox.open(Folder.READ_ONLY) //TODO READ_WRITE
+            inbox.open(Folder.READ_WRITE) //TODO READ_WRITE
             val messages = inbox.messages
             log.info("Found ${messages.size} messages")
             for (message in messages) {
