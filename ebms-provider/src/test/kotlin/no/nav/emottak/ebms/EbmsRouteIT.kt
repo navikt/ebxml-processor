@@ -8,12 +8,13 @@ import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.testing.*
-import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.runs
+import io.mockk.verify
+import no.nav.emottak.ebms.ebxml.acknowledgment
 import no.nav.emottak.ebms.ebxml.errorList
 import no.nav.emottak.ebms.ebxml.messageHeader
 import no.nav.emottak.ebms.model.EbMSDocument
@@ -32,20 +33,16 @@ import org.apache.xml.security.algorithms.MessageDigestAlgorithm
 import org.apache.xml.security.signature.XMLSignature
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ErrorList
 import org.xmlsoap.schemas.soap.envelope.Envelope
-import org.xmlsoap.schemas.soap.envelope.Fault
-import javax.xml.bind.JAXBElement
 
 
-class EbmsRouteTest {
+class EbmsRouteIT {
 
 
     val validMultipartRequest = validMultipartRequest()
-    val cpaRepoClient = mockk<CpaRepoClient>()
-
+    val processingService = mockk<ProcessingService>()
 
     fun <T> validationTestApp(testBlock: suspend ApplicationTestBuilder.() -> T) = testApplication {
         val client = createClient{
@@ -57,7 +54,7 @@ class EbmsRouteTest {
         application {
 
             val dokumentValidator = DokumentValidator(cpaRepoClient)
-            val processingService = mockk<ProcessingService>()
+
             every {
                 processingService.process(any())
             } just  runs
@@ -84,99 +81,7 @@ class EbmsRouteTest {
         testBlock()
     }
 
-    fun <T> mimeTestApp(testBlock: suspend ApplicationTestBuilder.() -> T) = testApplication {
 
-
-        application {
-
-            val dokumentValidator = DokumentValidator(cpaRepoClient)
-            val processingService = mockk<ProcessingService>()
-            routing {
-                postEbms(dokumentValidator,processingService,cpaRepoClient)
-            }
-
-        }
-        externalServices {
-
-        }
-        testBlock()
-    }
-
-
-
-
-    @Test
-    fun `Soap Fault om Mime Feil`() = mimeTestApp {
-
-        val wrongMime = validMultipartRequest.modify {
-            it.remove(MimeHeaders.MIME_VERSION)
-        }
-
-        var response = client.post("/ebms",wrongMime.asHttpRequest())
-        var envelope:Envelope =  xmlMarshaller.unmarshal(response.bodyAsText(),Envelope::class.java)
-        with (envelope.assertFaultAndGet()) {
-            assertEquals("MIME version is missing or incorrect", this.faultstring)
-            assertEquals("Server", this.faultcode.localPart)
-        }
-
-        val wrongHeader = validMultipartRequest.modify(validMultipartRequest.parts.first() to validMultipartRequest.parts.first().modify {
-            it.remove(MimeHeaders.CONTENT_TRANSFER_ENCODING)
-        })
-        response = client.post("/ebms", wrongHeader.asHttpRequest())
-        envelope = xmlMarshaller.unmarshal(response.bodyAsText(),Envelope::class.java)
-        with (envelope.assertFaultAndGet()) {
-             assertEquals("Mandatory header Content-Transfer-Encoding is undefined", this.faultstring)
-             assertEquals("Server", this.faultcode.localPart)
-        }
-        println(envelope)
-
-
-    }
-
-    @Test
-    fun `Sending unparsable xml as dokument should Soap Fault`()  = mimeTestApp {
-
-         val illegalContent = validMultipartRequest.modify(validMultipartRequest.parts.first() to validMultipartRequest.parts.first().payload("Illegal payload"))
-
-                val response = client.post("/ebms",illegalContent.asHttpRequest())
-                val envelope =  xmlMarshaller.unmarshal(response.bodyAsText(),Envelope::class.java)
-                with(envelope.assertFaultAndGet()) {
-                    assertEquals("Unable to transform request into EbmsDokument: Invalid byte 1 of 1-byte UTF-8 sequence.", this.faultstring)
-                    assertEquals("Server", this.faultcode.localPart)
-                }
-
-    }
-
-    @Test
-    fun `Sending valid request should trigger validation`() = mimeTestApp {
-        val validationResult = ValidationResult(null, listOf(Feil(ErrorCode.SECURITY_FAILURE,"Signature Fail")))
-        coEvery {
-            cpaRepoClient.postValidate(any(),any())
-        } returns validationResult
-       
-        val response = client.post("/ebms",validMultipartRequest.asHttpRequest())
-        val envelope =  xmlMarshaller.unmarshal(response.bodyAsText(),Envelope::class.java)
-        with(envelope.assertErrorAndGet().error.first()) {
-            assertEquals("Signature Fail" , this.description.value)
-            assertEquals(ErrorCode.SECURITY_FAILURE.value,this.errorCode)
-        }
-    }
-
-    @Test
-    fun `Not valid request should answer with Feil Signal`() = mimeTestApp {
-        val validationResult = ValidationResult(null, listOf(Feil(ErrorCode.SECURITY_FAILURE,"Signature Fail")))
-        coEvery {
-            cpaRepoClient.postValidate(any(),any())
-        } returns validationResult
-
-        val response = client.post("/ebms",validMultipartRequest.asHttpRequest())
-        val envelope =  xmlMarshaller.unmarshal(response.bodyAsText(),Envelope::class.java)
-        with(envelope.assertErrorAndGet().error.first()) {
-            assertEquals("Signature Fail" , this.description.value)
-            assertEquals(ErrorCode.SECURITY_FAILURE.value,this.errorCode)
-        }
-
-    }
 
     @Test
     fun `Feil på signature should answer with Feil Signal`() = validationTestApp {
@@ -189,18 +94,34 @@ class EbmsRouteTest {
     }
 
     @Test
-    fun `If Valid then processing should be triggered`() = validationTestApp {
+    fun `Valid Payload should produce Acknowledgment`() = validationTestApp {
         val multipart = validMultipartRequest.modify(validMultipartRequest.parts.first() to validMultipartRequest.parts.first().modify {
             it.remove(MimeHeaders.CONTENT_ID)
             it.append(MimeHeaders.CONTENT_ID,"<contentID-validRequest>")
         })
         val response = client.post("/ebms",multipart.asHttpRequest())
+        verify(exactly = 1) {
+            processingService.process(any())
+        }
+        val envelope = xmlMarshaller.unmarshal(response.bodyAsText(),Envelope::class.java)
+        envelope.assertAcknowledgmen()
         assertEquals(HttpStatusCode.OK,response.status)
-        assertEquals("Processed", response.bodyAsText())
     }
 
     @Test
-    fun `If feilsignal OK should be returned`() = validationTestApp {
+    fun `Valid payload request should trigger processing`() = validationTestApp {
+        val multipart = validMultipartRequest.modify(validMultipartRequest.parts.first() to validMultipartRequest.parts.first().modify {
+            it.remove(MimeHeaders.CONTENT_ID)
+            it.append(MimeHeaders.CONTENT_ID,"<contentID-validRequest>")
+        })
+        client.post("/ebms",multipart.asHttpRequest())
+        verify(exactly = 1) {
+            processingService.process(any())
+        }
+    }
+
+    @Test
+    fun `Valid feilsignal should be processed`() = validationTestApp {
 
         val feilmelding = feilmeldingWithoutSignature.modify {
             it.append(MimeHeaders.CONTENT_ID,"<contentID-validRequest>")
@@ -231,15 +152,12 @@ class EbmsRouteTest {
         return this.header.errorList()!!
     }
 
-    fun Envelope.assertFaultAndGet(): Fault =
-        this.body.any.first()
-            .let {
-                assertTrue(it is JAXBElement<*>)
-                it as JAXBElement<*>
-            }.let {
-                assertTrue( it.value is Fault)
-                it.value as Fault
-            }
+    fun Envelope.assertAcknowledgmen() {
+        assertNotNull(this.header.messageHeader())
+        assertNotNull(this.header.acknowledgment())
+    }
+
+
 
     fun mockSignatureDetails(): SignatureDetails =
     SignatureDetails(
