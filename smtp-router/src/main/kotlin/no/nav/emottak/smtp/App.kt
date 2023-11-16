@@ -63,6 +63,7 @@ fun Application.myApplicationModule() {
             }.onSuccess {
                 call.respond(HttpStatusCode.OK, "Meldinger Lest")
             }.onFailure {
+                log.error(it.message,it)
                 call.respond(it.localizedMessage)
             }
         }
