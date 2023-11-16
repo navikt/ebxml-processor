@@ -41,7 +41,7 @@ fun Application.myApplicationModule() {
                 do {
                     val messages = MailReader(store).readMail()
                     messages.forEach { message ->
-                        client.post("https://ebms-provider.intern.dev.nav.no") {
+                        client.post("https://ebms-provider.intern.dev.nav.no/ebms") {
                             headers (
                                 message.headers.filterHeader(
                                     MimeHeaders.MIME_VERSION,
@@ -69,11 +69,14 @@ fun Application.myApplicationModule() {
     }
 }
 
-fun Map<String,String>.filterHeader(vararg headerName: String): HeadersBuilder.() -> Unit = {
-        headerName.map {
-            Pair(it, this@filterHeader[it]!!)
+fun Map<String,String>.filterHeader(vararg headerNames: String): HeadersBuilder.() -> Unit = {
+        headerNames.map {
+            Pair(it, this@filterHeader[it])
         }.forEach {
-            append(it.first, it.second)
+            if (it.second != null) {
+                append(it.first, it.second!!)
+                log.info("Header: <${it.first}> - <${it.second}>")
+            }
         }
 }
 
