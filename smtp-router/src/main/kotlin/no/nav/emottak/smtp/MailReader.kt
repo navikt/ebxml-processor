@@ -51,7 +51,7 @@ class MailReader(
                 val from = message.from[0]
                 val subject = message.subject
                 val headerXMailer = message.getHeader("X-Mailer")?.toList()?.firstOrNull()
-                //log.info(String(message.inputStream.readAllBytes()))
+                log.info(String(message.inputStream.readAllBytes()))
                 log.info(createHeaderMarker(headerXMailer), "From: <$from> Subject: <$subject>")
             }
             inbox.close(false) //TODO true
