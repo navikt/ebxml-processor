@@ -2,8 +2,10 @@ package no.nav.emottak.smtp
 
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
+import io.ktor.client.request.headers
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
+import io.ktor.http.HeadersBuilder
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
@@ -38,10 +40,22 @@ fun Application.myApplicationModule() {
             runCatching {
                 do {
                     val messages = MailReader(store).readMail()
-                    messages.forEach {
+                    messages.forEach { message ->
                         client.post("https://ebms-provider.intern.dev.nav.no") {
+                            headers (
+                                message.headers.filterHeader(
+                                    MimeHeaders.MIME_VERSION,
+                                    MimeHeaders.CONTENT_ID,
+                                    MimeHeaders.SOAP_ACTION,
+                                    MimeHeaders.CONTENT_TYPE,
+                                    "From",
+                                    "To",
+                                    "Message-Id",
+                                    "Date"
+                                )
+                            )
                             setBody(
-                                it
+                                message.bytes
                             )
                         }
                     }
@@ -53,4 +67,21 @@ fun Application.myApplicationModule() {
             }
         }
     }
+}
+
+fun Map<String,String>.filterHeader(vararg headerName: String): HeadersBuilder.() -> Unit = {
+        headerName.map {
+            Pair(it, this@filterHeader[it]!!)
+        }.forEach {
+            append(it.first, it.second)
+        }
+}
+
+object MimeHeaders {
+    const val MIME_VERSION                  = "MIME-Version"
+    const val SOAP_ACTION                   = "SOAPAction"
+    const val CONTENT_TYPE                  = "Content-Type"
+    const val CONTENT_ID                    = "Content-Id"
+    const val CONTENT_TRANSFER_ENCODING     = "Content-Transfer-Encoding"
+    const val CONTENT_DISPOSITION           = "Content-Disposition"
 }
