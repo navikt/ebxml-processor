@@ -1,27 +1,22 @@
 package no.nav.emottak.smtp;
 
 
-import jakarta.mail.Authenticator
-import jakarta.mail.Flags
+import io.ktor.http.ContentType
+import io.ktor.http.Headers
+import io.ktor.http.headers
 import jakarta.mail.Folder
 import jakarta.mail.Message
-import jakarta.mail.PasswordAuthentication
-import jakarta.mail.Session
+import jakarta.mail.Multipart
 import jakarta.mail.Store
 import net.logstash.logback.marker.LogstashMarker
 import net.logstash.logback.marker.Markers
-import no.nav.emottak.util.getEnvVar
-import java.util.Properties
+data class EmailMsg(val headers: Headers, val bytes: ByteArray)
 
-
-
-class MailReader(store: Store)
- {
+class MailReader(private val store: Store) {
     val takeN = 1
 
-
     @Throws(Exception::class)
-    fun readMail(): List<Message> {
+    fun readMail(): List<EmailMsg> {
         try {
             store.connect()
             val inbox = store.getFolder("INBOX")
@@ -29,17 +24,27 @@ class MailReader(store: Store)
             val messages = inbox.messages
 
             log.info("Found ${messages.size} messages")
-            val endIndex = takeN.takeIf { takeN < messages.size } ?: messages.size
-            val resultat = inbox.getMessages(1,endIndex).toList().onEach {
-                 val from = it.from
-                 val subject = it.subject
-                 val headerXMailer = it.getHeader("X-Mailer")?.toList()?.firstOrNull()
-                 log.info(createHeaderMarker(headerXMailer), "From: <$from> Subject: <$subject>")
+            val emailMsgList = if(messages.isNotEmpty()) {
+                val endIndex = takeN.takeIf { takeN <= messages.size } ?: messages.size
+                val resultat = inbox.getMessages(1, endIndex).toList().onEach {
+                    val from = it.from
+                    val subject = it.subject
+                    val headerXMailer = it.getHeader("X-Mailer")?.toList()?.firstOrNull()
+                    log.info(createHeaderMarker(headerXMailer), "From: <$from> Subject: <$subject>")
+                }
+                resultat.map {
+                    EmailMsg(Headers.build {
+                        it.allHeaders.toList().map { append(it.name, it.value) }
+                    }, it.inputStream.readAllBytes())
+                }
+            }
+            else {
+                emptyList()
             }
 
             inbox.close(true)
             store.close()
-            return resultat
+            return emailMsgList
         } catch (e: Exception) {
             log.error("Error connecting to mail server", e)
             throw e

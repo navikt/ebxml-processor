@@ -4,6 +4,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
+import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.call
@@ -35,13 +36,18 @@ fun Application.myApplicationModule() {
                 expectSuccess = true
             }
             runCatching {
-                //client.post("https://ebms-provider.intern.dev.nav.no") {
-                //    setBody(
-                        MailReader().readMail()
-                 //   )
-                //}
+                do {
+                    val messages = MailReader(store).readMail()
+                    messages.forEach {
+                        client.post("https://ebms-provider.intern.dev.nav.no") {
+                            setBody(
+                                it
+                            )
+                        }
+                    }
+                } while(messages.isNotEmpty())
             }.onSuccess {
-                call.respond("Fant meldinger: ${it.size}")
+                call.respond(HttpStatusCode.OK, "Meldinger Lest")
             }.onFailure {
                 call.respond(it.localizedMessage)
             }
