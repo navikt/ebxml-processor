@@ -14,51 +14,32 @@ import no.nav.emottak.util.getEnvVar
 import java.util.Properties
 
 
-val properties = Properties().also { props ->
-    props["mail.pop3.socketFactory.fallback"] = "false"
-    props["mail.pop3.socketFactory.port"] = getEnvVar("SMTP_POP3_FACTORY_PORT", "3110")
-    props["mail.pop3.port"] = getEnvVar("SMTP_POP3_PORT", "3110")
-    props["mail.pop3.host"] = getEnvVar("SMTP_POP3_HOST", "localhost")
-    props["mail.store.protocol"] = getEnvVar("SMTP_STORE_PROTOCOL", "pop3")
-}
 
-val smtpUsername = getEnvVar("SMTP_USERNAME", "test@test.test")
-val smtpPassword = getEnvVar("SMTP_PASSWORD", "changeit")
+class MailReader(store: Store)
+ {
+    val takeN = 1
 
-class MailReader(
-    props: Properties = properties,
-    val username: String = smtpUsername,
-    val password: String = smtpPassword
-) {
-    private val store: Store
-
-    init {
-        val auth = object : Authenticator() {
-            override fun getPasswordAuthentication() = PasswordAuthentication(username, password)
-        }
-        val session = Session.getDefaultInstance(props, auth)
-        store = session.getStore("pop3")
-    }
 
     @Throws(Exception::class)
     fun readMail(): List<Message> {
         try {
             store.connect()
             val inbox = store.getFolder("INBOX")
-            inbox.open(Folder.READ_WRITE) //TODO READ_WRITE
+            inbox.open(Folder.READ_WRITE)
             val messages = inbox.messages
+
             log.info("Found ${messages.size} messages")
-            for (message in messages) {
-                val from = message.from[0]
-                val subject = message.subject
-                val headerXMailer = message.getHeader("X-Mailer")?.toList()?.firstOrNull()
-                log.info(String(message.inputStream.readAllBytes()))
-                log.info(createHeaderMarker(headerXMailer), "From: <$from> Subject: <$subject>")
-                message.setFlag(Flags.Flag.DELETED,true)
+            val endIndex = takeN.takeIf { takeN < messages.size } ?: messages.size
+            val resultat = inbox.getMessages(1,endIndex).toList().onEach {
+                 val from = it.from
+                 val subject = it.subject
+                 val headerXMailer = it.getHeader("X-Mailer")?.toList()?.firstOrNull()
+                 log.info(createHeaderMarker(headerXMailer), "From: <$from> Subject: <$subject>")
             }
-            inbox.close(true) //TODO true
+
+            inbox.close(true)
             store.close()
-            return messages.toList()
+            return resultat
         } catch (e: Exception) {
             log.error("Error connecting to mail server", e)
             throw e
