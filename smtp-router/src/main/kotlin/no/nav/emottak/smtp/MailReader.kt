@@ -2,6 +2,7 @@ package no.nav.emottak.smtp;
 
 
 import jakarta.mail.Authenticator
+import jakarta.mail.Flags
 import jakarta.mail.Folder
 import jakarta.mail.Message
 import jakarta.mail.PasswordAuthentication
@@ -53,8 +54,9 @@ class MailReader(
                 val headerXMailer = message.getHeader("X-Mailer")?.toList()?.firstOrNull()
                 log.info(String(message.inputStream.readAllBytes()))
                 log.info(createHeaderMarker(headerXMailer), "From: <$from> Subject: <$subject>")
+                message.setFlag(Flags.Flag.DELETED,true)
             }
-            inbox.close(false) //TODO true
+            inbox.close(true) //TODO true
             store.close()
             return messages.toList()
         } catch (e: Exception) {
