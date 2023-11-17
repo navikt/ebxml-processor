@@ -56,7 +56,7 @@ fun Application.myApplicationModule() {
                                 )
                             )
                             setBody(
-                                String(message.bytes)
+                                message.bytes
                             )
                         }
                     }
