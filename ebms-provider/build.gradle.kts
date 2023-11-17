@@ -27,6 +27,7 @@ tasks.test {
 
 dependencies {
     implementation(project(":felles"))
+    testImplementation(project(":cpa-repo"))
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.netty)
     implementation(libs.ktor.client.core)
