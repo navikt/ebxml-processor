@@ -76,7 +76,9 @@ fun Map<String,String>.filterHeader(vararg headerNames: String): HeadersBuilder.
             Pair(it,  this@filterHeader[it])
         }.forEach {
             if (it.second != null) {
-                val headerValue = MimeUtility.unfold(it.second!!)
+                val headerValue = MimeUtility.unfold(it.second!!).also {
+
+                }
                 append(it.first, headerValue )
                 log.info("Header: <${it.first}> - <${headerValue}>")
             }
