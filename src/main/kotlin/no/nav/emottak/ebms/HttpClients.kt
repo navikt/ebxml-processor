@@ -1,29 +1,28 @@
 package no.nav.emottak.ebms
 
-import io.ktor.client.*
-import io.ktor.client.call.*
-import io.ktor.client.request.*
-import io.ktor.http.*
+import io.ktor.client.HttpClient
+import io.ktor.client.call.body
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
 import no.nav.emottak.melding.model.Header
 import no.nav.emottak.melding.model.PayloadRequest
 import no.nav.emottak.melding.model.PayloadResponse
 import no.nav.emottak.melding.model.SignatureDetails
 import no.nav.emottak.melding.model.SignatureDetailsRequest
 import no.nav.emottak.melding.model.ValidationResult
+import no.nav.emottak.util.getEnvVar
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
 
-private const val cpaRepoEndpoint = "http://cpa-repo"
-private const val validatorEndpoint = "$cpaRepoEndpoint/validate"
-private const val payloadProcessorEndpoint = "http://ebms-payload/payload"
+private val cpaRepoEndpoint = getEnvVar("CPA_REPO_URL","http://cpa-repo")
+private val payloadProcessorEndpoint = getEnvVar("PAYLOAD_PROCESSOR_URL","http://ebms-payload/payload")
 
 class CpaRepoClient(clientProvider:()->HttpClient) {
     private var httpClient = clientProvider.invoke()
 
-    suspend fun postValidate(contentId:String,header: Header) : ValidationResult {
-        return httpClient.post(validatorEndpoint) {
-            this.url {
-                this.path("/cpa/validate/$contentId")
-            }
+    suspend fun postValidate(contentId:String, header: Header) : ValidationResult {
+        return httpClient.post("$cpaRepoEndpoint/cpa/validate/$contentId") { // TODO her overrides URL
             setBody(header)
             contentType(ContentType.Application.Json)
         }.body()

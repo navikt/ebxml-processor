@@ -40,6 +40,14 @@ fun main() {
     embeddedServer(Netty, port = 8080, module = Application::ebmsProviderModule).start(wait = true)
 }
 
+fun defaultHttpClient(): () -> HttpClient {
+    return { HttpClient(CIO) {
+        expectSuccess = true
+        install(io.ktor.client.plugins.contentnegotiation.ContentNegotiation) {
+            json()
+        }
+    }}
+}
 fun PartData.payload(clearText:Boolean = false): ByteArray {
     return when (this) {
         is PartData.FormItem ->  if (clearText) return this.value.toByteArray() else java.util.Base64.getMimeDecoder().decode(this.value)
@@ -54,13 +62,7 @@ fun PartData.payload(clearText:Boolean = false): ByteArray {
 
 
 fun Application.ebmsProviderModule() {
-    val client = { HttpClient(CIO) {
-            expectSuccess = true
-            install(io.ktor.client.plugins.contentnegotiation.ContentNegotiation) {
-                json()
-            }
-        }
-    }
+    val client = defaultHttpClient()
     val cpaClient = CpaRepoClient(client)
     val processingClient = PayloadProcessingClient(client)
     val validator = DokumentValidator(cpaClient)
@@ -71,7 +73,6 @@ fun Application.ebmsProviderModule() {
             call.respondText("Hello, world!")
         }
         postEbms(validator, processing, cpaClient)
-
     }
 
 }
