@@ -7,7 +7,6 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import no.nav.emottak.ebms.model.EbMSDocument
-import no.nav.emottak.ebms.model.EbMSMessageError
 import no.nav.emottak.ebms.model.EbMSPayloadMessage
 import no.nav.emottak.ebms.model.buildEbmMessage
 import no.nav.emottak.ebms.processing.ProcessingService
@@ -18,6 +17,7 @@ import no.nav.emottak.ebms.validation.validateMime
 import no.nav.emottak.melding.feil.EbmsException
 import no.nav.emottak.melding.model.ErrorCode
 import no.nav.emottak.melding.model.asErrorList
+import no.nav.emottak.util.retrieveLoggableHeaderPairs
 import no.nav.emottak.util.marker
 
 
@@ -25,10 +25,12 @@ fun Route.postEbms(validator: DokumentValidator, processingService: ProcessingSe
     post("/ebms") {
         // KRAV 5.5.2.1 validate MIME
         val debug:Boolean = call.request.header("debug")?.isNotBlank()?: false
-         val ebMSDocument: EbMSDocument
+        val ebMSDocument: EbMSDocument
         try {
             call.request.validateMime()
             ebMSDocument = call.receiveEbmsDokument()
+            // TODO gjøre dette bedre
+            log.info(ebMSDocument.messageHeader().marker(call.request.headers.retrieveLoggableHeaderPairs()), "Melding mottatt")
         } catch (ex: MimeValidationException) {
             logger().error("Mime validation has failed: ${ex.message}", ex)
             call.respond(HttpStatusCode.InternalServerError, ex.asParseAsSoapFault())
