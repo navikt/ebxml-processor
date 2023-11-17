@@ -17,6 +17,7 @@ import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.response.respond
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
+import jakarta.mail.internet.MimeUtility
 import org.slf4j.LoggerFactory
 
 fun main() {
@@ -72,11 +73,12 @@ fun Application.myApplicationModule() {
 
 fun Map<String,String>.filterHeader(vararg headerNames: String): HeadersBuilder.() -> Unit = {
         headerNames.map {
-            Pair(it, this@filterHeader[it])
+            Pair(it,  this@filterHeader[it])
         }.forEach {
             if (it.second != null) {
-                append(it.first, it.second!!)
-                log.info("Header: <${it.first}> - <${it.second}>")
+                val headerValue = MimeUtility.unfold(it.second!!)
+                append(it.first, headerValue )
+                log.info("Header: <${it.first}> - <${headerValue}>")
             }
         }
 }
