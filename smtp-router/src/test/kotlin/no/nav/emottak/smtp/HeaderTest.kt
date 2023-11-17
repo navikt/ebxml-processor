@@ -1,7 +1,8 @@
 package no.nav.emottak.smtp
 
-import io.ktor.http.*
+import io.ktor.http.Headers
 import jakarta.mail.internet.MimeUtility
+import no.nav.emottak.constants.MimeHeaders
 import org.junit.jupiter.api.Test
 
 val testHeaderValue = """multipart/related;

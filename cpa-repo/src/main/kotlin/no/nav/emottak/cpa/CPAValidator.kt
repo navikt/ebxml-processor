@@ -1,15 +1,12 @@
 package no.nav.emottak.cpa
 
-import no.nav.emottak.ACKNOWLEDGMENT_ACTION
-import no.nav.emottak.EBMS_SERVICE_URI
-import no.nav.emottak.MESSAGE_ERROR_ACTION
+import no.nav.emottak.constants.EbXMLConstants.ACKNOWLEDGMENT_ACTION
+import no.nav.emottak.constants.EbXMLConstants.EBMS_SERVICE_URI
+import no.nav.emottak.constants.EbXMLConstants.MESSAGE_ERROR_ACTION
 import no.nav.emottak.cpa.feil.CpaValidationException
-import no.nav.emottak.melding.feil.EbmsException
-import no.nav.emottak.melding.model.ErrorCode
 import no.nav.emottak.melding.model.Header
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PartyInfo
-import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.SeverityType
 import java.time.Instant
 import java.util.Date
 

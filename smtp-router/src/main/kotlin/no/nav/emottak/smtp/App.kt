@@ -18,6 +18,8 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import jakarta.mail.internet.MimeUtility
+import no.nav.emottak.constants.MimeHeaders
+import no.nav.emottak.constants.SMTPHeaders
 import org.slf4j.LoggerFactory
 
 fun main() {
@@ -49,10 +51,11 @@ fun Application.myApplicationModule() {
                                     MimeHeaders.CONTENT_ID,
                                     MimeHeaders.SOAP_ACTION,
                                     MimeHeaders.CONTENT_TYPE,
-                                    "From",
-                                    "To",
-                                    "Message-Id",
-                                    "Date"
+                                    SMTPHeaders.FROM,
+                                    SMTPHeaders.TO,
+                                    SMTPHeaders.MESSAGE_ID,
+                                    SMTPHeaders.DATE,
+                                    SMTPHeaders.X_MAILER
                                 )
                             )
                             setBody(
@@ -76,20 +79,9 @@ fun Map<String,String>.filterHeader(vararg headerNames: String): HeadersBuilder.
             Pair(it,  this@filterHeader[it])
         }.forEach {
             if (it.second != null) {
-                val headerValue = MimeUtility.unfold(it.second!!).also {
-
-                }
+                val headerValue = MimeUtility.unfold(it.second!!)
                 append(it.first, headerValue )
                 log.info("Header: <${it.first}> - <${headerValue}>")
             }
         }
-}
-
-object MimeHeaders {
-    const val MIME_VERSION                  = "MIME-Version"
-    const val SOAP_ACTION                   = "SOAPAction"
-    const val CONTENT_TYPE                  = "Content-Type"
-    const val CONTENT_ID                    = "Content-Id"
-    const val CONTENT_TRANSFER_ENCODING     = "Content-Transfer-Encoding"
-    const val CONTENT_DISPOSITION           = "Content-Disposition"
 }

@@ -14,6 +14,8 @@ dependencyResolutionManagement {
             version("bouncycastle", "1.76")
             version("exposed", "0.43.0")
             version("ktor", "2.3.4")
+            version("jakarta-mail", "2.1.2")
+            version("eclipse-angus", "2.0.2")
 
             library("bcpkix-jdk18on", "org.bouncycastle", "bcpkix-jdk18on").versionRef("bouncycastle")
             library("bcprov-jdk18on", "org.bouncycastle", "bcprov-jdk18on").versionRef("bouncycastle")
@@ -44,6 +46,10 @@ dependencyResolutionManagement {
             library("flyway-core", "org.flywaydb:flyway-core:9.16.3")
             library("jaxb-runtime", "org.glassfish.jaxb:jaxb-runtime:2.4.0-b180830.0438")
 
+            library("jakarta-mail-api", "jakarta.mail", "jakarta.mail-api").versionRef("jakarta-mail")
+            library("eclipse-angus", "org.eclipse.angus", "jakarta.mail").versionRef("eclipse-angus")
+
+            bundle("jakarta-mail", listOf("jakarta-mail-api", "eclipse-angus"))
             bundle("bouncycastle", listOf("bcpkix-jdk18on", "bcprov-jdk18on"))
             bundle("exposed", listOf("exposed-core", "exposed-dao", "exposed-java-time", "exposed-jdbc","exposed-json"))
             bundle("logging", listOf("logback-classic", "logback-logstash"))

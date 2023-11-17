@@ -1,6 +1,6 @@
 package no.nav.emottak.cpa
 
-import no.nav.emottak.EBMS_SERVICE_URI
+import no.nav.emottak.constants.EbXMLConstants.EBMS_SERVICE_URI
 import no.nav.emottak.cpa.feil.CpaValidationException
 import no.nav.emottak.cpa.feil.SecurityException
 import no.nav.emottak.melding.model.PartyId
