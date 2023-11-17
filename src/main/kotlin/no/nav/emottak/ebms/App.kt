@@ -15,6 +15,10 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.util.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import no.nav.emottak.ebms.model.*
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.validation.DokumentValidator
@@ -107,7 +111,11 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
         }
 
         ContentType.parse("text/xml") -> {
-            val dokument = if (clearText) this.receiveStream().readAllBytes() else java.util.Base64.getMimeDecoder().decode(this.receiveStream().readAllBytes())
+            val dokument = withContext(Dispatchers.IO) {
+                    if (clearText) this@receiveEbmsDokument.receiveStream()
+                        .readAllBytes() else java.util.Base64.getMimeDecoder()
+                        .decode(this@receiveEbmsDokument.receiveStream().readAllBytes())
+            }
             println(dokument)
             EbMSDocument(
                 this.request.headers[MimeHeaders.CONTENT_ID]!!.convertToValidatedContentID(),
