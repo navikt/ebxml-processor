@@ -4,6 +4,7 @@ import com.sun.xml.messaging.saaj.soap.ver1_1.SOAPMessageFactory1_1Impl
 import io.ktor.http.*
 import io.ktor.http.content.*
 import io.ktor.server.request.*
+import io.ktor.util.*
 import jakarta.xml.soap.SOAPConstants
 import jakarta.xml.soap.SOAPFault
 import jakarta.xml.soap.SOAPMessage
@@ -68,7 +69,7 @@ fun PartData.validateMimeAttachment() {
 fun Headers.validateMimeHeaders() {
         if(this[MimeHeaders.MIME_VERSION] != "1.0")
                 throw MimeValidationException("MIME version is missing or incorrect")
-        if(this[MimeHeaders.SOAP_ACTION] != "ebXML")
+        this[MimeHeaders.SOAP_ACTION]?.toLowerCasePreservingASCIIRules().takeIf { it == "\"ebxml\"" || it=="ebxml" } ?:
                 throw MimeValidationException("SOAPAction is undefined or incorrect")
         if(this[MimeHeaders.CONTENT_TYPE].isNullOrBlank() || this[MimeHeaders.CONTENT_TYPE] == "text/plain")
                 throw MimeValidationException("Content type is wrong")
