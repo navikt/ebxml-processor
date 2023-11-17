@@ -3,6 +3,7 @@ package no.nav.emottak.smtp;
 
 import jakarta.mail.Flags
 import jakarta.mail.Folder
+import jakarta.mail.Message
 import jakarta.mail.Store
 import net.logstash.logback.marker.LogstashMarker
 import net.logstash.logback.marker.Markers
@@ -10,6 +11,16 @@ import net.logstash.logback.marker.Markers
 data class EmailMsg(val headers: Map<String,String>, val bytes: ByteArray)
 
 class MailReader(private val store: Store) {
+
+    companion object {
+        fun mapEmailMsg(): (Message) -> EmailMsg = {
+        message ->
+                    EmailMsg(
+                        message.allHeaders.toList().groupBy( {it.name}, {it.value} ).mapValues { it.value.joinToString(",") },
+                        message.inputStream.readAllBytes()
+                    )
+    }
+    }
     val takeN = 1
 
     @Throws(Exception::class)
@@ -18,11 +29,11 @@ class MailReader(private val store: Store) {
             store.connect()
             val inbox = store.getFolder("INBOX")
             inbox.open(Folder.READ_WRITE)
-            val messages = inbox.messages
+            val messageCount = inbox.messageCount
 
-            log.info("Found ${messages.size} messages")
-            val emailMsgList = if(messages.isNotEmpty()) {
-                val endIndex = takeN.takeIf { takeN <= messages.size } ?: messages.size
+            log.info("Found $messageCount messages")
+            val emailMsgList = if (messageCount != 0) {
+                val endIndex = takeN.takeIf { takeN <= messageCount } ?: messageCount
                 val resultat = inbox.getMessages(1, endIndex).toList().onEach {
                     val from = it.from[0]
                     val subject = it.subject
@@ -30,12 +41,7 @@ class MailReader(private val store: Store) {
                     log.info(createHeaderMarker(headerXMailer), "From: <$from> Subject: <$subject>")
                     it.setFlag(Flags.Flag.DELETED,true)
                 }
-                resultat.map { message ->
-                    EmailMsg(
-                        message.allHeaders.toList().groupBy( {it.name}, {it.value} ).mapValues { it.value.joinToString(",") },
-                        message.inputStream.readAllBytes()
-                    )
-                }
+                resultat.map (mapEmailMsg())
             }
             else {
                 emptyList()
@@ -49,6 +55,8 @@ class MailReader(private val store: Store) {
             store.close()
         }
     }
+
+
 
     private fun createHeaderMarker(xMailer: String?): LogstashMarker? {
         val map = mutableMapOf<String,String>()
