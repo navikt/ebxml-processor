@@ -29,8 +29,6 @@ fun Route.postEbms(validator: DokumentValidator, processingService: ProcessingSe
         try {
             call.request.validateMime()
             ebMSDocument = call.receiveEbmsDokument()
-            // TODO gjøre dette bedre
-            log.info(ebMSDocument.messageHeader().marker(call.request.headers.retrieveLoggableHeaderPairs()), "Melding mottatt")
         } catch (ex: MimeValidationException) {
             logger().error("Mime validation has failed: ${ex.message}", ex)
             call.respond(HttpStatusCode.InternalServerError, ex.asParseAsSoapFault())
@@ -41,6 +39,10 @@ fun Route.postEbms(validator: DokumentValidator, processingService: ProcessingSe
             call.respond(HttpStatusCode.InternalServerError, MimeValidationException("Unable to transform request into EbmsDokument: ${ex.message}",ex).asParseAsSoapFault())
             return@post
         }
+
+        // TODO gjøre dette bedre
+        val loggableHeaders = call.request.headers.retrieveLoggableHeaderPairs()
+        log.info(ebMSDocument.messageHeader().marker(loggableHeaders), "Melding mottatt")
 
         val validationResult = validator.validate(ebMSDocument)
         if (!validationResult.valid()) {
