@@ -42,7 +42,7 @@ fun Application.myApplicationModule() {
             }
             runCatching {
                 do {
-                    val messages = MailReader(store).readMail()
+                    val messages = MailReader(incomingStore).readMail()
                     messages.forEach { message ->
                         client.post("https://ebms-provider.intern.dev.nav.no/ebms") {
                             headers (
@@ -70,6 +70,12 @@ fun Application.myApplicationModule() {
                 log.error(it.message,it)
                 call.respond(it.localizedMessage)
             }
+        }
+
+        get("/mail/log/outgoing") {
+            do {
+                val messages = MailReader(bccStore).readMail()
+            }while (messages.isNotEmpty())
         }
     }
 }

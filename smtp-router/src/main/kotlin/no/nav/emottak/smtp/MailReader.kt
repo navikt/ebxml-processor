@@ -5,6 +5,7 @@ import jakarta.mail.Flags
 import jakarta.mail.Folder
 import jakarta.mail.Message
 import jakarta.mail.Store
+import jakarta.mail.internet.MimeMultipart
 import net.logstash.logback.marker.LogstashMarker
 import net.logstash.logback.marker.Markers
 
@@ -34,6 +35,18 @@ class MailReader(private val store: Store) {
             val emailMsgList = if (messageCount != 0) {
                 val endIndex = takeN.takeIf { takeN <= messageCount } ?: messageCount
                 val resultat = inbox.getMessages(1, endIndex).toList().onEach {
+                    if (it is MimeMultipart) {
+                        val dokument = runCatching {
+                             it.getBodyPart(0)
+                        }.onSuccess {
+                            log.info("Incoming multipart request with headers ${it.allHeaders.toList().map { it.name + ":" + it.value }}" +
+                            "with body ${String(it.inputStream.readAllBytes())}")
+                        }
+
+                    } else {
+                        log.info("Incoming singlepart request ${String(it.inputStream.readAllBytes())}")
+                    }
+
                     val from = it.from[0]
                     val subject = it.subject
                     val headerXMailer = it.getHeader("X-Mailer")?.toList()?.firstOrNull()
