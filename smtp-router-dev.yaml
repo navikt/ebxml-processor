@@ -32,5 +32,9 @@ spec:
       value: "d32mxvl002.oera-t.local"
     - name: SMTP_STORE_PROTOCOL
       value: "pop3"
-    - name: SMTP_USERNAME
+    - name: SMTP_INCOMING_USERNAME
       value: "nyebmstest@test-es.nav.no"
+    - name: SMTP_BCC_USERNAME
+      value: "nyebmsbcc@test-es.nav.no"
+    - name: SMTP_OUTGOING_USERNAME
+      value: "nyebms2@test-es.nav.no"
