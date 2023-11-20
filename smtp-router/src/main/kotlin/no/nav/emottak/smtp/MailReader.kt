@@ -26,7 +26,6 @@ class MailReader(private val store: Store) {
     @Throws(Exception::class)
     fun readMail(): List<EmailMsg> {
         try {
-            store.connect()
             val inbox = store.getFolder("INBOX")
             inbox.open(Folder.READ_WRITE)
             val messageCount = inbox.messageCount

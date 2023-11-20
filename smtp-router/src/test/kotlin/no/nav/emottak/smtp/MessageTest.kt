@@ -61,7 +61,7 @@ class MessageTest {
     @Test
     fun `Ta en melding`() {
         val session = mockSession()
-        val stream = this.javaClass.classLoader.getResourceAsStream("example.eml")
+        val stream = this.javaClass.classLoader.getResourceAsStream("nyebmstest@test-es.nav.no/INBOX/example.eml")
         val msg = MimeMessage(session, stream)
         val store = mockStore(session,msg)
         val reader = MailReader(store)

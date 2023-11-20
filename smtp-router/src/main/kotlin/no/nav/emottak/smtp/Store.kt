@@ -23,5 +23,7 @@ val store = run {
         override fun getPasswordAuthentication() = PasswordAuthentication(smtpUsername, smtpPassword)
     }
     val session = Session.getDefaultInstance(properties, auth)
-    session.getStore("pop3")
+    session.getStore("pop3").also {
+        it.connect()
+    }
 }
