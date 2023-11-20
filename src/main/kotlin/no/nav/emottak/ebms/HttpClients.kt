@@ -22,7 +22,7 @@ class CpaRepoClient(clientProvider:()->HttpClient) {
     private var httpClient = clientProvider.invoke()
 
     suspend fun postValidate(contentId:String, header: Header) : ValidationResult {
-        return httpClient.post("$cpaRepoEndpoint/cpa/validate/$contentId") { // TODO her overrides URL
+        return httpClient.post("$cpaRepoEndpoint/cpa/validate/$contentId") {
             setBody(header)
             contentType(ContentType.Application.Json)
         }.body()

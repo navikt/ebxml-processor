@@ -1,13 +1,18 @@
 package no.nav.emottak.ebms
 
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
-import io.ktor.http.*
-import io.ktor.serialization.kotlinx.json.*
-import io.ktor.server.application.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
-import io.ktor.server.testing.*
+import io.ktor.client.request.headers
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.HttpStatusCode
+import io.ktor.serialization.kotlinx.json.json
+import io.ktor.server.application.call
+import io.ktor.server.application.install
+import io.ktor.server.response.respond
+import io.ktor.server.routing.post
+import io.ktor.server.routing.routing
+import io.ktor.server.testing.ApplicationTestBuilder
+import io.ktor.server.testing.testApplication
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
@@ -29,6 +34,7 @@ import no.nav.emottak.melding.model.Processing
 import no.nav.emottak.melding.model.SignatureDetails
 import no.nav.emottak.melding.model.ValidationResult
 import no.nav.emottak.util.decodeBase64
+import no.nav.emottak.util.getEnvVar
 import org.apache.xml.security.algorithms.MessageDigestAlgorithm
 import org.apache.xml.security.signature.XMLSignature
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -36,7 +42,6 @@ import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ErrorList
 import org.xmlsoap.schemas.soap.envelope.Envelope
-
 
 class EbmsRouteIT {
 
@@ -64,7 +69,7 @@ class EbmsRouteIT {
 
         }
         externalServices {
-                hosts("http://cpa-repo") {
+                hosts(getEnvVar("CPA_REPO_URL","http://cpa-repo")) {
                     this.install(io.ktor.server.plugins.contentnegotiation.ContentNegotiation) {
                         json()
                     }

@@ -10,14 +10,40 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.testing.testApplication
+import io.mockk.clearAllMocks
 import kotlinx.coroutines.runBlocking
 import no.nav.emottak.cpa.myApplicationModule
 import no.nav.emottak.ebms.validation.MimeHeaders
+import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
 class IntegrasjonsTest {
+    companion object {
+        val portnoEbmsProvider = 8089
+        val portnoCpaRepo = 8088
+        val ebmsProviderUrl = "http://localhost:$portnoEbmsProvider"
+        val cpaRepoUrl = "http://localhost:$portnoCpaRepo"
+
+        // TODO Start mailserver og payload processor
+        val ebmsProviderServer = embeddedServer(Netty, port = portnoEbmsProvider, module = { ebmsProviderModule() }).start()
+        val cpaRepoServer = embeddedServer(Netty, port = portnoCpaRepo, module = { myApplicationModule() }).start()
+
+        @JvmStatic
+        @BeforeAll
+        fun setup() {
+            System.setProperty("CPA_REPO_URL", cpaRepoUrl)
+        }
+
+        @JvmStatic
+        @AfterAll
+        fun tearDown() {
+            ebmsProviderServer.stop()
+            cpaRepoServer.stop()
+        }
+    }
 
     @Test
     fun basicEndpointTest() = testApplication {
@@ -28,18 +54,14 @@ class IntegrasjonsTest {
     }
 
     @Test
-    @Disabled
     fun testAlleIntegrasjoner() {
-        // TODO Start mailserver
-        embeddedServer(Netty, port = 8080, module = { ebmsProviderModule() }).start()
-        embeddedServer(Netty, port = 8081, module = { myApplicationModule() }).start()
-        System.setProperty("CPA_REPO_URL", "http://localhost:8081")
-
+        clearAllMocks()
         val httpClient = defaultHttpClient().invoke()
         runBlocking {
-            val get = httpClient.get("http://localhost:8080/")
+            val get = httpClient.get("$ebmsProviderUrl/")
+            Assertions.assertEquals("Hello, world!", get.bodyAsText())
             println(get.bodyAsText())
-            val post = httpClient.post("http://localhost:8080/ebms") {
+            val post = httpClient.post("$ebmsProviderUrl/ebms") {
                 mockMultipartRequest()
                 // TODO send en melding som ikke feiler CPA-ID validation
             }
@@ -47,7 +69,7 @@ class IntegrasjonsTest {
     }
 
     @Test
-    @Disabled // Husk naisdevice
+    @Disabled // krever naisdevice
     fun testDevFssEndpoint() {
         runBlocking {
             defaultHttpClient()
