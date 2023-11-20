@@ -39,7 +39,7 @@ class MailReader(private val store: Store) {
                     val subject = it.subject
                     val headerXMailer = it.getHeader("X-Mailer")?.toList()?.firstOrNull()
                     log.info(createHeaderMarker(headerXMailer), "From: <$from> Subject: <$subject>")
-                    it.setFlag(Flags.Flag.DELETED,true)
+//                    it.setFlag(Flags.Flag.DELETED,true)
                 }
                 resultat.map (mapEmailMsg())
             }
