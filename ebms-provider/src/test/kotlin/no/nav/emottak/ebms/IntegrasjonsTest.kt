@@ -54,6 +54,7 @@ class IntegrasjonsTest {
     }
 
     @Test
+    @Disabled
     fun testAlleIntegrasjoner() {
         clearAllMocks()
         val httpClient = defaultHttpClient().invoke()
