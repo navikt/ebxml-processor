@@ -44,8 +44,6 @@ import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ErrorList
 import org.xmlsoap.schemas.soap.envelope.Envelope
 
 class EbmsRouteIT {
-
-
     val validMultipartRequest = validMultipartRequest()
     val processingService = mockk<ProcessingService>()
 
@@ -147,7 +145,6 @@ class EbmsRouteIT {
 
         assertEquals("Processed", response.bodyAsText())
         assertEquals(HttpStatusCode.OK, response.status)
-
     }
 
 

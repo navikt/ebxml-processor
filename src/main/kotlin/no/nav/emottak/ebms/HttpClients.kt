@@ -15,13 +15,14 @@ import no.nav.emottak.melding.model.ValidationResult
 import no.nav.emottak.util.getEnvVar
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
 
-private val cpaRepoEndpoint = getEnvVar("CPA_REPO_URL","http://cpa-repo")
-private val payloadProcessorEndpoint = getEnvVar("PAYLOAD_PROCESSOR_URL","http://ebms-payload/payload")
+
 
 class CpaRepoClient(clientProvider:()->HttpClient) {
     private var httpClient = clientProvider.invoke()
+    private val cpaRepoEndpoint = getEnvVar("CPA_REPO_URL","http://cpa-repo")
 
     suspend fun postValidate(contentId:String, header: Header) : ValidationResult {
+        log.info("$cpaRepoEndpoint/cpa/validate/$contentId")
         return httpClient.post("$cpaRepoEndpoint/cpa/validate/$contentId") {
             setBody(header)
             contentType(ContentType.Application.Json)
@@ -71,6 +72,7 @@ class CpaRepoClient(clientProvider:()->HttpClient) {
 
 class PayloadProcessingClient(clientProvider:()->HttpClient) {
     private var httpClient = clientProvider.invoke()
+    private val payloadProcessorEndpoint = getEnvVar("PAYLOAD_PROCESSOR_URL","http://ebms-payload/payload")
 
     suspend fun postPayloadRequest(payloadRequest: PayloadRequest): PayloadResponse {
         return httpClient.post(payloadProcessorEndpoint) {
