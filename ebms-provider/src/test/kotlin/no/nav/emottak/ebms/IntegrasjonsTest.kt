@@ -28,13 +28,15 @@ class IntegrasjonsTest {
         val cpaRepoUrl = "http://localhost:$portnoCpaRepo"
 
         // TODO Start mailserver og payload processor
-        val ebmsProviderServer = embeddedServer(Netty, port = portnoEbmsProvider, module = { ebmsProviderModule() }).start()
-        val cpaRepoServer = embeddedServer(Netty, port = portnoCpaRepo, module = { myApplicationModule() }).start()
+        val ebmsProviderServer = embeddedServer(Netty, port = portnoEbmsProvider, module = { ebmsProviderModule() })
+        val cpaRepoServer = embeddedServer(Netty, port = portnoCpaRepo, module = { myApplicationModule() })
 
         @JvmStatic
         @BeforeAll
         fun setup() {
             System.setProperty("CPA_REPO_URL", cpaRepoUrl)
+            ebmsProviderServer.start()
+            cpaRepoServer.start()
         }
 
         @JvmStatic
@@ -54,7 +56,6 @@ class IntegrasjonsTest {
     }
 
     @Test
-    @Disabled
     fun testAlleIntegrasjoner() {
         clearAllMocks()
         val httpClient = defaultHttpClient().invoke()
