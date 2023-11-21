@@ -41,7 +41,7 @@ fun Application.myApplicationModule() {
                 expectSuccess = true
             }
             runCatching {
-                do {
+//                do {
                     val messages = MailReader(incomingStore).readMail()
                     messages.forEach { message ->
                         client.post("https://ebms-provider.intern.dev.nav.no/ebms") {
@@ -63,7 +63,7 @@ fun Application.myApplicationModule() {
                             )
                         }
                     }
-                } while(messages.isNotEmpty())
+//                } while(messages.isNotEmpty())
             }.onSuccess {
                 call.respond(HttpStatusCode.OK, "Meldinger Lest")
             }.onFailure {

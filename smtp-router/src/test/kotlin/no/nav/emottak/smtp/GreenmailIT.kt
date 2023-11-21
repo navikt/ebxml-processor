@@ -3,13 +3,11 @@ package no.nav.emottak.smtp
 import com.icegreen.greenmail.junit5.GreenMailExtension
 import com.icegreen.greenmail.user.GreenMailUser
 import com.icegreen.greenmail.util.ServerSetupTest
-import jakarta.mail.Folder
 import jakarta.mail.Store
-import org.eclipse.angus.mail.pop3.POP3Store
 import org.junit.jupiter.api.Test
 
 import org.junit.jupiter.api.extension.RegisterExtension
-import java.nio.file.FileSystems
+import java.nio.file.Path
 import kotlin.test.assertEquals
 
 
@@ -20,7 +18,7 @@ class GreenmailIT {
 
     fun mockStore() : Store {
         val user: GreenMailUser = greenMail.setUser("nyebmstest@test-es.nav.no","nyebmstest@test-es.nav.no","test1234")
-        greenMail.loadEmails(FileSystems.getDefault().getPath("./out/test/resources"));
+        greenMail.loadEmails(Path.of(this::class.java.classLoader.getResource("mails").toURI()));
         val store = greenMail.pop3.createStore()
         store.connect("nyebmstest@test-es.nav.no","test1234")
         return store
