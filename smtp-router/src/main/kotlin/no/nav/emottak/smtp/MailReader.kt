@@ -63,8 +63,6 @@ class MailReader(private val store: Store) {
         } catch (e: Exception) {
             log.error("Error connecting to mail server", e)
             throw e
-        } finally {
-            store.close()
         }
     }
 
