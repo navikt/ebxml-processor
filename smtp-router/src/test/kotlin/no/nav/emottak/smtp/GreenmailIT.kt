@@ -29,5 +29,7 @@ class GreenmailIT {
         val store = mockStore()
         val reader = MailReader(store)
         assertEquals(1, reader.readMail().size)
+        assertEquals(1, reader.readMail().size)
+        assertEquals(0, reader.readMail().size)
     }
 }

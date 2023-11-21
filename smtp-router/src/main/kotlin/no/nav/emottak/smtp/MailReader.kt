@@ -1,6 +1,7 @@
 package no.nav.emottak.smtp;
 
 
+import jakarta.mail.Flags
 import jakarta.mail.Folder
 import jakarta.mail.Message
 import jakarta.mail.Store
@@ -22,9 +23,10 @@ class MailReader(private val store: Store) {
     }
     }
     val takeN = 1
+    var start = 1
 
     @Throws(Exception::class)
-    fun readMail(): List<EmailMsg> {
+    fun readMail(expunge:Boolean = true): List<EmailMsg> {
         try {
             val inbox = store.getFolder("INBOX")
             inbox.open(Folder.READ_WRITE)
@@ -32,8 +34,8 @@ class MailReader(private val store: Store) {
 
             log.info("Found $messageCount messages")
             val emailMsgList = if (messageCount != 0) {
-                val endIndex = takeN.takeIf { takeN <= messageCount } ?: messageCount
-                val resultat = inbox.getMessages(1, endIndex).toList().onEach {
+                val endIndex = takeN.takeIf { start + takeN <= messageCount } ?: messageCount
+                val resultat = inbox.getMessages(start, endIndex).toList().onEach {
                     if (it.content is MimeMultipart) {
                         val dokument = runCatching {
                             (it.content as MimeMultipart).getBodyPart(0)
@@ -46,14 +48,15 @@ class MailReader(private val store: Store) {
                     }
                     val headerXMailer = it.getHeader("X-Mailer")?.toList()?.firstOrNull()
                     log.info(createHeaderMarker(headerXMailer), "From: <${it.from[0]}> Subject: <${it.subject}>")
-//                    it.setFlag(Flags.Flag.DELETED,true)
+                    it.setFlag(Flags.Flag.DELETED,expunge)
                 }
+                start += takeN
                 resultat.map (mapEmailMsg())
             }
             else {
                 emptyList()
             }
-            inbox.close(true)
+            inbox.close(expunge)
             return emailMsgList
         } catch (e: Exception) {
             log.error("Error connecting to mail server", e)
