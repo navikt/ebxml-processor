@@ -28,8 +28,27 @@ class GreenmailIT {
     fun test() {
         val store = mockStore()
         val reader = MailReader(store)
-        assertEquals(1, reader.readMail().size)
-        assertEquals(1, reader.readMail().size)
-        assertEquals(0, reader.readMail().size)
+        assertEquals(1, reader.readMail(false).size)
+        assertEquals(1, reader.readMail(false).size)
+        assertEquals(0, reader.readMail(false).size)
     }
+
+    @Test
+    fun testEmailPruning() {
+        System.setProperty("INBOX_LIMIT", "100");
+        val store = mockStore()
+
+        val reader = MailReader(store)
+        assertEquals(1, reader.readMail(false).size)
+        assertEquals(1, reader.readMail(false).size)
+        assertEquals(0, reader.readMail().size)
+
+        System.setProperty("INBOX_LIMIT", "-1");
+        val reader2 = MailReader(store)
+        assertEquals(1, reader2.readMail(false).size)
+        assertEquals(1, reader2.readMail(false).size)
+        assertEquals(0, reader2.readMail(false).size)
+
+    }
+
 }

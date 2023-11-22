@@ -8,6 +8,7 @@ import jakarta.mail.Store
 import jakarta.mail.internet.MimeMultipart
 import net.logstash.logback.marker.LogstashMarker
 import net.logstash.logback.marker.Markers
+import no.nav.emottak.util.getEnvVar
 
 data class EmailMsg(val headers: Map<String,String>, val bytes: ByteArray)
 
@@ -24,6 +25,7 @@ class MailReader(private val store: Store) {
     }
     val takeN = 1
     var start = 1
+    val inboxLimit: Int = getEnvVar("INBOX_LIMIT", "2000").toInt()
 
     @Throws(Exception::class)
     fun readMail(expunge:Boolean = true): List<EmailMsg> {
@@ -31,8 +33,12 @@ class MailReader(private val store: Store) {
             val inbox = store.getFolder("INBOX")
             inbox.open(Folder.READ_WRITE)
             val messageCount = inbox.messageCount
-
             log.info("Found $messageCount messages")
+            var expunge = (expunge || messageCount > inboxLimit)
+                .also {
+                    if(expunge != it)
+                        log.warn("Inbox limit [$inboxLimit] exceeded. Expunge forced $it")
+                }
             val emailMsgList = if (messageCount != 0) {
                 val endIndex = takeN.takeIf { start + takeN <= messageCount } ?: messageCount
                 val resultat = inbox.getMessages(start, endIndex).toList().onEach {
@@ -48,9 +54,12 @@ class MailReader(private val store: Store) {
                     }
                     val headerXMailer = it.getHeader("X-Mailer")?.toList()?.firstOrNull()
                     log.info(createHeaderMarker(headerXMailer), "From: <${it.from[0]}> Subject: <${it.subject}>")
-                    it.setFlag(Flags.Flag.DELETED,expunge)
+                    it.setFlag(Flags.Flag.DELETED, expunge)
                 }
-                start += takeN
+                if(expunge)
+                    start = 1
+                else
+                    start += takeN
                 resultat.map (mapEmailMsg())
             }
             else {
