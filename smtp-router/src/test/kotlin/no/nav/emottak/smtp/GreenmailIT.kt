@@ -35,6 +35,7 @@ class GreenmailIT {
 
     @Test
     fun testEmailPruning() {
+        // TODO får ikke assertet at limiten funker
         System.setProperty("INBOX_LIMIT", "100");
         val store = mockStore()
 
@@ -42,12 +43,17 @@ class GreenmailIT {
         assertEquals(1, reader.readMail().size)
         assertEquals(1, reader.readMail().size)
         assertEquals(0, reader.readMail().size)
+        reader.close()
+        assertEquals(2, MailReader(store).count())
 
         System.setProperty("INBOX_LIMIT", "-1");
         val reader2 = MailReader(store, false)
+
         assertEquals(1, reader2.readMail().size)
         assertEquals(1, reader2.readMail().size)
         assertEquals(0, reader2.readMail().size)
+        reader2.close()
+        assertEquals(0, MailReader(store).count())
 
     }
 

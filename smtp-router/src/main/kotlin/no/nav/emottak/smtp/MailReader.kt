@@ -14,7 +14,7 @@ data class EmailMsg(val headers: Map<String, String>, val bytes: ByteArray)
 
 class MailReader(private val store: Store, val expunge: Boolean = true): AutoCloseable {
 
-    private val inbox: Folder = store.getFolder("INBOX")
+    val inbox: Folder = store.getFolder("INBOX")
 
     init {
         inbox.open(Folder.READ_WRITE)
@@ -35,21 +35,13 @@ class MailReader(private val store: Store, val expunge: Boolean = true): AutoClo
 
     fun count() = inbox.messageCount
 
-    override fun close() {
-        inbox.close(
-            (expunge || count() > inboxLimit)
-                .also {
-                    if (expunge != it)
-                        log.warn("Inbox limit [$inboxLimit] exceeded. Expunge forced $it")
-                })
+    fun expunge(): Boolean {
+        return (expunge || count() > inboxLimit)
     }
-    fun closeInbox() {
-        inbox.close(
-            (expunge || count() > inboxLimit)
-                .also {
-                    if (expunge != it)
-                        log.warn("Inbox limit [$inboxLimit] exceeded. Expunge forced $it")
-                })
+
+    override fun close() {
+        inbox.close(expunge().also { if (expunge != it)
+            log.warn("Inbox limit [$inboxLimit] exceeded. Expunge forced $it") })
     }
 
     @Throws(Exception::class)
@@ -76,7 +68,7 @@ class MailReader(private val store: Store, val expunge: Boolean = true): AutoClo
                     }
                     val headerXMailer = it.getHeader("X-Mailer")?.toList()?.firstOrNull()
                     log.info(createHeaderMarker(headerXMailer), "From: <${it.from[0]}> Subject: <${it.subject}>")
-                    it.setFlag(Flags.Flag.DELETED, expunge)
+                    it.setFlag(Flags.Flag.DELETED, expunge())
                 }
                 start += takeN
                 resultat.map(mapEmailMsg())
