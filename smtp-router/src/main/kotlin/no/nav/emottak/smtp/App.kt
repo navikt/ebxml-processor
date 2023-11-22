@@ -41,31 +41,31 @@ fun Application.myApplicationModule() {
                 expectSuccess = true
             }
             runCatching {
-
-                val reader = MailReader(incomingStore)
-               do {
-                    val messages = reader.readMail(false)
-                    messages.forEach { message ->
-                        client.post("https://ebms-provider.intern.dev.nav.no/ebms") {
-                            headers (
-                                message.headers.filterHeader(
-                                    MimeHeaders.MIME_VERSION,
-                                    MimeHeaders.CONTENT_ID,
-                                    MimeHeaders.SOAP_ACTION,
-                                    MimeHeaders.CONTENT_TYPE,
-                                    SMTPHeaders.FROM,
-                                    SMTPHeaders.TO,
-                                    SMTPHeaders.MESSAGE_ID,
-                                    SMTPHeaders.DATE,
-                                    SMTPHeaders.X_MAILER
+                MailReader(incomingStore, false).use {
+                    do {
+                        val messages = it.readMail()
+                        messages.forEach { message ->
+                            client.post("https://ebms-provider.intern.dev.nav.no/ebms") {
+                                headers (
+                                    message.headers.filterHeader(
+                                        MimeHeaders.MIME_VERSION,
+                                        MimeHeaders.CONTENT_ID,
+                                        MimeHeaders.SOAP_ACTION,
+                                        MimeHeaders.CONTENT_TYPE,
+                                        SMTPHeaders.FROM,
+                                        SMTPHeaders.TO,
+                                        SMTPHeaders.MESSAGE_ID,
+                                        SMTPHeaders.DATE,
+                                        SMTPHeaders.X_MAILER
+                                    )
                                 )
-                            )
-                            setBody(
-                                message.bytes
-                            )
+                                setBody(
+                                    message.bytes
+                                )
+                            }
                         }
-                    }
-                } while(messages.isNotEmpty())
+                    } while(messages.isNotEmpty())
+                }
             }.onSuccess {
                 call.respond(HttpStatusCode.OK, "Meldinger Lest")
             }.onFailure {

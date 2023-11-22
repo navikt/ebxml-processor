@@ -10,35 +10,53 @@ import net.logstash.logback.marker.LogstashMarker
 import net.logstash.logback.marker.Markers
 import no.nav.emottak.util.getEnvVar
 
-data class EmailMsg(val headers: Map<String,String>, val bytes: ByteArray)
+data class EmailMsg(val headers: Map<String, String>, val bytes: ByteArray)
 
-class MailReader(private val store: Store) {
+class MailReader(private val store: Store, val expunge: Boolean = true): AutoCloseable {
+
+    private val inbox: Folder = store.getFolder("INBOX")
+
+    init {
+        inbox.open(Folder.READ_WRITE)
+    }
 
     companion object {
-        fun mapEmailMsg(): (Message) -> EmailMsg = {
-        message ->
-                    EmailMsg(
-                        message.allHeaders.toList().groupBy( {it.name}, {it.value} ).mapValues { it.value.joinToString(",") },
-                        message.inputStream.readAllBytes()
-                    )
+        fun mapEmailMsg(): (Message) -> EmailMsg = { message ->
+            EmailMsg(
+                message.allHeaders.toList().groupBy({ it.name }, { it.value }).mapValues { it.value.joinToString(",") },
+                message.inputStream.readAllBytes()
+            )
+        }
     }
-    }
+
     val takeN = 1
     var start = 1
     val inboxLimit: Int = getEnvVar("INBOX_LIMIT", "2000").toInt()
 
+    fun count() = inbox.messageCount
+
+    override fun close() {
+        inbox.close(
+            (expunge || count() > inboxLimit)
+                .also {
+                    if (expunge != it)
+                        log.warn("Inbox limit [$inboxLimit] exceeded. Expunge forced $it")
+                })
+    }
+    fun closeInbox() {
+        inbox.close(
+            (expunge || count() > inboxLimit)
+                .also {
+                    if (expunge != it)
+                        log.warn("Inbox limit [$inboxLimit] exceeded. Expunge forced $it")
+                })
+    }
+
     @Throws(Exception::class)
-    fun readMail(expunge:Boolean = true): List<EmailMsg> {
+    fun readMail(): List<EmailMsg> {
         try {
-            val inbox = store.getFolder("INBOX")
-            inbox.open(Folder.READ_WRITE)
             val messageCount = inbox.messageCount
             log.info("Found $messageCount messages")
-            var expunge = (expunge || messageCount > inboxLimit)
-                .also {
-                    if(expunge != it)
-                        log.warn("Inbox limit [$inboxLimit] exceeded. Expunge forced $it")
-                }
             val emailMsgList = if (messageCount != 0) {
                 val endIndex = takeN.takeIf { start + takeN <= messageCount } ?: messageCount
                 val resultat = inbox.getMessages(start, endIndex).toList().onEach {
@@ -46,8 +64,12 @@ class MailReader(private val store: Store) {
                         val dokument = runCatching {
                             (it.content as MimeMultipart).getBodyPart(0)
                         }.onSuccess {
-                            log.info("Incoming multipart request with headers ${it.allHeaders.toList().map { it.name + ":" + it.value }}" +
-                            "with body ${String(it.inputStream.readAllBytes())}")
+                            log.info(
+                                "Incoming multipart request with headers ${
+                                    it.allHeaders.toList().map { it.name + ":" + it.value }
+                                }" +
+                                        "with body ${String(it.inputStream.readAllBytes())}"
+                            )
                         }
                     } else {
                         log.info("Incoming singlepart request ${String(it.inputStream.readAllBytes())}")
@@ -56,16 +78,11 @@ class MailReader(private val store: Store) {
                     log.info(createHeaderMarker(headerXMailer), "From: <${it.from[0]}> Subject: <${it.subject}>")
                     it.setFlag(Flags.Flag.DELETED, expunge)
                 }
-                if(expunge)
-                    start = 1
-                else
-                    start += takeN
-                resultat.map (mapEmailMsg())
-            }
-            else {
+                start += takeN
+                resultat.map(mapEmailMsg())
+            } else {
                 emptyList()
             }
-            inbox.close(expunge)
             return emailMsgList
         } catch (e: Exception) {
             log.error("Error connecting to mail server", e)
@@ -74,9 +91,8 @@ class MailReader(private val store: Store) {
     }
 
 
-
     private fun createHeaderMarker(xMailer: String?): LogstashMarker? {
-        val map = mutableMapOf<String,String>()
+        val map = mutableMapOf<String, String>()
         map["systemkilde"] = xMailer ?: "-"
         return Markers.appendEntries(map)
     }
