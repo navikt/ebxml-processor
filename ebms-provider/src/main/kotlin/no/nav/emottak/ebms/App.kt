@@ -79,7 +79,7 @@ fun Application.ebmsProviderModule() {
 
 @Throws(MimeValidationException::class)
 suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
-    val clearText = if (request.header("cleartext").isNullOrBlank()) false else true
+    val clearText = !request.header("cleartext").isNullOrBlank()
     return when (val contentType = this.request.contentType().withoutParameters()) {
 
         ContentType.parse("multipart/related") -> {
@@ -113,9 +113,11 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
 
         ContentType.parse("text/xml") -> {
             val dokument = withContext(Dispatchers.IO) {
-                    if (clearText) this@receiveEbmsDokument.receiveStream()
-                        .readAllBytes() else java.util.Base64.getMimeDecoder()
+                when(request.header(MimeHeaders.CONTENT_TRANSFER_ENCODING)) {
+                    "base64" -> java.util.Base64.getMimeDecoder()
                         .decode(this@receiveEbmsDokument.receiveStream().readAllBytes())
+                    else -> this@receiveEbmsDokument.receiveStream().readAllBytes()
+                }
             }
             println(dokument)
             EbMSDocument(
