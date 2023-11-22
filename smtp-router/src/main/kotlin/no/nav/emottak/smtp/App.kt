@@ -46,12 +46,13 @@ fun Application.myApplicationModule() {
                         val messages = it.readMail()
                         messages.forEach { message ->
                             client.post("https://ebms-provider.intern.dev.nav.no/ebms") {
-                                headers (
+                                headers(
                                     message.headers.filterHeader(
                                         MimeHeaders.MIME_VERSION,
                                         MimeHeaders.CONTENT_ID,
                                         MimeHeaders.SOAP_ACTION,
                                         MimeHeaders.CONTENT_TYPE,
+                                        MimeHeaders.CONTENT_TRANSFER_ENCODING,
                                         SMTPHeaders.FROM,
                                         SMTPHeaders.TO,
                                         SMTPHeaders.MESSAGE_ID,
@@ -64,12 +65,12 @@ fun Application.myApplicationModule() {
                                 )
                             }
                         }
-                    } while(messages.isNotEmpty())
+                    } while (messages.isNotEmpty())
                 }
             }.onSuccess {
                 call.respond(HttpStatusCode.OK, "Meldinger Lest")
             }.onFailure {
-                log.error(it.message,it)
+                log.error(it.message, it)
                 call.respond(it.localizedMessage)
             }
         }
@@ -77,19 +78,19 @@ fun Application.myApplicationModule() {
         get("/mail/log/outgoing") {
             do {
                 val messages = MailReader(bccStore).readMail()
-            }while (messages.isNotEmpty())
+            } while (messages.isNotEmpty())
         }
     }
 }
 
-fun Map<String,String>.filterHeader(vararg headerNames: String): HeadersBuilder.() -> Unit = {
-        headerNames.map {
-            Pair(it,  this@filterHeader[it])
-        }.forEach {
-            if (it.second != null) {
-                val headerValue = MimeUtility.unfold(it.second!!)
-                append(it.first, headerValue )
-                log.info("Header: <${it.first}> - <${headerValue}>")
-            }
+fun Map<String, String>.filterHeader(vararg headerNames: String): HeadersBuilder.() -> Unit = {
+    headerNames.map {
+        Pair(it, this@filterHeader[it])
+    }.forEach {
+        if (it.second != null) {
+            val headerValue = MimeUtility.unfold(it.second!!)
+            append(it.first, headerValue)
+            log.info("Header: <${it.first}> - <${headerValue}>")
         }
+    }
 }
