@@ -17,11 +17,13 @@ import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.response.respond
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
+import jakarta.mail.Flags
 import jakarta.mail.Folder
 import jakarta.mail.internet.MimeMultipart
 import jakarta.mail.internet.MimeUtility
 import no.nav.emottak.constants.MimeHeaders
 import no.nav.emottak.constants.SMTPHeaders
+import no.nav.emottak.util.getEnvVar
 import org.eclipse.angus.mail.imap.IMAPFolder
 import org.slf4j.LoggerFactory
 
@@ -43,12 +45,6 @@ fun Application.myApplicationModule() {
             val client = HttpClient(CIO) {
                 expectSuccess = true
             }
-            val inbox = imapStore.getFolder("INBOX") as IMAPFolder
-            inbox.open(Folder.READ_WRITE)
-            val testdata = imapStore.getFolder("testdata") as IMAPFolder
-            testdata.create(Folder.HOLDS_MESSAGES)
-            testdata.open(Folder.READ_WRITE)
-            inbox.moveMessages(inbox.messages,testdata)
             runCatching {
                 MailReader(incomingStore, false).use {
                     do {
@@ -83,15 +79,34 @@ fun Application.myApplicationModule() {
                 log.error(it.message, it)
                 call.respond(it.localizedMessage)
             }
+             logBccMessages()
         }
 
         get("/mail/log/outgoing") {
+            logBccMessages()
+            call.respond(HttpStatusCode.OK)
 
-                val inbox = imapStore.getFolder("INBOX") as IMAPFolder
+        }
+    }
+}
+
+fun logBccMessages() {
+     val inbox = bccStore.getFolder("INBOX") as IMAPFolder
+                val testDataInbox = bccStore.getFolder("testdata") as IMAPFolder
+                testDataInbox.open(Folder.READ_WRITE)
+                if (testDataInbox.messageCount > getEnvVar("INBOX_LIMIT", "2000").toInt() )  {
+                    testDataInbox.messages.map {
+                         it.setFlag(Flags.Flag.DELETED,true)
+                         it
+                    }.toTypedArray().also {
+                         testDataInbox.expunge(it)
+                    }
+
+                }
                 inbox.open(Folder.READ_WRITE)
                 inbox.messages.forEach {
                       if (it.content is MimeMultipart) {
-                        val dokument = runCatching {
+                        runCatching {
                             (it.content as MimeMultipart).getBodyPart(0)
                         }.onSuccess {
                             log.info(
@@ -105,11 +120,12 @@ fun Application.myApplicationModule() {
                         log.info("Incoming singlepart request ${String(it.inputStream.readAllBytes())}")
                     }
 
+                }.also {
+
+                     inbox.moveMessages(inbox.messages,testDataInbox)
                 }
-                val testDataInbox = imapStore.getFolder("testdata") as IMAPFolder
-                inbox.moveMessages(inbox.messages,testDataInbox)
-        }
-    }
+            inbox.close()
+            testDataInbox.close()
 }
 
 fun Map<String, String>.filterHeader(vararg headerNames: String): HeadersBuilder.() -> Unit = {

@@ -13,16 +13,22 @@ val properties = Properties().also { props ->
     props["mail.pop3.socketFactory.port"] = getEnvVar("SMTP_POP3_FACTORY_PORT", "3110")
     props["mail.pop3.port"] = getEnvVar("SMTP_POP3_PORT", "3110")
     props["mail.pop3.host"] = getEnvVar("SMTP_POP3_HOST", "localhost")
-    props["mail.store.protocol"] = getEnvVar("SMTP_STORE_PROTOCOL", "pop3")
+    props["mail.imap.socketFactory.fallback"] = "false"
+    props["mail.imap.socketFactory.port"] = "143"
+    props["mail.imap.port"] = "143"
+    props["mail.imap.host"] = "d32mxvl002.oera-t.local"
+  //  props["mail.store.protocol"] = getEnvVar("SMTP_STORE_PROTOCOL", "pop3")
 }
-
+/*
 val imapproperties = Properties().also { props ->
     props["mail.imap.socketFactory.fallback"] = "false"
     props["mail.imap.socketFactory.port"] = "143"
     props["mail.imap.port"] = "143"
     props["mail.imap.host"] = "d32mxvl002.oera-t.local"
-    props["mail.store.protocol"] = getEnvVar("SMTP_STORE_PROTOCOL", "imap")
+  //  props["mail.store.protocol"] = getEnvVar("SMTP_STORE_PROTOCOL", "imap")
 }
+
+ */
 
 val smtpUsername_incoming = getEnvVar("SMTP_INCOMING_USERNAME", "test@test.test")
 val smtpUsername_bcc = getEnvVar("SMTP_BCC_USERNAME", "test@test.test")
@@ -31,38 +37,25 @@ val smtpPassword = getEnvVar("SMTP_PASSWORD", "changeit")
 
 
 val incomingStore = run {
-     createStore(smtpUsername_incoming, smtpPassword)
+     createStore(smtpUsername_incoming, smtpPassword,"pop3")
 }
 
 val bccStore = run {
-    createStore(smtpUsername_bcc, smtpPassword)
+      createStore(smtpUsername_bcc, smtpPassword,"imap")
 }
 
 val outgoingStore = run {
     createStore(smtpUsername_outgoing, smtpPassword)
 }
 
-val imapStore = run {
-    createImapStore(smtpUsername_incoming, smtpPassword,"imap")
-}
 
-
-private fun createStore(username:String,password:String, protokol:String = "pop3") : Store {
+private fun createStore(username:String,password:String,protokol:String = "pop3") : Store {
      val auth = object : Authenticator() {
         override fun getPasswordAuthentication() = PasswordAuthentication(username, password)
     }
-    val session = Session.getDefaultInstance(properties, auth)
+    val session = Session.getInstance(properties, auth)
     return session.getStore(protokol).also {
         it.connect()
     }
 }
 
-private fun createImapStore(username:String,password:String, protokol:String = "imap") : Store {
-    val auth = object : Authenticator() {
-        override fun getPasswordAuthentication() = PasswordAuthentication(username, password)
-    }
-    val session = Session.getInstance(imapproperties,auth)
-    return session.getStore(protokol).also {
-        it.connect()
-    }
-}
