@@ -20,6 +20,7 @@ import io.ktor.server.routing.routing
 import jakarta.mail.internet.MimeUtility
 import no.nav.emottak.constants.MimeHeaders
 import no.nav.emottak.constants.SMTPHeaders
+import org.eclipse.angus.mail.imap.IMAPFolder
 import org.slf4j.LoggerFactory
 
 fun main() {
@@ -40,10 +41,14 @@ fun Application.myApplicationModule() {
             val client = HttpClient(CIO) {
                 expectSuccess = true
             }
+            val inbox = imapStore.getFolder("Inbox") as IMAPFolder
+            val testdata = imapStore.getFolder("testdata") as IMAPFolder
+            inbox.moveMessages(inbox.messages,testdata)
             runCatching {
                 MailReader(incomingStore, false).use {
                     do {
                         val messages = it.readMail()
+
                         messages.forEach { message ->
                             client.post("https://ebms-provider.intern.dev.nav.no/ebms") {
                                 headers(

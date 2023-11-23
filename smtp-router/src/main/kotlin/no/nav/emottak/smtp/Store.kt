@@ -33,13 +33,15 @@ val outgoingStore = run {
     createStore(smtpUsername_outgoing, smtpPassword)
 }
 
+val imapStore = createStore(smtpUsername_outgoing, smtpPassword,"imap")
 
-private fun createStore(username:String,password:String) : Store {
+
+private fun createStore(username:String,password:String, protokol:String = "pop3") : Store {
      val auth = object : Authenticator() {
         override fun getPasswordAuthentication() = PasswordAuthentication(username, password)
     }
     val session = Session.getDefaultInstance(properties, auth)
-    return session.getStore("pop3").also {
+    return session.getStore(protokol).also {
         it.connect()
     }
 }
