@@ -21,10 +21,15 @@ import jakarta.mail.internet.MimeUtility
 import no.nav.emottak.constants.MimeHeaders
 import no.nav.emottak.constants.SMTPHeaders
 import org.slf4j.LoggerFactory
+import java.time.Instant
+import java.util.Date
 
 fun main() {
     embeddedServer(Netty, port = 8080, module = Application::myApplicationModule).start(wait = true)
 }
+
+
+var last_mail_read_timestamp = Date.from(Instant.now())
 
 internal val log = LoggerFactory.getLogger("no.nav.emottak.smtp")
 fun Application.myApplicationModule() {
@@ -76,9 +81,11 @@ fun Application.myApplicationModule() {
         }
 
         get("/mail/log/outgoing") {
+            val jobStart = Date.from(Instant.now())
             do {
-                val messages = MailReader(bccStore).readMail()
+                val messages = MailReader(bccStore).readMail(last_mail_read_timestamp)
             } while (messages.isNotEmpty())
+            last_mail_read_timestamp = jobStart
         }
     }
 }

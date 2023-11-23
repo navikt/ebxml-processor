@@ -35,7 +35,6 @@ class GreenmailIT {
 
     @Test
     fun testEmailPruning() {
-        // TODO får ikke assertet at limiten funker
         System.setProperty("INBOX_LIMIT", "100");
         val store = mockStore()
 

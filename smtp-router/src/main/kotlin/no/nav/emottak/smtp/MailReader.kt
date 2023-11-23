@@ -9,6 +9,7 @@ import jakarta.mail.internet.MimeMultipart
 import net.logstash.logback.marker.LogstashMarker
 import net.logstash.logback.marker.Markers
 import no.nav.emottak.util.getEnvVar
+import java.util.Date
 
 data class EmailMsg(val headers: Map<String, String>, val bytes: ByteArray)
 
@@ -45,30 +46,32 @@ class MailReader(private val store: Store, val expunge: Boolean = true): AutoClo
     }
 
     @Throws(Exception::class)
-    fun readMail(): List<EmailMsg> {
+    fun readMail(receivedAfter: Date? = null): List<EmailMsg> {
         try {
             val messageCount = inbox.messageCount
             log.info("Found $messageCount messages")
             val emailMsgList = if (messageCount != 0) {
                 val endIndex = takeN.takeIf { start + takeN <= messageCount } ?: messageCount
                 val resultat = inbox.getMessages(start, endIndex).toList().onEach {
-                    if (it.content is MimeMultipart) {
+                    message ->
+                    if (message.content is MimeMultipart) {
                         val dokument = runCatching {
-                            (it.content as MimeMultipart).getBodyPart(0)
+                            (message.content as MimeMultipart).getBodyPart(0)
                         }.onSuccess {
-                            log.info(
-                                "Incoming multipart request with headers ${
-                                    it.allHeaders.toList().map { it.name + ":" + it.value }
-                                }" +
-                                        "with body ${String(it.inputStream.readAllBytes())}"
-                            )
+                            if(receivedAfter?.after(message.receivedDate) == true) {
+                                log.info("Incoming multipart request with headers ${
+                                        it.allHeaders.toList().map { it.name + ":" + it.value }
+                                    }" +
+                                            "with body ${String(it.inputStream.readAllBytes())}"
+                                )
+                            }
                         }
                     } else {
-                        log.info("Incoming singlepart request ${String(it.inputStream.readAllBytes())}")
+                        log.info("Incoming singlepart request ${String(message.inputStream.readAllBytes())}")
                     }
-                    val headerXMailer = it.getHeader("X-Mailer")?.toList()?.firstOrNull()
-                    log.info(createHeaderMarker(headerXMailer), "From: <${it.from[0]}> Subject: <${it.subject}>")
-                    it.setFlag(Flags.Flag.DELETED, expunge())
+                    val headerXMailer = message.getHeader("X-Mailer")?.toList()?.firstOrNull()
+                    log.info(createHeaderMarker(headerXMailer), "From: <${message.from[0]}> Subject: <${message.subject}>")
+                    message.setFlag(Flags.Flag.DELETED, expunge())
                 }
                 start += takeN
                 resultat.map(mapEmailMsg())
