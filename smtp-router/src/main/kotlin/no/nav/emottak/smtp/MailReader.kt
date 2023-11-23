@@ -58,7 +58,7 @@ class MailReader(private val store: Store, val expunge: Boolean = true): AutoClo
                         val dokument = runCatching {
                             (message.content as MimeMultipart).getBodyPart(0)
                         }.onSuccess {
-                            if(receivedAfter?.after(message.receivedDate) == true) {
+                            if(receivedAfter == null || receivedAfter.after(message.receivedDate)) {
                                 log.info("Incoming multipart request with headers ${
                                         it.allHeaders.toList().map { it.name + ":" + it.value }
                                     }" +
