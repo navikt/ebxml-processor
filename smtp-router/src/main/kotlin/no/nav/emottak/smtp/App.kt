@@ -17,6 +17,8 @@ import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.response.respond
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
+import jakarta.mail.Folder
+import jakarta.mail.internet.MimeMultipart
 import jakarta.mail.internet.MimeUtility
 import no.nav.emottak.constants.MimeHeaders
 import no.nav.emottak.constants.SMTPHeaders
@@ -41,8 +43,11 @@ fun Application.myApplicationModule() {
             val client = HttpClient(CIO) {
                 expectSuccess = true
             }
-            val inbox = imapStore.getFolder("Inbox") as IMAPFolder
+            val inbox = imapStore.getFolder("INBOX") as IMAPFolder
+            inbox.open(Folder.READ_WRITE)
             val testdata = imapStore.getFolder("testdata") as IMAPFolder
+            testdata.create(Folder.HOLDS_MESSAGES)
+            testdata.open(Folder.READ_WRITE)
             inbox.moveMessages(inbox.messages,testdata)
             runCatching {
                 MailReader(incomingStore, false).use {
@@ -81,9 +86,28 @@ fun Application.myApplicationModule() {
         }
 
         get("/mail/log/outgoing") {
-            do {
-                val messages = MailReader(bccStore).readMail()
-            } while (messages.isNotEmpty())
+
+                val inbox = imapStore.getFolder("INBOX") as IMAPFolder
+                inbox.open(Folder.READ_WRITE)
+                inbox.messages.forEach {
+                      if (it.content is MimeMultipart) {
+                        val dokument = runCatching {
+                            (it.content as MimeMultipart).getBodyPart(0)
+                        }.onSuccess {
+                            log.info(
+                                "Incoming multipart request with headers ${
+                                    it.allHeaders.toList().map { it.name + ":" + it.value }
+                                }" +
+                                        "with body ${String(it.inputStream.readAllBytes())}"
+                            )
+                        }
+                    } else {
+                        log.info("Incoming singlepart request ${String(it.inputStream.readAllBytes())}")
+                    }
+
+                }
+                val testDataInbox = imapStore.getFolder("testdata") as IMAPFolder
+                inbox.moveMessages(inbox.messages,testDataInbox)
         }
     }
 }
