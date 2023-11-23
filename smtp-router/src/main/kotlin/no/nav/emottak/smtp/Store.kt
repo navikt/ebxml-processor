@@ -17,18 +17,8 @@ val properties = Properties().also { props ->
     props["mail.imap.socketFactory.port"] = "143"
     props["mail.imap.port"] = "143"
     props["mail.imap.host"] = "d32mxvl002.oera-t.local"
-  //  props["mail.store.protocol"] = getEnvVar("SMTP_STORE_PROTOCOL", "pop3")
-}
-/*
-val imapproperties = Properties().also { props ->
-    props["mail.imap.socketFactory.fallback"] = "false"
-    props["mail.imap.socketFactory.port"] = "143"
-    props["mail.imap.port"] = "143"
-    props["mail.imap.host"] = "d32mxvl002.oera-t.local"
-  //  props["mail.store.protocol"] = getEnvVar("SMTP_STORE_PROTOCOL", "imap")
 }
 
- */
 
 val smtpUsername_incoming = getEnvVar("SMTP_INCOMING_USERNAME", "test@test.test")
 val smtpUsername_bcc = getEnvVar("SMTP_BCC_USERNAME", "test@test.test")
