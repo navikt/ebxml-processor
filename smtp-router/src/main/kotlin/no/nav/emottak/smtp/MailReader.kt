@@ -48,7 +48,6 @@ class MailReader(private val store: Store, val expunge: Boolean = true): AutoClo
     fun readMail(): List<EmailMsg> {
         try {
             val messageCount = inbox.messageCount
-            log.info("Found $messageCount messages")
             val emailMsgList = if (messageCount != 0) {
                 val endIndex = (takeN + start-1).takeIf { it < messageCount } ?: messageCount
                 val resultat = inbox.getMessages(start, endIndex).toList().onEach {

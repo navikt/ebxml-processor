@@ -43,14 +43,13 @@ fun Application.myApplicationModule() {
         }
 
         get("/mail/read") {
-            val client = HttpClient(CIO) {
-                expectSuccess = true
-            }
+            val client = HttpClient(CIO)
             runCatching {
                 MailReader(incomingStore, false).use {
+                    log.info("read ${it.count()} from innbox")
                     do {
                         val messages = it.readMail()
-                        log.info("read ${messages.size} from innbox")
+
 
                         messages.forEach { message ->
                             runCatching {
@@ -75,11 +74,11 @@ fun Application.myApplicationModule() {
                                         )
                                     }
                                 }
-                        }.onFailure {
-                            log.error(it.message,it)
+                            }.onFailure {
+                                log.error(it.message, it)
+                            }
                         }
-                        }
-                        log.info("Is messages empty ${messages.isNotEmpty()}")
+                        log.info("Inbox has messages ${messages.isNotEmpty()}")
                     } while (messages.isNotEmpty())
                 }
             }.onSuccess {
@@ -88,7 +87,7 @@ fun Application.myApplicationModule() {
                 log.error(it.message, it)
                 call.respond(it.localizedMessage)
             }
-             logBccMessages()
+            logBccMessages()
         }
 
         get("/mail/log/outgoing") {
@@ -100,41 +99,41 @@ fun Application.myApplicationModule() {
 }
 
 fun logBccMessages() {
-     val inbox = bccStore.getFolder("INBOX") as IMAPFolder
-                val testDataInbox = bccStore.getFolder("testdata") as IMAPFolder
-                testDataInbox.open(Folder.READ_WRITE)
-                if (testDataInbox.messageCount > getEnvVar("INBOX_LIMIT", "2000").toInt() )  {
-                    testDataInbox.messages.map {
-                         it.setFlag(Flags.Flag.DELETED,true)
-                         it
-                    }.toTypedArray().also {
-                         testDataInbox.expunge(it)
-                    }
+    val inbox = bccStore.getFolder("INBOX") as IMAPFolder
+    val testDataInbox = bccStore.getFolder("testdata") as IMAPFolder
+    testDataInbox.open(Folder.READ_WRITE)
+    if (testDataInbox.messageCount > getEnvVar("INBOX_LIMIT", "2000").toInt()) {
+        testDataInbox.messages.map {
+            it.setFlag(Flags.Flag.DELETED, true)
+            it
+        }.toTypedArray().also {
+            testDataInbox.expunge(it)
+        }
 
-                }
-                inbox.open(Folder.READ_WRITE)
-                inbox.messages.forEach {
-                      if (it.content is MimeMultipart) {
-                        runCatching {
-                            (it.content as MimeMultipart).getBodyPart(0)
-                        }.onSuccess {
-                            log.info(
-                                "Incoming multipart request with headers ${
-                                    it.allHeaders.toList().map { it.name + ":" + it.value }
-                                }" +
-                                        "with body ${String(it.inputStream.readAllBytes())}"
-                            )
-                        }
-                    } else {
-                        log.info("Incoming singlepart request ${String(it.inputStream.readAllBytes())}")
-                    }
+    }
+    inbox.open(Folder.READ_WRITE)
+    inbox.messages.forEach {
+        if (it.content is MimeMultipart) {
+            runCatching {
+                (it.content as MimeMultipart).getBodyPart(0)
+            }.onSuccess {
+                log.info(
+                    "Incoming multipart request with headers ${
+                        it.allHeaders.toList().map { it.name + ":" + it.value }
+                    }" +
+                            "with body ${String(it.inputStream.readAllBytes())}"
+                )
+            }
+        } else {
+            log.info("Incoming singlepart request ${String(it.inputStream.readAllBytes())}")
+        }
 
-                }.also {
+    }.also {
 
-                     inbox.moveMessages(inbox.messages,testDataInbox)
-                }
-            inbox.close()
-            testDataInbox.close()
+        inbox.moveMessages(inbox.messages, testDataInbox)
+    }
+    inbox.close()
+    testDataInbox.close()
 }
 
 fun Map<String, String>.filterHeader(vararg headerNames: String): HeadersBuilder.() -> Unit = {
