@@ -21,6 +21,7 @@ import jakarta.mail.Flags
 import jakarta.mail.Folder
 import jakarta.mail.internet.MimeMultipart
 import jakarta.mail.internet.MimeUtility
+import kotlinx.coroutines.runBlocking
 import no.nav.emottak.constants.MimeHeaders
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.util.getEnvVar
@@ -49,28 +50,32 @@ fun Application.myApplicationModule() {
                 MailReader(incomingStore, false).use {
                     do {
                         val messages = it.readMail()
+                        log.info("read ${messages.size} from innbox")
 
                         messages.forEach { message ->
-                            client.post("https://ebms-provider.intern.dev.nav.no/ebms") {
-                                headers(
-                                    message.headers.filterHeader(
-                                        MimeHeaders.MIME_VERSION,
-                                        MimeHeaders.CONTENT_ID,
-                                        MimeHeaders.SOAP_ACTION,
-                                        MimeHeaders.CONTENT_TYPE,
-                                        MimeHeaders.CONTENT_TRANSFER_ENCODING,
-                                        SMTPHeaders.FROM,
-                                        SMTPHeaders.TO,
-                                        SMTPHeaders.MESSAGE_ID,
-                                        SMTPHeaders.DATE,
-                                        SMTPHeaders.X_MAILER
+                            runBlocking {
+                                client.post("https://ebms-provider.intern.dev.nav.no/ebms") {
+                                    headers(
+                                        message.headers.filterHeader(
+                                            MimeHeaders.MIME_VERSION,
+                                            MimeHeaders.CONTENT_ID,
+                                            MimeHeaders.SOAP_ACTION,
+                                            MimeHeaders.CONTENT_TYPE,
+                                            MimeHeaders.CONTENT_TRANSFER_ENCODING,
+                                            SMTPHeaders.FROM,
+                                            SMTPHeaders.TO,
+                                            SMTPHeaders.MESSAGE_ID,
+                                            SMTPHeaders.DATE,
+                                            SMTPHeaders.X_MAILER
+                                        )
                                     )
-                                )
-                                setBody(
-                                    message.bytes
-                                )
+                                    setBody(
+                                        message.bytes
+                                    )
+                                }
                             }
                         }
+                        log.info("Is messages empty ${messages.isNotEmpty()}")
                     } while (messages.isNotEmpty())
                 }
             }.onSuccess {

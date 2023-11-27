@@ -52,6 +52,7 @@ class MailReader(private val store: Store, val expunge: Boolean = true): AutoClo
             val emailMsgList = if (messageCount != 0) {
                 val endIndex = takeN.takeIf { start + takeN <= messageCount } ?: messageCount
                 val resultat = inbox.getMessages(start, endIndex).toList().onEach {
+                    log.info("Reading emails startIndex $start")
                     if (it.content is MimeMultipart) {
                         val dokument = runCatching {
                             (it.content as MimeMultipart).getBodyPart(0)
@@ -73,6 +74,7 @@ class MailReader(private val store: Store, val expunge: Boolean = true): AutoClo
                 start += takeN
                 resultat.map(mapEmailMsg())
             } else {
+                log.info("Fant ikke noe eposter")
                 emptyList()
             }
             return emailMsgList
