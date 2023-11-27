@@ -53,27 +53,31 @@ fun Application.myApplicationModule() {
                         log.info("read ${messages.size} from innbox")
 
                         messages.forEach { message ->
-                            runBlocking {
-                                client.post("https://ebms-provider.intern.dev.nav.no/ebms") {
-                                    headers(
-                                        message.headers.filterHeader(
-                                            MimeHeaders.MIME_VERSION,
-                                            MimeHeaders.CONTENT_ID,
-                                            MimeHeaders.SOAP_ACTION,
-                                            MimeHeaders.CONTENT_TYPE,
-                                            MimeHeaders.CONTENT_TRANSFER_ENCODING,
-                                            SMTPHeaders.FROM,
-                                            SMTPHeaders.TO,
-                                            SMTPHeaders.MESSAGE_ID,
-                                            SMTPHeaders.DATE,
-                                            SMTPHeaders.X_MAILER
+                            runCatching {
+                                runBlocking {
+                                    client.post("https://ebms-provider.intern.dev.nav.no/ebms") {
+                                        headers(
+                                            message.headers.filterHeader(
+                                                MimeHeaders.MIME_VERSION,
+                                                MimeHeaders.CONTENT_ID,
+                                                MimeHeaders.SOAP_ACTION,
+                                                MimeHeaders.CONTENT_TYPE,
+                                                MimeHeaders.CONTENT_TRANSFER_ENCODING,
+                                                SMTPHeaders.FROM,
+                                                SMTPHeaders.TO,
+                                                SMTPHeaders.MESSAGE_ID,
+                                                SMTPHeaders.DATE,
+                                                SMTPHeaders.X_MAILER
+                                            )
                                         )
-                                    )
-                                    setBody(
-                                        message.bytes
-                                    )
+                                        setBody(
+                                            message.bytes
+                                        )
+                                    }
                                 }
-                            }
+                        }.onFailure {
+                            log.error(it.message,it)
+                        }
                         }
                         log.info("Is messages empty ${messages.isNotEmpty()}")
                     } while (messages.isNotEmpty())
