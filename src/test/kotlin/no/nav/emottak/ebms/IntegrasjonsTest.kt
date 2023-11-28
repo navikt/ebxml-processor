@@ -12,7 +12,7 @@ import io.ktor.server.netty.Netty
 import io.ktor.server.testing.testApplication
 import io.mockk.clearAllMocks
 import kotlinx.coroutines.runBlocking
-import no.nav.emottak.cpa.myApplicationModule
+import no.nav.emottak.cpa.cpaApplicationModule
 import no.nav.emottak.ebms.validation.MimeHeaders
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions
@@ -29,7 +29,7 @@ class IntegrasjonsTest {
 
         // TODO Start mailserver og payload processor
         val ebmsProviderServer = embeddedServer(Netty, port = portnoEbmsProvider, module = { ebmsProviderModule() })
-        val cpaRepoServer = embeddedServer(Netty, port = portnoCpaRepo, module = { myApplicationModule() })
+        val cpaRepoServer = embeddedServer(Netty, port = portnoCpaRepo, module = cpaApplicationModule(dbConfig()))
 
         @JvmStatic
         @BeforeAll
