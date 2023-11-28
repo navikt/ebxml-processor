@@ -16,7 +16,8 @@ abstract class DBTest() {
     lateinit var db: Database
     @BeforeTest
     fun beforeEach() {
-        db = Database(dbConfig())
+        val posgres = cpaPostgres()
+        db = Database(posgres.testConfiguration()   )
             .configureFlyway()
         val tables = listOf(CPA)
         transaction (db.db) {
@@ -37,15 +38,7 @@ abstract class DBTest() {
 }
 
 
-private fun postgres(): PostgreSQLContainer<Nothing> =
-    PostgreSQLContainer<Nothing>("postgres:14").apply {
-        withReuse(true)
-        withLabel("app-navn", "cpa-repo")
-        start()
-        println(
-            "Databasen er startet opp, portnummer: $firstMappedPort, jdbcUrl: jdbc:postgresql://localhost:$firstMappedPort/test, credentials: test og test"
-        )
-    }
+
 
 private fun Database.configureFlyway(): Database =
     also {
@@ -57,12 +50,23 @@ private fun Database.configureFlyway(): Database =
             .also(Flyway::clean)
             .migrate()
     }
-fun dbConfig(): HikariConfig {
-    val postgres = postgres()
-    return HikariConfig().apply {
-        jdbcUrl = postgres.jdbcUrl
-        username = postgres.username
-        password = postgres.password
+
+
+fun cpaPostgres(): PostgreSQLContainer<Nothing> =
+    PostgreSQLContainer<Nothing>("postgres:14").apply {
+        withReuse(true)
+        withLabel("app-navn", "cpa-repo")
+        start()
+        println(
+            "Databasen er startet opp, portnummer: $firstMappedPort, jdbcUrl: jdbc:postgresql://localhost:$firstMappedPort/test, credentials: test og test"
+        )
+    }
+
+fun PostgreSQLContainer<Nothing>.testConfiguration(): HikariConfig {
+     return HikariConfig().apply {
+        jdbcUrl = this@testConfiguration.jdbcUrl
+        username = this@testConfiguration.username
+        password = this@testConfiguration.password
         maximumPoolSize = 5
         minimumIdle = 1
         idleTimeout = 500001
@@ -71,5 +75,6 @@ fun dbConfig(): HikariConfig {
         initializationFailTimeout = 5000
     }
 }
+
 
 

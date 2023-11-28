@@ -22,7 +22,7 @@ import org.junit.jupiter.api.TestInstance
 class CPARepoIntegrationTest: DBTest() {
 
     fun <T> cpaRepoTestApp(testBlock: suspend ApplicationTestBuilder.() -> T) = testApplication {
-        application { cpaApplicationModule(dbConfig()) }
+        application (cpaApplicationModule(dbConfig()) )
         testBlock()
     }
 

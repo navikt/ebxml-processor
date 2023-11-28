@@ -5,7 +5,8 @@ import no.nav.emottak.cpa.Database
 import org.flywaydb.core.Flyway
 import org.testcontainers.containers.PostgreSQLContainer
 
-private fun postgres(): PostgreSQLContainer<Nothing> =
+
+fun cpaPostgres(): PostgreSQLContainer<Nothing> =
     PostgreSQLContainer<Nothing>("postgres:14").apply {
         withReuse(true)
         withLabel("app-navn", "cpa-repo")
@@ -15,22 +16,11 @@ private fun postgres(): PostgreSQLContainer<Nothing> =
         )
     }
 
-private fun Database.configureFlyway(): Database =
-    also {
-        Flyway.configure()
-            .dataSource(it.dataSource)
-            .failOnMissingLocations(true)
-            .cleanDisabled(false)
-            .load()
-            .also(Flyway::clean)
-            .migrate()
-    }
-fun dbConfig(): HikariConfig {
-    val postgres = postgres()
-    return HikariConfig().apply {
-        jdbcUrl = postgres.jdbcUrl
-        username = postgres.username
-        password = postgres.password
+fun PostgreSQLContainer<Nothing>.testConfiguration(): HikariConfig {
+     return HikariConfig().apply {
+        jdbcUrl = this@testConfiguration.jdbcUrl
+        username = this@testConfiguration.username
+        password = this@testConfiguration.password
         maximumPoolSize = 5
         minimumIdle = 1
         idleTimeout = 500001
