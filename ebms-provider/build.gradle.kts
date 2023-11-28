@@ -47,6 +47,7 @@ dependencies {
     //implementation("org.glassfish.jaxb:jaxb-runtime:4.0.3") // TODO: Latest. Krever at protokoll oppdateres
     implementation(libs.ebxml.protokoll)
     implementation("io.ktor:ktor-client-cio-jvm:2.3.4")
+    implementation(testLibs.postgresql)
     testImplementation(testLibs.ktor.server.test.host)
     testImplementation(testLibs.junit.jupiter.api)
     testImplementation(testLibs.mockk.jvm)

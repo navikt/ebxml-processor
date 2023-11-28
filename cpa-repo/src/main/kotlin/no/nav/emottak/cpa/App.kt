@@ -1,5 +1,6 @@
 package no.nav.emottak.cpa
 
+import com.zaxxer.hikari.HikariConfig
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
@@ -33,94 +34,95 @@ import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProt
 import org.slf4j.LoggerFactory
 
 fun main() {
-    embeddedServer(Netty, port = 8080, module = Application::myApplicationModule).start(wait = true)
+    embeddedServer(Netty, port = 8080, module = cpaApplicationModule(mapHikariConfig(DatabaseConfig()))).start(wait = true)
 }
 
-internal val log = LoggerFactory.getLogger("no.nav.emottak.cpa.App")
-fun Application.myApplicationModule(
-    database: Database = Database(mapHikariConfig(DatabaseConfig()))
-) {
-    database.migrate()
-    val cpaRepository = CPARepository(database)
-    install(ContentNegotiation) {
-        json()
-    }
-    routing {
-        get("/cpa/{$CPA_ID}") {
-            val cpaId = call.parameters[CPA_ID] ?: throw BadRequestException("Mangler $CPA_ID")
+fun cpaApplicationModule(dbConfig: HikariConfig): Application.() -> Unit {
+    return {
+        val database = Database(dbConfig)
+        database.migrate()
+        val cpaRepository = CPARepository(database)
+        install(ContentNegotiation) {
+            json()
+        }
+        routing {
+            get("/cpa/{$CPA_ID}") {
+                val cpaId = call.parameters[CPA_ID] ?: throw BadRequestException("Mangler $CPA_ID")
 //            val cpa = getCpa(cpaId) ?: throw NotFoundException("Fant ikke CPA")
-            val cpa = cpaRepository.findCpa(cpaId) ?: throw NotFoundException("Fant ikke CPA")
-            call.respond(cpa)
-        }
-
-        post("/cpa") {
-            val cpa = call.receive<String>()
-            //TODO en eller annen form for validering av CPA
-            cpaRepository.putCpa(xmlMarshaller.unmarshal(cpa, CollaborationProtocolAgreement::class.java)).also {
-                log.info("Added CPA $it to repo")
+                val cpa = cpaRepository.findCpa(cpaId) ?: throw NotFoundException("Fant ikke CPA")
+                call.respond(cpa)
             }
 
-        }
+            post("/cpa") {
+                val cpa = call.receive<String>()
+                //TODO en eller annen form for validering av CPA
+                cpaRepository.putCpa(xmlMarshaller.unmarshal(cpa, CollaborationProtocolAgreement::class.java)).also {
+                    log.info("Added CPA $it to repo")
+                }
 
-        post("/cpa/validate/{$CONTENT_ID}") {
-            val validateRequest = call.receive(Header::class)
-            try {
+            }
+
+            post("/cpa/validate/{$CONTENT_ID}") {
+                val validateRequest = call.receive(Header::class)
+                try {
 //                val cpa = getCpa(validateRequest.cpaId)!!
-                val cpa = cpaRepository.findCpa(validateRequest.cpaId)!!
-                cpa.validate(validateRequest) // Delivery Filure
-                val partyInfo = cpa.getPartyInfoByTypeAndID(validateRequest.from.partyId) // delivery Failure
-                val encryptionCertificate = partyInfo.getCertificateForEncryption()  // Security Failure
-                val signingCertificate = partyInfo.getCertificateForSignatureValidation(
-                    validateRequest.from.role, validateRequest.service, validateRequest.action) //Security Failure
-                runCatching {
-                    createX509Certificate(signingCertificate.certificate).validate()
-                }.onFailure {
-                    log.warn(validateRequest.marker(), "Validation feilet i sertifikat sjekk", it)
-                    throw it
+                    val cpa = cpaRepository.findCpa(validateRequest.cpaId)!!
+                    cpa.validate(validateRequest) // Delivery Filure
+                    val partyInfo = cpa.getPartyInfoByTypeAndID(validateRequest.from.partyId) // delivery Failure
+                    val encryptionCertificate = partyInfo.getCertificateForEncryption()  // Security Failure
+                    val signingCertificate = partyInfo.getCertificateForSignatureValidation(
+                        validateRequest.from.role, validateRequest.service, validateRequest.action) //Security Failure
+                    runCatching {
+                        createX509Certificate(signingCertificate.certificate).validate()
+                    }.onFailure {
+                        log.warn(validateRequest.marker(), "Validation feilet i sertifikat sjekk", it)
+                        throw it
+                    }
+
+                    call.respond(HttpStatusCode.OK, ValidationResult(Processing(signingCertificate,encryptionCertificate)))
+
+                } catch (ebmsEx: EbmsException) {
+                    log.warn(validateRequest.marker(), ebmsEx.message, ebmsEx)
+                    call.respond(HttpStatusCode.OK, ValidationResult(processing = null, listOf( Feil(ebmsEx.errorCode, ebmsEx.descriptionText, ebmsEx.severity))))
+                } catch (ex: Exception) {
+                    log.error(validateRequest.marker(),ex.message,ex)
+                    call.respond(HttpStatusCode.OK,ValidationResult(processing = null, listOf(Feil(ErrorCode.UNKNOWN,"Unexpected error during cpa validation"))))
                 }
 
-                call.respond(HttpStatusCode.OK, ValidationResult(Processing(signingCertificate,encryptionCertificate)))
-
-            } catch (ebmsEx: EbmsException) {
-                log.warn(validateRequest.marker(), ebmsEx.message, ebmsEx)
-                call.respond(HttpStatusCode.OK, ValidationResult(processing = null, listOf( Feil(ebmsEx.errorCode, ebmsEx.descriptionText, ebmsEx.severity))))
-            } catch (ex: Exception) {
-                log.error(validateRequest.marker(),ex.message,ex)
-                call.respond(HttpStatusCode.OK,ValidationResult(processing = null, listOf(Feil(ErrorCode.UNKNOWN,"Unexpected error during cpa validation"))))
             }
 
-        }
+            get("/cpa/{$CPA_ID}/party/{$PARTY_TYPE}/{$PARTY_ID}/encryption/certificate") {
+                val cpaId = call.parameters[CPA_ID] ?: throw BadRequestException("Mangler $CPA_ID")
+                val partyType = call.parameters[PARTY_TYPE] ?: throw BadRequestException("Mangler $PARTY_TYPE")
+                val partyId = call.parameters[PARTY_ID] ?: throw BadRequestException("Mangler $PARTY_ID")
+                val cpa = getCpa(cpaId) ?: throw NotFoundException("Ingen CPA med ID $cpaId funnet")
+                val partyInfo = cpa.getPartyInfoByTypeAndID(partyType, partyId)
+                call.respond(partyInfo.getCertificateForEncryption())
+            }
 
-        get("/cpa/{$CPA_ID}/party/{$PARTY_TYPE}/{$PARTY_ID}/encryption/certificate") {
-            val cpaId = call.parameters[CPA_ID] ?: throw BadRequestException("Mangler $CPA_ID")
-            val partyType = call.parameters[PARTY_TYPE] ?: throw BadRequestException("Mangler $PARTY_TYPE")
-            val partyId = call.parameters[PARTY_ID] ?: throw BadRequestException("Mangler $PARTY_ID")
-            val cpa = getCpa(cpaId) ?: throw NotFoundException("Ingen CPA med ID $cpaId funnet")
-            val partyInfo = cpa.getPartyInfoByTypeAndID(partyType, partyId)
-            call.respond(partyInfo.getCertificateForEncryption())
-        }
-
-        post("/signing/certificate") {
-            val signatureDetailsRequest = call.receive(SignatureDetailsRequest::class)
-            val cpa = getCpa(signatureDetailsRequest.cpaId) ?: throw NotFoundException("Ingen CPA med ID ${signatureDetailsRequest.cpaId} funnet")
-            try {
-                val partyInfo = cpa.getPartyInfoByTypeAndID(signatureDetailsRequest.partyType, signatureDetailsRequest.partyId)
-                val signatureDetails = partyInfo.getCertificateForSignatureValidation(
-                    signatureDetailsRequest.role, signatureDetailsRequest.service, signatureDetailsRequest.action)
-                // TODO Strengere signatursjekk. Nå er den snill og resultatet logges bare
-                runCatching {
-                    createX509Certificate(signatureDetails.certificate).validate()
-                }.onFailure {
-                    log.warn(signatureDetailsRequest.marker(), "Signatursjekk feilet", it)
+            post("/signing/certificate") {
+                val signatureDetailsRequest = call.receive(SignatureDetailsRequest::class)
+                val cpa = getCpa(signatureDetailsRequest.cpaId) ?: throw NotFoundException("Ingen CPA med ID ${signatureDetailsRequest.cpaId} funnet")
+                try {
+                    val partyInfo = cpa.getPartyInfoByTypeAndID(signatureDetailsRequest.partyType, signatureDetailsRequest.partyId)
+                    val signatureDetails = partyInfo.getCertificateForSignatureValidation(
+                        signatureDetailsRequest.role, signatureDetailsRequest.service, signatureDetailsRequest.action)
+                    // TODO Strengere signatursjekk. Nå er den snill og resultatet logges bare
+                    runCatching {
+                        createX509Certificate(signatureDetails.certificate).validate()
+                    }.onFailure {
+                        log.warn(signatureDetailsRequest.marker(), "Signatursjekk feilet", it)
+                    }
+                    call.respond(signatureDetails)
+                } catch (ex: CpaValidationException) {
+                    log.warn(signatureDetailsRequest.marker(), ex.message, ex)
+                    call.respond(HttpStatusCode.BadRequest, ex.localizedMessage)
                 }
-                call.respond(signatureDetails)
-            } catch (ex: CpaValidationException) {
-                log.warn(signatureDetailsRequest.marker(), ex.message, ex)
-                call.respond(HttpStatusCode.BadRequest, ex.localizedMessage)
             }
         }
     }
 }
+internal val log = LoggerFactory.getLogger("no.nav.emottak.cpa.App")
 
 private const val CPA_ID = "cpaId"
 private const val PARTY_TYPE = "partyType"
