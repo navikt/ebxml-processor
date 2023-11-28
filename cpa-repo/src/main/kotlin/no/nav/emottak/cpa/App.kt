@@ -58,15 +58,15 @@ fun cpaApplicationModule(dbConfig: HikariConfig): Application.() -> Unit {
                 //TODO en eller annen form for validering av CPA
                 cpaRepository.putCpa(xmlMarshaller.unmarshal(cpa, CollaborationProtocolAgreement::class.java)).also {
                     log.info("Added CPA $it to repo")
+                    call.respond(HttpStatusCode.OK, "Added CPA $it to repo")
                 }
-
             }
 
             post("/cpa/validate/{$CONTENT_ID}") {
                 val validateRequest = call.receive(Header::class)
                 try {
 //                val cpa = getCpa(validateRequest.cpaId)!!
-                    val cpa = cpaRepository.findCpa(validateRequest.cpaId)!!
+                    val cpa = cpaRepository.findCpa(validateRequest.cpaId) ?: throw NotFoundException("Fant ikke CPA")
                     cpa.validate(validateRequest) // Delivery Filure
                     val partyInfo = cpa.getPartyInfoByTypeAndID(validateRequest.from.partyId) // delivery Failure
                     val encryptionCertificate = partyInfo.getCertificateForEncryption()  // Security Failure
