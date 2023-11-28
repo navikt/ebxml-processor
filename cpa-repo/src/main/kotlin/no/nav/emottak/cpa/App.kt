@@ -37,8 +37,9 @@ fun main() {
 }
 
 internal val log = LoggerFactory.getLogger("no.nav.emottak.cpa.App")
-fun Application.myApplicationModule() {
-    val database = Database(mapHikariConfig(DatabaseConfig()))
+fun Application.myApplicationModule(
+    database: Database = Database(mapHikariConfig(DatabaseConfig()))
+) {
     database.migrate()
     val cpaRepository = CPARepository(database)
     install(ContentNegotiation) {
