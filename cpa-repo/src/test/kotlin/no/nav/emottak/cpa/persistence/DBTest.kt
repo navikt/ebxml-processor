@@ -13,9 +13,10 @@ import kotlin.test.BeforeTest
 
 abstract class DBTest() {
 
+    lateinit var db: Database
     @BeforeTest
     fun beforeEach() {
-        val db = Database(dbConfig())
+        db = Database(dbConfig())
             .configureFlyway()
         val tables = listOf(CPA)
         transaction (db.db) {
