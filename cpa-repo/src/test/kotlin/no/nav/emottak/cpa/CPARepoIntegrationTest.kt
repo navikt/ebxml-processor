@@ -11,7 +11,8 @@ import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import no.nav.emottak.cpa.persistence.DBTest
-import no.nav.emottak.cpa.persistence.dbConfig
+import no.nav.emottak.cpa.persistence.cpaPostgres
+import no.nav.emottak.cpa.persistence.testConfiguration
 import no.nav.emottak.melding.model.SignatureDetails
 import no.nav.emottak.melding.model.SignatureDetailsRequest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -22,7 +23,8 @@ import org.junit.jupiter.api.TestInstance
 class CPARepoIntegrationTest: DBTest() {
 
     fun <T> cpaRepoTestApp(testBlock: suspend ApplicationTestBuilder.() -> T) = testApplication {
-        application (cpaApplicationModule(dbConfig()) )
+
+        application (cpaApplicationModule(cpaPostgres().testConfiguration()) )
         testBlock()
     }
 
