@@ -33,15 +33,14 @@ import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProt
 import org.slf4j.LoggerFactory
 
 fun main() {
-    val database = Database(mapHikariConfig(DatabaseConfig()))
-    database.migrate()
-
     embeddedServer(Netty, port = 8080, module = Application::myApplicationModule).start(wait = true)
-
 }
 
 internal val log = LoggerFactory.getLogger("no.nav.emottak.cpa.App")
-fun Application.myApplicationModule(cpaRepository: CPARepository = CPARepository()) {
+fun Application.myApplicationModule() {
+    val database = Database(mapHikariConfig(DatabaseConfig()))
+    database.migrate()
+    val cpaRepository = CPARepository(database)
     install(ContentNegotiation) {
         json()
     }
@@ -56,13 +55,17 @@ fun Application.myApplicationModule(cpaRepository: CPARepository = CPARepository
         post("/cpa") {
             val cpa = call.receive<String>()
             //TODO en eller annen form for validering av CPA
-            cpaRepository.putCpa(xmlMarshaller.unmarshal(cpa, CollaborationProtocolAgreement::class.java))
+            cpaRepository.putCpa(xmlMarshaller.unmarshal(cpa, CollaborationProtocolAgreement::class.java)).also {
+                log.info("Added CPA $it to repo")
+            }
+
         }
 
         post("/cpa/validate/{$CONTENT_ID}") {
             val validateRequest = call.receive(Header::class)
             try {
-                val cpa = getCpa(validateRequest.cpaId)!!
+//                val cpa = getCpa(validateRequest.cpaId)!!
+                val cpa = cpaRepository.findCpa(validateRequest.cpaId)!!
                 cpa.validate(validateRequest) // Delivery Filure
                 val partyInfo = cpa.getPartyInfoByTypeAndID(validateRequest.from.partyId) // delivery Failure
                 val encryptionCertificate = partyInfo.getCertificateForEncryption()  // Security Failure
