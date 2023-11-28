@@ -84,6 +84,9 @@ fun cpaApplicationModule(dbConfig: HikariConfig): Application.() -> Unit {
                 } catch (ebmsEx: EbmsException) {
                     log.warn(validateRequest.marker(), ebmsEx.message, ebmsEx)
                     call.respond(HttpStatusCode.OK, ValidationResult(processing = null, listOf( Feil(ebmsEx.errorCode, ebmsEx.descriptionText, ebmsEx.severity))))
+                } catch (ex: NotFoundException) {
+                    log.warn(validateRequest.marker(), "${ex.message}")
+                    call.respond(HttpStatusCode.OK, ValidationResult(processing = null, listOf( Feil(ErrorCode.DELIVERY_FAILURE,"Unable to find CPA"))))
                 } catch (ex: Exception) {
                     log.error(validateRequest.marker(),ex.message,ex)
                     call.respond(HttpStatusCode.OK,ValidationResult(processing = null, listOf(Feil(ErrorCode.UNKNOWN,"Unexpected error during cpa validation"))))
