@@ -18,6 +18,7 @@ import io.ktor.server.routing.routing
 import no.nav.emottak.cpa.config.DatabaseConfig
 import no.nav.emottak.cpa.config.mapHikariConfig
 import no.nav.emottak.cpa.feil.CpaValidationException
+import no.nav.emottak.cpa.persistence.CPARepository
 import no.nav.emottak.cpa.validation.validate
 import no.nav.emottak.melding.feil.EbmsException
 import no.nav.emottak.melding.model.ErrorCode
@@ -28,6 +29,7 @@ import no.nav.emottak.melding.model.SignatureDetailsRequest
 import no.nav.emottak.melding.model.ValidationResult
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.marker
+import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 import org.slf4j.LoggerFactory
 
 fun main() {
@@ -39,18 +41,25 @@ fun main() {
 }
 
 internal val log = LoggerFactory.getLogger("no.nav.emottak.cpa.App")
-fun Application.myApplicationModule() {
+fun Application.myApplicationModule(cpaRepository: CPARepository = CPARepository()) {
     install(ContentNegotiation) {
         json()
     }
     routing {
         get("/cpa/{$CPA_ID}") {
             val cpaId = call.parameters[CPA_ID] ?: throw BadRequestException("Mangler $CPA_ID")
-            val cpa = getCpa(cpaId) ?: throw NotFoundException("Fant ikke CPA")
+//            val cpa = getCpa(cpaId) ?: throw NotFoundException("Fant ikke CPA")
+            val cpa = cpaRepository.findCpa(cpaId) ?: throw NotFoundException("Fant ikke CPA")
             call.respond(cpa)
         }
 
-        post("cpa/validate/{$CONTENT_ID}") {
+        post("/cpa") {
+            val cpa = call.receive<String>()
+            //TODO en eller annen form for validering av CPA
+            cpaRepository.putCpa(xmlMarshaller.unmarshal(cpa, CollaborationProtocolAgreement::class.java))
+        }
+
+        post("/cpa/validate/{$CONTENT_ID}") {
             val validateRequest = call.receive(Header::class)
             try {
                 val cpa = getCpa(validateRequest.cpaId)!!
