@@ -17,6 +17,7 @@ import io.ktor.server.routing.*
 import io.ktor.util.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.model.*
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.validation.DokumentValidator
@@ -78,9 +79,9 @@ fun Application.ebmsProviderModule() {
 
 @Throws(MimeValidationException::class)
 suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
+    log.info("Parsing message with Message-Id: ${request.header(SMTPHeaders.MESSAGE_ID)}")
     val debugClearText = !request.header("cleartext").isNullOrBlank()
     return when (val contentType = this.request.contentType().withoutParameters()) {
-
         ContentType.parse("multipart/related") -> {
             val allParts = this.receiveMultipart().readAllParts()
             val dokument = allParts.find {
