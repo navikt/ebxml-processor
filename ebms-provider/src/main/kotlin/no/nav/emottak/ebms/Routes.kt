@@ -6,6 +6,7 @@ import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.model.EbMSDocument
 import no.nav.emottak.ebms.model.EbMSPayloadMessage
 import no.nav.emottak.ebms.model.buildEbmMessage
@@ -34,7 +35,7 @@ fun Route.postEbms(validator: DokumentValidator, processingService: ProcessingSe
             call.respond(HttpStatusCode.InternalServerError, ex.asParseAsSoapFault())
             return@post
         } catch (ex: Exception) {
-            logger().error("Unable to transform request into EbmsDokument: ${ex.message}", ex)
+            logger().error("Unable to transform request into EbmsDokument: ${ex.message} Message-Id ${call.request.header(SMTPHeaders.MESSAGE_ID)}", ex)
             //@TODO done only for demo fiks!
             call.respond(HttpStatusCode.InternalServerError, MimeValidationException("Unable to transform request into EbmsDokument: ${ex.message}",ex).asParseAsSoapFault())
             return@post
