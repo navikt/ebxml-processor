@@ -88,10 +88,13 @@ private fun SignedInfo.validateReferences() {
         reference.messageDigestAlgorithm.isValidDigestMethodAlgorithm()
         if (uri == "") {
             foundRootReference = true
-            if (reference.transforms.length != 3) throw SignatureException("Root reference skal ha 3 references, har ${reference.transforms.length}")
-            if (reference.transforms.item(0).uri != Transforms.TRANSFORM_ENVELOPED_SIGNATURE) throw SignatureException("Transform 1 har feil uri! ${reference.transforms.item(0).uri}")
-            if (reference.transforms.item(1).uri != Transforms.TRANSFORM_XPATH) throw SignatureException(("Transform 2 har feil uri! ${reference.transforms.item(1).uri}"))
-            if (reference.transforms.item(2).uri != Transforms.TRANSFORM_C14N_OMIT_COMMENTS) throw SignatureException(("Transform 3 har feil uri! ${reference.transforms.item(2).uri}"))
+            //if (reference.transforms.length != 3) throw SignatureException("Root reference skal ha 3 references, har ${reference.transforms.length}")
+            var index = 0 // NB: for å være oasis compliant skal disse være i rekkefølge... men vi er pragmatisk
+            if (reference.transforms.item(index).uri == Transforms.TRANSFORM_ENVELOPED_SIGNATURE) index++
+            else throw SignatureException("Transform: ${Transforms.TRANSFORM_ENVELOPED_SIGNATURE} har feil uri! ${reference.transforms.item(index).uri}")
+            if (reference.transforms.item(index).uri == Transforms.TRANSFORM_XPATH) index++
+            else log.warn("Mangler ${Transforms.TRANSFORM_XPATH}") //throw SignatureException(("Transform 2 har feil uri! ${reference.transforms.item(1).uri}"))
+            if (reference.transforms.item(index).uri != Transforms.TRANSFORM_C14N_OMIT_COMMENTS) throw SignatureException(("Transform: ${Transforms.TRANSFORM_C14N_OMIT_COMMENTS} har feil uri! ${reference.transforms.item(index).uri}"))
         } else if (!uri.startsWith(CID_PREFIX)) throw SignatureException("Ugyldig URI $uri! Kun reference uri som starter med $CID_PREFIX er tillatt")
     }
     if(!foundRootReference) throw SignatureException("Root reference mangler!")
