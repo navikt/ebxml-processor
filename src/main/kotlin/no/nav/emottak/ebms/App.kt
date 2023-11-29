@@ -72,7 +72,7 @@ fun Application.ebmsProviderModule() {
         get("/") {
             call.respondText("Hello, world!")
         }
-        postEbms(validator, processing, cpaClient)
+        postEbms(validator, processing)
     }
 
 }

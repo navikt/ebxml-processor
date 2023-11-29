@@ -41,7 +41,7 @@ class MimeValidationIT {
             val dokumentValidator = DokumentValidator(cpaRepoClient)
             val processingService = mockk<ProcessingService>()
             routing {
-                postEbms(dokumentValidator,processingService,cpaRepoClient)
+                postEbms(dokumentValidator,processingService)
             }
 
         }
