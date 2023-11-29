@@ -21,7 +21,7 @@ import no.nav.emottak.util.retrieveLoggableHeaderPairs
 import no.nav.emottak.util.marker
 
 
-fun Route.postEbms(validator: DokumentValidator, processingService: ProcessingService, cpaRepoClient: CpaRepoClient): Route =
+fun Route.postEbms(validator: DokumentValidator, processingService: ProcessingService): Route =
     post("/ebms") {
         // KRAV 5.5.2.1 validate MIME
         val debug:Boolean = call.request.header("debug")?.isNotBlank()?: false
