@@ -52,7 +52,8 @@ fun Headers.marker(): LogstashMarker = Markers.appendEntries(
 )
 fun Headers.retrieveLoggableHeaderPairs(): List<Pair<String, String>> {
     return listOf(
-        Pair(X_MAILER, this[SMTPHeaders.X_MAILER] ?: "-")
+        Pair(X_MAILER, this[SMTPHeaders.X_MAILER] ?: "-"),
+        Pair("smtpMessageId", this[SMTPHeaders.MESSAGE_ID]!!)
     )
 }
 
