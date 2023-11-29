@@ -4,6 +4,7 @@ import io.ktor.client.request.*
 import io.ktor.client.request.forms.*
 import io.ktor.http.*
 import io.ktor.http.content.*
+import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.validation.MimeHeaders
 
 const val MULTIPART_CONTENT_TYPE: String = """multipart/related;type="text/xml";boundary="----=_Part_495_-1172936255.1665395092859";start="<soapId-6ae68a32-8b0e-4de2-baad-f4d841aacce1>";"""
@@ -18,11 +19,16 @@ open class Part(val headers: Headers, val payload: String)
 
 
 fun validMultipartRequest(): MultipartRequest {
-        return MultipartRequest(valid, listOf(
+        return MultipartRequest(valid.modify {
+                                             it.append(SMTPHeaders.MESSAGE_ID,"12345")
+        }, listOf(
             Part(validSoapMimeHeaders, EBXML_PAYLOAD),
             Part(validSoapAttachmentHeaders, FAGMELDING_PAYLOAD)
         ))
 }
+val validSMTPHeaders = Headers.build {
+        append(SMTPHeaders.MESSAGE_ID,"12345")
+    }
 
 val valid = Headers.build {
         append(MimeHeaders.MIME_VERSION,"1.0")
