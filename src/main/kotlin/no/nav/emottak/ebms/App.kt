@@ -145,5 +145,6 @@ suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbMSDocument) {
         .dokument
         .asString()
     //  .encodeBase64()
+    log.info("Successfuly processed Payload Message")
     this.respondText(payload, ContentType.parse("text/xml"))
 }

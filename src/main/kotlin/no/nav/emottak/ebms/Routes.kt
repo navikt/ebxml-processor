@@ -104,5 +104,6 @@ fun Route.postEbms(validator: DokumentValidator, processingService: ProcessingSe
                 return@post
             }
         }
+        log.info("Successfuly processed Signal Message")
         call.respondText("Processed")
     }
