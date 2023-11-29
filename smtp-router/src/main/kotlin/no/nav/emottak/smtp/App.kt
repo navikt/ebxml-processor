@@ -1,5 +1,5 @@
-package no.nav.emottak.smtp
 
+package no.nav.emottak.smtp
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.headers

@@ -62,7 +62,7 @@ class EbmsRouteIT {
                 processingService.process(any())
             } just  runs
             routing {
-                postEbms(dokumentValidator,processingService,cpaRepoClient)
+                postEbms(dokumentValidator,processingService)
             }
 
         }
