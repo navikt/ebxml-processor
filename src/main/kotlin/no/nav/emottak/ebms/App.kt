@@ -15,9 +15,7 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.util.*
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import no.nav.emottak.ebms.model.*
 import no.nav.emottak.ebms.processing.ProcessingService
@@ -50,7 +48,8 @@ fun defaultHttpClient(): () -> HttpClient {
 }
 fun PartData.payload(clearText:Boolean = false): ByteArray {
     return when (this) {
-        is PartData.FormItem ->  if (clearText) return this.value.toByteArray() else java.util.Base64.getMimeDecoder().decode(this.value)
+        is PartData.FormItem ->  if (clearText) return this.value.toByteArray()
+        else java.util.Base64.getMimeDecoder().decode(this.value)
         is PartData.FileItem -> {
             val bytes = this.streamProvider.invoke().readAllBytes()
             if (clearText) return bytes else java.util.Base64.getMimeDecoder().decode(bytes)
@@ -79,7 +78,7 @@ fun Application.ebmsProviderModule() {
 
 @Throws(MimeValidationException::class)
 suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
-    val clearText = !request.header("cleartext").isNullOrBlank()
+    val debugClearText = !request.header("cleartext").isNullOrBlank()
     return when (val contentType = this.request.contentType().withoutParameters()) {
 
         ContentType.parse("multipart/related") -> {
@@ -91,7 +90,8 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
                     ?: throw MimeValidationException("Unable to find soap envelope multipart")
             }!!.let {
                  val contentID = it.headers[MimeHeaders.CONTENT_ID]!!.convertToValidatedContentID()
-                 Pair(contentID, it.payload(clearText))
+                 val isBase64 = "base64" == it.headers[MimeHeaders.CONTENT_TRANSFER_ENCODING]
+                 Pair(contentID, it.payload(debugClearText || !isBase64))
             }
             val attachments =
                 allParts.filter { it.contentDisposition?.disposition == ContentDisposition.Attachment.disposition }
@@ -113,11 +113,11 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
 
         ContentType.parse("text/xml") -> {
             val dokument = withContext(Dispatchers.IO) {
-                when(request.header(MimeHeaders.CONTENT_TRANSFER_ENCODING)) {
-                    "base64" -> java.util.Base64.getMimeDecoder()
+                if(debugClearText || "base64" != request.header(MimeHeaders.CONTENT_TRANSFER_ENCODING))
+                    this@receiveEbmsDokument.receiveStream().readAllBytes()
+                 else
+                    java.util.Base64.getMimeDecoder()
                         .decode(this@receiveEbmsDokument.receiveStream().readAllBytes())
-                    else -> this@receiveEbmsDokument.receiveStream().readAllBytes()
-                }
             }
             println(dokument)
             EbMSDocument(
