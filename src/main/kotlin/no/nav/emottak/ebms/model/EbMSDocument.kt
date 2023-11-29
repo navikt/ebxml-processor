@@ -44,8 +44,8 @@ val log = LoggerFactory.getLogger("no.nav.emottak.ebms.model")
 data class EbMSDocument(val contentId: String, val dokument: Document, val attachments: List<EbMSAttachment>) {
     fun dokumentType(): DokumentType {
         if (attachments.size > 0) return DokumentType.PAYLOAD
-        if (dokument.getElementsByTagName("Acknowledgment").item(0) != null) return DokumentType.ACKNOWLEDGMENT
-        if (dokument.getElementsByTagName("ErrorList").item(0)) return DokumentType.FAIL
+        if (dokument.getElementsByTagNameNS(OASIS_EBXML_MSG_HEADER_XSD_NS_URI,"Acknowledgment").item(0) != null) return DokumentType.ACKNOWLEDGMENT
+        if (dokument.getElementsByTagNameNS(OASIS_EBXML_MSG_HEADER_XSD_NS_URI,"ErrorList").item(0)!=null) return DokumentType.FAIL
         throw RuntimeException("Unrecognized dokument type")
 
     }

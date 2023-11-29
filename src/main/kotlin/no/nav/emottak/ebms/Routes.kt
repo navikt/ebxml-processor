@@ -61,7 +61,7 @@ fun Route.postEbms(validator: DokumentValidator, processingService: ProcessingSe
                 processingService.process(message)
             }
         } catch (ex: EbmsException) {
-            logger().error(message.messageHeader.marker(), "Processing failed: ${ex.message}", ex)
+            logger().error(message.messageHeader.marker(loggableHeaders), "Processing failed: ${ex.message}", ex)
             ebMSDocument
                 .createFail(ex.errorCode.createEbxmlError())
                 .toEbmsDokument()
@@ -71,7 +71,7 @@ fun Route.postEbms(validator: DokumentValidator, processingService: ProcessingSe
             return@post
         }
         catch(ex: ServerResponseException) {
-            logger().error(message.messageHeader.marker(), "Processing failed: ${ex.message}", ex)
+            logger().error(message.messageHeader.marker(loggableHeaders), "Processing failed: ${ex.message}", ex)
             ebMSDocument
                 .createFail(ErrorCode.UNKNOWN.createEbxmlError("Processing failed: ${ex.message}"))
                 .toEbmsDokument()
@@ -81,7 +81,7 @@ fun Route.postEbms(validator: DokumentValidator, processingService: ProcessingSe
                     return@post
                 }
         } catch(ex: ClientRequestException) {
-            logger().error(message.messageHeader.marker(), "Processing failed: ${ex.message}", ex)
+            logger().error(message.messageHeader.marker(loggableHeaders), "Processing failed: ${ex.message}", ex)
             ebMSDocument
                 .createFail(ErrorCode.OTHER_XML.createEbxmlError("Processing failed: ${ex.message}"))
                 .toEbmsDokument()
@@ -91,7 +91,7 @@ fun Route.postEbms(validator: DokumentValidator, processingService: ProcessingSe
                     return@post
                 }
         } catch (ex: Exception) {
-            logger().error(message.messageHeader.marker(), "Processing failed: ${ex.message}", ex)
+            logger().error(message.messageHeader.marker(loggableHeaders), "Processing failed: ${ex.message}", ex)
             call.respond(HttpStatusCode.InternalServerError, "Feil ved prosessering av melding")
             return@post
         }
