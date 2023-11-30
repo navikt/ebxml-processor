@@ -31,7 +31,7 @@ fun Route.postEbms(validator: DokumentValidator, processingService: ProcessingSe
             call.request.validateMime()
             ebMSDocument = call.receiveEbmsDokument()
         } catch (ex: MimeValidationException) {
-            logger().error("Mime validation has failed: ${ex.message}", ex)
+            logger().error("Mime validation has failed: ${ex.message} Message-Id ${call.request.header(SMTPHeaders.MESSAGE_ID)}", ex)
             call.respond(HttpStatusCode.InternalServerError, ex.asParseAsSoapFault())
             return@post
         } catch (ex: Exception) {
