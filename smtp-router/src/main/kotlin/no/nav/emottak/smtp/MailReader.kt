@@ -51,25 +51,25 @@ class MailReader(private val store: Store, val expunge: Boolean = true): AutoClo
             val messageCount = inbox.messageCount
             val emailMsgList = if (messageCount != 0) {
                 val endIndex = (takeN + start-1).takeIf { it < messageCount } ?: messageCount
-                val resultat = inbox.getMessages(start, endIndex).map { it as MimeMessage }.toList().onEach {
+                val resultat = inbox.getMessages(start, endIndex).map { it as MimeMessage }.toList().onEach {mimeMessage ->
                     log.info("Reading emails startIndex $start")
-                    if (it.content is MimeMultipart) {
+                    if (mimeMessage.content is MimeMultipart) {
                         val dokument = runCatching {
-                            (it.content as MimeMultipart).getBodyPart(0)
+                            (mimeMessage.content as MimeMultipart).getBodyPart(0)
                         }.onSuccess {
                             log.info(
-                                "Incoming multipart request with headers ${
+                                "Incoming multipart request with headers ${mimeMessage.allHeaders.toList().map { it.name + ":" + it.value }} part headers ${
                                     it.allHeaders.toList().map { it.name + ":" + it.value }
                                 }" +
                                         "with body ${String(it.inputStream.readAllBytes())}"
                             )
                         }
                     } else {
-                        log.info("Incoming singlepart request ${String(it.inputStream.readAllBytes())}")
+                        log.info("Incoming singlepart request with headers ${ mimeMessage.allHeaders.toList().map { it.name + ":" + it.value }} and body ${String(mimeMessage.inputStream.readAllBytes())}")
                     }
-                    val headerXMailer = it.getHeader("X-Mailer")?.toList()?.firstOrNull()
-                    log.info(createHeaderMarker(headerXMailer), "From: <${it.from[0]}> Subject: <${it.subject}>")
-                    it.setFlag(Flags.Flag.DELETED, expunge())
+                    val headerXMailer = mimeMessage.getHeader("X-Mailer")?.toList()?.firstOrNull()
+                    log.info(createHeaderMarker(headerXMailer), "From: <${mimeMessage.from[0]}> Subject: <${mimeMessage.subject}>")
+                    mimeMessage.setFlag(Flags.Flag.DELETED, expunge())
                 }
                 start += takeN
                 resultat.map(mapEmailMsg())
