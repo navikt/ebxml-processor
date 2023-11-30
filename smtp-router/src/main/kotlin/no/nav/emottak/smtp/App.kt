@@ -146,4 +146,13 @@ fun Map<String, String>.filterHeader(vararg headerNames: String): HeadersBuilder
             log.info("Header: <${it.first}> - <${headerValue}>")
         }
     }
+    if(MimeUtility.unfold(this@filterHeader[MimeHeaders.CONTENT_TYPE])?.contains("text/xml") == true) {
+        if(this@filterHeader[MimeHeaders.CONTENT_ID] != null) {
+            log.warn("Content-Id header allerede satt for text/xml: " + this@filterHeader[MimeHeaders.CONTENT_ID]
+                    + "\nMessage-Id: " + this@filterHeader[SMTPHeaders.MESSAGE_ID])
+        }
+        val headerValue = MimeUtility.unfold(this@filterHeader[SMTPHeaders.MESSAGE_ID]!!)
+        append(MimeHeaders.CONTENT_ID, headerValue)
+        log.info("Header: <${MimeHeaders.CONTENT_ID}> - <${headerValue}>")
+    }
 }
