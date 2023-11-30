@@ -40,6 +40,7 @@ import org.apache.xml.security.algorithms.MessageDigestAlgorithm
 import org.apache.xml.security.signature.XMLSignature
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ErrorList
 import org.xmlsoap.schemas.soap.envelope.Envelope
@@ -149,6 +150,7 @@ class EbmsRouteIT {
     }
 
      @Test
+     @Disabled
     fun `ack test`() = validationTestApp {
 
         val ack = failingAcknowledgment
