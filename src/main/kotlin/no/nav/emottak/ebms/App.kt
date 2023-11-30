@@ -88,7 +88,7 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
                 it.contentType?.withoutParameters() == ContentType.parse("text/xml") && it.contentDisposition == null
             }.also {
                 it?.validateMimeSoapEnvelope()
-                    ?: throw MimeValidationException("Unable to find soap envelope multipart")
+                    ?: throw MimeValidationException("Unable to find soap envelope multipart Message-Id ${this.request.header(SMTPHeaders.MESSAGE_ID)}")
             }!!.let {
                  val contentID = it.headers[MimeHeaders.CONTENT_ID]!!.convertToValidatedContentID()
                  val isBase64 = "base64" == it.headers[MimeHeaders.CONTENT_TRANSFER_ENCODING]
