@@ -57,7 +57,7 @@ fun Application.myApplicationModule() {
                                 runBlocking {
                                     client.post("https://ebms-provider.intern.dev.nav.no/ebms") {
                                         headers(
-                                            filterHeader(
+                                            message.headers.filterHeader(
                                                 MimeHeaders.MIME_VERSION,
                                                 MimeHeaders.CONTENT_ID,
                                                 MimeHeaders.SOAP_ACTION,
@@ -137,9 +137,9 @@ fun logBccMessages() {
     testDataInbox.close()
 }
 
-fun filterHeader(vararg headerNames: String): HeadersBuilder.() -> Unit = {
+fun Map<String, String>.filterHeader(vararg headerNames: String): HeadersBuilder.() -> Unit = {
     val caseInsensitiveMap = CaseInsensitiveMap<String>().apply {
-        putAll(this)
+        putAll(this@filterHeader)
     }
     headerNames.map {
         Pair(it, caseInsensitiveMap[it])
