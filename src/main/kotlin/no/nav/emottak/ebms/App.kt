@@ -136,7 +136,7 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
 }
 
 private fun String.convertToValidatedContentID(): String {
-    return Regex("""<(.*?)>""").find(this)?.groups?.get(1)?.value ?: throw MimeValidationException("ContentId is invalid $this")
+    return Regex("""<(.*?)>""").find(this)?.groups?.get(1)?.value ?: this
 }
 
 suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbMSDocument) {
