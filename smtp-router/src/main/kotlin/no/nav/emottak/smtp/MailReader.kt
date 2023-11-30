@@ -5,6 +5,7 @@ import jakarta.mail.Flags
 import jakarta.mail.Folder
 import jakarta.mail.Message
 import jakarta.mail.Store
+import jakarta.mail.internet.MimeMessage
 import jakarta.mail.internet.MimeMultipart
 import net.logstash.logback.marker.LogstashMarker
 import net.logstash.logback.marker.Markers
@@ -21,10 +22,10 @@ class MailReader(private val store: Store, val expunge: Boolean = true): AutoClo
     }
 
     companion object {
-        fun mapEmailMsg(): (Message) -> EmailMsg = { message ->
+        fun mapEmailMsg(): (MimeMessage) -> EmailMsg = { message ->
             EmailMsg(
                 message.allHeaders.toList().groupBy({ it.name }, { it.value }).mapValues { it.value.joinToString(",") },
-                message.inputStream.readAllBytes()
+                message.rawInputStream.readAllBytes()
             )
         }
     }
@@ -50,7 +51,7 @@ class MailReader(private val store: Store, val expunge: Boolean = true): AutoClo
             val messageCount = inbox.messageCount
             val emailMsgList = if (messageCount != 0) {
                 val endIndex = (takeN + start-1).takeIf { it < messageCount } ?: messageCount
-                val resultat = inbox.getMessages(start, endIndex).toList().onEach {
+                val resultat = inbox.getMessages(start, endIndex).map { it as MimeMessage }.toList().onEach {
                     log.info("Reading emails startIndex $start")
                     if (it.content is MimeMultipart) {
                         val dokument = runCatching {
