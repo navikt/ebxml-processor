@@ -143,7 +143,6 @@ fun Map<String, String>.filterHeader(vararg headerNames: String): HeadersBuilder
         if (it.second != null) {
             val headerValue = MimeUtility.unfold(it.second!!)
             append(it.first, headerValue)
-            log.info("Header: <${it.first}> - <${headerValue}>")
         }
     }
     if(MimeUtility.unfold(this@filterHeader[MimeHeaders.CONTENT_TYPE])?.contains("text/xml") == true) {
