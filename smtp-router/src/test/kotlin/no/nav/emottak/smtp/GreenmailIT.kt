@@ -46,13 +46,15 @@ class GreenmailIT {
         val reader = MailReader(store, false)
         assertEquals(1, reader.readMail().size)
         assertEquals(1, reader.readMail().size)
+        assertEquals(1, reader.readMail().size)
         assertEquals(0, reader.readMail().size)
         reader.close()
-        assertEquals(2, MailReader(store).count())
+        assertEquals(3, MailReader(store).count())
 
         System.setProperty("INBOX_LIMIT", "-1");
         val reader2 = MailReader(store, false)
 
+        assertEquals(1, reader2.readMail().size)
         assertEquals(1, reader2.readMail().size)
         assertEquals(1, reader2.readMail().size)
         assertEquals(0, reader2.readMail().size)
