@@ -98,13 +98,13 @@ fun Route.postEbms(validator: DokumentValidator, processingService: ProcessingSe
         }
 
         //call payload processor
-        println(ebMSDocument)
         if (message is EbMSPayloadMessage) {
+            log.info(message.messageHeader.marker(), "Payload Processed, Generating Acknowledgement...")
             message.createAcknowledgment().toEbmsDokument().also {
                 call.respondEbmsDokument(it)
                 return@post
             }
         }
-        log.info("Successfuly processed Signal Message")
+        log.info(message.messageHeader.marker(), "Successfuly processed Signal Message")
         call.respondText("Processed")
     }

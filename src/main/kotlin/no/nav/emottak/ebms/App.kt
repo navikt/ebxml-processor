@@ -120,7 +120,6 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
                     java.util.Base64.getMimeDecoder()
                         .decode(this@receiveEbmsDokument.receiveStream().readAllBytes())
             }
-            println(dokument)
             EbMSDocument(
                 this.request.headers[MimeHeaders.CONTENT_ID]!!.convertToValidatedContentID(),
                 getDocumentBuilder().parse(ByteArrayInputStream(dokument)),
