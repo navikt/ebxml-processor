@@ -42,14 +42,14 @@ fun ApplicationRequest.validateContentType() {
         if (contentType.withoutParameters() != ContentType.parse("multipart/related")) throw MimeValidationException("Content type should be multipart/related")
         contentType.parameter("boundary")?:throw MimeValidationException("Boundary is mandatory on multipart related content")
         contentType.parameter("start")?:throw MimeValidationException("Start on multipart request not defined")
-        contentType.parameter("type") ?: throw MimeValidationException("type of multipart / related is undefined")
-        if (contentType.parameter("type") != "text/xml") throw MimeValidationException("Type of multipart related should be text/xml")
+        // norsk helsenet spec sier at type bør vare altid text/xml men det er andre som ikke fyller det.
+        if (contentType.parameter("type") != null && contentType.parameter("type") != "text/xml") throw MimeValidationException("Type of multipart related should be text/xml")
 }
 
 //KRAV 5.5.2.3 Valideringsdokument
 fun PartData.validateMimeSoapEnvelope() {
-        this.contentType?.withoutParameters().takeIf {it == ContentType.parse("text/xml") } ?: throw MimeValidationException("Content type is missing or wrong ")
-        if(this.headers[MimeHeaders.CONTENT_ID].isNullOrBlank())
+       this.contentType?.withoutParameters().takeIf {it == ContentType.parse("text/xml") } ?: throw MimeValidationException("Content type is missing or wrong ")
+         if(this.headers[MimeHeaders.CONTENT_ID].isNullOrBlank())
                 throw MimeValidationException("Content ID is missing")
         this.headers[MimeHeaders.CONTENT_TRANSFER_ENCODING].takeUnless { it.isNullOrBlank() }?.let {
                 it.takeIf {  listOf("8bit","base64","binary","quoted-printable").contains(it) } ?: throw MimeValidationException("Content-Transfer-Encoding should be 8 bit")
