@@ -51,7 +51,6 @@ fun Application.myApplicationModule() {
                     do {
                         val messages = it.readMail()
 
-
                         messages.forEach { message ->
                             runCatching {
                                 runBlocking {
@@ -71,7 +70,7 @@ fun Application.myApplicationModule() {
                                             )
                                         )
                                         setBody(
-                                            message.bytes
+                                            message.parts
                                         )
                                     }
                                 }

@@ -1,17 +1,33 @@
 package no.nav.emottak.smtp;
 
 
+import jakarta.mail.BodyPart
 import jakarta.mail.Flags
 import jakarta.mail.Folder
-import jakarta.mail.Message
 import jakarta.mail.Store
 import jakarta.mail.internet.MimeMessage
 import jakarta.mail.internet.MimeMultipart
 import net.logstash.logback.marker.LogstashMarker
 import net.logstash.logback.marker.Markers
 import no.nav.emottak.util.getEnvVar
+import java.io.ByteArrayOutputStream
+import java.io.PrintStream
 
-data class EmailMsg(val headers: Map<String, String>, val bytes: ByteArray)
+data class EmailMsg(val headers: Map<String, String>, val parts: List<Part>) {
+    fun serialize(): ByteArray {
+        val out = ByteArrayOutputStream()
+        val printer = PrintStream(out)
+        parts.forEach {
+            it.headers.forEach {
+                printer.println(it.key+":")
+            }
+            printer.println(it)
+        }
+        return out.toByteArray()
+    }
+}
+data class Part(val headers: Map<String, String>, val bytes: ByteArray)
+
 
 class MailReader(private val store: Store, val expunge: Boolean = true): AutoCloseable {
 
@@ -23,9 +39,31 @@ class MailReader(private val store: Store, val expunge: Boolean = true): AutoClo
 
     companion object {
         fun mapEmailMsg(): (MimeMessage) -> EmailMsg = { message ->
+            val bodyparts: List<Part> = if (message.content is MimeMultipart) {
+                (message.content as MimeMultipart).let {
+                    mutableListOf<BodyPart>().apply {
+                        for (i in 0..it.count) {
+                            this.add(it.getBodyPart(i))
+                        }
+                    }.map(mapBodyPart())
+                }
+            } else {
+                listOf(
+                    Part(
+                        emptyMap(),
+                        message.inputStream.readAllBytes()
+                    )
+                )
+            }
             EmailMsg(
                 message.allHeaders.toList().groupBy({ it.name }, { it.value }).mapValues { it.value.joinToString(",") },
-                message.rawInputStream.readAllBytes()
+                bodyparts
+            )
+        }
+        fun mapBodyPart(): (BodyPart) -> Part = { message ->
+            Part(
+                message.allHeaders.toList().groupBy({ it.name }, { it.value }).mapValues { it.value.joinToString(",") },
+                message.inputStream.readAllBytes()
             )
         }
     }
