@@ -2,11 +2,12 @@
 package no.nav.emottak.smtp
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
+import io.ktor.client.request.forms.*
 import io.ktor.client.request.headers
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
-import io.ktor.http.HeadersBuilder
-import io.ktor.http.HttpStatusCode
+import io.ktor.http.*
+import io.ktor.http.content.*
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.call
@@ -18,6 +19,7 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import io.ktor.util.*
+import io.ktor.utils.io.core.*
 import jakarta.mail.Flags
 import jakarta.mail.Folder
 import jakarta.mail.internet.MimeMultipart
@@ -28,6 +30,7 @@ import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.util.getEnvVar
 import org.eclipse.angus.mail.imap.IMAPFolder
 import org.slf4j.LoggerFactory
+import kotlin.text.String
 
 fun main() {
     embeddedServer(Netty, port = 8080, module = Application::myApplicationModule).start(wait = true)
@@ -54,7 +57,10 @@ fun Application.myApplicationModule() {
                         messages.forEach { message ->
                             runCatching {
                                 runBlocking {
-                                    client.post("https://ebms-provider.intern.dev.nav.no/ebms") {
+
+                                    val partData: List<PartData> = emptyList()
+                                    if (message.parts.size == 1 && message.headers.isEmpty()) {
+                                        client.post("https://ebms-provider.intern.dev.nav.no/ebms") {
                                         headers(
                                             message.headers.filterHeader(
                                                 MimeHeaders.MIME_VERSION,
@@ -70,9 +76,50 @@ fun Application.myApplicationModule() {
                                             )
                                         )
                                         setBody(
-                                            message.parts
-                                        )
+                                           message.parts.first().bytes)
+
                                     }
+                                    }
+                                    else {
+                                        val partData: List<PartData> = message.parts.map {
+                                            PartData.FormItem(String(it.bytes), {},Headers.build ( it.headers.filterHeader(
+                                                MimeHeaders.CONTENT_TYPE
+                                            )))
+                                             PartData.FileItem({ByteReadPacket(message.parts.first().bytes)},{},Headers.build ( it.headers.filterHeader(
+                                                MimeHeaders.CONTENT_TYPE
+                                            )))
+                                        }
+                                        val contentType = message.headers[MimeHeaders.CONTENT_TYPE]!!
+                                        val boundary = ContentType.parse(contentType).parameter("boundary")
+                                        ContentDisposition.parse("").parameter("filename")
+
+
+                                         client.post("https://ebms-provider.intern.dev.nav.no/ebms") {
+                                        headers(
+                                            message.headers.filterHeader(
+                                                MimeHeaders.MIME_VERSION,
+                                                MimeHeaders.CONTENT_ID,
+                                                MimeHeaders.SOAP_ACTION,
+                                                MimeHeaders.CONTENT_TYPE,
+                                                MimeHeaders.CONTENT_TRANSFER_ENCODING,
+                                                SMTPHeaders.FROM,
+                                                SMTPHeaders.TO,
+                                                SMTPHeaders.MESSAGE_ID,
+                                                SMTPHeaders.DATE,
+                                                SMTPHeaders.X_MAILER
+                                            )
+                                        )
+                                         setBody(MultiPartFormDataContent(
+            partData, boundary!!, ContentType.parse(contentType)
+        ))
+
+                                    }
+
+
+
+                                    }
+
+
                                 }
                             }.onFailure {
                                 log.error(it.message, it)
@@ -97,6 +144,11 @@ fun Application.myApplicationModule() {
         }
     }
 }
+
+
+   fun mapPartData(part: Part) : PartData? {
+     return null
+   }
 
 fun logBccMessages() {
     val inbox = bccStore.getFolder("INBOX") as IMAPFolder

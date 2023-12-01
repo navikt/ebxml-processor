@@ -1,27 +1,52 @@
 package no.nav.emottak.smtp;
 
 
+import io.ktor.http.*
 import jakarta.mail.BodyPart
 import jakarta.mail.Flags
 import jakarta.mail.Folder
+import jakarta.mail.Session
 import jakarta.mail.Store
+import jakarta.mail.internet.MimeBodyPart
 import jakarta.mail.internet.MimeMessage
 import jakarta.mail.internet.MimeMultipart
 import net.logstash.logback.marker.LogstashMarker
 import net.logstash.logback.marker.Markers
+import no.nav.emottak.constants.MimeHeaders
 import no.nav.emottak.util.getEnvVar
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream
+import java.util.*
 
 data class EmailMsg(val headers: Map<String, String>, val parts: List<Part>) {
-    fun serialize(): ByteArray {
+
+
+    fun serialize() {
+        val MimeMessage = MimeMessage(Session.getDefaultInstance(Properties()))
+
+        if (parts.size==1 && parts.first().headers.size >0 ) {
+            val content = MimeMultipart("related")
+            val part = MimeBodyPart()
+            //part.setHeader("")
+            part.setContent(parts.first().bytes, parts.first().headers[MimeHeaders.CONTENT_TYPE])
+            content.addBodyPart(part)
+
+        }
+    }
+
+    fun serializeOldSchool(): ByteArray {
         val out = ByteArrayOutputStream()
         val printer = PrintStream(out)
         parts.forEach {
+            val contentType = ContentType.parse(it.headers[MimeHeaders.CONTENT_TYPE]!!)
+            val boundary = contentType.parameter("boundary")
+            if (parts.size>1) printer.println(boundary)
+            println()
             it.headers.forEach {
-                printer.println(it.key+":")
+                printer.println(it.key+":" + it.value)
             }
-            printer.println(it)
+            println()
+            printer.print(it.bytes)
         }
         return out.toByteArray()
     }
