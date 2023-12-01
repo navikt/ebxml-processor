@@ -2,6 +2,7 @@ package no.nav.emottak.smtp;
 
 
 import jakarta.mail.BodyPart
+import jakarta.mail.Flags
 import jakarta.mail.Folder
 import jakarta.mail.Store
 import jakarta.mail.internet.InternetHeaders
@@ -77,12 +78,12 @@ class MailReader(private val store: Store, val expunge: Boolean = true) : AutoCl
                 val endIndex = (takeN + start - 1).takeIf { it < messageCount } ?: messageCount
                 val resultat2 = inbox.getMessages(start, endIndex)
                     .map {
+                        it.setFlag(Flags.Flag.DELETED, expunge())
                         if (it.content is MimeMultipart) {
-                            MimeMessage(it as MimeMessage).apply {
-                                setContent(
-                                    unfoldMimeMultipartHeaders((it.content as MimeMultipart))
-                                )
-                            }
+                            return@map MimeMessage(it as MimeMessage)
+                                .apply {
+                                    setContent(unfoldMimeMultipartHeaders((it.content as MimeMultipart)))
+                                }
                         }
                         return@map it as MimeMessage
                     }
