@@ -1,12 +1,10 @@
 package no.nav.emottak.smtp;
 
 
-import jakarta.mail.BodyPart
 import jakarta.mail.Flags
 import jakarta.mail.Folder
 import jakarta.mail.Store
 import jakarta.mail.internet.InternetHeaders
-import jakarta.mail.internet.MimeBodyPart
 import jakarta.mail.internet.MimeMessage
 import jakarta.mail.internet.MimeMultipart
 import jakarta.mail.internet.MimeUtility
@@ -51,23 +49,14 @@ class MailReader(private val store: Store, val expunge: Boolean = true) : AutoCl
     }
 
 
-    fun unfoldMimeMultipartHeaders(input: MimeMultipart): MimeMultipart {
-        val partsUnfoldedHeaders: ArrayList<BodyPart> = ArrayList()
+    fun unfoldMimeMultipartHeaders(input: MimeMultipart) {
         for (i in 0 until input.count) {
-            val headers = InternetHeaders()
             input.getBodyPart(i)
                 .allHeaders.toList()
                 .forEach { header ->
-                    headers.addHeader(header.name, MimeUtility.unfold(header.value))
+                    input.getBodyPart(i).setHeader(header.name,MimeUtility.unfold(header.value))
                 }
-            partsUnfoldedHeaders.add(
-                MimeBodyPart(
-                    headers,
-                    input.getBodyPart(i).inputStream.readAllBytes()
-                )
-            )
         }
-        return MimeMultipart(*partsUnfoldedHeaders.toTypedArray())
     }
 
     @Throws(Exception::class)
@@ -76,19 +65,16 @@ class MailReader(private val store: Store, val expunge: Boolean = true) : AutoCl
             val messageCount = inbox.messageCount
             val emailMsgList = if (messageCount != 0) {
                 val endIndex = (takeN + start - 1).takeIf { it < messageCount } ?: messageCount
-                val resultat2 = inbox.getMessages(start, endIndex)
+                val resultat: List<MimeMessage> = inbox.getMessages(start, endIndex)
                     .map {
                         it.setFlag(Flags.Flag.DELETED, expunge())
                         if (it.content is MimeMultipart) {
-                            return@map MimeMessage(it as MimeMessage)
-                                .apply {
-                                    setContent(unfoldMimeMultipartHeaders((it.content as MimeMultipart)))
-                                }
+                           unfoldMimeMultipartHeaders(it.content as MimeMultipart)
                         }
-                        return@map it as MimeMessage
+                        it as MimeMessage
                     }
                 start += takeN
-                resultat2.map(mapEmailMsg())
+                resultat.map(mapEmailMsg())
             } else {
                 log.info("Fant ikke noe eposter")
                 emptyList()
