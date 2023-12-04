@@ -3,17 +3,18 @@ package no.nav.emottak.smtp;
 
 import jakarta.mail.Flags
 import jakarta.mail.Folder
-import jakarta.mail.Message
 import jakarta.mail.Store
+import jakarta.mail.internet.InternetHeaders
 import jakarta.mail.internet.MimeMessage
 import jakarta.mail.internet.MimeMultipart
+import jakarta.mail.internet.MimeUtility
 import net.logstash.logback.marker.LogstashMarker
 import net.logstash.logback.marker.Markers
 import no.nav.emottak.util.getEnvVar
 
 data class EmailMsg(val headers: Map<String, String>, val bytes: ByteArray)
 
-class MailReader(private val store: Store, val expunge: Boolean = true): AutoCloseable {
+class MailReader(private val store: Store, val expunge: Boolean = true) : AutoCloseable {
 
     val inbox: Folder = store.getFolder("INBOX")
 
@@ -41,20 +42,26 @@ class MailReader(private val store: Store, val expunge: Boolean = true): AutoClo
     }
 
     override fun close() {
-        inbox.close(expunge().also { if (expunge != it)
-            log.warn("Inbox limit [$inboxLimit] exceeded. Expunge forced $it") })
+        inbox.close(expunge().also {
+            if (expunge != it)
+                log.warn("Inbox limit [$inboxLimit] exceeded. Expunge forced $it")
+        })
     }
 
-    @Throws(Exception::class)
-    fun readMail(): List<EmailMsg> {
-        try {
-            val messageCount = inbox.messageCount
-            val emailMsgList = if (messageCount != 0) {
-                val endIndex = (takeN + start-1).takeIf { it < messageCount } ?: messageCount
-                val resultat = inbox.getMessages(start, endIndex).map { it as MimeMessage }.toList().onEach {mimeMessage ->
-                    log.info("Reading emails startIndex $start")
-                    if (mimeMessage.content is MimeMultipart) {
-                        val dokument = runCatching {
+
+    fun unfoldMimeMultipartHeaders(input: MimeMultipart) {
+        for (i in 0 until input.count) {
+            input.getBodyPart(i)
+                .allHeaders.toList()
+                .forEach { header ->
+                    input.getBodyPart(i).setHeader(header.name,MimeUtility.unfold(header.value))
+                }
+        }
+    }
+
+    private fun logMessage(mimeMessage: MimeMessage) {
+        if (mimeMessage.content is MimeMultipart) {
+                        runCatching {
                             (mimeMessage.content as MimeMultipart).getBodyPart(0)
                         }.onSuccess {
                             log.info(
@@ -64,13 +71,23 @@ class MailReader(private val store: Store, val expunge: Boolean = true): AutoClo
                                         "with body ${String(it.inputStream.readAllBytes())}"
                             )
                         }
-                    } else {
-                        log.info("Incoming singlepart request with headers ${ mimeMessage.allHeaders.toList().map { it.name + ":" + it.value }} and body ${String(mimeMessage.inputStream.readAllBytes())}")
-                    }
-                    val headerXMailer = mimeMessage.getHeader("X-Mailer")?.toList()?.firstOrNull()
-                    log.info(createHeaderMarker(headerXMailer), "From: <${mimeMessage.from[0]}> Subject: <${mimeMessage.subject}>")
-                    mimeMessage.setFlag(Flags.Flag.DELETED, expunge())
-                }
+    }
+    }
+
+    @Throws(Exception::class)
+    fun readMail(): List<EmailMsg> {
+        try {
+            val messageCount = inbox.messageCount
+            val emailMsgList = if (messageCount != 0) {
+                val endIndex = (takeN + start - 1).takeIf { it < messageCount } ?: messageCount
+                val resultat: List<MimeMessage> = inbox.getMessages(start, endIndex)
+                    .map {
+                        it.setFlag(Flags.Flag.DELETED, expunge())
+                        if (it.content is MimeMultipart) {
+                           unfoldMimeMultipartHeaders(it.content as MimeMultipart)
+                        }
+                        it as MimeMessage
+                    }.onEach (::logMessage)
                 start += takeN
                 resultat.map(mapEmailMsg())
             } else {
@@ -90,12 +107,5 @@ class MailReader(private val store: Store, val expunge: Boolean = true): AutoClo
         map["systemkilde"] = xMailer ?: "-"
         return Markers.appendEntries(map)
     }
-
-//    private fun Message.createHeaderMarker(): LogstashMarker {
-//        val headerMap = mutableMapOf<String,String>()
-//        this.allHeaders.iterator().forEach {
-//            headerMap[it.name] = it.value
-//        }
-//        return Markers.appendEntries(headerMap)
-//    }
+    
 }
