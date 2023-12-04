@@ -59,6 +59,21 @@ class MailReader(private val store: Store, val expunge: Boolean = true) : AutoCl
         }
     }
 
+    private fun logMessage(mimeMessage: MimeMessage) {
+        if (mimeMessage.content is MimeMultipart) {
+                        runCatching {
+                            (mimeMessage.content as MimeMultipart).getBodyPart(0)
+                        }.onSuccess {
+                            log.info(
+                                "Incoming multipart request with headers ${mimeMessage.allHeaders.toList().map { it.name + ":" + it.value }} part headers ${
+                                    it.allHeaders.toList().map { it.name + ":" + it.value }
+                                }" +
+                                        "with body ${String(it.inputStream.readAllBytes())}"
+                            )
+                        }
+    }
+    }
+
     @Throws(Exception::class)
     fun readMail(): List<EmailMsg> {
         try {
@@ -72,7 +87,7 @@ class MailReader(private val store: Store, val expunge: Boolean = true) : AutoCl
                            unfoldMimeMultipartHeaders(it.content as MimeMultipart)
                         }
                         it as MimeMessage
-                    }
+                    }.onEach (::logMessage)
                 start += takeN
                 resultat.map(mapEmailMsg())
             } else {
@@ -92,12 +107,5 @@ class MailReader(private val store: Store, val expunge: Boolean = true) : AutoCl
         map["systemkilde"] = xMailer ?: "-"
         return Markers.appendEntries(map)
     }
-
-//    private fun Message.createHeaderMarker(): LogstashMarker {
-//        val headerMap = mutableMapOf<String,String>()
-//        this.allHeaders.iterator().forEach {
-//            headerMap[it.name] = it.value
-//        }
-//        return Markers.appendEntries(headerMap)
-//    }
+    
 }
