@@ -28,7 +28,7 @@ class GreenmailIT {
     }
 
     @Test
-    fun test() {
+    fun `Mail readeren lesser riktig test inbox`() {
         val store = mockStore()
         val reader = MailReader(store, false)
         assertEquals(1, reader.readMail().size)

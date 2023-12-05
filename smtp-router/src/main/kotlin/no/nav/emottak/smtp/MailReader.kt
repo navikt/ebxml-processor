@@ -14,7 +14,7 @@ import no.nav.emottak.util.getEnvVar
 
 data class EmailMsg(val headers: Map<String, String>, val bytes: ByteArray)
 
-class MailReader(private val store: Store, val expunge: Boolean = true) : AutoCloseable {
+class MailReader(store: Store, val expunge: Boolean = true) : AutoCloseable {
 
     val inbox: Folder = store.getFolder("INBOX")
 
@@ -71,7 +71,7 @@ class MailReader(private val store: Store, val expunge: Boolean = true) : AutoCl
                                         "with body ${String(it.inputStream.readAllBytes())}"
                             )
                         }
-    }
+        }
     }
 
     @Throws(Exception::class)
