@@ -149,11 +149,12 @@ class EbmsRouteIT {
         assertEquals(HttpStatusCode.OK, response.status)
     }
 
-     @Test
-     @Disabled
-    fun `ack test`() = validationTestApp {
+    @Test
+    fun `Valid Acknowledgment should be processed`() = validationTestApp {
 
-        val ack = failingAcknowledgment
+        val ack = validAcknowledgment.modify {
+            it[MimeHeaders.CONTENT_ID] = "<contentID-validRequest>"
+        }
 
         mockkStatic(EbMSDocument::sjekkSignature)
 
@@ -194,10 +195,9 @@ class EbmsRouteIT {
         hashFunction = MessageDigestAlgorithm.ALGO_ID_DIGEST_SHA256
     )
 
-    val failingAcknowledgment = Part(valid.modify {
+    val validAcknowledgment = Part(valid.modify {
         it.append(MimeHeaders.CONTENT_TRANSFER_ENCODING,"base64")
-        it.remove(MimeHeaders.CONTENT_TYPE)
-        it.append(MimeHeaders.CONTENT_TYPE,"text/xml")
+        it[MimeHeaders.CONTENT_TYPE] = "text/xml"
         it.append(SMTPHeaders.MESSAGE_ID, "<20231128102918.35C2D1829F69@a01drvl071.adeo.no>")
     },"""PFNPQVA6RW52ZWxvcGUgeG1sbnM6ZWI9Imh0dHA6Ly93d3cub2FzaXMtb3Blbi5vcmcvY29tbWl0
 dGVlcy9lYnhtbC1tc2cvc2NoZW1hL21zZy1oZWFkZXItMl8wLnhzZCIgeG1sbnM6eHNpPSJodHRw
