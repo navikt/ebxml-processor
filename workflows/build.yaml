@@ -56,7 +56,7 @@ jobs:
     - name: "Build and push ebms-payload Docker image"
       run: "docker build ebms-payload --pull --tag ${IMAGE_PAYLOAD} -f Dockerfile && docker push ${IMAGE_PAYLOAD}"
     - name: "Build and push smtp-listeners Docker image"
-      run: "docker build smtp-router --pull --tag ${IMAGE_LISTENERS} -f Dockerfile && docker push ${IMAGE_LISTENERS}"
+      run: "docker build smtp-listeners --pull --tag ${IMAGE_LISTENERS} -f Dockerfile && docker push ${IMAGE_LISTENERS}"
     - name: "Build and push smtp-router Docker image"
       run: "docker build smtp-router --pull --tag ${IMAGE_ROUTER} -f Dockerfile && docker push ${IMAGE_ROUTER}"
   deploy-processor:
