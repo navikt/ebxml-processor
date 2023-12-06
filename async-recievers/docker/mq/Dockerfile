@@ -1,1 +1,0 @@
-FROM ibmcom/mq:latest

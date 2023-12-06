@@ -11,4 +11,4 @@ spec:
   schedule: "*/3 * * * *"
   command:
     - curl
-    - http://smtp-router/mail/read
+    - http://smtp-listeners/mail/read

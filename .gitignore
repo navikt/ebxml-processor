@@ -43,3 +43,6 @@ cpa-repo/out/
 felles/out/
 payload-processor/out/
 ebms-payload/out/
+*.orig
+smtp-listeners/out/
+smtp-router/out/
