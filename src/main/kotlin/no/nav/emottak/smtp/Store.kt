@@ -33,10 +33,12 @@ val incomingStore = run {
 val bccStore = run {
       createStore(smtpUsername_bcc, smtpPassword,"imap")
 }
-
+/*
 val outgoingStore = run {
     createStore(smtpUsername_outgoing, smtpPassword)
 }
+
+ */
 
 
 private fun createStore(username:String,password:String,protokol:String = "pop3") : Store {
