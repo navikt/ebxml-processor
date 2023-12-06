@@ -38,11 +38,14 @@ fun Application.myApplicationModule() {
             call.respond("Hello World!")
         }
         get("/routeMail") {
+            /*
             MailReader(incomingStore).routeMail()
                 .also {
                     call.respond(HttpStatusCode.OK,
                         "Sent ${it.first} to old inbox & ${it.second} to new inbox")
                 }
+
+             */
         }
     }
 

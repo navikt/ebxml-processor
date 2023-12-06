@@ -3,16 +3,16 @@ package no.nav.emottak.smtp;
 
 import jakarta.mail.Flags
 import jakarta.mail.Folder
+import jakarta.mail.Message
+import jakarta.mail.Session
 import jakarta.mail.Store
+import jakarta.mail.Transport
 import jakarta.mail.internet.InternetAddress
 import jakarta.mail.internet.MimeMessage
 import jakarta.mail.internet.MimeMultipart
-import jakarta.mail.internet.MimeUtility
-import net.logstash.logback.marker.LogstashMarker
-import net.logstash.logback.marker.Markers
 import no.nav.emottak.util.getEnvVar
 
-class MailReader(store: Store, val expunge: Boolean = true) : AutoCloseable {
+class Router(store: Store,val outStore: Session ,val expunge: Boolean = true) : AutoCloseable {
 
     val inbox: Folder = store.getFolder("INBOX")
 
@@ -54,13 +54,24 @@ class MailReader(store: Store, val expunge: Boolean = true) : AutoCloseable {
             if (messageCount != 0) {
                 val endIndex = (takeN + start - 1).takeIf { it < messageCount } ?: messageCount
                 inbox.getMessages(start, endIndex)
-                    .forEach {
-                        it.setFlag(Flags.Flag.DELETED, expunge())
-                        if (it.content is MimeMultipart && isM18(it.content as MimeMultipart)) {
-                            it.session.transport.sendMessage(it, InternetAddress.parse(smtpUsername_outgoing_ny))
+                    .forEach {msg ->
+                        msg.setFlag(Flags.Flag.DELETED, expunge())
+                        if (msg.content is MimeMultipart && isM18(msg.content as MimeMultipart)) {
+                          //  msg.session.transport.sendMessage(msg, InternetAddress.parse(smtpUsername_outgoing_ny))
+                          //   Transport.send(msg, InternetAddress.parse(smtpUsername_outgoing_gammel))
+                            Transport.send(msg, InternetAddress.parse("test@test.test"))
                             newInboxCount++
                         } else {
-                            it.session.transport.sendMessage(it, InternetAddress.parse(smtpUsername_outgoing_gammel))
+                            val melding = MimeMessage(outStore,(msg as MimeMessage).rawInputStream)
+                            melding.setRecipients(Message.RecipientType.TO, "nyebmstest@test-es.nav.no");
+                            Transport.send(melding)
+                           // outStore.transport.connect("nyebmstest@test-es.nav.no","test1234")
+                           // outStore.transport.sendMessage(msg, InternetAddress.parse("nyebmstest@test-es.nav.no"))
+
+                         /*  val trans = msg.session.transport
+                                trans.connect("nyebmstest@test-es.nav.no","test1234")
+                                trans.sendMessage(melding, InternetAddress.parse("test@test.test"))
+                            // */
                             oldInboxCount++
                         }
                     }

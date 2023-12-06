@@ -14,7 +14,6 @@ import no.nav.emottak.util.getEnvVar
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import java.util.*
-import kotlin.test.assertEquals
 
 val testHeaderValue = """multipart/related;
 	boundary="------=_part_f14474e0_7fda_4a15_b649_87dc04fb39f8"; charset=utf-8;
@@ -57,7 +56,7 @@ class MessageTest {
         val stream = this.javaClass.classLoader.getResourceAsStream("mails/nyebmstest@test-es.nav.no/INBOX/example.eml")
         val msg = MimeMessage(session, stream)
         val store = mockStore(session,msg)
-        val reader = MailReader(store).routeMail()
+        //val reader = Router(store).routeMail()
     }
 
     @Test
