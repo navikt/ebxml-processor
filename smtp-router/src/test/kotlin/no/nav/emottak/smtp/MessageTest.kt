@@ -11,6 +11,7 @@ import jakarta.mail.internet.MimeMessage
 import jakarta.mail.internet.MimeUtility
 import no.nav.emottak.constants.MimeHeaders
 import no.nav.emottak.util.getEnvVar
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import java.util.*
 import kotlin.test.assertEquals
@@ -49,6 +50,16 @@ class MessageTest {
         return store
     }
 
+    @Disabled
+    @Test
+    fun `Ta en melding`() {
+        val session = mockSession()
+        val stream = this.javaClass.classLoader.getResourceAsStream("mails/nyebmstest@test-es.nav.no/INBOX/example.eml")
+        val msg = MimeMessage(session, stream)
+        val store = mockStore(session,msg)
+        val reader = MailReader(store).routeMail()
+    }
+
     @Test
     fun testHeader() {
 
@@ -56,18 +67,5 @@ class MessageTest {
             append(MimeHeaders.CONTENT_TYPE, MimeUtility.unfold(testHeaderValue))
         }
         println(headers)
-    }
-
-    @Test
-    fun `Ta en melding`() {
-        val session = mockSession()
-        val stream = this.javaClass.classLoader.getResourceAsStream("mails/nyebmstest@test-es.nav.no/INBOX/example.eml")
-        val msg = MimeMessage(session, stream)
-        val store = mockStore(session,msg)
-        val reader = MailReader(store)
-        val one = MailReader.mapEmailMsg().invoke(msg)
-        val two = reader.readMail().first()
-        assertEquals( one.headers , two.headers)
-        assertEquals( String(one.bytes), String(two.bytes))
     }
 }

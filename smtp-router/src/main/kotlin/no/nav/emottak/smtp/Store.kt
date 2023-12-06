@@ -22,7 +22,8 @@ val properties = Properties().also { props ->
 
 val smtpUsername_incoming = getEnvVar("SMTP_INCOMING_USERNAME", "test@test.test")
 val smtpUsername_bcc = getEnvVar("SMTP_BCC_USERNAME", "test@test.test")
-val smtpUsername_outgoing = getEnvVar("SMTP_OUTGOING_USERNAME", "test@test.test")
+val smtpUsername_outgoing_gammel = getEnvVar("SMTP_OUTGOING_USERNAME_GAMMEL", "test@test.test")
+val smtpUsername_outgoing_ny = getEnvVar("SMTP_OUTGOING_USERNAME_NY", "test@test.test")
 val smtpPassword = getEnvVar("SMTP_PASSWORD", "changeit")
 
 
@@ -34,8 +35,12 @@ val bccStore = run {
       createStore(smtpUsername_bcc, smtpPassword,"imap")
 }
 
-val outgoingStore = run {
-    createStore(smtpUsername_outgoing, smtpPassword)
+val outgoingStoreGammel = run {
+    createStore(smtpUsername_outgoing_gammel, smtpPassword)
+}
+
+val outgoingStoreNy = run {
+    createStore(smtpUsername_outgoing_ny, smtpPassword)
 }
 
 

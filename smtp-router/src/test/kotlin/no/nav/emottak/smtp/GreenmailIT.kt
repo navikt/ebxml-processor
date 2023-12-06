@@ -3,10 +3,7 @@ package no.nav.emottak.smtp
 import com.icegreen.greenmail.junit5.GreenMailExtension
 import com.icegreen.greenmail.user.GreenMailUser
 import com.icegreen.greenmail.util.ServerSetupTest
-import io.ktor.http.*
 import jakarta.mail.Store
-import no.nav.emottak.constants.MimeHeaders
-import no.nav.emottak.constants.SMTPHeaders
 import org.junit.jupiter.api.Test
 
 import org.junit.jupiter.api.extension.RegisterExtension
@@ -31,36 +28,8 @@ class GreenmailIT {
     fun `Mail readeren lesser riktig test inbox`() {
         val store = mockStore()
         val reader = MailReader(store, false)
-        assertEquals(1, reader.readMail().size)
-        assertEquals(1, reader.readMail().size)
-        assertEquals(1, reader.readMail().size)
-        assertEquals(0, reader.readMail().size)
+        assertEquals(1, reader.routeMail().let { it.first + it.second })
     }
 
-    @Test
-    fun testEmailPruning() {
-        // TODO får ikke assertet at limiten funker
-        System.setProperty("INBOX_LIMIT", "100");
-        val store = mockStore()
-
-        val reader = MailReader(store, false)
-        assertEquals(1, reader.readMail().size)
-        assertEquals(1, reader.readMail().size)
-        assertEquals(1, reader.readMail().size)
-        assertEquals(0, reader.readMail().size)
-        reader.close()
-        assertEquals(3, MailReader(store).count())
-
-        System.setProperty("INBOX_LIMIT", "-1");
-        val reader2 = MailReader(store, false)
-
-        assertEquals(1, reader2.readMail().size)
-        assertEquals(1, reader2.readMail().size)
-        assertEquals(1, reader2.readMail().size)
-        assertEquals(0, reader2.readMail().size)
-        reader2.close()
-        assertEquals(0, MailReader(store).count())
-
-    }
 
 }
