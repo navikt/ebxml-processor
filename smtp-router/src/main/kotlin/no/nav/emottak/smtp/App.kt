@@ -88,53 +88,9 @@ fun Application.myApplicationModule() {
                 log.error(it.message, it)
                 call.respond(it.localizedMessage)
             }
-            logBccMessages()
-        }
-
-        get("/mail/log/outgoing") {
-            logBccMessages()
-            call.respond(HttpStatusCode.OK)
-
-        }
-    }
-}
-
-fun logBccMessages() {
-    val inbox = bccStore.getFolder("INBOX") as IMAPFolder
-    val testDataInbox = bccStore.getFolder("testdata") as IMAPFolder
-    testDataInbox.open(Folder.READ_WRITE)
-    if (testDataInbox.messageCount > getEnvVar("INBOX_LIMIT", "2000").toInt()) {
-        testDataInbox.messages.map {
-            it.setFlag(Flags.Flag.DELETED, true)
-            it
-        }.toTypedArray().also {
-            testDataInbox.expunge(it)
         }
 
     }
-    inbox.open(Folder.READ_WRITE)
-    inbox.messages.forEach {
-        if (it.content is MimeMultipart) {
-            runCatching {
-                (it.content as MimeMultipart).getBodyPart(0)
-            }.onSuccess {
-                log.info(
-                    "Incoming multipart request with headers ${
-                        it.allHeaders.toList().map { it.name + ":" + it.value }
-                    }" +
-                            "with body ${String(it.inputStream.readAllBytes())}"
-                )
-            }
-        } else {
-            log.info("Incoming singlepart request ${String(it.inputStream.readAllBytes())}")
-        }
-
-    }.also {
-
-        inbox.moveMessages(inbox.messages, testDataInbox)
-    }
-    inbox.close()
-    testDataInbox.close()
 }
 
 fun Map<String, String>.filterHeader(vararg headerNames: String): HeadersBuilder.() -> Unit = {
