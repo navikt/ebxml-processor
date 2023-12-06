@@ -10,7 +10,10 @@ import jakarta.mail.internet.MimeMultipart
 import jakarta.mail.internet.MimeUtility
 import net.logstash.logback.marker.LogstashMarker
 import net.logstash.logback.marker.Markers
+import no.nav.emottak.constants.MimeHeaders
+import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.util.getEnvVar
+import org.eclipse.angus.mail.smtp.SMTPMessage
 
 data class EmailMsg(val headers: Map<String, String>, val bytes: ByteArray)
 
@@ -60,6 +63,7 @@ class MailReader(store: Store, val expunge: Boolean = true) : AutoCloseable {
     }
 
     private fun logMessage(mimeMessage: MimeMessage) {
+        if (mimeMessage.getHeader(SMTPHeaders.MESSAGE_ID).isNullOrEmpty()) log.error("Message id is empty for message")
         if (mimeMessage.content is MimeMultipart) {
                         runCatching {
                             (mimeMessage.content as MimeMultipart).getBodyPart(0)
