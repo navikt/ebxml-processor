@@ -8,7 +8,8 @@ env:
   "IMAGE_EBMS": "ghcr.io/${{ github.repository }}/ebms-provider:${{ github.sha }}"
   "IMAGE_CPA": "ghcr.io/${{ github.repository }}/cpa-repo:${{ github.sha }}"
   "IMAGE_PAYLOAD": "ghcr.io/${{ github.repository }}/ebms-payload:${{ github.sha }}"
-  "IMAGE_SMTP": "ghcr.io/${{ github.repository }}/smtp-router:${{ github.sha }}"
+  "IMAGE_LISTENERS": "ghcr.io/${{ github.repository }}/smtp-listeners:${{ github.sha }}"
+  "IMAGE_ROUTER": "ghcr.io/${{ github.repository }}/smtp-router:${{ github.sha }}"
 jobs:
   build:
     name: "build"
@@ -114,7 +115,7 @@ jobs:
           APIKEY: "${{ secrets.NAIS_DEPLOY_APIKEY }}"
           CLUSTER: "dev-fss"
           RESOURCE: ".nais/smtp-listeners-dev.yaml"
-          IMAGE: ${{env.IMAGE_SMTP}}
+          IMAGE: ${{env.IMAGE_LISTENERS}}
   deploy-smtp-router:
     name: "Deploy smtp-router to dev"
     needs: "build"
@@ -134,4 +135,4 @@ jobs:
           APIKEY: "${{ secrets.NAIS_DEPLOY_APIKEY }}"
           CLUSTER: "dev-fss"
           RESOURCE: ".nais/smtp-router-dev.yaml"
-          IMAGE: ${{env.IMAGE_SMTP}}
+          IMAGE: ${{env.IMAGE_ROUTER}}
