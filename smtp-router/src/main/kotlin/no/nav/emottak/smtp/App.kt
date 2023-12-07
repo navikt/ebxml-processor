@@ -49,28 +49,4 @@ fun Application.myApplicationModule() {
         }
     }
 
-    fun Map<String, String>.filterHeader(vararg headerNames: String): HeadersBuilder.() -> Unit = {
-        val caseInsensitiveMap = CaseInsensitiveMap<String>().apply {
-            putAll(this@filterHeader)
-        }
-        headerNames.map {
-            Pair(it, caseInsensitiveMap[it])
-        }.forEach {
-            if (it.second != null) {
-                val headerValue = MimeUtility.unfold(it.second!!.replace("\t", " "))
-                append(it.first, headerValue)
-            }
-        }
-        if (MimeUtility.unfold(caseInsensitiveMap[MimeHeaders.CONTENT_TYPE])?.contains("text/xml") == true) {
-            if (caseInsensitiveMap[MimeHeaders.CONTENT_ID] != null) {
-                log.warn(
-                    "Content-Id header allerede satt for text/xml: " + caseInsensitiveMap[MimeHeaders.CONTENT_ID]
-                            + "\nMessage-Id: " + caseInsensitiveMap[SMTPHeaders.MESSAGE_ID]
-                )
-            }
-            val headerValue = MimeUtility.unfold(caseInsensitiveMap[SMTPHeaders.MESSAGE_ID]!!.replace("\t", " "))
-            append(MimeHeaders.CONTENT_ID, headerValue)
-            log.info("Header: <${MimeHeaders.CONTENT_ID}> - <${headerValue}>")
-        }
-    }
 }
