@@ -68,6 +68,6 @@ class MessageTest {
         val one = MailReader.mapEmailMsg().invoke(msg)
         val two = reader.readMail().first()
         assertEquals( one.headers , two.headers)
-        assertEquals( String(one.bytes), String(two.bytes))
+        assertEquals( String(one.parts.first().bytes), String(two.parts.first().bytes))
     }
 }
