@@ -9,6 +9,7 @@ import jakarta.mail.internet.MimeMultipart
 import jakarta.mail.internet.MimeUtility
 import net.logstash.logback.marker.LogstashMarker
 import net.logstash.logback.marker.Markers
+import no.nav.emottak.constants.MimeHeaders
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.util.getEnvVar
 import java.io.ByteArrayOutputStream
@@ -37,7 +38,8 @@ class MailReader(store: Store, val expunge: Boolean = true) : AutoCloseable {
                 input.getBodyPart(i)
                     .allHeaders.toList()
                     .forEach { header ->
-                        input.getBodyPart(i).setHeader(header.name,MimeUtility.unfold(header.value))
+                        log.info("Unfolding ${header.value}")
+                        input.getBodyPart(i).setHeader(header.name, MimeUtility.unfold(header.value))
                     }
             }
             return input
@@ -87,10 +89,12 @@ class MailReader(store: Store, val expunge: Boolean = true) : AutoCloseable {
                     .map {
                         it.setFlag(Flags.Flag.DELETED, expunge())
                         if (it.content is MimeMultipart) {
-                           unfoldMimeMultipartHeaders(it.content as MimeMultipart)
+                           //unfoldMimeMultipartHeaders(it.content as MimeMultipart)
                             return@map MimeMessage(it as MimeMessage)
                                 .apply {
-                                    setContent(unfoldMimeMultipartHeaders((it.content as MimeMultipart)))
+                                    log.info("Content type " + it.contentType)
+                                    setContent(unfoldMimeMultipartHeaders((it.content as MimeMultipart)), it.contentType)
+                                    setHeader(MimeHeaders.CONTENT_TYPE, it.contentType)
                                 }
                         }
                         it as MimeMessage
