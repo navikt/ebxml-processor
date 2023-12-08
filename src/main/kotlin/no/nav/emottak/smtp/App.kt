@@ -198,8 +198,12 @@ fun Map<String, String>.filterHeader(vararg headerNames: String): HeadersBuilder
                         + "\nMessage-Id: " + caseInsensitiveMap[SMTPHeaders.MESSAGE_ID]
             )
         }
-        val headerValue = MimeUtility.unfold(caseInsensitiveMap[SMTPHeaders.MESSAGE_ID]!!.replace("\t", " "))
-        append(MimeHeaders.CONTENT_ID, headerValue)
-        log.info("Header: <${MimeHeaders.CONTENT_ID}> - <${headerValue}>")
+        else {
+            val headerValue = MimeUtility.unfold(caseInsensitiveMap[SMTPHeaders.MESSAGE_ID]!!.replace("\t", " "))
+            append(MimeHeaders.CONTENT_ID, headerValue)
+            log.info("Header: <${MimeHeaders.CONTENT_ID}> - <${headerValue}>")
+        }
+
+
     }
 }
