@@ -32,6 +32,16 @@ class MailReader(store: Store, val expunge: Boolean = true) : AutoCloseable {
                 os.toByteArray()
             )
         }
+        fun unfoldMimeMultipartHeaders(input: MimeMultipart): MimeMultipart {
+            for (i in 0 until input.count) {
+                input.getBodyPart(i)
+                    .allHeaders.toList()
+                    .forEach { header ->
+                        input.getBodyPart(i).setHeader(header.name,MimeUtility.unfold(header.value))
+                    }
+            }
+            return input
+        }
     }
 
     val takeN = 1
@@ -49,18 +59,6 @@ class MailReader(store: Store, val expunge: Boolean = true) : AutoCloseable {
             if (expunge != it)
                 log.warn("Inbox limit [$inboxLimit] exceeded. Expunge forced $it")
         })
-    }
-
-
-    fun unfoldMimeMultipartHeaders(input: MimeMultipart): MimeMultipart {
-        for (i in 0 until input.count) {
-            input.getBodyPart(i)
-                .allHeaders.toList()
-                .forEach { header ->
-                    input.getBodyPart(i).setHeader(header.name,MimeUtility.unfold(header.value))
-                }
-        }
-        return input
     }
 
     private fun logMessage(mimeMessage: MimeMessage) {
