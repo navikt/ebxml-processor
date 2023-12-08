@@ -2,59 +2,22 @@ package no.nav.emottak.smtp;
 
 
 import io.ktor.http.*
-import jakarta.mail.BodyPart
 import jakarta.mail.Flags
 import jakarta.mail.Folder
-import jakarta.mail.Session
 import jakarta.mail.Store
 import jakarta.mail.internet.MimeBodyPart
 import jakarta.mail.internet.MimeMessage
 import jakarta.mail.internet.MimeMultipart
 import net.logstash.logback.marker.LogstashMarker
 import net.logstash.logback.marker.Markers
-import no.nav.emottak.constants.MimeHeaders
 import no.nav.emottak.util.getEnvVar
-import java.io.ByteArrayOutputStream
-import java.io.PrintStream
 import java.util.*
 
-data class EmailMsg(val headers: Map<String, String>, val parts: List<Part>) {
-
-
-    fun serialize() {
-        val MimeMessage = MimeMessage(Session.getDefaultInstance(Properties()))
-
-        if (parts.size==1 && parts.first().headers.size >0 ) {
-            val content = MimeMultipart("related")
-            val part = MimeBodyPart()
-            //part.setHeader("")
-            part.setContent(parts.first().bytes, parts.first().headers[MimeHeaders.CONTENT_TYPE])
-            content.addBodyPart(part)
-
-        }
-    }
-
-    fun serializeOldSchool(): ByteArray {
-        val out = ByteArrayOutputStream()
-        val printer = PrintStream(out)
-        parts.forEach {
-            val contentType = ContentType.parse(it.headers[MimeHeaders.CONTENT_TYPE]!!)
-            val boundary = contentType.parameter("boundary")
-            if (parts.size>1) printer.println(boundary)
-            println()
-            it.headers.forEach {
-                printer.println(it.key+":" + it.value)
-            }
-            println()
-            printer.print(it.bytes)
-        }
-        return out.toByteArray()
-    }
-}
+data class EmailMsg(val headers: Map<String, String>, val parts: List<Part>)
 data class Part(val headers: Map<String, String>, val bytes: ByteArray)
 
 
-class MailReader(private val store: Store, val expunge: Boolean = true): AutoCloseable {
+class MailReader(private val store: Store, val expunge: Boolean = true) : AutoCloseable {
 
     val inbox: Folder = store.getFolder("INBOX")
 
@@ -66,9 +29,9 @@ class MailReader(private val store: Store, val expunge: Boolean = true): AutoClo
         fun mapEmailMsg(): (MimeMessage) -> EmailMsg = { message ->
             val bodyparts: List<Part> = if (message.content is MimeMultipart) {
                 (message.content as MimeMultipart).let {
-                    mutableListOf<BodyPart>().apply {
-                        for (i in 0..it.count) {
-                            this.add(it.getBodyPart(i))
+                    mutableListOf<MimeBodyPart>().apply {
+                        for (i in 0 until it.count) {
+                            this.add(it.getBodyPart(i) as MimeBodyPart)
                         }
                     }.map(mapBodyPart())
                 }
@@ -76,7 +39,7 @@ class MailReader(private val store: Store, val expunge: Boolean = true): AutoClo
                 listOf(
                     Part(
                         emptyMap(),
-                        message.inputStream.readAllBytes()
+                        message.rawInputStream.readAllBytes()
                     )
                 )
             }
@@ -85,10 +48,11 @@ class MailReader(private val store: Store, val expunge: Boolean = true): AutoClo
                 bodyparts
             )
         }
-        fun mapBodyPart(): (BodyPart) -> Part = { message ->
+
+        fun mapBodyPart(): (MimeBodyPart) -> Part = { message ->
             Part(
                 message.allHeaders.toList().groupBy({ it.name }, { it.value }).mapValues { it.value.joinToString(",") },
-                message.inputStream.readAllBytes()
+                message.rawInputStream.readAllBytes()
             )
         }
     }
@@ -104,8 +68,10 @@ class MailReader(private val store: Store, val expunge: Boolean = true): AutoClo
     }
 
     override fun close() {
-        inbox.close(expunge().also { if (expunge != it)
-            log.warn("Inbox limit [$inboxLimit] exceeded. Expunge forced $it") })
+        inbox.close(expunge().also {
+            if (expunge != it)
+                log.warn("Inbox limit [$inboxLimit] exceeded. Expunge forced $it")
+        })
     }
 
     @Throws(Exception::class)
@@ -113,27 +79,37 @@ class MailReader(private val store: Store, val expunge: Boolean = true): AutoClo
         try {
             val messageCount = inbox.messageCount
             val emailMsgList = if (messageCount != 0) {
-                val endIndex = (takeN + start-1).takeIf { it < messageCount } ?: messageCount
-                val resultat = inbox.getMessages(start, endIndex).map { it as MimeMessage }.toList().onEach {mimeMessage ->
-                    log.info("Reading emails startIndex $start")
-                    if (mimeMessage.content is MimeMultipart) {
-                        val dokument = runCatching {
-                            (mimeMessage.content as MimeMultipart).getBodyPart(0)
-                        }.onSuccess {
+                val endIndex = (takeN + start - 1).takeIf { it < messageCount } ?: messageCount
+                val resultat =
+                    inbox.getMessages(start, endIndex).map { it as MimeMessage }.toList().onEach { mimeMessage ->
+                        log.info("Reading emails startIndex $start")
+                        if (mimeMessage.content is MimeMultipart) {
+                            val dokument = runCatching {
+                                (mimeMessage.content as MimeMultipart).getBodyPart(0)
+                            }.onSuccess {
+                                log.info(
+                                    "Incoming multipart request with headers ${
+                                        mimeMessage.allHeaders.toList().map { it.name + ":" + it.value }
+                                    } part headers ${
+                                        it.allHeaders.toList().map { it.name + ":" + it.value }
+                                    }" +
+                                            "with body ${String(it.inputStream.readAllBytes())}"
+                                )
+                            }
+                        } else {
                             log.info(
-                                "Incoming multipart request with headers ${mimeMessage.allHeaders.toList().map { it.name + ":" + it.value }} part headers ${
-                                    it.allHeaders.toList().map { it.name + ":" + it.value }
-                                }" +
-                                        "with body ${String(it.inputStream.readAllBytes())}"
+                                "Incoming singlepart request with headers ${
+                                    mimeMessage.allHeaders.toList().map { it.name + ":" + it.value }
+                                } and body ${String(mimeMessage.inputStream.readAllBytes())}"
                             )
                         }
-                    } else {
-                        log.info("Incoming singlepart request with headers ${ mimeMessage.allHeaders.toList().map { it.name + ":" + it.value }} and body ${String(mimeMessage.inputStream.readAllBytes())}")
+                        val headerXMailer = mimeMessage.getHeader("X-Mailer")?.toList()?.firstOrNull()
+                        log.info(
+                            createHeaderMarker(headerXMailer),
+                            "From: <${mimeMessage.from[0]}> Subject: <${mimeMessage.subject}>"
+                        )
+                        mimeMessage.setFlag(Flags.Flag.DELETED, expunge())
                     }
-                    val headerXMailer = mimeMessage.getHeader("X-Mailer")?.toList()?.firstOrNull()
-                    log.info(createHeaderMarker(headerXMailer), "From: <${mimeMessage.from[0]}> Subject: <${mimeMessage.subject}>")
-                    mimeMessage.setFlag(Flags.Flag.DELETED, expunge())
-                }
                 start += takeN
                 resultat.map(mapEmailMsg())
             } else {
