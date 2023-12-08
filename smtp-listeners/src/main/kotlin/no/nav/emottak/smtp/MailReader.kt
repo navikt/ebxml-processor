@@ -4,16 +4,14 @@ package no.nav.emottak.smtp;
 import jakarta.mail.Flags
 import jakarta.mail.Folder
 import jakarta.mail.Store
-import jakarta.mail.internet.InternetHeaders
 import jakarta.mail.internet.MimeMessage
 import jakarta.mail.internet.MimeMultipart
 import jakarta.mail.internet.MimeUtility
 import net.logstash.logback.marker.LogstashMarker
 import net.logstash.logback.marker.Markers
-import no.nav.emottak.constants.MimeHeaders
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.util.getEnvVar
-import org.eclipse.angus.mail.smtp.SMTPMessage
+import java.io.ByteArrayOutputStream
 
 data class EmailMsg(val headers: Map<String, String>, val bytes: ByteArray)
 
@@ -27,9 +25,11 @@ class MailReader(store: Store, val expunge: Boolean = true) : AutoCloseable {
 
     companion object {
         fun mapEmailMsg(): (MimeMessage) -> EmailMsg = { message ->
+            val os = ByteArrayOutputStream()
+            message.writeTo(os)
             EmailMsg(
                 message.allHeaders.toList().groupBy({ it.name }, { it.value }).mapValues { it.value.joinToString(",") },
-                message.rawInputStream.readAllBytes()
+                os.toByteArray()
             )
         }
     }
@@ -52,7 +52,7 @@ class MailReader(store: Store, val expunge: Boolean = true) : AutoCloseable {
     }
 
 
-    fun unfoldMimeMultipartHeaders(input: MimeMultipart) {
+    fun unfoldMimeMultipartHeaders(input: MimeMultipart): MimeMultipart {
         for (i in 0 until input.count) {
             input.getBodyPart(i)
                 .allHeaders.toList()
@@ -60,6 +60,7 @@ class MailReader(store: Store, val expunge: Boolean = true) : AutoCloseable {
                     input.getBodyPart(i).setHeader(header.name,MimeUtility.unfold(header.value))
                 }
         }
+        return input
     }
 
     private fun logMessage(mimeMessage: MimeMessage) {
@@ -89,6 +90,10 @@ class MailReader(store: Store, val expunge: Boolean = true) : AutoCloseable {
                         it.setFlag(Flags.Flag.DELETED, expunge())
                         if (it.content is MimeMultipart) {
                            unfoldMimeMultipartHeaders(it.content as MimeMultipart)
+                            return@map MimeMessage(it as MimeMessage)
+                                .apply {
+                                    setContent(unfoldMimeMultipartHeaders((it.content as MimeMultipart)))
+                                }
                         }
                         it as MimeMessage
                     }.onEach (::logMessage)

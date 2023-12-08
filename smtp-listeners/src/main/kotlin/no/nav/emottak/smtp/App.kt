@@ -1,5 +1,5 @@
-
 package no.nav.emottak.smtp
+
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.headers
@@ -17,7 +17,7 @@ import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.response.respond
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
-import io.ktor.util.*
+import io.ktor.util.CaseInsensitiveMap
 import jakarta.mail.Flags
 import jakarta.mail.Folder
 import jakarta.mail.internet.MimeMultipart
@@ -50,8 +50,6 @@ fun Application.myApplicationModule() {
                     log.info("read ${it.count()} from innbox")
                     do {
                         val messages = it.readMail()
-
-
                         messages.forEach { message ->
                             runCatching {
                                 runBlocking {
@@ -145,16 +143,18 @@ fun Map<String, String>.filterHeader(vararg headerNames: String): HeadersBuilder
         Pair(it, caseInsensitiveMap[it])
     }.forEach {
         if (it.second != null) {
-            val headerValue = MimeUtility.unfold(it.second!!.replace("\t"," "))
+            val headerValue = MimeUtility.unfold(it.second!!.replace("\t", " "))
             append(it.first, headerValue)
         }
     }
-    if(MimeUtility.unfold(caseInsensitiveMap[MimeHeaders.CONTENT_TYPE])?.contains("text/xml") == true) {
-        if(caseInsensitiveMap[MimeHeaders.CONTENT_ID] != null) {
-            log.warn("Content-Id header allerede satt for text/xml: " + caseInsensitiveMap[MimeHeaders.CONTENT_ID]
-                    + "\nMessage-Id: " + caseInsensitiveMap[SMTPHeaders.MESSAGE_ID])
+    if (MimeUtility.unfold(caseInsensitiveMap[MimeHeaders.CONTENT_TYPE])?.contains("text/xml") == true) {
+        if (caseInsensitiveMap[MimeHeaders.CONTENT_ID] != null) {
+            log.warn(
+                "Content-Id header allerede satt for text/xml: " + caseInsensitiveMap[MimeHeaders.CONTENT_ID]
+                        + "\nMessage-Id: " + caseInsensitiveMap[SMTPHeaders.MESSAGE_ID]
+            )
         }
-        val headerValue = MimeUtility.unfold(caseInsensitiveMap[SMTPHeaders.MESSAGE_ID]!!.replace("\t"," "))
+        val headerValue = MimeUtility.unfold(caseInsensitiveMap[SMTPHeaders.MESSAGE_ID]!!.replace("\t", " "))
         append(MimeHeaders.CONTENT_ID, headerValue)
         log.info("Header: <${MimeHeaders.CONTENT_ID}> - <${headerValue}>")
     }
