@@ -67,7 +67,7 @@ class MessageTest {
         val reader = MailReader(store)
         val one = MailReader.mapEmailMsg().invoke(msg)
         val two = reader.readMail().first()
-        //assertEquals( one.headers , two.headers) // Todo fix
-        //assertEquals( String(one.bytes), String(two.bytes))
+        assertEquals( one.headers , two.headers)
+        assertEquals( String(one.bytes), String(two.bytes))
     }
 }
