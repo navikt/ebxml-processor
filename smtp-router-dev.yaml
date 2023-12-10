@@ -38,3 +38,4 @@ spec:
       value: "nyebmsbcc@test-es.nav.no"
     - name: SMTP_OUTGOING_USERNAME
       value: "nyebms2@test-es.nav.no"
+      
