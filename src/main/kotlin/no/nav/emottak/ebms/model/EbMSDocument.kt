@@ -57,7 +57,7 @@ data class EbMSDocument(val contentId: String, val dokument: Document, val attac
     fun createFail(errorList: ErrorList): EbMSMessageError {
         return EbMSMessageError(
             this.messageHeader()
-                .createResponseHeader(newFromRole = "ERROR_RESPONDER", newToRole = "ERROR_RECEIVER", newAction = MESSAGE_ERROR_ACTION, newService = EBMS_SERVICE_URI), errorList )
+                .createResponseHeader(newAction = MESSAGE_ERROR_ACTION, newService = EBMS_SERVICE_URI), errorList )
     }
     fun messageHeader():MessageHeader {
          val node: Node = this.dokument.getElementsByTagNameNS(OASIS_EBXML_MSG_HEADER_XSD_NS_URI, OASIS_EBXML_MSG_HEADER_TAG).item(0)
