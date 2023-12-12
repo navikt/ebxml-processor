@@ -86,7 +86,8 @@ fun Application.myApplicationModule() {
                                                         MimeHeaders.CONTENT_ID,
                                                         MimeHeaders.CONTENT_TYPE,
                                                         MimeHeaders.CONTENT_TRANSFER_ENCODING,
-                                                        MimeHeaders.CONTENT_DISPOSITION
+                                                        MimeHeaders.CONTENT_DISPOSITION,
+                                                        MimeHeaders.CONTENT_DESCRIPTION
                                                     )
                                                 )
                                             )
@@ -191,19 +192,36 @@ fun Map<String, String>.filterHeader(vararg headerNames: String): HeadersBuilder
             append(it.first, headerValue)
         }
     }
+
+    appendMessageIdAsContentIdIfContentIdIsMissingOnTextXMLContentTypes(caseInsensitiveMap)
+    if (headerNames.contains(MimeHeaders.CONTENT_DISPOSITION) && headerNames.contains(MimeHeaders.CONTENT_DESCRIPTION)) {
+        appendContentDescriptionAsContentDispositionIfDispositionIsMissing(caseInsensitiveMap)
+    }
+
+}
+
+private fun HeadersBuilder.appendMessageIdAsContentIdIfContentIdIsMissingOnTextXMLContentTypes(
+    caseInsensitiveMap: CaseInsensitiveMap<String>
+) {
     if (MimeUtility.unfold(caseInsensitiveMap[MimeHeaders.CONTENT_TYPE])?.contains("text/xml") == true) {
         if (caseInsensitiveMap[MimeHeaders.CONTENT_ID] != null) {
             log.warn(
                 "Content-Id header allerede satt for text/xml: " + caseInsensitiveMap[MimeHeaders.CONTENT_ID]
                         + "\nMessage-Id: " + caseInsensitiveMap[SMTPHeaders.MESSAGE_ID]
             )
-        }
-        else {
+        } else {
             val headerValue = MimeUtility.unfold(caseInsensitiveMap[SMTPHeaders.MESSAGE_ID]!!.replace("\t", " "))
             append(MimeHeaders.CONTENT_ID, headerValue)
             log.info("Header: <${MimeHeaders.CONTENT_ID}> - <${headerValue}>")
         }
+    }
+}
 
-
+private fun HeadersBuilder.appendContentDescriptionAsContentDispositionIfDispositionIsMissing(
+    caseInsensitiveMap: CaseInsensitiveMap<String>
+) {
+    if (caseInsensitiveMap[MimeHeaders.CONTENT_DESCRIPTION] != null && caseInsensitiveMap[MimeHeaders.CONTENT_DISPOSITION] == null) {
+        val headerValue = MimeUtility.unfold(caseInsensitiveMap[MimeHeaders.CONTENT_DESCRIPTION]!!.replace("\t", " "))
+        append(MimeHeaders.CONTENT_DISPOSITION, headerValue)
     }
 }

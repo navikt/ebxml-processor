@@ -14,6 +14,7 @@ import no.nav.emottak.util.getEnvVar
 import org.junit.jupiter.api.Test
 import java.util.*
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 val testHeaderValue = """multipart/related;
 	boundary="------=_part_f14474e0_7fda_4a15_b649_87dc04fb39f8"; charset=utf-8;
@@ -69,5 +70,25 @@ class MessageTest {
         val two = reader.readMail().first()
         assertEquals( one.headers , two.headers)
         assertEquals( String(one.parts.first().bytes), String(two.parts.first().bytes))
+    }
+
+    @Test
+    fun `Om content-disposition ikke finnes settes den til content-description`() {
+        val session = mockSession()
+        val stream = this.javaClass.classLoader.getResourceAsStream("testmail/content_description.eml")
+        val msg = MimeMessage(session, stream)
+        val message = MailReader.mapEmailMsg().invoke(msg)
+        val lastPart = message.parts.last()
+        val actualHeaders = lastPart.headers
+        assertNull(actualHeaders[MimeHeaders.CONTENT_DISPOSITION])
+        assertEquals("attachment; filename=\"M1152.P7M\"", actualHeaders[MimeHeaders.CONTENT_DESCRIPTION])
+
+        val filteredHeaders = Headers.build {
+            actualHeaders.filterHeader(
+                MimeHeaders.CONTENT_DISPOSITION,
+                MimeHeaders.CONTENT_DESCRIPTION
+            ).invoke(this)
+        }
+        assertEquals( "attachment; filename=\"M1152.P7M\"", filteredHeaders[MimeHeaders.CONTENT_DISPOSITION])
     }
 }
