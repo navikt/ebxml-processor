@@ -49,10 +49,11 @@ class MailReader(private val store: Store, val expunge: Boolean = true) : AutoCl
             )
         }
 
-        fun mapBodyPart(): (MimeBodyPart) -> Part = { message ->
+        private fun mapBodyPart(): (MimeBodyPart) -> Part = { bodyPart ->
             Part(
-                message.allHeaders.toList().groupBy({ it.name }, { it.value }).mapValues { it.value.joinToString(",") },
-                message.rawInputStream.readAllBytes()
+                bodyPart.allHeaders.toList().groupBy({ it.name }, { it.value })
+                    .mapValues { it.value.joinToString(",") },
+                bodyPart.rawInputStream.readAllBytes()
             )
         }
     }
@@ -84,7 +85,7 @@ class MailReader(private val store: Store, val expunge: Boolean = true) : AutoCl
                     inbox.getMessages(start, endIndex).map { it as MimeMessage }.toList().onEach { mimeMessage ->
                         log.info("Reading emails startIndex $start")
                         if (mimeMessage.content is MimeMultipart) {
-                            val dokument = runCatching {
+                            runCatching {
                                 (mimeMessage.content as MimeMultipart).getBodyPart(0)
                             }.onSuccess {
                                 log.info(
