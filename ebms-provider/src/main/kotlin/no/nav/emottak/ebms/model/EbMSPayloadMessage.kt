@@ -17,39 +17,42 @@ import java.time.ZoneOffset
 import java.util.*
 import kotlin.collections.ArrayList
 
-
-//EbmsPayloadMessage
+// EbmsPayloadMessage
 class EbMSPayloadMessage(
-    val contentID:String,
-    override val dokument:Document,
+    val contentID: String,
+    override val dokument: Document,
     override val messageHeader: MessageHeader,
     val ackRequested: AckRequested? = null,
     val attachments: List<EbMSAttachment>,
-    val mottatt:  LocalDateTime
-                  ) : EbMSBaseMessage
-{
+    val mottatt: LocalDateTime
+) : EbMSBaseMessage {
     private val eventLogg: ArrayList<Event> = ArrayList() // TODO tenk over
     fun addHendelse(event: Event) {
         eventLogg.add(event)
     }
-
 
     fun createFail(): EbMSMessageError {
         return EbMSMessageError(this.createErrorMessageHeader(), ErrorList())
     }
 
     fun createAcknowledgment(): EbmsAcknowledgment {
-        return EbmsAcknowledgment(this.createAcknowledgmentMessageHeader(),this.createAcknowledgementJaxB())
+        return EbmsAcknowledgment(this.createAcknowledgmentMessageHeader(), this.createAcknowledgementJaxB())
     }
 
     private fun createErrorMessageHeader(): MessageHeader {
         return this.messageHeader.createResponseHeader(
-            newAction = MESSAGE_ERROR_ACTION, newService = EBMS_SERVICE_URI
+            newFromRole = "ERROR_RESPONDER",
+            newToRole = "ERROR_RECEIVER",
+            newAction = MESSAGE_ERROR_ACTION,
+            newService = EBMS_SERVICE_URI
         )
     }
     private fun createAcknowledgmentMessageHeader(): MessageHeader {
         return this.messageHeader.createResponseHeader(
-            newAction = ACKNOWLEDGMENT_ACTION, newService = EBMS_SERVICE_URI
+            newFromRole = "ACK_RESPONDER",
+            newToRole = "ACK_RECEIVER",
+            newAction = ACKNOWLEDGMENT_ACTION,
+            newService = EBMS_SERVICE_URI
         )
     }
 
@@ -62,15 +65,15 @@ class EbMSPayloadMessage(
         acknowledgment.timestamp = Date.from(this.mottatt.toInstant(ZoneOffset.UTC))
         acknowledgment.refToMessageId = this.messageHeader.messageData.messageId
         acknowledgment.from = this.messageHeader.from
-        if(this.messageHeader.getAckRequestedSigned() == true) {
+        if (this.messageHeader.getAckRequestedSigned() == true) {
             // TODO vi må signere responsen, kan kanskje alltid gjøres uansett?
             acknowledgment.reference.addAll(emptyList())
         }
-        //acknowledgment.otherAttributes
+        // acknowledgment.otherAttributes
         return acknowledgment
     }
 
-    fun process() : EbMSBaseMessage {
+    fun process(): EbMSBaseMessage {
         return try {
             listOf(
                 DekrypteringProcessor(this)
@@ -81,5 +84,4 @@ class EbMSPayloadMessage(
             createFail()
         }
     }
-
 }

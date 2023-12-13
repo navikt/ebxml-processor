@@ -1,6 +1,5 @@
 package no.nav.emottak.ebms.model
 
-
 import no.nav.emottak.ebms.xml.xmlMarshaller
 import no.nav.emottak.util.marker
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Acknowledgment
@@ -9,16 +8,15 @@ import org.w3c.dom.Document
 import org.xmlsoap.schemas.soap.envelope.Header
 import org.xmlsoap.schemas.soap.envelope.ObjectFactory
 
-class EbmsAcknowledgment(override val messageHeader: MessageHeader,
-                         val acknowledgment: Acknowledgment,
-                         override val dokument: Document? = null) : EbMSBaseMessage {
-
-
+class EbmsAcknowledgment(
+    override val messageHeader: MessageHeader,
+    val acknowledgment: Acknowledgment,
+    override val dokument: Document? = null
+) : EbMSBaseMessage {
 
     fun process() {
         try {
-
-        }catch (ex: Exception) {
+        } catch (ex: Exception) {
             return
         }
     }
@@ -34,8 +32,7 @@ class EbmsAcknowledgment(override val messageHeader: MessageHeader,
             xmlMarshaller.marshal(it)
         }.let {
             log.info(this.messageHeader.marker(), "Signerer Acknowledgment (TODO)")
-            EbMSDocument("contentID",it, emptyList())
+            EbMSDocument("contentID", it, emptyList())
         }
     }
-
 }

@@ -44,10 +44,9 @@ val log = LoggerFactory.getLogger("no.nav.emottak.ebms.model")
 data class EbMSDocument(val contentId: String, val dokument: Document, val attachments: List<EbMSAttachment>) {
     fun dokumentType(): DokumentType {
         if (attachments.size > 0) return DokumentType.PAYLOAD
-        if (dokument.getElementsByTagNameNS(OASIS_EBXML_MSG_HEADER_XSD_NS_URI,"Acknowledgment").item(0) != null) return DokumentType.ACKNOWLEDGMENT
-        if (dokument.getElementsByTagNameNS(OASIS_EBXML_MSG_HEADER_XSD_NS_URI,"ErrorList").item(0)!=null) return DokumentType.FAIL
+        if (dokument.getElementsByTagNameNS(OASIS_EBXML_MSG_HEADER_XSD_NS_URI, "Acknowledgment").item(0) != null) return DokumentType.ACKNOWLEDGMENT
+        if (dokument.getElementsByTagNameNS(OASIS_EBXML_MSG_HEADER_XSD_NS_URI, "ErrorList").item(0) != null) return DokumentType.FAIL
         throw RuntimeException("Unrecognized dokument type")
-
     }
 
     fun createFail(error: Error): EbMSMessageError {
@@ -57,17 +56,18 @@ data class EbMSDocument(val contentId: String, val dokument: Document, val attac
     fun createFail(errorList: ErrorList): EbMSMessageError {
         return EbMSMessageError(
             this.messageHeader()
-                .createResponseHeader(newAction = MESSAGE_ERROR_ACTION, newService = EBMS_SERVICE_URI), errorList )
+                .createResponseHeader(newFromRole = "ERROR_RESPONDER", newToRole = "ERROR_RECEIVER", newAction = MESSAGE_ERROR_ACTION, newService = EBMS_SERVICE_URI),
+            errorList
+        )
     }
-    fun messageHeader():MessageHeader {
-         val node: Node = this.dokument.getElementsByTagNameNS(OASIS_EBXML_MSG_HEADER_XSD_NS_URI, OASIS_EBXML_MSG_HEADER_TAG).item(0)
-         return xmlMarshaller.unmarshal(node)
+    fun messageHeader(): MessageHeader {
+        val node: Node = this.dokument.getElementsByTagNameNS(OASIS_EBXML_MSG_HEADER_XSD_NS_URI, OASIS_EBXML_MSG_HEADER_TAG).item(0)
+        return xmlMarshaller.unmarshal(node)
     }
-
 }
 
 enum class DokumentType {
-    PAYLOAD, ACKNOWLEDGMENT,FAIL,STATUS,PING
+    PAYLOAD, ACKNOWLEDGMENT, FAIL, STATUS, PING
 }
 
 fun EbMSDocument.signer(signatureDetails: SignatureDetails): EbMSDocument {
@@ -85,10 +85,8 @@ fun EbMSDocument.sjekkSignature(signatureDetails: SignatureDetails) {
     log.info(this.messageHeader().marker(), "Signatur OK")
 }
 
-
-
 fun EbMSDocument.buildEbmMessage(): EbMSBaseMessage {
-    val envelope: Envelope = xmlMarshaller.unmarshal( this.dokument)
+    val envelope: Envelope = xmlMarshaller.unmarshal(this.dokument)
     val header = envelope.header
     return if (header.acknowledgment() != null) {
         log.info(header.messageHeader().marker(), "Mottatt melding av type Acknowledgment")
@@ -98,6 +96,6 @@ fun EbMSDocument.buildEbmMessage(): EbMSBaseMessage {
         EbMSMessageError(header.messageHeader(), header.errorList()!!, this.dokument)
     } else {
         log.info(header.messageHeader().marker(), "Mottatt melding av type payload")
-        EbMSPayloadMessage(this.contentId, this.dokument,header.messageHeader(),header.ackRequested(),this.attachments, LocalDateTime.now())
+        EbMSPayloadMessage(this.contentId, this.dokument, header.messageHeader(), header.ackRequested(), this.attachments, LocalDateTime.now())
     }
 }

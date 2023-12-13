@@ -18,14 +18,13 @@ import no.nav.emottak.ebms.validation.validateMime
 import no.nav.emottak.melding.feil.EbmsException
 import no.nav.emottak.melding.model.ErrorCode
 import no.nav.emottak.melding.model.asErrorList
-import no.nav.emottak.util.retrieveLoggableHeaderPairs
 import no.nav.emottak.util.marker
-
+import no.nav.emottak.util.retrieveLoggableHeaderPairs
 
 fun Route.postEbms(validator: DokumentValidator, processingService: ProcessingService): Route =
     post("/ebms") {
         // KRAV 5.5.2.1 validate MIME
-        val debug:Boolean = call.request.header("debug")?.isNotBlank()?: false
+        val debug: Boolean = call.request.header("debug")?.isNotBlank() ?: false
         val ebMSDocument: EbMSDocument
         try {
             call.request.validateMime()
@@ -36,8 +35,8 @@ fun Route.postEbms(validator: DokumentValidator, processingService: ProcessingSe
             return@post
         } catch (ex: Exception) {
             logger().error("Unable to transform request into EbmsDokument: ${ex.message} Message-Id ${call.request.header(SMTPHeaders.MESSAGE_ID)}", ex)
-            //@TODO done only for demo fiks!
-            call.respond(HttpStatusCode.InternalServerError, MimeValidationException("Unable to transform request into EbmsDokument: ${ex.message}",ex).asParseAsSoapFault())
+            // @TODO done only for demo fiks!
+            call.respond(HttpStatusCode.InternalServerError, MimeValidationException("Unable to transform request into EbmsDokument: ${ex.message}", ex).asParseAsSoapFault())
             return@post
         }
 
@@ -70,8 +69,7 @@ fun Route.postEbms(validator: DokumentValidator, processingService: ProcessingSe
                     call.respondEbmsDokument(it)
                 }
             return@post
-        }
-        catch(ex: ServerResponseException) {
+        } catch (ex: ServerResponseException) {
             logger().error(message.messageHeader.marker(loggableHeaders), "Processing failed: ${ex.message}", ex)
             ebMSDocument
                 .createFail(ErrorCode.UNKNOWN.createEbxmlError("Processing failed: ${ex.message}"))
@@ -81,7 +79,7 @@ fun Route.postEbms(validator: DokumentValidator, processingService: ProcessingSe
                     call.respondEbmsDokument(it)
                     return@post
                 }
-        } catch(ex: ClientRequestException) {
+        } catch (ex: ClientRequestException) {
             logger().error(message.messageHeader.marker(loggableHeaders), "Processing failed: ${ex.message}", ex)
             ebMSDocument
                 .createFail(ErrorCode.OTHER_XML.createEbxmlError("Processing failed: ${ex.message}"))
@@ -97,7 +95,7 @@ fun Route.postEbms(validator: DokumentValidator, processingService: ProcessingSe
             return@post
         }
 
-        //call payload processor
+        // call payload processor
         if (message is EbMSPayloadMessage) {
             log.info(message.messageHeader.marker(), "Payload Processed, Generating Acknowledgement...")
             message.createAcknowledgment().toEbmsDokument().also {

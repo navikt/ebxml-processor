@@ -34,23 +34,28 @@ val log = LoggerFactory.getLogger("no.nav.emottak.ebms.App")
 
 fun logger() = log
 fun main() {
-    //val database = Database(mapHikariConfig(DatabaseConfig()))
-    //database.migrate()
+    // val database = Database(mapHikariConfig(DatabaseConfig()))
+    // database.migrate()
     embeddedServer(Netty, port = 8080, module = Application::ebmsProviderModule).start(wait = true)
 }
 
 fun defaultHttpClient(): () -> HttpClient {
-    return { HttpClient(CIO) {
-        expectSuccess = true
-        install(io.ktor.client.plugins.contentnegotiation.ContentNegotiation) {
-            json()
+    return {
+        HttpClient(CIO) {
+            expectSuccess = true
+            install(io.ktor.client.plugins.contentnegotiation.ContentNegotiation) {
+                json()
+            }
         }
-    }}
+    }
 }
-fun PartData.payload(clearText:Boolean = false): ByteArray {
+fun PartData.payload(clearText: Boolean = false): ByteArray {
     return when (this) {
-        is PartData.FormItem ->  if (clearText) return this.value.toByteArray()
-        else java.util.Base64.getMimeDecoder().decode(this.value)
+        is PartData.FormItem -> if (clearText) {
+            return this.value.toByteArray()
+        } else {
+            java.util.Base64.getMimeDecoder().decode(this.value)
+        }
         is PartData.FileItem -> {
             val bytes = this.streamProvider.invoke().readAllBytes()
             if (clearText) return bytes else java.util.Base64.getMimeDecoder().decode(bytes)
@@ -59,7 +64,6 @@ fun PartData.payload(clearText:Boolean = false): ByteArray {
         else -> byteArrayOf()
     }
 }
-
 
 fun Application.ebmsProviderModule() {
     val client = defaultHttpClient()
@@ -74,7 +78,6 @@ fun Application.ebmsProviderModule() {
         }
         postEbms(validator, processing)
     }
-
 }
 
 @Throws(MimeValidationException::class)
@@ -90,9 +93,9 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
                 it?.validateMimeSoapEnvelope()
                     ?: throw MimeValidationException("Unable to find soap envelope multipart Message-Id ${this.request.header(SMTPHeaders.MESSAGE_ID)}")
             }!!.let {
-                 val contentID = it.headers[MimeHeaders.CONTENT_ID]!!.convertToValidatedContentID()
-                 val isBase64 = "base64" == it.headers[MimeHeaders.CONTENT_TRANSFER_ENCODING]
-                 Pair(contentID, it.payload(debugClearText || !isBase64))
+                val contentID = it.headers[MimeHeaders.CONTENT_ID]!!.convertToValidatedContentID()
+                val isBase64 = "base64" == it.headers[MimeHeaders.CONTENT_TRANSFER_ENCODING]
+                Pair(contentID, it.payload(debugClearText || !isBase64))
             }
             val attachments =
                 allParts.filter { it.contentDisposition?.disposition == ContentDisposition.Attachment.disposition }
@@ -108,17 +111,18 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
                         it.contentType!!.contentType,
                         it.headers[MimeHeaders.CONTENT_ID]!!.convertToValidatedContentID()
                     )
-                })
-
+                }
+            )
         }
 
         ContentType.parse("text/xml") -> {
             val dokument = withContext(Dispatchers.IO) {
-                if(debugClearText || "base64" != request.header(MimeHeaders.CONTENT_TRANSFER_ENCODING))
+                if (debugClearText || "base64" != request.header(MimeHeaders.CONTENT_TRANSFER_ENCODING)) {
                     this@receiveEbmsDokument.receiveStream().readAllBytes()
-                 else
+                } else {
                     java.util.Base64.getMimeDecoder()
                         .decode(this@receiveEbmsDokument.receiveStream().readAllBytes())
+                }
             }
             EbMSDocument(
                 this.request.headers[MimeHeaders.CONTENT_ID]!!.convertToValidatedContentID(),
@@ -129,8 +133,8 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
 
         else -> {
             throw MimeValidationException("Ukjent request body med Content-Type $contentType")
-            //call.respond(HttpStatusCode.BadRequest, "Ukjent request body med Content-Type $contentType")
-            //return@post
+            // call.respond(HttpStatusCode.BadRequest, "Ukjent request body med Content-Type $contentType")
+            // return@post
         }
     }
 }
@@ -140,7 +144,6 @@ private fun String.convertToValidatedContentID(): String {
 }
 
 suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbMSDocument) {
-
     val payload = ebmsDokument
         .dokument
         .asString()

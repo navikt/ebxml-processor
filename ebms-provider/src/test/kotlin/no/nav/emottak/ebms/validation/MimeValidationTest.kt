@@ -13,23 +13,18 @@ import no.nav.emottak.ebms.valid
 import no.nav.emottak.ebms.validSoapAttachmentHeaders
 import no.nav.emottak.ebms.validSoapMimeHeaders
 import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.fail
 
 class MimeValidationTest {
 
-
-
-
-
-    private fun Headers.mockApplicationRequest() : ApplicationRequest {
-       val appRquest = mockk<ApplicationRequest>()
+    private fun Headers.mockApplicationRequest(): ApplicationRequest {
+        val appRquest = mockk<ApplicationRequest>()
         every {
             appRquest.headers
         } returns this@mockApplicationRequest
 
-        every { appRquest.contentType() } returns this@mockApplicationRequest[MimeHeaders.CONTENT_TYPE].takeUnless { it == null}.let {
+        every { appRquest.contentType() } returns this@mockApplicationRequest[MimeHeaders.CONTENT_TYPE].takeUnless { it == null }.let {
             if (it == null) ContentType.Any else ContentType.parse(it)
         }
 
@@ -48,9 +43,7 @@ class MimeValidationTest {
         val applicationRequest = valid.mockApplicationRequest()
 
         applicationRequest.validateMime()
-
     }
-
 
     @Test
     fun `5-2-2-1 Content type is text xml`() {
@@ -60,30 +53,27 @@ class MimeValidationTest {
 
         appRequest.validateMime()
     }
+
     @Test
     fun `5-2-2-1 Mime versjon er feil`() {
-
         val notValid = listOf(
             valid.modify { it.remove(MimeHeaders.MIME_VERSION) },
             valid.modify { it[MimeHeaders.MIME_VERSION] = "2.1" },
-            valid.modify { it.remove(MimeHeaders.SOAP_ACTION)},
+            valid.modify { it.remove(MimeHeaders.SOAP_ACTION) },
             valid.modify { it[MimeHeaders.SOAP_ACTION] = "noeannet" },
-            valid.modify { it.remove(MimeHeaders.CONTENT_TYPE)}
+            valid.modify { it.remove(MimeHeaders.CONTENT_TYPE) }
         )
 
-
-       notValid.map { it.mockApplicationRequest() }.forEach {
-
-           runCatching {
-
-               it.validateMime()
-           }.onFailure {
-               it.printStackTrace()
-               assert(it.instanceOf(MimeValidationException::class))
-           }.onSuccess {
-               fail { "Should have failed" }
-           }
-       }
+        notValid.map { it.mockApplicationRequest() }.forEach {
+            runCatching {
+                it.validateMime()
+            }.onFailure {
+                it.printStackTrace()
+                assert(it.instanceOf(MimeValidationException::class))
+            }.onSuccess {
+                fail { "Should have failed" }
+            }
+        }
     }
 
     @Test
@@ -93,18 +83,16 @@ class MimeValidationTest {
         }
             .mockApplicationRequest()
             .validateMime()
-
     }
 
     @Test
     fun `5-2-2-2 illegal type`() {
-
         val notValid = listOf(
             valid.modify { it[MimeHeaders.CONTENT_TYPE] = """multipart/unrelated;type="text/xml";start="<soapId-6ae68a32-8b0e-4de2-baad-f4d841aacce1>";boundary="----=_Part_495_-1172936255.1665395092859"""" },
             valid.modify { it[MimeHeaders.CONTENT_TYPE] = """multipart/related;type="ascii/xml";start="<soapId-6ae68a32-8b0e-4de2-baad-f4d841aacce1>";boundary="----=_Part_495_-1172936255.1665395092859"""" },
-            valid.modify { it[MimeHeaders.CONTENT_TYPE] = """multipart/related;type="text/xml";start="<soapId-6ae68a32-8b0e-4de2-baad-f4d841aacce1>""""},
+            valid.modify { it[MimeHeaders.CONTENT_TYPE] = """multipart/related;type="text/xml";start="<soapId-6ae68a32-8b0e-4de2-baad-f4d841aacce1>"""" },
             valid.modify { it[MimeHeaders.CONTENT_TYPE] = """multipart/unrelated;type="text/xml";boundary="----=_Part_495_-1172936255.1665395092859"""" },
-            valid.modify { it.remove(MimeHeaders.CONTENT_TYPE)}
+            valid.modify { it.remove(MimeHeaders.CONTENT_TYPE) }
         )
 
         notValid.map { it.mockApplicationRequest() }.forEach {
@@ -120,9 +108,7 @@ class MimeValidationTest {
 
     @Test
     fun `5-2-2-3 validering på SOAP envelope multipart`() {
-
-        PartData.FormItem("body",{},validSoapMimeHeaders).validateMimeSoapEnvelope()
-
+        PartData.FormItem("body", {}, validSoapMimeHeaders).validateMimeSoapEnvelope()
     }
 
     @Test
@@ -139,7 +125,7 @@ class MimeValidationTest {
             },
             validSoapMimeHeaders.modify {
                 it.remove(MimeHeaders.CONTENT_TYPE)
-            },
+            }
         )
 
         notValid.map { it.mockApplicationRequest() }.forEach {
@@ -156,9 +142,7 @@ class MimeValidationTest {
 
     @Test
     fun `5-2-2-4 validering på SOAP envelope multipart`() {
-
-        PartData.FormItem("body",{}, validSoapAttachmentHeaders).validateMimeAttachment()
-
+        PartData.FormItem("body", {}, validSoapAttachmentHeaders).validateMimeAttachment()
     }
 
     @Test
@@ -175,7 +159,7 @@ class MimeValidationTest {
             },
             validSoapMimeHeaders.modify {
                 it.remove(MimeHeaders.CONTENT_TYPE)
-            },
+            }
         )
 
         notValid.map { it.mockApplicationRequest() }.forEach {
@@ -187,8 +171,6 @@ class MimeValidationTest {
                 }.onSuccess {
                     fail { "Should have failed" }
                 }
-
         }
     }
-
 }

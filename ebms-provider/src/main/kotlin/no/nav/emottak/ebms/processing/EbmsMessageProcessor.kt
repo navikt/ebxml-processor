@@ -9,12 +9,11 @@ class EbmsMessageProcessor(ebMSDocument: EbMSDocument, ebMSMessage: EbMSBaseMess
     val processCollection =
         listOf(
             CPAValidationProcessor(ebMSMessage),
-       //     PayloadProcessor(ebMSMessage),
+            //     PayloadProcessor(ebMSMessage),
             SertifikatsjekkProcessor(ebMSMessage)
         )
 
     fun runAll() {
         processCollection.forEach { p -> p.processWithEvents() }
     }
-
 }

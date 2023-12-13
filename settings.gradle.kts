@@ -25,7 +25,7 @@ dependencyResolutionManagement {
             library("exposed-dao", "org.jetbrains.exposed", "exposed-dao").versionRef("exposed")
             library("exposed-java-time", "org.jetbrains.exposed", "exposed-java-time").versionRef("exposed")
             library("exposed-jdbc", "org.jetbrains.exposed", "exposed-jdbc").versionRef("exposed")
-            library("exposed-json","org.jetbrains.exposed","exposed-json").versionRef("exposed")
+            library("exposed-json", "org.jetbrains.exposed", "exposed-json").versionRef("exposed")
 
             library("ktor-server-core", "io.ktor", "ktor-server-core").versionRef("ktor")
             library("ktor-server-netty", "io.ktor", "ktor-server-netty").versionRef("ktor")
@@ -51,7 +51,7 @@ dependencyResolutionManagement {
 
             bundle("jakarta-mail", listOf("jakarta-mail-api", "eclipse-angus"))
             bundle("bouncycastle", listOf("bcpkix-jdk18on", "bcprov-jdk18on"))
-            bundle("exposed", listOf("exposed-core", "exposed-dao", "exposed-java-time", "exposed-jdbc","exposed-json"))
+            bundle("exposed", listOf("exposed-core", "exposed-dao", "exposed-java-time", "exposed-jdbc", "exposed-json"))
             bundle("logging", listOf("logback-classic", "logback-logstash"))
         }
 
@@ -59,7 +59,7 @@ dependencyResolutionManagement {
             version("junit", "5.9.2")
             version("hamcrest", "2.2")
             version("mockk", "1.13.8")
-            version("testPostgres","1.18.0")
+            version("testPostgres", "1.18.0")
             version("xmlunit", "2.9.1")
             version("ktor-server-test", "2.3.4")
             version("kotest", "5.8.0")
@@ -74,7 +74,7 @@ dependencyResolutionManagement {
             library("mockk-jvm", "io.mockk", "mockk-jvm").versionRef("mockk")
             library("mockk-dsl-jvm", "io.mockk", "mockk-dsl-jvm").versionRef("mockk")
 
-            library("postgresql","org.testcontainers","postgresql").versionRef("testPostgres")
+            library("postgresql", "org.testcontainers", "postgresql").versionRef("testPostgres")
 
             library("xmlunit-core", "org.xmlunit", "xmlunit-core").versionRef("xmlunit")
             library("xmlunit-matchers", "org.xmlunit", "xmlunit-matchers").versionRef("xmlunit")
@@ -87,7 +87,6 @@ dependencyResolutionManagement {
             bundle("xmlunit", listOf("xmlunit-core", "xmlunit-matchers"))
         }
     }
-
 
     repositories {
         mavenCentral()
@@ -103,4 +102,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "ebxml-processor"
-include("felles","smtp-listeners","cpa-repo","ebms-provider", "ebms-payload", "smtp-router")
+include("felles", "smtp-listeners", "cpa-repo", "ebms-provider", "ebms-payload", "smtp-router")
