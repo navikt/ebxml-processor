@@ -17,11 +17,11 @@ abstract class Processor(open val ebMSMessage: EbMSBaseMessage) {
             lagOgLagreHendelse(Event.Status.OK)
         } catch (t: Throwable) {
             lagOgLagreHendelse(Event.Status.FAILED)
-            throw t;
+            throw t
         }
     }
 
-    fun lagOgLagreHendelse(status: Event.Status){
+    fun lagOgLagreHendelse(status: Event.Status) {
         persisterHendelse(
             Event(
                 this.javaClass.simpleName,
@@ -30,7 +30,7 @@ abstract class Processor(open val ebMSMessage: EbMSBaseMessage) {
             )
         )
     }
-    
+
     fun persisterHendelse(event: Event): Boolean {
         // Vi vil se på det ebMSMessage.addHendelse(event)
         when (event.eventStatus) {
@@ -40,5 +40,4 @@ abstract class Processor(open val ebMSMessage: EbMSBaseMessage) {
         }
         return true; // TODO publiser hendelse
     }
-    
 }

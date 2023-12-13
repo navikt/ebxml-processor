@@ -1,10 +1,7 @@
 package no.nav.emottak.ebms
 
 import com.zaxxer.hikari.HikariConfig
-import no.nav.emottak.cpa.Database
-import org.flywaydb.core.Flyway
 import org.testcontainers.containers.PostgreSQLContainer
-
 
 fun cpaPostgres(): PostgreSQLContainer<Nothing> =
     PostgreSQLContainer<Nothing>("postgres:14").apply {
@@ -17,7 +14,7 @@ fun cpaPostgres(): PostgreSQLContainer<Nothing> =
     }
 
 fun PostgreSQLContainer<Nothing>.testConfiguration(): HikariConfig {
-     return HikariConfig().apply {
+    return HikariConfig().apply {
         jdbcUrl = this@testConfiguration.jdbcUrl
         username = this@testConfiguration.username
         password = this@testConfiguration.password
@@ -29,5 +26,3 @@ fun PostgreSQLContainer<Nothing>.testConfiguration(): HikariConfig {
         initializationFailTimeout = 5000
     }
 }
-
-

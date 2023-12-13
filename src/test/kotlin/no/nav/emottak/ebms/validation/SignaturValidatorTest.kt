@@ -14,9 +14,10 @@ class SignaturValidatorTest {
 
     @Test
     fun `Validering av signatur`() {
-
-        val dokument = getDocumentBuilder().parse(this::class.java.classLoader
-            .getResourceAsStream("oppgjørsmelding/2023_08_29T12_56_58_328.xml"))
+        val dokument = getDocumentBuilder().parse(
+            this::class.java.classLoader
+                .getResourceAsStream("oppgjørsmelding/2023_08_29T12_56_58_328.xml")
+        )
         val attachment = this::class.java.classLoader
             .getResourceAsStream("oppgjørsmelding/2023_08_29T12_56_58_328.p7m").readAllBytes()
         val ebMSDocument = EbMSDocument(
@@ -30,14 +31,15 @@ class SignaturValidatorTest {
                 )
             )
         )
-        SignaturValidator().validate(getSignatureDetailsForTest(),dokument,ebMSDocument.attachments)
+        SignaturValidator().validate(getSignatureDetailsForTest(), dokument, ebMSDocument.attachments)
     }
 
     @Test
     fun `Validering av signatur uten attachments feiler`() {
-
-        val dokument = getDocumentBuilder().parse(this::class.java.classLoader
-            .getResourceAsStream("oppgjørsmelding/2023_08_29T12_56_58_328.xml"))
+        val dokument = getDocumentBuilder().parse(
+            this::class.java.classLoader
+                .getResourceAsStream("oppgjørsmelding/2023_08_29T12_56_58_328.xml")
+        )
         val ebMSDocument = EbMSDocument(
             "Test",
             dokument,
@@ -49,7 +51,6 @@ class SignaturValidatorTest {
             signatursjekk.validate(getSignatureDetailsForTest(), dokument, ebMSDocument.attachments)
         }
     }
-
 }
 
 fun getSignatureDetailsForTest(): SignatureDetails =

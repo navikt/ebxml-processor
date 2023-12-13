@@ -16,21 +16,21 @@ import org.slf4j.LoggerFactory
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.DokumentValidator")
 class DokumentValidator(val httpClient: CpaRepoClient) {
 
-
-    fun validate(dokument: EbMSDocument) : ValidationResult {
-
+    fun validate(dokument: EbMSDocument): ValidationResult {
         val messageHeader = dokument.messageHeader()
 
-        //TODO valider sertifikat
-        val header = Header(messageHeader.messageData.messageId,
-                            messageHeader.conversationId,
-                            messageHeader.cpaId,
-                            //TODO select specific partyID?
-                            Party(messageHeader.to.partyId.map { PartyId(it.type!!, it.value!!) }, messageHeader.to.role!!),
-                            //Party(messageHeader.to.partyId.first().type!!, messageHeader.to.partyId.first().value!!,messageHeader.to.role!!),
-                            Party(messageHeader.from.partyId.map { PartyId(it.type!!, it.value!!) }, messageHeader.from.role!!),
-                            messageHeader.service.value!!,
-                            messageHeader.action)
+        // TODO valider sertifikat
+        val header = Header(
+            messageHeader.messageData.messageId,
+            messageHeader.conversationId,
+            messageHeader.cpaId,
+            // TODO select specific partyID?
+            Party(messageHeader.to.partyId.map { PartyId(it.type!!, it.value!!) }, messageHeader.to.role!!),
+            // Party(messageHeader.to.partyId.first().type!!, messageHeader.to.partyId.first().value!!,messageHeader.to.role!!),
+            Party(messageHeader.from.partyId.map { PartyId(it.type!!, it.value!!) }, messageHeader.from.role!!),
+            messageHeader.service.value!!,
+            messageHeader.action
+        )
         val validationResult = runBlocking {
             httpClient.postValidate(dokument.contentId, header)
         }
@@ -40,8 +40,9 @@ class DokumentValidator(val httpClient: CpaRepoClient) {
             dokument.sjekkSignature(validationResult.processing!!.signingCertificate)
         }.onFailure {
             log.error(dokument.messageHeader().marker(), "Signaturvalidering feilet ${it.message}", it)
-            return ValidationResult(validationResult.processing,
-                (validationResult.error ?: listOf() ) + listOf(
+            return ValidationResult(
+                validationResult.processing,
+                (validationResult.error ?: listOf()) + listOf(
                     Feil(
                         ErrorCode.SECURITY_FAILURE,
                         "Feil signature"
