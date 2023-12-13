@@ -47,6 +47,7 @@ fun Application.myApplicationModule() {
 
         get("/mail/read") {
             val client = HttpClient(CIO)
+            call.respond(HttpStatusCode.OK, "Meldingslesing startet ...")
             runCatching {
                 MailReader(incomingStore, false).use {
                     log.info("read ${it.count()} from innbox")
