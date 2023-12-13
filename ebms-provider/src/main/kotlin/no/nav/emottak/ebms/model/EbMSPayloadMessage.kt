@@ -14,8 +14,8 @@ import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
 import org.w3c.dom.Document
 import java.time.LocalDateTime
 import java.time.ZoneOffset
-import java.util.*
 import kotlin.collections.ArrayList
+import java.util.*
 
 // EbmsPayloadMessage
 class EbMSPayloadMessage(
@@ -41,16 +41,12 @@ class EbMSPayloadMessage(
 
     private fun createErrorMessageHeader(): MessageHeader {
         return this.messageHeader.createResponseHeader(
-            newFromRole = "ERROR_RESPONDER",
-            newToRole = "ERROR_RECEIVER",
             newAction = MESSAGE_ERROR_ACTION,
             newService = EBMS_SERVICE_URI
         )
     }
     private fun createAcknowledgmentMessageHeader(): MessageHeader {
         return this.messageHeader.createResponseHeader(
-            newFromRole = "ACK_RESPONDER",
-            newToRole = "ACK_RECEIVER",
             newAction = ACKNOWLEDGMENT_ACTION,
             newService = EBMS_SERVICE_URI
         )
