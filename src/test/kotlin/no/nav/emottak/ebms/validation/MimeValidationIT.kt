@@ -1,9 +1,10 @@
 package no.nav.emottak.ebms.validation
 
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
-import io.ktor.server.routing.*
-import io.ktor.server.testing.*
+import io.ktor.client.request.post
+import io.ktor.client.statement.bodyAsText
+import io.ktor.server.routing.routing
+import io.ktor.server.testing.ApplicationTestBuilder
+import io.ktor.server.testing.testApplication
 import io.mockk.coEvery
 import io.mockk.mockk
 import no.nav.emottak.ebms.CpaRepoClient
@@ -101,7 +102,7 @@ class MimeValidationIT {
         val response = client.post("/ebms", validMultipartRequest.asHttpRequest())
         val envelope = xmlMarshaller.unmarshal(response.bodyAsText(), Envelope::class.java)
         with(envelope.assertErrorAndGet().error.first()) {
-            assertEquals("Signature Fail", this.description.value)
+            assertEquals("Signature Fail", this.description?.value)
             assertEquals(ErrorCode.SECURITY_FAILURE.value, this.errorCode)
         }
     }
@@ -116,7 +117,7 @@ class MimeValidationIT {
         val response = client.post("/ebms", validMultipartRequest.asHttpRequest())
         val envelope = xmlMarshaller.unmarshal(response.bodyAsText(), Envelope::class.java)
         with(envelope.assertErrorAndGet().error.first()) {
-            assertEquals("Signature Fail", this.description.value)
+            assertEquals("Signature Fail", this.description?.value)
             assertEquals(
                 no.nav.emottak.melding.model.ErrorCode.SECURITY_FAILURE.value,
                 this.errorCode
@@ -125,7 +126,7 @@ class MimeValidationIT {
     }
 
     fun Envelope.assertFaultAndGet(): Fault =
-        this.body.any.first()
+        this.body.any!!.first()
             .let {
                 assertTrue(it is JAXBElement<*>)
                 it as JAXBElement<*>
@@ -135,8 +136,8 @@ class MimeValidationIT {
             }
 
     fun Envelope.assertErrorAndGet(): ErrorList {
-        assertNotNull(this.header.messageHeader())
-        assertNotNull(this.header.errorList())
-        return this.header.errorList()!!
+        assertNotNull(this.header!!.messageHeader())
+        assertNotNull(this.header!!.errorList())
+        return this.header!!.errorList()!!
     }
 }
