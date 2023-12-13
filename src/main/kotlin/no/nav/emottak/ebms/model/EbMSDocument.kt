@@ -87,7 +87,7 @@ fun EbMSDocument.sjekkSignature(signatureDetails: SignatureDetails) {
 
 fun EbMSDocument.buildEbmMessage(): EbMSBaseMessage {
     val envelope: Envelope = xmlMarshaller.unmarshal(this.dokument)
-    val header = envelope.header
+    val header = envelope.header!!
     return if (header.acknowledgment() != null) {
         log.info(header.messageHeader().marker(), "Mottatt melding av type Acknowledgment")
         EbmsAcknowledgment(header.messageHeader(), header.acknowledgment()!!, this.dokument)
