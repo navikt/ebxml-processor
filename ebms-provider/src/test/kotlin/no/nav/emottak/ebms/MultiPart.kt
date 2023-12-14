@@ -2,12 +2,12 @@ package no.nav.emottak.ebms
 
 import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.forms.MultiPartFormDataContent
+import io.ktor.client.request.headers
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.Headers
 import io.ktor.http.HeadersBuilder
 import io.ktor.http.content.PartData
-import io.ktor.http.headers
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.validation.MimeHeaders
 
