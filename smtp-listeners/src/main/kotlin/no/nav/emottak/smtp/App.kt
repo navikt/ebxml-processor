@@ -24,9 +24,6 @@ import jakarta.mail.Folder
 import jakarta.mail.internet.MimeMultipart
 import jakarta.mail.internet.MimeUtility
 import kotlinx.coroutines.runBlocking
-import no.nav.emottak.constants.MimeHeaders
-import no.nav.emottak.constants.SMTPHeaders
-import no.nav.emottak.util.getEnvVar
 import org.eclipse.angus.mail.imap.IMAPFolder
 import org.slf4j.LoggerFactory
 import kotlin.text.String

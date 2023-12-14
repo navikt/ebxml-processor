@@ -28,6 +28,8 @@ spec:
       value: "110"
     - name: SMTP_POP3_PORT
       value: "110"
+    - name: SMTP_SMTP_PORT
+      value: "25"
     - name: SMTP_POP3_HOST
       value: "d32mxvl002.oera-t.local"
     - name: SMTP_STORE_PROTOCOL

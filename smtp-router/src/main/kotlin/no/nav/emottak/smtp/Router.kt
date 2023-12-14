@@ -10,7 +10,6 @@ import jakarta.mail.Transport
 import jakarta.mail.internet.InternetAddress
 import jakarta.mail.internet.MimeMessage
 import jakarta.mail.internet.MimeMultipart
-import no.nav.emottak.util.getEnvVar
 
 class Router(store: Store,val outStore: Session ,val expunge: Boolean = true) : AutoCloseable {
 
