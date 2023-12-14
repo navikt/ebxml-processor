@@ -9,8 +9,6 @@ import jakarta.mail.Session
 import jakarta.mail.Store
 import jakarta.mail.internet.MimeMessage
 import jakarta.mail.internet.MimeUtility
-import no.nav.emottak.constants.MimeHeaders
-import no.nav.emottak.util.getEnvVar
 import org.junit.jupiter.api.Test
 import java.util.*
 import kotlin.test.assertEquals
