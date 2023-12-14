@@ -58,11 +58,13 @@ class Router(store: Store,val outStore: Session ,val expunge: Boolean = true) : 
                         if (msg.content is MimeMultipart && isM18(msg.content as MimeMultipart)) {
                           //  msg.session.transport.sendMessage(msg, InternetAddress.parse(smtpUsername_outgoing_ny))
                           //   Transport.send(msg, InternetAddress.parse(smtpUsername_outgoing_gammel))
-                            Transport.send(msg, InternetAddress.parse("test@test.test"))
+                            log.info("Routing M18 melding")
+                            val melding = MimeMessage(outStore,(msg as MimeMessage).rawInputStream)
+                            melding.setRecipients(Message.RecipientType.TO, smtpUsername_outgoing_ny);
                             newInboxCount++
                         } else {
                             val melding = MimeMessage(outStore,(msg as MimeMessage).rawInputStream)
-                            melding.setRecipients(Message.RecipientType.TO, "nyebmstest@test-es.nav.no");
+                            melding.setRecipients(Message.RecipientType.TO, smtpUsername_outgoing_ny);
                             Transport.send(melding)
                            // outStore.transport.connect("nyebmstest@test-es.nav.no","test1234")
                            // outStore.transport.sendMessage(msg, InternetAddress.parse("nyebmstest@test-es.nav.no"))
