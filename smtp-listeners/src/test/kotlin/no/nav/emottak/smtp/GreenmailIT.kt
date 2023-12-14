@@ -5,8 +5,6 @@ import com.icegreen.greenmail.user.GreenMailUser
 import com.icegreen.greenmail.util.ServerSetupTest
 import io.ktor.http.*
 import jakarta.mail.Store
-import no.nav.emottak.constants.MimeHeaders
-import no.nav.emottak.constants.SMTPHeaders
 import org.junit.jupiter.api.Test
 
 import org.junit.jupiter.api.extension.RegisterExtension
