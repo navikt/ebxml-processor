@@ -41,7 +41,7 @@ import java.lang.RuntimeException
 import java.time.LocalDateTime
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.model")
-data class EbMSDocument(val contentId: String, val dokument: Document, val attachments: List<EbMSAttachment>) {
+data class EbMSDocument(val contentId: String, val dokument: Document, val attachments: List<EbmsAttachment>) {
     fun dokumentType(): DokumentType {
         if (attachments.size > 0) return DokumentType.PAYLOAD
         if (dokument.getElementsByTagNameNS(OASIS_EBXML_MSG_HEADER_XSD_NS_URI, "Acknowledgment").item(0) != null) return DokumentType.ACKNOWLEDGMENT
@@ -49,12 +49,12 @@ data class EbMSDocument(val contentId: String, val dokument: Document, val attac
         throw RuntimeException("Unrecognized dokument type")
     }
 
-    fun createFail(error: Error): EbMSMessageError {
+    fun createFail(error: Error): EbmsMessageError {
         return createFail(ErrorList().also { it.error.add(error) })
     }
 
-    fun createFail(errorList: ErrorList): EbMSMessageError {
-        return EbMSMessageError(
+    fun createFail(errorList: ErrorList): EbmsMessageError {
+        return EbmsMessageError(
             this.messageHeader()
                 .createResponseHeader(newAction = MESSAGE_ERROR_ACTION, newService = EBMS_SERVICE_URI),
             errorList
@@ -85,7 +85,7 @@ fun EbMSDocument.sjekkSignature(signatureDetails: SignatureDetails) {
     log.info(this.messageHeader().marker(), "Signatur OK")
 }
 
-fun EbMSDocument.buildEbmMessage(): EbMSBaseMessage {
+fun EbMSDocument.buildEbmMessage(): EbmsBaseMessage {
     val envelope: Envelope = xmlMarshaller.unmarshal(this.dokument)
     val header = envelope.header!!
     return if (header.acknowledgment() != null) {
@@ -93,9 +93,9 @@ fun EbMSDocument.buildEbmMessage(): EbMSBaseMessage {
         EbmsAcknowledgment(header.messageHeader(), header.acknowledgment()!!, this.dokument)
     } else if (header.errorList() != null) {
         log.info(header.messageHeader().marker(), "Mottatt melding av type ErrorList")
-        EbMSMessageError(header.messageHeader(), header.errorList()!!, this.dokument)
+        EbmsMessageError(header.messageHeader(), header.errorList()!!, this.dokument)
     } else {
         log.info(header.messageHeader().marker(), "Mottatt melding av type payload")
-        EbMSPayloadMessage(this.contentId, this.dokument, header.messageHeader(), header.ackRequested(), this.attachments, LocalDateTime.now())
+        EbmsPayloadMessage(this.contentId, this.dokument, header.messageHeader(), header.ackRequested(), this.attachments, LocalDateTime.now())
     }
 }

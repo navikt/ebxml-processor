@@ -3,10 +3,10 @@ package no.nav.emottak.ebms.processing
 import io.ktor.server.plugins.BadRequestException
 import kotlinx.coroutines.runBlocking
 import no.nav.emottak.ebms.PayloadProcessingClient
-import no.nav.emottak.ebms.model.EbMSBaseMessage
-import no.nav.emottak.ebms.model.EbMSMessageError
-import no.nav.emottak.ebms.model.EbMSPayloadMessage
 import no.nav.emottak.ebms.model.EbmsAcknowledgment
+import no.nav.emottak.ebms.model.EbmsBaseMessage
+import no.nav.emottak.ebms.model.EbmsMessageError
+import no.nav.emottak.ebms.model.EbmsPayloadMessage
 import no.nav.emottak.melding.model.Header
 import no.nav.emottak.melding.model.Party
 import no.nav.emottak.melding.model.PartyId
@@ -15,7 +15,7 @@ import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
 
 class ProcessingService(val httpClient: PayloadProcessingClient) {
 
-    private fun payloadMessage(payloadMessage: EbMSPayloadMessage) {
+    private fun payloadMessage(payloadMessage: EbmsPayloadMessage) {
         val payloads = payloadMessage.attachments
         val header = payloadMessage.messageHeader.payloadRequestHeader()
         payloads.forEach { payload ->
@@ -34,14 +34,14 @@ class ProcessingService(val httpClient: PayloadProcessingClient) {
     private fun acknowledgment(acknowledgment: EbmsAcknowledgment) {
     }
 
-    private fun fail(fail: EbMSMessageError) {
+    private fun fail(fail: EbmsMessageError) {
     }
 
-    fun process(message: EbMSBaseMessage) {
+    fun process(message: EbmsBaseMessage) {
         when (message) {
             is EbmsAcknowledgment -> acknowledgment(message)
-            is EbMSMessageError -> fail(message)
-            is EbMSPayloadMessage -> payloadMessage(message)
+            is EbmsMessageError -> fail(message)
+            is EbmsPayloadMessage -> payloadMessage(message)
         }
     }
 }

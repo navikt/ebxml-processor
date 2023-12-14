@@ -1,11 +1,11 @@
 package no.nav.emottak.ebms.processing
 
 import no.nav.emottak.Event
-import no.nav.emottak.ebms.model.EbMSBaseMessage
+import no.nav.emottak.ebms.model.EbmsBaseMessage
 import no.nav.emottak.util.marker
 import org.slf4j.LoggerFactory
 
-abstract class Processor(open val ebMSMessage: EbMSBaseMessage) {
+abstract class Processor(open val ebMSMessage: EbmsBaseMessage) {
     // TODO: vurder å ta fra RAY: processorer returnerer Events med status
 
     val log = LoggerFactory.getLogger(this.javaClass)

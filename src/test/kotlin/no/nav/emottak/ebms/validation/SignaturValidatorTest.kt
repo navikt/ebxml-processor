@@ -1,7 +1,7 @@
 package no.nav.emottak.ebms.validation
 
-import no.nav.emottak.ebms.model.EbMSAttachment
 import no.nav.emottak.ebms.model.EbMSDocument
+import no.nav.emottak.ebms.model.EbmsAttachment
 import no.nav.emottak.ebms.xml.getDocumentBuilder
 import no.nav.emottak.melding.model.SignatureDetails
 import no.nav.emottak.util.decodeBase64
@@ -24,7 +24,7 @@ class SignaturValidatorTest {
             "Test",
             dokument,
             listOf(
-                EbMSAttachment(
+                EbmsAttachment(
                     attachment,
                     "application/pkcs7-mime",
                     "3CTGI8UKUKU4.ADHEUDMDCY3Q3@speare.no"

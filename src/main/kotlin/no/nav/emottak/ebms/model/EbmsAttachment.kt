@@ -15,4 +15,4 @@
  */
 package no.nav.emottak.ebms.model
 
-data class EbMSAttachment(val dataSource: ByteArray, val contentType: String, val contentId: String)
+data class EbmsAttachment(val dataSource: ByteArray, val contentType: String, val contentId: String)

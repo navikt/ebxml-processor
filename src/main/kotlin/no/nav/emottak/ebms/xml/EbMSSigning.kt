@@ -1,8 +1,8 @@
 package no.nav.emottak.ebms.xml
 
 import jakarta.xml.soap.SOAPConstants
-import no.nav.emottak.ebms.model.EbMSAttachment
 import no.nav.emottak.ebms.model.EbMSDocument
+import no.nav.emottak.ebms.model.EbmsAttachment
 import no.nav.emottak.ebms.validation.CID_PREFIX
 import no.nav.emottak.ebms.validation.EbMSAttachmentResolver
 import no.nav.emottak.melding.model.SignatureDetails
@@ -39,7 +39,7 @@ class EbMSSigning {
     @Throws(XMLSecurityException::class)
     private fun sign(
         document: Document,
-        attachments: List<EbMSAttachment>,
+        attachments: List<EbmsAttachment>,
         publicCertificate: X509Certificate,
         signatureAlgorithm: String,
         hashFunction: String
@@ -73,7 +73,7 @@ class EbMSSigning {
         soapHeader.appendChild(signature.element)
     }
 
-    private fun addAttachmentResolver(signature: XMLSignature, attachments: List<EbMSAttachment>) {
+    private fun addAttachmentResolver(signature: XMLSignature, attachments: List<EbmsAttachment>) {
         val resolver = EbMSAttachmentResolver(attachments)
         signature.signedInfo.addResourceResolver(resolver)
     }

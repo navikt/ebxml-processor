@@ -27,8 +27,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.model.DokumentType
-import no.nav.emottak.ebms.model.EbMSAttachment
 import no.nav.emottak.ebms.model.EbMSDocument
+import no.nav.emottak.ebms.model.EbmsAttachment
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.validation.DokumentValidator
 import no.nav.emottak.ebms.validation.MimeHeaders
@@ -116,7 +116,7 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
                 dokument.first,
                 getDocumentBuilder().parse(ByteArrayInputStream(dokument.second)),
                 attachments.map {
-                    EbMSAttachment(
+                    EbmsAttachment(
                         it.payload(),
                         it.contentType!!.contentType,
                         it.headers[MimeHeaders.CONTENT_ID]!!.convertToValidatedContentID()

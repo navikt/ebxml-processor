@@ -1,6 +1,6 @@
 package no.nav.emottak.ebms.validation
 
-import no.nav.emottak.ebms.model.EbMSAttachment
+import no.nav.emottak.ebms.model.EbmsAttachment
 import no.nav.emottak.melding.model.SignatureDetails
 import no.nav.emottak.util.retrievePublicX509Certificate
 import no.nav.emottak.util.retrieveSignatureElement
@@ -31,7 +31,7 @@ class SignaturValidator() {
     }
 
     @Throws(SignatureException::class)
-    fun validate(signatureDetails: SignatureDetails, dokument: Document, attachments: List<EbMSAttachment>) {
+    fun validate(signatureDetails: SignatureDetails, dokument: Document, attachments: List<EbmsAttachment>) {
         // TODO Sjekk isNonRepudiation?
         val xmlSignature = dokument.retrieveSignatureElement()
         val sertfikatFraCPA = signatureDetails.retrievePublicX509Certificate()
@@ -54,7 +54,7 @@ class SignaturValidator() {
     private fun verify(
         certificate: X509Certificate,
         signature: XMLSignature,
-        attachments: List<EbMSAttachment>
+        attachments: List<EbmsAttachment>
     ): Boolean {
         signature.validate()
         val resolver = EbMSAttachmentResolver(attachments)

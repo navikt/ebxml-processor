@@ -8,11 +8,11 @@ import org.w3c.dom.Document
 import org.xmlsoap.schemas.soap.envelope.Header
 import org.xmlsoap.schemas.soap.envelope.ObjectFactory
 
-class EbMSMessageError(
+class EbmsMessageError(
     override val messageHeader: MessageHeader,
     var errorList: ErrorList,
     override val dokument: Document? = null
-) : EbMSBaseMessage {
+) : EbmsBaseMessage {
 
     fun toEbmsDokument(): EbMSDocument {
         log.warn(this.messageHeader.marker(), "Oppretter ErrorList")
@@ -31,12 +31,3 @@ class EbMSMessageError(
         }
     }
 }
-
-// fun toEbmsDocument():EbMSDocument {
-// legg Evnevlope
-// legg MessageHEader
-// legg ErrorList
-// legg DOM
-// signer
-//  return EbmsDokument
-// }

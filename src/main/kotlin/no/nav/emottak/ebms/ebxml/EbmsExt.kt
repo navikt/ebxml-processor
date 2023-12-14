@@ -1,13 +1,18 @@
 package no.nav.emottak.ebms.ebxml
 
-import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.*
+import no.nav.emottak.ebms.validation.MimeValidationException
+import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.AckRequested
+import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Acknowledgment
+import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ErrorList
+import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Manifest
+import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
 import org.xmlsoap.schemas.soap.envelope.Envelope
 import org.xmlsoap.schemas.soap.envelope.Header
 
 // TODO kan sikkert flytte alt dette til der det brukes.
 
 fun Envelope.getConversationId(): String {
-    val header = this.header.any[0]
+    val header = this.header?.any?.get(0) ?: throw MimeValidationException("Invalid Message Header")
     if (header is MessageHeader) {
         return header.conversationId
     } else {

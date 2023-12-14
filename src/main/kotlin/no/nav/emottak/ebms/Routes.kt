@@ -1,14 +1,17 @@
 package no.nav.emottak.ebms
 
-import io.ktor.client.plugins.*
-import io.ktor.http.*
-import io.ktor.server.application.*
-import io.ktor.server.request.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
+import io.ktor.client.plugins.ClientRequestException
+import io.ktor.client.plugins.ServerResponseException
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.call
+import io.ktor.server.request.header
+import io.ktor.server.response.respond
+import io.ktor.server.response.respondText
+import io.ktor.server.routing.Route
+import io.ktor.server.routing.post
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.model.EbMSDocument
-import no.nav.emottak.ebms.model.EbMSPayloadMessage
+import no.nav.emottak.ebms.model.EbmsPayloadMessage
 import no.nav.emottak.ebms.model.buildEbmMessage
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.validation.DokumentValidator
@@ -96,7 +99,7 @@ fun Route.postEbms(validator: DokumentValidator, processingService: ProcessingSe
         }
 
         // call payload processor
-        if (message is EbMSPayloadMessage) {
+        if (message is EbmsPayloadMessage) {
             log.info(message.messageHeader.marker(), "Payload Processed, Generating Acknowledgement...")
             message.createAcknowledgment().toEbmsDokument().also {
                 call.respondEbmsDokument(it)
