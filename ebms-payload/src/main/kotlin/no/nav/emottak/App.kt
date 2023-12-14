@@ -41,7 +41,7 @@ private fun Application.serverSetup() {
                 log.info(request.header.marker(), "Payload ${request.payloadId} prosessert OK")
                 call.respond(it)
             }.onFailure {
-                log.error(request.header.marker(), "Payload ${request.payloadId}  prosessert med feil: ${it.message}", it)
+                log.error(request.header.marker(), "Payload ${request.payloadId} prosessert med feil: ${it.message}", it)
                 call.respond(HttpStatusCode.BadRequest, it.localizedMessage)
             }
         }
