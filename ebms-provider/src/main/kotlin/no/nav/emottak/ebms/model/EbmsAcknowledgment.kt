@@ -12,7 +12,7 @@ class EbmsAcknowledgment(
     override val messageHeader: MessageHeader,
     val acknowledgment: Acknowledgment,
     override val dokument: Document? = null
-) : EbMSBaseMessage {
+) : EbmsBaseMessage {
 
     fun process() {
         try {

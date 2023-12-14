@@ -1,6 +1,6 @@
 package no.nav.emottak.ebms.validation
 
-import no.nav.emottak.ebms.model.EbMSAttachment
+import no.nav.emottak.ebms.model.EbmsAttachment
 import org.apache.xml.security.signature.XMLSignatureInput
 import org.apache.xml.security.utils.resolver.ResourceResolverContext
 import org.apache.xml.security.utils.resolver.ResourceResolverException
@@ -10,7 +10,7 @@ import java.io.IOException
 
 const val CID_PREFIX = "cid:"
 
-class EbMSAttachmentResolver(private val attachments: List<EbMSAttachment>) : ResourceResolverSpi() {
+class EbMSAttachmentResolver(private val attachments: List<EbmsAttachment>) : ResourceResolverSpi() {
     override fun engineCanResolveURI(context: ResourceResolverContext): Boolean {
         return if (context.uriToResolve.startsWith(CID_PREFIX)) {
             attachments.any { att -> context.uriToResolve.substring(CID_PREFIX.length) == att.contentId }

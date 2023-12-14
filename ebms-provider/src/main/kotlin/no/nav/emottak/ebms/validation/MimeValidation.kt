@@ -1,10 +1,12 @@
 package no.nav.emottak.ebms.validation
 
 import com.sun.xml.messaging.saaj.soap.ver1_1.SOAPMessageFactory1_1Impl
-import io.ktor.http.*
-import io.ktor.http.content.*
-import io.ktor.server.request.*
-import io.ktor.util.*
+import io.ktor.http.ContentType
+import io.ktor.http.Headers
+import io.ktor.http.content.PartData
+import io.ktor.server.request.ApplicationRequest
+import io.ktor.server.request.contentType
+import io.ktor.util.toLowerCasePreservingASCIIRules
 import jakarta.xml.soap.SOAPConstants
 import jakarta.xml.soap.SOAPFault
 import jakarta.xml.soap.SOAPMessage

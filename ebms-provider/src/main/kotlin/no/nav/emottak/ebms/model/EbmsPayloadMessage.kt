@@ -18,21 +18,21 @@ import java.util.*
 import kotlin.collections.ArrayList
 
 // EbmsPayloadMessage
-class EbMSPayloadMessage(
+class EbmsPayloadMessage(
     val contentID: String,
     override val dokument: Document,
     override val messageHeader: MessageHeader,
     val ackRequested: AckRequested? = null,
-    val attachments: List<EbMSAttachment>,
+    val attachments: List<EbmsAttachment>,
     val mottatt: LocalDateTime
-) : EbMSBaseMessage {
+) : EbmsBaseMessage {
     private val eventLogg: ArrayList<Event> = ArrayList() // TODO tenk over
     fun addHendelse(event: Event) {
         eventLogg.add(event)
     }
 
-    fun createFail(): EbMSMessageError {
-        return EbMSMessageError(this.createErrorMessageHeader(), ErrorList())
+    fun createFail(): EbmsMessageError {
+        return EbmsMessageError(this.createErrorMessageHeader(), ErrorList())
     }
 
     fun createAcknowledgment(): EbmsAcknowledgment {
@@ -69,7 +69,7 @@ class EbMSPayloadMessage(
         return acknowledgment
     }
 
-    fun process(): EbMSBaseMessage {
+    fun process(): EbmsBaseMessage {
         return try {
             listOf(
                 DekrypteringProcessor(this)
