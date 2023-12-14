@@ -4,7 +4,6 @@ import jakarta.mail.Authenticator
 import jakarta.mail.PasswordAuthentication
 import jakarta.mail.Session
 import jakarta.mail.Store
-import no.nav.emottak.util.getEnvVar
 import java.util.*
 
 
