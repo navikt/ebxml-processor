@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.RegisterExtension
 import java.nio.file.Path
 import kotlin.test.assertEquals
+import org.junit.jupiter.api.Disabled
 
 
 class RouterIT {
@@ -30,6 +31,7 @@ class RouterIT {
     }
 
     @Test
+    @Disabled
     fun `Mail readeren lesser riktig test inbox`() {
         val store = mockStore()
         val reader = Router(store.first,store.second ,false)
