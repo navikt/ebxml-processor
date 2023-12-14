@@ -19,7 +19,6 @@ import org.w3c.dom.Document
 import org.w3c.dom.NodeList
 import java.security.cert.X509Certificate
 
-
 val ebMSSigning = EbMSSigning()
 class EbMSSigning {
 
@@ -94,13 +93,14 @@ class EbMSSigning {
         val prefix = if (rawPrefix == null) "" else "$rawPrefix:"
         val container = XPathContainer(document)
         container.setXPath(
-            ("not(ancestor-or-self::node()[@"
-                    + prefix
-                    + "actor=\"urn:oasis:names:tc:ebxml-msg:actor:nextMSH\"]|ancestor-or-self::node()[@"
-                    + prefix
-                    + "actor=\""
-                    + SOAP_NEXT_ACTOR
-                    ) + "\"])"
+            (
+                "not(ancestor-or-self::node()[@" +
+                    prefix +
+                    "actor=\"urn:oasis:names:tc:ebxml-msg:actor:nextMSH\"]|ancestor-or-self::node()[@" +
+                    prefix +
+                    "actor=\"" +
+                    SOAP_NEXT_ACTOR
+                ) + "\"])"
         )
         return container.getElementPlusReturns()
     }

@@ -1,9 +1,11 @@
 package no.nav.emottak.ebms.validation
 
-import io.ktor.http.*
-import io.ktor.http.content.*
-import io.ktor.server.request.*
-import io.ktor.util.reflect.*
+import io.ktor.http.ContentType
+import io.ktor.http.Headers
+import io.ktor.http.content.PartData
+import io.ktor.server.request.ApplicationRequest
+import io.ktor.server.request.contentType
+import io.ktor.util.reflect.instanceOf
 import io.mockk.clearAllMocks
 import io.mockk.every
 import io.mockk.mockk

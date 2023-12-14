@@ -10,7 +10,6 @@ import javax.xml.transform.TransformerFactory
 import javax.xml.transform.dom.DOMSource
 import javax.xml.transform.stream.StreamResult
 
-
 @Throws(ParserConfigurationException::class)
 fun getDocumentBuilder(): DocumentBuilder {
     val dbf = DocumentBuilderFactory.newInstance()
@@ -24,9 +23,7 @@ fun getDocumentBuilder(): DocumentBuilder {
     return dbf.newDocumentBuilder()
 }
 
-
-
-fun Document.asString() : String {
+fun Document.asString(): String {
     val domSource = DOMSource(this)
     val transformer: Transformer = TransformerFactory.newInstance().newTransformer()
     val sw = StringWriter()
