@@ -10,7 +10,6 @@ import jakarta.mail.internet.MimeMessage
 import jakarta.mail.internet.MimeMultipart
 import net.logstash.logback.marker.LogstashMarker
 import net.logstash.logback.marker.Markers
-import no.nav.emottak.util.getEnvVar
 import java.util.*
 
 data class EmailMsg(val headers: Map<String, String>, val parts: List<Part>)
