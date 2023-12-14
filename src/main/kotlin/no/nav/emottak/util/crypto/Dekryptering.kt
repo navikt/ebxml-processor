@@ -59,7 +59,7 @@ class Dekryptering {
             val privateCertificates: Map<String, X509Certificate> = getPrivateCertificates()
             val rid = recipient.rid as KeyTransRecipientId
             val issuer = rid.issuer
-            privateCertificates.entries.filter { (key, cert) ->
+            privateCertificates.entries.filter { (_, cert) ->
                 val certificateIssuer = X500Name(cert.issuerX500Principal.name)
                 issuer == certificateIssuer && cert.serialNumber == rid.serialNumber
             }.firstOrNull { entry ->
