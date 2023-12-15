@@ -22,7 +22,7 @@ jobs:
       - name: "Pull push docker image"
         run: "docker pull ghcr.io/curl/curl-container/curl:master && docker tag ghcr.io/curl/curl-container/curl:master ghcr.io/${{ github.repository }}/curl:master && docker push ghcr.io/${{ github.repository }}/curl:master"
       - name: "Deploy"
-        uses: "nais/deploy/actions/deploy@v1"
+        uses: "nais/deploy/actions/deploy@v2"
         env:
           APIKEY: "${{ secrets.NAIS_DEPLOY_APIKEY }}"
           CLUSTER: "dev-fss"
