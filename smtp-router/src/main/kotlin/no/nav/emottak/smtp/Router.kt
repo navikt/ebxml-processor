@@ -63,6 +63,7 @@ class Router(store: Store,val outStore: Session ,val expunge: Boolean = true) : 
                             melding.setRecipients(Message.RecipientType.TO, smtpUsername_outgoing_ny);
                             newInboxCount++
                         } else {
+                            log.info("Routing et annet type melding")
                             val melding = MimeMessage(outStore,(msg as MimeMessage).rawInputStream)
                             melding.setRecipients(Message.RecipientType.TO, smtpUsername_outgoing_ny);
                             Transport.send(melding)

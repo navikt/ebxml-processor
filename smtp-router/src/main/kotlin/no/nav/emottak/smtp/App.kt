@@ -28,12 +28,21 @@ fun Application.myApplicationModule() {
             call.respond("Hello World!")
         }
         get("/routeMail") {
+            var routedMessagesCounterPair= Pair(0,0)
+            Router(incomingStore, session).use {
 
-            Router(incomingStore, session).routeMail()
+                var current = Pair(0,0)
+                val stop = Pair(0,0)
+                    do {
+                            current = it.routeMail().also {
+                                routedMessagesCounterPair = Pair(routedMessagesCounterPair.first + current.first,routedMessagesCounterPair.second + current.second)
+                            }
+                    }while (current != stop)
+                }
                 .also {
                     call.respond(
                         HttpStatusCode.OK,
-                        "Sent ${it.first} to old inbox & ${it.second} to new inbox")
+                        "Sent ${routedMessagesCounterPair.first} to old inbox & ${routedMessagesCounterPair.second} to new inbox")
                 }
 
 
