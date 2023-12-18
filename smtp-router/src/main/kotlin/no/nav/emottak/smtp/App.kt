@@ -30,8 +30,9 @@ fun Application.myApplicationModule() {
         }
         get("/routeMail") {
             var routedMessagesCounterPair= Pair(0,0)
-
-            Router(incomingStore, session).use {
+            val transport = session.getTransport("smtp")
+            transport.connect()
+            Router(incomingStore, session, transport).use {
                measureTimeMillis {
                 var current = Pair(0,0)
                 val stop = Pair(0,0)
@@ -42,6 +43,7 @@ fun Application.myApplicationModule() {
                     }while (current != stop)
                 }
                 .also {
+                    transport.close()
                     call.respond(
                         HttpStatusCode.OK,
                         "Sent ${routedMessagesCounterPair.first} to old inbox & ${routedMessagesCounterPair.second} to new inbox for $it")

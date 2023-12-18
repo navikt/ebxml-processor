@@ -12,7 +12,7 @@ import jakarta.mail.internet.InternetAddress
 import jakarta.mail.internet.MimeMessage
 import jakarta.mail.internet.MimeMultipart
 
-class Router(store: Store,val outStore: Session ,val expunge: Boolean = true) : AutoCloseable {
+class Router(store: Store,val outStore: Session, val transport: Transport ,val expunge: Boolean = true) : AutoCloseable {
 
     val inbox: Folder = store.getFolder("INBOX")
 
@@ -70,7 +70,7 @@ class Router(store: Store,val outStore: Session ,val expunge: Boolean = true) : 
                             melding.setFrom(msg.from.iterator().next())
                             melding.subject = msg.subject
                             melding.setRecipients(Message.RecipientType.TO, smtpUsername_outgoing_ny);
-                            Transport.send(melding)
+                            transport.sendMessage(melding, InternetAddress.parse(smtpUsername_outgoing_ny))
                            // outStore.transport.connect("nyebmstest@test-es.nav.no","test1234")
                            // outStore.transport.sendMessage(msg, InternetAddress.parse("nyebmstest@test-es.nav.no"))
 

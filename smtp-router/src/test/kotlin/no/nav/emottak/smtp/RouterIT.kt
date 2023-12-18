@@ -34,7 +34,7 @@ class RouterIT {
     @Disabled
     fun `Mail readeren lesser riktig test inbox`() {
         val store = mockStore()
-        val reader = Router(store.first,store.second ,false)
+        val reader = Router(store.first,store.second , session.getTransport(),false)
         assertEquals(1, reader.routeMail().let { it.first + it.second })
     }
 
