@@ -12,6 +12,7 @@ import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.response.respond
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
+import kotlin.system.measureTimeMillis
 import org.slf4j.LoggerFactory
 
 fun main() {
@@ -29,6 +30,7 @@ fun Application.myApplicationModule() {
         }
         get("/routeMail") {
             var routedMessagesCounterPair= Pair(0,0)
+            measureTimeMillis {
             Router(incomingStore, session).use {
 
                 var current = Pair(0,0)
@@ -46,7 +48,10 @@ fun Application.myApplicationModule() {
                 }
 
 
-        }
+        }.also {
+            log.info("route mail took $it")
+            }
+            }
     }
 
 }

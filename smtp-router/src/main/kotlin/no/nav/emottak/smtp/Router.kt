@@ -68,6 +68,7 @@ class Router(store: Store,val outStore: Session ,val expunge: Boolean = true) : 
                             val melding = MimeMessage(outStore)
                             if (msg.content is Multipart) melding.setContent(msg.content as Multipart) else melding.setText(msg.content as String)
                             melding.setFrom(msg.from.iterator().next())
+                            melding.subject = msg.subject
                             melding.setRecipients(Message.RecipientType.TO, smtpUsername_outgoing_ny);
                             Transport.send(melding)
                            // outStore.transport.connect("nyebmstest@test-es.nav.no","test1234")
