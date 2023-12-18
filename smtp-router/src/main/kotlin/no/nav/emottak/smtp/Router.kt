@@ -4,6 +4,7 @@ package no.nav.emottak.smtp;
 import jakarta.mail.Flags
 import jakarta.mail.Folder
 import jakarta.mail.Message
+import jakarta.mail.Multipart
 import jakarta.mail.Session
 import jakarta.mail.Store
 import jakarta.mail.Transport
@@ -64,7 +65,9 @@ class Router(store: Store,val outStore: Session ,val expunge: Boolean = true) : 
                             newInboxCount++
                         } else {
                             log.info("Routing et annet type melding")
-                            val melding = MimeMessage(msg as MimeMessage)
+                            val melding = MimeMessage(outStore)
+                            if (msg.content is Multipart) melding.setContent(msg.content as Multipart) else melding.setText(msg.content as String)
+                            melding.setFrom(msg.from.iterator().next())
                             melding.setRecipients(Message.RecipientType.TO, smtpUsername_outgoing_ny);
                             Transport.send(melding)
                            // outStore.transport.connect("nyebmstest@test-es.nav.no","test1234")
