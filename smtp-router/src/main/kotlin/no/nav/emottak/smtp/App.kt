@@ -30,9 +30,9 @@ fun Application.myApplicationModule() {
         }
         get("/routeMail") {
             var routedMessagesCounterPair= Pair(0,0)
-            measureTimeMillis {
-            Router(incomingStore, session).use {
 
+            Router(incomingStore, session).use {
+               measureTimeMillis {
                 var current = Pair(0,0)
                 val stop = Pair(0,0)
                     do {
@@ -44,13 +44,11 @@ fun Application.myApplicationModule() {
                 .also {
                     call.respond(
                         HttpStatusCode.OK,
-                        "Sent ${routedMessagesCounterPair.first} to old inbox & ${routedMessagesCounterPair.second} to new inbox")
+                        "Sent ${routedMessagesCounterPair.first} to old inbox & ${routedMessagesCounterPair.second} to new inbox for $it")
                 }
 
 
-        }.also {
-            log.info("route mail took $it")
-            }
+        }
             }
     }
 
