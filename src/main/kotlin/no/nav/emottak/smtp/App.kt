@@ -129,7 +129,7 @@ fun Application.myApplicationModule() {
                 log.error(it.message, it)
                 call.respond(it.localizedMessage)
             }
-            logBccMessages()
+           // logBccMessages()
         }
 
         get("/mail/log/outgoing") {
