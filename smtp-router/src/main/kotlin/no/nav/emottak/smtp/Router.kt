@@ -64,7 +64,7 @@ class Router(store: Store,val outStore: Session ,val expunge: Boolean = true) : 
                             newInboxCount++
                         } else {
                             log.info("Routing et annet type melding")
-                            val melding = MimeMessage(outStore,(msg as MimeMessage).rawInputStream)
+                            val melding = MimeMessage(msg as MimeMessage)
                             melding.setRecipients(Message.RecipientType.TO, smtpUsername_outgoing_ny);
                             Transport.send(melding)
                            // outStore.transport.connect("nyebmstest@test-es.nav.no","test1234")
