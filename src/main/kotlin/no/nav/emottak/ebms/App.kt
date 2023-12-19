@@ -111,15 +111,15 @@ private fun Application.installRequestTimerPlugin() {
                 val endTime = Duration.between(
                     startTime,
                     Instant.now()
-                ).toKotlinDuration()
+                )
                 simpleLogger.info(
                     Markers.appendEntries(
                         mapOf(
                             Pair("Endpoint", call.request.uri),
-                            Pair("RequestTime", endTime.toString())
+                            Pair("RequestTime", endTime.toMillis())
                         )
                     ),
-                    "Finished " + call.request.uri + " request. Processing time: " + endTime
+                    "Finished " + call.request.uri + " request. Processing time: " + endTime.toKotlinDuration() + " ms"
                 )
             }
         }
