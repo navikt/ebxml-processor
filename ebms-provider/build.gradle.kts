@@ -41,6 +41,8 @@ tasks {
 
 dependencies {
     implementation(project(":felles"))
+    implementation("io.ktor:ktor-server-call-logging-jvm:2.3.4")
+    implementation("io.ktor:ktor-server-core-jvm:2.3.4")
     testImplementation(project(":cpa-repo"))
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.netty)
