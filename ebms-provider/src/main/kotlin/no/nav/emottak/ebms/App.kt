@@ -27,10 +27,6 @@ import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import io.ktor.util.logging.KtorSimpleLogger
-import java.io.ByteArrayInputStream
-import java.time.Duration
-import java.time.Instant
-import kotlin.time.toKotlinDuration
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import net.logstash.logback.marker.Markers
@@ -47,6 +43,10 @@ import no.nav.emottak.ebms.validation.validateMimeSoapEnvelope
 import no.nav.emottak.ebms.xml.asString
 import no.nav.emottak.ebms.xml.getDocumentBuilder
 import org.slf4j.LoggerFactory
+import java.io.ByteArrayInputStream
+import java.time.Duration
+import java.time.Instant
+import kotlin.time.toKotlinDuration
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.App")
 
