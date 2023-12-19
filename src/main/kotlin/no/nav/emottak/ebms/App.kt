@@ -92,6 +92,7 @@ fun Application.ebmsProviderModule() {
     installRequestTimerPlugin()
     routing {
         get("/") {
+            Thread.sleep(10000)
             call.respondText("Hello, world!")
         }
         postEbms(validator, processing)
@@ -102,15 +103,16 @@ private fun Application.installRequestTimerPlugin() {
     install(
         createRouteScopedPlugin("RequestTimer") {
             val simpleLogger = KtorSimpleLogger("RequestTimerLogger")
-            val startTime = Instant.now()
+            var startTime = Instant.now()
             onCall { call ->
+                startTime = Instant.now()
                 simpleLogger.info("Received " + call.request.uri)
             }
-            val endTime = Duration.between(
-                startTime,
-                Instant.now()
-            ).toKotlinDuration()
             onCallRespond { call ->
+                val endTime = Duration.between(
+                    startTime,
+                    Instant.now()
+                ).toKotlinDuration()
                 simpleLogger.info(
                     Markers.appendEntries(
                         mapOf(
