@@ -14,17 +14,22 @@ import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.call
+import io.ktor.server.application.createRouteScopedPlugin
+import io.ktor.server.application.install
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.request.contentType
 import io.ktor.server.request.header
 import io.ktor.server.request.receiveMultipart
 import io.ktor.server.request.receiveStream
+import io.ktor.server.request.uri
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
+import io.ktor.util.logging.KtorSimpleLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import net.logstash.logback.marker.Markers
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.model.DokumentType
 import no.nav.emottak.ebms.model.EbMSDocument
@@ -39,6 +44,9 @@ import no.nav.emottak.ebms.xml.asString
 import no.nav.emottak.ebms.xml.getDocumentBuilder
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayInputStream
+import java.time.Duration
+import java.time.Instant
+import kotlin.time.toKotlinDuration
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.App")
 
@@ -81,13 +89,40 @@ fun Application.ebmsProviderModule() {
     val processingClient = PayloadProcessingClient(client)
     val validator = DokumentValidator(cpaClient)
     val processing = ProcessingService(processingClient)
-
+    installRequestTimerPlugin()
     routing {
         get("/") {
             call.respondText("Hello, world!")
         }
         postEbms(validator, processing)
     }
+}
+
+private fun Application.installRequestTimerPlugin() {
+    install(
+        createRouteScopedPlugin("RequestTimer") {
+            val simpleLogger = KtorSimpleLogger("RequestTimerLogger")
+            val startTime = Instant.now()
+            onCall { call ->
+                simpleLogger.info("Received " + call.request.uri)
+            }
+            val endTime = Duration.between(
+                startTime,
+                Instant.now()
+            ).toKotlinDuration()
+            onCallRespond { call ->
+                simpleLogger.info(
+                    Markers.appendEntries(
+                        mapOf(
+                            Pair("Endpoint", call.request.uri),
+                            Pair("RequestTime", endTime.toString())
+                        )
+                    ),
+                    "Finished " + call.request.uri + " request. Processing time: " + endTime
+                )
+            }
+        }
+    )
 }
 
 @Throws(MimeValidationException::class)
