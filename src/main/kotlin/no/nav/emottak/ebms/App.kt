@@ -92,7 +92,6 @@ fun Application.ebmsProviderModule() {
     installRequestTimerPlugin()
     routing {
         get("/") {
-            Thread.sleep(10000)
             call.respondText("Hello, world!")
         }
         postEbms(validator, processing)
