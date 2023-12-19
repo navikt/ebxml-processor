@@ -47,6 +47,8 @@ import java.io.ByteArrayInputStream
 import java.time.Duration
 import java.time.Instant
 import kotlin.time.toKotlinDuration
+import no.nav.emottak.util.marker
+import no.nav.emottak.util.retrieveLoggableHeaderPairs
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.App")
 
@@ -115,6 +117,7 @@ private fun Application.installRequestTimerPlugin() {
                 simpleLogger.info(
                     Markers.appendEntries(
                         mapOf(
+                            Pair("smtpMessageId", call.request.headers[SMTPHeaders.MESSAGE_ID] ?: "-"),
                             Pair("Endpoint", call.request.uri),
                             Pair("RequestTime", endTime.toMillis())
                         )
