@@ -140,6 +140,8 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
         ContentType.parse("multipart/related") -> {
             val allParts = mutableListOf<PartData>().apply {
                 this@receiveEbmsDokument.receiveMultipart().forEachPart {
+                    if (it is PartData.FileItem) it.streamProvider.invoke()
+                    if (it is PartData.FormItem) it.value
                     this.add(it)
                     it.dispose.invoke()
                 }
