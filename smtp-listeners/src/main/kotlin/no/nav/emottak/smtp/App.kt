@@ -30,7 +30,7 @@ import java.time.Duration
 import java.time.Instant
 import kotlin.time.toKotlinDuration
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import net.logstash.logback.marker.Markers
 import org.eclipse.angus.mail.imap.IMAPFolder
 import org.slf4j.LoggerFactory
@@ -63,7 +63,8 @@ fun Application.myApplicationModule() {
 
                         messages.forEach { message ->
                             runCatching {
-                                launch(Dispatchers.IO) {
+                                withContext(Dispatchers.IO) {
+
                                     if (message.parts.size == 1 && message.parts.first().headers.isEmpty()) {
                                         client.post("https://ebms-provider.intern.dev.nav.no/ebms") {
                                             headers(
@@ -134,17 +135,15 @@ fun Application.myApplicationModule() {
                 }
             }.onSuccess {
                 val timeToCompletion = Duration.between(timeStart, Instant.now())
-                val throughputPerMinute = (messageCount / timeToCompletion.toMillis().toDouble()) / 1000 / 60
-                log.info(
-                    Markers.appendEntries(mapOf(Pair("MailReaderTPM", throughputPerMinute))),
-                    "$messageCount processed in ${timeToCompletion.toKotlinDuration()},($throughputPerMinute tpm)"
-                )
+                val throughputPerMinute = messageCount / timeToCompletion.toMinutes().toDouble()
+                log.info(Markers.appendEntries(mapOf(Pair("MailReaderTPM", throughputPerMinute))),
+                    "$messageCount processed in ${timeToCompletion.toKotlinDuration()},($throughputPerMinute tpm)")
                 call.respond(HttpStatusCode.OK, "Meldinger Lest")
             }.onFailure {
                 log.error(it.message, it)
                 call.respond(it.localizedMessage)
             }
-            // logBccMessages()
+           // logBccMessages()
         }
 
         get("/mail/log/outgoing") {
