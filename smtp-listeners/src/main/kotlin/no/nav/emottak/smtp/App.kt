@@ -26,7 +26,8 @@ import jakarta.mail.Flags
 import jakarta.mail.Folder
 import jakarta.mail.internet.MimeMultipart
 import jakarta.mail.internet.MimeUtility
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.eclipse.angus.mail.imap.IMAPFolder
 import org.slf4j.LoggerFactory
 
@@ -55,7 +56,7 @@ fun Application.myApplicationModule() {
 
                         messages.forEach { message ->
                             runCatching {
-                                runBlocking {
+                                withContext(Dispatchers.IO) {
 
                                     if (message.parts.size == 1 && message.parts.first().headers.isEmpty()) {
                                         client.post("https://ebms-provider.intern.dev.nav.no/ebms") {
