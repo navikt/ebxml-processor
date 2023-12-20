@@ -120,7 +120,7 @@ private fun Application.installRequestTimerPlugin() {
                             Pair("RequestTime", endTime.toMillis())
                         )
                     ),
-                    "Finished " + call.request.uri + " request. Processing time: " + endTime.toKotlinDuration() + " ms"
+                    "Finished " + call.request.uri + " request. Processing time: " + endTime.toKotlinDuration()
                 )
             }
         }
