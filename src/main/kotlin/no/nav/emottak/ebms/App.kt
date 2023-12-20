@@ -177,7 +177,7 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
 
         ContentType.parse("text/xml") -> {
             val dokument = withContext(Dispatchers.IO) {
-                if (debugClearText || "base64" != request.header(MimeHeaders.CONTENT_TRANSFER_ENCODING)) {
+                if (debugClearText || "base64" != request.header(MimeHeaders.CONTENT_TRANSFER_ENCODING)?.lowercase()) {
                     this@receiveEbmsDokument.receive<ByteArray>()
                 } else {
                     java.util.Base64.getMimeDecoder()
