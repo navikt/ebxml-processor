@@ -65,6 +65,7 @@ fun Application.myApplicationModule() {
                         messages.forEach { message ->
                             runCatching {
                                 withContext(Dispatchers.IO) {
+                                //launch(Dispatchers.IO) {
                                     if (message.parts.size == 1 && message.parts.first().headers.isEmpty()) {
                                         client.post("https://ebms-provider.intern.dev.nav.no/ebms") {
                                             headers(
@@ -135,7 +136,7 @@ fun Application.myApplicationModule() {
                 }
             }.onSuccess {
                 val timeToCompletion = Duration.between(timeStart, Instant.now())
-                val throughputPerMinute = (messageCount / timeToCompletion.toMillis().toDouble()) / 1000 / 60
+                val throughputPerMinute = messageCount / (timeToCompletion.toMillis().toDouble() / 1000 / 60)
                 log.info(
                     Markers.appendEntries(mapOf(Pair("MailReaderTPM", throughputPerMinute))),
                     "$messageCount processed in ${timeToCompletion.toKotlinDuration()},($throughputPerMinute tpm)"
