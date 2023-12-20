@@ -55,7 +55,9 @@ fun main() {
     // val database = Database(mapHikariConfig(DatabaseConfig()))
     // database.migrate()
     System.setProperty("io.ktor.http.content.multipart.skipTempFile", "true")
-    embeddedServer(Netty, port = 8080, module = Application::ebmsProviderModule).start(wait = true)
+    embeddedServer(Netty, port = 8080, module = Application::ebmsProviderModule, configure = {
+        this.maxChunkSize = 100000
+    }).start(wait = true)
 }
 
 fun defaultHttpClient(): () -> HttpClient {
