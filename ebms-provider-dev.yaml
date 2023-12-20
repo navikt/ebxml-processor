@@ -13,11 +13,11 @@ spec:
     cpuThresholdPercentage: 50
   resources:
     limits:
-      cpu: "200m"
-      memory: "256Mi"
+      cpu: "1000m"
+      memory: "512Mi"
     requests:
-      cpu: "200m"
-      memory: "256Mi"
+      cpu: "1000m"
+      memory: "5212Mi"
   ingresses:
     - "https://ebms-provider.intern.dev.nav.no"
   gcp:
