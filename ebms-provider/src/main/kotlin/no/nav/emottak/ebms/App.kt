@@ -8,7 +8,7 @@ import io.ktor.client.engine.cio.CIO
 import io.ktor.http.ContentDisposition
 import io.ktor.http.ContentType
 import io.ktor.http.content.PartData
-import io.ktor.http.content.readAllParts
+import io.ktor.http.content.forEachPart
 import io.ktor.http.content.streamProvider
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
@@ -20,8 +20,8 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.request.contentType
 import io.ktor.server.request.header
+import io.ktor.server.request.receive
 import io.ktor.server.request.receiveMultipart
-import io.ktor.server.request.receiveStream
 import io.ktor.server.request.uri
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
@@ -54,7 +54,7 @@ fun logger() = log
 fun main() {
     // val database = Database(mapHikariConfig(DatabaseConfig()))
     // database.migrate()
-    System.setProperty("io.ktor.http.content.multipart.skipTempFile","true")
+    System.setProperty("io.ktor.http.content.multipart.skipTempFile", "true")
     embeddedServer(Netty, port = 8080, module = Application::ebmsProviderModule).start(wait = true)
 }
 
@@ -76,7 +76,9 @@ fun PartData.payload(clearText: Boolean = false): ByteArray {
             java.util.Base64.getMimeDecoder().decode(this.value)
         }
         is PartData.FileItem -> {
-            val bytes = this.streamProvider.invoke().readAllBytes()
+            val stream = this.streamProvider.invoke()
+            val bytes = stream.readAllBytes()
+            stream.close()
             if (clearText) return bytes else java.util.Base64.getMimeDecoder().decode(bytes)
         }
 
@@ -134,7 +136,13 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
     val debugClearText = !request.header("cleartext").isNullOrBlank()
     return when (val contentType = this.request.contentType().withoutParameters()) {
         ContentType.parse("multipart/related") -> {
-            val allParts = this.receiveMultipart().readAllParts()
+            val allParts = mutableListOf<PartData>().apply {
+                this@receiveEbmsDokument.receiveMultipart().forEachPart {
+                    this.add(it)
+                    it.dispose.invoke()
+                }
+            }
+
             val dokument = allParts.find {
                 it.contentType?.withoutParameters() == ContentType.parse("text/xml") && it.contentDisposition == null
             }.also {
@@ -166,10 +174,10 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
         ContentType.parse("text/xml") -> {
             val dokument = withContext(Dispatchers.IO) {
                 if (debugClearText || "base64" != request.header(MimeHeaders.CONTENT_TRANSFER_ENCODING)) {
-                    this@receiveEbmsDokument.receiveStream().readAllBytes()
+                    this@receiveEbmsDokument.receive<ByteArray>()
                 } else {
                     java.util.Base64.getMimeDecoder()
-                        .decode(this@receiveEbmsDokument.receiveStream().readAllBytes())
+                        .decode(this@receiveEbmsDokument.receive<ByteArray>())
                 }
             }
             EbMSDocument(
