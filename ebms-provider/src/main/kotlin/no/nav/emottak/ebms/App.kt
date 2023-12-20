@@ -54,6 +54,7 @@ fun logger() = log
 fun main() {
     // val database = Database(mapHikariConfig(DatabaseConfig()))
     // database.migrate()
+    System.setProperty("io.ktor.http.content.multipart.skipTempFile","true")
     embeddedServer(Netty, port = 8080, module = Application::ebmsProviderModule).start(wait = true)
 }
 
