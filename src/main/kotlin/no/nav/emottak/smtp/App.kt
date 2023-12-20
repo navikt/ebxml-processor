@@ -26,8 +26,12 @@ import jakarta.mail.Flags
 import jakarta.mail.Folder
 import jakarta.mail.internet.MimeMultipart
 import jakarta.mail.internet.MimeUtility
+import java.time.Duration
+import java.time.Instant
+import kotlin.time.toKotlinDuration
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import net.logstash.logback.marker.Markers
 import org.eclipse.angus.mail.imap.IMAPFolder
 import org.slf4j.LoggerFactory
 
@@ -48,8 +52,11 @@ fun Application.myApplicationModule() {
         get("/mail/read") {
             val client = HttpClient(CIO)
             call.respond(HttpStatusCode.OK, "Meldingslesing startet ...")
+            var messageCount = 0
+            var timeStart = Instant.now()
             runCatching {
                 MailReader(incomingStore, false).use {
+                    messageCount = it.count()
                     log.info("read ${it.count()} from innbox")
                     do {
                         val messages = it.readMail()
@@ -127,6 +134,10 @@ fun Application.myApplicationModule() {
                     } while (messages.isNotEmpty())
                 }
             }.onSuccess {
+                val timeToCompletion = Duration.between(timeStart, Instant.now())
+                val throughputPerMinute = messageCount / timeToCompletion.toMinutes().toDouble()
+                log.info(Markers.appendEntries(mapOf(Pair("MailReaderTPM", throughputPerMinute))),
+                    "$messageCount processed in ${timeToCompletion.toKotlinDuration()},($throughputPerMinute tpm)")
                 call.respond(HttpStatusCode.OK, "Meldinger Lest")
             }.onFailure {
                 log.error(it.message, it)
