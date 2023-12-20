@@ -31,6 +31,7 @@ import java.time.Instant
 import kotlin.time.toKotlinDuration
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import net.logstash.logback.marker.Markers
 import org.eclipse.angus.mail.imap.IMAPFolder
 import org.slf4j.LoggerFactory
@@ -63,7 +64,7 @@ fun Application.myApplicationModule() {
 
                         messages.forEach { message ->
                             runCatching {
-                                launch(Dispatchers.IO) {
+                                withContext(Dispatchers.IO) {
                                     if (message.parts.size == 1 && message.parts.first().headers.isEmpty()) {
                                         client.post("https://ebms-provider.intern.dev.nav.no/ebms") {
                                             headers(
