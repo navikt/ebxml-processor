@@ -64,8 +64,8 @@ fun Application.myApplicationModule() {
 
                         messages.forEach { message ->
                             runCatching {
-                                withContext(Dispatchers.IO) {
-                                //launch(Dispatchers.IO) {
+                                //withContext(Dispatchers.IO) {
+                                launch(Dispatchers.IO) {
                                     if (message.parts.size == 1 && message.parts.first().headers.isEmpty()) {
                                         client.post("https://ebms-provider.intern.dev.nav.no/ebms") {
                                             headers(
