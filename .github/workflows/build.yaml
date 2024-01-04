@@ -46,7 +46,7 @@ jobs:
           tag: ${{ github.sha }}
           dockerfile: Dockerfile # optional, default Dockerfile
           docker_context: ebms-provider # optional, default .
-          image_suffix: provider
+          image_suffix: ebms-provider
           project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }} # required, but is defined as an organization variable
           identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }} # required, but is defined as an organization secret
       - name: Docker build and push ebms-payload
@@ -57,7 +57,7 @@ jobs:
           tag: ${{ github.sha }}
           dockerfile: Dockerfile # optional, default Dockerfile
           docker_context: ebms-payload # optional, default .
-          image_suffix: payload
+          image_suffix: ebms-payload
           project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }} # required, but is defined as an organization variable
           identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }} # required, but is defined as an organization secret
       - name: Docker build and push cpa-repo
@@ -68,7 +68,7 @@ jobs:
           tag: ${{ github.sha }}
           dockerfile: Dockerfile # optional, default Dockerfile
           docker_context: cpa-repo # optional, default .
-          image_suffix: cpa
+          image_suffix: cpa-repo
           project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }} # required, but is defined as an organization variable
           identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }} # required, but is defined as an organization secret
       - name: Docker build and push smtp-listeners
@@ -79,7 +79,7 @@ jobs:
           tag: ${{ github.sha }}
           dockerfile: Dockerfile # optional, default Dockerfile
           docker_context: smtp-listeners # optional, default .
-          image_suffix: listener
+          image_suffix: smtp-listener
           project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }} # required, but is defined as an organization variable
           identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }} # required, but is defined as an organization secret
       - name: Docker build and push smtp-router
@@ -90,7 +90,7 @@ jobs:
           tag: ${{ github.sha }}
           dockerfile: Dockerfile # optional, default Dockerfile
           docker_context: smtp-router # optional, default .
-          image_suffix: router
+          image_suffix: smtp-router
           project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }} # required, but is defined as an organization variable
           identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }} # required, but is defined as an organization secret
     outputs:
