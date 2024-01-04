@@ -1,4 +1,4 @@
-package no.nav.emottak.util;
+package no.nav.emottak.util
 
 import io.ktor.server.plugins.BadRequestException
 import java.io.ByteArrayInputStream

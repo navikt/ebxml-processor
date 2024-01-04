@@ -18,5 +18,6 @@ data class Melding(
     constructor(payloadRequest: PayloadRequest) : this(
         header = payloadRequest.header,
         originalPayload = payloadRequest.payload,
-        processedPayload = payloadRequest.payload)
+        processedPayload = payloadRequest.payload
+    )
 }

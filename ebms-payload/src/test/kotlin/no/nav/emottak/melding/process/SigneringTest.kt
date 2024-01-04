@@ -23,7 +23,7 @@ class SigneringTest {
     companion object {
         @JvmStatic
         @BeforeAll
-        fun setup(): Unit {
+        fun setup() {
             setupEnv()
         }
     }

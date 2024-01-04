@@ -17,16 +17,17 @@ class DekrypteringTest {
 
         val expectedOutput = createInputstreamFromFile("src/test/resources/xml/testfil.xml").readBytes()
 
-        assertTrue(expectedOutput.contentEquals(dekryptert.also { println("dekryptert" + String(dekryptert)) }).also { println("expected" + String(expectedOutput))  })
-
+        assertTrue(
+            expectedOutput.contentEquals(dekryptert.also { println("dekryptert" + String(dekryptert)) })
+                .also { println("expected" + String(expectedOutput)) }
+        )
     }
 
     companion object {
         @JvmStatic
         @BeforeAll
-        fun setup(): Unit {
+        fun setup() {
             setupEnv()
         }
     }
 }
-

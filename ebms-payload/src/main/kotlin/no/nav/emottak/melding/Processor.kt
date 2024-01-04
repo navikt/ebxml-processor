@@ -4,7 +4,6 @@ import no.nav.emottak.melding.model.Melding
 import no.nav.emottak.melding.model.PayloadRequest
 import no.nav.emottak.melding.model.PayloadResponse
 import no.nav.emottak.util.GZipUtil
-import no.nav.emottak.util.signatur.SignaturVerifisering
 import no.nav.emottak.util.createDocument
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.crypto.Dekryptering
@@ -14,13 +13,13 @@ import no.nav.emottak.util.crypto.krypterDokument
 import no.nav.emottak.util.getByteArrayFromDocument
 import no.nav.emottak.util.hentKrypteringssertifikat
 import no.nav.emottak.util.marker
+import no.nav.emottak.util.signatur.SignaturVerifisering
 import no.nav.emottak.util.signatur.Signering
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayInputStream
 
 internal val log = LoggerFactory.getLogger("no.nav.emottak.melding.Processor")
 class Processor {
-
 
     fun process(payloadRequest: PayloadRequest): PayloadResponse {
         return if (payloadRequest.isIncomingMessage()) {
@@ -34,7 +33,7 @@ class Processor {
         val melding = Melding(payloadRequest)
             .dekrypter()
             .dekomprimer()
-            //.verifiserXML()
+            // .verifiserXML()
             .verifiserSignatur()
         return PayloadResponse(
             payloadRequest.payloadId,
@@ -44,7 +43,7 @@ class Processor {
 
     fun processOutgoing(payloadRequest: PayloadRequest): PayloadResponse {
         val melding = Melding(payloadRequest)
-            //.verifiserXML()
+            // .verifiserXML()
             .signer()
             .komprimer()
             .krypter()
@@ -56,7 +55,7 @@ class Processor {
 }
 
 fun PayloadRequest.isIncomingMessage(): Boolean {
-    //TODO
+    // TODO
     return true
 }
 
@@ -78,7 +77,7 @@ fun Melding.signer(): Melding {
     log.info(this.header.marker(), "Signerer melding")
     return this.copy(
         processedPayload = getByteArrayFromDocument(
-            signering.signerXML(createDocument( ByteArrayInputStream(this.processedPayload)))
+            signering.signerXML(createDocument(ByteArrayInputStream(this.processedPayload)))
         ),
         signert = true
     )
@@ -112,13 +111,11 @@ fun Melding.krypter(): Melding {
     val gyldigSertifikat = header.to.partyId.map {
         createX509Certificate(
             hentKrypteringssertifikat(header.cpaId, it)
-        ) }
-        .filter{ it.erGyldig() }
-        .first() // TODO skal mer til for å bestemme hvilket sertifikat?
+        )
+    }.first { it.erGyldig() } // TODO skal mer til for å bestemme hvilket sertifikat?
 
     return this.copy(
         processedPayload = krypterDokument(this.processedPayload, gyldigSertifikat),
         kryptert = true
     )
 }
-

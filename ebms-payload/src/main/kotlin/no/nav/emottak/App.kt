@@ -45,6 +45,5 @@ private fun Application.serverSetup() {
                 call.respond(HttpStatusCode.BadRequest, it.localizedMessage)
             }
         }
-
     }
 }
