@@ -30,6 +30,9 @@ import java.time.Duration
 import java.time.Instant
 import kotlin.time.toKotlinDuration
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import net.logstash.logback.marker.Markers
@@ -61,11 +64,10 @@ fun Application.myApplicationModule() {
                     log.info("read ${it.count()} from innbox")
                     do {
                         val messages = it.readMail()
-
-                        messages.forEach { message ->
-                            runCatching {
-                                //withContext(Dispatchers.IO) {
-                                launch(Dispatchers.IO) {
+                        messages.map { message ->
+                            async(Dispatchers.IO) {
+                                runCatching {
+                                    //withContext(Dispatchers.IO) {
                                     if (message.parts.size == 1 && message.parts.first().headers.isEmpty()) {
                                         client.post("https://ebms-provider.intern.dev.nav.no/ebms") {
                                             headers(
@@ -126,11 +128,11 @@ fun Application.myApplicationModule() {
                                             )
                                         }
                                     }
+                                }.onFailure {
+                                    log.error(it.message, it)
                                 }
-                            }.onFailure {
-                                log.error(it.message, it)
                             }
-                        }
+                        }.awaitAll()
                         log.info("Inbox has messages ${messages.isNotEmpty()}")
                     } while (messages.isNotEmpty())
                 }
