@@ -6,6 +6,7 @@ import io.ktor.client.request.forms.MultiPartFormDataContent
 import io.ktor.client.request.headers
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
+import io.ktor.client.statement.HttpResponse
 import io.ktor.http.ContentType
 import io.ktor.http.Headers
 import io.ktor.http.HeadersBuilder
@@ -29,6 +30,7 @@ import jakarta.mail.internet.MimeUtility
 import java.time.Duration
 import java.time.Instant
 import kotlin.time.toKotlinDuration
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -62,79 +64,83 @@ fun Application.myApplicationModule() {
                 MailReader(incomingStore, false).use {
                     messageCount = it.count()
                     log.info("read ${it.count()} from innbox")
+                    val asyncJobList: ArrayList<Deferred<Any>> = ArrayList()
                     do {
                         val messages = it.readMail()
                         messages.map { message ->
-                            async(Dispatchers.IO) {
-                                runCatching {
-                                    //withContext(Dispatchers.IO) {
-                                    if (message.parts.size == 1 && message.parts.first().headers.isEmpty()) {
-                                        client.post("https://ebms-provider.intern.dev.nav.no/ebms") {
-                                            headers(
-                                                message.headers.filterHeader(
-                                                    MimeHeaders.MIME_VERSION,
-                                                    MimeHeaders.CONTENT_ID,
-                                                    MimeHeaders.SOAP_ACTION,
-                                                    MimeHeaders.CONTENT_TYPE,
-                                                    MimeHeaders.CONTENT_TRANSFER_ENCODING,
-                                                    SMTPHeaders.FROM,
-                                                    SMTPHeaders.TO,
-                                                    SMTPHeaders.MESSAGE_ID,
-                                                    SMTPHeaders.DATE,
-                                                    SMTPHeaders.X_MAILER
-                                                )
-                                            )
-                                            setBody(
-                                                message.parts.first().bytes
-                                            )
-
-                                        }
-                                    } else {
-                                        val partData: List<PartData> = message.parts.map { part ->
-                                            PartData.FormItem(
-                                                String(part.bytes), {}, Headers.build(
-                                                    part.headers.filterHeader(
+                            asyncJobList.add(
+                                async(Dispatchers.IO) {
+                                    runCatching {
+                                        //withContext(Dispatchers.IO) {
+                                        if (message.parts.size == 1 && message.parts.first().headers.isEmpty()) {
+                                            client.post("https://ebms-provider.intern.dev.nav.no/ebms") {
+                                                headers(
+                                                    message.headers.filterHeader(
+                                                        MimeHeaders.MIME_VERSION,
                                                         MimeHeaders.CONTENT_ID,
+                                                        MimeHeaders.SOAP_ACTION,
                                                         MimeHeaders.CONTENT_TYPE,
                                                         MimeHeaders.CONTENT_TRANSFER_ENCODING,
-                                                        MimeHeaders.CONTENT_DISPOSITION,
-                                                        MimeHeaders.CONTENT_DESCRIPTION
+                                                        SMTPHeaders.FROM,
+                                                        SMTPHeaders.TO,
+                                                        SMTPHeaders.MESSAGE_ID,
+                                                        SMTPHeaders.DATE,
+                                                        SMTPHeaders.X_MAILER
                                                     )
                                                 )
-                                            )
-                                        }
-                                        val contentType = message.headers[MimeHeaders.CONTENT_TYPE]!!
-                                        val boundary = ContentType.parse(contentType).parameter("boundary")
+                                                setBody(
+                                                    message.parts.first().bytes
+                                                )
 
-                                        client.post("https://ebms-provider.intern.dev.nav.no/ebms") {
-                                            headers(
-                                                message.headers.filterHeader(
-                                                    MimeHeaders.MIME_VERSION,
-                                                    MimeHeaders.CONTENT_ID,
-                                                    MimeHeaders.SOAP_ACTION,
-                                                    MimeHeaders.CONTENT_TYPE,
-                                                    MimeHeaders.CONTENT_TRANSFER_ENCODING,
-                                                    SMTPHeaders.FROM,
-                                                    SMTPHeaders.TO,
-                                                    SMTPHeaders.MESSAGE_ID,
-                                                    SMTPHeaders.DATE,
-                                                    SMTPHeaders.X_MAILER
+                                            }
+                                        } else {
+                                            val partData: List<PartData> = message.parts.map { part ->
+                                                PartData.FormItem(
+                                                    String(part.bytes), {}, Headers.build(
+                                                        part.headers.filterHeader(
+                                                            MimeHeaders.CONTENT_ID,
+                                                            MimeHeaders.CONTENT_TYPE,
+                                                            MimeHeaders.CONTENT_TRANSFER_ENCODING,
+                                                            MimeHeaders.CONTENT_DISPOSITION,
+                                                            MimeHeaders.CONTENT_DESCRIPTION
+                                                        )
+                                                    )
                                                 )
-                                            )
-                                            setBody(
-                                                MultiPartFormDataContent(
-                                                    partData, boundary!!, ContentType.parse(contentType)
+                                            }
+                                            val contentType = message.headers[MimeHeaders.CONTENT_TYPE]!!
+                                            val boundary = ContentType.parse(contentType).parameter("boundary")
+
+                                            client.post("https://ebms-provider.intern.dev.nav.no/ebms") {
+                                                headers(
+                                                    message.headers.filterHeader(
+                                                        MimeHeaders.MIME_VERSION,
+                                                        MimeHeaders.CONTENT_ID,
+                                                        MimeHeaders.SOAP_ACTION,
+                                                        MimeHeaders.CONTENT_TYPE,
+                                                        MimeHeaders.CONTENT_TRANSFER_ENCODING,
+                                                        SMTPHeaders.FROM,
+                                                        SMTPHeaders.TO,
+                                                        SMTPHeaders.MESSAGE_ID,
+                                                        SMTPHeaders.DATE,
+                                                        SMTPHeaders.X_MAILER
+                                                    )
                                                 )
-                                            )
+                                                setBody(
+                                                    MultiPartFormDataContent(
+                                                        partData, boundary!!, ContentType.parse(contentType)
+                                                    )
+                                                )
+                                            }
                                         }
+                                    }.onFailure {
+                                        log.error(it.message, it)
                                     }
-                                }.onFailure {
-                                    log.error(it.message, it)
                                 }
-                            }
-                        }.awaitAll()
+                            )
+                        }
                         log.info("Inbox has messages ${messages.isNotEmpty()}")
                     } while (messages.isNotEmpty())
+                    asyncJobList.awaitAll()
                 }
             }.onSuccess {
                 val timeToCompletion = Duration.between(timeStart, Instant.now())
