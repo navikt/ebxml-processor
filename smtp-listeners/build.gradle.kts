@@ -30,6 +30,7 @@ dependencies {
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.cio)
     implementation(libs.bundles.jakarta.mail)
+    implementation(libs.jsch)
     testRuntimeOnly(testLibs.junit.jupiter.engine)
     testImplementation(testLibs.mockk.jvm)
     testImplementation(testLibs.mockk.dsl.jvm)

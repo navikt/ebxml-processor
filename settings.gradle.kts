@@ -16,6 +16,7 @@ dependencyResolutionManagement {
             version("ktor", "2.3.4")
             version("jakarta-mail", "2.1.2")
             version("eclipse-angus", "2.0.2")
+            version("jsch","0.1.55")
 
             library("bcpkix-jdk18on", "org.bouncycastle", "bcpkix-jdk18on").versionRef("bouncycastle")
             library("bcprov-jdk18on", "org.bouncycastle", "bcprov-jdk18on").versionRef("bouncycastle")
@@ -26,6 +27,8 @@ dependencyResolutionManagement {
             library("exposed-java-time", "org.jetbrains.exposed", "exposed-java-time").versionRef("exposed")
             library("exposed-jdbc", "org.jetbrains.exposed", "exposed-jdbc").versionRef("exposed")
             library("exposed-json", "org.jetbrains.exposed", "exposed-json").versionRef("exposed")
+
+            library("jsch","com.jcraft","jsch").versionRef("jsch")
 
             library("ktor-server-core", "io.ktor", "ktor-server-core").versionRef("ktor")
             library("ktor-server-netty", "io.ktor", "ktor-server-netty").versionRef("ktor")
