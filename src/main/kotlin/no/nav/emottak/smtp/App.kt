@@ -57,16 +57,13 @@ fun Application.myApplicationModule() {
         get("/test") {
             call.respond("Hello World!")
         }
-        get("/testsftp2") {
-            call.respond("Hello World!")
-        }
 
         get("/testsftp") {
             val jsch = JSch()
             val knownHosts = "b27drvl011.preprod.local,10.183.32.98 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBPHicnwpAS9dsHTlMm2NSm9BSu0yvacXHNCjvcJpMH8MEbJWAZ1/2EhdWxkeXueMnIOKJhEwK02kZ7FFUbzzWms="
             jsch.setKnownHosts(ByteArrayInputStream(knownHosts.toByteArray()))
             val config = NFSConfig()
-            log.info("test key is" + config.nfsKey)
+            log.info("test key is" + config.nfsKey.length)
             call.respond(HttpStatusCode.OK, "Hello World!")
         }
 
