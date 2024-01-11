@@ -1,5 +1,6 @@
 package no.nav.emottak.smtp
 
+import com.jcraft.jsch.JSch
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.forms.MultiPartFormDataContent
@@ -38,8 +39,10 @@ import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import net.logstash.logback.marker.Markers
+import no.nav.emottak.nfs.NFSConfig
 import org.eclipse.angus.mail.imap.IMAPFolder
 import org.slf4j.LoggerFactory
+import java.io.ByteArrayInputStream
 
 fun main() {
     embeddedServer(Netty, port = 8080, module = Application::myApplicationModule).start(wait = true)
@@ -53,6 +56,18 @@ fun Application.myApplicationModule() {
     routing {
         get("/test") {
             call.respond("Hello World!")
+        }
+        get("/testsftp2") {
+            call.respond("Hello World!")
+        }
+
+        get("/testsftp") {
+            val jsch = JSch()
+            val knownHosts = "b27drvl011.preprod.local,10.183.32.98 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBPHicnwpAS9dsHTlMm2NSm9BSu0yvacXHNCjvcJpMH8MEbJWAZ1/2EhdWxkeXueMnIOKJhEwK02kZ7FFUbzzWms="
+            jsch.setKnownHosts(ByteArrayInputStream(knownHosts.toByteArray()))
+            val config = NFSConfig()
+            log.info("test key is" + config.nfsKey)
+            call.respond(HttpStatusCode.OK, "Hello World!")
         }
 
         get("/mail/read") {
