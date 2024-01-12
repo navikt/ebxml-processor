@@ -87,13 +87,16 @@ fun Application.myApplicationModule() {
         }
 
         get("/testsftp") {
+            val privKey = """"""
+            val pubkey = """"""
+
             val jsch = JSch()
             val knownHosts = "b27drvl011.preprod.local,10.183.32.98 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBPHicnwpAS9dsHTlMm2NSm9BSu0yvacXHNCjvcJpMH8MEbJWAZ1/2EhdWxkeXueMnIOKJhEwK02kZ7FFUbzzWms="
             jsch.setKnownHosts(ByteArrayInputStream(knownHosts.toByteArray()))
             val nfsConfig = NFSConfig()
             val privateKey = nfsConfig.nfsKey.toByteArray()
-            jsch.addIdentity("srvEmottakCPA",privateKey,null,"cpatest".toByteArray())
-            val session = jsch.getSession("srvEmottakCPA","10.183.32.98",25)
+            jsch.addIdentity("srvEmottakCPA",privKey.toByteArray(),pubkey.toByteArray(),"cpatest".toByteArray())
+            val session = jsch.getSession("srvEmottakCPA","10.183.32.98",22)
             session.userInfo = DummyUserInfo()
             session.connect()
             val sftpChannel = session.openChannel("SFTP") as ChannelSftp
