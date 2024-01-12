@@ -8,14 +8,25 @@ use MIME::Parser;
 
 use autodie;
 
-my $readDirectory = "in";
-my $writeDirectory = "out";
-my $fileTypeFilter = ".msg";
+my ($readDirectory, $writeDirectory) = @ARGV;
 
-my @behandlerKrav = ("BehandlerKrav", "OppgjorsMelding");
-my @testType = ("testService", "testAction");
+if (not defined $readDirectory) {
+    die "Need input directory (call with command line arguments 'readDirectory' 'writeDirectory'\n";
+}
+if (not defined $writeDirectory) {
+    die "Need output directory (call with command line arguments 'readDirectory' 'writeDirectory'\n";
+}
 
 my $dryRunOnly = 1;
+if ($dryRunOnly ne 0) {
+    printf "NB! dryRunOnly mode active, will not actually move any files!\n", $dryRunOnly;
+}
+
+my $fileTypeFilter = ".msg";
+
+# Service og action kombinasjoner som skal flyttes
+my @behandlerKrav = ("BehandlerKrav", "OppgjorsMelding");
+my @testType = ("testService", "testAction");
 
 printf "Checking directory %s...\n", $readDirectory;
 opendir(DIR, $readDirectory) or die "Can't open $readDirectory: $!";
@@ -28,7 +39,7 @@ foreach my $filename (readdir(DIR)) {
     $fileCounter = $fileCounter + 1;
 
     if ($filename =~ m/$fileTypeFilter/) {
-        my $parser = new MIME::Parser;
+        my $parser = MIME::Parser->new;
         $parser->output_to_core(1); #ikke skriv fil til disk
 
         # Leser epost
@@ -54,14 +65,10 @@ foreach my $filename (readdir(DIR)) {
         ) {
             if ($dryRunOnly eq 0) {
                 move("$readDirectory/$filename", "$writeDirectory/$filename");
-                printf "%s moved!\n", $filename;
-            } else {
-                printf "%s moved, but not really because dryRunOnly is true\n", $filename;
             }
+            printf "%s moved!\n", $filename;
             $moveCounter = $moveCounter + 1;
         }
-    } else {
-#        printf "-skipped %s!\n", $filename;
     }
 }
 
