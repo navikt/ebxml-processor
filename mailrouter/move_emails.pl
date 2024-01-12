@@ -1,21 +1,19 @@
 #!/usr/bin/perl
 use strict;
-#use warnings;
+use warnings;
 use File::Copy;
 use XML::LibXML;
 use List::Util qw(any);
+use MIME::Parser;
 
 use autodie;
 
 my $readDirectory = "in";
 my $writeDirectory = "out";
-my $fileTypeFilter = ".xml";
+my $fileTypeFilter = ".msg";
 
 my @behandlerKrav = ("BehandlerKrav", "OppgjorsMelding");
 my @testType = ("testService", "testAction");
-
-#my @services = ("BehandlerKrav", "testService");
-#my @actions = ("OppgjorsMelding", "testAction");
 
 my $dryRunOnly = 1;
 
@@ -30,12 +28,23 @@ foreach my $filename (readdir(DIR)) {
     $fileCounter = $fileCounter + 1;
 
     if ($filename =~ m/$fileTypeFilter/) {
-        my $dom = XML::LibXML->load_xml(location => "$readDirectory/$filename");
+        my $parser = new MIME::Parser;
+        $parser->output_to_core(1); #ikke skriv fil til disk
+
+        # Leser epost
+        my $entity = $parser->parse_open("$readDirectory/$filename");
+        my $first_part = $entity->parts(0);
+        my $body = $first_part->bodyhandle->as_string;
+
+        # Leser ebxml dokument
+        my $xml_parser = XML::LibXML->new;
+        my $dom = $xml_parser->parse_string($body);
 
         my $xpc = XML::LibXML::XPathContext->new($dom);
         $xpc->registerNs('soap',  'http://schemas.xmlsoap.org/soap/envelope/');
         $xpc->registerNs('eb', 'http://www.oasis-open.org/committees/ebxml-msg/schema/msg-header-2_0.xsd');
 
+        # Henter service og action
         my $service = $xpc->findnodes('/soap:Envelope/soap:Header/eb:MessageHeader/eb:Service');
         my $action = $xpc->findnodes('/soap:Envelope/soap:Header/eb:MessageHeader/eb:Action');
 
