@@ -99,7 +99,7 @@ fun Application.myApplicationModule() {
             val session = jsch.getSession("srvEmottakCPA","10.183.32.98",22)
             session.userInfo = DummyUserInfo()
             session.connect()
-            val sftpChannel = session.openChannel("SFTP") as ChannelSftp
+            val sftpChannel = session.openChannel("sftp") as ChannelSftp
             sftpChannel.connect()
             sftpChannel.cd("/outbound/cpa")
             val folder: Vector<LsEntry> = sftpChannel.ls(".") as Vector<LsEntry>
