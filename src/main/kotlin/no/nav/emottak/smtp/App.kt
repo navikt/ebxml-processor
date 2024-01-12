@@ -1,13 +1,15 @@
 package no.nav.emottak.smtp
 
+import com.jcraft.jsch.ChannelSftp
+import com.jcraft.jsch.ChannelSftp.LsEntry
 import com.jcraft.jsch.JSch
+import com.jcraft.jsch.UserInfo
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.forms.MultiPartFormDataContent
 import io.ktor.client.request.headers
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
-import io.ktor.client.statement.HttpResponse
 import io.ktor.http.ContentType
 import io.ktor.http.Headers
 import io.ktor.http.HeadersBuilder
@@ -28,24 +30,50 @@ import jakarta.mail.Flags
 import jakarta.mail.Folder
 import jakarta.mail.internet.MimeMultipart
 import jakarta.mail.internet.MimeUtility
-import java.time.Duration
-import java.time.Instant
+import kotlin.collections.ArrayList
 import kotlin.time.toKotlinDuration
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.joinAll
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import net.logstash.logback.marker.Markers
 import no.nav.emottak.nfs.NFSConfig
 import org.eclipse.angus.mail.imap.IMAPFolder
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayInputStream
+import java.time.Duration
+import java.time.Instant
+import java.util.*
+
 
 fun main() {
     embeddedServer(Netty, port = 8080, module = Application::myApplicationModule).start(wait = true)
+}
+
+
+class DummyUserInfo : UserInfo {
+    override fun getPassword(): String? {
+        return passwd
+    }
+
+    override fun promptYesNo(str: String): Boolean {
+        return true
+    }
+
+    var passwd: String? = null
+    override fun getPassphrase(): String? {
+        return null
+    }
+
+    override fun promptPassphrase(message: String): Boolean {
+        return true
+    }
+
+    override fun promptPassword(message: String): Boolean {
+        return true
+    }
+
+    override fun showMessage(message: String) {}
 }
 
 internal val log = LoggerFactory.getLogger("no.nav.emottak.smtp")
@@ -62,8 +90,23 @@ fun Application.myApplicationModule() {
             val jsch = JSch()
             val knownHosts = "b27drvl011.preprod.local,10.183.32.98 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBPHicnwpAS9dsHTlMm2NSm9BSu0yvacXHNCjvcJpMH8MEbJWAZ1/2EhdWxkeXueMnIOKJhEwK02kZ7FFUbzzWms="
             jsch.setKnownHosts(ByteArrayInputStream(knownHosts.toByteArray()))
-            val config = NFSConfig()
-            log.info("test key is" + config.nfsKey.length)
+            val nfsConfig = NFSConfig()
+            val privateKey = nfsConfig.nfsKey.toByteArray()
+            jsch.addIdentity("srvEmottakCPA",privateKey,null,"cpatest".toByteArray())
+            val session = jsch.getSession("srvEmottakCPA","10.183.32.98",25)
+            session.userInfo = DummyUserInfo()
+            session.connect()
+            val sftpChannel = session.openChannel("SFTP") as ChannelSftp
+            sftpChannel.connect()
+            sftpChannel.cd("/outbound/cpa")
+            val folder: Vector<LsEntry> = sftpChannel.ls(".") as Vector<LsEntry>
+            folder.forEach {
+                log.info(it.filename)
+            }
+            sftpChannel.disconnect()
+            session.disconnect()
+
+            log.info("test key is" + nfsConfig.nfsKey.length)
             call.respond(HttpStatusCode.OK, "Hello World!")
         }
 
