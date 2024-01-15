@@ -23,7 +23,8 @@ spec:
     - "https://smtp-listeners.intern.dev.nav.no"
   envFrom:
     - secret: smtp-router-secrets
-    - secret: cpa-nfs-privatekey
+  filesFrom:
+    - secret: cpa-sftp-keys
   env:
     - name: SMTP_POP3_FACTORY_PORT
       value: "110"
