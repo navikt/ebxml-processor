@@ -91,8 +91,8 @@ fun Application.myApplicationModule() {
             val privateKeyFile = "/var/run/secrets/privatekey"
             val publicKeyFile = "/var/run/secrets/publickey"
             log.info(  String(FileInputStream(publicKeyFile).readAllBytes()))
-            var privKey = """"""
-            var pubkey = """"""
+           // var privKey = """"""
+           // var pubkey = """"""
 
             val jsch = JSch()
             val knownHosts = "b27drvl011.preprod.local,10.183.32.98 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBPHicnwpAS9dsHTlMm2NSm9BSu0yvacXHNCjvcJpMH8MEbJWAZ1/2EhdWxkeXueMnIOKJhEwK02kZ7FFUbzzWms="
