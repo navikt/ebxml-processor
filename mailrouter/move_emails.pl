@@ -5,21 +5,21 @@ use File::Copy;
 use XML::LibXML;
 use List::Util qw(any);
 use MIME::Parser;
-
 use autodie;
 
-my ($readDirectory, $writeDirectory) = @ARGV;
+my ($inputDirectory, $newEmottakDirectory, $oldEmottakDirectory) = @ARGV;
 
-if (not defined $readDirectory) {
-    die "Need input directory (call with command line arguments 'readDirectory' 'writeDirectory'\n";
-}
-if (not defined $writeDirectory) {
-    die "Need output directory (call with command line arguments 'readDirectory' 'writeDirectory'\n";
+if (
+    not defined $inputDirectory or
+    not defined $newEmottakDirectory or
+    not defined $oldEmottakDirectory
+) {
+    die "Need directory parameters (call with command line arguments 'inputDirectory' 'newEmottakDirectory' 'oldEmottakDirectory'\n";
 }
 
-my $dryRunOnly = 1;
-if ($dryRunOnly ne 0) {
-    printf "NB! dryRunOnly mode active, will not actually move any files!\n", $dryRunOnly;
+my $dryRunMode = 1;
+if ($dryRunMode ne 0) {
+    print "OBS! dryRunMode active, will not actually move any files!\n";
 }
 
 my $fileTypeFilter = ".msg";
@@ -28,22 +28,21 @@ my $fileTypeFilter = ".msg";
 my @behandlerKrav = ("BehandlerKrav", "OppgjorsMelding");
 my @testType = ("testService", "testAction");
 
-printf "Checking directory %s...\n", $readDirectory;
-opendir(DIR, $readDirectory) or die "Can't open $readDirectory: $!";
-printf "Moving files to directory %s...\n", $writeDirectory;
+printf "Checking directory %s...\n", $inputDirectory;
+opendir(DIR, $inputDirectory) or die "Can't open $inputDirectory: $!";
+printf "Moving files to directory %s...\n", $newEmottakDirectory;
 
 my $moveCounter = 0;
 my $fileCounter = 0;
 
 foreach my $filename (readdir(DIR)) {
-    $fileCounter = $fileCounter + 1;
-
     if ($filename =~ m/$fileTypeFilter/) {
+        $fileCounter++;
         my $parser = MIME::Parser->new;
         $parser->output_to_core(1); #ikke skriv fil til disk
 
         # Leser epost
-        my $entity = $parser->parse_open("$readDirectory/$filename");
+        my $entity = $parser->parse_open("$inputDirectory/$filename");
         my $first_part = $entity->parts(0);
         my $body = $first_part->bodyhandle->as_string;
 
@@ -63,15 +62,22 @@ foreach my $filename (readdir(DIR)) {
             (any { $_ eq $service } @behandlerKrav and any { $_ eq $action } @behandlerKrav)
             or (any { $_ eq $service } @testType and any { $_ eq $action } @testType)
         ) {
-            if ($dryRunOnly eq 0) {
-                move("$readDirectory/$filename", "$writeDirectory/$filename");
+            if ($dryRunMode eq 0) {
+                move("$inputDirectory/$filename", "$newEmottakDirectory/$filename");
             }
-            printf "%s moved!\n", $filename;
-            $moveCounter = $moveCounter + 1;
+            printf "%s sent to new system!\n", $filename;
+            $moveCounter++;
+        }
+        else {
+            if ($dryRunMode eq 0) {
+                move("$inputDirectory/$filename", "$oldEmottakDirectory/$filename");
+            }
+            printf "%s sent to old system!\n", $filename;
+            $moveCounter++;
         }
     }
 }
 
-printf "%s of %s files moved\n", $moveCounter, $fileCounter;
+printf "%s of %s files of type %s moved\n", $moveCounter, $fileCounter, $fileTypeFilter;
 
 closedir(DIR);
