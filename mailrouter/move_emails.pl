@@ -22,31 +22,32 @@ if ($dryRunMode ne 0) {
     print "OBS! dryRunMode active, will not actually move any files!\n";
 }
 
-my $fileTypeFilter = ".msg";
-
 # Service og action kombinasjoner som skal flyttes
 my %messageTypes = (
     'behandlerKrav' => ["BehandlerKrav", "OppgjorsMelding"],
     'testType' => ["testService", "testAction"]
 );
 
-printf "Checking directory %s...\n", $inputDirectory;
+printf "Input directory:        %s\n", $inputDirectory;
+printf "New eMottak directory:  %s\n", $newEmottakDirectory;
+printf "Old eMottak directory:  %s\n", $oldEmottakDirectory;
+
 opendir(DIR, $inputDirectory) or die "Can't open $inputDirectory: $!";
-printf "Moving files to directory %s...\n", $newEmottakDirectory;
 
 my $moveCounter = 0;
 my $fileCounter = 0;
 
 foreach my $filename (readdir(DIR)) {
-    if ($filename =~ m/$fileTypeFilter/) {
+    if (length($filename) > 2) {
         $fileCounter++;
         my $parser = MIME::Parser->new;
         $parser->output_to_core(1); #ikke skriv fil til disk
 
         # Leser epost
         my $entity = $parser->parse_open("$inputDirectory/$filename");
+        # $entity->dump_skeleton();
         my $first_part = $entity->parts(0);
-        my $body = $first_part->bodyhandle->as_string;
+        my $body = (defined $first_part) ? $first_part->bodyhandle->as_string : $entity->bodyhandle->as_string;
 
         # Leser ebxml dokument
         my $xml_parser = XML::LibXML->new;
@@ -62,7 +63,7 @@ foreach my $filename (readdir(DIR)) {
 
         my $messageMatched = 0;
         foreach my $key (keys %messageTypes) {
-            my @serviceAction = @{%messageTypes{$key}};
+            my @serviceAction = @{$messageTypes{$key}};
             if ($serviceAction[0] eq $service and $serviceAction[1] eq $action) {
                 $messageMatched = 1;
             }
@@ -85,6 +86,6 @@ foreach my $filename (readdir(DIR)) {
     }
 }
 
-printf "%s of %s files of type %s moved\n", $moveCounter, $fileCounter, $fileTypeFilter;
+printf "%s of %s files moved\n", $moveCounter, $fileCounter;
 
 closedir(DIR);
