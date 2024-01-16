@@ -25,8 +25,10 @@ if ($dryRunMode ne 0) {
 my $fileTypeFilter = ".msg";
 
 # Service og action kombinasjoner som skal flyttes
-my @behandlerKrav = ("BehandlerKrav", "OppgjorsMelding");
-my @testType = ("testService", "testAction");
+my %messageTypes = (
+    'behandlerKrav' => ["BehandlerKrav", "OppgjorsMelding"],
+    'testType' => ["testService", "testAction"]
+);
 
 printf "Checking directory %s...\n", $inputDirectory;
 opendir(DIR, $inputDirectory) or die "Can't open $inputDirectory: $!";
@@ -58,10 +60,15 @@ foreach my $filename (readdir(DIR)) {
         my $service = $xpc->findnodes('/soap:Envelope/soap:Header/eb:MessageHeader/eb:Service');
         my $action = $xpc->findnodes('/soap:Envelope/soap:Header/eb:MessageHeader/eb:Action');
 
-        if (
-            (any { $_ eq $service } @behandlerKrav and any { $_ eq $action } @behandlerKrav)
-            or (any { $_ eq $service } @testType and any { $_ eq $action } @testType)
-        ) {
+        my $messageMatched = 0;
+        foreach my $key (keys %messageTypes) {
+            my @serviceAction = @{%messageTypes{$key}};
+            if ($serviceAction[0] eq $service and $serviceAction[1] eq $action) {
+                $messageMatched = 1;
+            }
+        }
+
+        if ($messageMatched eq 1) {
             if ($dryRunMode eq 0) {
                 move("$inputDirectory/$filename", "$newEmottakDirectory/$filename");
             }
