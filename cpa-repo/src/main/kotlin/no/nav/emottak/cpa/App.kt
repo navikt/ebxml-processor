@@ -16,6 +16,7 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
+import java.time.Instant
 import no.nav.emottak.cpa.config.DatabaseConfig
 import no.nav.emottak.cpa.config.mapHikariConfig
 import no.nav.emottak.cpa.feil.CpaValidationException
@@ -53,10 +54,32 @@ fun cpaApplicationModule(dbConfig: HikariConfig): Application.() -> Unit {
                 call.respond(cpa)
             }
 
+            get("/cpa/timestamps") {
+                println("Timestamps")
+                call.respond(HttpStatusCode.OK,
+                    cpaRepository.findCpaTimestamps(
+                        call.request.headers[CPA_IDS]
+                            .let {
+                                if(!it.isNullOrBlank()) it.split(",")
+                                else emptyList()
+                            }
+                    )
+                )
+            }
+
             post("/cpa") {
-                val cpa = call.receive<String>()
+                val cpaString = call.receive<String>()
                 //TODO en eller annen form for validering av CPA
-                cpaRepository.putCpa(xmlMarshaller.unmarshal(cpa, CollaborationProtocolAgreement::class.java)).also {
+                val activeSince = call.request.headers["activeSince"].let {
+                    if (it.isNullOrBlank()){
+                        Instant.now()
+                    }
+                    Instant.parse(it) // TODO feilhåndter
+                }
+                val cpa = xmlMarshaller.unmarshal(cpaString, CollaborationProtocolAgreement::class.java)
+                cpaRepository.putCpa(CPARepository.CpaDbEntry(cpa.cpaid, cpa,
+                    activeSince,
+                    Instant.now())).also {
                     log.info("Added CPA $it to repo")
                     call.respond(HttpStatusCode.OK, "Added CPA $it to repo")
                 }
@@ -128,6 +151,7 @@ fun cpaApplicationModule(dbConfig: HikariConfig): Application.() -> Unit {
 internal val log = LoggerFactory.getLogger("no.nav.emottak.cpa.App")
 
 private const val CPA_ID = "cpaId"
+private const val CPA_IDS = "cpaIds"
 private const val PARTY_TYPE = "partyType"
 private const val PARTY_ID = "partyId"
 private const val CONTENT_ID ="contentId"
