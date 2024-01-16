@@ -28,13 +28,14 @@ my %messageTypes = (
     'testType' => ["testService", "testAction"]
 );
 
-printf "Input directory:        %s\n", $inputDirectory;
-printf "New eMottak directory:  %s\n", $newEmottakDirectory;
-printf "Old eMottak directory:  %s\n", $oldEmottakDirectory;
+printf "Input directory       :  %s\n", $inputDirectory;
+printf "New eMottak directory :  %s\n", $newEmottakDirectory;
+printf "Old eMottak directory :  %s\n", $oldEmottakDirectory;
 
 opendir(DIR, $inputDirectory) or die "Can't open $inputDirectory: $!";
 
-my $moveCounter = 0;
+my $newCounter = 0;
+my $oldCounter = 0;
 my $fileCounter = 0;
 
 foreach my $filename (readdir(DIR)) {
@@ -74,18 +75,19 @@ foreach my $filename (readdir(DIR)) {
                 move("$inputDirectory/$filename", "$newEmottakDirectory/$filename");
             }
             printf "%s sent to new system!\n", $filename;
-            $moveCounter++;
+            $newCounter++;
         }
         else {
             if ($dryRunMode eq 0) {
                 move("$inputDirectory/$filename", "$oldEmottakDirectory/$filename");
             }
             printf "%s sent to old system!\n", $filename;
-            $moveCounter++;
+            $oldCounter++;
         }
     }
 }
 
-printf "%s of %s files moved\n", $moveCounter, $fileCounter;
+printf "%s of %s files moved to new system\n", $newCounter, $fileCounter;
+printf "%s of %s files moved to old system\n", $oldCounter, $fileCounter;
 
 closedir(DIR);
