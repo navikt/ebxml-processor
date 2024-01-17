@@ -15,21 +15,13 @@ if (
     not defined $oldEmottakDirectory or
     not defined $errorDirectory
 ) {
-    die "Need directory parameters (call with command line arguments 'inputDirectory' 'newEmottakDirectory' 'oldEmottakDirectory' 'errorDirectory\n";
+    die "Need directory parameters (call with command line arguments 'inputDirectory' 'newEmottakDirectory' 'oldEmottakDirectory' 'errorDirectory'\n";
 }
 
 my $lockFile = "/tmp/lockfile";
-if (-e $lockFile) {
-    print "Lockfile exists, exiting...\n";
-    exit(0);
-} else {
-    open "lockfile", '>', $lockFile;
-    print "Lockfile created\n";
-}
-
+checkLockFile($lockFile);
 
 my $dryRunMode = 1;
-
 if ($dryRunMode ne 0) {
     print "OBS! dryRunMode active, will not actually move any files!\n";
 }
@@ -42,32 +34,19 @@ my %messageTypes = (
 
 printf "Input directory             : %s\n", $inputDirectory;
 printf "New eMottak directory       : %s\n", $newEmottakDirectory;
-printf "Old eMottak directory       : %s\n\n", $oldEmottakDirectory;
+printf "Old eMottak directory       : %s\n", $oldEmottakDirectory;
+printf "Error directory             : %s\n\n", $errorDirectory;
 
 opendir(DIR, $inputDirectory) or die "Can't open $inputDirectory: $!";
 
-my $newCounter = 0;
-my $oldCounter = 0;
-my $errorCounter = 0;
-my $fileCounter = 0;
-
+my ($newCounter, $oldCounter, $errorCounter, $fileCounter) = (0, 0, 0, 0);
 
 foreach my $filename (readdir(DIR)) {
     if (length($filename) > 2) {
         $fileCounter++;
-        my $parser = MIME::Parser->new;
-        $parser->output_to_core(1); #ikke skriv fil til disk
 
         my $document = eval {
-            # Leser epost
-            my $entity = $parser->parse_open("$inputDirectory/$filename");
-            # $entity->dump_skeleton();
-            my $first_part = $entity->parts(0);
-            my $body = (defined $first_part) ? $first_part->bodyhandle->as_string : $entity->bodyhandle->as_string;
-
-            # Leser ebxml dokument
-            my $xml_parser = XML::LibXML->new;
-            $xml_parser->parse_string($body);
+            extractXmlMessage("$inputDirectory/$filename");
         };
         if ($@ ne '') {
             if ($dryRunMode eq 0) {
@@ -85,19 +64,20 @@ foreach my $filename (readdir(DIR)) {
         # Henter service og action
         my $service = $xpc->findnodes('/soap:Envelope/soap:Header/eb:MessageHeader/eb:Service');
         my $action = $xpc->findnodes('/soap:Envelope/soap:Header/eb:MessageHeader/eb:Action');
+
         my $messageMatched = 0;
         if ($action eq 'Acknowledgment' or $action eq 'MessageError') {
             my $refToMessageId = $xpc->findnodes('/soap:Envelope/soap:Header/eb:MessageHeader/eb:MessageData/eb:RefToMessageId');
-            if (  index($refToMessageId, '.nav.no') == -1 ) {
+            if ( index($refToMessageId, '.nav.no') == -1 ) {
                 $messageMatched = 1;
             }
         }
         else {
             foreach my $key (keys %messageTypes) {
-                        my @serviceAction = @{$messageTypes{$key}};
-                        if ($serviceAction[0] eq $service and $serviceAction[1] eq $action) {
-                            $messageMatched = 1;
-                        }
+                my @serviceAction = @{$messageTypes{$key}};
+                if ($serviceAction[0] eq $service and $serviceAction[1] eq $action) {
+                    $messageMatched = 1;
+                }
             }
         }
 
@@ -118,12 +98,41 @@ foreach my $filename (readdir(DIR)) {
     }
 }
 
-printf "\nMessages processed          : %s/%s\n", $newCounter+$oldCounter+$errorCounter, $fileCounter;
+print "\n";
+printf "Messages processed          : %s/%s\n", $newCounter+$oldCounter+$errorCounter, $fileCounter;
 printf "Messages sent to new system : %s\n", $newCounter;
 printf "Messages sent to old system : %s\n", $oldCounter;
 printf "Messages sent to error      : %s\n", $errorCounter;
 
 closedir(DIR);
-
 unlink $lockFile;
+
 printf "Completed, removed %s\n", $lockFile;
+
+exit(0);
+
+
+sub checkLockFile {
+    my $lfile = $_[0];
+    if (-e $lfile) {
+        printf "Lockfile exists at %s, exiting...\n", $lfile;
+        exit(1);
+    } else {
+        open "lockfile", '>', $lfile;
+        printf "Lockfile created at %s\n", $lfile;
+    }
+}
+
+sub extractXmlMessage {
+    my $filepath = $_[0];
+    my $parser = MIME::Parser->new;
+    $parser->output_to_core(1); #ikke skriv fil til disk
+    # Leser epost
+    my $entity = $parser->parse_open($filepath);
+    # $entity->dump_skeleton();
+    my $first_part = $entity->parts(0);
+    my $body = (defined $first_part) ? $first_part->bodyhandle->as_string : $entity->bodyhandle->as_string;
+    # Leser ebxml dokument
+    my $xml_parser = XML::LibXML->new;
+    return $xml_parser->parse_string($body);
+}
