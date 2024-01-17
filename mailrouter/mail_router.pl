@@ -19,7 +19,7 @@ if (
 }
 
 my $lockFile = "/tmp/lockfile";
-checkLockFile($lockFile);
+checkLockfile($lockFile);
 
 my $dryRunMode = 1;
 if ($dryRunMode ne 0) {
@@ -112,7 +112,7 @@ printf "Completed, removed %s\n", $lockFile;
 exit(0);
 
 
-sub checkLockFile {
+sub checkLockfile {
     my $lfile = $_[0];
     if (-e $lfile) {
         printf "Lockfile exists at %s, exiting...\n", $lfile;
