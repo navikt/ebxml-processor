@@ -41,13 +41,14 @@ my $oldCounter = 0;
 my $errorCounter = 0;
 my $fileCounter = 0;
 
+
 foreach my $filename (readdir(DIR)) {
     if (length($filename) > 2) {
         $fileCounter++;
         my $parser = MIME::Parser->new;
         $parser->output_to_core(1); #ikke skriv fil til disk
 
-        my $dom = eval {
+        my $document = eval {
             # Leser epost
             my $entity = $parser->parse_open("$inputDirectory/$filename");
             # $entity->dump_skeleton();
@@ -67,19 +68,26 @@ foreach my $filename (readdir(DIR)) {
             next;
         };
 
-        my $xpc = XML::LibXML::XPathContext->new($dom);
+        my $xpc = XML::LibXML::XPathContext->new($document);
         $xpc->registerNs('soap',  'http://schemas.xmlsoap.org/soap/envelope/');
         $xpc->registerNs('eb', 'http://www.oasis-open.org/committees/ebxml-msg/schema/msg-header-2_0.xsd');
 
         # Henter service og action
         my $service = $xpc->findnodes('/soap:Envelope/soap:Header/eb:MessageHeader/eb:Service');
         my $action = $xpc->findnodes('/soap:Envelope/soap:Header/eb:MessageHeader/eb:Action');
-
         my $messageMatched = 0;
-        foreach my $key (keys %messageTypes) {
-            my @serviceAction = @{$messageTypes{$key}};
-            if ($serviceAction[0] eq $service and $serviceAction[1] eq $action) {
+        if ($action eq 'Acknowledgment' or $action eq 'MessageError') {
+            my $refToMessageId = $xpc->findnodes('/soap:Envelope/soap:Header/eb:MessageHeader/eb:MessageData/eb:RefToMessageId');
+            if (  index($refToMessageId, '.nav.no') == -1 ) {
                 $messageMatched = 1;
+            }
+        }
+        else {
+            foreach my $key (keys %messageTypes) {
+                        my @serviceAction = @{$messageTypes{$key}};
+                        if ($serviceAction[0] eq $service and $serviceAction[1] eq $action) {
+                            $messageMatched = 1;
+                        }
             }
         }
 
