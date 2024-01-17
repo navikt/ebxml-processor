@@ -18,6 +18,16 @@ if (
     die "Need directory parameters (call with command line arguments 'inputDirectory' 'newEmottakDirectory' 'oldEmottakDirectory' 'errorDirectory\n";
 }
 
+my $lockFile = "/tmp/lockfile";
+if (-e $lockFile) {
+    print "Lockfile exists, exiting...\n";
+    exit(0);
+} else {
+    open "lockfile", '>', $lockFile;
+    print "Lockfile created\n";
+}
+
+
 my $dryRunMode = 1;
 
 if ($dryRunMode ne 0) {
@@ -114,3 +124,6 @@ printf "Messages sent to old system : %s\n", $oldCounter;
 printf "Messages sent to error      : %s\n", $errorCounter;
 
 closedir(DIR);
+
+unlink $lockFile;
+printf "Completed, removed %s\n", $lockFile;
