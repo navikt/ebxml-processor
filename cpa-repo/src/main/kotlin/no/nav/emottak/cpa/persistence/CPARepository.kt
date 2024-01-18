@@ -27,7 +27,7 @@ class CPARepository(val database: Database) {
             else
                 CPA.selectAll())
                 .associate {
-                    Pair(it[CPA.id], it[CPA.activeSince].toString())
+                    Pair(it[CPA.id], it[CPA.updated_date].toString())
                 }
         }
     }
@@ -40,7 +40,7 @@ class CPARepository(val database: Database) {
                 CpaDbEntry(
                     it[CPA.id],
                     it[CPA.cpa],
-                    it[CPA.activeSince],
+                    it[CPA.updated_date],
                     it[CPA.entryCreated],
                 )
             }
@@ -52,8 +52,8 @@ class CPARepository(val database: Database) {
             CPA.insert {
                 it[CPA.id] = cpa.id
                 it[CPA.cpa] = cpa.cpa ?: throw IllegalArgumentException("Kan ikke sette null verdi for CPA i DB")
-                it[CPA.entryCreated] = cpa.entryCreated
-                it[CPA.activeSince] = cpa.activeSince
+                it[CPA.entryCreated] = cpa.create_date
+                it[CPA.updated_date] = cpa.updated_date
             }
         }
         return cpa.id
@@ -62,8 +62,8 @@ class CPARepository(val database: Database) {
     data class CpaDbEntry(
         val id: String,
         val cpa: CollaborationProtocolAgreement? = null,
-        val activeSince: Instant,
-        val entryCreated: Instant
+        val updated_date: Instant,
+        val create_date: Instant
     )
 
     //@Serializable

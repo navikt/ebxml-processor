@@ -70,7 +70,7 @@ fun cpaApplicationModule(dbConfig: HikariConfig): Application.() -> Unit {
             post("/cpa") {
                 val cpaString = call.receive<String>()
                 //TODO en eller annen form for validering av CPA
-                val activeSince = call.request.headers["activeSince"].let {
+                val updatedDate = call.request.headers["updated_date"].let {
                     if (it.isNullOrBlank()){
                         Instant.now()
                     }
@@ -78,7 +78,7 @@ fun cpaApplicationModule(dbConfig: HikariConfig): Application.() -> Unit {
                 }
                 val cpa = xmlMarshaller.unmarshal(cpaString, CollaborationProtocolAgreement::class.java)
                 cpaRepository.putCpa(CPARepository.CpaDbEntry(cpa.cpaid, cpa,
-                    activeSince,
+                    updatedDate,
                     Instant.now())).also {
                     log.info("Added CPA $it to repo")
                     call.respond(HttpStatusCode.OK, "Added CPA $it to repo")

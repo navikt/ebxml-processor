@@ -1,3 +1,3 @@
 ALTER TABLE cpa
-ADD active_since                 timestamp,
-ADD entry_created                timestamp;
+ADD updated_date                    timestamp,
+ADD create_date                     timestamp;

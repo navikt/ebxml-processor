@@ -74,7 +74,7 @@ class CPARepoIntegrationTest: DBTest() {
         }
         httpClient.post("/cpa"){
             headers {
-                header("activeSince", Instant.now().toString())
+                header("updated_date", Instant.now().toString())
             }
             setBody(
                 xmlMarshaller.marshal(loadTestCPA())

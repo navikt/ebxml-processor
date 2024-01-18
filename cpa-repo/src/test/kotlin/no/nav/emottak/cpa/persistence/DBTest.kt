@@ -2,8 +2,6 @@ package no.nav.emottak.cpa.persistence
 
 import com.zaxxer.hikari.HikariConfig
 import java.time.Instant
-import java.time.LocalDateTime
-import java.time.temporal.ChronoUnit
 import no.nav.emottak.cpa.Database
 import no.nav.emottak.cpa.xmlMarshaller
 import org.flywaydb.core.Flyway
@@ -31,7 +29,7 @@ abstract class DBTest() {
                 val collaborationProtocolAgreement = loadTestCPA()
                 it[id] = collaborationProtocolAgreement.cpaid
                 it[cpa] = collaborationProtocolAgreement
-                it[activeSince] = DEFAULT_TIMESTAMP
+                it[updated_date] = DEFAULT_TIMESTAMP
                 it[entryCreated] = DEFAULT_TIMESTAMP
             }
         }
