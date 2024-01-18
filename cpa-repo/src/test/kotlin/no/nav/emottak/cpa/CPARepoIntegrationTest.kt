@@ -142,7 +142,7 @@ class CPARepoIntegrationTest: DBTest() {
         // ingen header gir alle verdier
         val responseMedAlle = httpClient.get("/cpa/timestamps/latest")
 
-        assertEquals(updatedTimestamp.toString(), responseMedAlle.bodyAsText())
+        assertEquals(updatedTimestamp.toString(), responseMedAlle.bodyAsText(), "Assertion Failed. Expected ${updatedTimestamp.toString()} but was ${responseMedAlle.bodyAsText()}")
     }
 
 }
