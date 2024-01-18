@@ -49,10 +49,14 @@ my %messageTypes = (
     'testType' => ["testService", "testAction"]
 );
 
-printf "Input directory             : %s\n", $inputDirectory;
-printf "New eMottak directory       : %s\n", $newEmottakDirectory;
-printf "Old eMottak directory       : %s\n", $oldEmottakDirectory;
-printf "Error directory             : %s\n\n", $errorDirectory;
+my $starttime = time;
+my $localtime = localtime($starttime);
+print "\n";
+print "Current local time          : $localtime\n";
+print "Input directory             : $inputDirectory\n";
+print "New eMottak directory       : $newEmottakDirectory\n";
+print "Old eMottak directory       : $oldEmottakDirectory\n";
+print "Error directory             : $errorDirectory\n\n";
 
 opendir(DIR, $inputDirectory) or die "Can't open $inputDirectory: $!";
 
@@ -112,7 +116,7 @@ foreach my $filename (readdir(DIR)) {
         else {
             if ($dryRunMode eq 0) {
                 if ($sendToBothSystems eq 0) {
-                    $newCounter++
+                    $newCounter++;
                     copy("$inputDirectory/$filename", "$newEmottakDirectory/$filename");
                 }
                 move("$inputDirectory/$filename", "$oldEmottakDirectory/$filename");
@@ -128,12 +132,12 @@ printf "Messages processed          : %s/%s\n", $newCounter+$oldCounter+$errorCo
 printf "Messages sent to new system : %s\n", $newCounter;
 printf "Messages sent to old system : %s\n", $oldCounter;
 printf "Messages sent to error      : %s\n", $errorCounter;
+printf "Time processing messages    : %s ms\n", time - $starttime;
 
 closedir(DIR);
 unlink $lockFile;
 
-printf "Completed, removed %s\n", $lockFile;
-
+printf "Removed %s, completed successfully, exiting now\n", $lockFile;
 exit(0);
 
 
