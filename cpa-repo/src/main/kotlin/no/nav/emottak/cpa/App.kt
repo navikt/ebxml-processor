@@ -84,11 +84,21 @@ fun cpaApplicationModule(dbConfig: HikariConfig): Application.() -> Unit {
                     Instant.parse(it) // TODO feilhåndter
                 }
                 val cpa = xmlMarshaller.unmarshal(cpaString, CollaborationProtocolAgreement::class.java)
-                cpaRepository.putCpa(CPARepository.CpaDbEntry(cpa.cpaid, cpa,
-                    updatedDate,
-                    Instant.now())).also {
-                    log.info("Added CPA $it to repo")
-                    call.respond(HttpStatusCode.OK, "Added CPA $it to repo")
+
+                if(call.request.headers["upsert"].equals("true")) {
+                    cpaRepository.upsertCpa(CPARepository.CpaDbEntry(cpa.cpaid, cpa,
+                        updatedDate,
+                        Instant.now())).also {
+                        log.info("Added CPA $it to repo")
+                        call.respond(HttpStatusCode.OK, "Added CPA $it to repo")
+                    }
+                } else {
+                    cpaRepository.putCpa(CPARepository.CpaDbEntry(cpa.cpaid, cpa,
+                        updatedDate,
+                        Instant.now())).also {
+                        log.info("Added CPA $it to repo")
+                        call.respond(HttpStatusCode.OK, "Added CPA $it to repo")
+                    }
                 }
             }
 

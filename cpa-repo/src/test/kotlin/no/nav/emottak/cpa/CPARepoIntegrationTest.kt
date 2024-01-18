@@ -94,13 +94,40 @@ class CPARepoIntegrationTest: DBTest() {
     }
 
     @Test
+    fun `Upsert true på CPA`() = cpaRepoTestApp {
+        val httpClient = createClient {
+            install(ContentNegotiation) {
+                json()
+            }
+        }
+        httpClient.post("/cpa"){
+            headers {
+                header("updated_date", Instant.now().toString())
+                header("upsert", "true")
+            }
+            setBody(
+                xmlMarshaller.marshal(loadTestCPA())
+            )
+        }
+        val response = httpClient.get("/cpa/timestamps") {
+            headers {
+                header("cpaIds", "nav:qass:35065")
+            }
+        }
+        println("RESPONSE WAS: " + response.bodyAsText())
+
+        // ingen header gir alle verdier
+        val responseMedAlle = httpClient.get("/cpa/timestamps")
+        assertContains(responseMedAlle.bodyAsText(), "nav:qass:35065")
+    }
+
+    @Test
     fun `Henter latest timestamp`() = cpaRepoTestApp {
         val httpClient = createClient {
             install(ContentNegotiation) {
                 json()
             }
         }
-
 
         val updatedTimestamp = Instant.now().minus(1, ChronoUnit.DAYS)
         // Putter CPA

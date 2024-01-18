@@ -2,6 +2,7 @@ package no.nav.emottak.cpa.persistence
 
 import java.time.Instant
 import no.nav.emottak.cpa.Database
+import no.nav.emottak.cpa.persistence.CPA.default
 import org.jetbrains.exposed.sql.SchemaUtils.withDataBaseLock
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.insert
@@ -9,6 +10,7 @@ import org.jetbrains.exposed.sql.javatime.timestamp
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.sql.upsert
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 
 class CPARepository(val database: Database) {
@@ -61,6 +63,18 @@ class CPARepository(val database: Database) {
     fun putCpa(cpa: CpaDbEntry): String {
         transaction(database.db) {
             CPA.insert {
+                it[CPA.id] = cpa.id
+                it[CPA.cpa] = cpa.cpa ?: throw IllegalArgumentException("Kan ikke sette null verdi for CPA i DB")
+                it[CPA.entryCreated] = cpa.create_date
+                it[CPA.updated_date] = cpa.updated_date
+            }
+        }
+        return cpa.id
+    }
+
+    fun upsertCpa(cpa: CpaDbEntry): String {
+        transaction(database.db) {
+            CPA.upsert(CPA.id) {
                 it[CPA.id] = cpa.id
                 it[CPA.cpa] = cpa.cpa ?: throw IllegalArgumentException("Kan ikke sette null verdi for CPA i DB")
                 it[CPA.entryCreated] = cpa.create_date
