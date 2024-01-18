@@ -2,7 +2,10 @@ package no.nav.emottak.cpa.persistence
 
 import java.time.Instant
 import no.nav.emottak.cpa.Database
+import org.jetbrains.exposed.sql.SchemaUtils.withDataBaseLock
+import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.javatime.timestamp
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -30,6 +33,14 @@ class CPARepository(val database: Database) {
                     Pair(it[CPA.id], it[CPA.updated_date].toString())
                 }
         }
+    }
+
+    fun findLatestUpdatedCpaTimestamp(): String {
+        return transaction(db = database.db) {
+            CPA.select(where = {CPA.updated_date.isNotNull()})
+                .orderBy(CPA.updated_date, SortOrder.DESC)
+                .first()[CPA.updated_date]
+        }.toString()
     }
 
     fun findCpaEntry(cpaId: String): CpaDbEntry? {

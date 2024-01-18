@@ -67,6 +67,13 @@ fun cpaApplicationModule(dbConfig: HikariConfig): Application.() -> Unit {
                 )
             }
 
+            get("/cpa/timestamps/latest") {
+                println("Timestamplatest")
+                call.respond(HttpStatusCode.OK,
+                    cpaRepository.findLatestUpdatedCpaTimestamp()
+                )
+            }
+
             post("/cpa") {
                 val cpaString = call.receive<String>()
                 //TODO en eller annen form for validering av CPA

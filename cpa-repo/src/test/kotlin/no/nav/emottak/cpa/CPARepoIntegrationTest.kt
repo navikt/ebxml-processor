@@ -16,6 +16,7 @@ import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 import kotlin.test.assertContains
 import kotlin.test.assertNotNull
 import no.nav.emottak.cpa.persistence.CPA
@@ -90,6 +91,31 @@ class CPARepoIntegrationTest: DBTest() {
         // ingen header gir alle verdier
         val responseMedAlle = httpClient.get("/cpa/timestamps")
         assertContains(responseMedAlle.bodyAsText(), "nav:qass:35065")
+    }
+
+    @Test
+    fun `Henter latest timestamp`() = cpaRepoTestApp {
+        val httpClient = createClient {
+            install(ContentNegotiation) {
+                json()
+            }
+        }
+
+
+        val updatedTimestamp = Instant.now().minus(1, ChronoUnit.DAYS)
+        // Putter CPA
+        httpClient.post("/cpa"){
+            headers {
+                header("updated_date", updatedTimestamp)
+            }
+            setBody(
+                xmlMarshaller.marshal(loadTestCPA())
+            )
+        }
+        // ingen header gir alle verdier
+        val responseMedAlle = httpClient.get("/cpa/timestamps/latest")
+
+        assertEquals(updatedTimestamp.toString(), responseMedAlle.bodyAsText())
     }
 
 }
