@@ -2,6 +2,7 @@ package no.nav.emottak.cpa.persistence
 
 import com.zaxxer.hikari.HikariConfig
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 import no.nav.emottak.cpa.Database
 import no.nav.emottak.cpa.xmlMarshaller
 import org.flywaydb.core.Flyway
@@ -12,7 +13,7 @@ import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProt
 import org.testcontainers.containers.PostgreSQLContainer
 import kotlin.test.BeforeTest
 
-val DEFAULT_TIMESTAMP = Instant.now()
+val DEFAULT_TIMESTAMP = Instant.now().truncatedTo(ChronoUnit.SECONDS)
 abstract class DBTest() {
 
 
