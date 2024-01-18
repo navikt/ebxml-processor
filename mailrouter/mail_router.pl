@@ -15,15 +15,32 @@ if (
     not defined $oldEmottakDirectory or
     not defined $errorDirectory
 ) {
-    die "Need directory parameters (call with command line arguments 'inputDirectory' 'newEmottakDirectory' 'oldEmottakDirectory' 'errorDirectory'\n";
+    print "Missing directory parameters!\n";
+    print "Required usage: perl mail_router.pl <in> <new> <old> <error>\n";
+    print "Optional usage: Append -commit after directory lists to disable dry run only mode. Dry run is default behaviour.\n";
+    print "Optional usage: Append -both after directory lists to send all messages to both new and old.\n";
+    print "E.g: perl mail_router.pl <in> <new> <old> <error> -commit -both\n";
+    exit(0);
+}
+
+my ($dryRunMode, $sendToBothSystems) = (1, 0);
+foreach my $argument (4 .. $#ARGV) {
+    if($ARGV[$argument] eq "-commit") {
+        $dryRunMode = 0;
+    }
+    if($ARGV[$argument] eq "-both") {
+        $sendToBothSystems = 1;
+    }
 }
 
 my $lockFile = "/tmp/lockfile";
 checkLockfile($lockFile);
 
-my $dryRunMode = 1;
 if ($dryRunMode ne 0) {
     print "OBS! dryRunMode active, will not actually move any files!\n";
+}
+if ($sendToBothSystems ne 0) {
+    print "OBS! sendToBothSystems active, will send all messages to both output folders!\n";
 }
 
 # Service og action kombinasjoner som skal flyttes
@@ -83,6 +100,9 @@ foreach my $filename (readdir(DIR)) {
 
         if ($messageMatched eq 1) {
             if ($dryRunMode eq 0) {
+                if ($sendToBothSystems eq 0) {
+                    copy("$inputDirectory/$filename", "$oldEmottakDirectory/$filename");
+                }
                 move("$inputDirectory/$filename", "$newEmottakDirectory/$filename");
             }
             printf "%s sent to new system!\n", $filename;
@@ -90,6 +110,9 @@ foreach my $filename (readdir(DIR)) {
         }
         else {
             if ($dryRunMode eq 0) {
+                if ($sendToBothSystems eq 0) {
+                    copy("$inputDirectory/$filename", "$newEmottakDirectory/$filename");
+                }
                 move("$inputDirectory/$filename", "$oldEmottakDirectory/$filename");
             }
             printf "%s sent to old system!\n", $filename;
