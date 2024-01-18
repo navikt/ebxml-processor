@@ -17,6 +17,7 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 import no.nav.emottak.cpa.config.DatabaseConfig
 import no.nav.emottak.cpa.config.mapHikariConfig
 import no.nav.emottak.cpa.feil.CpaValidationException
@@ -79,9 +80,9 @@ fun cpaApplicationModule(dbConfig: HikariConfig): Application.() -> Unit {
                 //TODO en eller annen form for validering av CPA
                 val updatedDate = call.request.headers["updated_date"].let {
                     if (it.isNullOrBlank()){
-                        Instant.now()
+                        Instant.now().truncatedTo(ChronoUnit.SECONDS)
                     }
-                    Instant.parse(it) // TODO feilhåndter
+                    Instant.parse(it).truncatedTo(ChronoUnit.SECONDS) // TODO feilhåndter
                 }
                 val cpa = xmlMarshaller.unmarshal(cpaString, CollaborationProtocolAgreement::class.java)
 

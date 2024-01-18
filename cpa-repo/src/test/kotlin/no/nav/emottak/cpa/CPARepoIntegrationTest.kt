@@ -129,7 +129,7 @@ class CPARepoIntegrationTest: DBTest() {
             }
         }
 
-        val updatedTimestamp = Instant.now().minus(1, ChronoUnit.DAYS)
+        val updatedTimestamp = Instant.now().minus(1, ChronoUnit.DAYS).truncatedTo(ChronoUnit.SECONDS)
         // Putter CPA
         httpClient.post("/cpa"){
             headers {
@@ -142,7 +142,7 @@ class CPARepoIntegrationTest: DBTest() {
         // ingen header gir alle verdier
         val responseMedAlle = httpClient.get("/cpa/timestamps/latest")
 
-        assertEquals(updatedTimestamp.toString(), responseMedAlle.bodyAsText(), "Assertion Failed. Expected ${updatedTimestamp.toString()} but was ${responseMedAlle.bodyAsText()}")
+        assertEquals(updatedTimestamp.toString(), responseMedAlle.bodyAsText())
     }
 
 }

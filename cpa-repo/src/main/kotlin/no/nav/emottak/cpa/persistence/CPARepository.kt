@@ -87,8 +87,8 @@ class CPARepository(val database: Database) {
     data class CpaDbEntry(
         val id: String,
         val cpa: CollaborationProtocolAgreement? = null,
-        val updated_date: Instant,
-        val create_date: Instant
+        val updated_date: Instant,  // OBS! Truncates til seconds av praktiske hensyn.
+        val create_date: Instant    // OBS! Truncates til seconds av praktiske hensyn.
     )
 
     //@Serializable
