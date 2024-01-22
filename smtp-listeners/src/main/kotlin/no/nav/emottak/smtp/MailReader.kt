@@ -1,7 +1,5 @@
-package no.nav.emottak.smtp;
+package no.nav.emottak.smtp
 
-
-import io.ktor.http.*
 import jakarta.mail.Flags
 import jakarta.mail.Folder
 import jakarta.mail.Store
@@ -10,11 +8,9 @@ import jakarta.mail.internet.MimeMessage
 import jakarta.mail.internet.MimeMultipart
 import net.logstash.logback.marker.LogstashMarker
 import net.logstash.logback.marker.Markers
-import java.util.*
 
 data class EmailMsg(val headers: Map<String, String>, val parts: List<Part>)
 data class Part(val headers: Map<String, String>, val bytes: ByteArray)
-
 
 class MailReader(private val store: Store, val expunge: Boolean = true) : AutoCloseable {
 
@@ -68,10 +64,13 @@ class MailReader(private val store: Store, val expunge: Boolean = true) : AutoCl
     }
 
     override fun close() {
-        inbox.close(expunge().also {
-            if (expunge != it)
-                log.warn("Inbox limit [$inboxLimit] exceeded. Expunge forced $it")
-        })
+        inbox.close(
+            expunge().also {
+                if (expunge != it) {
+                    log.warn("Inbox limit [$inboxLimit] exceeded. Expunge forced $it")
+                }
+            }
+        )
     }
 
     @Throws(Exception::class)
@@ -89,17 +88,17 @@ class MailReader(private val store: Store, val expunge: Boolean = true) : AutoCl
                             }.onSuccess {
                                 log.info(
                                     "Incoming multipart request with headers ${
-                                        mimeMessage.allHeaders.toList().map { it.name + ":" + it.value }
+                                    mimeMessage.allHeaders.toList().map { it.name + ":" + it.value }
                                     } part headers ${
-                                        it.allHeaders.toList().map { it.name + ":" + it.value }
+                                    it.allHeaders.toList().map { it.name + ":" + it.value }
                                     }" +
-                                            "with body ${String(it.inputStream.readAllBytes())}"
+                                        "with body ${String(it.inputStream.readAllBytes())}"
                                 )
                             }
                         } else {
                             log.info(
                                 "Incoming singlepart request with headers ${
-                                    mimeMessage.allHeaders.toList().map { it.name + ":" + it.value }
+                                mimeMessage.allHeaders.toList().map { it.name + ":" + it.value }
                                 } and body ${String(mimeMessage.inputStream.readAllBytes())}"
                             )
                         }
@@ -122,7 +121,6 @@ class MailReader(private val store: Store, val expunge: Boolean = true) : AutoCl
             throw e
         }
     }
-
 
     private fun createHeaderMarker(xMailer: String?): LogstashMarker? {
         val map = mutableMapOf<String, String>()

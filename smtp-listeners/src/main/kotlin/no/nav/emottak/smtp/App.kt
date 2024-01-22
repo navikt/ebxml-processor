@@ -30,8 +30,6 @@ import jakarta.mail.Flags
 import jakarta.mail.Folder
 import jakarta.mail.internet.MimeMultipart
 import jakarta.mail.internet.MimeUtility
-import kotlin.collections.ArrayList
-import kotlin.time.toKotlinDuration
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -45,12 +43,12 @@ import java.io.FileInputStream
 import java.time.Duration
 import java.time.Instant
 import java.util.*
-
+import kotlin.collections.ArrayList
+import kotlin.time.toKotlinDuration
 
 fun main() {
     embeddedServer(Netty, port = 8080, module = Application::myApplicationModule).start(wait = true)
 }
-
 
 class DummyUserInfo : UserInfo {
     override fun getPassword(): String? {
@@ -90,18 +88,18 @@ fun Application.myApplicationModule() {
         get("/testsftp") {
             val privateKeyFile = "/var/run/secrets/privatekey"
             val publicKeyFile = "/var/run/secrets/publickey"
-            log.info(  String(FileInputStream(publicKeyFile).readAllBytes()))
-           // var privKey = """"""
-           // var pubkey = """"""
+            log.info(String(FileInputStream(publicKeyFile).readAllBytes()))
+            // var privKey = """"""
+            // var pubkey = """"""
 
             val jsch = JSch()
             val knownHosts = "b27drvl011.preprod.local,10.183.32.98 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBPHicnwpAS9dsHTlMm2NSm9BSu0yvacXHNCjvcJpMH8MEbJWAZ1/2EhdWxkeXueMnIOKJhEwK02kZ7FFUbzzWms="
             jsch.setKnownHosts(ByteArrayInputStream(knownHosts.toByteArray()))
             val nfsConfig = NFSConfig()
             val privateKey = nfsConfig.nfsKey.toByteArray()
-            jsch.addIdentity(privateKeyFile,publicKeyFile,"cpatest".toByteArray())
-           // jsch.addIdentity("srvEmottakCPA",privKey.toByteArray(),pubkey.toByteArray(),"cpatest".toByteArray())
-            val session = jsch.getSession("srvEmottakCPA","10.183.32.98",22)
+            jsch.addIdentity(privateKeyFile, publicKeyFile, "cpatest".toByteArray())
+            // jsch.addIdentity("srvEmottakCPA",privKey.toByteArray(),pubkey.toByteArray(),"cpatest".toByteArray())
+            val session = jsch.getSession("srvEmottakCPA", "10.183.32.98", 22)
             session.userInfo = DummyUserInfo()
             session.connect()
             val sftpChannel = session.openChannel("sftp") as ChannelSftp
@@ -134,7 +132,7 @@ fun Application.myApplicationModule() {
                             asyncJobList.add(
                                 async(Dispatchers.IO) {
                                     runCatching {
-                                        //withContext(Dispatchers.IO) {
+                                        // withContext(Dispatchers.IO) {
                                         if (message.parts.size == 1 && message.parts.first().headers.isEmpty()) {
                                             client.post("https://ebms-provider.intern.dev.nav.no/ebms") {
                                                 headers(
@@ -154,12 +152,13 @@ fun Application.myApplicationModule() {
                                                 setBody(
                                                     message.parts.first().bytes
                                                 )
-
                                             }
                                         } else {
                                             val partData: List<PartData> = message.parts.map { part ->
                                                 PartData.FormItem(
-                                                    String(part.bytes), {}, Headers.build(
+                                                    String(part.bytes),
+                                                    {},
+                                                    Headers.build(
                                                         part.headers.filterHeader(
                                                             MimeHeaders.CONTENT_ID,
                                                             MimeHeaders.CONTENT_TYPE,
@@ -190,7 +189,9 @@ fun Application.myApplicationModule() {
                                                 )
                                                 setBody(
                                                     MultiPartFormDataContent(
-                                                        partData, boundary!!, ContentType.parse(contentType)
+                                                        partData,
+                                                        boundary!!,
+                                                        ContentType.parse(contentType)
                                                     )
                                                 )
                                             }
@@ -223,7 +224,6 @@ fun Application.myApplicationModule() {
         get("/mail/log/outgoing") {
             logBccMessages()
             call.respond(HttpStatusCode.OK)
-
         }
     }
 }
@@ -239,7 +239,6 @@ fun logBccMessages() {
         }.toTypedArray().also {
             testDataInbox.expunge(it)
         }
-
     }
     inbox.open(Folder.READ_WRITE)
     inbox.messages.forEach {
@@ -249,17 +248,15 @@ fun logBccMessages() {
             }.onSuccess {
                 log.info(
                     "Incoming multipart request with headers ${
-                        it.allHeaders.toList().map { it.name + ":" + it.value }
+                    it.allHeaders.toList().map { it.name + ":" + it.value }
                     }" +
-                            "with body ${String(it.inputStream.readAllBytes())}"
+                        "with body ${String(it.inputStream.readAllBytes())}"
                 )
             }
         } else {
             log.info("Incoming singlepart request ${String(it.inputStream.readAllBytes())}")
         }
-
     }.also {
-
         inbox.moveMessages(inbox.messages, testDataInbox)
     }
     inbox.close()
@@ -283,7 +280,6 @@ fun Map<String, String>.filterHeader(vararg headerNames: String): HeadersBuilder
     if (headerNames.contains(MimeHeaders.CONTENT_DISPOSITION) && headerNames.contains(MimeHeaders.CONTENT_DESCRIPTION)) {
         appendContentDescriptionAsContentDispositionIfDispositionIsMissing(caseInsensitiveMap)
     }
-
 }
 
 private fun HeadersBuilder.appendMessageIdAsContentIdIfContentIdIsMissingOnTextXMLContentTypes(
@@ -292,13 +288,13 @@ private fun HeadersBuilder.appendMessageIdAsContentIdIfContentIdIsMissingOnTextX
     if (MimeUtility.unfold(caseInsensitiveMap[MimeHeaders.CONTENT_TYPE])?.contains("text/xml") == true) {
         if (caseInsensitiveMap[MimeHeaders.CONTENT_ID] != null) {
             log.warn(
-                "Content-Id header allerede satt for text/xml: " + caseInsensitiveMap[MimeHeaders.CONTENT_ID]
-                        + "\nMessage-Id: " + caseInsensitiveMap[SMTPHeaders.MESSAGE_ID]
+                "Content-Id header allerede satt for text/xml: " + caseInsensitiveMap[MimeHeaders.CONTENT_ID] +
+                    "\nMessage-Id: " + caseInsensitiveMap[SMTPHeaders.MESSAGE_ID]
             )
         } else {
             val headerValue = MimeUtility.unfold(caseInsensitiveMap[SMTPHeaders.MESSAGE_ID]!!.replace("\t", " "))
             append(MimeHeaders.CONTENT_ID, headerValue)
-            log.info("Header: <${MimeHeaders.CONTENT_ID}> - <${headerValue}>")
+            log.info("Header: <${MimeHeaders.CONTENT_ID}> - <$headerValue>")
         }
     }
 }
