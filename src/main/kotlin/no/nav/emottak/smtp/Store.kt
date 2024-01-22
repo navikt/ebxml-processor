@@ -6,7 +6,6 @@ import jakarta.mail.Session
 import jakarta.mail.Store
 import java.util.*
 
-
 val properties = Properties().also { props ->
     props["mail.pop3.socketFactory.fallback"] = "false"
     props["mail.pop3.socketFactory.port"] = getEnvVar("SMTP_POP3_FACTORY_PORT", "3110")
@@ -18,19 +17,17 @@ val properties = Properties().also { props ->
     props["mail.imap.host"] = "d32mxvl002.oera-t.local"
 }
 
-
 val smtpUsername_incoming = getEnvVar("SMTP_INCOMING_USERNAME", "test@test.test")
 val smtpUsername_bcc = getEnvVar("SMTP_BCC_USERNAME", "test@test.test")
 val smtpUsername_outgoing = getEnvVar("SMTP_OUTGOING_USERNAME", "test@test.test")
 val smtpPassword = getEnvVar("SMTP_PASSWORD", "changeit")
 
-
 val incomingStore = run {
-     createStore(smtpUsername_incoming, smtpPassword,"pop3")
+    createStore(smtpUsername_incoming, smtpPassword, "pop3")
 }
 
 val bccStore = run {
-      createStore(smtpUsername_bcc, smtpPassword,"imap")
+    createStore(smtpUsername_bcc, smtpPassword, "imap")
 }
 /*
 val outgoingStore = run {
@@ -39,9 +36,8 @@ val outgoingStore = run {
 
  */
 
-
-private fun createStore(username:String,password:String,protokol:String = "pop3") : Store {
-     val auth = object : Authenticator() {
+private fun createStore(username: String, password: String, protokol: String = "pop3"): Store {
+    val auth = object : Authenticator() {
         override fun getPasswordAuthentication() = PasswordAuthentication(username, password)
     }
     val session = Session.getInstance(properties, auth)
@@ -49,4 +45,3 @@ private fun createStore(username:String,password:String,protokol:String = "pop3"
         it.connect()
     }
 }
-

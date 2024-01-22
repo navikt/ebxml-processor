@@ -19,9 +19,8 @@ val testHeaderValue = """multipart/related;
 	start="<soap-c5a5690b-6a9b-4d0a-b50e-8a636948ed13@eik.no>"; type="text/xml""""
 class MessageTest {
 
-
-    fun mockSession() : Session {
-         val properties = Properties().also { props ->
+    fun mockSession(): Session {
+        val properties = Properties().also { props ->
             props["mail.pop3.socketFactory.fallback"] = "false"
             props["mail.pop3.socketFactory.port"] = getEnvVar("SMTP_POP3_FACTORY_PORT", "3110")
             props["mail.pop3.port"] = getEnvVar("SMTP_POP3_PORT", "3110")
@@ -31,7 +30,7 @@ class MessageTest {
 
         return Session.getDefaultInstance(properties)
     }
-    fun mockStore(session: Session,msg:Message) : Store {
+    fun mockStore(session: Session, msg: Message): Store {
         val store = mockk<Store>(relaxed = true)
         val inbox = mockk<Folder>(relaxed = true)
         every {
@@ -42,15 +41,14 @@ class MessageTest {
             inbox.messageCount
         } returns 1
         every {
-            inbox.getMessages(1,1)
-        } returns  arrayOf(msg)
+            inbox.getMessages(1, 1)
+        } returns arrayOf(msg)
 
         return store
     }
 
     @Test
     fun testHeader() {
-
         val headers = Headers.build {
             append(MimeHeaders.CONTENT_TYPE, MimeUtility.unfold(testHeaderValue))
         }
@@ -62,12 +60,12 @@ class MessageTest {
         val session = mockSession()
         val stream = this.javaClass.classLoader.getResourceAsStream("mails/nyebmstest@test-es.nav.no/INBOX/example.eml")
         val msg = MimeMessage(session, stream)
-        val store = mockStore(session,msg)
+        val store = mockStore(session, msg)
         val reader = MailReader(store)
         val one = MailReader.mapEmailMsg().invoke(msg)
         val two = reader.readMail().first()
-        assertEquals( one.headers , two.headers)
-        assertEquals( String(one.parts.first().bytes), String(two.parts.first().bytes))
+        assertEquals(one.headers, two.headers)
+        assertEquals(String(one.parts.first().bytes), String(two.parts.first().bytes))
     }
 
     @Test
@@ -87,6 +85,6 @@ class MessageTest {
                 MimeHeaders.CONTENT_DESCRIPTION
             ).invoke(this)
         }
-        assertEquals( "attachment; filename=\"M1152.P7M\"", filteredHeaders[MimeHeaders.CONTENT_DISPOSITION])
+        assertEquals("attachment; filename=\"M1152.P7M\"", filteredHeaders[MimeHeaders.CONTENT_DISPOSITION])
     }
 }
