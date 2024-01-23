@@ -1,6 +1,5 @@
 package no.nav.emottak.smtp
 
-
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
@@ -12,8 +11,8 @@ import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.response.respond
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
-import kotlin.system.measureTimeMillis
 import org.slf4j.LoggerFactory
+import kotlin.system.measureTimeMillis
 
 fun main() {
     embeddedServer(Netty, port = 8080, module = Application::myApplicationModule).start(wait = true)
@@ -29,29 +28,27 @@ fun Application.myApplicationModule() {
             call.respond("Hello World!")
         }
         get("/routeMail") {
-            var routedMessagesCounterPair= Pair(0,0)
+            var routedMessagesCounterPair = Pair(0, 0)
             val transport = session.getTransport("smtp")
             transport.connect()
             Router(incomingStore, session, transport).use {
-               measureTimeMillis {
-                var current = Pair(0,0)
-                val stop = Pair(0,0)
+                measureTimeMillis {
+                    var current = Pair(0, 0)
+                    val stop = Pair(0, 0)
                     do {
-                            current = it.routeMail().also {
-                                routedMessagesCounterPair = Pair(routedMessagesCounterPair.first + current.first,routedMessagesCounterPair.second + current.second)
-                            }
-                    }while (current != stop)
+                        current = it.routeMail().also {
+                            routedMessagesCounterPair = Pair(routedMessagesCounterPair.first + current.first, routedMessagesCounterPair.second + current.second)
+                        }
+                    } while (current != stop)
                 }
-                .also {
-                    transport.close()
-                    call.respond(
-                        HttpStatusCode.OK,
-                        "Sent ${routedMessagesCounterPair.first} to old inbox & ${routedMessagesCounterPair.second} to new inbox for $it")
-                }
-
-
-        }
+                    .also {
+                        transport.close()
+                        call.respond(
+                            HttpStatusCode.OK,
+                            "Sent ${routedMessagesCounterPair.first} to old inbox & ${routedMessagesCounterPair.second} to new inbox for $it"
+                        )
+                    }
             }
+        }
     }
-
 }

@@ -7,6 +7,7 @@ plugins {
     application
     id("io.ktor.plugin")
     kotlin("plugin.serialization")
+    id("org.jlleitschuh.gradle.ktlint") version "11.6.1"
 }
 
 tasks {
@@ -17,7 +18,15 @@ tasks {
     test {
         useJUnitPlatform()
     }
-
+    ktlintFormat {
+        this.enabled = true
+    }
+    ktlintCheck {
+        dependsOn("ktlintFormat")
+    }
+    build {
+        dependsOn("ktlintCheck")
+    }
 }
 
 dependencies {

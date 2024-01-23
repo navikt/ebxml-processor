@@ -1,5 +1,4 @@
-package no.nav.emottak.smtp;
-
+package no.nav.emottak.smtp
 
 import jakarta.mail.Flags
 import jakarta.mail.Folder
@@ -12,7 +11,7 @@ import jakarta.mail.internet.InternetAddress
 import jakarta.mail.internet.MimeMessage
 import jakarta.mail.internet.MimeMultipart
 
-class Router(store: Store,val outStore: Session, val transport: Transport ,val expunge: Boolean = true) : AutoCloseable {
+class Router(store: Store, val outStore: Session, val transport: Transport, val expunge: Boolean = true) : AutoCloseable {
 
     val inbox: Folder = store.getFolder("INBOX")
 
@@ -31,14 +30,17 @@ class Router(store: Store,val outStore: Session, val transport: Transport ,val e
     }
 
     override fun close() {
-        inbox.close(expunge().also {
-            if (expunge != it)
-                log.warn("Inbox limit [$inboxLimit] exceeded. Expunge forced $it")
-        })
+        inbox.close(
+            expunge().also {
+                if (expunge != it) {
+                    log.warn("Inbox limit [$inboxLimit] exceeded. Expunge forced $it")
+                }
+            }
+        )
     }
 
     fun isM18(message: MimeMultipart): Boolean {
-        if(message.count == 1) return false
+        if (message.count == 1) return false
 
         val bodyPart = message.getBodyPart(0)
         return (bodyPart.content as String)
@@ -54,14 +56,14 @@ class Router(store: Store,val outStore: Session, val transport: Transport ,val e
             if (messageCount != 0) {
                 val endIndex = (takeN + start - 1).takeIf { it < messageCount } ?: messageCount
                 inbox.getMessages(start, endIndex)
-                    .forEach {msg ->
+                    .forEach { msg ->
                         msg.setFlag(Flags.Flag.DELETED, expunge())
                         if (msg.content is MimeMultipart && isM18(msg.content as MimeMultipart)) {
-                          //  msg.session.transport.sendMessage(msg, InternetAddress.parse(smtpUsername_outgoing_ny))
-                          //   Transport.send(msg, InternetAddress.parse(smtpUsername_outgoing_gammel))
+                            //  msg.session.transport.sendMessage(msg, InternetAddress.parse(smtpUsername_outgoing_ny))
+                            //   Transport.send(msg, InternetAddress.parse(smtpUsername_outgoing_gammel))
                             log.info("Routing M18 melding")
-                            val melding = MimeMessage(outStore,(msg as MimeMessage).rawInputStream)
-                            melding.setRecipients(Message.RecipientType.TO, smtpUsername_outgoing_ny);
+                            val melding = MimeMessage(outStore, (msg as MimeMessage).rawInputStream)
+                            melding.setRecipients(Message.RecipientType.TO, smtpUsername_outgoing_ny)
                             newInboxCount++
                         } else {
                             log.info("Routing et annet type melding")
@@ -69,10 +71,10 @@ class Router(store: Store,val outStore: Session, val transport: Transport ,val e
                             if (msg.content is Multipart) melding.setContent(msg.content as Multipart) else melding.setText(msg.content as String)
                             melding.setFrom(msg.from.iterator().next())
                             melding.subject = msg.subject
-                            melding.setRecipients(Message.RecipientType.TO, smtpUsername_outgoing_ny);
+                            melding.setRecipients(Message.RecipientType.TO, smtpUsername_outgoing_ny)
                             transport.sendMessage(melding, InternetAddress.parse(smtpUsername_outgoing_ny))
-                           // outStore.transport.connect("nyebmstest@test-es.nav.no","test1234")
-                           // outStore.transport.sendMessage(msg, InternetAddress.parse("nyebmstest@test-es.nav.no"))
+                            // outStore.transport.connect("nyebmstest@test-es.nav.no","test1234")
+                            // outStore.transport.sendMessage(msg, InternetAddress.parse("nyebmstest@test-es.nav.no"))
 
                          /*  val trans = msg.session.transport
                                 trans.connect("nyebmstest@test-es.nav.no","test1234")
@@ -83,7 +85,7 @@ class Router(store: Store,val outStore: Session, val transport: Transport ,val e
                     }
                 start += takeN
             }
-            return Pair(oldInboxCount,newInboxCount)
+            return Pair(oldInboxCount, newInboxCount)
         } catch (e: Exception) {
             log.error("Error connecting to mail server", e)
             throw e
