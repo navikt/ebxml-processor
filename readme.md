@@ -42,8 +42,8 @@ For å bygge prosjektet brukes gradle.
 ./gradlew build
 ```
 
-Testene bruker [testcontainers](https://github.com/testcontainers/testcontainers-java), så får å kjøre dem
-er man avhengig av et fungerende docker miljø. For eksempel docker eller [colima](https://github.com/abiosoft/colima) på mac.
+Noen av testene bruker [testcontainers](https://github.com/testcontainers/testcontainers-java) for å bygge opp et mer komplett
+kjøretidsmiljø. Disse er avhengig av et fungerende docker miljø. For eksempel docker eller [colima](https://github.com/abiosoft/colima) på mac.
 
 ### Oppsett av Github PAT
 For å kunne dra inn de riktige dependenciene, må man opprette en github PAT.
