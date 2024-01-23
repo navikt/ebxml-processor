@@ -42,7 +42,7 @@ class SertifikatValideringTest : FunSpec({
 
         withData(
             mapOf(
-                "Gyldig sertifikat er OK" to sertifikat,
+                "Gyldig sertifikat er OK" to sertifikat
             )
         ) { certificate ->
             sertifikatValidering.validateCertificate(certificate)
@@ -55,7 +55,7 @@ class SertifikatValideringTest : FunSpec({
 
         withData(
             mapOf(
-                "Revokert sertifikat feiler" to row(TestUtil.revokedCertificate, "Sertifikat revokert"),
+                "Revokert sertifikat feiler" to row(TestUtil.revokedCertificate, "Sertifikat revokert")
             )
         ) { (certificate, errorMessage) ->
             val exception = shouldThrow<CertificateValidationException> {

@@ -2,9 +2,9 @@ package no.nav.emottak.cpa
 
 import no.nav.emottak.melding.model.Header
 import no.nav.emottak.melding.model.Party
-import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.melding.model.PartyId
 import no.nav.emottak.util.createCRLFile
+import no.nav.emottak.util.createX509Certificate
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 
 class TestUtil {
@@ -23,23 +23,26 @@ class TestUtil {
     }
 }
 
-
 fun createValidTestHeader() = Header(
     messageId = "",
     conversationId = "",
     cpaId = "nav:qass:35065",
     to = Party(
-        listOf(PartyId(
-            type = "HER",
-            value = "79768"
-        )),
+        listOf(
+            PartyId(
+                type = "HER",
+                value = "79768"
+            )
+        ),
         role = "KontrollUtbetaler"
     ),
     from = Party(
-        listOf(PartyId(
-            type = "HER",
-            value = "8141253"
-        )),
+        listOf(
+            PartyId(
+                type = "HER",
+                value = "8141253"
+            )
+        ),
         role = "Behandler"
     ),
     service = "BehandlerKrav",
@@ -47,16 +50,20 @@ fun createValidTestHeader() = Header(
 )
 
 fun createValidToHERParty() = Party(
-    listOf(PartyId(
-        type = "HER",
-        value = "79768"
-    )),
+    listOf(
+        PartyId(
+            type = "HER",
+            value = "79768"
+        )
+    ),
     role = "KontrollUtbetaler"
 )
 fun createValidFromHERParty() = Party(
-    listOf(PartyId(
-        type = "HER",
-        value = "8141253"
-    )),
+    listOf(
+        PartyId(
+            type = "HER",
+            value = "8141253"
+        )
+    ),
     role = "Behandler"
 )

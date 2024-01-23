@@ -1,17 +1,14 @@
 package no.nav.emottak.cpa.persistence
 
-import java.time.Instant
 import no.nav.emottak.cpa.Database
-import no.nav.emottak.cpa.persistence.CPA.default
-import org.jetbrains.exposed.sql.SchemaUtils.withDataBaseLock
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.javatime.timestamp
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.upsert
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
+import java.time.Instant
 
 class CPARepository(val database: Database) {
 
@@ -27,10 +24,13 @@ class CPARepository(val database: Database) {
 
     fun findCpaTimestamps(idList: List<String>): Map<String, String> {
         return transaction(db = database.db) {
-            (if (idList.isNotEmpty())
-                CPA.select(where = { CPA.id inList idList })
-            else
-                CPA.selectAll())
+            (
+                if (idList.isNotEmpty()) {
+                    CPA.select(where = { CPA.id inList idList })
+                } else {
+                    CPA.selectAll()
+                }
+                )
                 .associate {
                     Pair(it[CPA.id], it[CPA.updated_date].toString())
                 }
@@ -39,7 +39,7 @@ class CPARepository(val database: Database) {
 
     fun findLatestUpdatedCpaTimestamp(): String {
         return transaction(db = database.db) {
-            CPA.select(where = {CPA.updated_date.isNotNull()})
+            CPA.select(where = { CPA.updated_date.isNotNull() })
                 .orderBy(CPA.updated_date, SortOrder.DESC)
                 .first()[CPA.updated_date]
         }.toString()
@@ -54,7 +54,7 @@ class CPARepository(val database: Database) {
                     it[CPA.id],
                     it[CPA.cpa],
                     it[CPA.updated_date],
-                    it[CPA.entryCreated],
+                    it[CPA.entryCreated]
                 )
             }
         }
@@ -87,14 +87,14 @@ class CPARepository(val database: Database) {
     data class CpaDbEntry(
         val id: String,
         val cpa: CollaborationProtocolAgreement? = null,
-        val updated_date: Instant,  // OBS! Truncates til seconds av praktiske hensyn.
-        val create_date: Instant    // OBS! Truncates til seconds av praktiske hensyn.
+        val updated_date: Instant, // OBS! Truncates til seconds av praktiske hensyn.
+        val create_date: Instant // OBS! Truncates til seconds av praktiske hensyn.
     )
 
-    //@Serializable
-    //data class TimestampResponse(
+    // @Serializable
+    // data class TimestampResponse(
     //    val idMap: Map<String, String>
-    //)
+    // )
 
-    //fun List<Pair<>>.toTimestampResponse() {}
+    // fun List<Pair<>>.toTimestampResponse() {}
 }

@@ -9,12 +9,11 @@ import org.jetbrains.exposed.sql.javatime.timestamp
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 
 object CPA : Table("cpa") {
-    val id: Column<String> = varchar("cpa_id",256)
+    val id: Column<String> = varchar("cpa_id", 256)
     val cpa = json("cpa", CollaborationProtocolAgreement::class.java)
     val updated_date = timestamp("updated_date")
     val entryCreated = timestamp("create_date")
 }
-
 
 private fun <T : Any> Table.json(
     name: String,
@@ -25,12 +24,11 @@ private fun <T : Any> Table.json(
         type = JsonColumnType(clazz)
     )
 
-
 class JsonColumnType<T : Any>(private val clazz: Class<T>) : ColumnType() {
     override fun sqlType(): String =
         "json"
 
-    override fun valueFromDB(value: Any): T =   unmarshal(value as String, clazz)
+    override fun valueFromDB(value: Any): T = unmarshal(value as String, clazz)
 
     override fun notNullValueToDB(value: Any): String = marshal(value)
 
@@ -40,4 +38,3 @@ class JsonColumnType<T : Any>(private val clazz: Class<T>) : ColumnType() {
             else -> super.valueToString(value)
         }
 }
-

@@ -7,6 +7,7 @@ plugins {
     application
     id("io.ktor.plugin")
     kotlin("plugin.serialization")
+    id("org.jlleitschuh.gradle.ktlint") version "11.6.1"
 }
 
 tasks {
@@ -19,7 +20,15 @@ tasks {
         testLogging.showStandardStreams = true
         testLogging.exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
     }
-    
+    ktlintFormat {
+        this.enabled = true
+    }
+    ktlintCheck {
+        dependsOn("ktlintFormat")
+    }
+    build {
+        dependsOn("ktlintCheck")
+    }
 }
 
 dependencies {

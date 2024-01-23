@@ -10,7 +10,6 @@ import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PartyInfo
 import java.time.Instant
 import java.util.Date
 
-
 fun CollaborationProtocolAgreement.validate(header: Header) {
     validateCpaId(header)
     validateCpaDatoGyldig(header)
@@ -19,9 +18,10 @@ fun CollaborationProtocolAgreement.validate(header: Header) {
 
 @Throws(CpaValidationException::class)
 fun CollaborationProtocolAgreement.hasRoleServiceActionCombo(header: Header) {
-    if(header.service == EBMS_SERVICE_URI) {
-        if (header.action != ACKNOWLEDGMENT_ACTION && header.action != MESSAGE_ERROR_ACTION)
+    if (header.service == EBMS_SERVICE_URI) {
+        if (header.action != ACKNOWLEDGMENT_ACTION && header.action != MESSAGE_ERROR_ACTION) {
             throw CpaValidationException("Service $EBMS_SERVICE_URI støtter ikke action ${header.action}")
+        }
         return
     }
     val fromParty = this.getPartyInfoByTypeAndID(header.from.partyId)
@@ -38,8 +38,9 @@ fun CollaborationProtocolAgreement.hasRoleServiceActionCombo(header: Header) {
 fun partyInfoHasRoleServiceActionCombo(partyInfo: PartyInfo, role: String, service: String, action: String, direction: MessageDirection) {
     val partyWithRole = partyInfo.collaborationRole.firstOrNull { r -> r.role.name == role }
         ?: throw CpaValidationException("Role $role matcher ikke party")
-    if (partyWithRole.serviceBinding.service.value != service)
+    if (partyWithRole.serviceBinding.service.value != service) {
         throw CpaValidationException("Service $service matcher ikke role $role for party")
+    }
     when (direction) {
         MessageDirection.SEND -> partyWithRole.serviceBinding.canSend.firstOrNull { a -> a.thisPartyActionBinding.action == action }
             ?: throw CpaValidationException("Action $action matcher ikke service $service")
@@ -49,8 +50,9 @@ fun partyInfoHasRoleServiceActionCombo(partyInfo: PartyInfo, role: String, servi
 }
 
 fun CollaborationProtocolAgreement.validateCpaId(header: Header) {
-    if(this.cpaid != header.cpaId)
+    if (this.cpaid != header.cpaId) {
         throw CpaValidationException("Funnet CPA (ID: ${this.cpaid}) matcher ikke cpaid til melding: ${header.cpaId}")
+    }
 }
 
 fun CollaborationProtocolAgreement.validateCpaDatoGyldig(header: Header) {
@@ -58,9 +60,11 @@ fun CollaborationProtocolAgreement.validateCpaDatoGyldig(header: Header) {
         Den genererte kontrakten tolker feltet som java.Date. Dette kan i realiteten være LocalDateTime
         Eksempel: <tp:Start>2009-11-26T14:26:21Z</tp:Start>
      */
-    if(!Date.from(Instant.now()) // TODO: Mottakstidspunkt?
-        .let { it.after(this.start) && it.before(this.end) })
+    if (!Date.from(Instant.now()) // TODO: Mottakstidspunkt?
+        .let { it.after(this.start) && it.before(this.end) }
+    ) {
         throw CpaValidationException("Cpa ID: [${header.cpaId}] CPA er ikke gyldig på meldingstidspunkt.")
+    }
 }
 
 enum class MessageDirection { SEND, RECEIVE }

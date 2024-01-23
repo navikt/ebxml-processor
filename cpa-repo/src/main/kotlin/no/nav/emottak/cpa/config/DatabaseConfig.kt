@@ -14,7 +14,6 @@ data class DatabaseConfig(
     val url: String = "jdbc:postgresql://%s:%s/%s".format(host, port, name)
 )
 
-
 fun mapHikariConfig(databaseConfig: DatabaseConfig): HikariConfig {
     return HikariConfig().apply {
         jdbcUrl = databaseConfig.url

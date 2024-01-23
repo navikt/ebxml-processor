@@ -5,7 +5,6 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.post
-import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
@@ -15,36 +14,30 @@ import io.ktor.http.headers
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
-import java.time.Instant
-import java.time.temporal.ChronoUnit
-import kotlin.test.assertContains
-import kotlin.test.assertNotNull
-import no.nav.emottak.cpa.persistence.CPA
 import no.nav.emottak.cpa.persistence.DBTest
-import no.nav.emottak.cpa.persistence.DEFAULT_TIMESTAMP
 import no.nav.emottak.cpa.persistence.cpaPostgres
 import no.nav.emottak.cpa.persistence.testConfiguration
 import no.nav.emottak.melding.model.SignatureDetails
 import no.nav.emottak.melding.model.SignatureDetailsRequest
-import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import java.time.Instant
+import java.time.temporal.ChronoUnit
+import kotlin.test.assertContains
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class CPARepoIntegrationTest: DBTest() {
+class CPARepoIntegrationTest : DBTest() {
 
     fun <T> cpaRepoTestApp(testBlock: suspend ApplicationTestBuilder.() -> T) = testApplication {
-
-        application (cpaApplicationModule(cpaPostgres().testConfiguration()) )
+        application(cpaApplicationModule(cpaPostgres().testConfiguration()))
         testBlock()
     }
 
     @Test
     fun `Hent sertifikat for signatursjekk`() = cpaRepoTestApp {
         val request = SignatureDetailsRequest(
-            cpaId = "nav:qass:35065", //TODO endres hvis/når respons fra getCpa ikke lenger er hardkodet
+            cpaId = "nav:qass:35065", // TODO endres hvis/når respons fra getCpa ikke lenger er hardkodet
             partyType = "HER",
             partyId = "8141253",
             role = "Behandler",
@@ -73,7 +66,7 @@ class CPARepoIntegrationTest: DBTest() {
                 json()
             }
         }
-        httpClient.post("/cpa"){
+        httpClient.post("/cpa") {
             headers {
                 header("updated_date", Instant.now().toString())
             }
@@ -100,7 +93,7 @@ class CPARepoIntegrationTest: DBTest() {
                 json()
             }
         }
-        httpClient.post("/cpa"){
+        httpClient.post("/cpa") {
             headers {
                 header("updated_date", Instant.now().toString())
                 header("upsert", "true")
@@ -131,7 +124,7 @@ class CPARepoIntegrationTest: DBTest() {
 
         val updatedTimestamp = Instant.now().minus(1, ChronoUnit.DAYS).truncatedTo(ChronoUnit.SECONDS)
         // Putter CPA
-        httpClient.post("/cpa"){
+        httpClient.post("/cpa") {
             headers {
                 header("updated_date", updatedTimestamp)
             }
@@ -144,5 +137,4 @@ class CPARepoIntegrationTest: DBTest() {
 
         assertEquals(updatedTimestamp.toString(), responseMedAlle.bodyAsText())
     }
-
 }

@@ -1,8 +1,6 @@
 package no.nav.emottak.cpa.persistence
 
 import com.zaxxer.hikari.HikariConfig
-import java.time.Instant
-import java.time.temporal.ChronoUnit
 import no.nav.emottak.cpa.Database
 import no.nav.emottak.cpa.xmlMarshaller
 import org.flywaydb.core.Flyway
@@ -11,20 +9,22 @@ import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 import org.testcontainers.containers.PostgreSQLContainer
+import java.time.Instant
+import java.time.temporal.ChronoUnit
 import kotlin.test.BeforeTest
 
 val DEFAULT_TIMESTAMP = Instant.now().truncatedTo(ChronoUnit.SECONDS)
 abstract class DBTest() {
 
-
     lateinit var db: Database
+
     @BeforeTest
     fun beforeEach() {
         val posgres = cpaPostgres()
-        db = Database(posgres.testConfiguration()   )
+        db = Database(posgres.testConfiguration())
             .configureFlyway()
         val tables = listOf(CPA)
-        transaction (db.db) {
+        transaction(db.db) {
             tables.forEach { it.deleteAll() }
             CPA.insert {
                 val collaborationProtocolAgreement = loadTestCPA()
@@ -36,15 +36,11 @@ abstract class DBTest() {
         }
     }
 
-    fun loadTestCPA() : CollaborationProtocolAgreement {
+    fun loadTestCPA(): CollaborationProtocolAgreement {
         val testCpaString = String(this::class.java.classLoader.getResource("cpa/nav-qass-35065.xml").readBytes())
-        return xmlMarshaller.unmarshal(testCpaString,CollaborationProtocolAgreement::class.java)
+        return xmlMarshaller.unmarshal(testCpaString, CollaborationProtocolAgreement::class.java)
     }
-
 }
-
-
-
 
 private fun Database.configureFlyway(): Database =
     also {
@@ -57,7 +53,6 @@ private fun Database.configureFlyway(): Database =
             .migrate()
     }
 
-
 fun cpaPostgres(): PostgreSQLContainer<Nothing> =
     PostgreSQLContainer<Nothing>("postgres:14").apply {
         withReuse(true)
@@ -69,7 +64,7 @@ fun cpaPostgres(): PostgreSQLContainer<Nothing> =
     }
 
 fun PostgreSQLContainer<Nothing>.testConfiguration(): HikariConfig {
-     return HikariConfig().apply {
+    return HikariConfig().apply {
         jdbcUrl = this@testConfiguration.jdbcUrl
         username = this@testConfiguration.username
         password = this@testConfiguration.password
@@ -81,6 +76,3 @@ fun PostgreSQLContainer<Nothing>.testConfiguration(): HikariConfig {
         initializationFailTimeout = 5000
     }
 }
-
-
-

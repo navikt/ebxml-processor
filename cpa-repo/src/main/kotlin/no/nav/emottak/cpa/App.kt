@@ -16,8 +16,6 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
-import java.time.Instant
-import java.time.temporal.ChronoUnit
 import no.nav.emottak.cpa.config.DatabaseConfig
 import no.nav.emottak.cpa.config.mapHikariConfig
 import no.nav.emottak.cpa.feil.CpaValidationException
@@ -34,6 +32,8 @@ import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.marker
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 import org.slf4j.LoggerFactory
+import java.time.Instant
+import java.time.temporal.ChronoUnit
 
 fun main() {
     embeddedServer(Netty, port = 8080, module = cpaApplicationModule(mapHikariConfig(DatabaseConfig()))).start(wait = true)
@@ -57,12 +57,16 @@ fun cpaApplicationModule(dbConfig: HikariConfig): Application.() -> Unit {
 
             get("/cpa/timestamps") {
                 println("Timestamps")
-                call.respond(HttpStatusCode.OK,
+                call.respond(
+                    HttpStatusCode.OK,
                     cpaRepository.findCpaTimestamps(
                         call.request.headers[CPA_IDS]
                             .let {
-                                if(!it.isNullOrBlank()) it.split(",")
-                                else emptyList()
+                                if (!it.isNullOrBlank()) {
+                                    it.split(",")
+                                } else {
+                                    emptyList()
+                                }
                             }
                     )
                 )
@@ -70,33 +74,44 @@ fun cpaApplicationModule(dbConfig: HikariConfig): Application.() -> Unit {
 
             get("/cpa/timestamps/latest") {
                 println("Timestamplatest")
-                call.respond(HttpStatusCode.OK,
+                call.respond(
+                    HttpStatusCode.OK,
                     cpaRepository.findLatestUpdatedCpaTimestamp()
                 )
             }
 
             post("/cpa") {
                 val cpaString = call.receive<String>()
-                //TODO en eller annen form for validering av CPA
+                // TODO en eller annen form for validering av CPA
                 val updatedDate = call.request.headers["updated_date"].let {
-                    if (it.isNullOrBlank()){
+                    if (it.isNullOrBlank()) {
                         Instant.now().truncatedTo(ChronoUnit.SECONDS)
                     }
                     Instant.parse(it).truncatedTo(ChronoUnit.SECONDS) // TODO feilhåndter
                 }
                 val cpa = xmlMarshaller.unmarshal(cpaString, CollaborationProtocolAgreement::class.java)
 
-                if(call.request.headers["upsert"].equals("true")) {
-                    cpaRepository.upsertCpa(CPARepository.CpaDbEntry(cpa.cpaid, cpa,
-                        updatedDate,
-                        Instant.now())).also {
+                if (call.request.headers["upsert"].equals("true")) {
+                    cpaRepository.upsertCpa(
+                        CPARepository.CpaDbEntry(
+                            cpa.cpaid,
+                            cpa,
+                            updatedDate,
+                            Instant.now()
+                        )
+                    ).also {
                         log.info("Added CPA $it to repo")
                         call.respond(HttpStatusCode.OK, "Added CPA $it to repo")
                     }
                 } else {
-                    cpaRepository.putCpa(CPARepository.CpaDbEntry(cpa.cpaid, cpa,
-                        updatedDate,
-                        Instant.now())).also {
+                    cpaRepository.putCpa(
+                        CPARepository.CpaDbEntry(
+                            cpa.cpaid,
+                            cpa,
+                            updatedDate,
+                            Instant.now()
+                        )
+                    ).also {
                         log.info("Added CPA $it to repo")
                         call.respond(HttpStatusCode.OK, "Added CPA $it to repo")
                     }
@@ -110,9 +125,12 @@ fun cpaApplicationModule(dbConfig: HikariConfig): Application.() -> Unit {
                     val cpa = cpaRepository.findCpa(validateRequest.cpaId) ?: throw NotFoundException("Fant ikke CPA")
                     cpa.validate(validateRequest) // Delivery Filure
                     val partyInfo = cpa.getPartyInfoByTypeAndID(validateRequest.from.partyId) // delivery Failure
-                    val encryptionCertificate = partyInfo.getCertificateForEncryption()  // Security Failure
+                    val encryptionCertificate = partyInfo.getCertificateForEncryption() // Security Failure
                     val signingCertificate = partyInfo.getCertificateForSignatureValidation(
-                        validateRequest.from.role, validateRequest.service, validateRequest.action) //Security Failure
+                        validateRequest.from.role,
+                        validateRequest.service,
+                        validateRequest.action
+                    ) // Security Failure
                     runCatching {
                         createX509Certificate(signingCertificate.certificate).validate()
                     }.onFailure {
@@ -120,19 +138,17 @@ fun cpaApplicationModule(dbConfig: HikariConfig): Application.() -> Unit {
                         throw it
                     }
 
-                    call.respond(HttpStatusCode.OK, ValidationResult(Processing(signingCertificate,encryptionCertificate)))
-
+                    call.respond(HttpStatusCode.OK, ValidationResult(Processing(signingCertificate, encryptionCertificate)))
                 } catch (ebmsEx: EbmsException) {
                     log.warn(validateRequest.marker(), ebmsEx.message, ebmsEx)
-                    call.respond(HttpStatusCode.OK, ValidationResult(processing = null, listOf( Feil(ebmsEx.errorCode, ebmsEx.descriptionText, ebmsEx.severity))))
+                    call.respond(HttpStatusCode.OK, ValidationResult(processing = null, listOf(Feil(ebmsEx.errorCode, ebmsEx.descriptionText, ebmsEx.severity))))
                 } catch (ex: NotFoundException) {
                     log.warn(validateRequest.marker(), "${ex.message}")
-                    call.respond(HttpStatusCode.OK, ValidationResult(processing = null, listOf( Feil(ErrorCode.DELIVERY_FAILURE,"Unable to find CPA"))))
+                    call.respond(HttpStatusCode.OK, ValidationResult(processing = null, listOf(Feil(ErrorCode.DELIVERY_FAILURE, "Unable to find CPA"))))
                 } catch (ex: Exception) {
-                    log.error(validateRequest.marker(),ex.message,ex)
-                    call.respond(HttpStatusCode.OK,ValidationResult(processing = null, listOf(Feil(ErrorCode.UNKNOWN,"Unexpected error during cpa validation"))))
+                    log.error(validateRequest.marker(), ex.message, ex)
+                    call.respond(HttpStatusCode.OK, ValidationResult(processing = null, listOf(Feil(ErrorCode.UNKNOWN, "Unexpected error during cpa validation"))))
                 }
-
             }
 
             get("/cpa/{$CPA_ID}/party/{$PARTY_TYPE}/{$PARTY_ID}/encryption/certificate") {
@@ -150,7 +166,10 @@ fun cpaApplicationModule(dbConfig: HikariConfig): Application.() -> Unit {
                 try {
                     val partyInfo = cpa.getPartyInfoByTypeAndID(signatureDetailsRequest.partyType, signatureDetailsRequest.partyId)
                     val signatureDetails = partyInfo.getCertificateForSignatureValidation(
-                        signatureDetailsRequest.role, signatureDetailsRequest.service, signatureDetailsRequest.action)
+                        signatureDetailsRequest.role,
+                        signatureDetailsRequest.service,
+                        signatureDetailsRequest.action
+                    )
                     // TODO Strengere signatursjekk. Nå er den snill og resultatet logges bare
                     runCatching {
                         createX509Certificate(signatureDetails.certificate).validate()
@@ -172,7 +191,7 @@ private const val CPA_ID = "cpaId"
 private const val CPA_IDS = "cpaIds"
 private const val PARTY_TYPE = "partyType"
 private const val PARTY_ID = "partyId"
-private const val CONTENT_ID ="contentId"
+private const val CONTENT_ID = "contentId"
 private const val ROLE = "role"
 private const val SERVICE = "service"
 private const val ACTION = "action"
