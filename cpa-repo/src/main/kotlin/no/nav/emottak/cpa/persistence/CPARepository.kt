@@ -9,6 +9,9 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.upsert
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 import java.time.Instant
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.deleteAll
+import org.jetbrains.exposed.sql.deleteWhere
 
 class CPARepository(val database: Database) {
 
@@ -80,6 +83,13 @@ class CPARepository(val database: Database) {
                 it[CPA.entryCreated] = cpa.create_date
                 it[CPA.updated_date] = cpa.updated_date
             }
+        }
+        return cpa.id
+    }
+
+    fun deleteCpa(cpa: CpaDbEntry): String {
+        transaction(database.db) {
+            CPA.deleteWhere { CPA.id.eq(cpa.id) }
         }
         return cpa.id
     }

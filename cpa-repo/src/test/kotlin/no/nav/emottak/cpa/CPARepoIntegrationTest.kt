@@ -2,6 +2,7 @@ package no.nav.emottak.cpa
 
 import io.ktor.client.call.body
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.post
@@ -14,17 +15,19 @@ import io.ktor.http.headers
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
+import java.time.Instant
+import java.time.temporal.ChronoUnit
+import kotlin.test.assertContains
+import kotlin.test.assertTrue
 import no.nav.emottak.cpa.persistence.DBTest
 import no.nav.emottak.cpa.persistence.cpaPostgres
 import no.nav.emottak.cpa.persistence.testConfiguration
 import no.nav.emottak.melding.model.SignatureDetails
 import no.nav.emottak.melding.model.SignatureDetailsRequest
+import org.apache.commons.lang3.StringUtils
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import java.time.Instant
-import java.time.temporal.ChronoUnit
-import kotlin.test.assertContains
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class CPARepoIntegrationTest : DBTest() {
@@ -137,4 +140,49 @@ class CPARepoIntegrationTest : DBTest() {
 
         assertEquals(updatedTimestamp.toString(), responseMedAlle.bodyAsText())
     }
+
+    @Test
+    fun `Get cpa with ID should return CPA`() = cpaRepoTestApp {
+        val httpClient = createClient {
+            install(ContentNegotiation) {
+                json()
+            }
+        }
+        // Sett CPA i db
+        httpClient.post("/cpa") {
+            headers {
+                header("updated_date", Instant.now().toString())
+                header("upsert", "true")
+            }
+            setBody(
+                xmlMarshaller.marshal(loadTestCPA())
+            )
+        }
+        val response = httpClient.get("/cpa/nav:qass:35065");
+        assertTrue( StringUtils.isNotBlank(response.bodyAsText()),
+            "Response can't be null or blank")
+    }
+
+
+    @Test
+    fun `Delete CPA should result in deletion`() = cpaRepoTestApp {
+        val httpClient = createClient {
+            install(ContentNegotiation) {
+                json()
+            }
+        }
+        // Sett CPA i db
+        httpClient.post("/cpa") {
+            headers {
+                header("updated_date", Instant.now().toString())
+                header("upsert", "true")
+            }
+            setBody(
+                xmlMarshaller.marshal(loadTestCPA())
+            )
+        }
+        val response = httpClient.delete("/cpa/delete/nav:qass:35065");
+        assertEquals("nav:qass:35065 slettet!", response.bodyAsText())
+    }
+
 }

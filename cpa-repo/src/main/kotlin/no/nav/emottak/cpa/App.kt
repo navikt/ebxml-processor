@@ -13,6 +13,7 @@ import io.ktor.server.plugins.NotFoundException
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
+import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
@@ -52,7 +53,13 @@ fun cpaApplicationModule(dbConfig: HikariConfig): Application.() -> Unit {
                 val cpaId = call.parameters[CPA_ID] ?: throw BadRequestException("Mangler $CPA_ID")
 //            val cpa = getCpa(cpaId) ?: throw NotFoundException("Fant ikke CPA")
                 val cpa = cpaRepository.findCpa(cpaId) ?: throw NotFoundException("Fant ikke CPA")
-                call.respond(cpa)
+                call.respond(cpa.asText())
+            }
+
+            delete("/cpa/delete/{$CPA_ID}") {
+                val cpaId = call.parameters[CPA_ID] ?: throw BadRequestException("Mangler $CPA_ID")
+                cpaRepository.findCpa(cpaId) ?: throw NotFoundException("Fant ikke CPA")
+                call.respond("$cpaId slettet!")
             }
 
             get("/cpa/timestamps") {
@@ -185,6 +192,11 @@ fun cpaApplicationModule(dbConfig: HikariConfig): Application.() -> Unit {
         }
     }
 }
+
+fun CollaborationProtocolAgreement.asText(): String {
+    return xmlMarshaller.marshal(this);
+}
+
 internal val log = LoggerFactory.getLogger("no.nav.emottak.cpa.App")
 
 private const val CPA_ID = "cpaId"
