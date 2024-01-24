@@ -104,9 +104,10 @@ foreach my $filename (readdir(DIR)) {
 
         if ($messageMatched eq 1) {
             if ($dryRunMode eq 0) {
-                if ($sendToBothSystems eq 0) {
-                    $oldCounter++;
+                if ($sendToBothSystems eq 1) {
+                    print "sendToBothSystems active, sending copy to old system\n";
                     copy("$inputDirectory/$filename", "$oldEmottakDirectory/$filename");
+                    $oldCounter++;
                 }
                 move("$inputDirectory/$filename", "$newEmottakDirectory/$filename");
             }
@@ -115,9 +116,10 @@ foreach my $filename (readdir(DIR)) {
         }
         else {
             if ($dryRunMode eq 0) {
-                if ($sendToBothSystems eq 0) {
-                    $newCounter++;
+                if ($sendToBothSystems eq 1) {
+                    print "sendToBothSystems active, sending copy to new system\n";
                     copy("$inputDirectory/$filename", "$newEmottakDirectory/$filename");
+                    $newCounter++;
                 }
                 move("$inputDirectory/$filename", "$oldEmottakDirectory/$filename");
             }
