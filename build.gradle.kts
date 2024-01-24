@@ -10,6 +10,4 @@ tasks {
     ktlintFormat {
         this.enabled = true
     }
-
-
 }

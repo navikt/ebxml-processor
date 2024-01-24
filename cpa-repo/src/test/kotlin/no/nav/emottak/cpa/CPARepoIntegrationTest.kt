@@ -15,10 +15,6 @@ import io.ktor.http.headers
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
-import java.time.Instant
-import java.time.temporal.ChronoUnit
-import kotlin.test.assertContains
-import kotlin.test.assertTrue
 import no.nav.emottak.cpa.persistence.DBTest
 import no.nav.emottak.cpa.persistence.cpaPostgres
 import no.nav.emottak.cpa.persistence.testConfiguration
@@ -28,6 +24,10 @@ import org.apache.commons.lang3.StringUtils
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import java.time.Instant
+import java.time.temporal.ChronoUnit
+import kotlin.test.assertContains
+import kotlin.test.assertTrue
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class CPARepoIntegrationTest : DBTest() {
@@ -51,6 +51,16 @@ class CPARepoIntegrationTest : DBTest() {
             install(ContentNegotiation) {
                 json()
             }
+        }
+        val updatedTimestamp = Instant.now().minus(1, ChronoUnit.DAYS).truncatedTo(ChronoUnit.SECONDS)
+        // Putter CPA
+        httpClient.post("/cpa") {
+            headers {
+                header("updated_date", updatedTimestamp)
+            }
+            setBody(
+                xmlMarshaller.marshal(loadTestCPA())
+            )
         }
         val response = httpClient.post("/signing/certificate") {
             setBody(request)
@@ -158,11 +168,12 @@ class CPARepoIntegrationTest : DBTest() {
                 xmlMarshaller.marshal(loadTestCPA())
             )
         }
-        val response = httpClient.get("/cpa/nav:qass:35065");
-        assertTrue( StringUtils.isNotBlank(response.bodyAsText()),
-            "Response can't be null or blank")
+        val response = httpClient.get("/cpa/nav:qass:35065")
+        assertTrue(
+            StringUtils.isNotBlank(response.bodyAsText()),
+            "Response can't be null or blank"
+        )
     }
-
 
     @Test
     fun `Delete CPA should result in deletion`() = cpaRepoTestApp {
@@ -181,8 +192,7 @@ class CPARepoIntegrationTest : DBTest() {
                 xmlMarshaller.marshal(loadTestCPA())
             )
         }
-        val response = httpClient.delete("/cpa/delete/nav:qass:35065");
+        val response = httpClient.delete("/cpa/delete/nav:qass:35065")
         assertEquals("nav:qass:35065 slettet!", response.bodyAsText())
     }
-
 }

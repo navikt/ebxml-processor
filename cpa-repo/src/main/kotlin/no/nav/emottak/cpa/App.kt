@@ -162,14 +162,14 @@ fun cpaApplicationModule(dbConfig: HikariConfig): Application.() -> Unit {
                 val cpaId = call.parameters[CPA_ID] ?: throw BadRequestException("Mangler $CPA_ID")
                 val partyType = call.parameters[PARTY_TYPE] ?: throw BadRequestException("Mangler $PARTY_TYPE")
                 val partyId = call.parameters[PARTY_ID] ?: throw BadRequestException("Mangler $PARTY_ID")
-                val cpa = getCpa(cpaId) ?: throw NotFoundException("Ingen CPA med ID $cpaId funnet")
+                val cpa = cpaRepository.findCpa(cpaId) ?: throw NotFoundException("Ingen CPA med ID $cpaId funnet")
                 val partyInfo = cpa.getPartyInfoByTypeAndID(partyType, partyId)
                 call.respond(partyInfo.getCertificateForEncryption())
             }
 
             post("/signing/certificate") {
                 val signatureDetailsRequest = call.receive(SignatureDetailsRequest::class)
-                val cpa = getCpa(signatureDetailsRequest.cpaId) ?: throw NotFoundException("Ingen CPA med ID ${signatureDetailsRequest.cpaId} funnet")
+                val cpa = cpaRepository.findCpa(signatureDetailsRequest.cpaId) ?: throw NotFoundException("Ingen CPA med ID ${signatureDetailsRequest.cpaId} funnet")
                 try {
                     val partyInfo = cpa.getPartyInfoByTypeAndID(signatureDetailsRequest.partyType, signatureDetailsRequest.partyId)
                     val signatureDetails = partyInfo.getCertificateForSignatureValidation(
@@ -194,7 +194,7 @@ fun cpaApplicationModule(dbConfig: HikariConfig): Application.() -> Unit {
 }
 
 fun CollaborationProtocolAgreement.asText(): String {
-    return xmlMarshaller.marshal(this);
+    return xmlMarshaller.marshal(this)
 }
 
 internal val log = LoggerFactory.getLogger("no.nav.emottak.cpa.App")

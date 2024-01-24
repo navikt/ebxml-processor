@@ -15,7 +15,7 @@ import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.Transport
 import org.w3._2000._09.xmldsig_.X509DataType
 import javax.xml.bind.JAXBElement
 
-fun getCpa(id: String) = CPAUtil.getCpa(id)
+fun getDummyCPA(id: String) = CPAUtil.getCpa(id)
 
 private class CPAUtil {
     companion object {
