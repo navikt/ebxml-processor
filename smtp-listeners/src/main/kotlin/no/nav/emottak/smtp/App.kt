@@ -7,6 +7,7 @@ import com.jcraft.jsch.UserInfo
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.forms.MultiPartFormDataContent
+import io.ktor.client.request.header
 import io.ktor.client.request.headers
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -45,6 +46,7 @@ import java.time.Instant
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.time.toKotlinDuration
+import kotlinx.coroutines.withContext
 
 fun main() {
     embeddedServer(Netty, port = 8080, module = Application::myApplicationModule).start(wait = true)
@@ -106,8 +108,32 @@ fun Application.myApplicationModule() {
             sftpChannel.connect()
             sftpChannel.cd("/outbound/cpa")
             val folder: Vector<LsEntry> = sftpChannel.ls(".") as Vector<LsEntry>
+
+            // TODO check state of CPA db, get timestamp
+            // Get all files later than timestamp
+            // push files to db
+            val URL_CPA_REPO_BASE = getEnvVar("URL_CPA_REPO", "https://smtp-listeners.intern.dev.nav.no")
+            val URL_CPA_REPO_PUT = URL_CPA_REPO_BASE + "/cpa"
+            val URL_CPA_REPO_TIMESTAMPS = URL_CPA_REPO_BASE + "/cpa/timestamps"
+
             folder.forEach {
-                log.info(it.filename)
+                if(it.filename.contains("gz")) {
+                    log.info(it.filename + " *.gz ignored")
+                    return@forEach
+                }
+                val client = HttpClient(CIO)
+                val lastModified = Date(it.attrs.mTime.toLong() * 1000)
+                val cpaFile = String(sftpChannel.get(it.filename).readAllBytes())
+                withContext(Dispatchers.IO) {
+                    log.info("Uploading " + it.filename)
+                    client.post(URL_CPA_REPO_PUT) {
+                        headers {
+                            header("updated_date", lastModified.toInstant().toString())
+                            header("upsert", "true")
+                        }
+                        setBody(cpaFile)
+                    }
+                }
             }
             sftpChannel.disconnect()
             session.disconnect()
