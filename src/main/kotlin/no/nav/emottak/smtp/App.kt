@@ -116,24 +116,29 @@ fun Application.myApplicationModule() {
             val URL_CPA_REPO_PUT = URL_CPA_REPO_BASE + "/cpa"
             // val URL_CPA_REPO_TIMESTAMPS = URL_CPA_REPO_BASE + "/cpa/timestamps"
 
-            folder.forEach {
-                if (it.filename.contains("gz")) {
-                    log.info(it.filename + " *.gz ignored")
-                    return@forEach
-                }
-                val client = HttpClient(CIO)
-                val lastModified = Date(it.attrs.mTime.toLong() * 1000)
-                val cpaFile = String(sftpChannel.get(it.filename).readAllBytes())
-                withContext(Dispatchers.IO) {
-                    log.info("Uploading " + it.filename)
-                    client.post(URL_CPA_REPO_PUT) {
-                        headers {
-                            header("updated_date", lastModified.toInstant().toString())
-                            header("upsert", "true")
+            try {
+                folder.forEach {
+                    if (it.filename.contains("gz")) {
+                        log.info(it.filename + " *.gz ignored")
+                        return@forEach
+                    }
+                    val client = HttpClient(CIO)
+                    val lastModified = Date(it.attrs.mTime.toLong() * 1000)
+                    val cpaFile = String(sftpChannel.get(it.filename).readAllBytes())
+                    withContext(Dispatchers.IO) {
+                        log.info("Uploading " + it.filename)
+                        client.post(URL_CPA_REPO_PUT) {
+                            headers {
+                                header("updated_date", lastModified.toInstant().toString())
+                                header("upsert", "true")
+                            }
+                            setBody(cpaFile)
                         }
-                        setBody(cpaFile)
                     }
                 }
+            } catch (e: Exception) {
+                log.error("SFTP Exception")
+                log.error(e.message, e)
             }
             sftpChannel.disconnect()
             session.disconnect()
