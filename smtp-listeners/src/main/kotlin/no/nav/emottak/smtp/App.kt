@@ -124,7 +124,7 @@ fun Application.myApplicationModule() {
                     }
                     val client = HttpClient(CIO)
                     val lastModified = Date(it.attrs.mTime.toLong() * 1000)
-                    val cpaFile = String(sftpChannel.get(it.filename).readAllBytes())
+                    val cpaFile = String(sftpChannel.get("/outbound/cpa/" + it.filename).readAllBytes())
                     withContext(Dispatchers.IO) {
                         log.info("Uploading " + it.filename)
                         client.post(URL_CPA_REPO_PUT) {
