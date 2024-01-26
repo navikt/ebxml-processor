@@ -35,6 +35,7 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.withContext
 import net.logstash.logback.marker.Markers
 import no.nav.emottak.nfs.NFSConfig
 import org.eclipse.angus.mail.imap.IMAPFolder
@@ -46,7 +47,6 @@ import java.time.Instant
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.time.toKotlinDuration
-import kotlinx.coroutines.withContext
 
 fun main() {
     embeddedServer(Netty, port = 8080, module = Application::myApplicationModule).start(wait = true)
@@ -114,10 +114,10 @@ fun Application.myApplicationModule() {
             // push files to db
             val URL_CPA_REPO_BASE = getEnvVar("URL_CPA_REPO", "https://smtp-listeners.intern.dev.nav.no")
             val URL_CPA_REPO_PUT = URL_CPA_REPO_BASE + "/cpa"
-            val URL_CPA_REPO_TIMESTAMPS = URL_CPA_REPO_BASE + "/cpa/timestamps"
+            //val URL_CPA_REPO_TIMESTAMPS = URL_CPA_REPO_BASE + "/cpa/timestamps"
 
             folder.forEach {
-                if(it.filename.contains("gz")) {
+                if (it.filename.contains("gz")) {
                     log.info(it.filename + " *.gz ignored")
                     return@forEach
                 }
