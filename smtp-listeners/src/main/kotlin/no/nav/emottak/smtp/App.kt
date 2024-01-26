@@ -114,7 +114,7 @@ fun Application.myApplicationModule() {
             // push files to db
             val URL_CPA_REPO_BASE = getEnvVar("URL_CPA_REPO", "https://smtp-listeners.intern.dev.nav.no")
             val URL_CPA_REPO_PUT = URL_CPA_REPO_BASE + "/cpa"
-            //val URL_CPA_REPO_TIMESTAMPS = URL_CPA_REPO_BASE + "/cpa/timestamps"
+            // val URL_CPA_REPO_TIMESTAMPS = URL_CPA_REPO_BASE + "/cpa/timestamps"
 
             folder.forEach {
                 if (it.filename.contains("gz")) {
