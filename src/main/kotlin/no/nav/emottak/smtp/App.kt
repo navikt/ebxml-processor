@@ -27,11 +27,17 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import io.ktor.util.CaseInsensitiveMap
-import io.ktor.utils.io.streams.asInput
 import jakarta.mail.Flags
 import jakarta.mail.Folder
 import jakarta.mail.internet.MimeMultipart
 import jakarta.mail.internet.MimeUtility
+import java.io.ByteArrayInputStream
+import java.io.FileInputStream
+import java.time.Duration
+import java.time.Instant
+import java.util.Date
+import java.util.Vector
+import kotlin.time.toKotlinDuration
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -41,15 +47,6 @@ import net.logstash.logback.marker.Markers
 import no.nav.emottak.nfs.NFSConfig
 import org.eclipse.angus.mail.imap.IMAPFolder
 import org.slf4j.LoggerFactory
-import java.io.ByteArrayInputStream
-import java.io.FileInputStream
-import java.time.Duration
-import java.time.Instant
-import java.util.*
-import kotlin.collections.ArrayList
-import kotlin.time.toKotlinDuration
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 
 fun main() {
     embeddedServer(Netty, port = 8080, module = Application::myApplicationModule).start(wait = true)
