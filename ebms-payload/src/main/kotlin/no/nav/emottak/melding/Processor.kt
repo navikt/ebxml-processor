@@ -15,7 +15,6 @@ import no.nav.emottak.util.hentKrypteringssertifikat
 import no.nav.emottak.util.marker
 import no.nav.emottak.util.signatur.SignaturVerifisering
 import no.nav.emottak.util.signatur.Signering
-import no.trygdeetaten.xml.eiff._1.EIFellesformat
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayInputStream
 

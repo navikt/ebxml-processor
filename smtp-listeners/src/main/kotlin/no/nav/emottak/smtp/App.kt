@@ -31,13 +31,6 @@ import jakarta.mail.Flags
 import jakarta.mail.Folder
 import jakarta.mail.internet.MimeMultipart
 import jakarta.mail.internet.MimeUtility
-import java.io.ByteArrayInputStream
-import java.io.FileInputStream
-import java.time.Duration
-import java.time.Instant
-import java.util.Date
-import java.util.Vector
-import kotlin.time.toKotlinDuration
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -47,6 +40,13 @@ import net.logstash.logback.marker.Markers
 import no.nav.emottak.nfs.NFSConfig
 import org.eclipse.angus.mail.imap.IMAPFolder
 import org.slf4j.LoggerFactory
+import java.io.ByteArrayInputStream
+import java.io.FileInputStream
+import java.time.Duration
+import java.time.Instant
+import java.util.Date
+import java.util.Vector
+import kotlin.time.toKotlinDuration
 
 fun main() {
     embeddedServer(Netty, port = 8080, module = Application::myApplicationModule).start(wait = true)
@@ -126,7 +126,7 @@ fun Application.myApplicationModule() {
                     val client = HttpClient(CIO)
                     val lastModified = Date(it.attrs.mTime.toLong() * 1000)
                     withContext(Dispatchers.IO) {
-                    val cpaFile = String(sftpChannel.get("/outbound/cpa/" + it.filename).readAllBytes())
+                        val cpaFile = String(sftpChannel.get("/outbound/cpa/" + it.filename).readAllBytes())
                         log.info("Uploading " + it.filename)
                         client.post(URL_CPA_REPO_PUT) {
                             headers {
@@ -280,9 +280,9 @@ fun logBccMessages() {
             }.onSuccess {
                 log.info(
                     "Incoming multipart request with headers ${
-                        it.allHeaders.toList().map { it.name + ":" + it.value }
+                    it.allHeaders.toList().map { it.name + ":" + it.value }
                     }" +
-                            "with body ${String(it.inputStream.readAllBytes())}"
+                        "with body ${String(it.inputStream.readAllBytes())}"
                 )
             }
         } else {
@@ -321,7 +321,7 @@ private fun HeadersBuilder.appendMessageIdAsContentIdIfContentIdIsMissingOnTextX
         if (caseInsensitiveMap[MimeHeaders.CONTENT_ID] != null) {
             log.warn(
                 "Content-Id header allerede satt for text/xml: " + caseInsensitiveMap[MimeHeaders.CONTENT_ID] +
-                        "\nMessage-Id: " + caseInsensitiveMap[SMTPHeaders.MESSAGE_ID]
+                    "\nMessage-Id: " + caseInsensitiveMap[SMTPHeaders.MESSAGE_ID]
             )
         } else {
             val headerValue = MimeUtility.unfold(caseInsensitiveMap[SMTPHeaders.MESSAGE_ID]!!.replace("\t", " "))
