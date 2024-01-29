@@ -35,13 +35,15 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import net.logstash.logback.marker.Markers
 import no.nav.emottak.nfs.NFSConfig
 import org.eclipse.angus.mail.imap.IMAPFolder
 import org.slf4j.LoggerFactory
+import java.io.BufferedReader
 import java.io.ByteArrayInputStream
 import java.io.FileInputStream
+import java.io.InputStreamReader
 import java.time.Duration
 import java.time.Instant
 import java.util.Date
@@ -88,7 +90,7 @@ fun Application.myApplicationModule() {
         }
 
         get("/testsftp") {
-            runBlocking {
+            withContext(Dispatchers.IO) {
                 val privateKeyFile = "/var/run/secrets/privatekey"
                 val publicKeyFile = "/var/run/secrets/publickey"
                 log.info(String(FileInputStream(publicKeyFile).readAllBytes()))
@@ -126,7 +128,10 @@ fun Application.myApplicationModule() {
                         }
                         val client = HttpClient(CIO)
                         val lastModified = Date(it.attrs.mTime.toLong() * 1000)
-                        val cpaFile = String(sftpChannel.get("/outbound/cpa/" + it.filename).readAllBytes())
+                        val getFile = sftpChannel.get("/outbound/cpa/" + it.filename)
+                        val br = BufferedReader(InputStreamReader(getFile))
+                        val cpaFile = br.readText()
+                        br.close()
                         log.info("Uploading " + it.filename)
                         client.post(URL_CPA_REPO_PUT) {
                             headers {
