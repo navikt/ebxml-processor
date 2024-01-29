@@ -27,6 +27,7 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import io.ktor.util.CaseInsensitiveMap
+import io.ktor.utils.io.streams.asInput
 import jakarta.mail.Flags
 import jakarta.mail.Folder
 import jakarta.mail.internet.MimeMultipart
@@ -47,6 +48,8 @@ import java.time.Instant
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.time.toKotlinDuration
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 fun main() {
     embeddedServer(Netty, port = 8080, module = Application::myApplicationModule).start(wait = true)
@@ -95,7 +98,8 @@ fun Application.myApplicationModule() {
             // var pubkey = """"""
 
             val jsch = JSch()
-            val knownHosts = "b27drvl011.preprod.local,10.183.32.98 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBPHicnwpAS9dsHTlMm2NSm9BSu0yvacXHNCjvcJpMH8MEbJWAZ1/2EhdWxkeXueMnIOKJhEwK02kZ7FFUbzzWms="
+            val knownHosts =
+                "b27drvl011.preprod.local,10.183.32.98 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBPHicnwpAS9dsHTlMm2NSm9BSu0yvacXHNCjvcJpMH8MEbJWAZ1/2EhdWxkeXueMnIOKJhEwK02kZ7FFUbzzWms="
             jsch.setKnownHosts(ByteArrayInputStream(knownHosts.toByteArray()))
             val nfsConfig = NFSConfig()
             val privateKey = nfsConfig.nfsKey.toByteArray()
@@ -124,8 +128,8 @@ fun Application.myApplicationModule() {
                     }
                     val client = HttpClient(CIO)
                     val lastModified = Date(it.attrs.mTime.toLong() * 1000)
-                    val cpaFile = String(sftpChannel.get("/outbound/cpa/" + it.filename).readAllBytes())
                     withContext(Dispatchers.IO) {
+                    val cpaFile = String(sftpChannel.get("/outbound/cpa/" + it.filename).readAllBytes())
                         log.info("Uploading " + it.filename)
                         client.post(URL_CPA_REPO_PUT) {
                             headers {
@@ -279,9 +283,9 @@ fun logBccMessages() {
             }.onSuccess {
                 log.info(
                     "Incoming multipart request with headers ${
-                    it.allHeaders.toList().map { it.name + ":" + it.value }
+                        it.allHeaders.toList().map { it.name + ":" + it.value }
                     }" +
-                        "with body ${String(it.inputStream.readAllBytes())}"
+                            "with body ${String(it.inputStream.readAllBytes())}"
                 )
             }
         } else {
@@ -320,7 +324,7 @@ private fun HeadersBuilder.appendMessageIdAsContentIdIfContentIdIsMissingOnTextX
         if (caseInsensitiveMap[MimeHeaders.CONTENT_ID] != null) {
             log.warn(
                 "Content-Id header allerede satt for text/xml: " + caseInsensitiveMap[MimeHeaders.CONTENT_ID] +
-                    "\nMessage-Id: " + caseInsensitiveMap[SMTPHeaders.MESSAGE_ID]
+                        "\nMessage-Id: " + caseInsensitiveMap[SMTPHeaders.MESSAGE_ID]
             )
         } else {
             val headerValue = MimeUtility.unfold(caseInsensitiveMap[SMTPHeaders.MESSAGE_ID]!!.replace("\t", " "))
