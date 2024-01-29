@@ -88,44 +88,44 @@ fun Application.myApplicationModule() {
         }
 
         get("/testsftp") {
-            val privateKeyFile = "/var/run/secrets/privatekey"
-            val publicKeyFile = "/var/run/secrets/publickey"
-            log.info(String(FileInputStream(publicKeyFile).readAllBytes()))
-            // var privKey = """"""
-            // var pubkey = """"""
+            withContext(Dispatchers.IO) {
+                val privateKeyFile = "/var/run/secrets/privatekey"
+                val publicKeyFile = "/var/run/secrets/publickey"
+                log.info(String(FileInputStream(publicKeyFile).readAllBytes()))
+                // var privKey = """"""
+                // var pubkey = """"""
 
-            val jsch = JSch()
-            val knownHosts =
-                "b27drvl011.preprod.local,10.183.32.98 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBPHicnwpAS9dsHTlMm2NSm9BSu0yvacXHNCjvcJpMH8MEbJWAZ1/2EhdWxkeXueMnIOKJhEwK02kZ7FFUbzzWms="
-            jsch.setKnownHosts(ByteArrayInputStream(knownHosts.toByteArray()))
-            val nfsConfig = NFSConfig()
-            val privateKey = nfsConfig.nfsKey.toByteArray()
-            jsch.addIdentity(privateKeyFile, publicKeyFile, "cpatest".toByteArray())
-            // jsch.addIdentity("srvEmottakCPA",privKey.toByteArray(),pubkey.toByteArray(),"cpatest".toByteArray())
-            val session = jsch.getSession("srvEmottakCPA", "10.183.32.98", 22)
-            session.userInfo = DummyUserInfo()
-            session.connect()
-            val sftpChannel = session.openChannel("sftp") as ChannelSftp
-            sftpChannel.connect()
-            sftpChannel.cd("/outbound/cpa")
-            val folder: Vector<LsEntry> = sftpChannel.ls(".") as Vector<LsEntry>
+                val jsch = JSch()
+                val knownHosts =
+                    "b27drvl011.preprod.local,10.183.32.98 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBPHicnwpAS9dsHTlMm2NSm9BSu0yvacXHNCjvcJpMH8MEbJWAZ1/2EhdWxkeXueMnIOKJhEwK02kZ7FFUbzzWms="
+                jsch.setKnownHosts(ByteArrayInputStream(knownHosts.toByteArray()))
+                val nfsConfig = NFSConfig()
+                val privateKey = nfsConfig.nfsKey.toByteArray()
+                jsch.addIdentity(privateKeyFile, publicKeyFile, "cpatest".toByteArray())
+                // jsch.addIdentity("srvEmottakCPA",privKey.toByteArray(),pubkey.toByteArray(),"cpatest".toByteArray())
+                val session = jsch.getSession("srvEmottakCPA", "10.183.32.98", 22)
+                session.userInfo = DummyUserInfo()
+                session.connect()
+                val sftpChannel = session.openChannel("sftp") as ChannelSftp
+                sftpChannel.connect()
+                sftpChannel.cd("/outbound/cpa")
+                val folder: Vector<LsEntry> = sftpChannel.ls(".") as Vector<LsEntry>
 
-            // TODO check state of CPA db, get timestamp
-            // Get all files later than timestamp
-            // push files to db
-            val URL_CPA_REPO_BASE = getEnvVar("URL_CPA_REPO", "https://smtp-listeners.intern.dev.nav.no")
-            val URL_CPA_REPO_PUT = URL_CPA_REPO_BASE + "/cpa"
-            // val URL_CPA_REPO_TIMESTAMPS = URL_CPA_REPO_BASE + "/cpa/timestamps"
+                // TODO check state of CPA db, get timestamp
+                // Get all files later than timestamp
+                // push files to db
+                val URL_CPA_REPO_BASE = getEnvVar("URL_CPA_REPO", "https://smtp-listeners.intern.dev.nav.no")
+                val URL_CPA_REPO_PUT = URL_CPA_REPO_BASE + "/cpa"
+                // val URL_CPA_REPO_TIMESTAMPS = URL_CPA_REPO_BASE + "/cpa/timestamps"
 
-            try {
-                folder.forEach {
-                    if (it.filename.contains("gz")) {
-                        log.info(it.filename + " *.gz ignored")
-                        return@forEach
-                    }
-                    val client = HttpClient(CIO)
-                    val lastModified = Date(it.attrs.mTime.toLong() * 1000)
-                    withContext(Dispatchers.IO) {
+                try {
+                    folder.forEach {
+                        if (it.filename.contains("gz")) {
+                            log.info(it.filename + " *.gz ignored")
+                            return@forEach
+                        }
+                        val client = HttpClient(CIO)
+                        val lastModified = Date(it.attrs.mTime.toLong() * 1000)
                         val cpaFile = String(sftpChannel.get("/outbound/cpa/" + it.filename).readAllBytes())
                         log.info("Uploading " + it.filename)
                         client.post(URL_CPA_REPO_PUT) {
@@ -135,17 +135,18 @@ fun Application.myApplicationModule() {
                             }
                             setBody(cpaFile)
                         }
-                    }
-                }
-            } catch (e: Exception) {
-                log.error("SFTP Exception")
-                log.error(e.message, e)
-            }
-            sftpChannel.disconnect()
-            session.disconnect()
 
-            log.info("test key is" + nfsConfig.nfsKey.length)
-            call.respond(HttpStatusCode.OK, "Hello World!")
+                    }
+                } catch (e: Exception) {
+                    log.error("SFTP Exception")
+                    log.error(e.message, e)
+                }
+                sftpChannel.disconnect()
+                session.disconnect()
+
+                log.info("test key is" + nfsConfig.nfsKey.length)
+                call.respond(HttpStatusCode.OK, "Hello World!")
+            }
         }
 
         get("/mail/read") {
@@ -280,9 +281,9 @@ fun logBccMessages() {
             }.onSuccess {
                 log.info(
                     "Incoming multipart request with headers ${
-                    it.allHeaders.toList().map { it.name + ":" + it.value }
+                        it.allHeaders.toList().map { it.name + ":" + it.value }
                     }" +
-                        "with body ${String(it.inputStream.readAllBytes())}"
+                            "with body ${String(it.inputStream.readAllBytes())}"
                 )
             }
         } else {
@@ -321,7 +322,7 @@ private fun HeadersBuilder.appendMessageIdAsContentIdIfContentIdIsMissingOnTextX
         if (caseInsensitiveMap[MimeHeaders.CONTENT_ID] != null) {
             log.warn(
                 "Content-Id header allerede satt for text/xml: " + caseInsensitiveMap[MimeHeaders.CONTENT_ID] +
-                    "\nMessage-Id: " + caseInsensitiveMap[SMTPHeaders.MESSAGE_ID]
+                        "\nMessage-Id: " + caseInsensitiveMap[SMTPHeaders.MESSAGE_ID]
             )
         } else {
             val headerValue = MimeUtility.unfold(caseInsensitiveMap[SMTPHeaders.MESSAGE_ID]!!.replace("\t", " "))
