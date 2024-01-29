@@ -47,6 +47,7 @@ import java.time.Instant
 import java.util.Date
 import java.util.Vector
 import kotlin.time.toKotlinDuration
+import kotlinx.coroutines.runBlocking
 
 fun main() {
     embeddedServer(Netty, port = 8080, module = Application::myApplicationModule).start(wait = true)
@@ -88,7 +89,7 @@ fun Application.myApplicationModule() {
         }
 
         get("/testsftp") {
-            withContext(Dispatchers.IO) {
+            runBlocking {
                 val privateKeyFile = "/var/run/secrets/privatekey"
                 val publicKeyFile = "/var/run/secrets/publickey"
                 log.info(String(FileInputStream(publicKeyFile).readAllBytes()))
