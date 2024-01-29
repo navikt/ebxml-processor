@@ -135,7 +135,6 @@ fun Application.myApplicationModule() {
                             }
                             setBody(cpaFile)
                         }
-
                     }
                 } catch (e: Exception) {
                     log.error("SFTP Exception")
@@ -281,9 +280,9 @@ fun logBccMessages() {
             }.onSuccess {
                 log.info(
                     "Incoming multipart request with headers ${
-                        it.allHeaders.toList().map { it.name + ":" + it.value }
+                    it.allHeaders.toList().map { it.name + ":" + it.value }
                     }" +
-                            "with body ${String(it.inputStream.readAllBytes())}"
+                        "with body ${String(it.inputStream.readAllBytes())}"
                 )
             }
         } else {
@@ -322,7 +321,7 @@ private fun HeadersBuilder.appendMessageIdAsContentIdIfContentIdIsMissingOnTextX
         if (caseInsensitiveMap[MimeHeaders.CONTENT_ID] != null) {
             log.warn(
                 "Content-Id header allerede satt for text/xml: " + caseInsensitiveMap[MimeHeaders.CONTENT_ID] +
-                        "\nMessage-Id: " + caseInsensitiveMap[SMTPHeaders.MESSAGE_ID]
+                    "\nMessage-Id: " + caseInsensitiveMap[SMTPHeaders.MESSAGE_ID]
             )
         } else {
             val headerValue = MimeUtility.unfold(caseInsensitiveMap[SMTPHeaders.MESSAGE_ID]!!.replace("\t", " "))
