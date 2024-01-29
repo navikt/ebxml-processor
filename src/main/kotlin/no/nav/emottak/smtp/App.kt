@@ -128,7 +128,7 @@ fun Application.myApplicationModule() {
                         }
                         val client = HttpClient(CIO)
                         val lastModified = Date(it.attrs.mTime.toLong() * 1000)
-                        val getFile = sftpChannel.get("/outbound/cpa/" + it.filename)
+                        val getFile = sftpChannel.get(it.filename)
                         val br = BufferedReader(InputStreamReader(getFile))
                         val cpaFile = br.readText()
                         br.close()
