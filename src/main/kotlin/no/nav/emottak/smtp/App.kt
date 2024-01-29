@@ -35,7 +35,7 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.runBlocking
 import net.logstash.logback.marker.Markers
 import no.nav.emottak.nfs.NFSConfig
 import org.eclipse.angus.mail.imap.IMAPFolder
@@ -47,7 +47,6 @@ import java.time.Instant
 import java.util.Date
 import java.util.Vector
 import kotlin.time.toKotlinDuration
-import kotlinx.coroutines.runBlocking
 
 fun main() {
     embeddedServer(Netty, port = 8080, module = Application::myApplicationModule).start(wait = true)
@@ -101,7 +100,7 @@ fun Application.myApplicationModule() {
                     "b27drvl011.preprod.local,10.183.32.98 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBPHicnwpAS9dsHTlMm2NSm9BSu0yvacXHNCjvcJpMH8MEbJWAZ1/2EhdWxkeXueMnIOKJhEwK02kZ7FFUbzzWms="
                 jsch.setKnownHosts(ByteArrayInputStream(knownHosts.toByteArray()))
                 val nfsConfig = NFSConfig()
-                val privateKey = nfsConfig.nfsKey.toByteArray()
+                // val privateKey = nfsConfig.nfsKey.toByteArray()
                 jsch.addIdentity(privateKeyFile, publicKeyFile, "cpatest".toByteArray())
                 // jsch.addIdentity("srvEmottakCPA",privKey.toByteArray(),pubkey.toByteArray(),"cpatest".toByteArray())
                 val session = jsch.getSession("srvEmottakCPA", "10.183.32.98", 22)
