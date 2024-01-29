@@ -35,7 +35,6 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.withContext
 import net.logstash.logback.marker.Markers
 import no.nav.emottak.nfs.NFSConfig
 import org.eclipse.angus.mail.imap.IMAPFolder
@@ -48,6 +47,7 @@ import java.time.Duration
 import java.time.Instant
 import java.util.Date
 import java.util.Vector
+import kotlin.concurrent.thread
 import kotlin.time.toKotlinDuration
 
 fun main() {
@@ -90,7 +90,7 @@ fun Application.myApplicationModule() {
         }
 
         get("/testsftp") {
-            withContext(Dispatchers.IO) {
+            thread {
                 val privateKeyFile = "/var/run/secrets/privatekey"
                 val publicKeyFile = "/var/run/secrets/publickey"
                 log.info(String(FileInputStream(publicKeyFile).readAllBytes()))
@@ -133,12 +133,14 @@ fun Application.myApplicationModule() {
                         val cpaFile = br.readText()
                         br.close()
                         log.info("Uploading " + it.filename)
-                        client.post(URL_CPA_REPO_PUT) {
-                            headers {
-                                header("updated_date", lastModified.toInstant().toString())
-                                header("upsert", "true")
+                        suspend {
+                            client.post(URL_CPA_REPO_PUT) {
+                                headers {
+                                    header("updated_date", lastModified.toInstant().toString())
+                                    header("upsert", "true")
+                                }
+                                setBody(cpaFile)
                             }
-                            setBody(cpaFile)
                         }
                     }
                 } catch (e: Exception) {
@@ -149,8 +151,8 @@ fun Application.myApplicationModule() {
                 session.disconnect()
 
                 log.info("test key is" + nfsConfig.nfsKey.length)
-                call.respond(HttpStatusCode.OK, "Hello World!")
             }
+            call.respond(HttpStatusCode.OK, "Hello World!")
         }
 
         get("/mail/read") {
