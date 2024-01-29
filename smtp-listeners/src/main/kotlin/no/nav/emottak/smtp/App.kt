@@ -3,6 +3,7 @@ package no.nav.emottak.smtp
 import com.jcraft.jsch.ChannelSftp
 import com.jcraft.jsch.ChannelSftp.LsEntry
 import com.jcraft.jsch.JSch
+import com.jcraft.jsch.SftpException
 import com.jcraft.jsch.UserInfo
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
@@ -129,6 +130,7 @@ fun Application.myApplicationModule() {
                         val client = HttpClient(CIO)
                         val lastModified = Date(it.attrs.mTime.toLong() * 1000)
                         val getFile = sftpChannel.get(it.filename)
+                        log.info("sftpChannel stream available(): ${getFile.available()}")
                         val br = BufferedReader(InputStreamReader(getFile))
                         val cpaFile = br.readText()
                         br.close()
@@ -144,7 +146,9 @@ fun Application.myApplicationModule() {
                         }
                     }
                 } catch (e: Exception) {
-                    log.error("SFTP Exception")
+                    if (e is SftpException) {
+                        log.error("SftpException ID: [${e.id}]")
+                    }
                     log.error(e.message, e)
                 }
                 sftpChannel.disconnect()
