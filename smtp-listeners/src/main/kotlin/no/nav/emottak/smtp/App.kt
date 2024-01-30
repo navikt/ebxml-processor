@@ -123,8 +123,8 @@ fun Application.myApplicationModule() {
 
                 try {
                     folder.forEach {
-                        if (it.filename.contains("gz")) {
-                            log.info(it.filename + " *.gz ignored")
+                        if (it.filename.contains("gz")|| it.filename.length<3) {
+                            log.info(it.filename + " is ignored")
                             return@forEach
                         }
                         val client = HttpClient(CIO)
