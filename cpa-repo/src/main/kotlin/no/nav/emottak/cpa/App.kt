@@ -17,7 +17,6 @@ import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
-import no.nav.emottak.cpa.config.DatabaseConfig
 import no.nav.emottak.cpa.config.mapHikariConfig
 import no.nav.emottak.cpa.feil.CpaValidationException
 import no.nav.emottak.cpa.persistence.CPARepository
@@ -37,13 +36,13 @@ import java.time.Instant
 import java.time.temporal.ChronoUnit
 
 fun main() {
-    embeddedServer(Netty, port = 8080, module = cpaApplicationModule(mapHikariConfig(DatabaseConfig()))).start(wait = true)
+    embeddedServer(Netty, port = 8080, module = cpaApplicationModule(mapHikariConfig(role = "user"))).start(wait = true)
 }
 
 fun cpaApplicationModule(dbConfig: HikariConfig): Application.() -> Unit {
     return {
         val database = Database(dbConfig)
-        database.migrate()
+        database.migrate(mapHikariConfig(role = "admin", dbConfig))
         val cpaRepository = CPARepository(database)
         install(ContentNegotiation) {
             json()

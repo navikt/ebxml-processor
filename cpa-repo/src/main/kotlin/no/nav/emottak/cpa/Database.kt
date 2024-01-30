@@ -8,12 +8,10 @@ import org.jetbrains.exposed.sql.Database
 class Database(
     dbConfig: HikariConfig
 ) {
-    val dataSource by lazy { HikariDataSource(dbConfig) }
-    val db by lazy { Database.connect(dataSource) }
-    private val config = dbConfig
-    fun migrate() {
-        migrationConfig(config)
-            .let(::HikariDataSource)
+    val dataSource = HikariDataSource(dbConfig)
+    val db = Database.connect(dataSource)
+    fun migrate(dbConfig: HikariConfig) {
+        dbConfig.let(::HikariDataSource)
             .also {
                 Flyway.configure()
                     .dataSource(it)
@@ -22,12 +20,4 @@ class Database(
                     .migrate()
             }.close()
     }
-
-    private fun migrationConfig(conf: HikariConfig): HikariConfig =
-        HikariConfig().apply {
-            jdbcUrl = conf.jdbcUrl
-            username = conf.username
-            password = conf.password
-            maximumPoolSize = 3
-        }
 }
