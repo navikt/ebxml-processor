@@ -1,4 +1,4 @@
-package no.nav.emottak.ebms.db
+package no.nav.emottak.ebms.persistence
 
 import com.zaxxer.hikari.HikariConfig
 import no.nav.emottak.util.fromEnv

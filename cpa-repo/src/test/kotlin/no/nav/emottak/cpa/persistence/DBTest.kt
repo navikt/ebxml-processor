@@ -1,7 +1,6 @@
 package no.nav.emottak.cpa.persistence
 
 import com.zaxxer.hikari.HikariConfig
-import no.nav.emottak.cpa.Database
 import no.nav.emottak.cpa.xmlMarshaller
 import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.sql.deleteAll

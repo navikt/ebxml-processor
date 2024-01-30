@@ -1,6 +1,5 @@
 package no.nav.emottak.cpa.persistence
 
-import no.nav.emottak.cpa.Database
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.deleteWhere

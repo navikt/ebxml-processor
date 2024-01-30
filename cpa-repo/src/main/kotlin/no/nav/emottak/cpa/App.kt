@@ -17,9 +17,10 @@ import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
-import no.nav.emottak.cpa.config.mapHikariConfig
 import no.nav.emottak.cpa.feil.CpaValidationException
 import no.nav.emottak.cpa.persistence.CPARepository
+import no.nav.emottak.cpa.persistence.Database
+import no.nav.emottak.cpa.persistence.mapHikariConfig
 import no.nav.emottak.cpa.validation.validate
 import no.nav.emottak.melding.feil.EbmsException
 import no.nav.emottak.melding.model.ErrorCode
