@@ -16,15 +16,17 @@ spec:
       cpu: "1000m"
       memory: "512Mi"
     requests:
-      cpu: "1000m"
+      cpu: "500m"
       memory: "512Mi"
   ingresses:
-    - "https://ebms-provider.intern.dev.nav.no"
-  gcp:
-    sqlInstances:
-        - type: POSTGRES_15
-          databases:
-            - name: ebms-db
+    - "https://ebms-provider-fss.intern.dev.nav.no"
+  vault:
+    enabled: true
+#  gcp:
+#    sqlInstances:
+#        - type: POSTGRES_15
+#          databases:
+#            - name: ebms-db
   accessPolicy:
     outbound:
       rules:
