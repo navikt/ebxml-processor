@@ -33,6 +33,10 @@ val outgoingStore = run {
     createStore(smtpUsername_outgoing, smtpPassword, "pop3")
 }
 
+val sendMailSession = run {
+    getOutgoingMailSession(smtpUsername_outgoing, smtpPassword)
+}
+
 private fun getOutgoingMailSession(username: String, password: String): Session {
     val auth = object : Authenticator() {
         override fun getPasswordAuthentication() = PasswordAuthentication(username, password)
