@@ -129,6 +129,7 @@ fun Application.myApplicationModule() {
                         }
                         val client = HttpClient(CIO)
                         val lastModified = Date(it.attrs.mTime.toLong() * 1000)
+                        log.info("reading file ${it.filename}")
                         val getFile = sftpChannel.get(it.filename)
                         log.info("sftpChannel stream available(): ${getFile.available()}")
                         val br = BufferedReader(InputStreamReader(getFile))
