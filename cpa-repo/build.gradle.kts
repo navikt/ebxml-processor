@@ -42,6 +42,7 @@ dependencies {
     implementation(libs.jaxb.runtime)
     implementation(libs.ebxml.protokoll)
     implementation(libs.hikari)
+    implementation("no.nav:vault-jdbc:1.3.10")
     implementation(libs.flyway.core)
     implementation(libs.bundles.exposed)
     implementation(libs.bundles.logging)
