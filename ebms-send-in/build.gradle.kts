@@ -72,4 +72,3 @@ dependencies {
 application {
     mainClass.set("no.nav.emottak.ebms.AppKt")
 }
-

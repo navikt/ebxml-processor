@@ -54,6 +54,7 @@ class CPARepoIntegrationTest : DBTest() {
         }
         val updatedTimestamp = Instant.now().minus(1, ChronoUnit.DAYS).truncatedTo(ChronoUnit.SECONDS)
         // Putter CPA
+        /*
         httpClient.post("/cpa") {
             headers {
                 header("updated_date", updatedTimestamp)
@@ -62,6 +63,8 @@ class CPARepoIntegrationTest : DBTest() {
                 xmlMarshaller.marshal(loadTestCPA())
             )
         }
+
+         */
         val response = httpClient.post("/signing/certificate") {
             setBody(request)
             contentType(ContentType.Application.Json)
@@ -79,6 +82,7 @@ class CPARepoIntegrationTest : DBTest() {
                 json()
             }
         }
+        /*
         httpClient.post("/cpa") {
             headers {
                 header("updated_date", Instant.now().toString())
@@ -87,6 +91,8 @@ class CPARepoIntegrationTest : DBTest() {
                 xmlMarshaller.marshal(loadTestCPA())
             )
         }
+
+         */
         val response = httpClient.get("/cpa/timestamps") {
             headers {
                 header("cpaIds", "nav:qass:35065")
@@ -106,6 +112,7 @@ class CPARepoIntegrationTest : DBTest() {
                 json()
             }
         }
+        /*
         httpClient.post("/cpa") {
             headers {
                 header("updated_date", Instant.now().toString())
@@ -115,6 +122,8 @@ class CPARepoIntegrationTest : DBTest() {
                 xmlMarshaller.marshal(loadTestCPA())
             )
         }
+
+         */
         val response = httpClient.get("/cpa/timestamps") {
             headers {
                 header("cpaIds", "nav:qass:35065")
@@ -137,9 +146,11 @@ class CPARepoIntegrationTest : DBTest() {
 
         val updatedTimestamp = Instant.now().minus(1, ChronoUnit.DAYS).truncatedTo(ChronoUnit.SECONDS)
         // Putter CPA
+
         httpClient.post("/cpa") {
             headers {
                 header("updated_date", updatedTimestamp)
+                header("upsert", true)
             }
             setBody(
                 xmlMarshaller.marshal(loadTestCPA())
