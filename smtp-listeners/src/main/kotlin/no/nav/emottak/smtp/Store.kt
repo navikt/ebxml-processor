@@ -29,12 +29,16 @@ val incomingStore = run {
 val bccStore = run {
     createStore(smtpUsername_bcc, smtpPassword, "imap")
 }
-/*
 val outgoingStore = run {
-    createStore(smtpUsername_outgoing, smtpPassword)
+    createStore(smtpUsername_outgoing, smtpPassword, "pop3")
 }
 
- */
+private fun getOutgoingMailSession(username: String, password: String): Session {
+    val auth = object : Authenticator() {
+        override fun getPasswordAuthentication() = PasswordAuthentication(username, password)
+    }
+    return Session.getInstance(properties, auth)
+}
 
 private fun createStore(username: String, password: String, protokol: String = "pop3"): Store {
     val auth = object : Authenticator() {

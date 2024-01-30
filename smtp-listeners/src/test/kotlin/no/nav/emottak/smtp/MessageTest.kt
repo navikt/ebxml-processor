@@ -11,6 +11,7 @@ import jakarta.mail.internet.MimeMessage
 import jakarta.mail.internet.MimeUtility
 import org.junit.jupiter.api.Test
 import java.util.*
+import kotlin.collections.set
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
@@ -19,17 +20,6 @@ val testHeaderValue = """multipart/related;
 	start="<soap-c5a5690b-6a9b-4d0a-b50e-8a636948ed13@eik.no>"; type="text/xml""""
 class MessageTest {
 
-    fun mockSession(): Session {
-        val properties = Properties().also { props ->
-            props["mail.pop3.socketFactory.fallback"] = "false"
-            props["mail.pop3.socketFactory.port"] = getEnvVar("SMTP_POP3_FACTORY_PORT", "3110")
-            props["mail.pop3.port"] = getEnvVar("SMTP_POP3_PORT", "3110")
-            props["mail.pop3.host"] = getEnvVar("SMTP_POP3_HOST", "localhost")
-            props["mail.store.protocol"] = getEnvVar("SMTP_STORE_PROTOCOL", "pop3")
-        }
-
-        return Session.getDefaultInstance(properties)
-    }
     fun mockStore(session: Session, msg: Message): Store {
         val store = mockk<Store>(relaxed = true)
         val inbox = mockk<Folder>(relaxed = true)
@@ -87,4 +77,16 @@ class MessageTest {
         }
         assertEquals("attachment; filename=\"M1152.P7M\"", filteredHeaders[MimeHeaders.CONTENT_DISPOSITION])
     }
+}
+
+fun mockSession(): Session {
+    val properties = Properties().also { props ->
+        props["mail.pop3.socketFactory.fallback"] = "false"
+        props["mail.pop3.socketFactory.port"] = getEnvVar("SMTP_POP3_FACTORY_PORT", "3110")
+        props["mail.pop3.port"] = getEnvVar("SMTP_POP3_PORT", "3110")
+        props["mail.pop3.host"] = getEnvVar("SMTP_POP3_HOST", "localhost")
+        props["mail.store.protocol"] = getEnvVar("SMTP_STORE_PROTOCOL", "pop3")
+    }
+
+    return Session.getDefaultInstance(properties)
 }

@@ -23,8 +23,11 @@ import io.ktor.server.application.install
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.server.request.header
+import io.ktor.server.request.receiveText
 import io.ktor.server.response.respond
 import io.ktor.server.routing.get
+import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import io.ktor.util.CaseInsensitiveMap
 import jakarta.mail.Flags
@@ -45,7 +48,6 @@ import java.io.FileInputStream
 import java.time.Duration
 import java.time.Instant
 import java.util.*
-import kotlin.collections.ArrayList
 import kotlin.time.toKotlinDuration
 
 fun main() {
@@ -252,6 +254,19 @@ fun Application.myApplicationModule() {
             // logBccMessages()
         }
 
+        post("/mail/send") {
+            try {
+                MailWriter(sendMailSession)
+                    .sendMailTo(
+                        call.receiveText(),
+                        call.request.header("to") ?: throw RuntimeException("Mottaker ikke satt")
+                    )
+            } catch (exception: Exception) {
+                log.error(exception.message)
+                call.respond(HttpStatusCode.InternalServerError)
+            }
+            call.respond(HttpStatusCode.OK)
+        }
         get("/mail/log/outgoing") {
             logBccMessages()
             call.respond(HttpStatusCode.OK)

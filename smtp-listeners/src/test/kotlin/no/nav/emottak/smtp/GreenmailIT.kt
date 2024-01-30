@@ -56,4 +56,14 @@ class GreenmailIT {
         reader2.close()
         assertEquals(0, MailReader(store).count())
     }
+
+    @Test
+    fun `Send en melding`() {
+        val session = mockSession()
+        val body = "Test body"
+        val store = mockStore()
+        val mottaker = "nyebmstest@test-es.nav.no"
+        val mailWriter = MailWriter(session)
+        mailWriter.sendMailTo(body, mottaker)
+    }
 }
