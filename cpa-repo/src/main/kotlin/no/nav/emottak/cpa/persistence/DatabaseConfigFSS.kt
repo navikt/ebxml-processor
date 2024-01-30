@@ -1,4 +1,4 @@
-package no.nav.emottak.cpa.config
+package no.nav.emottak.cpa.persistence
 
 import com.zaxxer.hikari.HikariConfig
 import no.nav.vault.jdbc.hikaricp.HikariCPVaultUtil

@@ -1,4 +1,4 @@
-package no.nav.emottak.cpa
+package no.nav.emottak.cpa.persistence
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
