@@ -58,7 +58,7 @@ fun cpaApplicationModule(dbConfig: HikariConfig): Application.() -> Unit {
 
             delete("/cpa/delete/{$CPA_ID}") {
                 val cpaId = call.parameters[CPA_ID] ?: throw BadRequestException("Mangler $CPA_ID")
-                cpaRepository.findCpa(cpaId) ?: throw NotFoundException("Fant ikke CPA")
+                cpaRepository.deleteCpa(cpaId) ?: throw NotFoundException("Fant ikke CPA")
                 call.respond("$cpaId slettet!")
             }
 
