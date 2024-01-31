@@ -18,14 +18,18 @@ abstract class DBTest() {
 
     lateinit var db: Database
 
+    lateinit var posgres: PostgreSQLContainer<Nothing>
+
     @BeforeTest
     fun beforeEach() {
-        val posgres = cpaPostgres()
+        posgres = cpaPostgres()
         db = Database(posgres.testConfiguration())
             .configureFlyway()
         val tables = listOf(CPA)
         transaction(db.db) {
             tables.forEach { it.deleteAll() }
+        }
+        transaction(db.db) {
             CPA.insert {
                 val collaborationProtocolAgreement = loadTestCPA()
                 it[id] = collaborationProtocolAgreement.cpaid
@@ -34,6 +38,7 @@ abstract class DBTest() {
                 it[entryCreated] = DEFAULT_TIMESTAMP
             }
         }
+        Thread.sleep(2000)
     }
 
     fun loadTestCPA(): CollaborationProtocolAgreement {

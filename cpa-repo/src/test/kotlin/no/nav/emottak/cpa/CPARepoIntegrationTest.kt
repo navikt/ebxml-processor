@@ -16,7 +16,6 @@ import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import no.nav.emottak.cpa.persistence.DBTest
-import no.nav.emottak.cpa.persistence.cpaPostgres
 import no.nav.emottak.cpa.persistence.testConfiguration
 import no.nav.emottak.melding.model.SignatureDetails
 import no.nav.emottak.melding.model.SignatureDetailsRequest
@@ -33,7 +32,7 @@ import kotlin.test.assertTrue
 class CPARepoIntegrationTest : DBTest() {
 
     fun <T> cpaRepoTestApp(testBlock: suspend ApplicationTestBuilder.() -> T) = testApplication {
-        application(cpaApplicationModule(cpaPostgres().testConfiguration()))
+        application(cpaApplicationModule(posgres.testConfiguration()))
         testBlock()
     }
 
@@ -54,6 +53,7 @@ class CPARepoIntegrationTest : DBTest() {
         }
         val updatedTimestamp = Instant.now().minus(1, ChronoUnit.DAYS).truncatedTo(ChronoUnit.SECONDS)
         // Putter CPA
+        /*
         httpClient.post("/cpa") {
             headers {
                 header("updated_date", updatedTimestamp)
@@ -62,6 +62,8 @@ class CPARepoIntegrationTest : DBTest() {
                 xmlMarshaller.marshal(loadTestCPA())
             )
         }
+
+         */
         val response = httpClient.post("/signing/certificate") {
             setBody(request)
             contentType(ContentType.Application.Json)
@@ -79,6 +81,7 @@ class CPARepoIntegrationTest : DBTest() {
                 json()
             }
         }
+        /*
         httpClient.post("/cpa") {
             headers {
                 header("updated_date", Instant.now().toString())
@@ -87,6 +90,8 @@ class CPARepoIntegrationTest : DBTest() {
                 xmlMarshaller.marshal(loadTestCPA())
             )
         }
+
+         */
         val response = httpClient.get("/cpa/timestamps") {
             headers {
                 header("cpaIds", "nav:qass:35065")
@@ -106,6 +111,7 @@ class CPARepoIntegrationTest : DBTest() {
                 json()
             }
         }
+        /*
         httpClient.post("/cpa") {
             headers {
                 header("updated_date", Instant.now().toString())
@@ -115,6 +121,8 @@ class CPARepoIntegrationTest : DBTest() {
                 xmlMarshaller.marshal(loadTestCPA())
             )
         }
+
+         */
         val response = httpClient.get("/cpa/timestamps") {
             headers {
                 header("cpaIds", "nav:qass:35065")
@@ -137,9 +145,11 @@ class CPARepoIntegrationTest : DBTest() {
 
         val updatedTimestamp = Instant.now().minus(1, ChronoUnit.DAYS).truncatedTo(ChronoUnit.SECONDS)
         // Putter CPA
+
         httpClient.post("/cpa") {
             headers {
                 header("updated_date", updatedTimestamp)
+                header("upsert", true)
             }
             setBody(
                 xmlMarshaller.marshal(loadTestCPA())
