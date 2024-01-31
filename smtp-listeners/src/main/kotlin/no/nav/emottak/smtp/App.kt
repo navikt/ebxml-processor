@@ -133,15 +133,19 @@ fun Application.myApplicationModule() {
                         val getFile = sftpChannel.get(it.filename)
                         log.info("sftpChannel stream available(): ${getFile.available()}")
                         val br = BufferedReader(InputStreamReader(getFile))
+                        log.info("Uploading " + it.filename)
                         val cpaFile = br.readText()
                         br.close()
-                        log.info("Uploading " + it.filename)
-                        client.post(URL_CPA_REPO_PUT) {
-                            headers {
-                                header("updated_date", lastModified.toInstant().toString())
-                                header("upsert", "true")
+                        try {
+                            client.post(URL_CPA_REPO_PUT) {
+                                headers {
+                                    header("updated_date", lastModified.toInstant().toString())
+                                    header("upsert", "true")
+                                }
+                                setBody(cpaFile)
                             }
-                            setBody(cpaFile)
+                        } catch (e: Exception) {
+                            log.error("Error uploading ${it.filename} to cpa-repo: ${e.message}", e)
                         }
                     }
                 } catch (e: Exception) {
