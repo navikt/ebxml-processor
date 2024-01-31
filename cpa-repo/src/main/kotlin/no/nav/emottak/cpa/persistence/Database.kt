@@ -15,6 +15,7 @@ class Database(
             .also {
                 Flyway.configure()
                     .dataSource(it)
+                    .initSql("SET ROLE \"$database_name-admin\"")
                     .lockRetryCount(50)
                     .load()
                     .migrate()

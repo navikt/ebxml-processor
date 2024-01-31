@@ -3,7 +3,7 @@ package no.nav.emottak.cpa.persistence
 import com.zaxxer.hikari.HikariConfig
 import no.nav.vault.jdbc.hikaricp.HikariCPVaultUtil
 
-private const val database_name = "emottak-cpa-repo-db"
+const val database_name = "emottak-cpa-repo-db"
 
 data class DatabaseConfigFSS(
     val mountPath: String,
