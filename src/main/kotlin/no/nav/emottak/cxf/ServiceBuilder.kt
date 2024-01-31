@@ -81,8 +81,8 @@ class ServiceBuilder<T>(resultClass: Class<T>) {
     }
 
     inner class PortTypeBuilder<R> constructor(val portType: R) {
-        fun withBasicSecurity(): R {
-            return portType
+        fun withBasicSecurity(): PortTypeBuilder<R> {
+            return this
         }
 
         fun get(): R {
