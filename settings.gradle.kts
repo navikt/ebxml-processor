@@ -95,8 +95,16 @@ dependencyResolutionManagement {
     repositories {
         mavenCentral()
         maven {
-            name = "GitHubPackages"
+            name = "Ebxml protokoll"
             url = uri("https://maven.pkg.github.com/navikt/ebxml-protokoll")
+            credentials {
+                username = "token"
+                password = System.getenv("GITHUB_TOKEN")
+            }
+        }
+        maven {
+            name = "Emottak payload format"
+            url = uri("https://maven.pkg.github.com/navikt/emottak-payload-xsd")
             credentials {
                 username = "token"
                 password = System.getenv("GITHUB_TOKEN")
