@@ -10,6 +10,7 @@ env:
   "IMAGE_PAYLOAD": "ghcr.io/${{ github.repository }}/ebms-payload:${{ github.sha }}"
   "IMAGE_LISTENERS": "ghcr.io/${{ github.repository }}/smtp-listeners:${{ github.sha }}"
   "IMAGE_ROUTER": "ghcr.io/${{ github.repository }}/smtp-router:${{ github.sha }}"
+  "IMAGE_SEND_IN": "ghcr.io/${{ github.repository }}/ebms-send-in:${{ github.sha }}"
 jobs:
   build:
     name: "build"
@@ -59,6 +60,8 @@ jobs:
       run: "docker build smtp-listeners --pull --tag ${IMAGE_LISTENERS} -f Dockerfile && docker push ${IMAGE_LISTENERS}"
     - name: "Build and push smtp-router Docker image"
       run: "docker build smtp-router --pull --tag ${IMAGE_ROUTER} -f Dockerfile && docker push ${IMAGE_ROUTER}"
+    - name: "Build and push ebms-send-in Docker image"
+      run: "docker build ebms-send-in --pull --tag ${IMAGE_SEND_IN} -f Dockerfile && docker push ${IMAGE_SEND_IN}"
   deploy-processor:
     name: "Deploy ebms provider to dev"
     needs: "build"
@@ -138,3 +141,21 @@ jobs:
           CLUSTER: "dev-fss"
           RESOURCE: ".nais/smtp-router-dev.yaml"
           IMAGE: ${{env.IMAGE_ROUTER}}
+  deploy-ebms-send-in:
+    name: "Deploy ebms-send-in to dev"
+    needs: "build"
+    runs-on: "ubuntu-20.04"
+    steps:
+      - uses: "actions/checkout@v4"
+      - name: "Deploy secret to DEV"
+        uses: "nais/deploy/actions/deploy@v1"
+        env:
+          "APIKEY": "${{ secrets.NAIS_DEPLOY_APIKEY }}"
+          "CLUSTER": "dev-fss"
+      - name: "Deploy to DEV"
+        uses: "nais/deploy/actions/deploy@v1"
+        env:
+          APIKEY: "${{ secrets.NAIS_DEPLOY_APIKEY }}"
+          CLUSTER: "dev-fss"
+          RESOURCE: ".nais/ebms-send-in.yaml"
+          IMAGE: ${{env.IMAGE_SEND_IN}}
