@@ -1,3 +1,4 @@
+import com.github.jengelman.gradle.plugins.shadow.transformers.ServiceFileTransformer
 import org.gradle.kotlin.dsl.testLibs
 
 /*
@@ -14,6 +15,10 @@ plugins {
 tasks {
     shadowJar {
         mergeServiceFiles()
+        transform(ServiceFileTransformer::class.java) {
+            this.setPath("META-INF/cxf")
+            this.include("bus-extensions.txt")
+        }
         archiveFileName.set("app.jar")
     }
 }
