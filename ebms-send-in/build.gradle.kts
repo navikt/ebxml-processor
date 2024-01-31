@@ -60,6 +60,8 @@ dependencies {
     implementation("org.apache.cxf:cxf-rt-frontend-jaxws:3.5.5")
     implementation("org.apache.cxf:cxf-rt-transports-http:3.5.5")
     implementation("org.apache.cxf:cxf-rt-ws-security:3.5.5")
+    implementation("org.apache.cxf:cxf-rt-features-logging:3.5.5")
+    implementation("jakarta.xml.ws:jakarta.xml.ws-api:2.3.3")
     testImplementation(testLibs.ktor.server.test.host)
     testImplementation(testLibs.junit.jupiter.api)
     testImplementation(testLibs.mockk.jvm)
