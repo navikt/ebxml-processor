@@ -34,7 +34,13 @@ class CPARepository(val database: Database) {
                 }
                 )
                 .associate {
-                    Pair(it[CPA.id], it[CPA.updated_date].toString())
+                    Pair(
+                        it[CPA.id],
+                        (
+                            it[CPA.updated_date]
+                                ?: Instant.ofEpochSecond(0) // False positive
+                            ).toString()
+                    )
                 }
         }
     }

@@ -106,4 +106,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "ebxml-processor"
-include("felles", "smtp-listeners", "cpa-repo", "ebms-provider", "ebms-payload", "smtp-router","ebms-send-in")
+include("felles", "smtp-listeners", "cpa-repo", "ebms-provider", "ebms-payload", "smtp-router", "ebms-send-in")
