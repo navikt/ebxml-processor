@@ -6,7 +6,6 @@ import org.apache.cxf.feature.AbstractFeature
 import org.apache.cxf.transport.http.HTTPConduit
 import org.apache.cxf.transports.http.configuration.HTTPClientPolicy
 
-
 /**
  * Timeoutfeature for å konfigurer timeout på cxf-klient
  */

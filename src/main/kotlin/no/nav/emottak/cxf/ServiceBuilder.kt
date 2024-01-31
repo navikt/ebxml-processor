@@ -1,9 +1,8 @@
 package no.nav.emottak.cxf
-import javax.xml.namespace.QName
 import org.apache.cxf.jaxws.JaxWsProxyFactoryBean
 import org.apache.cxf.ws.addressing.WSAddressingFeature
 import org.apache.cxf.ws.security.SecurityConstants
-
+import javax.xml.namespace.QName
 
 class ServiceBuilder<T>(resultClass: Class<T>) {
     var resultClass: Class<T>
@@ -96,4 +95,3 @@ class ServiceBuilder<T>(resultClass: Class<T>) {
         const val CONNECTION_TIMEOUT = 10000
     }
 }
-
