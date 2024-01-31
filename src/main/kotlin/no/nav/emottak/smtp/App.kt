@@ -41,10 +41,8 @@ import net.logstash.logback.marker.Markers
 import no.nav.emottak.nfs.NFSConfig
 import org.eclipse.angus.mail.imap.IMAPFolder
 import org.slf4j.LoggerFactory
-import java.io.BufferedReader
 import java.io.ByteArrayInputStream
 import java.io.FileInputStream
-import java.io.InputStreamReader
 import java.time.Duration
 import java.time.Instant
 import java.util.Date
@@ -131,11 +129,11 @@ fun Application.myApplicationModule() {
                         val lastModified = Date(it.attrs.mTime.toLong() * 1000)
                         log.info("reading file ${it.filename}")
                         val getFile = sftpChannel.get(it.filename)
-                        log.info("sftpChannel stream available(): ${getFile.available()}")
-                        val br = BufferedReader(InputStreamReader(getFile))
                         log.info("Uploading " + it.filename)
-                        val cpaFile = br.readText()
-                        br.close()
+                        val cpaFile = String(getFile.readAllBytes())
+                        log.info("Length ${cpaFile.length}")
+                        log.info("PostURL: $URL_CPA_REPO_PUT")
+                        getFile.close()
                         try {
                             client.post(URL_CPA_REPO_PUT) {
                                 headers {
