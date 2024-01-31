@@ -21,4 +21,7 @@ spec:
       memory: "256Mi"
   ingresses:
     - "https://ebms-send-in.intern.dev.nav.no"
+  env:
+    - name: TEST_ENV
+      value: "test"
 
