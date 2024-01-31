@@ -13,6 +13,7 @@ plugins {
 
 tasks {
     shadowJar {
+        mergeServiceFiles()
         archiveFileName.set("app.jar")
     }
 }
