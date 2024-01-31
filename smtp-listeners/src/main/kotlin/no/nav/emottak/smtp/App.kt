@@ -115,7 +115,7 @@ fun Application.myApplicationModule() {
                 // TODO check state of CPA db, get timestamp
                 // Get all files later than timestamp
                 // push files to db
-                val URL_CPA_REPO_BASE = getEnvVar("URL_CPA_REPO", "https://smtp-listeners.intern.dev.nav.no")
+                val URL_CPA_REPO_BASE = getEnvVar("URL_CPA_REPO", "https://cpa-repo.intern.dev.nav.no")
                 val URL_CPA_REPO_PUT = URL_CPA_REPO_BASE + "/cpa"
                 // val URL_CPA_REPO_TIMESTAMPS = URL_CPA_REPO_BASE + "/cpa/timestamps"
 
