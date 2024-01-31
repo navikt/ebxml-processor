@@ -54,8 +54,9 @@ dependencies {
     implementation(libs.labai.jsr305x.annotations)
     implementation(libs.bundles.exposed)
     implementation(libs.bundles.logging)
-    // implementation("org.glassfish.jaxb:jaxb-runtime:4.0.3") // TODO: Latest. Krever at protokoll oppdateres
     implementation(libs.ebxml.protokoll)
+    implementation(libs.emottak.payload.xsd)
+    implementation(libs.jaxb.runtime)
     implementation("io.ktor:ktor-client-cio-jvm:2.3.4")
     implementation("org.apache.cxf:cxf-rt-frontend-jaxws:3.5.5")
     implementation("org.apache.cxf:cxf-rt-transports-http:3.5.5")
