@@ -6,8 +6,10 @@ import com.jcraft.jsch.JSch
 import com.jcraft.jsch.SftpException
 import com.jcraft.jsch.UserInfo
 import io.ktor.client.HttpClient
+import io.ktor.client.call.body
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.forms.MultiPartFormDataContent
+import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.headers
 import io.ktor.client.request.post
@@ -122,22 +124,34 @@ fun Application.myApplicationModule() {
                 try {
                     folder.forEach {
                         if (!it.filename.endsWith(".xml")) {
-                            log.info(it.filename + " is ignored")
+                            log.warn(it.filename + " is ignored")
                             return@forEach
                         }
                         val client = HttpClient(CIO)
-                        val lastModified = Date(it.attrs.mTime.toLong() * 1000)
+                        val lastModified = Date(it.attrs.mTime.toLong() * 1000).toInstant()
+                        // Sjekker CPA ID og timestamp
+                        if (client.get(URL_CPA_REPO_BASE + "/timestamps")
+                            .body<Map<String, String>>()
+                            .any { cpaTimestamp ->
+                                it.filename.contains( // typisk filename format nav.qass.35125.xml
+                                        cpaTimestamp.key.replace(":", ".") // CPA repo ID format = nav:qass:35125
+                                    ) && Instant.parse(cpaTimestamp.value).isAfter(lastModified)
+                            }
+                        ) { // TODO vurder å ha litt løsere sjekking av timestamps. (ikke alle systemer har samme millisec presisjon)
+                            log.info("Newer version already exists ${it.filename}, skipping...")
+                            return@forEach
+                        }
+
                         log.info("reading file ${it.filename}")
                         val getFile = sftpChannel.get(it.filename)
                         log.info("Uploading " + it.filename)
                         val cpaFile = String(getFile.readAllBytes())
                         log.info("Length ${cpaFile.length}")
-                        log.info("PostURL: $URL_CPA_REPO_PUT")
                         getFile.close()
                         try {
                             client.post(URL_CPA_REPO_PUT) {
                                 headers {
-                                    header("updated_date", lastModified.toInstant().toString())
+                                    header("updated_date", lastModified.toString())
                                     header("upsert", "true")
                                 }
                                 setBody(cpaFile)
