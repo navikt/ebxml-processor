@@ -43,7 +43,7 @@ spec:
     - name: KEYSTORE_FILE
       value: /var/run/secrets/ebms-keystore/secret
   envFrom:
-    - secret: ebms-secrets
+    - secret: ebms-payload-secret
   filesFrom:
-    - secret: ebms-keystore
+    - secret: ebms-payload-keystore
       mountPath: /var/run/secrets/ebms-keystore
