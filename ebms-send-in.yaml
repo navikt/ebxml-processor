@@ -21,6 +21,11 @@ spec:
       memory: "256Mi"
   ingresses:
     - "https://ebms-send-in.intern.dev.nav.no"
+  vault:
+    enabled: true
+    paths:
+        - kvPath: /serviceuser/data/dev/srvtokt
+          mountPath: /secret/serviceuser
   env:
     - name: TEST_ENV
       value: "test"
