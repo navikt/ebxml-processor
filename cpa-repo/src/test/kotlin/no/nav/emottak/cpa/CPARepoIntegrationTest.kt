@@ -16,7 +16,6 @@ import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import no.nav.emottak.cpa.persistence.DBTest
-import no.nav.emottak.cpa.persistence.testConfiguration
 import no.nav.emottak.melding.model.SignatureDetails
 import no.nav.emottak.melding.model.SignatureDetailsRequest
 import org.apache.commons.lang3.StringUtils

@@ -18,7 +18,6 @@ abstract class DBTest() {
 
     lateinit var db: Database
 
-
     @BeforeTest
     fun beforeEach() {
         val posgres = cpaPostgres()

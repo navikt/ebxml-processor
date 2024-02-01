@@ -1,5 +1,8 @@
 package no.nav.emottak.cxf
+import no.nav.emottak.util.getEnvVar
+import org.apache.cxf.frontend.ClientProxy
 import org.apache.cxf.jaxws.JaxWsProxyFactoryBean
+import org.apache.cxf.transport.http.HTTPConduit
 import org.apache.cxf.ws.addressing.WSAddressingFeature
 import org.apache.cxf.ws.security.SecurityConstants
 import javax.xml.namespace.QName
@@ -82,6 +85,9 @@ class ServiceBuilder<T>(resultClass: Class<T>) {
 
     inner class PortTypeBuilder<R> constructor(val portType: R) {
         fun withBasicSecurity(): PortTypeBuilder<R> {
+            val conduit: HTTPConduit = ClientProxy.getClient(portType).conduit as HTTPConduit
+            conduit.authorization.userName = "srvTokt"
+            conduit.authorization.password = getEnvVar("toktPassword")
             return this
         }
 
