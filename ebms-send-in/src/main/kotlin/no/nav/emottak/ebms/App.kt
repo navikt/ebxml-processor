@@ -7,7 +7,14 @@ import io.ktor.server.netty.Netty
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
+import no.nav.emottak.frikort.FrikortClient
+import no.nav.emottak.frikort.marshal
+import no.nav.emottak.frikort.unmarshal
+import no.nav.tjeneste.ekstern.frikort.v1.types.FrikortsporringRequest
+import org.slf4j.LoggerFactory
+import org.xmlsoap.schemas.soap.envelope.Envelope
 
+internal val log = LoggerFactory.getLogger("no.nav.emottak.ebms")
 fun main() {
     // val database = Database(mapHikariConfig(DatabaseConfig()))
     // database.migrate()
@@ -20,6 +27,16 @@ fun main() {
 fun Application.ebmsSendInModule() {
     routing {
         get("/") {
+            call.respondText("Hello, world!")
+        }
+        get("/testFrikortEndepunkt") {
+            val testCpaString = String(this::class.java.classLoader.getResource("frikort-soap.xml")!!.readBytes())
+            val envelope = unmarshal(testCpaString, Envelope::class.java)
+            val frikortSporting = envelope.body.any.first() as FrikortsporringRequest
+            val frikortEndpoint = FrikortClient().fikortEndpoint()
+            val response = frikortEndpoint.frikortsporring(frikortSporting)
+            log.info(marshal(response))
+            println(envelope)
             call.respondText("Hello, world!")
         }
     }
