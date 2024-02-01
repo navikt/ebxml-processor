@@ -122,20 +122,21 @@ fun Application.myApplicationModule() {
                 // val URL_CPA_REPO_TIMESTAMPS = URL_CPA_REPO_BASE + "/cpa/timestamps"
 
                 try {
+                    val client = HttpClient(CIO) {
+                        install(io.ktor.client.plugins.contentnegotiation.ContentNegotiation) {
+                            json()
+                        }
+                    }
+                    val cpaTimestamps = client.get(URL_CPA_REPO_BASE + "/cpa/timestamps")
+                        .body<Map<String, String>>()
                     folder.forEach {
                         if (!it.filename.endsWith(".xml")) {
                             log.warn(it.filename + " is ignored")
                             return@forEach
                         }
-                        val client = HttpClient(CIO) {
-                            install(io.ktor.client.plugins.contentnegotiation.ContentNegotiation) {
-                                json()
-                            }
-                        }
                         val lastModified = Date(it.attrs.mTime.toLong() * 1000).toInstant()
                         // Sjekker CPA ID og timestamp
-                        if (client.get(URL_CPA_REPO_BASE + "/cpa/timestamps")
-                            .body<Map<String, String>>()
+                        if (cpaTimestamps
                             .any { cpaTimestamp ->
                                 it.filename.contains( // typisk filename format nav.qass.35125.xml
                                         cpaTimestamp.key.replace(":", ".") // CPA repo ID format = nav:qass:35125
