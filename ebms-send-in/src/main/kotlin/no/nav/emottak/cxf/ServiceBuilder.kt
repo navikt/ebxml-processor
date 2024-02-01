@@ -87,7 +87,7 @@ class ServiceBuilder<T>(resultClass: Class<T>) {
         fun withBasicSecurity(): PortTypeBuilder<R> {
             val conduit: HTTPConduit = ClientProxy.getClient(portType).conduit as HTTPConduit
             conduit.authorization.userName = "srvTokt"
-            conduit.authorization.password = getEnvVar("toktPassword")
+            conduit.authorization.password = "H2jMrvI667K4iN"
             return this
         }
 
