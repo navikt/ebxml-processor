@@ -127,7 +127,11 @@ fun Application.myApplicationModule() {
                             log.warn(it.filename + " is ignored")
                             return@forEach
                         }
-                        val client = HttpClient(CIO)
+                        val client = HttpClient(CIO) {
+                            install(io.ktor.client.plugins.contentnegotiation.ContentNegotiation) {
+                                json()
+                            }
+                        }
                         val lastModified = Date(it.attrs.mTime.toLong() * 1000).toInstant()
                         // Sjekker CPA ID og timestamp
                         if (client.get(URL_CPA_REPO_BASE + "/cpa/timestamps")
