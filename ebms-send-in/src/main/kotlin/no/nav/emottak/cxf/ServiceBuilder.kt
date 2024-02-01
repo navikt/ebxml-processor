@@ -1,11 +1,10 @@
 package no.nav.emottak.cxf
-import no.nav.emottak.util.getEnvVar
+import javax.xml.namespace.QName
 import org.apache.cxf.frontend.ClientProxy
 import org.apache.cxf.jaxws.JaxWsProxyFactoryBean
 import org.apache.cxf.transport.http.HTTPConduit
 import org.apache.cxf.ws.addressing.WSAddressingFeature
 import org.apache.cxf.ws.security.SecurityConstants
-import javax.xml.namespace.QName
 
 class ServiceBuilder<T>(resultClass: Class<T>) {
     var resultClass: Class<T>
