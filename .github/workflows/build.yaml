@@ -127,19 +127,19 @@ jobs:
           CLUSTER: "dev-fss"
           RESOURCE: ".nais/cpa-repo-dev.yaml"
           IMAGE: ${{ needs.build.outputs.cpaimage }}
-#  deploy-ebms-payload:
-#    name: "Deploy ebms-payload to dev"
-#    needs: "build"
-#    runs-on: "ubuntu-20.04"
-#    steps:
-#      - uses: "actions/checkout@v4"
-#      - name: "Deploy to DEV"
-#        uses: "nais/deploy/actions/deploy@v1"
-#        env:
-#          APIKEY: "${{ secrets.NAIS_DEPLOY_APIKEY }}"
-#          CLUSTER: "dev-gcp"
-#          RESOURCE: ".nais/ebms-payload-dev.yaml"
-#          IMAGE: ${{ needs.build.outputs.payloadimage }}
+  deploy-ebms-payload:
+    name: "Deploy ebms-payload to dev"
+    needs: "build"
+    runs-on: "ubuntu-20.04"
+    steps:
+      - uses: "actions/checkout@v4"
+      - name: "Deploy to DEV"
+        uses: "nais/deploy/actions/deploy@v1"
+        env:
+          APIKEY: "${{ secrets.NAIS_DEPLOY_APIKEY }}"
+          CLUSTER: "dev-fss"
+          RESOURCE: ".nais/ebms-payload-dev.yaml"
+          IMAGE: ${{ needs.build.outputs.payloadimage }}
 #  deploy-smtp-listeners:
 #    name: "Deploy smtp-listeners to dev"
 #    needs: "build"
