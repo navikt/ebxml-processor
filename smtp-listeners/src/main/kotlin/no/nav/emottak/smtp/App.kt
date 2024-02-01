@@ -130,7 +130,7 @@ fun Application.myApplicationModule() {
                         val client = HttpClient(CIO)
                         val lastModified = Date(it.attrs.mTime.toLong() * 1000).toInstant()
                         // Sjekker CPA ID og timestamp
-                        if (client.get(URL_CPA_REPO_BASE + "/timestamps")
+                        if (client.get(URL_CPA_REPO_BASE + "/cpa/timestamps")
                             .body<Map<String, String>>()
                             .any { cpaTimestamp ->
                                 it.filename.contains( // typisk filename format nav.qass.35125.xml
