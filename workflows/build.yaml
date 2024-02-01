@@ -101,32 +101,32 @@ jobs:
       listenerimage: ${{ steps.docker-push-smtp-listeners.outputs.image }}
       routerimage: ${{ steps.docker-push-smtp-router.outputs.image }}
 
-#  deploy-processor:
-#    name: "Deploy ebms provider to dev"
-#    needs: "build"
-#    runs-on: "ubuntu-20.04"
-#    steps:
-#      - uses: "actions/checkout@v4"
-#      - name: "Deploy to DEV"
-#        uses: "nais/deploy/actions/deploy@v1"
-#        env:
-#          APIKEY: "${{ secrets.NAIS_DEPLOY_APIKEY }}"
-#          CLUSTER: "dev-gcp"
-#          RESOURCE: ".nais/ebms-provider-dev.yaml"
-#          IMAGE: ${{ needs.build.outputs.providerimage }}
-#  deploy-cpa-repo:
-#    name: "Deploy cpa-repo to dev"
-#    needs: "build"
-#    runs-on: "ubuntu-20.04"
-#    steps:
-#      - uses: "actions/checkout@v4"
-#      - name: "Deploy to DEV"
-#        uses: "nais/deploy/actions/deploy@v1"
-#        env:
-#          APIKEY: "${{ secrets.NAIS_DEPLOY_APIKEY }}"
-#          CLUSTER: "dev-fss"
-#          RESOURCE: ".nais/cpa-repo-dev.yaml"
-#          IMAGE: ${{ needs.build.outputs.cpaimage }}
+  deploy-processor:
+    name: "Deploy ebms provider to dev"
+    needs: "build"
+    runs-on: "ubuntu-20.04"
+    steps:
+      - uses: "actions/checkout@v4"
+      - name: "Deploy to DEV"
+        uses: "nais/deploy/actions/deploy@v1"
+        env:
+          APIKEY: "${{ secrets.NAIS_DEPLOY_APIKEY }}"
+          CLUSTER: "dev-fss"
+          RESOURCE: ".nais/ebms-provider-dev.yaml"
+          IMAGE: ${{ needs.build.outputs.providerimage }}
+  deploy-cpa-repo:
+    name: "Deploy cpa-repo to dev"
+    needs: "build"
+    runs-on: "ubuntu-20.04"
+    steps:
+      - uses: "actions/checkout@v4"
+      - name: "Deploy to DEV"
+        uses: "nais/deploy/actions/deploy@v1"
+        env:
+          APIKEY: "${{ secrets.NAIS_DEPLOY_APIKEY }}"
+          CLUSTER: "dev-fss"
+          RESOURCE: ".nais/cpa-repo-dev.yaml"
+          IMAGE: ${{ needs.build.outputs.cpaimage }}
 #  deploy-ebms-payload:
 #    name: "Deploy ebms-payload to dev"
 #    needs: "build"
