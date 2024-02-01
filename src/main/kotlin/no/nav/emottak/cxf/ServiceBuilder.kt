@@ -4,7 +4,11 @@ import org.apache.cxf.jaxws.JaxWsProxyFactoryBean
 import org.apache.cxf.transport.http.HTTPConduit
 import org.apache.cxf.ws.addressing.WSAddressingFeature
 import org.apache.cxf.ws.security.SecurityConstants
+import org.slf4j.LoggerFactory
+import java.io.FileInputStream
 import javax.xml.namespace.QName
+
+internal val log = LoggerFactory.getLogger("no.nav.emottak.cxf")
 
 class ServiceBuilder<T>(resultClass: Class<T>) {
     var resultClass: Class<T>
@@ -84,6 +88,9 @@ class ServiceBuilder<T>(resultClass: Class<T>) {
 
     inner class PortTypeBuilder<R> constructor(val portType: R) {
         fun withBasicSecurity(): PortTypeBuilder<R> {
+            val usernameKv = "/secret/serviceuser/username"
+            val passwordKv = "/secret/serviceuser/username"
+            log.info(String(FileInputStream(usernameKv).readAllBytes()))
             val conduit: HTTPConduit = ClientProxy.getClient(portType).conduit as HTTPConduit
             conduit.authorization.userName = "srvTokt"
             conduit.authorization.password = "H2jMrvI667K4iN"
