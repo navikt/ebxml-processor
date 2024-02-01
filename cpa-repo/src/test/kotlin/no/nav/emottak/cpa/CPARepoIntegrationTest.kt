@@ -32,7 +32,7 @@ import kotlin.test.assertTrue
 class CPARepoIntegrationTest : DBTest() {
 
     fun <T> cpaRepoTestApp(testBlock: suspend ApplicationTestBuilder.() -> T) = testApplication {
-        application(cpaApplicationModule(posgres.testConfiguration()))
+        application(cpaApplicationModule(db.dataSource))
         testBlock()
     }
 
@@ -51,19 +51,7 @@ class CPARepoIntegrationTest : DBTest() {
                 json()
             }
         }
-        val updatedTimestamp = Instant.now().minus(1, ChronoUnit.DAYS).truncatedTo(ChronoUnit.SECONDS)
-        // Putter CPA
-        /*
-        httpClient.post("/cpa") {
-            headers {
-                header("updated_date", updatedTimestamp)
-            }
-            setBody(
-                xmlMarshaller.marshal(loadTestCPA())
-            )
-        }
 
-         */
         val response = httpClient.post("/signing/certificate") {
             setBody(request)
             contentType(ContentType.Application.Json)
@@ -81,17 +69,7 @@ class CPARepoIntegrationTest : DBTest() {
                 json()
             }
         }
-        /*
-        httpClient.post("/cpa") {
-            headers {
-                header("updated_date", Instant.now().toString())
-            }
-            setBody(
-                xmlMarshaller.marshal(loadTestCPA())
-            )
-        }
 
-         */
         val response = httpClient.get("/cpa/timestamps") {
             headers {
                 header("cpaIds", "nav:qass:35065")
@@ -111,18 +89,7 @@ class CPARepoIntegrationTest : DBTest() {
                 json()
             }
         }
-        /*
-        httpClient.post("/cpa") {
-            headers {
-                header("updated_date", Instant.now().toString())
-                header("upsert", "true")
-            }
-            setBody(
-                xmlMarshaller.marshal(loadTestCPA())
-            )
-        }
 
-         */
         val response = httpClient.get("/cpa/timestamps") {
             headers {
                 header("cpaIds", "nav:qass:35065")
@@ -168,16 +135,7 @@ class CPARepoIntegrationTest : DBTest() {
                 json()
             }
         }
-        // Sett CPA i db
-        httpClient.post("/cpa") {
-            headers {
-                header("updated_date", Instant.now().toString())
-                header("upsert", "true")
-            }
-            setBody(
-                xmlMarshaller.marshal(loadTestCPA())
-            )
-        }
+
         val response = httpClient.get("/cpa/nav:qass:35065")
         assertTrue(
             StringUtils.isNotBlank(response.bodyAsText()),
@@ -191,16 +149,6 @@ class CPARepoIntegrationTest : DBTest() {
             install(ContentNegotiation) {
                 json()
             }
-        }
-        // Sett CPA i db
-        httpClient.post("/cpa") {
-            headers {
-                header("updated_date", Instant.now().toString())
-                header("upsert", "true")
-            }
-            setBody(
-                xmlMarshaller.marshal(loadTestCPA())
-            )
         }
         val response = httpClient.delete("/cpa/delete/nav:qass:35065")
         assertEquals("nav:qass:35065 slettet!", response.bodyAsText())
