@@ -1,0 +1,62 @@
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:typ="http://nav.no/tjeneste/ekstern/frikort/v1/types" xmlns:ns="http://www.trygdeetaten.no/xml/eiff/1/" xmlns:ns1="http://www.kith.no/xmlstds/msghead/2006-05-24" xmlns:ns2="http://www.kith.no/xmlstds/nav/egenandel/2010-02-01" xmlns:ns3="http://www.kith.no/xmlstds/nav/egenandelmengde/2010-10-06" xmlns:ns4="http://www.kith.no/xmlstds/nav/egenandel/2016-06-10" xmlns:ns5="http://www.kith.no/xmlstds/nav/egenandelmengde/2016-06-10" xmlns:xd="http://www.w3.org/2000/09/xmldsig#" xmlns:ns6="http://www.kith.no/xmlstds/apprec/2004-11-21">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <typ:frikortsporringRequest>
+         <ns:EI_fellesformat>
+            <ns1:MsgHead>
+               <ns1:MsgInfo>
+                  <ns1:Type V="EgenandelForesporsel" DN="NAV toveiskommunikasjonstjenestemelding"/>
+                  <ns1:MIGversion>v1.2 2006-05-24</ns1:MIGversion>
+                  <ns1:GenDate>2008-11-26T20:31:17.281+01:00</ns1:GenDate>
+                  <ns1:MsgId>cc169595-bbf0-11dd-9ca9-117f241b4a68</ns1:MsgId>
+                  <ns1:Sender>
+                     <ns1:Organisation>
+                        <ns1:OrganisationName>TESTORGNAME</ns1:OrganisationName>
+                        <ns1:Ident>
+                           <ns1:Id>889640782</ns1:Id>
+                           <ns1:TypeId V="ENH" DN="Organisasjonsnummeret i Enhetsregister" S="2.16.578.1.12.4.1.1.9051"/>
+                        </ns1:Ident>
+                        <ns1:HealthcareProfessional>
+                           <ns1:FamilyName>Larsen</ns1:FamilyName>
+                           <ns1:GivenName>Tore</ns1:GivenName>
+                           <ns1:Ident>
+                              <ns1:Id>12345678901</ns1:Id>
+                              <ns1:TypeId V="FNR" DN="Fødselsnummer"/>
+                           </ns1:Ident>
+                        </ns1:HealthcareProfessional>
+                     </ns1:Organisation>
+                  </ns1:Sender>
+                  <ns1:Receiver>
+                     <ns1:Organisation>
+                        <ns1:OrganisationName>NAV</ns1:OrganisationName>
+                        <ns1:Ident>
+                           <ns1:Id>999999999</ns1:Id>
+                           <ns1:TypeId/>
+                        </ns1:Ident>
+                     </ns1:Organisation>
+                  </ns1:Receiver>
+               </ns1:MsgInfo>
+               <ns1:Document>
+                  <ns1:DocumentConnection V="H" DN="Hoveddokument"/>
+                  <ns1:RefDoc>
+                     <ns1:MsgType V="XML" DN="XML-instans"/>
+                     <ns1:Content>
+                        <ns4:EgenandelForesporselV2>
+                           <ns4:HarBorgerFrikort>
+                              <ns4:BorgerFnr>21034818522</ns4:BorgerFnr>
+                              <ns4:Dato>2023-11-20</ns4:Dato>
+                              <ns4:TjenestetypeKode>A</ns4:TjenestetypeKode>
+                           </ns4:HarBorgerFrikort>
+                        </ns4:EgenandelForesporselV2>
+                     </ns1:Content>
+                  </ns1:RefDoc>
+               </ns1:Document>
+            </ns1:MsgHead>
+            <ns:MottakenhetBlokk ebAction="EgenandelForesporsel" ebService="HarBorgerFrikort"
+            	avsender="1234567890" avsenderFnrFraDigSignatur="01116449060"
+            	avsenderRef="00223456789" ediLoggId="Test-Nr:[SM13_29088942807]4"
+            	mottattDatotid="2013-08-01T11:27:31+02:00" partnerReferanse="1"/>
+         </ns:EI_fellesformat>
+      </typ:frikortsporringRequest>
+   </soapenv:Body>
+</soapenv:Envelope>
