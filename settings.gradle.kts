@@ -47,7 +47,7 @@ dependencyResolutionManagement {
             library("jakarta.xml.bind-api", "jakarta.xml.bind:jakarta.xml.bind-api:4.0.0")
             library("ebxml-protokoll", "no.nav.emottak:ebxml-protokoll:0.0.6")
             library("flyway-core", "org.flywaydb:flyway-core:9.16.3")
-            library("emottak-payload-xsd", "no.nav.emottak:emottak-payload-xsd:0.0.1")
+            library("emottak-payload-xsd", "no.nav.emottak:emottak-payload-xsd:0.0.2")
             library("jaxb-runtime", "org.glassfish.jaxb:jaxb-runtime:2.4.0-b180830.0438")
 
             library("jakarta-mail-api", "jakarta.mail", "jakarta.mail-api").versionRef("jakarta-mail")

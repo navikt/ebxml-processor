@@ -17,11 +17,9 @@ abstract class DBTest() {
 
     lateinit var db: Database
 
-    lateinit var posgres: PostgreSQLContainer<Nothing>
-
     @BeforeTest
     fun beforeEach() {
-        posgres = cpaPostgres()
+        val posgres = cpaPostgres()
         db = Database(posgres.testConfiguration())
             .configureFlyway()
         val tables = listOf(CPA)
