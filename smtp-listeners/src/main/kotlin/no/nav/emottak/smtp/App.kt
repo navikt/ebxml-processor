@@ -114,12 +114,8 @@ fun Application.myApplicationModule() {
                 sftpChannel.cd("/outbound/cpa")
                 val folder: Vector<LsEntry> = sftpChannel.ls(".") as Vector<LsEntry>
 
-                // TODO check state of CPA db, get timestamp
-                // Get all files later than timestamp
-                // push files to db
                 val URL_CPA_REPO_BASE = getEnvVar("URL_CPA_REPO", "https://cpa-repo.intern.dev.nav.no")
                 val URL_CPA_REPO_PUT = URL_CPA_REPO_BASE + "/cpa"
-                // val URL_CPA_REPO_TIMESTAMPS = URL_CPA_REPO_BASE + "/cpa/timestamps"
 
                 try {
                     val client = HttpClient(CIO) {
@@ -140,9 +136,10 @@ fun Application.myApplicationModule() {
                             .any { cpaTimestamp ->
                                 it.filename.contains( // typisk filename format nav.qass.35125.xml
                                         cpaTimestamp.key.replace(":", ".") // CPA repo ID format = nav:qass:35125
-                                    ) && Instant.parse(cpaTimestamp.value).isAfter(lastModified)
+                                    ) && Instant.parse(cpaTimestamp.value)
+                                    .isAfter(lastModified.minusSeconds(2)) // Litt løs sjekk siden ikke alle systemer har samme millisec presisjon
                             }
-                        ) { // TODO vurder å ha litt løsere sjekking av timestamps. (ikke alle systemer har samme millisec presisjon)
+                        ) {
                             log.info("Newer version already exists ${it.filename}, skipping...")
                             return@forEach
                         }
@@ -157,7 +154,7 @@ fun Application.myApplicationModule() {
                             client.post(URL_CPA_REPO_PUT) {
                                 headers {
                                     header("updated_date", lastModified.toString())
-                                    header("upsert", "true")
+                                    header("upsert", "true") // Upsert kan nok alltid brukes (?)
                                 }
                                 setBody(cpaFile)
                             }
