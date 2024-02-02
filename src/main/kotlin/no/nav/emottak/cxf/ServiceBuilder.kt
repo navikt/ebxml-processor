@@ -20,11 +20,6 @@ class ServiceBuilder<T>(resultClass: Class<T>) {
         this.resultClass = resultClass
     }
 
-    fun withExtraClasses(classes: Array<Class<*>?>?): ServiceBuilder<T> {
-        factoryBean.properties["jaxb.additionalContextClasses"] = classes
-        return this
-    }
-
     fun withWsdl(wsdl: String?): ServiceBuilder<T> {
         factoryBean.wsdlURL = wsdl
         return this
