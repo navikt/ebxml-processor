@@ -17,6 +17,7 @@ dependencyResolutionManagement {
             version("jakarta-mail", "2.1.2")
             version("eclipse-angus", "2.0.2")
             version("jsch", "0.2.16")
+            version("cxf","3.5.5")
 
             library("bcpkix-jdk18on", "org.bouncycastle", "bcpkix-jdk18on").versionRef("bouncycastle")
             library("bcprov-jdk18on", "org.bouncycastle", "bcprov-jdk18on").versionRef("bouncycastle")
@@ -49,10 +50,16 @@ dependencyResolutionManagement {
             library("flyway-core", "org.flywaydb:flyway-core:9.16.3")
             library("emottak-payload-xsd", "no.nav.emottak:emottak-payload-xsd:0.0.2")
             library("jaxb-runtime", "org.glassfish.jaxb:jaxb-runtime:2.4.0-b180830.0438")
+            library("cxf-rt-frontend-jaxws","org.apache.cxf","cxf-rt-frontend-jaxws").versionRef("cxf")
+            library("cxf-rt-transports-http","org.apache.cxf","cxf-rt-transports-http").versionRef("cxf")
+            library("cxf-rt-ws-security","org.apache.cxf","cxf-rt-ws-security").versionRef("cxf")
+            library("cxf-rt-features-logging","org.apache.cxf","cxf-rt-features-logging").versionRef("cxf")
+            library("jakarta.xml.ws-api","jakarta.xml.ws:jakarta.xml.ws-api:2.3.3")
 
             library("jakarta-mail-api", "jakarta.mail", "jakarta.mail-api").versionRef("jakarta-mail")
             library("eclipse-angus", "org.eclipse.angus", "jakarta.mail").versionRef("eclipse-angus")
 
+            bundle("cxf", listOf("cxf-rt-frontend-jaxws","cxf-rt-transports-http","cxf-rt-ws-security","cxf-rt-features-logging","jakarta.xml.ws-api"))
             bundle("jakarta-mail", listOf("jakarta-mail-api", "eclipse-angus"))
             bundle("bouncycastle", listOf("bcpkix-jdk18on", "bcprov-jdk18on"))
             bundle("exposed", listOf("exposed-core", "exposed-dao", "exposed-java-time", "exposed-jdbc", "exposed-json"))
