@@ -92,6 +92,7 @@ fun Application.myApplicationModule() {
         }
 
         get("/testsftp") {
+            val log = LoggerFactory.getLogger("no.nav.emottak.smtp.sftp")
             withContext(Dispatchers.IO) {
                 val privateKeyFile = "/var/run/secrets/privatekey"
                 val publicKeyFile = "/var/run/secrets/publickey"
@@ -128,6 +129,7 @@ fun Application.myApplicationModule() {
                         .body<Map<String, String>>().toMutableMap() // mappen tømmes ettersom entries behandles
 
                     folder.forEach {
+                        log.info("Checking ${it.filename}...")
                         if (!it.filename.endsWith(".xml")) {
                             log.warn(it.filename + " is ignored")
                             return@forEach
@@ -140,22 +142,22 @@ fun Application.myApplicationModule() {
                                 cpaTimestamp.key
                                     .let { cpaId ->
                                         if (it.filename.contains(cpaId.replace(":", "."))) {
+                                            log.info("${it.filename} already exists")
                                             add(cpaId)
                                             return@let true
                                         }
                                         false
                                     } && Instant.parse(cpaTimestamp.value)
                                     .isAfter(lastModified.minusSeconds(2)) // Litt løs sjekk siden ikke alle systemer har samme millisec presisjon
-                            }.also { matches ->
-                                if (matches.isNotEmpty()) {
+                            }.let { matches ->
+                                forEach { cpaTimestamps.remove(it) }
+                                if(matches.any()) {
                                     log.info("Newer version already exists ${it.filename}, skipping...")
                                     return@forEach
                                 }
-                            }.also {
-                                forEach { cpaTimestamps.remove(it) }
                             }
                         }
-                        log.info("reading file ${it.filename}")
+                        log.info("Fetching file ${it.filename}")
                         val getFile = sftpChannel.get(it.filename)
                         log.info("Uploading " + it.filename)
                         val cpaFile = String(getFile.readAllBytes())
