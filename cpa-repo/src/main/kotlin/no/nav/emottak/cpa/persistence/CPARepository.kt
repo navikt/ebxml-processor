@@ -91,11 +91,11 @@ class CPARepository(val database: Database) {
         return cpa.id
     }
 
-    fun deleteCpa(cpa: CpaDbEntry): String {
+    fun deleteCpa(cpaId: String): String {
         transaction(database.db) {
-            CPA.deleteWhere { CPA.id.eq(cpa.id) }
+            CPA.deleteWhere { CPA.id.eq(cpaId) }
         }
-        return cpa.id
+        return cpaId
     }
 
     data class CpaDbEntry(

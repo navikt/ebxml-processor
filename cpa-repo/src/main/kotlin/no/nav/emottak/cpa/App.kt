@@ -58,12 +58,12 @@ fun cpaApplicationModule(dbConfig: HikariConfig): Application.() -> Unit {
 
             delete("/cpa/delete/{$CPA_ID}") {
                 val cpaId = call.parameters[CPA_ID] ?: throw BadRequestException("Mangler $CPA_ID")
-                cpaRepository.findCpa(cpaId) ?: throw NotFoundException("Fant ikke CPA")
+                cpaRepository.deleteCpa(cpaId) ?: throw NotFoundException("Fant ikke CPA")
                 call.respond("$cpaId slettet!")
             }
 
             get("/cpa/timestamps") {
-                println("Timestamps")
+                log.info("Timestamps")
                 call.respond(
                     HttpStatusCode.OK,
                     cpaRepository.findCpaTimestamps(
@@ -80,7 +80,7 @@ fun cpaApplicationModule(dbConfig: HikariConfig): Application.() -> Unit {
             }
 
             get("/cpa/timestamps/latest") {
-                println("Timestamplatest")
+                log.info("Timestamplatest")
                 call.respond(
                     HttpStatusCode.OK,
                     cpaRepository.findLatestUpdatedCpaTimestamp()
@@ -88,6 +88,7 @@ fun cpaApplicationModule(dbConfig: HikariConfig): Application.() -> Unit {
             }
 
             post("/cpa") {
+                log.info("post-cpa")
                 val cpaString = call.receive<String>()
                 // TODO en eller annen form for validering av CPA
                 val updatedDate = call.request.headers["updated_date"].let {

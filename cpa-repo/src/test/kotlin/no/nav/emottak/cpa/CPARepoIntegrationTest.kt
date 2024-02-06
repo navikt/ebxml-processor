@@ -25,6 +25,7 @@ import org.junit.jupiter.api.TestInstance
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import kotlin.test.assertContains
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -125,6 +126,29 @@ class CPARepoIntegrationTest : DBTest() {
         val responseMedAlle = httpClient.get("/cpa/timestamps/latest")
 
         assertEquals(updatedTimestamp.toString(), responseMedAlle.bodyAsText())
+    }
+
+    @Test
+    fun `Henter timestamps map`() = cpaRepoTestApp {
+        val httpClient = createClient {
+            install(ContentNegotiation) {
+                json()
+            }
+        }
+        val updatedTimestamp = Instant.now().minus(1, ChronoUnit.DAYS).truncatedTo(ChronoUnit.SECONDS)
+        // Putter CPA
+        httpClient.post("/cpa") {
+            headers {
+                header("updated_date", updatedTimestamp)
+                header("upsert", true)
+            }
+            setBody(
+                xmlMarshaller.marshal(loadTestCPA())
+            )
+        }
+        val responseMedAlle = httpClient.get("/cpa/timestamps")
+            .body<Map<String, String>>()
+        assertNotNull(responseMedAlle)
     }
 
     @Test

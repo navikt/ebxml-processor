@@ -6,8 +6,11 @@ import com.jcraft.jsch.JSch
 import com.jcraft.jsch.SftpException
 import com.jcraft.jsch.UserInfo
 import io.ktor.client.HttpClient
+import io.ktor.client.call.body
 import io.ktor.client.engine.cio.CIO
+import io.ktor.client.request.delete
 import io.ktor.client.request.forms.MultiPartFormDataContent
+import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.headers
 import io.ktor.client.request.post
@@ -36,19 +39,17 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.withContext
 import net.logstash.logback.marker.Markers
 import no.nav.emottak.nfs.NFSConfig
 import org.eclipse.angus.mail.imap.IMAPFolder
 import org.slf4j.LoggerFactory
-import java.io.BufferedReader
 import java.io.ByteArrayInputStream
 import java.io.FileInputStream
-import java.io.InputStreamReader
 import java.time.Duration
 import java.time.Instant
 import java.util.Date
 import java.util.Vector
-import kotlin.concurrent.thread
 import kotlin.time.toKotlinDuration
 
 fun main() {
@@ -91,7 +92,8 @@ fun Application.myApplicationModule() {
         }
 
         get("/testsftp") {
-            thread {
+            val log = LoggerFactory.getLogger("no.nav.emottak.smtp.sftp")
+            withContext(Dispatchers.IO) {
                 val privateKeyFile = "/var/run/secrets/privatekey"
                 val publicKeyFile = "/var/run/secrets/publickey"
                 log.info(String(FileInputStream(publicKeyFile).readAllBytes()))
@@ -114,37 +116,68 @@ fun Application.myApplicationModule() {
                 sftpChannel.cd("/outbound/cpa")
                 val folder: Vector<LsEntry> = sftpChannel.ls(".") as Vector<LsEntry>
 
-                // TODO check state of CPA db, get timestamp
-                // Get all files later than timestamp
-                // push files to db
-                val URL_CPA_REPO_BASE = getEnvVar("URL_CPA_REPO", "https://smtp-listeners.intern.dev.nav.no")
+                val URL_CPA_REPO_BASE = getEnvVar("URL_CPA_REPO", "https://cpa-repo.intern.dev.nav.no")
                 val URL_CPA_REPO_PUT = URL_CPA_REPO_BASE + "/cpa"
-                // val URL_CPA_REPO_TIMESTAMPS = URL_CPA_REPO_BASE + "/cpa/timestamps"
 
                 try {
+                    val client = HttpClient(CIO) {
+                        install(io.ktor.client.plugins.contentnegotiation.ContentNegotiation) {
+                            json()
+                        }
+                    }
+                    val cpaTimestamps = client.get("$URL_CPA_REPO_BASE/cpa/timestamps")
+                        .body<Map<String, String>>().toMutableMap() // mappen tømmes ettersom entries behandles
+
                     folder.forEach {
-                        if (it.filename.contains("gz") || it.filename.length < 3) {
-                            log.info(it.filename + " is ignored")
+                        log.info("Checking ${it.filename}...")
+                        if (!it.filename.endsWith(".xml")) {
+                            log.warn(it.filename + " is ignored")
                             return@forEach
                         }
-                        val client = HttpClient(CIO)
-                        val lastModified = Date(it.attrs.mTime.toLong() * 1000)
-                        log.info("reading file ${it.filename}")
+                        val lastModified = Date(it.attrs.mTime.toLong() * 1000).toInstant()
+                        // Fjerner cpaId matches fra timestamp listen og skipper hvis nyere eksisterer
+                        // Todo refactor. Too "kotlinesque":
+                        with(ArrayList<String>()) {
+                            cpaTimestamps.filter { cpaTimestamp ->
+                                cpaTimestamp.key
+                                    .let { cpaId ->
+                                        if (it.filename.contains(cpaId.replace(":", "."))) {
+                                            log.info("${it.filename} already exists")
+                                            add(cpaId)
+                                            return@let true
+                                        }
+                                        false
+                                    } && Instant.parse(cpaTimestamp.value)
+                                    .isAfter(lastModified.minusSeconds(2)) // Litt løs sjekk siden ikke alle systemer har samme millisec presisjon
+                            }.let { matches ->
+                                forEach { cpaTimestamps.remove(it) }
+                                if (matches.any()) {
+                                    log.info("Newer version already exists ${it.filename}, skipping...")
+                                    return@forEach
+                                }
+                            }
+                        }
+                        log.info("Fetching file ${it.filename}")
                         val getFile = sftpChannel.get(it.filename)
-                        log.info("sftpChannel stream available(): ${getFile.available()}")
-                        val br = BufferedReader(InputStreamReader(getFile))
-                        val cpaFile = br.readText()
-                        br.close()
                         log.info("Uploading " + it.filename)
-                        suspend {
+                        val cpaFile = String(getFile.readAllBytes())
+                        log.info("Length ${cpaFile.length}")
+                        getFile.close()
+                        try {
                             client.post(URL_CPA_REPO_PUT) {
                                 headers {
-                                    header("updated_date", lastModified.toInstant().toString())
-                                    header("upsert", "true")
+                                    header("updated_date", lastModified.toString())
+                                    header("upsert", "true") // Upsert kan nok alltid brukes (?)
                                 }
                                 setBody(cpaFile)
                             }
+                        } catch (e: Exception) {
+                            log.error("Error uploading ${it.filename} to cpa-repo: ${e.message}", e)
                         }
+                    }
+                    // Any remaining timestamps means they exist in DB, but not in disk and should be cleaned
+                    cpaTimestamps.forEach { (cpaId) ->
+                        client.delete("$URL_CPA_REPO_BASE/cpa/delete/$cpaId")
                     }
                 } catch (e: Exception) {
                     if (e is SftpException) {
