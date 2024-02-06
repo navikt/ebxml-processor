@@ -151,7 +151,7 @@ fun Application.myApplicationModule() {
                                     .isAfter(lastModified.minusSeconds(2)) // Litt løs sjekk siden ikke alle systemer har samme millisec presisjon
                             }.let { matches ->
                                 forEach { cpaTimestamps.remove(it) }
-                                if(matches.any()) {
+                                if (matches.any()) {
                                     log.info("Newer version already exists ${it.filename}, skipping...")
                                     return@forEach
                                 }
