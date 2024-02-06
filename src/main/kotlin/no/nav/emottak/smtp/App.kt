@@ -8,6 +8,7 @@ import com.jcraft.jsch.UserInfo
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.cio.CIO
+import io.ktor.client.request.delete
 import io.ktor.client.request.forms.MultiPartFormDataContent
 import io.ktor.client.request.get
 import io.ktor.client.request.header
@@ -123,27 +124,37 @@ fun Application.myApplicationModule() {
                             json()
                         }
                     }
-                    val cpaTimestamps = client.get(URL_CPA_REPO_BASE + "/cpa/timestamps")
-                        .body<Map<String, String>>()
+                    val cpaTimestamps = client.get("$URL_CPA_REPO_BASE/cpa/timestamps")
+                        .body<Map<String, String>>().toMutableMap() // mappen tømmes ettersom entries behandles
+
                     folder.forEach {
                         if (!it.filename.endsWith(".xml")) {
                             log.warn(it.filename + " is ignored")
                             return@forEach
                         }
                         val lastModified = Date(it.attrs.mTime.toLong() * 1000).toInstant()
-                        // Sjekker CPA ID og timestamp
-                        if (cpaTimestamps
-                            .any { cpaTimestamp ->
-                                it.filename.contains( // typisk filename format nav.qass.35125.xml
-                                        cpaTimestamp.key.replace(":", ".") // CPA repo ID format = nav:qass:35125
-                                    ) && Instant.parse(cpaTimestamp.value)
+                        // Fjerner cpaId matches fra timestamp listen og skipper hvis nyere eksisterer
+                        // Todo refactor. Too "kotlinesque":
+                        with(ArrayList<String>()) {
+                            cpaTimestamps.filter { cpaTimestamp ->
+                                cpaTimestamp.key
+                                    .let { cpaId ->
+                                        if (it.filename.contains(cpaId.replace(":", "."))) {
+                                            add(cpaId)
+                                            return@let true
+                                        }
+                                        false
+                                    } && Instant.parse(cpaTimestamp.value)
                                     .isAfter(lastModified.minusSeconds(2)) // Litt løs sjekk siden ikke alle systemer har samme millisec presisjon
+                            }.also { matches ->
+                                if (matches.isNotEmpty()) {
+                                    log.info("Newer version already exists ${it.filename}, skipping...")
+                                    return@forEach
+                                }
+                            }.also {
+                                forEach { cpaTimestamps.remove(it) }
                             }
-                        ) {
-                            log.info("Newer version already exists ${it.filename}, skipping...")
-                            return@forEach
                         }
-
                         log.info("reading file ${it.filename}")
                         val getFile = sftpChannel.get(it.filename)
                         log.info("Uploading " + it.filename)
@@ -161,6 +172,10 @@ fun Application.myApplicationModule() {
                         } catch (e: Exception) {
                             log.error("Error uploading ${it.filename} to cpa-repo: ${e.message}", e)
                         }
+                    }
+                    // Any remaining timestamps means they exist in DB, but not in disk and should be cleaned
+                    cpaTimestamps.forEach { (cpaId) ->
+                        client.delete("$URL_CPA_REPO_BASE/cpa/delete/$cpaId")
                     }
                 } catch (e: Exception) {
                     if (e is SftpException) {
