@@ -117,7 +117,7 @@ fun Application.myApplicationModule() {
                 sftpChannel.cd("/outbound/cpa")
                 val folder: Vector<LsEntry> = sftpChannel.ls(".") as Vector<LsEntry>
 
-                val URL_CPA_REPO_BASE = getEnvVar("URL_CPA_REPO", "https://cpa-repo.intern.dev.nav.no")
+                val URL_CPA_REPO_BASE = getEnvVar("URL_CPA_REPO", "http://cpa-repo.team-emottak.svc.nais.local")
                 val URL_CPA_REPO_PUT = URL_CPA_REPO_BASE + "/cpa"
 
                 try {
