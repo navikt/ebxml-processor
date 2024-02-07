@@ -3,35 +3,33 @@ package no.nav.emottak.cpa.persistence
 import com.zaxxer.hikari.HikariConfig
 import no.nav.vault.jdbc.hikaricp.HikariCPVaultUtil
 
-const val database_name = "emottak-cpa-repo-db"
+const val CPA_DB_NAME = "emottak-cpa-repo-db"
 
 data class DatabaseConfigFSS(
     val mountPath: String,
     val jdbcUrl: String
 )
 
-fun mapHikariConfig(role: String, dbConfig: HikariConfig? = null): HikariConfig {
-    return if (Environment.isFSS) {
+fun mapHikariConfig(databaseName: String, role: String): HikariConfig {
+
         val hikariConfig = HikariConfig().apply {
             jdbcUrl = config.jdbcUrl
             minimumIdle = 1
             maximumPoolSize = 2
             driverClassName = "org.postgresql.Driver"
         }
-        HikariCPVaultUtil.createHikariDataSourceWithVaultIntegration(
+       return HikariCPVaultUtil.createHikariDataSourceWithVaultIntegration(
             hikariConfig,
             config.mountPath,
-            "$database_name-$role"
+            "$databaseName-$role"
         )
-    } else {
-        dbConfig ?: throw RuntimeException("Only FSS or custom hikari config supported")
-    }
+
 }
 
 private val config: DatabaseConfigFSS = when (Environment.current) {
     Environment.DEV_FSS -> DatabaseConfigFSS(
         mountPath = "postgresql/preprod-fss",
-        jdbcUrl = "jdbc:postgresql://b27dbvl033.preprod.local:5432/$database_name"
+        jdbcUrl = "jdbc:postgresql://b27dbvl033.preprod.local:5432/$CPA_DB_NAME"
     )
     Environment.PROD_FSS -> throw TODO()
     Environment.LOKAL -> DatabaseConfigFSS(

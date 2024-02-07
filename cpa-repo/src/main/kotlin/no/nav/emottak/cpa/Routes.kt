@@ -166,11 +166,15 @@ fun Route.signingCertificate(cpaRepository: CPARepository) = post("/signing/cert
     }
 }
 
+fun Route.partnerID(cpaRepository: CPARepository) = get("/cpa/partnerId/{$HER_ID}") {
+}
+
 private const val CPA_ID = "cpaId"
 private const val CPA_IDS = "cpaIds"
 private const val PARTY_TYPE = "partyType"
 private const val PARTY_ID = "partyId"
 private const val CONTENT_ID = "contentId"
+private const val HER_ID = "herId"
 private const val ROLE = "role"
 private const val SERVICE = "service"
 private const val ACTION = "action"

@@ -32,7 +32,7 @@ import kotlin.test.assertTrue
 class CPARepoIntegrationTest : DBTest() {
 
     fun <T> cpaRepoTestApp(testBlock: suspend ApplicationTestBuilder.() -> T) = testApplication {
-        application(cpaApplicationModule(db.dataSource))
+        application(cpaApplicationModule(db.dataSource, db.dataSource))
         testBlock()
     }
 

@@ -57,7 +57,7 @@ private fun Database.configureFlyway(): Database =
 
 fun cpaPostgres(): PostgreSQLContainer<Nothing> =
     PostgreSQLContainer<Nothing>("postgres:14").apply {
-        withUsername("$database_name-admin")
+        withUsername("$CPA_DB_NAME-admin")
         withReuse(true)
         withLabel("app-navn", "cpa-repo")
         start()

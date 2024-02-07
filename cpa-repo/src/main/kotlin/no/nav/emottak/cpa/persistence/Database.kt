@@ -10,12 +10,12 @@ class Database(
 ) {
     val dataSource = HikariDataSource(dbConfig)
     val db = Database.connect(dataSource)
-    fun migrate(dbConfig: HikariConfig) {
-        dbConfig.let(::HikariDataSource)
+    fun migrate(migrationConfig: HikariConfig) {
+        migrationConfig.let(::HikariDataSource)
             .also {
                 Flyway.configure()
                     .dataSource(it)
-                    .initSql("SET ROLE \"$database_name-admin\"")
+                    .initSql("SET ROLE \"$CPA_DB_NAME-admin\"")
                     .lockRetryCount(50)
                     .load()
                     .migrate()
