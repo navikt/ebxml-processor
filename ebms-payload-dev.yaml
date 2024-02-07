@@ -41,7 +41,7 @@ spec:
         - application: ebms-provider
   env:
     - name: KEYSTORE_FILE
-      value: /var/run/secrets/ebms-keystore/secret
+      value: /var/run/secrets/ebms-keystore/nav_test.p12
   envFrom:
     - secret: ebms-payload-secret
   filesFrom:
