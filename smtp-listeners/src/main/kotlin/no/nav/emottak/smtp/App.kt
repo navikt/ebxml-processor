@@ -6,7 +6,6 @@ import com.jcraft.jsch.JSch
 import com.jcraft.jsch.SftpException
 import com.jcraft.jsch.UserInfo
 import io.ktor.client.HttpClient
-import io.ktor.client.call.body
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.delete
 import io.ktor.client.request.forms.MultiPartFormDataContent
@@ -15,6 +14,7 @@ import io.ktor.client.request.header
 import io.ktor.client.request.headers
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.Headers
 import io.ktor.http.HeadersBuilder
@@ -40,6 +40,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
 import net.logstash.logback.marker.Markers
 import no.nav.emottak.nfs.NFSConfig
 import org.eclipse.angus.mail.imap.IMAPFolder
@@ -125,9 +126,11 @@ fun Application.myApplicationModule() {
                             json()
                         }
                     }
-                    val cpaTimestamps = client.get("$URL_CPA_REPO_BASE/cpa/timestamps")
-                        .body<Map<String, String>>().toMutableMap() // mappen tømmes ettersom entries behandles
-
+                    val cpaTimestamps =
+                        Json.decodeFromString<Map<String, String>>(
+                            client.get("$URL_CPA_REPO_BASE/cpa/timestamps")
+                                .bodyAsText()
+                        ).toMutableMap() // mappen tømmes ettersom entries behandles
                     folder.forEach {
                         log.info("Checking ${it.filename}...")
                         if (!it.filename.endsWith(".xml")) {
