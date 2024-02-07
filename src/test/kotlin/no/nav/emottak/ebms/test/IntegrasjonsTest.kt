@@ -47,7 +47,7 @@ open class EndToEndTest {
         fun setup() {
             System.setProperty("CPA_REPO_URL", cpaRepoUrl)
             cpaDbContainer.start()
-            cpaRepoServer = embeddedServer(Netty, port = portnoCpaRepo, module = cpaApplicationModule(cpaDbContainer.testConfiguration())).also {
+            cpaRepoServer = embeddedServer(Netty, port = portnoCpaRepo, module = cpaApplicationModule(cpaDbContainer.testConfiguration(), cpaDbContainer.testConfiguration())).also {
                 it.start()
             }
             ebmsProviderServer = embeddedServer(Netty, port = portnoEbmsProvider, module = { ebmsProviderModule() }).also {

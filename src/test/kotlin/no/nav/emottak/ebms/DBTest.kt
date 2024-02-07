@@ -1,12 +1,12 @@
 package no.nav.emottak.ebms
 
 import com.zaxxer.hikari.HikariConfig
-import no.nav.emottak.cpa.persistence.database_name
+import no.nav.emottak.cpa.persistence.CPA_DB_NAME
 import org.testcontainers.containers.PostgreSQLContainer
 
 fun cpaPostgres(): PostgreSQLContainer<Nothing> =
     PostgreSQLContainer<Nothing>("postgres:14").apply {
-        withUsername("$database_name-admin")
+        withUsername("$CPA_DB_NAME-admin")
         withReuse(true)
         withLabel("app-navn", "cpa-repo")
         start()
