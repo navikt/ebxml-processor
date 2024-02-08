@@ -61,7 +61,7 @@ fun Route.postEbms(validator: DokumentValidator, processingService: ProcessingSe
         val message = ebMSDocument.buildEbmMessage()
         try {
             if (!debug) {
-                processingService.process(message)
+                processingService.process(message, validationResult.payloadProcessing)
             }
         } catch (ex: EbmsException) {
             logger().error(message.messageHeader.marker(loggableHeaders), "Processing failed: ${ex.message}", ex)

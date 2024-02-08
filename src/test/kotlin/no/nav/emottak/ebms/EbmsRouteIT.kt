@@ -59,7 +59,7 @@ class EbmsRouteIT {
             val dokumentValidator = DokumentValidator(cpaRepoClient)
 
             every {
-                processingService.process(any())
+                processingService.process(any(), any())
             } just runs
             routing {
                 postEbms(dokumentValidator, processingService)
@@ -103,7 +103,7 @@ class EbmsRouteIT {
         )
         val response = client.post("/ebms", multipart.asHttpRequest())
         verify(exactly = 1) {
-            processingService.process(any())
+            processingService.process(any(), any())
         }
         val envelope = xmlMarshaller.unmarshal(response.bodyAsText(), Envelope::class.java)
         envelope.assertAcknowledgmen()
@@ -120,7 +120,7 @@ class EbmsRouteIT {
         )
         client.post("/ebms", multipart.asHttpRequest())
         verify(exactly = 1) {
-            processingService.process(any())
+            processingService.process(any(), any())
         }
     }
 
