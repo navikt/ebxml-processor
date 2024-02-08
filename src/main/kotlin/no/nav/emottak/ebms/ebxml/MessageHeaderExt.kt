@@ -3,6 +3,10 @@
  */
 package no.nav.emottak.ebms.ebxml
 
+import no.nav.emottak.melding.model.Addressing
+import no.nav.emottak.melding.model.Party
+import no.nav.emottak.melding.model.PartyId
+import no.nav.emottak.melding.model.ValidationRequest
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.From
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageData
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
@@ -32,3 +36,19 @@ fun MessageHeader.createResponseHeader(newAction: String?, newService: String?):
     }
     return messageHeader
 }
+
+fun MessageHeader.toValidationRequest(): ValidationRequest =
+    // TODO valider sertifikat
+    ValidationRequest(
+        this.messageData.messageId,
+        this.conversationId,
+        this.cpaId,
+        // TODO select specific partyID?
+        Addressing(
+            Party(this.to.partyId.map { PartyId(it.type!!, it.value!!) }, this.to.role!!),
+            // Party(this.to.partyId.first().type!!, this.to.partyId.first().value!!,this.to.role!!),
+            Party(this.from.partyId.map { PartyId(it.type!!, it.value!!) }, this.from.role!!),
+            this.service.value!!,
+            this.action
+        )
+    )
