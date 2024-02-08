@@ -11,6 +11,7 @@ import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.SeverityType
 data class SendInRequest(
     val messageId: String,
     val conversationId: String,
+    val payloadId: String,
     val payload: ByteArray,
     val addressing: Addressing,
     val ebmsProcessing: EbmsProcessing
