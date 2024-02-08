@@ -1,8 +1,10 @@
 package no.nav.emottak.cpa
 
+import no.nav.emottak.melding.model.Addressing
 import no.nav.emottak.melding.model.Header
 import no.nav.emottak.melding.model.Party
 import no.nav.emottak.melding.model.PartyId
+import no.nav.emottak.melding.model.ValidationRequest
 import no.nav.emottak.util.createCRLFile
 import no.nav.emottak.util.createX509Certificate
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
@@ -22,6 +24,36 @@ class TestUtil {
         val crlFile = createCRLFile(this::class.java.classLoader.getResource("crl/BPClass3CA2.crl").readBytes())
     }
 }
+
+fun createValidValidationRequest() = ValidationRequest(
+    messageId = "",
+    conversationId = "",
+    cpaId = "nav:qass:35065",
+    createValidAddressing()
+)
+
+fun createValidAddressing() = Addressing(
+    to = Party(
+        listOf(
+            PartyId(
+                type = "HER",
+                value = "79768"
+            )
+        ),
+        role = "KontrollUtbetaler"
+    ),
+    from = Party(
+        listOf(
+            PartyId(
+                type = "HER",
+                value = "8141253"
+            )
+        ),
+        role = "Behandler"
+    ),
+    service = "BehandlerKrav",
+    action = "OppgjorsMelding"
+)
 
 fun createValidTestHeader() = Header(
     messageId = "",

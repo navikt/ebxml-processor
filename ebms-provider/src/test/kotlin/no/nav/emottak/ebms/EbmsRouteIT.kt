@@ -31,7 +31,7 @@ import no.nav.emottak.ebms.validation.MimeHeaders
 import no.nav.emottak.ebms.xml.xmlMarshaller
 import no.nav.emottak.melding.model.ErrorCode
 import no.nav.emottak.melding.model.Feil
-import no.nav.emottak.melding.model.Processing
+import no.nav.emottak.melding.model.PayloadProcessing
 import no.nav.emottak.melding.model.SignatureDetails
 import no.nav.emottak.melding.model.ValidationResult
 import no.nav.emottak.util.decodeBase64
@@ -72,10 +72,10 @@ class EbmsRouteIT {
                 }
                 routing {
                     post("cpa/validate/soapId-6ae68a32-8b0e-4de2-baad-f4d841aacce1") {
-                        call.respond(ValidationResult(null, listOf(Feil(ErrorCode.SECURITY_FAILURE, "Signature Fail"))))
+                        call.respond(ValidationResult(error = listOf(Feil(ErrorCode.SECURITY_FAILURE, "Signature Fail"))))
                     }
                     post("cpa/validate/contentID-validRequest") {
-                        call.respond(ValidationResult(Processing(mockSignatureDetails(), byteArrayOf())))
+                        call.respond(ValidationResult(payloadProcessing = PayloadProcessing(mockSignatureDetails(), byteArrayOf())))
                     }
                 }
             }

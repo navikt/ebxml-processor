@@ -16,6 +16,7 @@ import no.nav.emottak.constants.LogIndex.X_MAILER
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.melding.model.Header
 import no.nav.emottak.melding.model.SignatureDetailsRequest
+import no.nav.emottak.melding.model.ValidationRequest
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
 
 fun Header.marker(): LogstashMarker = Markers.appendEntries(
@@ -29,6 +30,20 @@ fun Header.marker(): LogstashMarker = Markers.appendEntries(
         Pair(FROM_ROLE, this.from.role),
         Pair(TO_PARTY, "${this.to.partyId.firstOrNull()?.type ?: UKJENT_VERDI}:${this.to.partyId.firstOrNull()?.value ?: UKJENT_VERDI}"),
         Pair(FROM_PARTY, "${this.from.partyId.firstOrNull()?.type ?: UKJENT_VERDI}:${this.from.partyId.firstOrNull()?.value ?: UKJENT_VERDI}"),
+    )
+)
+
+fun ValidationRequest.marker(): LogstashMarker = Markers.appendEntries(
+    mapOf(
+        Pair(MARKER_MOTTAK_ID, this.messageId),
+        Pair(MARKER_CONVERSATION_ID, this.conversationId),
+        Pair(CPA_ID, this.cpaId),
+        Pair(SERVICE, this.addressing.service),
+        Pair(ACTION, this.addressing.action),
+        Pair(TO_ROLE, this.addressing.to.role),
+        Pair(FROM_ROLE, this.addressing.from.role),
+        Pair(TO_PARTY, "${this.addressing.to.partyId.firstOrNull()?.type ?: UKJENT_VERDI}:${this.addressing.to.partyId.firstOrNull()?.value ?: UKJENT_VERDI}"),
+        Pair(FROM_PARTY, "${this.addressing.from.partyId.firstOrNull()?.type ?: UKJENT_VERDI}:${this.addressing.from.partyId.firstOrNull()?.value ?: UKJENT_VERDI}"),
     )
 )
 

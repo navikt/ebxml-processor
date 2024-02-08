@@ -94,7 +94,7 @@ class MimeValidationIT {
 
     @Test
     fun `Sending valid request should trigger validation`() = mimeTestApp {
-        val validationResult = ValidationResult(null, listOf(Feil(ErrorCode.SECURITY_FAILURE, "Signature Fail")))
+        val validationResult = ValidationResult(error = listOf(Feil(ErrorCode.SECURITY_FAILURE, "Signature Fail")))
         coEvery {
             cpaRepoClient.postValidate(any(), any())
         } returns validationResult
@@ -109,7 +109,7 @@ class MimeValidationIT {
 
     @Test
     fun `Not valid request should answer with Feil Signal`() = mimeTestApp {
-        val validationResult = ValidationResult(null, listOf(Feil(ErrorCode.SECURITY_FAILURE, "Signature Fail")))
+        val validationResult = ValidationResult(error = listOf(Feil(ErrorCode.SECURITY_FAILURE, "Signature Fail")))
         coEvery {
             cpaRepoClient.postValidate(any(), any())
         } returns validationResult
