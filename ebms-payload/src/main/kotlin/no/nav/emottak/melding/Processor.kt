@@ -8,11 +8,8 @@ import no.nav.emottak.util.createDocument
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.crypto.Dekryptering
 import no.nav.emottak.util.crypto.Kryptering
-import no.nav.emottak.util.crypto.erGyldig
 import no.nav.emottak.util.crypto.krypterDokument
 import no.nav.emottak.util.getByteArrayFromDocument
-import no.nav.emottak.util.hentKrypteringssertifikat
-import no.nav.emottak.util.marker
 import no.nav.emottak.util.signatur.SignaturVerifisering
 import no.nav.emottak.util.signatur.Signering
 import org.slf4j.LoggerFactory
@@ -66,7 +63,6 @@ private val gZipUtil = GZipUtil()
 private val signatureVerifisering = SignaturVerifisering()
 
 fun Melding.dekrypter(isBase64: Boolean = false): Melding {
-    log.info(this.header.marker(), "Dekrypterer melding")
     return this.copy(
         processedPayload = dekryptering.dekrypter(this.processedPayload, isBase64),
         dekryptert = true
@@ -74,7 +70,7 @@ fun Melding.dekrypter(isBase64: Boolean = false): Melding {
 }
 
 fun Melding.signer(): Melding {
-    log.info(this.header.marker(), "Signerer melding")
+    // @TODO log.info(this.header.marker(), "Signerer melding")
     return this.copy(
         processedPayload = getByteArrayFromDocument(
             signering.signerXML(createDocument(ByteArrayInputStream(this.processedPayload)))
@@ -84,7 +80,7 @@ fun Melding.signer(): Melding {
 }
 
 fun Melding.dekomprimer(): Melding {
-    log.info(this.header.marker(), "Dekomprimerer melding")
+    // @TODO log.info(this.header.marker(), "Dekomprimerer melding")
     return this.copy(
         processedPayload = gZipUtil.uncompress(this.processedPayload),
         dekomprimert = true
@@ -92,7 +88,7 @@ fun Melding.dekomprimer(): Melding {
 }
 
 fun Melding.komprimer(): Melding {
-    log.info(this.header.marker(), "Komprimerer melding")
+    // @TODO log.info(this.header.marker(), "Komprimerer melding")
     return this.copy(
         processedPayload = gZipUtil.compress(this.processedPayload),
         komprimert = true
@@ -100,19 +96,18 @@ fun Melding.komprimer(): Melding {
 }
 
 fun Melding.verifiserSignatur(): Melding {
-    log.info(this.header.marker(), "Verifiserer signatur")
+    // @TODO log.info(this.header.marker(), "Verifiserer signatur")
     signatureVerifisering.validate(this.processedPayload)
     return this.copy(
         signaturVerifisert = true
     )
 }
 fun Melding.krypter(): Melding {
-    log.info(this.header.marker(), "Krypterer melding")
-    val gyldigSertifikat = header.to.partyId.map {
+    // @TODO log.info(this.header.marker(), "Krypterer melding")
+    val gyldigSertifikat =
         createX509Certificate(
-            hentKrypteringssertifikat(header.cpaId, it)
+            payloadProcessing.encryptionCertificate
         )
-    }.first { it.erGyldig() } // TODO skal mer til for å bestemme hvilket sertifikat?
 
     return this.copy(
         processedPayload = krypterDokument(this.processedPayload, gyldigSertifikat),

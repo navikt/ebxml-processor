@@ -10,17 +10,20 @@ import no.nav.emottak.ebms.model.EbmsPayloadMessage
 import no.nav.emottak.melding.model.Header
 import no.nav.emottak.melding.model.Party
 import no.nav.emottak.melding.model.PartyId
+import no.nav.emottak.melding.model.PayloadProcessing
 import no.nav.emottak.melding.model.PayloadRequest
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
 
 class ProcessingService(val httpClient: PayloadProcessingClient) {
 
-    private fun payloadMessage(payloadMessage: EbmsPayloadMessage) {
+    private fun payloadMessage(payloadMessage: EbmsPayloadMessage, payloadProcessing: PayloadProcessing) {
         val payloads = payloadMessage.attachments
-        val header = payloadMessage.messageHeader.payloadRequestHeader()
+        val messageHeader = payloadMessage.messageHeader
         payloads.forEach { payload ->
             val payloadRequest = PayloadRequest(
-                header = header,
+                messageId = messageHeader.messageData.messageId,
+                conversationId = messageHeader.conversationId,
+                processing = payloadProcessing,
                 payloadId = payload.contentId,
                 payload = payload.dataSource
             )
@@ -37,11 +40,11 @@ class ProcessingService(val httpClient: PayloadProcessingClient) {
     private fun fail(fail: EbmsMessageError) {
     }
 
-    fun process(message: EbmsBaseMessage) {
+    fun process(message: EbmsBaseMessage, payloadProcessing: PayloadProcessing?) {
         when (message) {
             is EbmsAcknowledgment -> acknowledgment(message)
             is EbmsMessageError -> fail(message)
-            is EbmsPayloadMessage -> payloadMessage(message)
+            is EbmsPayloadMessage -> payloadMessage(message, payloadProcessing!!)
         }
     }
 }
