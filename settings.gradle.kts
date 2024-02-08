@@ -55,6 +55,7 @@ dependencyResolutionManagement {
             library("cxf-rt-ws-security", "org.apache.cxf", "cxf-rt-ws-security").versionRef("cxf")
             library("cxf-rt-features-logging", "org.apache.cxf", "cxf-rt-features-logging").versionRef("cxf")
             library("jakarta.xml.ws-api", "jakarta.xml.ws:jakarta.xml.ws-api:2.3.3")
+            library("ojdbc8","com.oracle.ojdbc:ojdbc8:19.3.0.0")
 
             library("jakarta-mail-api", "jakarta.mail", "jakarta.mail-api").versionRef("jakarta-mail")
             library("eclipse-angus", "org.eclipse.angus", "jakarta.mail").versionRef("eclipse-angus")

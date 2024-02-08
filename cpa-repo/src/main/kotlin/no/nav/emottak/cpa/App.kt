@@ -12,23 +12,35 @@ import no.nav.emottak.cpa.persistence.CPARepository
 import no.nav.emottak.cpa.persistence.Database
 import no.nav.emottak.cpa.persistence.cpaDbConfig
 import no.nav.emottak.cpa.persistence.cpaMigrationConfig
+import no.nav.emottak.cpa.persistence.oracleConfig
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 import org.slf4j.LoggerFactory
 
 internal val log = LoggerFactory.getLogger("no.nav.emottak.cpa.App")
 fun main() {
-    embeddedServer(Netty, port = 8080, module = cpaApplicationModule(cpaDbConfig.value, cpaMigrationConfig.value)).start(wait = true)
+    embeddedServer(
+        Netty,
+        port = 8080,
+        module = cpaApplicationModule(
+            cpaDbConfig.value,
+            cpaMigrationConfig.value,
+            oracleConfig.value
+        )
+    ).start(wait = true)
 }
 
 fun cpaApplicationModule(cpaDbConfig: HikariConfig, cpaMigrationConfig: HikariConfig, emottakDbConfig: HikariConfig? = null): Application.() -> Unit {
     return {
+        println("test")
         val database = Database(cpaDbConfig)
         database.migrate(cpaMigrationConfig)
         val cpaRepository = CPARepository(database)
+        val oracleDb = if (emottakDbConfig != null) Database(emottakDbConfig) else null
         install(ContentNegotiation) {
             json()
         }
         routing {
+            test(oracleDb)
             getCPA(cpaRepository)
             deleteCpa(cpaRepository)
             getTimeStamps(cpaRepository)

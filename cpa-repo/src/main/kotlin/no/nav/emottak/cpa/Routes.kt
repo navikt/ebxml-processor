@@ -12,6 +12,8 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import no.nav.emottak.cpa.feil.CpaValidationException
 import no.nav.emottak.cpa.persistence.CPARepository
+import no.nav.emottak.cpa.persistence.Database
+import no.nav.emottak.cpa.persistence.gammel.findPartners
 import no.nav.emottak.cpa.validation.validate
 import no.nav.emottak.melding.feil.EbmsException
 import no.nav.emottak.melding.model.EbmsProcessing
@@ -31,6 +33,11 @@ fun Route.getCPA(cpaRepository: CPARepository): Route = get("/cpa/{$CPA_ID}") {
     val cpaId = call.parameters[CPA_ID] ?: throw BadRequestException("Mangler $CPA_ID")
     val cpa = cpaRepository.findCpa(cpaId) ?: throw NotFoundException("Fant ikke CPA")
     call.respond(cpa.asText())
+}
+
+fun Route.test(database: Database?): Route = get("/testjdbc") {
+    val partner = findPartners(database!!.db, "nav:qass:35065")
+    call.respond("$partner")
 }
 
 fun Route.deleteCpa(cpaRepository: CPARepository): Route = delete("/cpa/delete/{$CPA_ID}") {
