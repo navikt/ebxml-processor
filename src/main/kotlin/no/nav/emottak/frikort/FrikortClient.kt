@@ -2,9 +2,13 @@ package no.nav.emottak.frikort
 
 import no.nav.emottak.cxf.ServiceBuilder
 import no.nav.tjeneste.ekstern.frikort.v1.FrikortV1Port
+import no.nav.tjeneste.ekstern.frikort.v1.types.FrikortsporringResponse
+import no.nav.tjeneste.ekstern.frikort.v1.types.ObjectFactory
+import no.trygdeetaten.xml.eiff._1.EIFellesformat
 import javax.xml.namespace.QName
 
 val frikortClient = frikortEndpoint()
+private val frikortObjectFactory = ObjectFactory()
 
 fun frikortEndpoint(): FrikortV1Port =
     ServiceBuilder(FrikortV1Port::class.java)
@@ -15,3 +19,7 @@ fun frikortEndpoint(): FrikortV1Port =
         .build()
         .withBasicSecurity()
         .get()
+
+fun frikortsporring(fellesformat: EIFellesformat): FrikortsporringResponse = frikortClient.frikortsporring(
+    frikortObjectFactory.createFrikortsporringRequest().also { it.eiFellesformat = fellesformat }
+)

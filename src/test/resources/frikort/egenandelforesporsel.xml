@@ -1,0 +1,49 @@
+<ns1:MsgHead xmlns:ns1="http://www.kith.no/xmlstds/msghead/2006-05-24">
+    <ns1:MsgInfo>
+        <ns1:Type V="EgenandelForesporsel" DN="NAV toveiskommunikasjonstjenestemelding"/>
+        <ns1:MIGversion>v1.2 2006-05-24</ns1:MIGversion>
+        <ns1:GenDate>2008-11-26T20:31:17.281+01:00</ns1:GenDate>
+        <ns1:MsgId>cc169595-bbf0-11dd-9ca9-117f241b4a68</ns1:MsgId>
+        <ns1:Sender>
+            <ns1:Organisation>
+                <ns1:OrganisationName>TESTORGNAME</ns1:OrganisationName>
+                <ns1:Ident>
+                    <ns1:Id>889640782</ns1:Id>
+                    <ns1:TypeId V="ENH" DN="Organisasjonsnummeret i Enhetsregister" S="2.16.578.1.12.4.1.1.9051"/>
+                </ns1:Ident>
+                <ns1:HealthcareProfessional>
+                    <ns1:FamilyName>Larsen</ns1:FamilyName>
+                    <ns1:GivenName>Tore</ns1:GivenName>
+                    <ns1:Ident>
+                        <ns1:Id>12345678901</ns1:Id>
+                        <ns1:TypeId V="FNR" DN="Fødselsnummer"/>
+                    </ns1:Ident>
+                </ns1:HealthcareProfessional>
+            </ns1:Organisation>
+        </ns1:Sender>
+        <ns1:Receiver>
+            <ns1:Organisation>
+                <ns1:OrganisationName>NAV</ns1:OrganisationName>
+                <ns1:Ident>
+                    <ns1:Id>999999999</ns1:Id>
+                    <ns1:TypeId/>
+                </ns1:Ident>
+            </ns1:Organisation>
+        </ns1:Receiver>
+    </ns1:MsgInfo>
+    <ns1:Document>
+        <ns1:DocumentConnection V="H" DN="Hoveddokument"/>
+        <ns1:RefDoc>
+            <ns1:MsgType V="XML" DN="XML-instans"/>
+            <ns1:Content>
+                <ns4:EgenandelForesporselV2 xmlns:ns4="http://www.kith.no/xmlstds/nav/egenandel/2016-06-10">
+                    <ns4:HarBorgerFrikort>
+                        <ns4:BorgerFnr>12345678910</ns4:BorgerFnr>
+                        <ns4:Dato>2023-11-20</ns4:Dato>
+                        <ns4:TjenestetypeKode>A</ns4:TjenestetypeKode>
+                    </ns4:HarBorgerFrikort>
+                </ns4:EgenandelForesporselV2>
+            </ns1:Content>
+        </ns1:RefDoc>
+    </ns1:Document>
+</ns1:MsgHead>
