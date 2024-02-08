@@ -83,17 +83,6 @@ jobs:
           image_suffix: smtp-listener
           project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }} # required, but is defined as an organization variable
           identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }} # required, but is defined as an organization secret
-      - name: Docker build and push smtp-router
-        uses: nais/docker-build-push@v0
-        id: docker-push-smtp-router
-        with:
-          team: team-emottak # required
-          tag: ${{ github.sha }}
-          dockerfile: Dockerfile # optional, default Dockerfile
-          docker_context: smtp-router # optional, default .
-          image_suffix: smtp-router
-          project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }} # required, but is defined as an organization variable
-          identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }} # required, but is defined as an organization secret
       - name: Docker build and push ebms-send-in
         uses: nais/docker-build-push@v0
         id: docker-push-ebms-send-in
