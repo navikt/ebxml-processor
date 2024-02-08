@@ -14,11 +14,12 @@ import no.nav.emottak.cpa.feil.CpaValidationException
 import no.nav.emottak.cpa.persistence.CPARepository
 import no.nav.emottak.cpa.validation.validate
 import no.nav.emottak.melding.feil.EbmsException
+import no.nav.emottak.melding.model.EbmsProcessing
 import no.nav.emottak.melding.model.ErrorCode
 import no.nav.emottak.melding.model.Feil
-import no.nav.emottak.melding.model.Header
-import no.nav.emottak.melding.model.Processing
+import no.nav.emottak.melding.model.PayloadProcessing
 import no.nav.emottak.melding.model.SignatureDetailsRequest
+import no.nav.emottak.melding.model.ValidationRequest
 import no.nav.emottak.melding.model.ValidationResult
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.marker
@@ -102,17 +103,17 @@ fun Route.postCpa(cpaRepository: CPARepository) = post("/cpa") {
 }
 
 fun Route.validateCpa(cpaRepository: CPARepository) = post("/cpa/validate/{$CONTENT_ID}") {
-    val validateRequest = call.receive(Header::class)
+    val validateRequest = call.receive(ValidationRequest::class)
     try {
 //                val cpa = getCpa(validateRequest.cpaId)!!
         val cpa = cpaRepository.findCpa(validateRequest.cpaId) ?: throw NotFoundException("Fant ikke CPA")
         cpa.validate(validateRequest) // Delivery Filure
-        val partyInfo = cpa.getPartyInfoByTypeAndID(validateRequest.from.partyId) // delivery Failure
+        val partyInfo = cpa.getPartyInfoByTypeAndID(validateRequest.addressing.from.partyId) // delivery Failure
         val encryptionCertificate = partyInfo.getCertificateForEncryption() // Security Failure
         val signingCertificate = partyInfo.getCertificateForSignatureValidation(
-            validateRequest.from.role,
-            validateRequest.service,
-            validateRequest.action
+            validateRequest.addressing.from.role,
+            validateRequest.addressing.service,
+            validateRequest.addressing.action
         ) // Security Failure
         runCatching {
             createX509Certificate(signingCertificate.certificate).validate()
@@ -121,16 +122,16 @@ fun Route.validateCpa(cpaRepository: CPARepository) = post("/cpa/validate/{$CONT
             throw it
         }
 
-        call.respond(HttpStatusCode.OK, ValidationResult(Processing(signingCertificate, encryptionCertificate)))
+        call.respond(HttpStatusCode.OK, ValidationResult(EbmsProcessing(), PayloadProcessing(signingCertificate, encryptionCertificate)))
     } catch (ebmsEx: EbmsException) {
         log.warn(validateRequest.marker(), ebmsEx.message, ebmsEx)
-        call.respond(HttpStatusCode.OK, ValidationResult(processing = null, listOf(Feil(ebmsEx.errorCode, ebmsEx.descriptionText, ebmsEx.severity))))
+        call.respond(HttpStatusCode.OK, ValidationResult(error = listOf(Feil(ebmsEx.errorCode, ebmsEx.descriptionText, ebmsEx.severity))))
     } catch (ex: NotFoundException) {
         log.warn(validateRequest.marker(), "${ex.message}")
-        call.respond(HttpStatusCode.OK, ValidationResult(processing = null, listOf(Feil(ErrorCode.DELIVERY_FAILURE, "Unable to find CPA"))))
+        call.respond(HttpStatusCode.OK, ValidationResult(error = listOf(Feil(ErrorCode.DELIVERY_FAILURE, "Unable to find CPA"))))
     } catch (ex: Exception) {
         log.error(validateRequest.marker(), ex.message, ex)
-        call.respond(HttpStatusCode.OK, ValidationResult(processing = null, listOf(Feil(ErrorCode.UNKNOWN, "Unexpected error during cpa validation"))))
+        call.respond(HttpStatusCode.OK, ValidationResult(error = listOf(Feil(ErrorCode.UNKNOWN, "Unexpected error during cpa validation"))))
     }
 }
 
