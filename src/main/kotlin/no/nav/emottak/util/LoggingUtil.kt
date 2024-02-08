@@ -14,9 +14,9 @@ import no.nav.emottak.constants.LogIndex.TO_PARTY
 import no.nav.emottak.constants.LogIndex.TO_ROLE
 import no.nav.emottak.constants.LogIndex.X_MAILER
 import no.nav.emottak.constants.SMTPHeaders
-import no.nav.emottak.melding.model.Addressing
 import no.nav.emottak.melding.model.Header
 import no.nav.emottak.melding.model.PayloadRequest
+import no.nav.emottak.melding.model.SendInRequest
 import no.nav.emottak.melding.model.SignatureDetailsRequest
 import no.nav.emottak.melding.model.ValidationRequest
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
@@ -36,6 +36,13 @@ fun Header.marker(): LogstashMarker = Markers.appendEntries(
 )
 
 fun PayloadRequest.marker(): LogstashMarker = Markers.appendEntries(
+    mapOf(
+        Pair(MARKER_MOTTAK_ID, this.messageId),
+        Pair(MARKER_CONVERSATION_ID, this.conversationId),
+    )
+)
+
+fun SendInRequest.marker(): LogstashMarker = Markers.appendEntries(
     mapOf(
         Pair(MARKER_MOTTAK_ID, this.messageId),
         Pair(MARKER_CONVERSATION_ID, this.conversationId),
