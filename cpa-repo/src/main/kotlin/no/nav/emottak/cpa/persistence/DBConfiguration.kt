@@ -12,24 +12,20 @@ private val cluster = System.getenv("NAIS_CLUSTER_NAME")
 val cpaDbConfig = lazy {
     when (cluster) {
         "dev-fss" -> VaultConfig().configure("user")
-        "dev-gcp" -> VaultConfig().configure("user")
-        else -> EnvDBConfig().configure()
+        "dev-gcp" -> GcpDBConfig().configure()
+        else -> GcpDBConfig().configure()
     }
 }
 val cpaMigrationConfig = lazy {
     when (cluster) {
         "dev-fss" -> VaultConfig().configure("admin")
-        "dev-gcp" -> VaultConfig().configure("admin")
-        else -> EnvDBConfig().configure()
+        "dev-gcp" -> GcpDBConfig().configure()
+        else -> GcpDBConfig().configure()
     }
 }
 
 val oracleConfig = lazy {
-    EnvDBConfig(
-        url = "ORACLE_URL".fromEnv(),
-        username = "ORACLE_USERNAME".fromEnv(),
-        password = "ORACLE_PASSWORD".fromEnv()
-    ).configure()
+    OracleDBConfig().configure()
 }
 
 private const val prefix = "NAIS_DATABASE_CPA_REPO_CPA_REPO_DB"
@@ -42,7 +38,8 @@ data class VaultConfig(
 
 fun VaultConfig.configure(role: String): HikariConfig {
     val hikariConfig = HikariConfig().apply {
-        jdbcUrl = "$this@configure.jdbcUrl$databaseName"
+        jdbcUrl = this@configure.jdbcUrl + databaseName
+        driverClassName = "org.postgresql.Driver"
     }
     return HikariCPVaultUtil.createHikariDataSourceWithVaultIntegration(
         hikariConfig,
@@ -51,7 +48,22 @@ fun VaultConfig.configure(role: String): HikariConfig {
     )
 }
 
-data class EnvDBConfig(
+data class OracleDBConfig(
+    val username: String = "EMOTTAK_USERNAME".fromEnv(),
+    val password: String = "EMOTTAK_PASSWORD".fromEnv(),
+    val url: String = "EMOTTAK_JDBC_URL".fromEnv()
+)
+
+fun OracleDBConfig.configure(): HikariConfig {
+    return HikariConfig().apply {
+        jdbcUrl = this@configure.url
+        username = this@configure.username
+        password = this@configure.password
+        driverClassName = "oracle.jdbc.OracleDriver"
+    }
+}
+
+data class GcpDBConfig(
     val host: String = "${prefix}_HOST".fromEnv(),
     val port: String = "${prefix}_PORT".fromEnv(),
     val name: String = "${prefix}_DATABASE".fromEnv(),
@@ -60,7 +72,7 @@ data class EnvDBConfig(
     val url: String = "jdbc:postgresql://%s:%s/%s".format(host, port, name)
 )
 
-fun EnvDBConfig.configure(): HikariConfig {
+fun GcpDBConfig.configure(): HikariConfig {
     return HikariConfig().apply {
         jdbcUrl = this@configure.url
         username = this@configure.username
