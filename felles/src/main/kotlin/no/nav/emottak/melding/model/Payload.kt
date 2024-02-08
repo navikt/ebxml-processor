@@ -6,10 +6,28 @@ import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ErrorList
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.SeverityType
 
 
+
+@Serializable
+data class SendInRequest(
+    val messageId: String,
+    val conversationId: String,
+    val payload: ByteArray,
+    val addressing: Addressing,
+    val ebmsProcessing: EbmsProcessing
+)
+
+@Serializable
+data class SendInResponse(
+    val messageId: String,
+    val conversationId: String,
+    val payload: ByteArray
+)
 @Serializable
 data class PayloadRequest(
-    val header: Header,
+    val messageId: String,
+    val conversationId: String,
     val payloadId: String,
+    val processing: PayloadProcessing,
     val payload: ByteArray
 )
 
