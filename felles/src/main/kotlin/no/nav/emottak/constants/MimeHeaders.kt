@@ -7,4 +7,5 @@ object MimeHeaders {
     const val CONTENT_ID                    = "Content-Id"
     const val CONTENT_TRANSFER_ENCODING     = "Content-Transfer-Encoding"
     const val CONTENT_DISPOSITION           = "Content-Disposition"
+    const val CONTENT_DESCRIPTION           = "Content-Description"
 }

@@ -3,22 +3,37 @@
  */
 package no.nav.emottak.ebms
 
-import io.ktor.client.*
-import io.ktor.client.engine.cio.*
-import io.ktor.http.*
-import io.ktor.http.content.*
-import io.ktor.serialization.kotlinx.json.*
-import io.ktor.server.application.*
-import io.ktor.server.engine.*
-import io.ktor.server.netty.*
-import io.ktor.server.request.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
-import io.ktor.util.*
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
+import io.ktor.http.ContentDisposition
+import io.ktor.http.ContentType
+import io.ktor.http.content.PartData
+import io.ktor.http.content.forEachPart
+import io.ktor.http.content.streamProvider
+import io.ktor.serialization.kotlinx.json.json
+import io.ktor.server.application.Application
+import io.ktor.server.application.ApplicationCall
+import io.ktor.server.application.call
+import io.ktor.server.application.createRouteScopedPlugin
+import io.ktor.server.application.install
+import io.ktor.server.engine.embeddedServer
+import io.ktor.server.netty.Netty
+import io.ktor.server.request.contentType
+import io.ktor.server.request.header
+import io.ktor.server.request.receive
+import io.ktor.server.request.receiveMultipart
+import io.ktor.server.request.uri
+import io.ktor.server.response.respondText
+import io.ktor.server.routing.get
+import io.ktor.server.routing.routing
+import io.ktor.util.logging.KtorSimpleLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import net.logstash.logback.marker.Markers
 import no.nav.emottak.constants.SMTPHeaders
-import no.nav.emottak.ebms.model.*
+import no.nav.emottak.ebms.model.DokumentType
+import no.nav.emottak.ebms.model.EbMSDocument
+import no.nav.emottak.ebms.model.EbmsAttachment
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.validation.DokumentValidator
 import no.nav.emottak.ebms.validation.MimeHeaders
@@ -29,30 +44,43 @@ import no.nav.emottak.ebms.xml.asString
 import no.nav.emottak.ebms.xml.getDocumentBuilder
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayInputStream
+import java.time.Duration
+import java.time.Instant
+import kotlin.time.toKotlinDuration
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.App")
 
 fun logger() = log
 fun main() {
-    //val database = Database(mapHikariConfig(DatabaseConfig()))
-    //database.migrate()
-    embeddedServer(Netty, port = 8080, module = Application::ebmsProviderModule).start(wait = true)
+    // val database = Database(mapHikariConfig(DatabaseConfig()))
+    // database.migrate()
+    System.setProperty("io.ktor.http.content.multipart.skipTempFile", "true")
+    embeddedServer(Netty, port = 8080, module = Application::ebmsProviderModule, configure = {
+        this.maxChunkSize = 100000
+    }).start(wait = true)
 }
 
 fun defaultHttpClient(): () -> HttpClient {
-    return { HttpClient(CIO) {
-        expectSuccess = true
-        install(io.ktor.client.plugins.contentnegotiation.ContentNegotiation) {
-            json()
+    return {
+        HttpClient(CIO) {
+            expectSuccess = true
+            install(io.ktor.client.plugins.contentnegotiation.ContentNegotiation) {
+                json()
+            }
         }
-    }}
+    }
 }
-fun PartData.payload(clearText:Boolean = false): ByteArray {
+fun PartData.payload(clearText: Boolean = false): ByteArray {
     return when (this) {
-        is PartData.FormItem ->  if (clearText) return this.value.toByteArray()
-        else java.util.Base64.getMimeDecoder().decode(this.value)
+        is PartData.FormItem -> if (clearText) {
+            return this.value.toByteArray()
+        } else {
+            java.util.Base64.getMimeDecoder().decode(this.value)
+        }
         is PartData.FileItem -> {
-            val bytes = this.streamProvider.invoke().readAllBytes()
+            val stream = this.streamProvider.invoke()
+            val bytes = stream.readAllBytes()
+            stream.close()
             if (clearText) return bytes else java.util.Base64.getMimeDecoder().decode(bytes)
         }
 
@@ -60,21 +88,48 @@ fun PartData.payload(clearText:Boolean = false): ByteArray {
     }
 }
 
-
 fun Application.ebmsProviderModule() {
     val client = defaultHttpClient()
     val cpaClient = CpaRepoClient(client)
     val processingClient = PayloadProcessingClient(client)
     val validator = DokumentValidator(cpaClient)
     val processing = ProcessingService(processingClient)
-
+    installRequestTimerPlugin()
     routing {
         get("/") {
             call.respondText("Hello, world!")
         }
         postEbms(validator, processing)
     }
+}
 
+private fun Application.installRequestTimerPlugin() {
+    install(
+        createRouteScopedPlugin("RequestTimer") {
+            val simpleLogger = KtorSimpleLogger("RequestTimerLogger")
+            var startTime = Instant.now()
+            onCall { call ->
+                startTime = Instant.now()
+                simpleLogger.info("Received " + call.request.uri)
+            }
+            onCallRespond { call ->
+                val endTime = Duration.between(
+                    startTime,
+                    Instant.now()
+                )
+                simpleLogger.info(
+                    Markers.appendEntries(
+                        mapOf(
+                            Pair("smtpMessageId", call.request.headers[SMTPHeaders.MESSAGE_ID] ?: "-"),
+                            Pair("Endpoint", call.request.uri),
+                            Pair("RequestTime", endTime.toMillis())
+                        )
+                    ),
+                    "Finished " + call.request.uri + " request. Processing time: " + endTime.toKotlinDuration()
+                )
+            }
+        }
+    )
 }
 
 @Throws(MimeValidationException::class)
@@ -83,16 +138,24 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
     val debugClearText = !request.header("cleartext").isNullOrBlank()
     return when (val contentType = this.request.contentType().withoutParameters()) {
         ContentType.parse("multipart/related") -> {
-            val allParts = this.receiveMultipart().readAllParts()
+            val allParts = mutableListOf<PartData>().apply {
+                this@receiveEbmsDokument.receiveMultipart().forEachPart {
+                    if (it is PartData.FileItem) it.streamProvider.invoke()
+                    if (it is PartData.FormItem) it.value
+                    this.add(it)
+                    it.dispose.invoke()
+                }
+            }
+
             val dokument = allParts.find {
                 it.contentType?.withoutParameters() == ContentType.parse("text/xml") && it.contentDisposition == null
             }.also {
                 it?.validateMimeSoapEnvelope()
-                    ?: throw MimeValidationException("Unable to find soap envelope multipart")
+                    ?: throw MimeValidationException("Unable to find soap envelope multipart Message-Id ${this.request.header(SMTPHeaders.MESSAGE_ID)}")
             }!!.let {
-                 val contentID = it.headers[MimeHeaders.CONTENT_ID]!!.convertToValidatedContentID()
-                 val isBase64 = "base64" == it.headers[MimeHeaders.CONTENT_TRANSFER_ENCODING]
-                 Pair(contentID, it.payload(debugClearText || !isBase64))
+                val contentID = it.headers[MimeHeaders.CONTENT_ID]!!.convertToValidatedContentID()
+                val isBase64 = "base64" == it.headers[MimeHeaders.CONTENT_TRANSFER_ENCODING]
+                Pair(contentID, it.payload(debugClearText || !isBase64))
             }
             val attachments =
                 allParts.filter { it.contentDisposition?.disposition == ContentDisposition.Attachment.disposition }
@@ -103,24 +166,24 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
                 dokument.first,
                 getDocumentBuilder().parse(ByteArrayInputStream(dokument.second)),
                 attachments.map {
-                    EbMSAttachment(
+                    EbmsAttachment(
                         it.payload(),
                         it.contentType!!.contentType,
                         it.headers[MimeHeaders.CONTENT_ID]!!.convertToValidatedContentID()
                     )
-                })
-
+                }
+            )
         }
 
         ContentType.parse("text/xml") -> {
             val dokument = withContext(Dispatchers.IO) {
-                if(debugClearText || "base64" != request.header(MimeHeaders.CONTENT_TRANSFER_ENCODING))
-                    this@receiveEbmsDokument.receiveStream().readAllBytes()
-                 else
+                if (debugClearText || "base64" != request.header(MimeHeaders.CONTENT_TRANSFER_ENCODING)?.lowercase()) {
+                    this@receiveEbmsDokument.receive<ByteArray>()
+                } else {
                     java.util.Base64.getMimeDecoder()
-                        .decode(this@receiveEbmsDokument.receiveStream().readAllBytes())
+                        .decode(this@receiveEbmsDokument.receive<ByteArray>())
+                }
             }
-            println(dokument)
             EbMSDocument(
                 this.request.headers[MimeHeaders.CONTENT_ID]!!.convertToValidatedContentID(),
                 getDocumentBuilder().parse(ByteArrayInputStream(dokument)),
@@ -130,18 +193,17 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
 
         else -> {
             throw MimeValidationException("Ukjent request body med Content-Type $contentType")
-            //call.respond(HttpStatusCode.BadRequest, "Ukjent request body med Content-Type $contentType")
-            //return@post
+            // call.respond(HttpStatusCode.BadRequest, "Ukjent request body med Content-Type $contentType")
+            // return@post
         }
     }
 }
 
 private fun String.convertToValidatedContentID(): String {
-    return Regex("""<(.*?)>""").find(this)?.groups?.get(1)?.value ?: throw MimeValidationException("ContentId is invalid $this")
+    return Regex("""<(.*?)>""").find(this)?.groups?.get(1)?.value ?: this
 }
 
 suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbMSDocument) {
-
     val payload = ebmsDokument
         .dokument
         .asString()

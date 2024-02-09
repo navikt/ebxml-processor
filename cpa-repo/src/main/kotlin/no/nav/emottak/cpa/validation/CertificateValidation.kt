@@ -8,7 +8,6 @@ import no.nav.emottak.util.cert.CertificateValidationException
 import no.nav.emottak.util.cert.SertifikatValidering
 import java.security.cert.X509Certificate
 
-
 val crlChecker = CRLChecker(
     runBlocking {
         CRLRetriever(HttpClientUtil.client).updateAllCRLs()

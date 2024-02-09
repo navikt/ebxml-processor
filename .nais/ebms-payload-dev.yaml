@@ -31,7 +31,7 @@ spec:
       cpu: "200m"
       memory: "256Mi"
   ingresses:
-    - "https://ebms-payload.intern.dev.nav.no"
+    - "https://ebms-payload-fss.intern.dev.nav.no"
   accessPolicy:
     outbound:
       rules:
@@ -41,9 +41,9 @@ spec:
         - application: ebms-provider
   env:
     - name: KEYSTORE_FILE
-      value: /var/run/secrets/ebms-keystore/secret
+      value: /var/run/secrets/ebms-keystore/nav_test.p12
   envFrom:
-    - secret: ebms-secrets
+    - secret: ebms-payload-secret
   filesFrom:
-    - secret: ebms-keystore
+    - secret: ebms-payload-keystore
       mountPath: /var/run/secrets/ebms-keystore

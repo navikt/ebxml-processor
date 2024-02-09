@@ -1,4 +1,4 @@
-package no.nav.emottak.util;
+package no.nav.emottak.util
 
 import io.ktor.server.plugins.BadRequestException
 import java.io.ByteArrayInputStream
@@ -9,7 +9,6 @@ import java.util.zip.GZIPOutputStream
 class GZipUtil {
     val GZIP_ENCODE_UTF_8 = "UTF-8"
     val GZIP_ENCODE_ISO_8859_1 = "ISO-8859-1"
-
 
     fun compress(byteArray: ByteArray): ByteArray {
         if (byteArray.isEmpty()) {
@@ -22,7 +21,7 @@ class GZipUtil {
             gzip.write(byteArray)
             gzip.close()
         } catch (e: Exception) {
-            throw BadRequestException("Error compressing", e)
+            throw e
         }
         return out.toByteArray()
     }
@@ -41,7 +40,7 @@ class GZipUtil {
                 out.write(buffer, 0, n)
             }
         } catch (e: Exception) {
-            throw BadRequestException("Error uncompressing", e)
+            throw e
         }
         return out.toByteArray()
     }

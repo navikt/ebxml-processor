@@ -1,7 +1,8 @@
 package no.nav.emottak.melding.process
 
 import no.nav.emottak.util.GZipUtil
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class GZipUtilTest {

@@ -35,16 +35,15 @@ private fun Application.serverSetup() {
         post("/payload") {
             val request: PayloadRequest = call.receive(PayloadRequest::class)
             runCatching {
-                log.info(request.header.marker(), "Payload ${request.payloadId} mottatt for prosessering")
+                log.info(request.marker(), "Payload ${request.payloadId} mottatt for prosessering")
                 processor.process(request)
             }.onSuccess {
-                log.info(request.header.marker(), "Payload ${request.payloadId} prosessert OK")
+                log.info(request.marker(), "Payload ${request.payloadId} prosessert OK")
                 call.respond(it)
             }.onFailure {
-                log.error(request.header.marker(), "Payload ${request.payloadId}  prosessert med feil: ${it.message}", it)
+                log.error(request.marker(), "Payload ${request.payloadId} prosessert med feil: ${it.message}", it)
                 call.respond(HttpStatusCode.BadRequest, it.localizedMessage)
             }
         }
-
     }
 }

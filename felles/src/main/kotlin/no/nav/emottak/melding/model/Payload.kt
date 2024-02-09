@@ -6,10 +6,29 @@ import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ErrorList
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.SeverityType
 
 
+
+@Serializable
+data class SendInRequest(
+    val messageId: String,
+    val conversationId: String,
+    val payloadId: String,
+    val payload: ByteArray,
+    val addressing: Addressing,
+    val ebmsProcessing: EbmsProcessing
+)
+
+@Serializable
+data class SendInResponse(
+    val messageId: String,
+    val conversationId: String,
+    val payload: ByteArray
+)
 @Serializable
 data class PayloadRequest(
-    val header: Header,
+    val messageId: String,
+    val conversationId: String,
     val payloadId: String,
+    val processing: PayloadProcessing,
     val payload: ByteArray
 )
 
@@ -45,6 +64,42 @@ data class Feil(val code:ErrorCode,
 
 }
 
+@Serializable
+data class ValidationRequest(
+    val messageId: String,
+    val conversationId: String,
+    val cpaId: String,
+    val addressing: Addressing
+)
+
+@Serializable
+data class ValidationResult(
+    val ebmsProcessing: EbmsProcessing? = null,
+    val payloadProcessing: PayloadProcessing? = null,
+    val error: List<Feil>? = null
+)
+{
+    fun valid(): Boolean = error == null
+}
+
+@Serializable
+data class PayloadProcessing(
+    val signingCertificate: SignatureDetails,
+    val encryptionCertificate: ByteArray
+)
+
+@Serializable
+data class EbmsProcessing(
+    val test: String = "123"
+)
+
+@Serializable
+data class Addressing(
+    val to: Party,
+    val from: Party,
+    val service: String,
+    val action: String
+)
 
 @Serializable
 data class Header(
@@ -74,15 +129,6 @@ data class Processing(
     val signingCertificate: SignatureDetails,
     val encryptionCertificate: ByteArray
 )
-
-@Serializable
-data class ValidationResult(
-    val processing: Processing?,
-    val error: List<Feil>? = null) {
-    fun valid(): Boolean = error == null
-}
-
-
 
 
  enum class ErrorCode(val value:String,val description:String) {

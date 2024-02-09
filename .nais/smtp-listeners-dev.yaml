@@ -1,0 +1,42 @@
+apiVersion: "nais.io/v1alpha1"
+kind: "Application"
+metadata:
+  name: "smtp-listeners"
+  namespace: "team-emottak"
+  labels:
+    "team": "team-emottak"
+spec:
+  webproxy: true
+  image: {{image}}
+  replicas:
+    min: 1
+    max: 1
+    cpuThresholdPercentage: 50
+  resources:
+    limits:
+      cpu: "200m"
+      memory: "512Mi"
+    requests:
+      cpu: "200m"
+      memory: "512Mi"
+  ingresses:
+    - "https://smtp-listeners.intern.dev.nav.no"
+  envFrom:
+    - secret: smtp-router-secrets
+  filesFrom:
+    - secret: cpa-sftp-keys
+  env:
+    - name: SMTP_POP3_FACTORY_PORT
+      value: "110"
+    - name: SMTP_POP3_PORT
+      value: "110"
+    - name: SMTP_POP3_HOST
+      value: "d32mxvl002.oera-t.local"
+    - name: SMTP_STORE_PROTOCOL
+      value: "pop3"
+    - name: SMTP_INCOMING_USERNAME
+      value: "nyebmstest@test-es.nav.no"
+    - name: SMTP_BCC_USERNAME
+      value: "nyebmsbcc@test-es.nav.no"
+    - name: SMTP_OUTGOING_USERNAME_NY
+      value: "nyebms2@test-es.nav.no"

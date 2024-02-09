@@ -11,7 +11,6 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.runBlocking
 import no.nav.emottak.melding.model.PartyId
 
-
 private val httpClientUtil = HttpClientUtil()
 private val cpaRepoUrl = "http://cpa-repo"
 

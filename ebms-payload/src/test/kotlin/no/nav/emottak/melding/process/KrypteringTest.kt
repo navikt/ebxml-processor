@@ -18,7 +18,7 @@ class KrypteringTest {
     companion object {
         @JvmStatic
         @BeforeAll
-        fun setup(): Unit {
+        fun setup() {
             setupEnv()
         }
     }

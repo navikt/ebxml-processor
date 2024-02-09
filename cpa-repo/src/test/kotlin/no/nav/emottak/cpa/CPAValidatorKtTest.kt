@@ -9,59 +9,71 @@ class CPAValidatorKtTest {
     @Test
     fun `Valider gyldig header mot CPA`() {
         val cpa = TestUtil.createValidTestCPA()
-        val header = createValidTestHeader()
-        cpa.validate(header)
+        val validationRequest = createValidValidationRequest()
+        cpa.validate(validationRequest)
     }
 
     @Test
     fun `Header har ugyldig fra role`() {
         val cpa = TestUtil.createValidTestCPA()
-        val header = createValidTestHeader().copy(
-            from = createValidFromHERParty().copy(
-                role = "KontrollUtbetaler"
+        val validationRequest = createValidValidationRequest().let {
+            it.copy(
+                addressing = it.addressing.copy(
+                    from = createValidFromHERParty().copy(
+                        role = "KontrollUtbetaler"
+                    )
+                )
             )
-        )
-        val exception = assertThrows<CpaValidationException> {
-            cpa.validate(header)
         }
-        assertEquals("Role ${header.from.role} matcher ikke party", exception.message)
+        val exception = assertThrows<CpaValidationException> {
+            cpa.validate(validationRequest)
+        }
+        assertEquals("Role ${validationRequest.addressing.from.role} matcher ikke party", exception.message)
     }
 
     @Test
     fun `Header har gyldig fra role men ugyldig til role`() {
         val cpa = TestUtil.createValidTestCPA()
-        val header = createValidTestHeader().copy(
-            to = createValidToHERParty().copy(
-                role = "Behandler"
+        val validationRequest = createValidValidationRequest().let {
+            it.copy(
+                addressing = it.addressing.copy(
+                    to = createValidToHERParty().copy(
+                        role = "Behandler"
+                    )
+                )
             )
-        )
-        val exception = assertThrows<CpaValidationException> {
-            cpa.validate(header)
         }
-        assertEquals("Role ${header.to.role} matcher ikke party", exception.message)
+        val exception = assertThrows<CpaValidationException> {
+            cpa.validate(validationRequest)
+        }
+        assertEquals("Role ${validationRequest.addressing.to.role} matcher ikke party", exception.message)
     }
 
     @Test
     fun `Role og service matcher, men ikke action`() {
         val cpa = TestUtil.createValidTestCPA()
-        val header = createValidTestHeader().copy(
-            action = "InvalidAction"
-        )
-        val exception = assertThrows<CpaValidationException> {
-            cpa.validate(header)
+        val validationRequest = createValidValidationRequest().let {
+            it.copy(
+                addressing = it.addressing.copy(
+                    action = "InvalidAction"
+                )
+            )
         }
-        assertEquals("Action ${header.action} matcher ikke service ${header.service}", exception.message)
+        val exception = assertThrows<CpaValidationException> {
+            cpa.validate(validationRequest)
+        }
+        assertEquals("Action ${validationRequest.addressing.action} matcher ikke service ${validationRequest.addressing.service}", exception.message)
     }
 
     @Test
-    fun `CPA ID i header matcher ikke CPA ID fra CPA`() {
+    fun `CPA ID i validationRequest matcher ikke CPA ID fra CPA`() {
         val cpa = TestUtil.createValidTestCPA()
-        val header = createValidTestHeader().copy(
+        val validationRequest = createValidValidationRequest().copy(
             cpaId = "InvalidCPAID"
         )
         val exception = assertThrows<CpaValidationException> {
-            cpa.validate(header)
+            cpa.validate(validationRequest)
         }
-        assertEquals("Funnet CPA (ID: ${cpa.cpaid}) matcher ikke cpaid til melding: ${header.cpaId}", exception.message)
+        assertEquals("Funnet CPA (ID: ${cpa.cpaid}) matcher ikke cpaid til melding: ${validationRequest.cpaId}", exception.message)
     }
 }

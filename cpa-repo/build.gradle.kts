@@ -7,6 +7,7 @@ plugins {
     application
     id("io.ktor.plugin")
     kotlin("plugin.serialization")
+    id("org.jlleitschuh.gradle.ktlint") version "11.6.1"
 }
 
 tasks {
@@ -16,8 +17,18 @@ tasks {
     }
     test {
         useJUnitPlatform()
+        testLogging.showStandardStreams = true
+        testLogging.exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
     }
-    
+    ktlintFormat {
+        this.enabled = true
+    }
+    ktlintCheck {
+        dependsOn("ktlintFormat")
+    }
+    build {
+        dependsOn("ktlintCheck")
+    }
 }
 
 dependencies {
@@ -31,6 +42,8 @@ dependencies {
     implementation(libs.jaxb.runtime)
     implementation(libs.ebxml.protokoll)
     implementation(libs.hikari)
+    implementation("no.nav:vault-jdbc:1.3.10")
+    runtimeClasspath(libs.ojdbc8)
     implementation(libs.flyway.core)
     implementation(libs.bundles.exposed)
     implementation(libs.bundles.logging)

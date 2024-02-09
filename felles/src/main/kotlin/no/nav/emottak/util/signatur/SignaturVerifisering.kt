@@ -7,6 +7,9 @@ import java.io.ByteArrayInputStream
 
 
 class SignaturVerifisering {
+    init {
+        org.apache.xml.security.Init.init()
+    }
 
     @Throws(SignatureException::class)
     fun validate(document: ByteArray) {

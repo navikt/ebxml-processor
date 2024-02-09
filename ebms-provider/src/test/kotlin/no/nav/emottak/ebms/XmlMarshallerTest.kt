@@ -32,8 +32,8 @@ class XmlMarshallerTest {
         assertTrue(envelope.header is Header)
         assertTrue((envelope.header as Header).any[0] is MessageHeader)
 
-        val xmlString = marshal( ObjectFactory().createEnvelope(envelope) )
-        //print(xmlString);
+        val xmlString = marshal(ObjectFactory().createEnvelope(envelope))
+        // print(xmlString);
         SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
             .newSchema(
                 getResourceURL("envelope.xsd")
@@ -45,7 +45,7 @@ class XmlMarshallerTest {
     @Test
     fun testSerdeValidateCPA() {
         val xmlFile =
-            XmlMarshallerTest::class.java.classLoader.getResourceAsStream("cpa/nav-qass-35065.xml");
+            XmlMarshallerTest::class.java.classLoader.getResourceAsStream("cpa/nav-qass-35065.xml")
         val cpa = unmarshal(xmlFile.reader().readText(), CollaborationProtocolAgreement::class.java)
 
         assertTrue(cpa is CollaborationProtocolAgreement)
@@ -53,7 +53,7 @@ class XmlMarshallerTest {
         assertEquals(cpa.version, "2_0b")
 
         val xmlString = marshal(cpa)
-        //print(xmlString);
+        // print(xmlString);
         SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
             .newSchema(
                 getResourceURL("cpp-cpa-2_0.xsd")

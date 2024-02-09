@@ -29,7 +29,7 @@ build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 
-### VS Code ###
+### VS Code ###.
 .vscode/
 
 # Ignore Gradle project-specific cache directory
@@ -43,3 +43,6 @@ cpa-repo/out/
 felles/out/
 payload-processor/out/
 ebms-payload/out/
+*.orig
+smtp-listeners/out/
+smtp-router/out/

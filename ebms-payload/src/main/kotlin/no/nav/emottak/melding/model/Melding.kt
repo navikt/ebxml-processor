@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class Melding(
-    val header: Header,
+    val payloadProcessing: PayloadProcessing,
     val originalPayload: ByteArray,
     val processedPayload: ByteArray,
     val kryptert: Boolean = false,
@@ -16,7 +16,8 @@ data class Melding(
     val dekomprimert: Boolean = false
 ) {
     constructor(payloadRequest: PayloadRequest) : this(
-        header = payloadRequest.header,
+        payloadProcessing = payloadRequest.processing,
         originalPayload = payloadRequest.payload,
-        processedPayload = payloadRequest.payload)
+        processedPayload = payloadRequest.payload
+    )
 }

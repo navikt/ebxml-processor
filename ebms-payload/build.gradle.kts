@@ -7,17 +7,27 @@ plugins {
     kotlin("plugin.serialization")
     application
     id("io.ktor.plugin")
+    id("org.jlleitschuh.gradle.ktlint") version "11.6.1"
 }
 
 tasks {
     register<Wrapper>("wrapper") {
-        gradleVersion="8.1.1"
+        gradleVersion = "8.1.1"
     }
     shadowJar {
         archiveFileName.set("app.jar")
     }
     test {
         useJUnitPlatform()
+    }
+    ktlintFormat {
+        this.enabled = true
+    }
+    ktlintCheck {
+        dependsOn("ktlintFormat")
+    }
+    build {
+        dependsOn("ktlintCheck")
     }
 }
 
@@ -35,6 +45,7 @@ dependencies {
     implementation("org.glassfish.jaxb:jaxb-runtime:4.0.3")
     implementation(libs.bundles.logging)
     implementation("io.micrometer:micrometer-registry-prometheus:1.11.3")
+    implementation(libs.emottak.payload.xsd)
 
     testImplementation(testLibs.junit.jupiter.api)
     testRuntimeOnly(testLibs.junit.jupiter.engine)

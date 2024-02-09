@@ -7,7 +7,8 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.engine.*
+import io.ktor.server.engine.ApplicationEngine
+import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.testing.testApplication
 import io.mockk.clearAllMocks
@@ -19,28 +20,24 @@ import no.nav.emottak.ebms.defaultHttpClient
 import no.nav.emottak.ebms.ebmsProviderModule
 import no.nav.emottak.ebms.testConfiguration
 import no.nav.emottak.ebms.validation.MimeHeaders
-import org.junit.AfterClass
-import org.junit.BeforeClass
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.testcontainers.containers.PostgreSQLContainer
-import kotlin.concurrent.thread
-
 
 open class EndToEndTest {
-     companion object {
+    companion object {
         val portnoEbmsProvider = 8089
         val portnoCpaRepo = 8088
         val ebmsProviderUrl = "http://localhost:$portnoEbmsProvider"
         val cpaRepoUrl = "http://localhost:$portnoCpaRepo"
 
         // TODO Start mailserver og payload processor
-        val cpaDbContainer:PostgreSQLContainer<Nothing>
+        val cpaDbContainer: PostgreSQLContainer<Nothing>
         lateinit var ebmsProviderServer: ApplicationEngine
-        lateinit var cpaRepoServer :ApplicationEngine
+        lateinit var cpaRepoServer: ApplicationEngine
         init {
             cpaDbContainer = cpaPostgres()
         }
@@ -50,13 +47,12 @@ open class EndToEndTest {
         fun setup() {
             System.setProperty("CPA_REPO_URL", cpaRepoUrl)
             cpaDbContainer.start()
-            cpaRepoServer = embeddedServer(Netty, port = portnoCpaRepo, module = cpaApplicationModule(cpaDbContainer.testConfiguration())).also {
+            cpaRepoServer = embeddedServer(Netty, port = portnoCpaRepo, module = cpaApplicationModule(cpaDbContainer.testConfiguration(), cpaDbContainer.testConfiguration())).also {
                 it.start()
             }
             ebmsProviderServer = embeddedServer(Netty, port = portnoEbmsProvider, module = { ebmsProviderModule() }).also {
                 it.start()
             }
-
         }
 
         @JvmStatic
@@ -69,13 +65,12 @@ open class EndToEndTest {
 }
 
 class IntegrasjonsTest2 : EndToEndTest() {
-   @Test
+    @Test
     fun testMe() {
         println("Tested")
     }
 }
 class IntegrasjonsTest : EndToEndTest() {
-
 
     @Test
     fun basicEndpointTest() = testApplication {
@@ -121,7 +116,7 @@ class IntegrasjonsTest : EndToEndTest() {
             append(MimeHeaders.MIME_VERSION, "1.0")
             append(MimeHeaders.SOAP_ACTION, "ebXML")
             append(MimeHeaders.CONTENT_TYPE, MULTIPART_CONTENT_TYPE)
-            append(SMTPHeaders.MESSAGE_ID,"12345")
+            append(SMTPHeaders.MESSAGE_ID, "12345")
         }
         this.setBody(EXAMPLE_BODY)
     }

@@ -1,8 +1,8 @@
 package no.nav.emottak.ebms.xml
 
 import jakarta.xml.soap.SOAPConstants
-import no.nav.emottak.ebms.model.EbMSAttachment
 import no.nav.emottak.ebms.model.EbMSDocument
+import no.nav.emottak.ebms.model.EbmsAttachment
 import no.nav.emottak.ebms.validation.CID_PREFIX
 import no.nav.emottak.ebms.validation.EbMSAttachmentResolver
 import no.nav.emottak.melding.model.SignatureDetails
@@ -18,7 +18,6 @@ import org.apache.xml.security.transforms.params.XPathContainer
 import org.w3c.dom.Document
 import org.w3c.dom.NodeList
 import java.security.cert.X509Certificate
-
 
 val ebMSSigning = EbMSSigning()
 class EbMSSigning {
@@ -40,7 +39,7 @@ class EbMSSigning {
     @Throws(XMLSecurityException::class)
     private fun sign(
         document: Document,
-        attachments: List<EbMSAttachment>,
+        attachments: List<EbmsAttachment>,
         publicCertificate: X509Certificate,
         signatureAlgorithm: String,
         hashFunction: String
@@ -74,7 +73,7 @@ class EbMSSigning {
         soapHeader.appendChild(signature.element)
     }
 
-    private fun addAttachmentResolver(signature: XMLSignature, attachments: List<EbMSAttachment>) {
+    private fun addAttachmentResolver(signature: XMLSignature, attachments: List<EbmsAttachment>) {
         val resolver = EbMSAttachmentResolver(attachments)
         signature.signedInfo.addResourceResolver(resolver)
     }
@@ -94,13 +93,14 @@ class EbMSSigning {
         val prefix = if (rawPrefix == null) "" else "$rawPrefix:"
         val container = XPathContainer(document)
         container.setXPath(
-            ("not(ancestor-or-self::node()[@"
-                    + prefix
-                    + "actor=\"urn:oasis:names:tc:ebxml-msg:actor:nextMSH\"]|ancestor-or-self::node()[@"
-                    + prefix
-                    + "actor=\""
-                    + SOAP_NEXT_ACTOR
-                    ) + "\"])"
+            (
+                "not(ancestor-or-self::node()[@" +
+                    prefix +
+                    "actor=\"urn:oasis:names:tc:ebxml-msg:actor:nextMSH\"]|ancestor-or-self::node()[@" +
+                    prefix +
+                    "actor=\"" +
+                    SOAP_NEXT_ACTOR
+                ) + "\"])"
         )
         return container.getElementPlusReturns()
     }

@@ -19,12 +19,20 @@ spec:
       cpu: "200m"
       memory: "256Mi"
   ingresses:
-    - "https://cpa-repo.intern.dev.nav.no"
-  gcp:
-    sqlInstances:
-        - type: POSTGRES_15
-          databases:
-            - name: cpa-repo-db
+    - "https://cpa-repo-fss.intern.dev.nav.no"
+  vault:
+    enabled: true
+    paths:
+      - kvPath: /oracle/data/dev/creds/emottak_q1-nmt3
+        mountPath: /secrets/oracle/creds
+      - kvPath: /oracle/data/dev/config/emottak_q1
+        mountPath: /secrets/oracle/config
+  webproxy: true
+#  gcp:
+#    sqlInstances:
+#        - type: POSTGRES_15
+#          databases:
+#            - name: cpa-repo-db
   accessPolicy:
     inbound:
       rules:

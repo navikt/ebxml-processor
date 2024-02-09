@@ -10,7 +10,7 @@ import io.prometheus.client.CollectorRegistry
 import io.prometheus.client.exporter.common.TextFormat
 
 fun Routing.registerHealthEndpoints(
-    collectorRegistry: CollectorRegistry = CollectorRegistry.defaultRegistry,
+    collectorRegistry: CollectorRegistry = CollectorRegistry.defaultRegistry
 ) {
     get("/internal/health/liveness") {
         call.respondText("I'm alive! :)")

@@ -15,6 +15,7 @@ tasks.register<Wrapper>("wrapper") {
 
 dependencies {
     implementation(libs.ebxml.protokoll)
+    implementation(libs.emottak.payload.xsd)
     implementation(libs.hikari)
     implementation(libs.flyway.core)
     implementation(libs.ktor.serialization.kotlinx.json)
