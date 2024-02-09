@@ -36,13 +36,15 @@ fun cpaApplicationModule(cpaDbConfig: HikariConfig, cpaMigrationConfig: HikariCo
         val database = Database(cpaDbConfig)
         database.migrate(cpaMigrationConfig)
         val cpaRepository = CPARepository(database)
-        val partnerRepository = PartnerRepository(database)
         val oracleDb = if (emottakDbConfig != null) Database(emottakDbConfig) else null
+
         install(ContentNegotiation) {
             json()
         }
         routing {
-            partnerId(partnerRepository, cpaRepository)
+            if (oracleDb != null) {
+                partnerId(PartnerRepository(oracleDb), cpaRepository)
+            }
             getCPA(cpaRepository)
             deleteCpa(cpaRepository)
             deleteAllCPA(cpaRepository)

@@ -105,6 +105,18 @@ class CPARepository(val database: Database) {
         }
     }
 
+    fun cpaByHerId(herId: String): Map<Instant, CollaborationProtocolAgreement> {
+        return transaction(database.db) {
+            CPA.select(CPA.updated_date, CPA.cpa).where { CPA.herId.eq(herId) }.toList().groupBy({
+                it[CPA.updated_date]
+            }, {
+                it[CPA.cpa]
+            }).mapValues {
+                it.value.first()
+            }
+        }
+    }
+
     data class CpaDbEntry(
         val id: String,
         val cpa: CollaborationProtocolAgreement? = null,

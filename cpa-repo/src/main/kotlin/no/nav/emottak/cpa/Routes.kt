@@ -27,6 +27,7 @@ import no.nav.emottak.util.marker
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 import java.time.Instant
 import java.time.temporal.ChronoUnit
+import java.util.*
 
 fun Route.getCPA(cpaRepository: CPARepository): Route = get("/cpa/{$CPA_ID}") {
     val cpaId = call.parameters[CPA_ID] ?: throw BadRequestException("Mangler $CPA_ID")
@@ -39,8 +40,28 @@ fun Route.deleteAllCPA(cpaRepository: CPARepository): Route = get("/cpa/deleteAl
 }
 
 fun Route.partnerId(partnerRepository: PartnerRepository, cpaRepository: CPARepository): Route = get("/partner/{$HER_ID}") {
-    val partner = partnerRepository.findPartners("nav:qass:35065")
-    call.respond("$partner")
+    val herId = call.parameters[HER_ID] ?: throw BadRequestException("Mangler $HER_ID")
+    val cpaer = cpaRepository.cpaByHerId(herId)
+    val now = Date()
+    val sisteOppdatertCpa = cpaer.filter {
+        it.value.start.before(now)
+        it.value.end.after(now)
+    }.filter {
+        // filter out alle med revokert sertifikat
+        val cpa = it.value
+        val partyInfo = cpa.getPartyInfoByTypeAndID("HerID", herId)
+        runCatching {
+            createX509Certificate(partyInfo.getCertificateForEncryption()).validate()
+        }
+            .onFailure { false }
+            .onSuccess { true }
+            .isSuccess
+    }
+        .maxBy {
+            it.key
+        }
+
+    call.respond(cpaer.map { marshal(it) }.joinToString())
 }
 
 fun Route.deleteCpa(cpaRepository: CPARepository): Route = delete("/cpa/delete/{$CPA_ID}") {
