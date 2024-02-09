@@ -2,8 +2,8 @@ name: "Build and deploy ebms-provider"
 on:
   push:
     branches:
-      - main
-      - dev/**
+      - main2
+      - dev2/**
 jobs:
   build:
     name: "build"
