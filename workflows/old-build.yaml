@@ -1,0 +1,140 @@
+name: "Build and deploy ebms-provider"
+on:
+  push:
+    branches:
+    - main
+    - dev/**
+env:
+  "IMAGE_EBMS": "ghcr.io/${{ github.repository }}/ebms-provider:${{ github.sha }}"
+  "IMAGE_CPA": "ghcr.io/${{ github.repository }}/cpa-repo:${{ github.sha }}"
+  "IMAGE_PAYLOAD": "ghcr.io/${{ github.repository }}/ebms-payload:${{ github.sha }}"
+  "IMAGE_LISTENERS": "ghcr.io/${{ github.repository }}/smtp-listeners:${{ github.sha }}"
+  "IMAGE_SEND_IN": "ghcr.io/${{ github.repository }}/ebms-send-in:${{ github.sha }}"
+jobs:
+  build:
+    name: "build"
+    runs-on: "ubuntu-20.04"
+    permissions: 
+        packages: write
+        repository-projects: write
+        contents: write
+    steps:
+    - uses: "actions/checkout@v4"
+    - uses: "actions/setup-java@v3"
+      with:
+        "java-version": "17"
+        "distribution": "temurin"
+    - name: Cache gradle wrapper
+      uses: actions/cache@v3
+      with:
+        path: ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-wrapper-${{ hashFiles('**/gradle/wrapper/gradle-wrapper.properties') }}
+    - name: Cache Gradle packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.gradle/caches
+        key: ${{ runner.os }}-gradle-cache-${{ hashFiles('build.gradle') }}
+        restore-keys: |
+            ${{ runner.os }}-gradle-cache-
+    
+    - name: "Build and tests"
+      run: ./gradlew test build
+      env:
+          ORG_GRADLE_PROJECT_githubUser: x-access-token
+          ORG_GRADLE_PROJECT_githubPassword: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Login to GitHub Packages Docker Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    - name: "Build and push ebms-provider Docker image"
+      run: "docker build ebms-provider --pull --tag ${IMAGE_EBMS} -f Dockerfile && docker push ${IMAGE_EBMS}"
+    - name: "Build and push cpa-repo Docker image"
+      run: "docker build cpa-repo --pull --tag ${IMAGE_CPA} -f Dockerfile && docker push ${IMAGE_CPA}"
+    - name: "Build and push ebms-payload Docker image"
+      run: "docker build ebms-payload --pull --tag ${IMAGE_PAYLOAD} -f Dockerfile && docker push ${IMAGE_PAYLOAD}"
+    - name: "Build and push smtp-listeners Docker image"
+      run: "docker build smtp-listeners --pull --tag ${IMAGE_LISTENERS} -f Dockerfile && docker push ${IMAGE_LISTENERS}"
+    - name: "Build and push ebms-send-in Docker image"
+      run: "docker build ebms-send-in --pull --tag ${IMAGE_SEND_IN} -f Dockerfile && docker push ${IMAGE_SEND_IN}"
+  deploy-processor:
+    name: "Deploy ebms provider to dev"
+    needs: "build"
+    runs-on: "ubuntu-20.04"
+    steps:
+    - uses: "actions/checkout@v4"
+    - name: "Deploy to DEV"
+      uses: "nais/deploy/actions/deploy@v1"
+      env:
+        APIKEY: "${{ secrets.NAIS_DEPLOY_APIKEY }}"
+        CLUSTER: "dev-fss"
+        RESOURCE: ".nais/ebms-provider-dev.yaml"
+        IMAGE: ${{env.IMAGE_EBMS}}
+  deploy-cpa-repo:
+    name: "Deploy cpa-repo to dev"
+    needs: "build"
+    runs-on: "ubuntu-20.04"
+    steps:
+    - uses: "actions/checkout@v4"
+    - name: "Deploy to DEV"
+      uses: "nais/deploy/actions/deploy@v1"
+      env:
+        APIKEY: "${{ secrets.NAIS_DEPLOY_APIKEY }}"
+        CLUSTER: "dev-fss"
+        RESOURCE: ".nais/cpa-repo-dev.yaml"
+        IMAGE: ${{env.IMAGE_CPA}}
+  deploy-ebms-payload:
+    name: "Deploy ebms-payload to dev"
+    needs: "build"
+    runs-on: "ubuntu-20.04"
+    steps:
+      - uses: "actions/checkout@v4"
+      - name: "Deploy to DEV"
+        uses: "nais/deploy/actions/deploy@v1"
+        env:
+          APIKEY: "${{ secrets.NAIS_DEPLOY_APIKEY }}"
+          CLUSTER: "dev-fss"
+          RESOURCE: ".nais/ebms-payload-dev.yaml"
+          IMAGE: ${{env.IMAGE_PAYLOAD}}
+  deploy-smtp-listeners:
+    name: "Deploy smtp-listeners to dev"
+    needs: "build"
+    runs-on: "ubuntu-20.04"
+    steps:
+      - uses: "actions/checkout@v4"
+      - name: "Deploy secret to DEV"
+        uses: "nais/deploy/actions/deploy@v1"
+        env:
+          "APIKEY": "${{ secrets.NAIS_DEPLOY_APIKEY }}"
+          "CLUSTER": "dev-fss"
+          "RESOURCE": ".nais/smtp-router-secrets.yaml"
+          "VAR": "smtpPassword=${{ secrets.SMTP_PASSWORD }}"
+      - name: "Deploy to DEV"
+        uses: "nais/deploy/actions/deploy@v1"
+        env:
+          APIKEY: "${{ secrets.NAIS_DEPLOY_APIKEY }}"
+          CLUSTER: "dev-fss"
+          RESOURCE: ".nais/smtp-listeners-dev.yaml"
+          IMAGE: ${{env.IMAGE_LISTENERS}}
+  deploy-ebms-send-in:
+    name: "Deploy ebms-send-in to dev"
+    needs: "build"
+    runs-on: "ubuntu-20.04"
+    steps:
+      - uses: "actions/checkout@v4"
+      - name: "Deploy secret to DEV"
+        uses: "nais/deploy/actions/deploy@v1"
+        env:
+          "APIKEY": "${{ secrets.NAIS_DEPLOY_APIKEY }}"
+          "CLUSTER": "dev-fss"
+          "RESOURCE": ".nais/ebms-send-in-secrets.yaml"
+          "VAR": "toktPassword=${{ secrets.TOKT_PASSWORD }}"
+      - name: "Deploy to DEV"
+        uses: "nais/deploy/actions/deploy@v1"
+        env:
+          APIKEY: "${{ secrets.NAIS_DEPLOY_APIKEY }}"
+          CLUSTER: "dev-fss"
+          RESOURCE: ".nais/ebms-send-in.yaml"
+          IMAGE: ${{env.IMAGE_SEND_IN}}
