@@ -10,6 +10,7 @@ import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProt
 
 object CPA : Table("cpa") {
     val id: Column<String> = varchar("cpa_id", 256)
+    val herId: Column<String> = varchar("herid", 50)
     val cpa = json("cpa", CollaborationProtocolAgreement::class.java)
     val updated_date = timestamp("updated_date")
     val entryCreated = timestamp("create_date")

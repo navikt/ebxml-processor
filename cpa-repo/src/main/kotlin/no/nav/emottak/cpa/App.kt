@@ -12,6 +12,7 @@ import no.nav.emottak.cpa.persistence.CPARepository
 import no.nav.emottak.cpa.persistence.Database
 import no.nav.emottak.cpa.persistence.cpaDbConfig
 import no.nav.emottak.cpa.persistence.cpaMigrationConfig
+import no.nav.emottak.cpa.persistence.gammel.PartnerRepository
 import no.nav.emottak.cpa.persistence.oracleConfig
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 import org.slf4j.LoggerFactory
@@ -35,14 +36,16 @@ fun cpaApplicationModule(cpaDbConfig: HikariConfig, cpaMigrationConfig: HikariCo
         val database = Database(cpaDbConfig)
         database.migrate(cpaMigrationConfig)
         val cpaRepository = CPARepository(database)
+        val partnerRepository = PartnerRepository(database)
         val oracleDb = if (emottakDbConfig != null) Database(emottakDbConfig) else null
         install(ContentNegotiation) {
             json()
         }
         routing {
-            test(oracleDb)
+            partnerId(partnerRepository, cpaRepository)
             getCPA(cpaRepository)
             deleteCpa(cpaRepository)
+            deleteAllCPA(cpaRepository)
             getTimeStamps(cpaRepository)
             getTimeStampsLatest(cpaRepository)
             postCpa(cpaRepository)

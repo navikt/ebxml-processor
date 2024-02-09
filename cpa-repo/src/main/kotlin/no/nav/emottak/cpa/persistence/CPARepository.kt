@@ -2,6 +2,7 @@ package no.nav.emottak.cpa.persistence
 
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.deleteAll
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.select
@@ -96,6 +97,12 @@ class CPARepository(val database: Database) {
             CPA.deleteWhere { CPA.id.eq(cpaId) }
         }
         return cpaId
+    }
+
+    fun deleteAll(): Int {
+        return transaction(database.db) {
+            CPA.deleteAll()
+        }
     }
 
     data class CpaDbEntry(
