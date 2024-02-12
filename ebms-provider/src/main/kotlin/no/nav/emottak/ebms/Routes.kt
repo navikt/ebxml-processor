@@ -6,7 +6,6 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
 import io.ktor.server.request.header
 import io.ktor.server.request.receive
-import io.ktor.server.request.receiveMultipart
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
@@ -26,10 +25,9 @@ import no.nav.emottak.melding.model.asErrorList
 import no.nav.emottak.util.marker
 import no.nav.emottak.util.retrieveLoggableHeaderPairs
 
-
-fun Route.postEbmsSyc(validator: DokumentValidator,processingService: ProcessingService) : Route = post("/ebms/sync") {
+fun Route.postEbmsSyc(validator: DokumentValidator, processingService: ProcessingService): Route = post("/ebms/sync") {
     log.info("Recieving synchroneus reqyest: " + String(call.receive<ByteArray>()))
-    this.call.respond(HttpStatusCode.OK,"Ny ebms fikk requesten")
+    this.call.respondText("Ny ebms fikk requesten")
 }
 
 fun Route.postEbmsAsync(validator: DokumentValidator, processingService: ProcessingService): Route =
