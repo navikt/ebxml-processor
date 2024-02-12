@@ -15,7 +15,7 @@ import kotlin.test.BeforeTest
 val DEFAULT_TIMESTAMP = Instant.now().truncatedTo(ChronoUnit.SECONDS)
 abstract class DBTest() {
 
-    lateinit var db: Database
+    protected lateinit var db: Database
 
     @BeforeTest
     fun beforeEach() {
@@ -33,6 +33,7 @@ abstract class DBTest() {
                 it[cpa] = collaborationProtocolAgreement
                 it[updated_date] = DEFAULT_TIMESTAMP
                 it[entryCreated] = DEFAULT_TIMESTAMP
+                it[herId] = "8141253"
             }
         }
         Thread.sleep(2000)

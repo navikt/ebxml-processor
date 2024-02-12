@@ -49,19 +49,17 @@ fun Route.partnerId(partnerRepository: PartnerRepository, cpaRepository: CPARepo
     }.filter {
         // filter out alle med revokert sertifikat
         val cpa = it.value
-        val partyInfo = cpa.getPartyInfoByTypeAndID("HerID", herId)
+        val partyInfo = cpa.getPartyInfoByTypeAndID("HER", herId)
         runCatching {
             createX509Certificate(partyInfo.getCertificateForEncryption()).validate()
-        }
-            .onFailure { false }
-            .onSuccess { true }
-            .isSuccess
+        }.isSuccess
     }
         .maxBy {
             it.key
         }
+    val partnerId = partnerRepository.findPartners(sisteOppdatertCpa.value.cpaid)
 
-    call.respond(cpaer.map { marshal(it) }.joinToString())
+    call.respond(HttpStatusCode.OK, partnerId!!)
 }
 
 fun Route.deleteCpa(cpaRepository: CPARepository): Route = delete("/cpa/delete/{$CPA_ID}") {

@@ -58,6 +58,8 @@ dependencies {
     testImplementation(testLibs.bundles.kotest)
     testImplementation(libs.ktor.client.content.negotiation)
     testImplementation(testLibs.ktor.server.test.host)
+    testRuntimeOnly(libs.ojdbc8)
+    testImplementation("org.testcontainers:oracle-xe:1.19.4")
     testImplementation(kotlin("test"))
 
     runtimeOnly("org.postgresql:postgresql:42.6.0")
