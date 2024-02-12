@@ -99,7 +99,8 @@ fun Application.ebmsProviderModule() {
         get("/") {
             call.respondText("Hello, world!")
         }
-        postEbms(validator, processing)
+        postEbmsAsync(validator, processing)
+        postEbmsSyc(validator, processing)
     }
 }
 

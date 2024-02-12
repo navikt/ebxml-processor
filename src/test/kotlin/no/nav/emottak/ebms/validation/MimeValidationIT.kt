@@ -13,7 +13,7 @@ import no.nav.emottak.ebms.ebxml.errorList
 import no.nav.emottak.ebms.ebxml.messageHeader
 import no.nav.emottak.ebms.modify
 import no.nav.emottak.ebms.payload
-import no.nav.emottak.ebms.postEbms
+import no.nav.emottak.ebms.postEbmsAsync
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.validMultipartRequest
 import no.nav.emottak.ebms.xml.xmlMarshaller
@@ -39,7 +39,7 @@ class MimeValidationIT {
             val dokumentValidator = DokumentValidator(cpaRepoClient)
             val processingService = mockk<ProcessingService>()
             routing {
-                postEbms(dokumentValidator, processingService)
+                postEbmsAsync(dokumentValidator, processingService)
             }
         }
         externalServices {

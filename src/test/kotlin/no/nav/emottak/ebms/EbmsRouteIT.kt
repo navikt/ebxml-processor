@@ -62,7 +62,7 @@ class EbmsRouteIT {
                 processingService.process(any(), any())
             } just runs
             routing {
-                postEbms(dokumentValidator, processingService)
+                postEbmsAsync(dokumentValidator, processingService)
             }
         }
         externalServices {
