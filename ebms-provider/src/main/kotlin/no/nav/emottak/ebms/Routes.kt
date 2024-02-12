@@ -24,7 +24,12 @@ import no.nav.emottak.melding.model.asErrorList
 import no.nav.emottak.util.marker
 import no.nav.emottak.util.retrieveLoggableHeaderPairs
 
-fun Route.postEbms(validator: DokumentValidator, processingService: ProcessingService): Route =
+
+fun Route.postEbmsSyc(validator: DokumentValidator,processingService: ProcessingService) : Route = post("/ebms/sync") {
+
+}
+
+fun Route.postEbmsAsync(validator: DokumentValidator, processingService: ProcessingService): Route =
     post("/ebms") {
         // KRAV 5.5.2.1 validate MIME
         val debug: Boolean = call.request.header("debug")?.isNotBlank() ?: false
