@@ -58,6 +58,8 @@ fun Route.partnerId(partnerRepository: PartnerRepository, cpaRepository: CPARepo
             it.key
         }
     val partnerId = partnerRepository.findPartners(sisteOppdatertCpa.value.cpaid)
+    // hvis det er mer en et partner vi trenger å feilet
+    // vi trenger også å sjekke role service action
 
     call.respond(HttpStatusCode.OK, partnerId!!)
 }

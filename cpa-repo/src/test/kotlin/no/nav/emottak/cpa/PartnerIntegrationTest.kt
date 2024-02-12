@@ -17,6 +17,7 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.jupiter.api.Test
 import org.testcontainers.containers.OracleContainer
 import kotlin.test.BeforeTest
+import kotlin.test.assertEquals
 
 class PartnerIntegrationTest : PartnerTest() {
 
@@ -33,7 +34,7 @@ class PartnerIntegrationTest : PartnerTest() {
             }
         }
         val partnerId = httpClient.get("/partner/8141253").body<String>()
-        println(partnerId)
+        assertEquals("9999", partnerId)
     }
 }
 

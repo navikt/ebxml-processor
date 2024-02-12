@@ -32,7 +32,6 @@ fun main() {
 
 fun cpaApplicationModule(cpaDbConfig: HikariConfig, cpaMigrationConfig: HikariConfig, emottakDbConfig: HikariConfig? = null): Application.() -> Unit {
     return {
-        println("test")
         val database = Database(cpaDbConfig)
         database.migrate(cpaMigrationConfig)
         val cpaRepository = CPARepository(database)
