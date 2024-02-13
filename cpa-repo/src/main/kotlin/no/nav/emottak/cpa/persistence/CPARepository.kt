@@ -1,5 +1,7 @@
 package no.nav.emottak.cpa.persistence
 
+import no.nav.emottak.constants.PartyTypeEnum
+import no.nav.emottak.cpa.getPartnerPartyIdByType
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.deleteAll
@@ -28,7 +30,7 @@ class CPARepository(val database: Database) {
         return transaction(db = database.db) {
             (
                 if (idList.isNotEmpty()) {
-                    CPA.select(where = { CPA.id inList idList })
+                    CPA.selectAll().where { CPA.id inList idList }
                 } else {
                     CPA.selectAll()
                 }
@@ -47,7 +49,7 @@ class CPARepository(val database: Database) {
 
     fun findLatestUpdatedCpaTimestamp(): String {
         return transaction(db = database.db) {
-            CPA.select(where = { CPA.updated_date.isNotNull() })
+            CPA.selectAll().where { CPA.updated_date.isNotNull() }
                 .orderBy(CPA.updated_date, SortOrder.DESC)
                 .first()[CPA.updated_date]
         }.toString()
@@ -55,14 +57,15 @@ class CPARepository(val database: Database) {
 
     fun findCpaEntry(cpaId: String): CpaDbEntry? {
         return transaction(db = database.db) {
-            CPA.select(where = {
+            CPA.selectAll().where {
                 CPA.id.eq(cpaId)
-            }).firstOrNull()?.let {
+            }.firstOrNull()?.let {
                 CpaDbEntry(
                     it[CPA.id],
                     it[CPA.cpa],
                     it[CPA.updated_date],
-                    it[CPA.entryCreated]
+                    it[CPA.entryCreated],
+                    it[CPA.herId]
                 )
             }
         }
@@ -73,8 +76,9 @@ class CPARepository(val database: Database) {
             CPA.insert {
                 it[CPA.id] = cpa.id
                 it[CPA.cpa] = cpa.cpa ?: throw IllegalArgumentException("Kan ikke sette null verdi for CPA i DB")
-                it[CPA.entryCreated] = cpa.create_date
-                it[CPA.updated_date] = cpa.updated_date
+                it[CPA.entryCreated] = cpa.createdDate
+                it[CPA.updated_date] = cpa.updatedDate
+                it[CPA.herId] = cpa.herId
             }
         }
         return cpa.id
@@ -85,8 +89,9 @@ class CPARepository(val database: Database) {
             CPA.upsert(CPA.id) {
                 it[CPA.id] = cpa.id
                 it[CPA.cpa] = cpa.cpa ?: throw IllegalArgumentException("Kan ikke sette null verdi for CPA i DB")
-                it[CPA.entryCreated] = cpa.create_date
-                it[CPA.updated_date] = cpa.updated_date
+                it[CPA.entryCreated] = cpa.createdDate
+                it[CPA.updated_date] = cpa.updatedDate
+                it[CPA.herId] = cpa.herId
             }
         }
         return cpa.id
@@ -120,9 +125,18 @@ class CPARepository(val database: Database) {
     data class CpaDbEntry(
         val id: String,
         val cpa: CollaborationProtocolAgreement? = null,
-        val updated_date: Instant, // OBS! Truncates til seconds av praktiske hensyn.
-        val create_date: Instant // OBS! Truncates til seconds av praktiske hensyn.
-    )
+        val updatedDate: Instant, // OBS! Truncates til seconds av praktiske hensyn.
+        val createdDate: Instant, // OBS! Truncates til seconds av praktiske hensyn.
+        val herId: String?
+    ) {
+        constructor(cpa: CollaborationProtocolAgreement, updatedDate: Instant) : this(
+            id = cpa.cpaid,
+            cpa = cpa,
+            updatedDate = updatedDate,
+            createdDate = Instant.now(),
+            herId = cpa.getPartnerPartyIdByType(PartyTypeEnum.HER)?.value
+        )
+    }
 
     // @Serializable
     // data class TimestampResponse(

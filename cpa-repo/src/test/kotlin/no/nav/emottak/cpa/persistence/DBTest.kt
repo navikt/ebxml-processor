@@ -1,6 +1,8 @@
 package no.nav.emottak.cpa.persistence
 
 import com.zaxxer.hikari.HikariConfig
+import no.nav.emottak.constants.PartyTypeEnum
+import no.nav.emottak.cpa.getPartnerPartyIdByType
 import no.nav.emottak.cpa.xmlMarshaller
 import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.sql.deleteAll
@@ -33,7 +35,7 @@ abstract class DBTest() {
                 it[cpa] = collaborationProtocolAgreement
                 it[updated_date] = DEFAULT_TIMESTAMP
                 it[entryCreated] = DEFAULT_TIMESTAMP
-                it[herId] = "8141253"
+                it[herId] = collaborationProtocolAgreement.getPartnerPartyIdByType(PartyTypeEnum.HER)?.value
             }
         }
         Thread.sleep(2000)
