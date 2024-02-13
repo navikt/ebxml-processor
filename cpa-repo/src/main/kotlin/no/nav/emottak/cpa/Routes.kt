@@ -10,7 +10,10 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
+import no.nav.emottak.constants.PartyTypeEnum
 import no.nav.emottak.cpa.feil.CpaValidationException
+import no.nav.emottak.cpa.feil.MultiplePartnerException
+import no.nav.emottak.cpa.feil.PartnerNotFoundException
 import no.nav.emottak.cpa.persistence.CPARepository
 import no.nav.emottak.cpa.persistence.gammel.PartnerRepository
 import no.nav.emottak.cpa.validation.validate
@@ -40,34 +43,49 @@ fun Route.deleteAllCPA(cpaRepository: CPARepository): Route = get("/cpa/deleteAl
 }
 
 fun Route.partnerId(partnerRepository: PartnerRepository, cpaRepository: CPARepository): Route =
-    get("/partner/{$HER_ID}") {
+    get("/partner/her/{$HER_ID}") {
         val herId = call.parameters[HER_ID] ?: throw BadRequestException("Mangler $HER_ID")
-        val cpaer = cpaRepository.cpaByHerId(herId)
+        val role = call.request.queryParameters[ROLE] ?: throw BadRequestException("Mangler $ROLE")
+        val service = call.request.queryParameters[SERVICE] ?: throw BadRequestException("Mangler $SERVICE")
+        val action = call.request.queryParameters[ACTION] ?: throw BadRequestException("Mangler $ACTION")
         val now = Date()
-        val sisteOppdatertCpa = cpaer.filter {
-            it.value.start.before(now)
-            it.value.end.after(now)
-        }.filter {
-            // filter out alle med revokert sertifikat
-            val cpa = it.value
-            val partyInfo = cpa.getPartyInfoByTypeAndID("HER", herId)
-            runCatching {
-                createX509Certificate(partyInfo.getCertificateForEncryption()).validate()
-            }.isSuccess
-        }
-            .maxBy {
-                it.key
-            }
-        val partnerId = partnerRepository.findPartners(sisteOppdatertCpa.value.cpaid)
-        // hvis det er mer en et partner vi trenger å feilet
-        // vi trenger også å sjekke role service action
 
-        call.respond(HttpStatusCode.OK, partnerId!!)
+        runCatching {
+            val sisteOppdatertCpa = cpaRepository.cpaByHerId(herId).filter {
+                it.value.start.before(now)
+                it.value.end.after(now)
+            }.filter {
+                // filter out alle med revokert sertifikat
+                val partyInfo = it.value.getPartyInfoByTypeAndID(PartyTypeEnum.HER.type, herId)
+                runCatching {
+                    createX509Certificate(partyInfo.getCertificateForEncryption()).validate()
+                }.isSuccess
+            }.filter {
+                // Sjekker at partner kan motta angitt melding
+                val partyInfo = it.value.getPartyInfoByTypeAndID(PartyTypeEnum.HER.type, herId)
+                runCatching {
+                    partyInfoHasRoleServiceActionCombo(partyInfo, role, service, action, MessageDirection.RECEIVE)
+                }.isSuccess
+            }.maxBy {
+                it.key
+            }.value
+            partnerRepository.findPartners(sisteOppdatertCpa.cpaid)
+        }.onSuccess {
+            log.info("Partner $it funnet for HER ID $herId")
+            call.respond(HttpStatusCode.OK, it)
+        }.onFailure {
+            log.warn("Feil ved henting av $PARTNER_ID", it)
+            when (it) {
+                is MultiplePartnerException -> call.respond(HttpStatusCode.Conflict, "Fant multiple $PARTNER_ID for $HER_ID $herId. Dette er en ugyldig tilstand.")
+                is PartnerNotFoundException -> call.respond(HttpStatusCode.NotFound, "Fant ikke $PARTNER_ID for $HER_ID $herId")
+                else -> call.respond(HttpStatusCode.NotFound, "Fant ikke $PARTNER_ID for $HER_ID $herId")
+            }
+        }
     }
 
 fun Route.deleteCpa(cpaRepository: CPARepository): Route = delete("/cpa/delete/{$CPA_ID}") {
     val cpaId = call.parameters[CPA_ID] ?: throw BadRequestException("Mangler $CPA_ID")
-    cpaRepository.deleteCpa(cpaId) ?: throw NotFoundException("Fant ikke CPA")
+    cpaRepository.deleteCpa(cpaId)
     call.respond("$cpaId slettet!")
 }
 
@@ -213,6 +231,7 @@ private const val PARTY_TYPE = "partyType"
 private const val PARTY_ID = "partyId"
 private const val CONTENT_ID = "contentId"
 private const val HER_ID = "herId"
+private const val PARTNER_ID = "partnerId"
 private const val ROLE = "role"
 private const val SERVICE = "service"
 private const val ACTION = "action"

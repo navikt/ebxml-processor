@@ -4,6 +4,7 @@ import com.zaxxer.hikari.HikariConfig
 import io.ktor.client.call.body
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
+import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
@@ -33,8 +34,41 @@ class PartnerIntegrationTest : PartnerTest() {
                 json()
             }
         }
-        val partnerId = httpClient.get("/partner/8141253").body<String>()
-        assertEquals("9999", partnerId)
+        val herId = "8141253"
+        val role = "Behandler"
+        val service = "BehandlerKrav"
+        val action = "Svarmelding"
+        val httpResponse = httpClient.get("/partner/her/$herId?role=$role&service=$service&action=$action")
+        assertEquals(HttpStatusCode.OK, httpResponse.status)
+        assertEquals("9999", httpResponse.body<String>())
+    }
+
+    @Test
+    fun `Partner endepunkt returnerer 404 når partner id ikke finnes`() = cpaRepoTestApp {
+        val httpClient = createClient {
+            install(ContentNegotiation) {
+                json()
+            }
+        }
+        val herId = "123"
+        val role = "Behandler"
+        val service = "BehandlerKrav"
+        val action = "Svarmelding"
+        val httpResponse = httpClient.get("/partner/her/$herId?role=$role&service=$service&action=$action")
+        assertEquals(HttpStatusCode.NotFound, httpResponse.status)
+        assertEquals("Fant ikke partnerId for herId $herId", httpResponse.body<String>())
+    }
+
+    @Test
+    fun `Partner endepunkt returner 400 når role, service, action mangler`() = cpaRepoTestApp {
+        val httpClient = createClient {
+            install(ContentNegotiation) {
+                json()
+            }
+        }
+        val herId = "123"
+        val httpResponse = httpClient.get("/partner/her/$herId")
+        assertEquals(HttpStatusCode.BadRequest, httpResponse.status)
     }
 }
 
@@ -80,6 +114,7 @@ abstract class PartnerTest() : DBTest() {
         .withDatabaseName("testDB")
         .withUsername("testUser")
         .withPassword("testPassword")
+        .withReuse(true)
 
     private fun Database.configurePartnerFlyway(): Database =
         also {
