@@ -131,6 +131,38 @@ fun Application.myApplicationModule() {
                             client.get("$URL_CPA_REPO_BASE/cpa/timestamps")
                                 .bodyAsText()
                         ).toMutableMap() // mappen tømmes ettersom entries behandles
+
+                    val timestampLatest =
+                        Json.decodeFromString<Instant>(
+                            client.get("$URL_CPA_REPO_BASE/cpa/timestamps/latest")
+                                .bodyAsText()
+                        )
+
+                    folder.filter {
+                        val lastModified = Date(it.attrs.mTime.toLong() * 1000).toInstant()
+                        lastModified.isAfter(timestampLatest) &&
+                            it.filename.endsWith(".xml")
+                    }.forEach {
+                        val lastModified = Date(it.attrs.mTime.toLong() * 1000).toInstant()
+                        log.info("Fetching file ${it.filename}")
+                        val getFile = sftpChannel.get(it.filename)
+                        log.info("Uploading " + it.filename)
+                        val cpaFile = String(getFile.readAllBytes())
+                        log.info("Length ${cpaFile.length}")
+                        getFile.close()
+                        try {
+                            client.post(URL_CPA_REPO_PUT) {
+                                headers {
+                                    header("updated_date", lastModified.toString())
+                                    header("upsert", "true") // Upsert kan nok alltid brukes (?)
+                                }
+                                setBody(cpaFile)
+                            }
+                        } catch (e: Exception) {
+                            log.error("Error uploading ${it.filename} to cpa-repo: ${e.message}", e)
+                        }
+                    }
+
                     folder.forEach {
                         log.info("Checking ${it.filename}...")
                         if (!it.filename.endsWith(".xml")) {
@@ -139,7 +171,8 @@ fun Application.myApplicationModule() {
                         }
                         val lastModified = Date(it.attrs.mTime.toLong() * 1000).toInstant()
                         // Fjerner cpaId matches fra timestamp listen og skipper hvis nyere eksisterer
-                        // Todo refactor. Too "kotlinesque":
+                        /* Todo refactor. Too "kotlinesque". Burde ha en sjekk som tar nyeste timestamp i DB. Oppdaterer alle CPA som er modified etter dette timestampet. */
+
                         with(ArrayList<String>()) {
                             cpaTimestamps.filter { cpaTimestamp ->
                                 cpaTimestamp.key

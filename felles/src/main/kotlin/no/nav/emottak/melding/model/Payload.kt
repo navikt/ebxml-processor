@@ -85,7 +85,20 @@ data class ValidationResult(
 @Serializable
 data class PayloadProcessing(
     val signingCertificate: SignatureDetails,
-    val encryptionCertificate: ByteArray
+    val encryptionCertificate: ByteArray,
+    val processConfig: ProcessConfig
+)
+
+@Serializable
+data class ProcessConfig(
+    // TODO kanskje en "null = implicit" tilnærming?
+    val kryptering: Boolean,
+    val komprimering: Boolean,
+    val signering: Boolean,
+    val internformat: Boolean,
+    val validering: Boolean,
+    val adapter: String,
+    val apprec: Boolean, // Kan denne løsrives?
 )
 
 @Serializable

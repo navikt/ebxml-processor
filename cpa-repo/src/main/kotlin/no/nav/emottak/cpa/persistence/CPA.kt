@@ -16,7 +16,7 @@ object CPA : Table("cpa") {
     val entryCreated = timestamp("create_date")
 }
 
-private fun <T : Any> Table.json(
+fun <T : Any> Table.json(
     name: String,
     clazz: Class<T>
 ): Column<T> =

@@ -32,6 +32,7 @@ import no.nav.emottak.ebms.xml.xmlMarshaller
 import no.nav.emottak.melding.model.ErrorCode
 import no.nav.emottak.melding.model.Feil
 import no.nav.emottak.melding.model.PayloadProcessing
+import no.nav.emottak.melding.model.ProcessConfig
 import no.nav.emottak.melding.model.SignatureDetails
 import no.nav.emottak.melding.model.ValidationResult
 import no.nav.emottak.util.decodeBase64
@@ -47,6 +48,17 @@ import org.xmlsoap.schemas.soap.envelope.Envelope
 class EbmsRouteIT {
     val validMultipartRequest = validMultipartRequest()
     val processingService = mockk<ProcessingService>()
+
+    // val mockProcessConfig = mockk<ProcessConfig>()
+    val mockProcessConfig = ProcessConfig(
+        true,
+        true,
+        true,
+        true,
+        true,
+        "HarBorgerFrikort",
+        true
+    )
 
     fun <T> validationTestApp(testBlock: suspend ApplicationTestBuilder.() -> T) = testApplication {
         val client = createClient {
@@ -75,7 +87,7 @@ class EbmsRouteIT {
                         call.respond(ValidationResult(error = listOf(Feil(ErrorCode.SECURITY_FAILURE, "Signature Fail"))))
                     }
                     post("cpa/validate/contentID-validRequest") {
-                        call.respond(ValidationResult(payloadProcessing = PayloadProcessing(mockSignatureDetails(), byteArrayOf())))
+                        call.respond(ValidationResult(payloadProcessing = PayloadProcessing(mockSignatureDetails(), byteArrayOf(), mockProcessConfig)))
                     }
                 }
             }

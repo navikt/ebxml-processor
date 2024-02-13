@@ -115,7 +115,6 @@ fun Route.postCpa(cpaRepository: CPARepository) = post("/cpa") {
 fun Route.validateCpa(cpaRepository: CPARepository) = post("/cpa/validate/{$CONTENT_ID}") {
     val validateRequest = call.receive(ValidationRequest::class)
     try {
-//                val cpa = getCpa(validateRequest.cpaId)!!
         val cpa = cpaRepository.findCpa(validateRequest.cpaId) ?: throw NotFoundException("Fant ikke CPA")
         cpa.validate(validateRequest) // Delivery Filure
         val partyInfo = cpa.getPartyInfoByTypeAndID(validateRequest.addressing.from.partyId) // delivery Failure
@@ -131,8 +130,22 @@ fun Route.validateCpa(cpaRepository: CPARepository) = post("/cpa/validate/{$CONT
             log.warn(validateRequest.marker(), "Validation feilet i sertifikat sjekk", it)
             throw it
         }
-
-        call.respond(HttpStatusCode.OK, ValidationResult(EbmsProcessing(), PayloadProcessing(signingCertificate, encryptionCertificate)))
+        call.respond(
+            HttpStatusCode.OK,
+            ValidationResult(
+                EbmsProcessing(),
+                PayloadProcessing(
+                    signingCertificate,
+                    encryptionCertificate,
+                    cpaRepository.getProcessConfig(
+                        validateRequest.addressing.from.role,
+                        validateRequest.addressing.service,
+                        validateRequest.addressing.action
+                    ) ?: throw NotFoundException("No Processing Config found")
+                    // TODO Bør kunne processeres uten config? I den idelle verden burde ikke config eksistere.
+                )
+            )
+        )
     } catch (ebmsEx: EbmsException) {
         log.warn(validateRequest.marker(), ebmsEx.message, ebmsEx)
         call.respond(HttpStatusCode.OK, ValidationResult(error = listOf(Feil(ebmsEx.errorCode, ebmsEx.descriptionText, ebmsEx.severity))))
