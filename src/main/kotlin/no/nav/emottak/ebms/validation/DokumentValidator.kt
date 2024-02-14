@@ -7,6 +7,7 @@ import no.nav.emottak.ebms.model.EbMSDocument
 import no.nav.emottak.ebms.model.sjekkSignature
 import no.nav.emottak.melding.model.ErrorCode
 import no.nav.emottak.melding.model.Feil
+import no.nav.emottak.melding.model.ValidationRequest
 import no.nav.emottak.melding.model.ValidationResult
 import no.nav.emottak.util.marker
 import org.slf4j.LoggerFactory
@@ -14,7 +15,9 @@ import org.slf4j.LoggerFactory
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.DokumentValidator")
 class DokumentValidator(val httpClient: CpaRepoClient) {
 
-    fun validate(dokument: EbMSDocument): ValidationResult {
+    fun validateOut(validationRequest: ValidationRequest) {
+    }
+    fun validateIn(dokument: EbMSDocument): ValidationResult {
         val validationRequest = dokument.messageHeader().toValidationRequest()
 
         val validationResult = runBlocking {

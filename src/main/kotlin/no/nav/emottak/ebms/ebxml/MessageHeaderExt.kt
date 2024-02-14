@@ -37,6 +37,12 @@ fun MessageHeader.createResponseHeader(newAction: String?, newService: String?):
     return messageHeader
 }
 
+fun MessageHeader.addressing() = Addressing(
+    Party(this.to.partyId.map { PartyId(it.type!!, it.value!!) }, this.to.role!!),
+    Party(this.from.partyId.map { PartyId(it.type!!, it.value!!) }, this.from.role!!),
+    this.service.value!!,
+    this.action
+)
 fun MessageHeader.toValidationRequest(): ValidationRequest =
     // TODO valider sertifikat
     ValidationRequest(
@@ -44,11 +50,5 @@ fun MessageHeader.toValidationRequest(): ValidationRequest =
         this.conversationId,
         this.cpaId,
         // TODO select specific partyID?
-        Addressing(
-            Party(this.to.partyId.map { PartyId(it.type!!, it.value!!) }, this.to.role!!),
-            // Party(this.to.partyId.first().type!!, this.to.partyId.first().value!!,this.to.role!!),
-            Party(this.from.partyId.map { PartyId(it.type!!, it.value!!) }, this.from.role!!),
-            this.service.value!!,
-            this.action
-        )
+        this.addressing()
     )
