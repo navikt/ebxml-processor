@@ -11,6 +11,7 @@ import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
+import no.nav.emottak.fellesformat.addressing
 import no.nav.emottak.fellesformat.wrapMessageInEIFellesFormat
 import no.nav.emottak.frikort.frikortClient
 import no.nav.emottak.frikort.frikortsporring
@@ -35,21 +36,13 @@ fun main() {
 
 fun Application.ebmsSendInModule() {
     routing {
-        get("/") {
-            call.respondText("Hello, world!")
-        }
         get("/testFrikortEndepunkt") {
-            val testCpaString = String(this::class.java.classLoader.getResource("frikort-soap.xml")!!.readBytes())
+            val testCpaString = String(this::class.java.classLoader.getResource("frikortRequest.xml")!!.readBytes())
             val envelope = unmarshal(testCpaString, Envelope::class.java)
             val frikortSporting = envelope.body.any.first() as FrikortsporringRequest
             val response = frikortClient.frikortsporring(frikortSporting)
             log.info(marshal(response))
-            println(envelope)
-            call.respondText("Hello, world!")
-        }
-
-        post("/route") {
-            val request = this.call.receive(SendInRequest::class)
+            call.respondText(marshal(response))
         }
 
         post("/fagmelding/synkron") {
@@ -59,7 +52,7 @@ fun Application.ebmsSendInModule() {
                 frikortsporring(wrapMessageInEIFellesFormat(request))
             }.onSuccess {
                 log.info(request.marker(), "Payload ${request.payloadId} videresendt til fagsystem")
-                call.respond(SendInResponse(request.messageId, request.conversationId, marshal(it.eiFellesformat.msgHead).toByteArray()))
+                call.respond(SendInResponse(request.messageId, request.conversationId, it.eiFellesformat.addressing(), marshal(it.eiFellesformat.msgHead).toByteArray()))
             }.onFailure {
                 log.error(request.marker(), "Payload ${request.payloadId} videresending feilet", it)
                 call.respond(HttpStatusCode.BadRequest, it.localizedMessage)
