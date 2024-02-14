@@ -56,25 +56,25 @@ class SignaturValidator() {
         signature: XMLSignature,
         attachments: List<EbmsAttachment>
     ): Boolean {
-        signature.validate()
+        signature.validateIn()
         val resolver = EbMSAttachmentResolver(attachments)
         signature.addResourceResolver(resolver)
         return signature.checkSignatureValue(certificate)
     }
 }
 
-private fun XMLSignature.validate() {
+private fun XMLSignature.validateIn() {
     val keyInfo = this.keyInfo ?: throw SignatureException("KeyInfo mangler fra signatur")
-    keyInfo.validate()
-    this.signedInfo.validate()
+    keyInfo.validateIn()
+    this.signedInfo.validateIn()
 }
 
-private fun KeyInfo.validate() {
+private fun KeyInfo.validateIn() {
     if (this.lengthX509Data() != 1) throw SignatureException("X509Data mangler fra signatur")
     if (this.itemX509Data(0).lengthCertificate() != 1 || this.x509Certificate == null) throw SignatureException("X509Certificate mangler fra X509Data")
 }
 
-private fun SignedInfo.validate() {
+private fun SignedInfo.validateIn() {
     this.signatureAlgorithm.isValidSignatureMethodAlgorithm()
     this.validateReferences()
 }

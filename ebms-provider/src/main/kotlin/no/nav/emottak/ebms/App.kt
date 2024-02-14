@@ -35,6 +35,7 @@ import no.nav.emottak.ebms.model.DokumentType
 import no.nav.emottak.ebms.model.EbMSDocument
 import no.nav.emottak.ebms.model.EbmsAttachment
 import no.nav.emottak.ebms.processing.ProcessingService
+import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.DokumentValidator
 import no.nav.emottak.ebms.validation.MimeHeaders
 import no.nav.emottak.ebms.validation.MimeValidationException
@@ -92,15 +93,17 @@ fun Application.ebmsProviderModule() {
     val client = defaultHttpClient()
     val cpaClient = CpaRepoClient(client)
     val processingClient = PayloadProcessingClient(client)
+    val sendInClient = SendInClient(client)
     val validator = DokumentValidator(cpaClient)
     val processing = ProcessingService(processingClient)
+    val sendInService = SendInService(sendInClient)
     installRequestTimerPlugin()
     routing {
         get("/") {
             call.respondText("Hello, world!")
         }
         postEbmsAsync(validator, processing)
-        postEbmsSyc(validator, processing)
+        postEbmsSyc(validator, processing, sendInService)
     }
 }
 

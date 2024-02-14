@@ -12,25 +12,29 @@ import no.nav.emottak.melding.model.Party
 import no.nav.emottak.melding.model.PartyId
 import no.nav.emottak.melding.model.PayloadProcessing
 import no.nav.emottak.melding.model.PayloadRequest
+import no.nav.emottak.melding.model.PayloadResponse
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
 
 class ProcessingService(val httpClient: PayloadProcessingClient) {
 
-    private fun payloadMessage(payloadMessage: EbmsPayloadMessage, payloadProcessing: PayloadProcessing) {
+    private fun payloadMessage(
+        payloadMessage: EbmsPayloadMessage,
+        payloadProcessing: PayloadProcessing
+    ): PayloadResponse {
         val payloads = payloadMessage.attachments
         val messageHeader = payloadMessage.messageHeader
-        payloads.forEach { payload ->
-            val payloadRequest = PayloadRequest(
-                messageId = messageHeader.messageData.messageId,
-                conversationId = messageHeader.conversationId,
-                processing = payloadProcessing,
-                payloadId = payload.contentId,
-                payload = payload.dataSource
-            )
-            // TODO do something with the response?
-            runBlocking {
-                httpClient.postPayloadRequest(payloadRequest)
-            }
+        val payload = payloads.first()
+
+        val payloadRequest = PayloadRequest(
+            messageId = messageHeader.messageData.messageId,
+            conversationId = messageHeader.conversationId,
+            processing = payloadProcessing,
+            payloadId = payload.contentId,
+            payload = payload.dataSource
+        )
+        // TODO do something with the response?
+        return runBlocking {
+            httpClient.postPayloadRequest(payloadRequest)
         }
     }
 
@@ -40,7 +44,12 @@ class ProcessingService(val httpClient: PayloadProcessingClient) {
     private fun fail(fail: EbmsMessageError) {
     }
 
-    fun process(message: EbmsBaseMessage, payloadProcessing: PayloadProcessing?) {
+    fun processSync(message: EbmsBaseMessage, payloadProcessing: PayloadProcessing?): PayloadResponse {
+        if (payloadProcessing == null) throw Exception("Processing information is missing for ${message.messageHeader.messageData.messageId}")
+        return payloadMessage(message as EbmsPayloadMessage, payloadProcessing!!)
+    }
+
+    fun processAsync(message: EbmsBaseMessage, payloadProcessing: PayloadProcessing?) {
         when (message) {
             is EbmsAcknowledgment -> acknowledgment(message)
             is EbmsMessageError -> fail(message)
@@ -58,8 +67,10 @@ fun MessageHeader.payloadRequestHeader(): Header {
             role = this.to.role ?: throw BadRequestException("Melding mangler role for en eller flere parter"),
             partyId = listOf(
                 PartyId(
-                    type = this.to.partyId.firstOrNull()?.type ?: throw BadRequestException("Melding mangler to partyId"),
-                    value = this.to.partyId.firstOrNull()?.value ?: throw BadRequestException("Melding mangler to partyId")
+                    type = this.to.partyId.firstOrNull()?.type
+                        ?: throw BadRequestException("Melding mangler to partyId"),
+                    value = this.to.partyId.firstOrNull()?.value
+                        ?: throw BadRequestException("Melding mangler to partyId")
                 )
             )
         ),
@@ -67,8 +78,10 @@ fun MessageHeader.payloadRequestHeader(): Header {
             role = this.from.role ?: throw BadRequestException("Melding mangler role for en eller flere parter"),
             partyId = listOf(
                 PartyId(
-                    type = this.from.partyId.firstOrNull()?.type ?: throw BadRequestException("Melding mangler from partyId"),
-                    value = this.from.partyId.firstOrNull()?.value ?: throw BadRequestException("Melding mangler from partyId")
+                    type = this.from.partyId.firstOrNull()?.type
+                        ?: throw BadRequestException("Melding mangler from partyId"),
+                    value = this.from.partyId.firstOrNull()?.value
+                        ?: throw BadRequestException("Melding mangler from partyId")
                 )
             )
         ),
