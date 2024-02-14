@@ -21,6 +21,7 @@ data class SendInRequest(
 data class SendInResponse(
     val messageId: String,
     val conversationId: String,
+    val addressing: Addressing,
     val payload: ByteArray
 )
 @Serializable
