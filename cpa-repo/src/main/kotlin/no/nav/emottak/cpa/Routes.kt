@@ -141,8 +141,7 @@ fun Route.validateCpa(cpaRepository: CPARepository) = post("/cpa/validate/{$CONT
                         validateRequest.addressing.from.role,
                         validateRequest.addressing.service,
                         validateRequest.addressing.action
-                    ) ?: throw NotFoundException("No Processing Config found")
-                    // TODO Bør kunne processeres uten config? I den idelle verden burde ikke config eksistere.
+                    )
                 )
             )
         )

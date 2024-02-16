@@ -17,8 +17,12 @@ import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import no.nav.emottak.cpa.persistence.DBTest
+import no.nav.emottak.melding.model.Addressing
+import no.nav.emottak.melding.model.Party
+import no.nav.emottak.melding.model.PartyId
 import no.nav.emottak.melding.model.SignatureDetails
 import no.nav.emottak.melding.model.SignatureDetailsRequest
+import no.nav.emottak.melding.model.ValidationRequest
 import org.apache.commons.lang3.StringUtils
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -28,10 +32,6 @@ import java.time.temporal.ChronoUnit
 import kotlin.test.assertContains
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import no.nav.emottak.melding.model.Addressing
-import no.nav.emottak.melding.model.Party
-import no.nav.emottak.melding.model.PartyId
-import no.nav.emottak.melding.model.ValidationRequest
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class CPARepoIntegrationTest : DBTest() {
@@ -66,9 +66,10 @@ class CPARepoIntegrationTest : DBTest() {
         assertEquals("http://www.w3.org/2001/04/xmldsig-more#rsa-sha256", body.signatureAlgorithm)
         assertEquals("http://www.w3.org/2001/04/xmlenc#sha256", body.hashFunction)
     }
+
     @Test
-    fun `Test egenandelfritak partyTo PartyFrom resolve`() = cpaRepoTestApp{
-         val httpClient = createClient {
+    fun `Test egenandelfritak partyTo PartyFrom resolve`() = cpaRepoTestApp {
+        val httpClient = createClient {
             install(ContentNegotiation) {
                 json()
             }
@@ -79,9 +80,11 @@ class CPARepoIntegrationTest : DBTest() {
             "1234",
             "nav:qass:31162",
             Addressing(
-                Party(listOf(PartyId("HER","79768")),"Frikortregister"),
-                Party(listOf(PartyId("HER","8090595")),"Utleverer"),
-                "HarBorgerEgenandelFritak","EgenandelForesporsel")
+                Party(listOf(PartyId("HER", "79768")), "Frikortregister"),
+                Party(listOf(PartyId("HER", "8090595")), "Utleverer"),
+                "HarBorgerEgenandelFritak",
+                "EgenandelForesporsel"
+            )
         )
         val response = httpClient.post("/cpa/validate/121212") {
             setBody(validationRequest)

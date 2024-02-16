@@ -26,9 +26,9 @@ abstract class DBTest() {
         transaction(db.db) {
             tables.forEach { it.deleteAll() }
         }
-        val cpasToInsert = listOf("nav-qass-35065.xml","nav-qass-31162.xml")
+        val cpasToInsert = listOf("nav-qass-35065.xml", "nav-qass-31162.xml")
         transaction(db.db) {
-            cpasToInsert.forEach {cpaToInsert ->
+            cpasToInsert.forEach { cpaToInsert ->
                 CPA.insert {
                     val collaborationProtocolAgreement = loadTestCPA(cpaToInsert)
                     it[id] = collaborationProtocolAgreement.cpaid
@@ -41,7 +41,7 @@ abstract class DBTest() {
         Thread.sleep(2000)
     }
 
-    fun loadTestCPA(cpaName:String): CollaborationProtocolAgreement {
+    fun loadTestCPA(cpaName: String): CollaborationProtocolAgreement {
         val testCpaString = String(this::class.java.classLoader.getResource("cpa/$cpaName").readBytes())
         return xmlMarshaller.unmarshal(testCpaString, CollaborationProtocolAgreement::class.java)
     }

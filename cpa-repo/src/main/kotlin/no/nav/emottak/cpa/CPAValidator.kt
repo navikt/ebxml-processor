@@ -37,11 +37,9 @@ fun CollaborationProtocolAgreement.hasRoleServiceActionCombo(addressing: Address
 
 @Throws(CpaValidationException::class)
 fun partyInfoHasRoleServiceActionCombo(partyInfo: PartyInfo, role: String, service: String, action: String, direction: MessageDirection) {
-    val partyWithRole = partyInfo.collaborationRole.firstOrNull { r -> r.role.name == role }
-        ?: throw CpaValidationException("Role $role matcher ikke party")
-    if (partyWithRole.serviceBinding.service.value != service) {
-        throw CpaValidationException("Service $service matcher ikke role $role for party")
-    }
+    val partyWithRole = partyInfo.collaborationRole.firstOrNull { r ->
+        r.role.name == role && r.serviceBinding.service.value == service
+    } ?: throw CpaValidationException("Role og Service $role matcher ikke party info")
     when (direction) {
         MessageDirection.SEND -> partyWithRole.serviceBinding.canSend.firstOrNull { a -> a.thisPartyActionBinding.action == action }
             ?: throw CpaValidationException("Action $action matcher ikke service $service")
