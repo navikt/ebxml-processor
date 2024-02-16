@@ -82,9 +82,10 @@ fun Headers.marker(): LogstashMarker = Markers.appendEntries(
     this.retrieveLoggableHeaderPairs().toMap()
 )
 fun Headers.retrieveLoggableHeaderPairs(): List<Pair<String, String>> {
+    val messageID = if(this[SMTPHeaders.MESSAGE_ID]!=null) this[SMTPHeaders.MESSAGE_ID] else this["X-Request-Id"]
     return listOf(
         Pair(X_MAILER, this[SMTPHeaders.X_MAILER] ?: "-"),
-        Pair("smtpMessageId", this[SMTPHeaders.MESSAGE_ID]!!)
+        Pair("messageId", messageID?:"-")
     )
 }
 
