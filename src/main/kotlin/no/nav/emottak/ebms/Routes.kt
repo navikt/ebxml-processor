@@ -9,6 +9,8 @@ import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.post
+import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.json.Json
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.ebxml.addressing
 import no.nav.emottak.ebms.model.EbMSDocument
@@ -24,6 +26,7 @@ import no.nav.emottak.melding.feil.EbmsException
 import no.nav.emottak.melding.model.ErrorCode
 import no.nav.emottak.melding.model.PayloadResponse
 import no.nav.emottak.melding.model.ValidationRequest
+import no.nav.emottak.melding.model.ValidationResult
 import no.nav.emottak.melding.model.asErrorList
 import no.nav.emottak.util.marker
 import no.nav.emottak.util.retrieveLoggableHeaderPairs
@@ -104,7 +107,8 @@ fun Route.postEbmsSyc(validator: DokumentValidator, processingService: Processin
     }
 
     val sendInResponse = sendInService.sendIn(message as EbmsPayloadMessage, message.messageHeader.addressing(), validationResult.ebmsProcessing!!, payloadResponse!!.processedPayload)
-    validator.validateOut(ValidationRequest(UUID.randomUUID().toString(), message.messageHeader.cpaId, sendInResponse.conversationId, sendInResponse.addressing))
+    val validateResult = validator.validateOut(UUID.randomUUID().toString(), ValidationRequest(UUID.randomUUID().toString(), message.messageHeader.cpaId, sendInResponse.conversationId, sendInResponse.addressing))
+    println(Json.encodeToString(ValidationResult.serializer(), validateResult))
     this.call.respondText(String(sendInResponse.payload))
 }
 

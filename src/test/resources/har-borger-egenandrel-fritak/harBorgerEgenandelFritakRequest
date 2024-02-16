@@ -1,11 +1,3 @@
-SOAPAction:"ebXML"
-X-Request-ID:6b1ed81e64bf3f1218ef43f3689fabe5
-X-Global-Transaction-ID:da10915d65ca17421386bff0
-MIME-Version:1.0
-Via:1.1 XMLFW-emottak-ebxml
-Content-Length:9159
-Content-Type:multipart/related; boundary="------=_part_c2a3282c_e754_4193_9fb5_e8a469941f97"; type="text/xml"; start="soapId-c1a5d7ed-3850-4a74-ba28-8d73f5355336"
-
 --------=_part_c2a3282c_e754_4193_9fb5_e8a469941f97
 Content-Type: text/xml; charset=UTF-8
 Content-Id: <soapId-c1a5d7ed-3850-4a74-ba28-8d73f5355336>
