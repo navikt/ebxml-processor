@@ -12,6 +12,6 @@ CREATE TABLE process_config
     VALIDERING boolean NOT NULL,
     APPREC boolean NOT NULL,
     /* ADAPTER refererer til ekstra custom processering, nesten ingen flyter bruker det. */
-    ADAPTER boolean NOT NULL,
+    ADAPTER VARCHAR(50),
     CONSTRAINT "PROCESS_CONFIG_PK" PRIMARY KEY (ROLE, SERVICE, ACTION)
 );
