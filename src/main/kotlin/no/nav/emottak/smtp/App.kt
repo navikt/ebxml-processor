@@ -132,6 +132,37 @@ fun Application.myApplicationModule() {
                                 .bodyAsText()
                         ).toMutableMap() // mappen tømmes ettersom entries behandles
 
+                    val timestampLatest =
+                        Json.decodeFromString<Instant>(
+                            client.get("$URL_CPA_REPO_BASE/cpa/timestamps/latest")
+                                .bodyAsText()
+                        )
+
+                    folder.filter {
+                        val lastModified = Date(it.attrs.mTime.toLong() * 1000).toInstant()
+                        lastModified.isAfter(timestampLatest) &&
+                            it.filename.endsWith(".xml")
+                    }.forEach {
+                        val lastModified = Date(it.attrs.mTime.toLong() * 1000).toInstant()
+                        log.info("Fetching file ${it.filename}")
+                        val getFile = sftpChannel.get(it.filename)
+                        log.info("Uploading " + it.filename)
+                        val cpaFile = String(getFile.readAllBytes())
+                        log.info("Length ${cpaFile.length}")
+                        getFile.close()
+                        try {
+                            client.post(URL_CPA_REPO_PUT) {
+                                headers {
+                                    header("updated_date", lastModified.toString())
+                                    header("upsert", "true") // Upsert kan nok alltid brukes (?)
+                                }
+                                setBody(cpaFile)
+                            }
+                        } catch (e: Exception) {
+                            log.error("Error uploading ${it.filename} to cpa-repo: ${e.message}", e)
+                        }
+                    }
+
                     folder.forEach {
                         log.info("Checking ${it.filename}...")
                         if (!it.filename.endsWith(".xml")) {
@@ -162,6 +193,94 @@ fun Application.myApplicationModule() {
                                 }
                             }
                         }
+                        log.info("Fetching file ${it.filename}")
+                        val getFile = sftpChannel.get(it.filename)
+                        log.info("Uploading " + it.filename)
+                        val cpaFile = String(getFile.readAllBytes())
+                        log.info("Length ${cpaFile.length}")
+                        getFile.close()
+                        try {
+                            client.post(URL_CPA_REPO_PUT) {
+                                headers {
+                                    header("updated_date", lastModified.toString())
+                                    header("upsert", "true") // Upsert kan nok alltid brukes (?)
+                                }
+                                setBody(cpaFile)
+                            }
+                        } catch (e: Exception) {
+                            log.error("Error uploading ${it.filename} to cpa-repo: ${e.message}", e)
+                        }
+                    }
+                    // Any remaining timestamps means they exist in DB, but not in disk and should be cleaned
+                    cpaTimestamps.forEach { (cpaId) ->
+                        client.delete("$URL_CPA_REPO_BASE/cpa/delete/$cpaId")
+                    }
+                } catch (e: Exception) {
+                    if (e is SftpException) {
+                        log.error("SftpException ID: [${e.id}]")
+                    }
+                    log.error(e.message, e)
+                }
+                sftpChannel.disconnect()
+                session.disconnect()
+
+                log.info("test key is" + nfsConfig.nfsKey.length)
+            }
+            call.respond(HttpStatusCode.OK, "Hello World!")
+        }
+
+        get("/testsftp2_0") {
+            val log = LoggerFactory.getLogger("no.nav.emottak.smtp.sftp")
+            withContext(Dispatchers.IO) {
+                val privateKeyFile = "/var/run/secrets/privatekey"
+                val publicKeyFile = "/var/run/secrets/publickey"
+                log.info(String(FileInputStream(publicKeyFile).readAllBytes()))
+                // var privKey = """"""
+                // var pubkey = """"""
+
+                val jsch = JSch()
+                val knownHosts =
+                    "b27drvl011.preprod.local,10.183.32.98 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBPHicnwpAS9dsHTlMm2NSm9BSu0yvacXHNCjvcJpMH8MEbJWAZ1/2EhdWxkeXueMnIOKJhEwK02kZ7FFUbzzWms="
+                jsch.setKnownHosts(ByteArrayInputStream(knownHosts.toByteArray()))
+                val nfsConfig = NFSConfig()
+                // val privateKey = nfsConfig.nfsKey.toByteArray()
+                jsch.addIdentity(privateKeyFile, publicKeyFile, "cpatest".toByteArray())
+                // jsch.addIdentity("srvEmottakCPA",privKey.toByteArray(),pubkey.toByteArray(),"cpatest".toByteArray())
+                val session = jsch.getSession("srvEmottakCPA", "10.183.32.98", 22)
+                session.userInfo = DummyUserInfo()
+                session.connect()
+                val sftpChannel = session.openChannel("sftp") as ChannelSftp
+                sftpChannel.connect()
+                sftpChannel.cd("/outbound/cpa")
+                val folder: Vector<LsEntry> = sftpChannel.ls(".") as Vector<LsEntry>
+
+                val URL_CPA_REPO_BASE = getEnvVar("URL_CPA_REPO", "http://cpa-repo.team-emottak.svc.nais.local")
+                val URL_CPA_REPO_PUT = URL_CPA_REPO_BASE + "/cpa"
+
+                try {
+                    val client = HttpClient(CIO) {
+                        install(io.ktor.client.plugins.contentnegotiation.ContentNegotiation) {
+                            json()
+                        }
+                    }
+                    val cpaTimestamps =
+                        Json.decodeFromString<Map<String, String>>(
+                            client.get("$URL_CPA_REPO_BASE/cpa/timestamps")
+                                .bodyAsText()
+                        ).toMutableMap() // mappen tømmes ettersom entries behandles
+
+                    val timestampLatest =
+                        Json.decodeFromString<Instant>(
+                            client.get("$URL_CPA_REPO_BASE/cpa/timestamps/latest")
+                                .bodyAsText()
+                        )
+
+                    folder.filter {
+                        val lastModified = Date(it.attrs.mTime.toLong() * 1000).toInstant()
+                        lastModified.isAfter(timestampLatest) &&
+                            it.filename.endsWith(".xml")
+                    }.forEach {
+                        val lastModified = Date(it.attrs.mTime.toLong() * 1000).toInstant()
                         log.info("Fetching file ${it.filename}")
                         val getFile = sftpChannel.get(it.filename)
                         log.info("Uploading " + it.filename)
