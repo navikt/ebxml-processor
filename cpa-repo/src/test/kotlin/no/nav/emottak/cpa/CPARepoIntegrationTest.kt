@@ -8,6 +8,7 @@ import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
+import io.ktor.client.statement.readBytes
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
@@ -27,6 +28,10 @@ import java.time.temporal.ChronoUnit
 import kotlin.test.assertContains
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import no.nav.emottak.melding.model.Addressing
+import no.nav.emottak.melding.model.Party
+import no.nav.emottak.melding.model.PartyId
+import no.nav.emottak.melding.model.ValidationRequest
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class CPARepoIntegrationTest : DBTest() {
@@ -60,6 +65,30 @@ class CPARepoIntegrationTest : DBTest() {
         assertEquals(HttpStatusCode.OK, response.status)
         assertEquals("http://www.w3.org/2001/04/xmldsig-more#rsa-sha256", body.signatureAlgorithm)
         assertEquals("http://www.w3.org/2001/04/xmlenc#sha256", body.hashFunction)
+    }
+    @Test
+    fun `Test egenandelfritak partyTo PartyFrom resolve`() = cpaRepoTestApp{
+         val httpClient = createClient {
+            install(ContentNegotiation) {
+                json()
+            }
+        }
+
+        val validationRequest = ValidationRequest(
+            "e17eb03e-9e43-43fb-874c-1fde9a28c308",
+            "1234",
+            "nav:qass:31162",
+            Addressing(
+                Party(listOf(PartyId("HER","79768")),"Frikortregister"),
+                Party(listOf(PartyId("HER","8090595")),"Utleverer"),
+                "HarBorgerEgenandelFritak","EgenandelForesporsel")
+        )
+        val response = httpClient.post("/cpa/validate/121212") {
+            setBody(validationRequest)
+            contentType(ContentType.Application.Json)
+        }
+
+        println(String(response.readBytes()))
     }
 
     @Test
@@ -119,7 +148,7 @@ class CPARepoIntegrationTest : DBTest() {
                 header("upsert", true)
             }
             setBody(
-                xmlMarshaller.marshal(loadTestCPA())
+                xmlMarshaller.marshal(loadTestCPA("nav-qass-35065.xml"))
             )
         }
         // ingen header gir alle verdier
@@ -143,7 +172,7 @@ class CPARepoIntegrationTest : DBTest() {
                 header("upsert", true)
             }
             setBody(
-                xmlMarshaller.marshal(loadTestCPA())
+                xmlMarshaller.marshal(loadTestCPA("nav-qass-35065.xml"))
             )
         }
         val responseMedAlle = httpClient.get("/cpa/timestamps")
