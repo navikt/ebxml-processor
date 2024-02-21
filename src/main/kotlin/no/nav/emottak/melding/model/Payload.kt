@@ -21,6 +21,7 @@ data class SendInRequest(
 data class SendInResponse(
     val messageId: String,
     val conversationId: String,
+    val addressing: Addressing,
     val payload: ByteArray
 )
 @Serializable
@@ -85,7 +86,19 @@ data class ValidationResult(
 @Serializable
 data class PayloadProcessing(
     val signingCertificate: SignatureDetails,
-    val encryptionCertificate: ByteArray
+    val encryptionCertificate: ByteArray,
+    val processConfig: ProcessConfig? = null
+)
+
+@Serializable
+data class ProcessConfig(
+    val kryptering: Boolean,
+    val komprimering: Boolean,
+    val signering: Boolean,
+    val internformat: Boolean,
+    val validering: Boolean,
+    val adapter: String,
+    val apprec: Boolean, // Kan denne løsrives?
 )
 
 @Serializable
