@@ -7,6 +7,7 @@ import no.nav.emottak.ebms.model.EbmsAcknowledgment
 import no.nav.emottak.ebms.model.EbmsBaseMessage
 import no.nav.emottak.ebms.model.EbmsMessageError
 import no.nav.emottak.ebms.model.EbmsPayloadMessage
+import no.nav.emottak.melding.model.Direction
 import no.nav.emottak.melding.model.Header
 import no.nav.emottak.melding.model.Party
 import no.nav.emottak.melding.model.PartyId
@@ -26,6 +27,7 @@ class ProcessingService(val httpClient: PayloadProcessingClient) {
         val payload = payloads.first()
 
         val payloadRequest = PayloadRequest(
+            Direction.IN,
             messageId = messageHeader.messageData.messageId,
             conversationId = messageHeader.conversationId,
             processing = payloadProcessing,
