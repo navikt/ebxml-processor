@@ -1,5 +1,6 @@
 package no.nav.emottak.melding
 
+import no.nav.emottak.melding.model.Direction
 import no.nav.emottak.melding.model.Melding
 import no.nav.emottak.melding.model.PayloadRequest
 import no.nav.emottak.melding.model.PayloadResponse
@@ -19,36 +20,31 @@ internal val log = LoggerFactory.getLogger("no.nav.emottak.melding.Processor")
 class Processor {
 
     fun process(payloadRequest: PayloadRequest): PayloadResponse {
-        return if (payloadRequest.isIncomingMessage()) {
+        return if (payloadRequest.direction == Direction.IN) {
             processIncoming(payloadRequest)
-        } else {
+        } else if (payloadRequest.direction == Direction.OUT) {
             processOutgoing(payloadRequest)
+        } else {
+            throw RuntimeException("Direction can be either IN or Out")
         }
     }
 
     private fun processIncoming(payloadRequest: PayloadRequest): PayloadResponse {
+        val processedMessage = Melding(payloadRequest).processIn().processedPayload
         return PayloadResponse(
             payloadRequest.payloadId,
-            Melding(payloadRequest).processWithConfig().processedPayload
+            processedMessage
         )
     }
 
     fun processOutgoing(payloadRequest: PayloadRequest): PayloadResponse {
-        val melding = Melding(payloadRequest)
-            // .verifiserXML()
-            .signer()
-            .komprimer()
-            .krypter()
+        val processedMessage = Melding(payloadRequest).processOut().processedPayload
+
         return PayloadResponse(
             payloadRequest.payloadId,
-            melding.processedPayload
+            processedMessage
         )
     }
-}
-
-fun PayloadRequest.isIncomingMessage(): Boolean {
-    // TODO
-    return true
 }
 
 private val kryptering = Kryptering()
@@ -64,7 +60,7 @@ fun Melding.dekrypter(isBase64: Boolean = false): Melding {
     )
 }
 
-fun Melding.processWithConfig(): Melding {
+fun Melding.processIn(): Melding {
     var processed: Melding = this
     val config = this.payloadProcessing.processConfig
     if (config != null) {
@@ -78,12 +74,28 @@ fun Melding.processWithConfig(): Melding {
             processed = processed.verifiserSignatur()
         }
         return processed
+    } else {
+        throw RuntimeException("No processing information found for message")
     }
-    log.warn("No ProcessConfig found")
-    return this
-        .dekrypter()
-        .dekomprimer()
-        .verifiserSignatur()
+}
+
+fun Melding.processOut(): Melding {
+    var processed: Melding = this
+    val config = this.payloadProcessing.processConfig
+    if (config != null) {
+        if (config.kryptering) {
+            processed = processed.krypter()
+        }
+        if (config.komprimering) {
+            processed = processed.komprimer()
+        }
+        if (config.signering) {
+            processed = processed.signer()
+        }
+        return processed
+    } else {
+        throw RuntimeException("No processing information found for message")
+    }
 }
 
 fun Melding.signer(): Melding {
