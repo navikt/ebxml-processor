@@ -1,4 +1,4 @@
-package no.nav.emottak
+package no.nav.emottak.payload
 
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
@@ -12,13 +12,12 @@ import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
-import no.nav.emottak.melding.Processor
 import no.nav.emottak.melding.model.PayloadRequest
 import no.nav.emottak.util.marker
 import org.slf4j.LoggerFactory
 
 val processor = Processor()
-internal val log = LoggerFactory.getLogger("no.nav.emottak.payload.App")
+internal val log = LoggerFactory.getLogger("no.nav.emottak.payload")
 fun main() {
     embeddedServer(Netty, port = 8080) {
         serverSetup()

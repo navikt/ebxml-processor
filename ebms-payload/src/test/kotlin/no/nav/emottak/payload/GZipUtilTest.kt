@@ -1,6 +1,6 @@
-package no.nav.emottak.melding.process
+package no.nav.emottak.payload
 
-import no.nav.emottak.util.GZipUtil
+import no.nav.emottak.payload.util.GZipUtil
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test

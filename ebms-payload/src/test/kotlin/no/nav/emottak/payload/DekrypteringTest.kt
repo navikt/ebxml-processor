@@ -1,4 +1,4 @@
-package no.nav.emottak.melding.process
+package no.nav.emottak.payload
 
 import no.nav.emottak.util.crypto.Dekryptering
 import org.junit.jupiter.api.Assertions.assertTrue
