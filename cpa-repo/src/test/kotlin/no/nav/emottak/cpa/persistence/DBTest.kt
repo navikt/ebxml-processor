@@ -28,21 +28,25 @@ abstract class DBTest() {
         transaction(db.db) {
             tables.forEach { it.deleteAll() }
         }
+        val cpasToInsert = listOf("nav-qass-35065.xml", "nav-qass-31162.xml")
         transaction(db.db) {
-            CPA.insert {
-                val collaborationProtocolAgreement = loadTestCPA()
-                it[id] = collaborationProtocolAgreement.cpaid
-                it[cpa] = collaborationProtocolAgreement
-                it[updated_date] = DEFAULT_TIMESTAMP
-                it[entryCreated] = DEFAULT_TIMESTAMP
-                it[herId] = collaborationProtocolAgreement.getPartnerPartyIdByType(PartyTypeEnum.HER)?.value
+            cpasToInsert.forEach { cpaToInsert ->
+                CPA.insert {
+                    val collaborationProtocolAgreement = loadTestCPA(cpaToInsert)
+                    it[id] = collaborationProtocolAgreement.cpaid
+                    it[cpa] = collaborationProtocolAgreement
+                    it[updated_date] = DEFAULT_TIMESTAMP
+                    it[entryCreated] = DEFAULT_TIMESTAMP
+                    it[herId] = collaborationProtocolAgreement.getPartnerPartyIdByType(PartyTypeEnum.HER)?.value
+
+                }
             }
         }
         Thread.sleep(2000)
     }
 
-    fun loadTestCPA(): CollaborationProtocolAgreement {
-        val testCpaString = String(this::class.java.classLoader.getResource("cpa/nav-qass-35065.xml").readBytes())
+    fun loadTestCPA(cpaName: String): CollaborationProtocolAgreement {
+        val testCpaString = String(this::class.java.classLoader.getResource("cpa/$cpaName").readBytes())
         return xmlMarshaller.unmarshal(testCpaString, CollaborationProtocolAgreement::class.java)
     }
 }

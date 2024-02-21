@@ -1,0 +1,66 @@
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <soapenv:Header/>
+    <soapenv:Body>
+        <ns13:frikortsporringResponse xmlns:ns10="http://www.w3.org/2000/09/xmldsig#" xmlns:ns11="http://www.trygdeetaten.no/xml/eiff/1/" xmlns:ns12="http://www.kith.no/xmlstds/apprec/2004-11-21" xmlns:ns13="http://nav.no/tjeneste/ekstern/frikort/v1/types" xmlns:ns5="http://www.kith.no/xmlstds/msghead/2006-05-24" xmlns:ns6="http://www.kith.no/xmlstds/nav/egenandel/2010-02-01" xmlns:ns7="http://www.kith.no/xmlstds/nav/egenandelmengde/2010-10-06" xmlns:ns8="http://www.kith.no/xmlstds/nav/egenandel/2016-06-10" xmlns:ns9="http://www.kith.no/xmlstds/nav/egenandelmengde/2016-06-10">
+            <ns11:EI_fellesformat>
+                <ns5:MsgHead>
+                    <ns5:MsgInfo>
+                        <ns5:Type DN="Svar p&#229; foresp&#248;rsel om egenandel" V="EgenandelSvar"/>
+                        <ns5:MIGversion>v1.2 2006-05-24</ns5:MIGversion>
+                        <ns5:GenDate>2008-11-26T20:31:17.281+01:00</ns5:GenDate>
+                        <ns5:MsgId>a6665d17-1dbf-4e5d-8453-3e7f898a0785</ns5:MsgId>
+                        <ns5:Ack DN="Nei" V="N"/>
+                        <ns5:ConversationRef>
+                            <ns5:RefToParent>cc169595-bbf0-11dd-9ca9-117f241b4a68</ns5:RefToParent>
+                            <ns5:RefToConversation>cc169595-bbf0-11dd-9ca9-117f241b4a68</ns5:RefToConversation>
+                        </ns5:ConversationRef>
+                        <ns5:Sender>
+                            <ns5:Organisation>
+                                <ns5:OrganisationName>NAV</ns5:OrganisationName>
+                                <ns5:Ident>
+                                    <ns5:Id>889640782</ns5:Id>
+                                    <ns5:TypeId DN="Organisasjonsnummeret i Enhetsregisteret" S="2.16.578.1.12.4.1.1.9051" V="ENH"/>
+                                </ns5:Ident>
+                                <ns5:Ident>
+                                    <ns5:Id>79768</ns5:Id>
+                                    <ns5:TypeId DN="Identifikator fra Helsetjenesteenhetsregisteret (HER-id)" S="2.16.578.1.12.4.1.1.9051" V="HER"/>
+                                </ns5:Ident>
+                            </ns5:Organisation>
+                        </ns5:Sender>
+                        <ns5:Receiver>
+                            <ns5:Organisation>
+                                <ns5:OrganisationName>TESTORGNAME</ns5:OrganisationName>
+                                <ns5:Ident>
+                                    <ns5:Id>889640782</ns5:Id>
+                                    <ns5:TypeId DN="Organisasjonsnummeret i Enhetsregister" S="2.16.578.1.12.4.1.1.9051" V="ENH"/>
+                                </ns5:Ident>
+                                <ns5:HealthcareProfessional>
+                                    <ns5:FamilyName>Larsen</ns5:FamilyName>
+                                    <ns5:GivenName>Tore</ns5:GivenName>
+                                    <ns5:Ident>
+                                        <ns5:Id>12345678901</ns5:Id>
+                                        <ns5:TypeId DN="F&#248;dselsnummer" V="FNR"/>
+                                    </ns5:Ident>
+                                </ns5:HealthcareProfessional>
+                            </ns5:Organisation>
+                        </ns5:Receiver>
+                    </ns5:MsgInfo>
+                    <ns5:Document>
+                        <ns5:DocumentConnection DN="Hoveddokument" V="H"/>
+                        <ns5:RefDoc>
+                            <ns5:MsgType DN="XML-instans" V="XML"/>
+                            <ns5:MimeType>text/xml</ns5:MimeType>
+                            <ns5:Content>
+                                <ns8:EgenandelSvarV2>
+                                    <ns8:Status DN="Ingen data" V="0"/>
+                                    <ns8:Svarmelding>Informasjon om fritak fra egenandel er ikke tilgjengelig.</ns8:Svarmelding>
+                                </ns8:EgenandelSvarV2>
+                            </ns5:Content>
+                        </ns5:RefDoc>
+                    </ns5:Document>
+                </ns5:MsgHead>
+                <ns11:MottakenhetBlokk avsender="1234567890" avsenderFnrFraDigSignatur="01116449060" avsenderRef="00223456789" ebAction="Svar" ebRole="Frikortregister" ebService="HarBorgerFrikort" ediLoggId="Test-Nr:[SM13_29088942807]4" mottattDatotid="2013-08-01T11:27:31+02:00" partnerReferanse="1"/>
+            </ns11:EI_fellesformat>
+        </ns13:frikortsporringResponse>
+    </soapenv:Body>
+</soapenv:Envelope>

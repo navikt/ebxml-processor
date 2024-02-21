@@ -2,6 +2,7 @@ package no.nav.emottak.cpa.persistence
 
 import no.nav.emottak.constants.PartyTypeEnum
 import no.nav.emottak.cpa.getPartnerPartyIdByType
+import no.nav.emottak.melding.model.ProcessConfig
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.deleteAll
@@ -117,6 +118,28 @@ class CPARepository(val database: Database) {
                 it[CPA.cpa]
             }).mapValues {
                 it.value.first()
+            }
+        }
+    }
+
+    fun getProcessConfig(role: String, service: String, action: String): ProcessConfig? {
+        return transaction(database.db) {
+            ProcessConfigTable.select(
+                where = {
+                    ProcessConfigTable.role.eq(role)
+                    ProcessConfigTable.service.eq(service)
+                    ProcessConfigTable.action.eq(action)
+                }
+            ).firstOrNull()?.let {
+                ProcessConfig(
+                    it[ProcessConfigTable.kryptering],
+                    it[ProcessConfigTable.komprimering],
+                    it[ProcessConfigTable.signering],
+                    it[ProcessConfigTable.internformat],
+                    it[ProcessConfigTable.validering],
+                    it[ProcessConfigTable.adapter],
+                    it[ProcessConfigTable.apprec]
+                )
             }
         }
     }

@@ -1,0 +1,50 @@
+#@Serializable
+#data class ProcessConfig(
+#    val kryptering: Boolean,
+#    val komprimering: Boolean,
+#    val signering: Boolean,
+#    val internformat: Boolean,
+#    val validering: Boolean,
+#    val adapter: String,
+#    val apprec: Boolean, // Kan denne løsrives?
+#)
+
+processconfig:
+  role:
+    - Blabla
+  service:
+    - harBorgerFrikort
+    - urrudaudnasfbasfb
+  action:
+    - Hurrdurr
+  kryptering: true
+  komprimering: true
+  signering: true
+  internformat: true
+  validering: true
+  #adapter: egenandelLogg
+  apprec: true
+
+
+service:
+  role: "role"
+  action:
+    kryptering: true
+    komprimering: true
+    signering: true
+    internformat: true
+    validering: true
+    #adapter: egenandelLogg
+    apprec: true
+
+frikort:
+  role: "role"
+  service: "service"
+  action: "action"
+  kryptering: true
+  komprimering: true
+  signering: true
+  internformat: true
+  validering: true
+  #adapter: egenandelLogg
+  apprec: true

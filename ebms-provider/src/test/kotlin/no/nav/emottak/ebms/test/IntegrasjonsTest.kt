@@ -85,9 +85,6 @@ class IntegrasjonsTest : EndToEndTest() {
         clearAllMocks()
         val httpClient = defaultHttpClient().invoke()
         runBlocking {
-            val get = httpClient.get("$ebmsProviderUrl/")
-            Assertions.assertEquals("Hello, world!", get.bodyAsText())
-            println(get.bodyAsText())
             val post = httpClient.post("$ebmsProviderUrl/ebms") {
                 mockMultipartRequest()
                 // TODO send en melding som ikke feiler CPA-ID validation

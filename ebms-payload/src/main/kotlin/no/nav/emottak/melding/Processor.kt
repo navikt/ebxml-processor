@@ -27,14 +27,9 @@ class Processor {
     }
 
     private fun processIncoming(payloadRequest: PayloadRequest): PayloadResponse {
-        val melding = Melding(payloadRequest)
-            .dekrypter()
-            .dekomprimer()
-            // .verifiserXML()
-            .verifiserSignatur()
         return PayloadResponse(
             payloadRequest.payloadId,
-            melding.processedPayload
+            Melding(payloadRequest).processWithConfig().processedPayload
         )
     }
 
@@ -67,6 +62,28 @@ fun Melding.dekrypter(isBase64: Boolean = false): Melding {
         processedPayload = dekryptering.dekrypter(this.processedPayload, isBase64),
         dekryptert = true
     )
+}
+
+fun Melding.processWithConfig(): Melding {
+    var processed: Melding = this
+    val config = this.payloadProcessing.processConfig
+    if (config != null) {
+        if (config.kryptering) {
+            processed = processed.dekrypter()
+        }
+        if (config.komprimering) {
+            processed = processed.dekomprimer()
+        }
+        if (config.signering) {
+            processed = processed.verifiserSignatur()
+        }
+        return processed
+    }
+    log.warn("No ProcessConfig found")
+    return this
+        .dekrypter()
+        .dekomprimer()
+        .verifiserSignatur()
 }
 
 fun Melding.signer(): Melding {
@@ -102,6 +119,7 @@ fun Melding.verifiserSignatur(): Melding {
         signaturVerifisert = true
     )
 }
+
 fun Melding.krypter(): Melding {
     // @TODO log.info(this.header.marker(), "Krypterer melding")
     val gyldigSertifikat =

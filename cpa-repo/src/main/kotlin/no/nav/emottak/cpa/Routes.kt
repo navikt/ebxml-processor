@@ -146,7 +146,6 @@ fun Route.postCpa(cpaRepository: CPARepository) = post("/cpa") {
 fun Route.validateCpa(cpaRepository: CPARepository) = post("/cpa/validate/{$CONTENT_ID}") {
     val validateRequest = call.receive(ValidationRequest::class)
     try {
-//                val cpa = getCpa(validateRequest.cpaId)!!
         val cpa = cpaRepository.findCpa(validateRequest.cpaId) ?: throw NotFoundException("Fant ikke CPA")
         cpa.validate(validateRequest) // Delivery Filure
         val partyInfo = cpa.getPartyInfoByTypeAndID(validateRequest.addressing.from.partyId) // delivery Failure
@@ -162,10 +161,20 @@ fun Route.validateCpa(cpaRepository: CPARepository) = post("/cpa/validate/{$CONT
             log.warn(validateRequest.marker(), "Validation feilet i sertifikat sjekk", it)
             throw it
         }
-
         call.respond(
             HttpStatusCode.OK,
-            ValidationResult(EbmsProcessing(), PayloadProcessing(signingCertificate, encryptionCertificate))
+            ValidationResult(
+                EbmsProcessing(),
+                PayloadProcessing(
+                    signingCertificate,
+                    encryptionCertificate,
+                    cpaRepository.getProcessConfig(
+                        validateRequest.addressing.from.role,
+                        validateRequest.addressing.service,
+                        validateRequest.addressing.action
+                    )
+                )
+            )
         )
     } catch (ebmsEx: EbmsException) {
         log.warn(validateRequest.marker(), ebmsEx.message, ebmsEx)
