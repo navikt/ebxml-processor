@@ -101,7 +101,7 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
                     json()
                 }
                 routing {
-                    post("/fagmelding/sync") {
+                    post("/fagmelding/synkron") {
                         call.respond(
                             SendInResponse(
                                 "e17eb03e-9e43-43fb-874c-1fde9a28c308",

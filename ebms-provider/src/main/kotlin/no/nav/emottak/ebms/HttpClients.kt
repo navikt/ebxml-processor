@@ -41,7 +41,7 @@ class PayloadProcessingClient(clientProvider: () -> HttpClient) {
 
 class SendInClient(clientProvider: () -> HttpClient) {
     private var httpClient = clientProvider.invoke()
-    private val sendInEndpoint = getEnvVar("SEND_IN_URL", "http://ebms-send-in/fagmelding/sync")
+    private val sendInEndpoint = getEnvVar("SEND_IN_URL", "http://ebms-send-in/fagmelding/synkron")
 
     suspend fun postSendIn(sendInRequest: SendInRequest): SendInResponse {
         return httpClient.post(sendInEndpoint) {
