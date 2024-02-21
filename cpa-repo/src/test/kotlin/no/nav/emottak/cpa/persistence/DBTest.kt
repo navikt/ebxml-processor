@@ -38,7 +38,6 @@ abstract class DBTest() {
                     it[updated_date] = DEFAULT_TIMESTAMP
                     it[entryCreated] = DEFAULT_TIMESTAMP
                     it[herId] = collaborationProtocolAgreement.getPartnerPartyIdByType(PartyTypeEnum.HER)?.value
-
                 }
             }
         }

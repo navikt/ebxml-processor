@@ -38,6 +38,11 @@ suspend fun HttpClient.getCPATimestamps() =
         this.get(URL_CPA_REPO_TIMESTAMPS).bodyAsText()
     )
 
+suspend fun HttpClient.getLatestCPATimestamp() =
+    Json.decodeFromString<Instant>(
+        this.get("$URL_CPA_REPO_BASE/cpa/timestamps/latest").bodyAsText()
+    )
+
 suspend fun HttpClient.putCPAinCPARepo(cpaFile: String, lastModified: Instant) =
     this.post(URL_CPA_REPO_PUT) {
         headers {

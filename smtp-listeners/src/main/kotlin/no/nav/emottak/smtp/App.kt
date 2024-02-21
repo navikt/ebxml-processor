@@ -35,6 +35,8 @@ import kotlinx.serialization.json.Json
 import net.logstash.logback.marker.Markers
 import no.nav.emottak.deleteCPAinCPARepo
 import no.nav.emottak.getCPATimestamps
+import no.nav.emottak.getLatestCPATimestamp
+import no.nav.emottak.nfs.DummyUserInfo
 import no.nav.emottak.nfs.NFSConfig
 import no.nav.emottak.nfs.NFSConnector
 import no.nav.emottak.postEbmsMessageMultiPart
@@ -76,16 +78,12 @@ fun Application.myApplicationModule() {
                 val startTime = Instant.now()
                 runCatching {
                     val cpaTimestamps = httpClient.getCPATimestamps().toMutableMap() // mappen tømmes ettersom entries behandles
-                    val timestampLatest =
-                        Json.decodeFromString<Instant>(
-                            client.get("$URL_CPA_REPO_BASE/cpa/timestamps/latest")
-                                .bodyAsText()
-                        )
+                    val timestampLatest = httpClient.getLatestCPATimestamp()
                     NFSConnector().use { connector ->
                         connector.folder().filter {
                             val lastModified = Date(it.attrs.mTime.toLong() * 1000).toInstant()
                             lastModified.isAfter(timestampLatest) &&
-                                    it.filename.endsWith(".xml")
+                                it.filename.endsWith(".xml")
                         }.forEach { entry ->
                             val lastModified = Date(entry.attrs.mTime.toLong() * 1000).toInstant()
                             val filename = entry.filename
@@ -166,7 +164,7 @@ fun Application.myApplicationModule() {
                     folder.filter {
                         val lastModified = Date(it.attrs.mTime.toLong() * 1000).toInstant()
                         lastModified.isAfter(timestampLatest) &&
-                                it.filename.endsWith(".xml")
+                            it.filename.endsWith(".xml")
                     }.forEach {
                         val lastModified = Date(it.attrs.mTime.toLong() * 1000).toInstant()
                         log.info("Fetching file ${it.filename}")
