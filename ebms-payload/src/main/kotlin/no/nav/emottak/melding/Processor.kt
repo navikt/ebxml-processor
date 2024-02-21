@@ -65,25 +65,25 @@ fun Melding.dekrypter(isBase64: Boolean = false): Melding {
 }
 
 fun Melding.processWithConfig(): Melding {
+    var processed: Melding = this
     val config = this.payloadProcessing.processConfig
     if (config != null) {
         if (config.kryptering) {
-            dekrypter()
+            processed = processed.dekrypter()
         }
         if (config.komprimering) {
-            dekomprimer()
+            processed = processed.dekomprimer()
         }
         if (config.signering) {
-            verifiserSignatur()
+            processed = processed.verifiserSignatur()
         }
-    } else {
-        log.warn("No ProcessConfig found")
-        dekrypter()
-        dekomprimer()
-        // verifiserXML()
-        verifiserSignatur()
+        return processed
     }
+    log.warn("No ProcessConfig found")
     return this
+        .dekrypter()
+        .dekomprimer()
+        .verifiserSignatur()
 }
 
 fun Melding.signer(): Melding {
