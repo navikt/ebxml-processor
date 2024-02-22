@@ -95,6 +95,33 @@ class CPARepoIntegrationTest : DBTest() {
     }
 
     @Test
+    fun `Byt from og to - role service action matcher ikke`() = cpaRepoTestApp {
+        val httpClient = createClient {
+            install(ContentNegotiation) {
+                json()
+            }
+        }
+
+        val validationRequest = ValidationRequest(
+            "e17eb03e-9e43-43fb-874c-1fde9a28c308",
+            "1234",
+            "nav:qass:31162",
+            Addressing(
+                Party(listOf(PartyId("HER", "8090595")), "Utleverer"),
+                Party(listOf(PartyId("HER", "79768")), "Frikortregister"),
+                "HarBorgerEgenandelFritak",
+                "EgenandelForesporsel"
+            )
+        )
+        val response = httpClient.post("/cpa/validate/121212") {
+            setBody(validationRequest)
+            contentType(ContentType.Application.Json)
+        }
+
+        println(String(response.readBytes()))
+    }
+
+    @Test
     fun `Hent cpaId map`() = cpaRepoTestApp {
         val httpClient = createClient {
             install(ContentNegotiation) {
