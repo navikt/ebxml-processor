@@ -103,8 +103,8 @@ data class ProcessConfig(
     val signering: Boolean,
     val internformat: Boolean,
     val validering: Boolean,
-    val adapter: String,
     val apprec: Boolean, // Kan denne løsrives?
+    val adapter: String?,
 )
 
 @Serializable
