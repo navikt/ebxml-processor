@@ -42,9 +42,9 @@ fun partyInfoHasRoleServiceActionCombo(partyInfo: PartyInfo, role: String, servi
     } ?: throw CpaValidationException("Role og Service $role matcher ikke party info")
     when (direction) {
         MessageDirection.SEND -> partyWithRole.serviceBinding.canSend.firstOrNull { a -> a.thisPartyActionBinding.action == action }
-            ?: throw CpaValidationException("Role/Service/Action ${partyWithRole.role.name} $service  $action matcher ikke")
+            ?: throw CpaValidationException("Action $action matcher ikke service $service")
         MessageDirection.RECEIVE -> partyWithRole.serviceBinding.canReceive.firstOrNull { a -> a.thisPartyActionBinding.action == action }
-            ?: throw CpaValidationException("Role/Service/Action ${partyWithRole.role.name} $service  $action matcher ikke")
+            ?: throw CpaValidationException("Action $action matcher ikke service $service")
     }
 }
 
