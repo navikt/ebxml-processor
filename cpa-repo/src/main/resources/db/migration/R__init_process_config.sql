@@ -9,9 +9,8 @@ values ('Behandler',
         TRUE,
         TRUE,
            /* ADAPTER refererer til ekstra custom processering, nesten ingen flyter bruker det. */
-        'LoggEgenandel')
-insert into process_config
-values ('Utlever',
+        'LoggEgenandel'),
+    ('Utlever',
         'HarBorgerEgenandelFritak',
         'EgenandelForesporsel',
         false,
@@ -21,9 +20,8 @@ values ('Utlever',
         TRUE,
         TRUE,
            /* ADAPTER refererer til ekstra custom processering, nesten ingen flyter bruker det. */
-        'LoggEgenandel')
-insert into process_config
-values ('Frikortregister',
+        'LoggEgenandel'),
+    ('Frikortregister',
         'HarBorgerEgenandelFritak',
         'Svar',
         false,
@@ -33,9 +31,8 @@ values ('Frikortregister',
         false,
         false,
            /* ADAPTER refererer til ekstra custom processering, nesten ingen flyter bruker det. */
-        null)
-insert into process_config
-values ('Frikortregister',
+        null),
+    ('Frikortregister',
         'HarBorgerEgenandelFritak',
         'Avvisning',
         false,

@@ -1,8 +1,6 @@
 package no.nav.emottak.payload
 
-import no.nav.emottak.melding.feil.EbmsException
 import no.nav.emottak.melding.model.Direction
-import no.nav.emottak.melding.model.ErrorCode
 import no.nav.emottak.melding.model.PayloadRequest
 import no.nav.emottak.melding.model.PayloadResponse
 import no.nav.emottak.payload.util.GZipUtil
