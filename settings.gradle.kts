@@ -47,6 +47,7 @@ dependencyResolutionManagement {
             library("labai-jsr305x-annotations", "com.github.labai:labai-jsr305x-annotations:0.0.2")
             library("jakarta.xml.bind-api", "jakarta.xml.bind:jakarta.xml.bind-api:4.0.0")
             library("ebxml-protokoll", "no.nav.emottak:ebxml-protokoll:0.0.6")
+            library("token-validation-ktor-v2", "no.nav.security:token-validation-ktor-v2:3.0.0-SNAPSHOT")
             library("flyway-core", "org.flywaydb:flyway-core:9.16.3")
             library("emottak-payload-xsd", "no.nav.emottak:emottak-payload-xsd:0.0.2")
             library("jaxb-runtime", "org.glassfish.jaxb:jaxb-runtime:2.4.0-b180830.0438")
@@ -113,6 +114,14 @@ dependencyResolutionManagement {
         maven {
             name = "Emottak payload format"
             url = uri("https://maven.pkg.github.com/navikt/emottak-payload-xsd")
+            credentials {
+                username = "token"
+                password = System.getenv("GITHUB_TOKEN")
+            }
+        }
+        maven {
+            name = "Nav token-support"
+            url = uri("https://maven.pkg.github.com/navikt/token-support")
             credentials {
                 username = "token"
                 password = System.getenv("GITHUB_TOKEN")

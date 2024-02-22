@@ -62,6 +62,7 @@ dependencies {
     implementation(libs.ebxml.protokoll)
     implementation(libs.emottak.payload.xsd)
     implementation(libs.jaxb.runtime)
+    implementation(libs.token.validation.ktor.v2)
     implementation("io.ktor:ktor-client-cio-jvm:2.3.4")
     implementation(libs.bundles.cxf)
     testImplementation(testLibs.ktor.server.test.host)
