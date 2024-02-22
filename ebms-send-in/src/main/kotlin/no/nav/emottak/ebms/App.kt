@@ -1,10 +1,13 @@
 package no.nav.emottak.ebms
 
 import io.ktor.http.HttpStatusCode
+import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.call
+import io.ktor.server.application.install
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
+import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
@@ -35,6 +38,9 @@ fun main() {
 }
 
 fun Application.ebmsSendInModule() {
+    install(ContentNegotiation) {
+        json()
+    }
     routing {
         get("/testFrikortEndepunkt") {
             val testCpaString = String(this::class.java.classLoader.getResource("frikortRequest.xml")!!.readBytes())
@@ -52,7 +58,7 @@ fun Application.ebmsSendInModule() {
                 frikortsporring(wrapMessageInEIFellesFormat(request))
             }.onSuccess {
                 log.info(request.marker(), "Payload ${request.payloadId} videresendt til fagsystem")
-                call.respond(SendInResponse(request.messageId, request.conversationId, it.eiFellesformat.addressing(), marshal(it.eiFellesformat.msgHead).toByteArray()))
+                call.respond(SendInResponse(request.messageId, request.conversationId, it.eiFellesformat.addressing(request.addressing.from), marshal(it.eiFellesformat.msgHead).toByteArray()))
             }.onFailure {
                 log.error(request.marker(), "Payload ${request.payloadId} videresending feilet", it)
                 call.respond(HttpStatusCode.BadRequest, it.localizedMessage)

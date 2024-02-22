@@ -7,13 +7,16 @@ import no.nav.emottak.ebms.model.EbmsAcknowledgment
 import no.nav.emottak.ebms.model.EbmsBaseMessage
 import no.nav.emottak.ebms.model.EbmsMessageError
 import no.nav.emottak.ebms.model.EbmsPayloadMessage
+import no.nav.emottak.melding.model.Direction
 import no.nav.emottak.melding.model.Header
 import no.nav.emottak.melding.model.Party
 import no.nav.emottak.melding.model.PartyId
 import no.nav.emottak.melding.model.PayloadProcessing
 import no.nav.emottak.melding.model.PayloadRequest
 import no.nav.emottak.melding.model.PayloadResponse
+import no.nav.emottak.melding.model.SendInResponse
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
+import java.util.UUID
 
 class ProcessingService(val httpClient: PayloadProcessingClient) {
 
@@ -26,6 +29,7 @@ class ProcessingService(val httpClient: PayloadProcessingClient) {
         val payload = payloads.first()
 
         val payloadRequest = PayloadRequest(
+            Direction.IN,
             messageId = messageHeader.messageData.messageId,
             conversationId = messageHeader.conversationId,
             processing = payloadProcessing,
@@ -47,6 +51,21 @@ class ProcessingService(val httpClient: PayloadProcessingClient) {
     fun processSync(message: EbmsBaseMessage, payloadProcessing: PayloadProcessing?): PayloadResponse {
         if (payloadProcessing == null) throw Exception("Processing information is missing for ${message.messageHeader.messageData.messageId}")
         return payloadMessage(message as EbmsPayloadMessage, payloadProcessing!!)
+    }
+
+    fun proccessSyncOut(sendInResponse: SendInResponse, processing: PayloadProcessing): PayloadResponse {
+        val payloadRequest = PayloadRequest(
+            Direction.IN,
+            messageId = sendInResponse.messageId,
+            conversationId = sendInResponse.conversationId,
+            processing = processing,
+            payloadId = UUID.randomUUID().toString(),
+            payload = sendInResponse.payload
+        )
+        // TODO do something with the response?
+        return runBlocking {
+            httpClient.postPayloadRequest(payloadRequest)
+        }
     }
 
     fun processAsync(message: EbmsBaseMessage, payloadProcessing: PayloadProcessing?) {

@@ -15,13 +15,13 @@ import javax.xml.datatype.XMLGregorianCalendar
 
 private val fellesFormatFactory = ObjectFactory()
 
-fun EIFellesformat.addressing(): Addressing {
+fun EIFellesformat.addressing(toParty: Party): Addressing {
     val sender = this.msgHead.msgInfo.sender
     val reciever = this.msgHead.msgInfo.receiver
     val fromList = sender.organisation.ident.map { PartyId(it.typeId.v, it.id) }.toList()
     val partyFrom = Party(fromList, this.mottakenhetBlokk.ebRole)
     val toList = reciever.organisation.ident.map { PartyId(it.typeId.v, it.id) }.toList()
-    val partyTo = Party(toList, this.mottakenhetBlokk.ebRole)
+    val partyTo = Party(toList, toParty.role)
     return Addressing(partyTo, partyFrom, this.mottakenhetBlokk.ebService, this.mottakenhetBlokk.ebAction)
 }
 

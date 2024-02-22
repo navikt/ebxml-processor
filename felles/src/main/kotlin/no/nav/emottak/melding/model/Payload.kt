@@ -24,8 +24,14 @@ data class SendInResponse(
     val addressing: Addressing,
     val payload: ByteArray
 )
+
+@Serializable
+enum class Direction(val str:String) {
+    IN("in"), OUT("out")
+}
 @Serializable
 data class PayloadRequest(
+    val direction: Direction,
     val messageId: String,
     val conversationId: String,
     val payloadId: String,

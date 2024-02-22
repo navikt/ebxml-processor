@@ -1,4 +1,4 @@
-package no.nav.emottak
+package no.nav.emottak.payload
 
 import io.ktor.http.ContentType
 import io.ktor.server.application.call

@@ -54,6 +54,9 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
             every {
                 processingService.processSync(any(), any())
             } returns PayloadResponse("1234", ByteArray(0))
+            every {
+                processingService.proccessSyncOut(any(), any())
+            } returns PayloadResponse("1234", ByteArray(0))
             routing {
                 postEbmsSyc(dokumentValidator, processingService, SendInService(sendInClient))
                 postEbmsAsync(dokumentValidator, processingService)

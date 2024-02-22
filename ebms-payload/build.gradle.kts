@@ -53,7 +53,7 @@ dependencies {
 }
 
 application {
-    mainClass.set("no.nav.emottak.AppKt")
+    mainClass.set("no.nav.emottak.payload.AppKt")
 }
 kotlin {
     jvmToolchain(17)
