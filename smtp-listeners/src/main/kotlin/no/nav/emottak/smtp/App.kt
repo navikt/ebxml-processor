@@ -1,17 +1,8 @@
 package no.nav.emottak.smtp
 
-import com.jcraft.jsch.ChannelSftp
-import com.jcraft.jsch.JSch
 import com.jcraft.jsch.SftpException
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
-import io.ktor.client.request.delete
-import io.ktor.client.request.get
-import io.ktor.client.request.header
-import io.ktor.client.request.headers
-import io.ktor.client.request.post
-import io.ktor.client.request.setBody
-import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
@@ -31,25 +22,18 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.Json
 import net.logstash.logback.marker.Markers
 import no.nav.emottak.deleteCPAinCPARepo
 import no.nav.emottak.getCPATimestamps
-import no.nav.emottak.getLatestCPATimestamp
-import no.nav.emottak.nfs.DummyUserInfo
-import no.nav.emottak.nfs.NFSConfig
 import no.nav.emottak.nfs.NFSConnector
 import no.nav.emottak.postEbmsMessageMultiPart
 import no.nav.emottak.postEbmsMessageSinglePart
 import no.nav.emottak.putCPAinCPARepo
 import org.eclipse.angus.mail.imap.IMAPFolder
 import org.slf4j.LoggerFactory
-import java.io.ByteArrayInputStream
-import java.io.FileInputStream
 import java.time.Duration
 import java.time.Instant
 import java.util.Date
-import java.util.Vector
 import kotlin.time.toKotlinDuration
 
 fun main() {
@@ -78,15 +62,37 @@ fun Application.myApplicationModule() {
                 val startTime = Instant.now()
                 runCatching {
                     val cpaTimestamps = httpClient.getCPATimestamps().toMutableMap() // mappen tømmes ettersom entries behandles
-                    val timestampLatest = httpClient.getLatestCPATimestamp()
                     NFSConnector().use { connector ->
-                        connector.folder().filter {
-                            val lastModified = Date(it.attrs.mTime.toLong() * 1000).toInstant()
-                            lastModified.isAfter(timestampLatest) &&
-                                it.filename.endsWith(".xml")
-                        }.forEach { entry ->
-                            val lastModified = Date(entry.attrs.mTime.toLong() * 1000).toInstant()
+                        connector.folder().forEach { entry ->
                             val filename = entry.filename
+                            log.info("Checking $filename...")
+                            if (!filename.endsWith(".xml")) {
+                                log.warn(entry.filename + " is ignored")
+                                return@forEach
+                            }
+                            val lastModified = Date(entry.attrs.mTime.toLong() * 1000).toInstant()
+                            // Fjerner cpaId matches fra timestamp listen og skipper hvis nyere eksisterer
+                            // Todo refactor. Too "kotlinesque":
+                            with(ArrayList<String>()) {
+                                cpaTimestamps.filter { cpaTimestamp ->
+                                    cpaTimestamp.key
+                                        .let { cpaId ->
+                                            return@let if (filename.contains(cpaId.replace(":", "."))) {
+                                                log.info("$filename already exists")
+                                                add(cpaId)
+                                                true
+                                            } else {
+                                                false
+                                            }
+                                        } && Instant.parse(cpaTimestamp.value).isAfter(lastModified.minusSeconds(2)) // Litt løs sjekk siden ikke alle systemer har samme millisec presisjon
+                                }.let { matches ->
+                                    forEach { cpaTimestamps.remove(it) }
+                                    if (matches.any()) {
+                                        log.info("Newer version already exists $filename, skipping...")
+                                        return@forEach
+                                    }
+                                }
+                            }
                             runCatching {
                                 log.info("Fetching file $filename")
                                 val cpaFile = connector.file(filename).use {
@@ -111,94 +117,6 @@ fun Application.myApplicationModule() {
                 }.onSuccess {
                     log.info("CPA synchronization completed in ${Duration.between(startTime, Instant.now()).toKotlinDuration()}")
                 }
-            }
-            call.respond(HttpStatusCode.OK, "Hello World!")
-        }
-
-        get("/testsftp2_0") {
-            val log = LoggerFactory.getLogger("no.nav.emottak.smtp.sftp")
-            withContext(Dispatchers.IO) {
-                val privateKeyFile = "/var/run/secrets/privatekey"
-                val publicKeyFile = "/var/run/secrets/publickey"
-                log.info(String(FileInputStream(publicKeyFile).readAllBytes()))
-                // var privKey = """"""
-                // var pubkey = """"""
-
-                val jsch = JSch()
-                val knownHosts =
-                    "b27drvl011.preprod.local,10.183.32.98 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBPHicnwpAS9dsHTlMm2NSm9BSu0yvacXHNCjvcJpMH8MEbJWAZ1/2EhdWxkeXueMnIOKJhEwK02kZ7FFUbzzWms="
-                jsch.setKnownHosts(ByteArrayInputStream(knownHosts.toByteArray()))
-                val nfsConfig = NFSConfig()
-                // val privateKey = nfsConfig.nfsKey.toByteArray()
-                jsch.addIdentity(privateKeyFile, publicKeyFile, "cpatest".toByteArray())
-                // jsch.addIdentity("srvEmottakCPA",privKey.toByteArray(),pubkey.toByteArray(),"cpatest".toByteArray())
-                val session = jsch.getSession("srvEmottakCPA", "10.183.32.98", 22)
-                session.userInfo = DummyUserInfo()
-                session.connect()
-                val sftpChannel = session.openChannel("sftp") as ChannelSftp
-                sftpChannel.connect()
-                sftpChannel.cd("/outbound/cpa")
-                val folder: Vector<ChannelSftp.LsEntry> = sftpChannel.ls(".") as Vector<ChannelSftp.LsEntry>
-
-                val URL_CPA_REPO_BASE = getEnvVar("URL_CPA_REPO", "http://cpa-repo.team-emottak.svc.nais.local")
-                val URL_CPA_REPO_PUT = URL_CPA_REPO_BASE + "/cpa"
-
-                try {
-                    val client = HttpClient(CIO) {
-                        install(io.ktor.client.plugins.contentnegotiation.ContentNegotiation) {
-                            json()
-                        }
-                    }
-                    val cpaTimestamps =
-                        Json.decodeFromString<Map<String, String>>(
-                            client.get("$URL_CPA_REPO_BASE/cpa/timestamps")
-                                .bodyAsText()
-                        ).toMutableMap() // mappen tømmes ettersom entries behandles
-
-                    val timestampLatest =
-                        Json.decodeFromString<Instant>(
-                            client.get("$URL_CPA_REPO_BASE/cpa/timestamps/latest")
-                                .bodyAsText()
-                        )
-
-                    folder.filter {
-                        val lastModified = Date(it.attrs.mTime.toLong() * 1000).toInstant()
-                        lastModified.isAfter(timestampLatest) &&
-                            it.filename.endsWith(".xml")
-                    }.forEach {
-                        val lastModified = Date(it.attrs.mTime.toLong() * 1000).toInstant()
-                        log.info("Fetching file ${it.filename}")
-                        val getFile = sftpChannel.get(it.filename)
-                        log.info("Uploading " + it.filename)
-                        val cpaFile = String(getFile.readAllBytes())
-                        log.info("Length ${cpaFile.length}")
-                        getFile.close()
-                        try {
-                            client.post(URL_CPA_REPO_PUT) {
-                                headers {
-                                    header("updated_date", lastModified.toString())
-                                    header("upsert", "true") // Upsert kan nok alltid brukes (?)
-                                }
-                                setBody(cpaFile)
-                            }
-                        } catch (e: Exception) {
-                            log.error("Error uploading ${it.filename} to cpa-repo: ${e.message}", e)
-                        }
-                    }
-                    // Any remaining timestamps means they exist in DB, but not in disk and should be cleaned
-                    cpaTimestamps.forEach { (cpaId) ->
-                        client.delete("$URL_CPA_REPO_BASE/cpa/delete/$cpaId")
-                    }
-                } catch (e: Exception) {
-                    if (e is SftpException) {
-                        log.error("SftpException ID: [${e.id}]")
-                    }
-                    log.error(e.message, e)
-                }
-                sftpChannel.disconnect()
-                session.disconnect()
-
-                log.info("test key is" + nfsConfig.nfsKey.length)
             }
             call.respond(HttpStatusCode.OK, "Hello World!")
         }
