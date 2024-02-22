@@ -50,8 +50,8 @@ abstract class EbmsRoutFellesIT(val endpoint: String) {
         true,
         true,
         true,
-        "HarBorgerFrikort",
-        true
+        true,
+        "HarBorgerFrikort"
     )
 
     fun <T> validationTestApp(testBlock: suspend ApplicationTestBuilder.() -> T) = testApplication {
