@@ -121,8 +121,8 @@ class CPARepository(val database: Database) {
                     it[ProcessConfigTable.signering],
                     it[ProcessConfigTable.internformat],
                     it[ProcessConfigTable.validering],
-                    it[ProcessConfigTable.adapter],
-                    it[ProcessConfigTable.apprec]
+                    it[ProcessConfigTable.apprec],
+                    it[ProcessConfigTable.adapter]
                 )
             }
         }

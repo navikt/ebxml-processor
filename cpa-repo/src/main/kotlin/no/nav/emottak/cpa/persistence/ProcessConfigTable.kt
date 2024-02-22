@@ -12,7 +12,7 @@ object ProcessConfigTable : Table("process_config") {
     val signering: Column<Boolean> = bool("signering")
     val internformat: Column<Boolean> = bool("internformat")
     val validering: Column<Boolean> = bool("validering")
-    val adapter: Column<String> = varchar("adapter", 50)
+    val adapter: Column<String?> = varchar("adapter", 50).nullable()
     val apprec: Column<Boolean> = bool("apprec")
     val pk = PrimaryKey(role, service, action)
 }
