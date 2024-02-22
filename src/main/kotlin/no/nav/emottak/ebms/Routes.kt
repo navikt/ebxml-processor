@@ -108,7 +108,7 @@ fun Route.postEbmsSyc(validator: DokumentValidator, processingService: Processin
     }
 
     val sendInResponse = sendInService.sendIn(message as EbmsPayloadMessage, message.messageHeader.addressing(), validationResult.ebmsProcessing!!, payloadResponse!!.processedPayload)
-    val validationRequest = ValidationRequest(UUID.randomUUID().toString(), sendInResponse.conversationId,message.messageHeader.cpaId, sendInResponse.addressing)
+    val validationRequest = ValidationRequest(UUID.randomUUID().toString(), sendInResponse.conversationId, message.messageHeader.cpaId, sendInResponse.addressing)
     println("Validation request is: " + Json.encodeToString(ValidationRequest.serializer(), validationRequest))
     val validateResult = validator.validateOut(UUID.randomUUID().toString(), validationRequest)
     val processingResponse = processingService.proccessSyncOut(sendInResponse, validationResult.payloadProcessing!!)
