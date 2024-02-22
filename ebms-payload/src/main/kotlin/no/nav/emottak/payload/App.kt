@@ -12,7 +12,10 @@ import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
+import no.nav.emottak.melding.model.ErrorCode
+import no.nav.emottak.melding.model.Feil
 import no.nav.emottak.melding.model.PayloadRequest
+import no.nav.emottak.melding.model.PayloadResponse
 import no.nav.emottak.util.marker
 import org.slf4j.LoggerFactory
 
@@ -40,8 +43,13 @@ private fun Application.serverSetup() {
                 log.info(request.marker(), "Payload ${request.payloadId} prosessert OK")
                 call.respond(it)
             }.onFailure {
+                val response = PayloadResponse(
+                    payloadId = request.payloadId,
+                    processedPayload = request.payload,
+                    error = Feil(ErrorCode.UNKNOWN, it.localizedMessage, "Error")
+                )
                 log.error(request.marker(), "Payload ${request.payloadId} prosessert med feil: ${it.message}", it)
-                call.respond(HttpStatusCode.BadRequest, it.localizedMessage)
+                call.respond(HttpStatusCode.BadRequest, response)
             }
         }
     }
