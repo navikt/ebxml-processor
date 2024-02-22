@@ -110,7 +110,7 @@ fun Route.postEbmsSyc(validator: DokumentValidator, processingService: Processin
     val sendInResponse = sendInService.sendIn(message as EbmsPayloadMessage, message.messageHeader.addressing(), validationResult.ebmsProcessing!!, payloadResponse!!.processedPayload)
     val validateResult = validator.validateOut(UUID.randomUUID().toString(), ValidationRequest(UUID.randomUUID().toString(), message.messageHeader.cpaId, sendInResponse.conversationId, sendInResponse.addressing))
     val processingResponse = processingService.proccessSyncOut(sendInResponse, validationResult.payloadProcessing!!)
-    println("Send in response: " + Json.encodeToString(SendInResponse.serializer(),sendInResponse) )
+    println("Send in response: " + Json.encodeToString(SendInResponse.serializer(), sendInResponse))
     println("not processed message" + Json.encodeToString(ValidationResult.serializer(), validateResult))
     println("Processed message" + String(processingResponse.processedPayload))
     this.call.respondText(String(sendInResponse.payload))
