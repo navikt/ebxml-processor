@@ -15,7 +15,7 @@ class DekrypteringProcessor(override val ebMSMessage: EbmsPayloadMessage) : Proc
         try {
             ebMSMessage.attachments.forEach {
                 payloadReference = it.contentId
-                dekryptering.dekrypter(it.dataSource, false)
+                dekryptering.dekrypter(it.payload, false)
             }
         } catch (e: DecryptionException) {
             log.error(ebMSMessage.messageHeader.marker(), "Feil ved dekryptering av payload $payloadReference", e)
