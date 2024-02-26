@@ -5,11 +5,15 @@ import kotlinx.coroutines.runBlocking
 import no.nav.emottak.ebms.EbmsMessage
 import no.nav.emottak.ebms.PayloadMessage
 import no.nav.emottak.ebms.PayloadProcessingClient
+import no.nav.emottak.ebms.logger
 import no.nav.emottak.ebms.model.EbmsAcknowledgment
 import no.nav.emottak.ebms.model.EbmsBaseMessage
 import no.nav.emottak.ebms.model.EbmsMessageError
 import no.nav.emottak.ebms.model.EbmsPayloadMessage
+import no.nav.emottak.melding.feil.EbmsException
 import no.nav.emottak.melding.model.Direction
+import no.nav.emottak.melding.model.ErrorCode
+import no.nav.emottak.melding.model.Feil
 import no.nav.emottak.melding.model.Header
 import no.nav.emottak.melding.model.Party
 import no.nav.emottak.melding.model.PartyId
@@ -46,22 +50,35 @@ class ProcessingService(val httpClient: PayloadProcessingClient) {
 
     private fun payloadMessage2(
         payloadMessage: PayloadMessage,
-        payloadProcessing: PayloadProcessing
-    ): PayloadResponse {
-        val payload = payloadMessage.payload
-
-        val payloadRequest = PayloadRequest(
-            Direction.IN,
+        payloadProcessing: PayloadProcessing,direction: Direction
+    ): EbmsMessage {
+        return runCatching {
+             val payloadRequest = PayloadRequest(
+            Direction.OUT,
             messageId = payloadMessage.messageId,
             conversationId = payloadMessage.conversationId,
             processing = payloadProcessing,
-            payloadId = payload.contentId,
-            payload = payload.payload
+            payloadId = UUID.randomUUID().toString(),
+            payload = payloadMessage.payload.payload
         )
         // TODO do something with the response?
-        return runBlocking {
-            httpClient.postPayloadRequest(payloadRequest)
-        }
+            runBlocking {
+                httpClient.postPayloadRequest(payloadRequest)
+            }
+        }.onFailure {
+            if (it is EbmsException) {
+                logger().error("Processing failed: ${it.message}", it)
+                return payloadMessage
+                    .createFail(listOf(Feil(it.errorCode, it.errorCode.description)))
+            } else {
+                logger().error("Processing failed: ${it.message}", it)
+                return payloadMessage.createFail(listOf(Feil(ErrorCode.UNKNOWN, "Processing failed: ${it.message}")))
+            }
+        }.map { payloadResponse ->
+            if (payloadResponse.error != null) payloadMessage.createFail(listOf(payloadResponse.error!!))
+            else
+                payloadMessage.copy(payload = payloadMessage.payload.copy(payload = payloadResponse.processedPayload))
+        }.getOrThrow()
     }
 
     private fun acknowledgment(acknowledgment: EbmsAcknowledgment) {
@@ -75,9 +92,10 @@ class ProcessingService(val httpClient: PayloadProcessingClient) {
         return payloadMessage(message as EbmsPayloadMessage, payloadProcessing!!)
     }
 
-    fun processSync2(message: PayloadMessage): PayloadResponse {
-        if (message.payloadProcessing == null ) throw Exception("Processing information is missing for ${message.messageId}")
-        return payloadMessage2(message,message.payloadProcessing!! )
+    fun processSyncIn2(message: PayloadMessage, payloadProcessing: PayloadProcessing?): EbmsMessage {
+        if (payloadProcessing == null) throw Exception("Processing information is missing for ${message.messageId}")
+        return payloadMessage2(message, payloadProcessing,Direction.IN)
+
     }
 
     fun proccessSyncOut(sendInResponse: SendInResponse, processing: PayloadProcessing): PayloadResponse {
@@ -95,19 +113,9 @@ class ProcessingService(val httpClient: PayloadProcessingClient) {
         }
     }
 
-    fun proccessSyncOut(payloadMessage: PayloadMessage,processing: PayloadProcessing): PayloadResponse {
-        val payloadRequest = PayloadRequest(
-            Direction.OUT,
-            messageId = payloadMessage.messageId,
-            conversationId = payloadMessage.conversationId,
-            processing = processing,
-            payloadId = UUID.randomUUID().toString(),
-            payload = payloadMessage.payload.payload
-        )
-        // TODO do something with the response?
-        return runBlocking {
-            httpClient.postPayloadRequest(payloadRequest)
-        }
+    fun proccessSyncOut(payloadMessage: PayloadMessage,payloadProcessing: PayloadProcessing?): EbmsMessage {
+        if (payloadProcessing == null) throw Exception("Processing information is missing for ${payloadMessage.messageId}")
+        return payloadMessage2(payloadMessage,payloadProcessing,Direction.OUT)
     }
 
     fun processAsync(message: EbmsBaseMessage, payloadProcessing: PayloadProcessing?) {
