@@ -7,6 +7,7 @@ import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import io.mockk.coEvery
 import io.mockk.mockk
+import no.nav.emottak.cpa.decodeBase64Mime
 import no.nav.emottak.ebms.CpaRepoClient
 import no.nav.emottak.ebms.asHttpRequest
 import no.nav.emottak.ebms.ebxml.errorList
@@ -66,6 +67,8 @@ class MimeValidationIT {
             }
         )
         response = client.post("/ebms", wrongHeader.asHttpRequest())
+        val responseText = response.bodyAsText()
+        println(responseText.decodeBase64Mime())
         envelope = xmlMarshaller.unmarshal(response.bodyAsText(), Envelope::class.java)
         with(envelope.assertFaultAndGet()) {
             assertEquals(
@@ -100,7 +103,7 @@ class MimeValidationIT {
         } returns validationResult
 
         val response = client.post("/ebms", validMultipartRequest.asHttpRequest())
-        val envelope = xmlMarshaller.unmarshal(response.bodyAsText(), Envelope::class.java)
+        val envelope = xmlMarshaller.unmarshal(response.bodyAsText().decodeBase64Mime(), Envelope::class.java)
         with(envelope.assertErrorAndGet().error.first()) {
             assertEquals("Signature Fail", this.description?.value)
             assertEquals(ErrorCode.SECURITY_FAILURE.value, this.errorCode)
@@ -115,7 +118,7 @@ class MimeValidationIT {
         } returns validationResult
 
         val response = client.post("/ebms", validMultipartRequest.asHttpRequest())
-        val envelope = xmlMarshaller.unmarshal(response.bodyAsText(), Envelope::class.java)
+        val envelope = xmlMarshaller.unmarshal(response.bodyAsText().decodeBase64Mime(), Envelope::class.java)
         with(envelope.assertErrorAndGet().error.first()) {
             assertEquals("Signature Fail", this.description?.value)
             assertEquals(

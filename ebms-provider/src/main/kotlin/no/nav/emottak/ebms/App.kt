@@ -211,10 +211,6 @@ private fun String.convertToValidatedContentID(): String {
 }
 
 suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbMSDocument) {
-    val payload = ebmsDokument
-        .dokument
-        .asString()
-    //  .encodeBase64()
     if (ebmsDokument.dokumentType() == DokumentType.ACKNOWLEDGMENT) {
         log.info("Successfuly processed Payload Message")
     }
