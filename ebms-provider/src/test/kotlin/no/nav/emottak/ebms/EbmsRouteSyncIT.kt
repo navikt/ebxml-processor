@@ -2,6 +2,7 @@ package no.nav.emottak.ebms
 
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.post
+import io.ktor.client.statement.bodyAsText
 import io.ktor.client.statement.readBytes
 import io.ktor.http.Headers
 import io.ktor.http.HttpStatusCode

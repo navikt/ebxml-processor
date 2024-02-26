@@ -19,15 +19,23 @@ import no.nav.emottak.constants.EbXMLConstants.EBMS_SERVICE_URI
 import no.nav.emottak.constants.EbXMLConstants.MESSAGE_ERROR_ACTION
 import no.nav.emottak.constants.EbXMLConstants.OASIS_EBXML_MSG_HEADER_TAG
 import no.nav.emottak.constants.EbXMLConstants.OASIS_EBXML_MSG_HEADER_XSD_NS_URI
+import no.nav.emottak.ebms.Acknowledgment
+import no.nav.emottak.ebms.EbmsFail
+import no.nav.emottak.ebms.EbmsMessage
+import no.nav.emottak.ebms.PayloadMessage
 import no.nav.emottak.ebms.ebxml.ackRequested
 import no.nav.emottak.ebms.ebxml.acknowledgment
+import no.nav.emottak.ebms.ebxml.addressing
 import no.nav.emottak.ebms.ebxml.createResponseHeader
 import no.nav.emottak.ebms.ebxml.errorList
 import no.nav.emottak.ebms.ebxml.messageHeader
 import no.nav.emottak.ebms.validation.SignaturValidator
 import no.nav.emottak.ebms.xml.ebMSSigning
 import no.nav.emottak.ebms.xml.xmlMarshaller
+import no.nav.emottak.melding.model.ErrorCode
+import no.nav.emottak.melding.model.Feil
 import no.nav.emottak.melding.model.SignatureDetails
+import no.nav.emottak.melding.model.ValidationResult
 import no.nav.emottak.util.marker
 import no.nav.emottak.util.signatur.SignatureException
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Error
@@ -41,11 +49,19 @@ import java.lang.RuntimeException
 import java.time.LocalDateTime
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.model")
-data class EbMSDocument(val contentId: String, val dokument: Document, val attachments: List<EbmsAttachment>) {
+
+data class EbMSDocument(val requestId: String, val dokument: Document, val attachments: List<EbmsAttachment>) {
+
+    private val envelope = lazy { xmlMarshaller.unmarshal(this.dokument) as Envelope }
+
     fun dokumentType(): DokumentType {
         if (attachments.size > 0) return DokumentType.PAYLOAD
-        if (dokument.getElementsByTagNameNS(OASIS_EBXML_MSG_HEADER_XSD_NS_URI, "Acknowledgment").item(0) != null) return DokumentType.ACKNOWLEDGMENT
-        if (dokument.getElementsByTagNameNS(OASIS_EBXML_MSG_HEADER_XSD_NS_URI, "ErrorList").item(0) != null) return DokumentType.FAIL
+        if (dokument.getElementsByTagNameNS(OASIS_EBXML_MSG_HEADER_XSD_NS_URI, "Acknowledgment")
+                .item(0) != null
+        ) return DokumentType.ACKNOWLEDGMENT
+        if (dokument.getElementsByTagNameNS(OASIS_EBXML_MSG_HEADER_XSD_NS_URI, "ErrorList")
+                .item(0) != null
+        ) return DokumentType.FAIL
         throw RuntimeException("Unrecognized dokument type")
     }
 
@@ -60,9 +76,60 @@ data class EbMSDocument(val contentId: String, val dokument: Document, val attac
             errorList
         )
     }
+
     fun messageHeader(): MessageHeader {
-        val node: Node = this.dokument.getElementsByTagNameNS(OASIS_EBXML_MSG_HEADER_XSD_NS_URI, OASIS_EBXML_MSG_HEADER_TAG).item(0)
+        val node: Node =
+            this.dokument.getElementsByTagNameNS(OASIS_EBXML_MSG_HEADER_XSD_NS_URI, OASIS_EBXML_MSG_HEADER_TAG).item(0)
         return xmlMarshaller.unmarshal(node)
+    }
+
+
+
+    fun transform(): EbmsMessage {
+        val header = envelope.value.header!!
+        val messageHeader = header.messageHeader()
+
+        return when (dokumentType()) {
+            DokumentType.PAYLOAD -> PayloadMessage(
+                requestId,
+                messageHeader.messageData.messageId,
+                messageHeader.conversationId,
+                messageHeader.cpaId!!,
+                messageHeader.addressing(),
+
+                attachments.first()
+            )
+
+            DokumentType.FAIL -> {
+                val errorList = header.errorList()!!.error.map {
+                    Feil(ErrorCode.valueOf(it.errorCode), it.description!!.value!!)
+                }.toList()
+                EbmsFail(
+                    requestId,
+                    messageHeader.messageData.messageId,
+                    messageHeader.messageData.refToMessageId!!,
+                    messageHeader.conversationId,
+                    messageHeader.cpaId!!,
+                    messageHeader.addressing(),
+                    errorList
+                )
+            }
+
+            DokumentType.ACKNOWLEDGMENT -> {
+                Acknowledgment(
+                    requestId,
+                    messageHeader.messageData.messageId,
+                    header.acknowledgment()!!.refToMessageId,
+                    messageHeader.conversationId,
+                    messageHeader.cpaId!!,
+                    messageHeader.addressing()
+                )
+            }
+
+            else -> throw RuntimeException("Unrecognized message type ${dokumentType()}")
+
+        }
+
     }
 }
 
@@ -96,6 +163,13 @@ fun EbMSDocument.buildEbmMessage(): EbmsBaseMessage {
         EbmsMessageError(header.messageHeader(), header.errorList()!!, this.dokument)
     } else {
         log.info(header.messageHeader().marker(), "Mottatt melding av type payload")
-        EbmsPayloadMessage(this.contentId, this.dokument, header.messageHeader(), header.ackRequested(), this.attachments, LocalDateTime.now())
+        EbmsPayloadMessage(
+            this.requestId,
+            this.dokument,
+            header.messageHeader(),
+            header.ackRequested(),
+            this.attachments,
+            LocalDateTime.now()
+        )
     }
 }

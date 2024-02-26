@@ -2,6 +2,8 @@ package no.nav.emottak.ebms.processing
 
 import io.ktor.server.plugins.BadRequestException
 import kotlinx.coroutines.runBlocking
+import no.nav.emottak.ebms.EbmsMessage
+import no.nav.emottak.ebms.PayloadMessage
 import no.nav.emottak.ebms.PayloadProcessingClient
 import no.nav.emottak.ebms.model.EbmsAcknowledgment
 import no.nav.emottak.ebms.model.EbmsBaseMessage
@@ -34,7 +36,27 @@ class ProcessingService(val httpClient: PayloadProcessingClient) {
             conversationId = messageHeader.conversationId,
             processing = payloadProcessing,
             payloadId = payload.contentId,
-            payload = payload.dataSource
+            payload = payload.payload
+        )
+        // TODO do something with the response?
+        return runBlocking {
+            httpClient.postPayloadRequest(payloadRequest)
+        }
+    }
+
+    private fun payloadMessage2(
+        payloadMessage: PayloadMessage,
+        payloadProcessing: PayloadProcessing
+    ): PayloadResponse {
+        val payload = payloadMessage.payload
+
+        val payloadRequest = PayloadRequest(
+            Direction.IN,
+            messageId = payloadMessage.messageId,
+            conversationId = payloadMessage.conversationId,
+            processing = payloadProcessing,
+            payloadId = payload.contentId,
+            payload = payload.payload
         )
         // TODO do something with the response?
         return runBlocking {
@@ -53,14 +75,34 @@ class ProcessingService(val httpClient: PayloadProcessingClient) {
         return payloadMessage(message as EbmsPayloadMessage, payloadProcessing!!)
     }
 
+    fun processSync2(message: PayloadMessage): PayloadResponse {
+        if (message.payloadProcessing == null ) throw Exception("Processing information is missing for ${message.messageId}")
+        return payloadMessage2(message,message.payloadProcessing!! )
+    }
+
     fun proccessSyncOut(sendInResponse: SendInResponse, processing: PayloadProcessing): PayloadResponse {
         val payloadRequest = PayloadRequest(
-            Direction.IN,
+            Direction.OUT,
             messageId = sendInResponse.messageId,
             conversationId = sendInResponse.conversationId,
             processing = processing,
             payloadId = UUID.randomUUID().toString(),
             payload = sendInResponse.payload
+        )
+        // TODO do something with the response?
+        return runBlocking {
+            httpClient.postPayloadRequest(payloadRequest)
+        }
+    }
+
+    fun proccessSyncOut(payloadMessage: PayloadMessage,processing: PayloadProcessing): PayloadResponse {
+        val payloadRequest = PayloadRequest(
+            Direction.OUT,
+            messageId = payloadMessage.messageId,
+            conversationId = payloadMessage.conversationId,
+            processing = processing,
+            payloadId = UUID.randomUUID().toString(),
+            payload = payloadMessage.payload.payload
         )
         // TODO do something with the response?
         return runBlocking {
