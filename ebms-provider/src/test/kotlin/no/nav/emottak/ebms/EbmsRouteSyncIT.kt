@@ -36,6 +36,7 @@ import no.nav.emottak.util.getEnvVar
 import org.apache.xml.security.algorithms.MessageDigestAlgorithm
 import org.apache.xml.security.signature.XMLSignature
 import org.junit.jupiter.api.Test
+import java.util.*
 
 private const val SYNC_PATH = "/ebms/sync"
 
@@ -128,7 +129,10 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
             processingService.processSync(any(), any())
         }
         assert(response.status == HttpStatusCode.OK)
+        //   println(response.bodyAsText())
         println(String(response.readBytes()))
+        println("----=_Part_" + System.currentTimeMillis() + "." + System.nanoTime())
+        println("----=_Part_" + UUID.randomUUID().toString())
     }
 }
 

@@ -1,5 +1,6 @@
 package no.nav.emottak.cpa
 
+import com.github.dockerjava.zerodep.shaded.org.apache.commons.codec.binary.Base64
 import com.zaxxer.hikari.HikariConfig
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
@@ -57,4 +58,8 @@ fun cpaApplicationModule(cpaDbConfig: HikariConfig, cpaMigrationConfig: HikariCo
 
 fun CollaborationProtocolAgreement.asText(): String {
     return xmlMarshaller.marshal(this)
+}
+
+fun String.decodeBase64Mime(): String {
+    return if (!this.isNullOrEmpty()) String(Base64.decodeBase64(this)) else this
 }

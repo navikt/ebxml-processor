@@ -1,6 +1,5 @@
 package no.nav.emottak.ebms
 
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.post
 import io.ktor.client.statement.bodyAsText
 import io.ktor.serialization.kotlinx.json.json
@@ -17,6 +16,7 @@ import io.mockk.just
 import io.mockk.mockk
 import io.mockk.runs
 import io.mockk.verify
+import no.nav.emottak.cpa.decodeBase64Mime
 import no.nav.emottak.ebms.ebxml.errorList
 import no.nav.emottak.ebms.ebxml.messageHeader
 import no.nav.emottak.ebms.processing.ProcessingService
@@ -97,7 +97,7 @@ abstract class EbmsRoutFellesIT(val endpoint: String) {
     @Test
     fun `Feil på signature should answer with Feil Signal`() = validationTestApp {
         val response = client.post("/ebms", validMultipartRequest.asHttpRequest())
-        val envelope = xmlMarshaller.unmarshal(response.bodyAsText(), Envelope::class.java)
+        val envelope = xmlMarshaller.unmarshal(response.bodyAsText().decodeBase64Mime(), Envelope::class.java)
         with(envelope.assertErrorAndGet().error.first()) {
             Assertions.assertEquals("Signature Fail", this.description.value)
             Assertions.assertEquals(
