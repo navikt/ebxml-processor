@@ -5,8 +5,10 @@ package no.nav.emottak.ebms
 
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
+import io.ktor.client.request.forms.MultiPartFormDataContent
 import io.ktor.http.ContentDisposition
 import io.ktor.http.ContentType
+import io.ktor.http.HeadersBuilder
 import io.ktor.http.content.PartData
 import io.ktor.http.content.forEachPart
 import io.ktor.http.content.streamProvider
@@ -23,6 +25,7 @@ import io.ktor.server.request.header
 import io.ktor.server.request.receive
 import io.ktor.server.request.receiveMultipart
 import io.ktor.server.request.uri
+import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
@@ -47,6 +50,7 @@ import org.slf4j.LoggerFactory
 import java.io.ByteArrayInputStream
 import java.time.Duration
 import java.time.Instant
+import java.util.*
 import kotlin.time.toKotlinDuration
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.App")
@@ -84,7 +88,6 @@ fun PartData.payload(clearText: Boolean = false): ByteArray {
             stream.close()
             if (clearText) return bytes else java.util.Base64.getMimeDecoder().decode(bytes)
         }
-
         else -> byteArrayOf()
     }
 }
@@ -215,5 +218,34 @@ suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbMSDocument) {
     if (ebmsDokument.dokumentType() == DokumentType.ACKNOWLEDGMENT) {
         log.info("Successfuly processed Payload Message")
     }
-    this.respondText(payload, ContentType.parse("text/xml"))
+    val ebxml = Base64.getMimeEncoder().encodeToString(ebmsDokument.dokument.asString().toByteArray())
+
+    this.response.headers.append(MimeHeaders.SOAP_ACTION, "ebxml")
+    this.response.headers.append(MimeHeaders.CONTENT_TRANSFER_ENCODING, "8bit")
+    if (ebmsDokument.dokumentType() == DokumentType.PAYLOAD) {
+        val ebxmlFormItem = PartData.FormItem(ebxml, {}, HeadersBuilder().build())
+        val parts = mutableListOf<PartData>(ebxmlFormItem)
+        parts.add(PartData.FormItem(Base64.getMimeEncoder().encodeToString(ebmsDokument.attachments.first().dataSource), {}, HeadersBuilder().build()))
+        this.respond(
+            MultiPartFormDataContent(
+                parts,
+                "------=_Part" + System.currentTimeMillis() + "." + System.nanoTime(),
+                ContentType.parse("""multipart/related;type="text/xml"""")
+            )
+        )
+    } else {
+        this.respondText(ebxml)
+    }
+
+    /*
+    this.respondBytesWriter {
+
+        MultiPartFormDataContent(
+                                                        listOf(partData),
+                                                        "123",
+                                                        ContentType.parse("multipart/related")
+                                                    ).writeTo(this)
+    }*/
+
+    // this.respondText(payload, ContentType.parse("text/xml"))
 }

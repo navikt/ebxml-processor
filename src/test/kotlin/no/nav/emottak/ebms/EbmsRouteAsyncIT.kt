@@ -11,6 +11,7 @@ import io.mockk.every
 import io.mockk.mockkStatic
 import io.mockk.verify
 import no.nav.emottak.constants.SMTPHeaders
+import no.nav.emottak.cpa.decodeBase64Mime
 import no.nav.emottak.ebms.ebxml.acknowledgment
 import no.nav.emottak.ebms.ebxml.messageHeader
 import no.nav.emottak.ebms.model.EbMSDocument
@@ -37,7 +38,7 @@ class EbmsRouteAsyncIT : EbmsRoutFellesIT("/ebms") {
         verify(exactly = 1) {
             processingService.processAsync(any(), any())
         }
-        val envelope = xmlMarshaller.unmarshal(response.bodyAsText(), Envelope::class.java)
+        val envelope = xmlMarshaller.unmarshal(response.bodyAsText().decodeBase64Mime(), Envelope::class.java)
         envelope.assertAcknowledgmen()
         Assertions.assertEquals(HttpStatusCode.OK, response.status)
     }

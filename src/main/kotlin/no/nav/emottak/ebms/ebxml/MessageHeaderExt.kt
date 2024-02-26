@@ -30,7 +30,7 @@ fun MessageHeader.createResponseHeader(newAction: String?, newService: String?):
     messageHeader.action = newAction ?: this.action
     messageHeader.cpaId = this.cpaId
     messageHeader.messageData = MessageData().also {
-        it.messageId = this.messageData.messageId + "_RESPONSE"
+        it.messageId = UUID.randomUUID().toString()
         it.refToMessageId = this.messageData.messageId
         it.timestamp = Date.from(Instant.now())
     }
