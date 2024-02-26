@@ -2,7 +2,6 @@ package no.nav.emottak.ebms
 
 import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.plugins.ServerResponseException
-import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
 import io.ktor.server.request.header
@@ -10,11 +9,9 @@ import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.post
-import kotlinx.serialization.json.Json
 import no.nav.emottak.constants.EbXMLConstants
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.ebxml.createResponseHeader
-import no.nav.emottak.ebms.ebxml.messageHeader
 import no.nav.emottak.ebms.model.EbMSDocument
 import no.nav.emottak.ebms.model.EbmsAttachment
 import no.nav.emottak.ebms.model.EbmsPayloadMessage
@@ -32,7 +29,6 @@ import no.nav.emottak.ebms.xml.marshal
 import no.nav.emottak.ebms.xml.xmlMarshaller
 import no.nav.emottak.melding.feil.EbmsException
 import no.nav.emottak.melding.model.Addressing
-import no.nav.emottak.melding.model.EbmsProcessing
 import no.nav.emottak.melding.model.ErrorCode
 import no.nav.emottak.melding.model.Feil
 import no.nav.emottak.melding.model.PayloadProcessing
@@ -98,35 +94,16 @@ data class PayloadMessage(
     requestId, messageId, conversationId, cpaId,
     addressing, document,refToMessageId
 ) {
-    lateinit  var respondTo:Addressing
-    lateinit  var ebmsProcessing: EbmsProcessing
-    var payloadProcessing: PayloadProcessing? =null
-    lateinit  var processedPayload : ByteArray
-    lateinit  var feil: List<Feil>
 
 
-    fun sendIn(sendInService: (EbmsMessage) -> SendInResponse) {
-        val sendInResponse = sendInService.invoke(this)
-        this.processedPayload = sendInResponse.payload
-        this.respondTo = sendInResponse.addressing
-    }
-
-    fun valid() : Boolean {
-        return !::feil.isInitialized || (::feil.isInitialized && feil.isEmpty())
-    }
-    /*
-    override fun cpaValidate(cpaValidator: (EbmsMessage) -> ValidationResult) : ValidatedMessage {
-            val validationResult = cpaValidator.invoke(this)
-            if (validationResult.valid()) {
-                return ValidatedMessage(this,validationResult.ebmsProcessing!!,validationResult.payloadProcessing!!)
-            }
-            else this.createFail(validationResult.error!!)
-    }
-
-     */
     override fun sjekkSignature(signatureDetails: SignatureDetails) {
         SignaturValidator().validate(signatureDetails, this.dokument!!, listOf(payload!!))
         no.nav.emottak.ebms.model.log.info("Signatur OK")
+    }
+
+    fun toEbmsDokument(): EbMSDocument {
+            return createEbmsDocument(createResponseHeader(this),this.payload.payload)
+
     }
 
 
@@ -201,89 +178,64 @@ fun Route.postEbmsSyc(validator: DokumentValidator, processingService: Processin
 
 
     val ebmsMessage = ebMSDocument.transform() as PayloadMessage
-    validator.validateIn2(ebmsMessage)
 
-    validator.validateIn2(ebmsMessage)
-if (!ebmsMessage.valid()) {
-        ebmsMessage
-            .createFail(ebmsMessage.feil)
-            .toEbmsDokument()
-            .also {
-                call.respondEbmsDokument(it)
-                return@post
+
+    validator.validateIn(ebmsMessage)
+        .also {validationResult ->
+            if (!validationResult.valid()) {
+                ebmsMessage
+                    .createFail(validationResult.error!!)
+                    .toEbmsDokument()
+                    .also {
+                        call.respondEbmsDokument(it)
+                        return@post
+                    }
             }
-    }
+        }.let { validationResult ->
+            processingService.processSyncIn2(ebmsMessage, validationResult.payloadProcessing)
+                .let {
+                    if (it is EbmsFail) {
+                        call.respondEbmsDokument(it.toEbmsDokument())
+                        return@post
+                    }
+                    it as PayloadMessage
+                }
+        }.let {processedMessage ->
+            sendInService.sendIn(processedMessage).let {
+                  PayloadMessage(
+                    UUID.randomUUID().toString(),
+                    UUID.randomUUID().toString(),
+                    it.conversationId,
+                    ebmsMessage.cpaId,
+                    it.addressing,
+                    Payload(it.payload, "text/xml", UUID.randomUUID().toString()))
+                    }
 
+        }.let {
+            val validationResult = validator.validateOut(it)
+            if (!validationResult.valid()) {
+                ebmsMessage
+                    .createFail(validationResult.error!!)
+                    .toEbmsDokument()
+                    .also {
+                        call.respondEbmsDokument(it)
+                        return@post
+                    }
+            }
+            Pair<PayloadMessage,PayloadProcessing?>(it,validationResult.payloadProcessing)
+        }.let {messageProcessing ->
+            processingService.proccessSyncOut(messageProcessing.first,messageProcessing.second).let {
+                if (it is EbmsFail) {
+                    call.respondEbmsDokument(it.toEbmsDokument())
+                    return@post
+                }
+                it as PayloadMessage
+            }
 
-    var payloadResponse: PayloadResponse? = null
-    try {
-        if (!debug) {
-            payloadResponse = processingService.processSync2(ebmsMessage)
+        }.let {
+            call.respondEbmsDokument( it.toEbmsDokument())
+            return@post
         }
-    } catch (ex: EbmsException) {
-        // @TODO fix logger().error(ebmsMessage.messageHeader.marker(loggableHeaders), "Processing failed: ${ex.message}", ex)
-        logger().error("Processing failed: ${ex.message}", ex)
-        ebmsMessage
-            .createFail(listOf(Feil(ex.errorCode,ex.errorCode.description)))
-            .toEbmsDokument()
-            .also {
-                call.respondEbmsDokument(it)
-            }
-        return@post
-    } catch (ex: ServerResponseException) {
-        // @TODO fix  logger().error(message.messageHeader.marker(loggableHeaders), "Processing failed: ${ex.message}", ex)
-        logger().error("Processing failed: ${ex.message}", ex)
-        ebmsMessage
-            .createFail(listOf(Feil(ErrorCode.UNKNOWN,"Processing failed: ${ex.message}")))
-            .toEbmsDokument()
-            //  .signer(cpa.signatureDetails) //@Alexander After Testing T1 directly. It seams as the fail messages are not signert i sync
-            .also {
-                call.respondEbmsDokument(it)
-                return@post
-            }
-    } catch (ex: ClientRequestException) {
-        // @TODO fix logger().error(message.messageHeader.marker(loggableHeaders), "Processing failed: ${ex.message}", ex)
-        logger().error("Processing failed: ${ex.message}", ex)
-        ebmsMessage
-            .createFail(listOf(Feil(ErrorCode.OTHER_XML,"Processing failed: ${ex.message}")))
-            .toEbmsDokument()
-            //  .signer(cpa.signatureDetails) //@Alexander After Testing T1 directly. It seams as the fail messages are not signert i sync
-            .also {
-                call.respondEbmsDokument(it)
-                return@post
-            }
-    } catch (ex: Exception) {
-      // @TODO fix me  logger().error(message.messageHeader.marker(loggableHeaders), "Processing failed: ${ex.message}", ex)
-        logger().error("Processing failed: ${ex.message}", ex)
-        call.respond(HttpStatusCode.InternalServerError, "Feil ved prosessering av melding")
-        return@post
-    }
-
-    //var sendInResponse = processedMessage?.send(sendInService::sendIn2)
-     val sendInResponse = sendInService.sendIn(ebmsMessage as PayloadMessage, ebmsMessage.ebmsProcessing, payloadResponse!!.processedPayload)
-    val validationRequest = ValidationRequest(UUID.randomUUID().toString(), sendInResponse.conversationId, ebmsMessage.cpaId, sendInResponse.addressing)
-    println("Validation request is: " + Json.encodeToString(ValidationRequest.serializer(), validationRequest))
-    val validateResult = validator.validateOut(UUID.randomUUID().toString(), validationRequest)
-
-    val processingResponse = processingService.proccessSyncOut(sendInResponse, validateResult.payloadProcessing!!)
-
-    val responseMessage = PayloadMessage(
-        UUID.randomUUID().toString(),
-        UUID.randomUUID().toString(),
-        sendInResponse.conversationId,
-        validationRequest.cpaId,
-        validationRequest.addressing,
-        Payload(sendInResponse.payload, "text/xml", UUID.randomUUID().toString()),
-        refToMessageId = ebmsMessage.messageId
-    )
-
-    println("Send in response: " + Json.encodeToString(SendInResponse.serializer(), sendInResponse))
-    println("not processed message" + Json.encodeToString(ValidationResult.serializer(), validateResult))
-    println("Processed message" + String(processingResponse.processedPayload))
-    val ebmsResponseHeader = responseHeader(validationRequest, sendInResponse)
-    val ebMSDocumentResponse = createEbmsDocument(ebmsResponseHeader, sendInResponse.payload)
-
-    this.call.respondEbmsDokument(ebMSDocumentResponse)
 }
 
 fun createEbmsDocument(ebxmlDokument: Header, payload: ByteArray): EbMSDocument {
@@ -304,6 +256,63 @@ fun createEbmsDocument(ebxmlDokument: Header, payload: ByteArray): EbMSDocument 
     val dokument = getDocumentBuilder().parse(InputSource(StringReader( marshal(envelope))))
     return EbMSDocument(UUID.randomUUID().toString(), dokument, listOf(EbmsAttachment(payload, "application/xml", attachmentUid)))
 }
+
+
+
+fun createResponseHeader(ebmsMessage: EbmsMessage): Header {
+    val messageData = MessageData().apply {
+        this.messageId = UUID.randomUUID().toString()
+        this.refToMessageId = ebmsMessage.messageId
+        this.timestamp = Date()
+    }
+    val from = From().apply {
+        this.role = ebmsMessage.addressing.from.role
+        this.partyId.addAll(
+            ebmsMessage.addressing.from.partyId.map {
+                PartyId().apply {
+                    this.type = it.type
+                    this.value = it.value
+                }
+            }.toList()
+        )
+    }
+    val to = To().apply {
+        this.role = ebmsMessage.addressing.from.role
+        this.partyId.addAll(
+            ebmsMessage.addressing.to.partyId.map {
+                PartyId().apply {
+                    this.type = it.type
+                    this.value = it.value
+                }
+            }.toList()
+        )
+    }
+    val syncReply = SyncReply().apply {
+        this.actor = "http://schemas.xmlsoap.org/soap/actor/next"
+        this.isMustUnderstand = true
+        this.version = "2.0"
+    }
+    val messageHeader = MessageHeader().apply {
+        this.from = from
+        this.to = to
+        this.cpaId = ebmsMessage.cpaId
+        this.conversationId = ebmsMessage.conversationId
+        this.service = Service().apply {
+            this.value = ebmsMessage.addressing.service
+            this.type = "string"
+        }
+        this.action = ebmsMessage.addressing.action
+        this.messageData = messageData
+    }
+
+    return Header().apply {
+        this.any.addAll(
+            listOf(messageHeader, syncReply)
+        )
+    }
+
+}
+
 
 fun responseHeader(validationRequest: ValidationRequest, sendInResponse: SendInResponse): Header {
     val messageData = MessageData().apply {

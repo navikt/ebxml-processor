@@ -2,7 +2,6 @@ package no.nav.emottak.ebms.sendin
 
 import kotlinx.coroutines.runBlocking
 import no.nav.emottak.ebms.PayloadMessage
-import no.nav.emottak.ebms.ProcessedMessage
 import no.nav.emottak.ebms.SendInClient
 import no.nav.emottak.ebms.model.EbmsPayloadMessage
 import no.nav.emottak.melding.model.Addressing
@@ -22,6 +21,18 @@ class SendInService(val httpClient: SendInClient) {
             processedPayload,
             ebmsPayloadMessage.addressing,
             ebmsProcessing
+        )
+        return runBlocking { httpClient.postSendIn(sendInRequest) }
+    }
+
+    fun sendIn(payloadMessage: PayloadMessage) :SendInResponse {
+         val sendInRequest = SendInRequest(
+            payloadMessage.messageId,
+            payloadMessage.conversationId,
+            payloadMessage.payload.contentId,
+            payloadMessage.payload.payload,
+            payloadMessage.addressing,
+            EbmsProcessing()
         )
         return runBlocking { httpClient.postSendIn(sendInRequest) }
     }

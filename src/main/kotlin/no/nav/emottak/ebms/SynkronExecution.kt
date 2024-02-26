@@ -1,9 +1,6 @@
 package no.nav.emottak.ebms
 
-import com.github.dockerjava.transport.DockerHttpClient.Response
-import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.plugins.ResponseException
-import io.ktor.client.plugins.ServerResponseException
 import no.nav.emottak.ebms.model.Payload
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
@@ -47,10 +44,8 @@ class SynkronExecution(private val ebmsMessage: PayloadMessage,val validationSer
                 }
             }
         try {
-            processingService.processSync2(ebmsMessage)
-                .also {
-                    this.processedPayload = it.processedPayload
-                }
+            processingService.processSyncIn2(ebmsMessage,payloadProcessing)
+
         } catch (ex: EbmsException) {
             // @TODO fix logger().error(ebmsMessage.messageHeader.marker(loggableHeaders), "Processing failed: ${ex.message}", ex)
             logger().error("Processing failed: ${ex.message}", ex)

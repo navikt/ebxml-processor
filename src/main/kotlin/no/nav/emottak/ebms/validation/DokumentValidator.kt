@@ -31,8 +31,6 @@ class DokumentValidator(val httpClient: CpaRepoClient) {
 
     fun validateIn2(message: EbmsMessage): ValidationResult {
         val validationRequest = ValidationRequest(message.messageId,message.conversationId,message.cpaId,message.addressing)
-
-
         val validationResult = runBlocking {
             httpClient.postValidate(message.requestId, validationRequest)
         }
@@ -52,6 +50,34 @@ class DokumentValidator(val httpClient: CpaRepoClient) {
             )
         }
 
+        return validationResult
+    }
+
+    fun validateIn(message: EbmsMessage) = validate(message,true)
+    fun validateOut(message: EbmsMessage) = validate(message,false)
+
+    private fun validate(message: EbmsMessage,sjekSignature: Boolean): ValidationResult {
+        val validationRequest = ValidationRequest(message.messageId,message.conversationId,message.cpaId,message.addressing)
+        val validationResult = runBlocking {
+            httpClient.postValidate(message.requestId, validationRequest)
+        }
+
+        if (!validationResult.valid()) return validationResult
+        if (sjekSignature) {
+            runCatching {
+                message.sjekkSignature(validationResult.payloadProcessing!!.signingCertificate)
+            }.onFailure {
+                log.error("Signaturvalidering feilet ${it.message}", it)
+                return validationResult.copy(
+                    error = (validationResult.error ?: listOf()) + listOf(
+                        Feil(
+                            ErrorCode.SECURITY_FAILURE,
+                            "Feil signature"
+                        )
+                    )
+                )
+            }
+        }
         return validationResult
     }
 

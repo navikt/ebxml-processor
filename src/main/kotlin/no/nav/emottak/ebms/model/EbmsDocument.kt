@@ -96,8 +96,9 @@ data class EbMSDocument(val requestId: String, val dokument: Document, val attac
                 messageHeader.conversationId,
                 messageHeader.cpaId!!,
                 messageHeader.addressing(),
-
-                attachments.first()
+                attachments.first(),
+                dokument,
+                messageHeader.messageData.refToMessageId
             )
 
             DokumentType.FAIL -> {
