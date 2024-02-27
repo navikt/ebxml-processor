@@ -11,17 +11,17 @@ import no.nav.emottak.melding.model.EbmsProcessing
 import no.nav.emottak.melding.model.ErrorCode
 import no.nav.emottak.melding.model.Feil
 import no.nav.emottak.melding.model.PayloadProcessing
+import no.nav.emottak.melding.model.asErrorList
 import java.util.*
 
-class SynkronExecution(private val ebmsMessage: PayloadMessage,val validationService:DokumentValidator,val processingService: ProcessingService,val sendInService: SendInService) {
-    private lateinit var ebmsProcessing:EbmsProcessing
-    private lateinit var payloadProcessing:PayloadProcessing
+class SynkronExecution(private val ebmsMessage: PayloadMessage, val validationService: DokumentValidator, val processingService: ProcessingService, val sendInService: SendInService) {
+    private lateinit var ebmsProcessing: EbmsProcessing
+    private lateinit var payloadProcessing: PayloadProcessing
     private lateinit var processedPayload: ByteArray
-    private lateinit var replayTo:Addressing
-    private lateinit var responseMessage:ByteArray
-    private var executionFeil:MutableList<Feil> = mutableListOf()
-    private lateinit var responsePayloadProcessing:PayloadProcessing
-
+    private lateinit var replayTo: Addressing
+    private lateinit var responseMessage: ByteArray
+    private var executionFeil: MutableList<Feil> = mutableListOf()
+    private lateinit var responsePayloadProcessing: PayloadProcessing
 
     fun exchange(ebmsMessage: PayloadMessage): EbmsMessage? {
         validationService.validateIn2(ebmsMessage)
@@ -44,13 +44,12 @@ class SynkronExecution(private val ebmsMessage: PayloadMessage,val validationSer
                 }
             }
         try {
-            processingService.processSyncIn2(ebmsMessage,payloadProcessing)
-
+            processingService.processSyncIn2(ebmsMessage, payloadProcessing)
         } catch (ex: EbmsException) {
             // @TODO fix logger().error(ebmsMessage.messageHeader.marker(loggableHeaders), "Processing failed: ${ex.message}", ex)
             logger().error("Processing failed: ${ex.message}", ex)
             return ebmsMessage
-                .createFail(listOf(Feil(ex.errorCode, ex.errorCode.description)))
+                .createFail(ex.feil)
         } catch (ex: ResponseException) {
             // @TODO fix  logger().error(message.messageHeader.marker(loggableHeaders), "Processing failed: ${ex.message}", ex)
             logger().error("Processing failed: ${ex.message}", ex)
@@ -62,7 +61,6 @@ class SynkronExecution(private val ebmsMessage: PayloadMessage,val validationSer
         }.onSuccess {
             replayTo = it.addressing
             responseMessage = it.payload
-
         }.onFailure {
             return ebmsMessage.createFail(listOf(Feil(ErrorCode.DELIVERY_FAILURE, it.localizedMessage)))
         }
@@ -76,8 +74,7 @@ class SynkronExecution(private val ebmsMessage: PayloadMessage,val validationSer
         )
         runCatching {
             validationService.validateOut(UUID.randomUUID().toString(), responseMessage).also {
-                if (it.payloadProcessing!=null) responsePayloadProcessing = it.payloadProcessing!!
-
+                if (it.payloadProcessing != null) responsePayloadProcessing = it.payloadProcessing!!
             }.also {
                 if (!it.valid()) {
                     return ebmsMessage.createFail(it.error!!)
@@ -92,7 +89,7 @@ class SynkronExecution(private val ebmsMessage: PayloadMessage,val validationSer
                         )
                     )
                 }
-        }
+            }
         }.onFailure {
             return ebmsMessage.createFail(
                 listOf(
@@ -104,22 +101,20 @@ class SynkronExecution(private val ebmsMessage: PayloadMessage,val validationSer
             )
         }
         runCatching {
-            processingService.proccessSyncOut(responseMessage,responsePayloadProcessing)
+            processingService.proccessSyncOut2(responseMessage, responsePayloadProcessing)
         }.onFailure {
-            if (it is EbmsException)   return ebmsMessage
-                .createFail(listOf(Feil(it.errorCode, it.errorCode.description)))
-            else
-            ebmsMessage
-                .createFail(listOf(Feil(ErrorCode.UNKNOWN, "Processing failed: ${it.message}")))
+            if (it is EbmsException) {
+                return ebmsMessage
+                    .createFail(it.feil)
+            } else {
+                ebmsMessage
+                    .createFail(listOf(Feil(ErrorCode.UNKNOWN, "Processing failed: ${it.message}")))
+            }
         }.onSuccess {
-            return responseMessage.copy(payload = responseMessage.payload.copy(payload = it.processedPayload))
+            it
+            return responseMessage.copy(payload = responseMessage.payload.copy(payload = (it as PayloadMessage).payload.payload))
         }
 
         return null
     }
-
-
-
-
-
 }

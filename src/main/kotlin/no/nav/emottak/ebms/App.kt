@@ -52,7 +52,6 @@ import java.time.Duration
 import java.time.Instant
 import java.util.*
 import kotlin.time.toKotlinDuration
-import java.util.*
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.App")
 
@@ -217,23 +216,22 @@ suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbMSDocument) {
     }
     val ebxml = Base64.getMimeEncoder().encodeToString(ebmsDokument.dokument.asString().toByteArray())
 
-      this.response.headers.append(MimeHeaders.SOAP_ACTION,"ebxml")
-    this.response.headers.append(MimeHeaders.CONTENT_TRANSFER_ENCODING,"8bit")
-    if(ebmsDokument.dokumentType() == DokumentType.PAYLOAD) {
-        val ebxmlFormItem = PartData.FormItem( ebxml  ,{},HeadersBuilder().build())
+    this.response.headers.append(MimeHeaders.SOAP_ACTION, "ebxml")
+    this.response.headers.append(MimeHeaders.CONTENT_TRANSFER_ENCODING, "8bit")
+    if (ebmsDokument.dokumentType() == DokumentType.PAYLOAD) {
+        val ebxmlFormItem = PartData.FormItem(ebxml, {}, HeadersBuilder().build())
         val parts = mutableListOf<PartData>(ebxmlFormItem)
-        parts.add( PartData.FormItem(Base64.getMimeEncoder().encodeToString(ebmsDokument.attachments.first().payload) ,{},HeadersBuilder().build()))
-         this.respond(MultiPartFormDataContent(
-                                                        parts,
-                                                        "------=_Part"+System.currentTimeMillis()+"."+System.nanoTime(),
-                                                        ContentType.parse("""multipart/related;type="text/xml"""")
-                                                    ))
-    }
-    else {
+        parts.add(PartData.FormItem(Base64.getMimeEncoder().encodeToString(ebmsDokument.attachments.first().payload), {}, HeadersBuilder().build()))
+        this.respond(
+            MultiPartFormDataContent(
+                parts,
+                "------=_Part" + System.currentTimeMillis() + "." + System.nanoTime(),
+                ContentType.parse("""multipart/related;type="text/xml"""")
+            )
+        )
+    } else {
         this.respondText(ebxml)
     }
-
-
 
     /*
     this.respondBytesWriter {
@@ -245,5 +243,5 @@ suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbMSDocument) {
                                                     ).writeTo(this)
     }*/
 
-   // this.respondText(payload, ContentType.parse("text/xml"))
+    // this.respondText(payload, ContentType.parse("text/xml"))
 }
