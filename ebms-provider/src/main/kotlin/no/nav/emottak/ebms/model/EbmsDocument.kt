@@ -35,7 +35,6 @@ import no.nav.emottak.ebms.xml.xmlMarshaller
 import no.nav.emottak.melding.model.ErrorCode
 import no.nav.emottak.melding.model.Feil
 import no.nav.emottak.melding.model.SignatureDetails
-import no.nav.emottak.melding.model.ValidationResult
 import no.nav.emottak.util.marker
 import no.nav.emottak.util.signatur.SignatureException
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Error
@@ -57,11 +56,15 @@ data class EbMSDocument(val requestId: String, val dokument: Document, val attac
     fun dokumentType(): DokumentType {
         if (attachments.size > 0) return DokumentType.PAYLOAD
         if (dokument.getElementsByTagNameNS(OASIS_EBXML_MSG_HEADER_XSD_NS_URI, "Acknowledgment")
-                .item(0) != null
-        ) return DokumentType.ACKNOWLEDGMENT
+            .item(0) != null
+        ) {
+            return DokumentType.ACKNOWLEDGMENT
+        }
         if (dokument.getElementsByTagNameNS(OASIS_EBXML_MSG_HEADER_XSD_NS_URI, "ErrorList")
-                .item(0) != null
-        ) return DokumentType.FAIL
+            .item(0) != null
+        ) {
+            return DokumentType.FAIL
+        }
         throw RuntimeException("Unrecognized dokument type")
     }
 
@@ -82,8 +85,6 @@ data class EbMSDocument(val requestId: String, val dokument: Document, val attac
             this.dokument.getElementsByTagNameNS(OASIS_EBXML_MSG_HEADER_XSD_NS_URI, OASIS_EBXML_MSG_HEADER_TAG).item(0)
         return xmlMarshaller.unmarshal(node)
     }
-
-
 
     fun transform(): EbmsMessage {
         val header = envelope.value.header!!
@@ -128,9 +129,7 @@ data class EbMSDocument(val requestId: String, val dokument: Document, val attac
             }
 
             else -> throw RuntimeException("Unrecognized message type ${dokumentType()}")
-
         }
-
     }
 }
 

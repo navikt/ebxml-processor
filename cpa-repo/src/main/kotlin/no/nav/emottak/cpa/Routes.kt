@@ -147,7 +147,7 @@ fun Route.validateCpa(cpaRepository: CPARepository) = post("/cpa/validate/{$CONT
         )
     } catch (ebmsEx: EbmsException) {
         log.warn(validateRequest.marker(), ebmsEx.message, ebmsEx)
-        call.respond(HttpStatusCode.OK, ValidationResult(error = listOf(Feil(ebmsEx.errorCode, ebmsEx.descriptionText, ebmsEx.severity))))
+        call.respond(HttpStatusCode.OK, ValidationResult(error = ebmsEx.feil))
     } catch (ex: NotFoundException) {
         log.warn(validateRequest.marker(), "${ex.message}")
         call.respond(HttpStatusCode.OK, ValidationResult(error = listOf(Feil(ErrorCode.DELIVERY_FAILURE, "Unable to find CPA"))))

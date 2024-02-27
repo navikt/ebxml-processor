@@ -38,21 +38,29 @@ fun MessageHeader.createResponseHeader(newAction: String?, newService: String?):
     return messageHeader
 }
 
-fun EbmsMessage.createResponseHeader(newAction: String?, newService: String?) :MessageHeader {
+fun EbmsMessage.createResponseHeader(newAction: String?, newService: String?): MessageHeader {
     val messageHeader = MessageHeader()
     messageHeader.conversationId = this.conversationId
     messageHeader.from = From().also {
-        it.partyId.addAll(this.addressing.to.partyId.map { org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.PartyId().apply {
-            this.type = it.type
-            this.value = it.value
-        } }.toList())
+        it.partyId.addAll(
+            this.addressing.to.partyId.map {
+                org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.PartyId().apply {
+                    this.type = it.type
+                    this.value = it.value
+                }
+            }.toList()
+        )
         it.role = this.addressing.to.role
     }
     messageHeader.to = To().also {
-        it.partyId.addAll(this.addressing.from.partyId.map { org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.PartyId().apply {
-            this.type = it.type
-            this.value = it.value
-        } }.toList())
+        it.partyId.addAll(
+            this.addressing.from.partyId.map {
+                org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.PartyId().apply {
+                    this.type = it.type
+                    this.value = it.value
+                }
+            }.toList()
+        )
         it.role = this.addressing.from.role
     }
     messageHeader.service = if (newService != null) Service().apply { this.value = newService } else this.addressing.service.let { Service().apply { this.value = it } }
@@ -64,7 +72,6 @@ fun EbmsMessage.createResponseHeader(newAction: String?, newService: String?) :M
         it.timestamp = Date.from(Instant.now())
     }
     return messageHeader
-
 }
 
 fun MessageHeader.addressing() = Addressing(
