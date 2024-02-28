@@ -104,7 +104,7 @@ data class EbMSDocument(val requestId: String, val dokument: Document, val attac
 
             DokumentType.FAIL -> {
                 val errorList = header.errorList()!!.error.map {
-                    Feil(ErrorCode.valueOf(it.errorCode), it.description!!.value!!)
+                    Feil(ErrorCode.fromString(it.errorCode), it.description!!.value!!)
                 }.toList()
                 EbmsFail(
                     requestId,
@@ -113,7 +113,9 @@ data class EbMSDocument(val requestId: String, val dokument: Document, val attac
                     messageHeader.conversationId,
                     messageHeader.cpaId!!,
                     messageHeader.addressing(),
-                    errorList
+                    errorList,
+                    dokument
+
                 )
             }
 
@@ -124,7 +126,8 @@ data class EbMSDocument(val requestId: String, val dokument: Document, val attac
                     header.acknowledgment()!!.refToMessageId,
                     messageHeader.conversationId,
                     messageHeader.cpaId!!,
-                    messageHeader.addressing()
+                    messageHeader.addressing(),
+                    dokument
                 )
             }
 
@@ -148,7 +151,7 @@ fun EbMSDocument.signer(signatureDetails: SignatureDetails): EbMSDocument {
 }
 
 fun EbMSDocument.sjekkSignature(signatureDetails: SignatureDetails) {
-    SignaturValidator().validate(signatureDetails, this.dokument, this.attachments)
+    SignaturValidator.validate(signatureDetails, this.dokument, this.attachments)
     log.info(this.messageHeader().marker(), "Signatur OK")
 }
 

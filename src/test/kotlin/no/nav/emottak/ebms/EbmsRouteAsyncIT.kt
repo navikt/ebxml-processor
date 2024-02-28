@@ -8,17 +8,15 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.headers
 import io.ktor.server.routing.post
 import io.mockk.every
-import io.mockk.mockkStatic
+import io.mockk.mockkObject
 import io.mockk.verify
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.cpa.decodeBase64Mime
 import no.nav.emottak.ebms.ebxml.acknowledgment
 import no.nav.emottak.ebms.ebxml.messageHeader
-import no.nav.emottak.ebms.model.EbMSDocument
-import no.nav.emottak.ebms.model.sjekkSignature
 import no.nav.emottak.ebms.validation.MimeHeaders
+import no.nav.emottak.ebms.validation.SignaturValidator
 import no.nav.emottak.ebms.xml.xmlMarshaller
-import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
@@ -40,7 +38,7 @@ class EbmsRouteAsyncIT : EbmsRoutFellesIT("/ebms") {
         }
         val envelope = xmlMarshaller.unmarshal(response.bodyAsText().decodeBase64Mime(), Envelope::class.java)
         envelope.assertAcknowledgmen()
-        Assertions.assertEquals(HttpStatusCode.OK, response.status)
+        assertEquals(HttpStatusCode.OK, response.status)
     }
 
     @Test
@@ -48,10 +46,11 @@ class EbmsRouteAsyncIT : EbmsRoutFellesIT("/ebms") {
         val feilmelding = feilmeldingWithoutSignature.modify {
             it.append(MimeHeaders.CONTENT_ID, "<contentID-validRequest>")
         }
-        mockkStatic(EbMSDocument::sjekkSignature)
+
+        mockkObject(SignaturValidator.Companion)
 
         every {
-            any<EbMSDocument>().sjekkSignature(any())
+            SignaturValidator.validate(any(), any(), any())
         } returns Unit
         val response = client.post("/ebms") {
             headers {
@@ -72,10 +71,10 @@ class EbmsRouteAsyncIT : EbmsRoutFellesIT("/ebms") {
             it[MimeHeaders.CONTENT_ID] = "<contentID-validRequest>"
         }
 
-        mockkStatic(EbMSDocument::sjekkSignature)
+        mockkObject(SignaturValidator.Companion)
 
         every {
-            any<EbMSDocument>().sjekkSignature(any())
+            SignaturValidator.validate(any(), any(), any())
         } returns Unit
         val response = client.post("/ebms") {
             headers {

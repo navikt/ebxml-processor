@@ -14,16 +14,10 @@ import no.nav.emottak.melding.model.ValidationRequest
 import no.nav.emottak.melding.model.ValidationResult
 import no.nav.emottak.util.marker
 import org.slf4j.LoggerFactory
-import java.lang.Exception
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.DokumentValidator")
 class DokumentValidator(val httpClient: CpaRepoClient) {
 
-    fun validateOut(contentId: String, validationRequest: ValidationRequest): ValidationResult {
-        return runBlocking {
-            httpClient.postValidate(contentId, validationRequest)
-        }
-    }
 
     fun validateOut(contentId: String, payloadMessage: PayloadMessage): ValidationResult {
         return runBlocking {
@@ -64,45 +58,24 @@ class DokumentValidator(val httpClient: CpaRepoClient) {
             httpClient.postValidate(message.requestId, validationRequest)
         }
 
-        if (!validationResult.valid()) return validationResult
+        if (!validationResult.valid()) throw EbmsException(validationResult.error!!)
         if (sjekSignature) {
             runCatching {
                 message.sjekkSignature(validationResult.payloadProcessing!!.signingCertificate)
             }.onFailure {
                 log.error("Signaturvalidering feilet ${it.message}", it)
-                throw EbmsException( (validationResult.error ?: listOf()) + listOf(
+                throw EbmsException(
+                    (validationResult.error ?: listOf()) + listOf(
                         Feil(
                             ErrorCode.SECURITY_FAILURE,
                             "Feil signature"
-                        )),it)
-
+                        )
+                    ),
+                    it
+                )
             }
         }
         return validationResult
     }
 
-    fun validateIn(dokument: EbMSDocument): ValidationResult {
-        val validationRequest = dokument.messageHeader().toValidationRequest()
-
-        val validationResult = runBlocking {
-            httpClient.postValidate(dokument.requestId, validationRequest)
-        }
-
-        if (!validationResult.valid()) return validationResult
-        runCatching {
-            dokument.sjekkSignature(validationResult.payloadProcessing!!.signingCertificate)
-        }.onFailure {
-            log.error(dokument.messageHeader().marker(), "Signaturvalidering feilet ${it.message}", it)
-            return validationResult.copy(
-                error = (validationResult.error ?: listOf()) + listOf(
-                    Feil(
-                        ErrorCode.SECURITY_FAILURE,
-                        "Feil signature"
-                    )
-                )
-            )
-        }
-
-        return validationResult
-    }
 }

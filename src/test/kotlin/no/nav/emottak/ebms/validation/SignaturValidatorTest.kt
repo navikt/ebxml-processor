@@ -31,7 +31,7 @@ class SignaturValidatorTest {
                 )
             )
         )
-        SignaturValidator().validate(getSignatureDetailsForTest(), dokument, ebMSDocument.attachments)
+        SignaturValidator.validate(getSignatureDetailsForTest(), dokument, ebMSDocument.attachments)
     }
 
     @Test
@@ -46,9 +46,8 @@ class SignaturValidatorTest {
             listOf()
         )
 
-        val signatursjekk = SignaturValidator()
         org.junit.jupiter.api.assertThrows<SignatureException> {
-            signatursjekk.validate(getSignatureDetailsForTest(), dokument, ebMSDocument.attachments)
+            SignaturValidator.validate(getSignatureDetailsForTest(), dokument, ebMSDocument.attachments)
         }
     }
 }
