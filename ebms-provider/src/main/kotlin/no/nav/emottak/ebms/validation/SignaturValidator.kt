@@ -24,42 +24,44 @@ import java.security.cert.X509Certificate
  * Mangler: 104 (sertifikatsjekk), 105 (sertifikatsjekk) //TODO
  *
  */
-class SignaturValidator() {
+class SignaturValidator {
 
-    init {
-        org.apache.xml.security.Init.init()
-    }
-
-    @Throws(SignatureException::class)
-    fun validate(signatureDetails: SignatureDetails, dokument: Document, attachments: List<EbmsAttachment>) {
-        // TODO Sjekk isNonRepudiation?
-        val xmlSignature = dokument.retrieveSignatureElement()
-        val sertfikatFraCPA = signatureDetails.retrievePublicX509Certificate()
-        val sertifikatFraSignatur = xmlSignature.retrievePublicX509Certificate()
-        if (!sertifikatFraSignatur.equals(sertfikatFraCPA)) throw SignatureException("Signert med annet sertifikat enn definert i CPA")
-        try {
-            if (!verify(
-                    sertifikatFraSignatur,
-                    xmlSignature,
-                    attachments
-                )
-            ) {
-                throw SignatureException("Signaturvalidering feilet")
-            }
-        } catch (e: MissingResourceFailureException) {
-            throw SignatureException("Signaturvalidering feilet", e)
+    companion object {
+        init {
+            org.apache.xml.security.Init.init()
         }
-    }
 
-    private fun verify(
-        certificate: X509Certificate,
-        signature: XMLSignature,
-        attachments: List<EbmsAttachment>
-    ): Boolean {
-        signature.validateIn()
-        val resolver = EbMSAttachmentResolver(attachments)
-        signature.addResourceResolver(resolver)
-        return signature.checkSignatureValue(certificate)
+        @Throws(SignatureException::class)
+        fun validate(signatureDetails: SignatureDetails, dokument: Document, attachments: List<EbmsAttachment>) {
+            // TODO Sjekk isNonRepudiation?
+            val xmlSignature = dokument.retrieveSignatureElement()
+            val sertfikatFraCPA = signatureDetails.retrievePublicX509Certificate()
+            val sertifikatFraSignatur = xmlSignature.retrievePublicX509Certificate()
+            if (!sertifikatFraSignatur.equals(sertfikatFraCPA)) throw SignatureException("Signert med annet sertifikat enn definert i CPA")
+            try {
+                if (!verify(
+                        sertifikatFraSignatur,
+                        xmlSignature,
+                        attachments
+                    )
+                ) {
+                    throw SignatureException("Signaturvalidering feilet")
+                }
+            } catch (e: MissingResourceFailureException) {
+                throw SignatureException("Signaturvalidering feilet", e)
+            }
+        }
+
+        private fun verify(
+            certificate: X509Certificate,
+            signature: XMLSignature,
+            attachments: List<EbmsAttachment>
+        ): Boolean {
+            signature.validateIn()
+            val resolver = EbMSAttachmentResolver(attachments)
+            signature.addResourceResolver(resolver)
+            return signature.checkSignatureValue(certificate)
+        }
     }
 }
 

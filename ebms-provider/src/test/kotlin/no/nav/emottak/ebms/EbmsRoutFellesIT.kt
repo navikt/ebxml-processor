@@ -27,7 +27,6 @@ import no.nav.emottak.ebms.xml.xmlMarshaller
 import no.nav.emottak.melding.model.ErrorCode
 import no.nav.emottak.melding.model.Feil
 import no.nav.emottak.melding.model.PayloadProcessing
-import no.nav.emottak.melding.model.PayloadResponse
 import no.nav.emottak.melding.model.ProcessConfig
 import no.nav.emottak.melding.model.SignatureDetails
 import no.nav.emottak.melding.model.ValidationResult
@@ -68,9 +67,6 @@ abstract class EbmsRoutFellesIT(val endpoint: String) {
             every {
                 processingService.processAsync(any(), any())
             } just runs
-            every {
-                processingService.processSync(any(), any())
-            } returns PayloadResponse("1234", ByteArray(0))
             routing {
                 postEbmsSyc(dokumentValidator, processingService, SendInService(sendInClient))
                 postEbmsAsync(dokumentValidator, processingService)

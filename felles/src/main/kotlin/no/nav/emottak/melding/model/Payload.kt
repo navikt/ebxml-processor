@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Description
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ErrorList
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.SeverityType
-
+import java.util.EnumSet
 
 
 @Serializable
@@ -161,6 +161,13 @@ data class Processing(
         MIME_PROBLEM("MimeProblem","URI resolve error"),
         UNKNOWN("Unknown","Unknown Error");
 
+     companion object {
+         fun fromString(string: String): ErrorCode {
+             return ErrorCode.entries.find {
+                 it.value.equals(string)
+             } ?: throw IllegalArgumentException("unrecognized error code value: $string")
+         }
+     }
      fun createEbxmlError(descriptionText:String? = this.description,
                           severityType: SeverityType? = null,
                           location: String? = null):org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Error {

@@ -1,7 +1,5 @@
 package no.nav.emottak.ebms
 
-import io.ktor.client.plugins.ClientRequestException
-import io.ktor.client.plugins.ServerResponseException
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
 import io.ktor.server.request.header
@@ -12,6 +10,7 @@ import io.ktor.server.routing.post
 import no.nav.emottak.constants.EbXMLConstants
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.ebxml.createResponseHeader
+import no.nav.emottak.ebms.model.DokumentType
 import no.nav.emottak.ebms.model.EbMSDocument
 import no.nav.emottak.ebms.model.EbmsAttachment
 import no.nav.emottak.ebms.model.EbmsPayloadMessage
@@ -29,12 +28,9 @@ import no.nav.emottak.ebms.xml.marshal
 import no.nav.emottak.ebms.xml.xmlMarshaller
 import no.nav.emottak.melding.feil.EbmsException
 import no.nav.emottak.melding.model.Addressing
-import no.nav.emottak.melding.model.ErrorCode
 import no.nav.emottak.melding.model.Feil
 import no.nav.emottak.melding.model.PayloadProcessing
-import no.nav.emottak.melding.model.SendInResponse
 import no.nav.emottak.melding.model.SignatureDetails
-import no.nav.emottak.melding.model.ValidationRequest
 import no.nav.emottak.melding.model.asErrorList
 import no.nav.emottak.util.marker
 import no.nav.emottak.util.retrieveLoggableHeaderPairs
@@ -55,10 +51,6 @@ import org.xmlsoap.schemas.soap.envelope.Header
 import org.xmlsoap.schemas.soap.envelope.ObjectFactory
 import java.io.StringReader
 import java.util.*
-import kotlin.contracts.ExperimentalContracts
-import kotlin.contracts.InvocationKind
-import kotlin.contracts.contract
-import no.nav.emottak.ebms.model.DokumentType
 
 open class EbmsMessage(
     open val requestId: String,
@@ -71,7 +63,7 @@ open class EbmsMessage(
 ) {
 
     open fun sjekkSignature(signatureDetails: SignatureDetails) {
-        SignaturValidator().validate(signatureDetails, this.dokument!!, listOf())
+        SignaturValidator.validate(signatureDetails, this.dokument!!, listOf())
         no.nav.emottak.ebms.model.log.info("Signatur OK")
     }
 
@@ -108,7 +100,7 @@ data class PayloadMessage(
 ) {
 
     override fun sjekkSignature(signatureDetails: SignatureDetails) {
-        SignaturValidator().validate(signatureDetails, this.dokument!!, listOf(payload!!))
+        SignaturValidator.validate(signatureDetails, this.dokument!!, listOf(payload!!))
         no.nav.emottak.ebms.model.log.info("Signatur OK")
     }
 
@@ -199,9 +191,9 @@ fun Route.postEbmsSyc(
     } catch (ex: Exception) {
         logger().error(
             "Unable to transform request into EbmsDokument: ${ex.message} Message-Id ${
-                call.request.header(
-                    SMTPHeaders.MESSAGE_ID
-                )
+            call.request.header(
+                SMTPHeaders.MESSAGE_ID
+            )
             }",
             ex
         )
@@ -220,7 +212,7 @@ fun Route.postEbmsSyc(
     try {
         validator.validateIn(ebmsMessage)
             .let { validationResult ->
-                processingService.processSyncIn2(ebmsMessage, validationResult.payloadProcessing)
+                processingService.processSyncIn(ebmsMessage, validationResult.payloadProcessing)
             }.let { processedMessage ->
                 sendInService.sendIn(processedMessage).let {
                     PayloadMessage(
@@ -237,7 +229,7 @@ fun Route.postEbmsSyc(
                     Pair<PayloadMessage, PayloadProcessing?>(payloadMessage, it.payloadProcessing)
                 }
             }.let { messageProcessing ->
-                processingService.proccessSyncOut2(messageProcessing.first, messageProcessing.second)
+                processingService.proccessSyncOut(messageProcessing.first, messageProcessing.second)
             }.let {
                 call.respondEbmsDokument(it.toEbmsDokument())
                 return@post
@@ -328,7 +320,6 @@ fun createResponseHeader(ebmsMessage: EbmsMessage): Header {
     }
 }
 
-
 fun Route.postEbmsAsync(validator: DokumentValidator, processingService: ProcessingService): Route =
     post("/ebms") {
         // KRAV 5.5.2.1 validate MIME
@@ -347,9 +338,9 @@ fun Route.postEbmsAsync(validator: DokumentValidator, processingService: Process
         } catch (ex: Exception) {
             logger().error(
                 "Unable to transform request into EbmsDokument: ${ex.message} Message-Id ${
-                    call.request.header(
-                        SMTPHeaders.MESSAGE_ID
-                    )
+                call.request.header(
+                    SMTPHeaders.MESSAGE_ID
+                )
                 }",
                 ex
             )
@@ -378,12 +369,12 @@ fun Route.postEbmsAsync(validator: DokumentValidator, processingService: Process
             if (ebMSDocument.dokumentType() != DokumentType.PAYLOAD) {
                 log.info(ebMSDocument.messageHeader().marker(), "Successfuly processed Signal Message")
                 call.respondText("Processed")
+                return@post
             }
             log.info(ebMSDocument.messageHeader().marker(), "Payload Processed, Generating Acknowledgement...")
             (ebMSDocument.buildEbmMessage() as EbmsPayloadMessage).createAcknowledgment().toEbmsDokument().also {
                 call.respondEbmsDokument(it)
                 return@post
-
             }
         } catch (ex: EbmsException) {
             ebmsMessage.createFail(ex.feil).toEbmsDokument().also {
@@ -391,5 +382,4 @@ fun Route.postEbmsAsync(validator: DokumentValidator, processingService: Process
                 return@post
             }
         }
-
     }
