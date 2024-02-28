@@ -2,12 +2,12 @@ package no.nav.emottak.ebms.processing
 
 import io.ktor.server.plugins.BadRequestException
 import kotlinx.coroutines.runBlocking
-import no.nav.emottak.ebms.Acknowledgment
-import no.nav.emottak.ebms.EbmsFail
-import no.nav.emottak.ebms.EbmsMessage
-import no.nav.emottak.ebms.PayloadMessage
 import no.nav.emottak.ebms.PayloadProcessingClient
 import no.nav.emottak.ebms.logger
+import no.nav.emottak.ebms.model.Acknowledgment
+import no.nav.emottak.ebms.model.EbmsFail
+import no.nav.emottak.ebms.model.EbmsMessage
+import no.nav.emottak.ebms.model.PayloadMessage
 import no.nav.emottak.melding.feil.EbmsException
 import no.nav.emottak.melding.model.Direction
 import no.nav.emottak.melding.model.Header

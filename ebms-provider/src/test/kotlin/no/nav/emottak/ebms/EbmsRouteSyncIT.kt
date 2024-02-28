@@ -16,6 +16,7 @@ import io.ktor.server.testing.testApplication
 import io.mockk.every
 import io.mockk.verify
 import no.nav.emottak.constants.SMTPHeaders
+import no.nav.emottak.ebms.model.PayloadMessage
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.DokumentValidator
 import no.nav.emottak.ebms.validation.MimeHeaders
@@ -60,7 +61,7 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
             } answers {
                 val incomingMessage = it.invocation.args[0] as PayloadMessage
                 incomingMessage
-            } // PayloadResponse("1234", ByteArray(0))
+            }
             routing {
                 postEbmsSyc(dokumentValidator, processingService, SendInService(sendInClient))
                 postEbmsAsync(dokumentValidator, processingService)

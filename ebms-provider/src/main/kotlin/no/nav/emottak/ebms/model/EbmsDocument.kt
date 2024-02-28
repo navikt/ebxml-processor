@@ -19,10 +19,6 @@ import no.nav.emottak.constants.EbXMLConstants.EBMS_SERVICE_URI
 import no.nav.emottak.constants.EbXMLConstants.MESSAGE_ERROR_ACTION
 import no.nav.emottak.constants.EbXMLConstants.OASIS_EBXML_MSG_HEADER_TAG
 import no.nav.emottak.constants.EbXMLConstants.OASIS_EBXML_MSG_HEADER_XSD_NS_URI
-import no.nav.emottak.ebms.Acknowledgment
-import no.nav.emottak.ebms.EbmsFail
-import no.nav.emottak.ebms.EbmsMessage
-import no.nav.emottak.ebms.PayloadMessage
 import no.nav.emottak.ebms.ebxml.ackRequested
 import no.nav.emottak.ebms.ebxml.acknowledgment
 import no.nav.emottak.ebms.ebxml.addressing

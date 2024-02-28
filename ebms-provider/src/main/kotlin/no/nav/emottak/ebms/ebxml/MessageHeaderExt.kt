@@ -3,7 +3,7 @@
  */
 package no.nav.emottak.ebms.ebxml
 
-import no.nav.emottak.ebms.EbmsMessage
+import no.nav.emottak.ebms.model.EbmsMessage
 import no.nav.emottak.melding.model.Addressing
 import no.nav.emottak.melding.model.Party
 import no.nav.emottak.melding.model.PartyId
