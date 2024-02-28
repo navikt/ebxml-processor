@@ -31,12 +31,12 @@ class EbmsFail(
     refToMessageId
 ) {
 
-    fun toEbmsDokument(): EbMSDocument {
+    override fun toEbmsDokument(): EbMSDocument {
         val messageHeader = this.createResponseHeader(
             newAction = EbXMLConstants.MESSAGE_ERROR_ACTION,
             newService = EbXMLConstants.EBMS_SERVICE_URI
         )
-        no.nav.emottak.ebms.model.log.warn(messageHeader.marker(), "Oppretter ErrorList")
+        log.warn(messageHeader.marker(), "Oppretter ErrorList")
         return ObjectFactory().createEnvelope()!!.also {
             it.header = Header().also {
                 it.any.add(messageHeader)

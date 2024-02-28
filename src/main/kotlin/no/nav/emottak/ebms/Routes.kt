@@ -8,13 +8,10 @@ import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.post
 import no.nav.emottak.constants.SMTPHeaders
-import no.nav.emottak.ebms.model.DokumentType
 import no.nav.emottak.ebms.model.EbMSDocument
 import no.nav.emottak.ebms.model.EbmsMessage
-import no.nav.emottak.ebms.model.EbmsPayloadMessage
 import no.nav.emottak.ebms.model.Payload
 import no.nav.emottak.ebms.model.PayloadMessage
-import no.nav.emottak.ebms.model.buildEbmMessage
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.DokumentValidator
@@ -209,13 +206,13 @@ fun Route.postEbmsAsync(validator: DokumentValidator, processingService: Process
                 .also {
                     processingService.processAsync(ebmsMessage, it.payloadProcessing)
                 }
-            if (ebMSDocument.dokumentType() != DokumentType.PAYLOAD) {
+            if (ebmsMessage !is PayloadMessage) {
                 log.info(ebMSDocument.messageHeader().marker(), "Successfuly processed Signal Message")
                 call.respondText("Processed")
                 return@post
             }
             log.info(ebMSDocument.messageHeader().marker(), "Payload Processed, Generating Acknowledgement...")
-            (ebMSDocument.buildEbmMessage() as EbmsPayloadMessage).createAcknowledgment().toEbmsDokument().also {
+            ebmsMessage.createAcknowledgment().toEbmsDokument().also {
                 call.respondEbmsDokument(it)
                 return@post
             }
