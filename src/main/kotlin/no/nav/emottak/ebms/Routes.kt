@@ -7,165 +7,33 @@ import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.post
-import no.nav.emottak.constants.EbXMLConstants
 import no.nav.emottak.constants.SMTPHeaders
-import no.nav.emottak.ebms.ebxml.createResponseHeader
 import no.nav.emottak.ebms.model.DokumentType
 import no.nav.emottak.ebms.model.EbMSDocument
-import no.nav.emottak.ebms.model.EbmsAttachment
+import no.nav.emottak.ebms.model.EbmsMessage
 import no.nav.emottak.ebms.model.EbmsPayloadMessage
 import no.nav.emottak.ebms.model.Payload
+import no.nav.emottak.ebms.model.PayloadMessage
 import no.nav.emottak.ebms.model.buildEbmMessage
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.DokumentValidator
 import no.nav.emottak.ebms.validation.MimeValidationException
-import no.nav.emottak.ebms.validation.SignaturValidator
 import no.nav.emottak.ebms.validation.asParseAsSoapFault
 import no.nav.emottak.ebms.validation.validateMime
-import no.nav.emottak.ebms.xml.getDocumentBuilder
-import no.nav.emottak.ebms.xml.marshal
-import no.nav.emottak.ebms.xml.xmlMarshaller
 import no.nav.emottak.melding.feil.EbmsException
-import no.nav.emottak.melding.model.Addressing
-import no.nav.emottak.melding.model.Feil
 import no.nav.emottak.melding.model.PayloadProcessing
-import no.nav.emottak.melding.model.SignatureDetails
-import no.nav.emottak.melding.model.asErrorList
 import no.nav.emottak.util.marker
 import no.nav.emottak.util.retrieveLoggableHeaderPairs
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.From
-import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Manifest
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageData
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.PartyId
-import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Reference
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Service
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.SyncReply
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.To
-import org.w3c.dom.Document
-import org.xml.sax.InputSource
-import org.xmlsoap.schemas.soap.envelope.Body
-import org.xmlsoap.schemas.soap.envelope.Envelope
 import org.xmlsoap.schemas.soap.envelope.Header
-import org.xmlsoap.schemas.soap.envelope.ObjectFactory
-import java.io.StringReader
 import java.util.*
-
-open class EbmsMessage(
-    open val requestId: String,
-    open val messageId: String,
-    open val conversationId: String,
-    open val cpaId: String,
-    open val addressing: Addressing,
-    val dokument: Document? = null,
-    open val refToMessageId: String? = null
-) {
-
-    open fun sjekkSignature(signatureDetails: SignatureDetails) {
-        SignaturValidator.validate(signatureDetails, this.dokument!!, listOf())
-        no.nav.emottak.ebms.model.log.info("Signatur OK")
-    }
-
-    open fun createFail(errorList: List<Feil>): EbmsFail {
-        return EbmsFail(
-            requestId,
-            UUID.randomUUID().toString(),
-            this.messageId,
-            this.conversationId,
-            this.cpaId,
-            this.addressing.copy(to = addressing.from, from = addressing.to),
-            errorList
-        )
-    }
-}
-
-data class PayloadMessage(
-    override val requestId: String,
-    override val messageId: String,
-    override val conversationId: String,
-    override val cpaId: String,
-    override val addressing: Addressing,
-    val payload: Payload,
-    val document: Document? = null,
-    override val refToMessageId: String? = null
-) : EbmsMessage(
-    requestId,
-    messageId,
-    conversationId,
-    cpaId,
-    addressing,
-    document,
-    refToMessageId
-) {
-
-    override fun sjekkSignature(signatureDetails: SignatureDetails) {
-        SignaturValidator.validate(signatureDetails, this.dokument!!, listOf(payload!!))
-        no.nav.emottak.ebms.model.log.info("Signatur OK")
-    }
-
-    fun toEbmsDokument(): EbMSDocument {
-        return createEbmsDocument(createResponseHeader(this), this.payload.payload)
-    }
-}
-
-class EbmsFail(
-    requestId: String,
-    messageId: String,
-    override val refToMessageId: String,
-    conversationId: String,
-    cpaId: String,
-    addressing: Addressing,
-    val feil: List<Feil>,
-    document: Document? = null
-) : EbmsMessage(
-    requestId,
-    messageId,
-    conversationId,
-    cpaId,
-    addressing,
-    document,
-    refToMessageId
-) {
-
-    fun toEbmsDokument(): EbMSDocument {
-        val messageHeader = this.createResponseHeader(
-            newAction = EbXMLConstants.MESSAGE_ERROR_ACTION,
-            newService = EbXMLConstants.EBMS_SERVICE_URI
-        )
-        no.nav.emottak.ebms.model.log.warn(messageHeader.marker(), "Oppretter ErrorList")
-        return ObjectFactory().createEnvelope()!!.also {
-            it.header = Header().also {
-                it.any.add(messageHeader)
-                it.any.add(this.feil.asErrorList())
-            }
-        }.let {
-            xmlMarshaller.marshal(it)
-        }.let {
-            no.nav.emottak.ebms.model.log.info(messageHeader.marker(), "Signerer ErrorList (TODO)")
-            // @TODO   val signatureDetails = runBlocking {  getPublicSigningDetails(this@EbMSMessageError.messageHeader) }
-            EbMSDocument(UUID.randomUUID().toString(), it, emptyList())
-            // @TODO      .signer(signatureDetails)
-        }
-    }
-}
-
-class Acknowledgment(
-    requestId: String,
-    messageId: String,
-    refToMessageId: String,
-    conversationId: String,
-    cpaId: String,
-    addressing: Addressing,
-    document: Document? = null
-) : EbmsMessage(
-    requestId,
-    messageId,
-    conversationId,
-    cpaId,
-    addressing,
-    document
-)
 
 fun Route.postEbmsSyc(
     validator: DokumentValidator,
@@ -240,31 +108,6 @@ fun Route.postEbmsSyc(
             return@post
         }
     }
-}
-
-fun createEbmsDocument(ebxmlDokument: Header, payload: ByteArray): EbMSDocument {
-    val envelope = Envelope()
-    val attachmentUid = UUID.randomUUID().toString()
-    envelope.header = ebxmlDokument
-
-    envelope.body = Body().apply {
-        this.any.add(
-            Manifest().apply {
-                this.reference.add(
-                    Reference().apply {
-                        this.href = "cid:" + attachmentUid
-                        this.type = "simple"
-                    }
-                )
-            }
-        )
-    }
-    val dokument = getDocumentBuilder().parse(InputSource(StringReader(marshal(envelope))))
-    return EbMSDocument(
-        UUID.randomUUID().toString(),
-        dokument,
-        listOf(EbmsAttachment(payload, "application/xml", attachmentUid))
-    )
 }
 
 fun createResponseHeader(ebmsMessage: EbmsMessage): Header {

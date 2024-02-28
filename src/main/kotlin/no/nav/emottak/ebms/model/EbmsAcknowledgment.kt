@@ -1,6 +1,7 @@
 package no.nav.emottak.ebms.model
 
 import no.nav.emottak.ebms.xml.xmlMarshaller
+import no.nav.emottak.melding.model.Addressing
 import no.nav.emottak.util.marker
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Acknowledgment
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
@@ -36,3 +37,20 @@ class EbmsAcknowledgment(
         }
     }
 }
+
+class Acknowledgment(
+    requestId: String,
+    messageId: String,
+    refToMessageId: String,
+    conversationId: String,
+    cpaId: String,
+    addressing: Addressing,
+    document: Document? = null
+) : EbmsMessage(
+    requestId,
+    messageId,
+    conversationId,
+    cpaId,
+    addressing,
+    document
+)
