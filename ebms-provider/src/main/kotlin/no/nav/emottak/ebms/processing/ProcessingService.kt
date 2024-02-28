@@ -40,15 +40,16 @@ class ProcessingService(val httpClient: PayloadProcessingClient) {
             }
         }.onFailure {
             logger().error("Processing failed: ${it.message}", it)
-            if (it !is EbmsException) throw EbmsException("Processing has failed", exception = it)
-            throw it
+            throw EbmsException("Processing has failed", exception = it)
         }.map { payloadResponse ->
             if (payloadResponse.error != null) {
                 throw EbmsException(listOf(payloadResponse.error!!))
             } else {
                 payloadMessage.copy(payload = payloadMessage.payload.copy(payload = payloadResponse.processedPayload))
             }
-        }.getOrThrow()
+        }.getOrElse {
+            throw EbmsException("Processing has failed", exception = it)
+        }
     }
 
     private fun acknowledgment(acknowledgment: Acknowledgment) {
