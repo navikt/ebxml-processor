@@ -1,6 +1,5 @@
 package no.nav.emottak.ebms.model
 
-import no.nav.emottak.ebms.createResponseHeader
 import no.nav.emottak.ebms.validation.SignaturValidator
 import no.nav.emottak.ebms.xml.getDocumentBuilder
 import no.nav.emottak.ebms.xml.marshal
@@ -15,7 +14,15 @@ import org.xmlsoap.schemas.soap.envelope.Body
 import org.xmlsoap.schemas.soap.envelope.Envelope
 import org.xmlsoap.schemas.soap.envelope.Header
 import java.io.StringReader
+import java.util.Date
 import java.util.UUID
+import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.From
+import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageData
+import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
+import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.PartyId
+import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Service
+import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.SyncReply
+import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.To
 
 open class EbmsMessage(
     open val requestId: String,
@@ -29,11 +36,11 @@ open class EbmsMessage(
 
     open fun sjekkSignature(signatureDetails: SignatureDetails) {
         SignaturValidator.validate(signatureDetails, this.dokument!!, listOf())
-        no.nav.emottak.ebms.model.log.info("Signatur OK")
+        log.info("Signatur OK")
     }
 
     open fun toEbmsDokument(): EbMSDocument {
-        return createEbmsDocument(createResponseHeader(this), null)
+        return createEbmsDocument(createMessageHeader(), null)
     }
 
     open fun createFail(errorList: List<Feil>): EbmsFail {
@@ -48,6 +55,61 @@ open class EbmsMessage(
         )
     }
 }
+
+
+fun EbmsMessage.createMessageHeader(newAddressing:Addressing = this.addressing ): Header {
+    val messageData = MessageData().apply {
+        this.messageId = UUID.randomUUID().toString()
+        this.refToMessageId = this.messageId
+        this.timestamp = Date()
+    }
+    val from = From().apply {
+        this.role = this@createMessageHeader.addressing.from.role
+        this.partyId.addAll(
+            newAddressing.from.partyId.map {
+                PartyId().apply {
+                    this.type = it.type
+                    this.value = it.value
+                }
+            }.toList()
+        )
+    }
+    val to = To().apply {
+        this.role = newAddressing.to.role
+        this.partyId.addAll(
+            newAddressing.to.partyId.map {
+                PartyId().apply {
+                    this.type = it.type
+                    this.value = it.value
+                }
+            }.toList()
+        )
+    }
+    val syncReply = SyncReply().apply {
+        this.actor = "http://schemas.xmlsoap.org/soap/actor/next"
+        this.isMustUnderstand = true
+        this.version = "2.0"
+    }
+    val messageHeader = MessageHeader().apply {
+        this.from = from
+        this.to = to
+        this.cpaId = this.cpaId
+        this.conversationId = this.conversationId
+        this.service = Service().apply {
+            this.value = this@createMessageHeader.addressing.service
+            this.type = "string"
+        }
+        this.action = this@createMessageHeader.addressing.action
+        this.messageData = messageData
+    }
+
+    return Header().apply {
+        this.any.addAll(
+            listOf(messageHeader, syncReply)
+        )
+    }
+}
+
 
 fun createEbmsDocument(ebxmlDokument: Header, payload: Payload? = null): EbMSDocument {
     val envelope = Envelope()
