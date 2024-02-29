@@ -1,8 +1,6 @@
 package no.nav.emottak.ebms.model
 
 import no.nav.emottak.constants.EbXMLConstants
-import no.nav.emottak.ebms.createResponseHeader
-import no.nav.emottak.ebms.ebxml.createResponseHeader
 import no.nav.emottak.ebms.validation.SignaturValidator
 import no.nav.emottak.melding.model.Addressing
 import no.nav.emottak.melding.model.SignatureDetails
@@ -34,7 +32,7 @@ data class PayloadMessage(
     }
 
     override fun toEbmsDokument(): EbMSDocument {
-        return createEbmsDocument(createResponseHeader(this), this.payload)
+        return createEbmsDocument(createMessageHeader(), this.payload)
     }
 
     fun createAcknowledgment(): Acknowledgment {

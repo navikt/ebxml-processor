@@ -78,6 +78,7 @@ fun MessageHeader.marker(loggableHeaderPairs: List<Pair<String, String>> = empty
     )
 )
 
+
 fun Headers.marker(): LogstashMarker = Markers.appendEntries(
     this.retrieveLoggableHeaderPairs().toMap()
 )
@@ -99,4 +100,4 @@ fun SignatureDetailsRequest.marker(): LogstashMarker = Markers.appendEntries(
     )
 )
 
-private const val UKJENT_VERDI = "Ukjent" // Egentlig null
+const val UKJENT_VERDI = "Ukjent" // Egentlig null
