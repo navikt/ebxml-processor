@@ -15,13 +15,10 @@
  */
 package no.nav.emottak.ebms.model
 
-import no.nav.emottak.constants.EbXMLConstants.EBMS_SERVICE_URI
-import no.nav.emottak.constants.EbXMLConstants.MESSAGE_ERROR_ACTION
 import no.nav.emottak.constants.EbXMLConstants.OASIS_EBXML_MSG_HEADER_TAG
 import no.nav.emottak.constants.EbXMLConstants.OASIS_EBXML_MSG_HEADER_XSD_NS_URI
 import no.nav.emottak.ebms.ebxml.acknowledgment
 import no.nav.emottak.ebms.ebxml.addressing
-import no.nav.emottak.ebms.ebxml.createResponseHeader
 import no.nav.emottak.ebms.ebxml.errorList
 import no.nav.emottak.ebms.ebxml.messageHeader
 import no.nav.emottak.ebms.xml.ebMSSigning
@@ -31,8 +28,6 @@ import no.nav.emottak.melding.model.Feil
 import no.nav.emottak.melding.model.SignatureDetails
 import no.nav.emottak.util.marker
 import no.nav.emottak.util.signatur.SignatureException
-import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Error
-import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ErrorList
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
 import org.slf4j.LoggerFactory
 import org.w3c.dom.Document
