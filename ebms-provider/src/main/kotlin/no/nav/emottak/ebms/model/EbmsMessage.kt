@@ -6,6 +6,7 @@ import no.nav.emottak.ebms.xml.marshal
 import no.nav.emottak.melding.model.Addressing
 import no.nav.emottak.melding.model.Feil
 import no.nav.emottak.melding.model.SignatureDetails
+import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Acknowledgment
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.From
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Manifest
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageData
@@ -21,6 +22,7 @@ import org.xmlsoap.schemas.soap.envelope.Body
 import org.xmlsoap.schemas.soap.envelope.Envelope
 import org.xmlsoap.schemas.soap.envelope.Header
 import java.io.StringReader
+import java.time.Instant
 import java.util.Date
 import java.util.UUID
 
@@ -33,6 +35,7 @@ open class EbmsMessage(
     val dokument: Document? = null,
     open val refToMessageId: String? = null
 ) {
+    val mottatt: Instant = Instant.now()
 
     open fun sjekkSignature(signatureDetails: SignatureDetails) {
         SignaturValidator.validate(signatureDetails, this.dokument!!, listOf())
@@ -40,7 +43,7 @@ open class EbmsMessage(
     }
 
     open fun toEbmsDokument(): EbMSDocument {
-        return createEbmsDocument(createMessageHeader(), null)
+        return createEbmsDocument(createMessageHeader())
     }
 
     open fun createFail(errorList: List<Feil>): EbmsFail {
@@ -56,7 +59,29 @@ open class EbmsMessage(
     }
 }
 
-fun EbmsMessage.createMessageHeader(newAddressing: Addressing = this.addressing): Header {
+fun EbmsMessage.createAcknowledgementJaxB(): org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Acknowledgment {
+    val acknowledgment = Acknowledgment()
+    acknowledgment.id = "ACK_ID" // Identifier for Acknowledgment elementet, IKKE message ID. // TODO avklar, dette er såvidt jeg vet en arbitrær verdi?
+    acknowledgment.version = "2.0"
+    acknowledgment.isMustUnderstand = true // Alltid
+    acknowledgment.actor = "http://schemas.xmlsoap.org/soap/actor/next"
+    acknowledgment.timestamp = Date.from(this.mottatt)
+    acknowledgment.refToMessageId = this.messageId
+    acknowledgment.from = From().apply {
+        this.partyId.addAll(
+            this@createAcknowledgementJaxB.addressing.from.partyId.map {
+                PartyId().apply {
+                    this.value = it.value
+                    this.type = it.type
+                }
+            }
+        )
+        this.role = this@createAcknowledgementJaxB.addressing.from.role
+    }
+    return acknowledgment
+}
+
+fun EbmsMessage.createMessageHeader(newAddressing: Addressing = this.addressing, withAcknowledgmentElement: Boolean = false): Header {
     val messageData = MessageData().apply {
         this.messageId = UUID.randomUUID().toString()
         this.refToMessageId = this.messageId
@@ -106,6 +131,7 @@ fun EbmsMessage.createMessageHeader(newAddressing: Addressing = this.addressing)
         this.any.addAll(
             listOf(messageHeader, syncReply)
         )
+        if (withAcknowledgmentElement) this.any.add(createAcknowledgementJaxB())
     }
 }
 
