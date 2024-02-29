@@ -107,6 +107,58 @@ fun Route.postEbmsSyc(
     }
 }
 
+fun createResponseHeader(ebmsMessage: EbmsMessage): Header {
+    val messageData = MessageData().apply {
+        this.messageId = UUID.randomUUID().toString()
+        this.refToMessageId = ebmsMessage.messageId
+        this.timestamp = Date()
+    }
+    val from = From().apply {
+        this.role = ebmsMessage.addressing.from.role
+        this.partyId.addAll(
+            ebmsMessage.addressing.from.partyId.map {
+                PartyId().apply {
+                    this.type = it.type
+                    this.value = it.value
+                }
+            }.toList()
+        )
+    }
+    val to = To().apply {
+        this.role = ebmsMessage.addressing.from.role
+        this.partyId.addAll(
+            ebmsMessage.addressing.to.partyId.map {
+                PartyId().apply {
+                    this.type = it.type
+                    this.value = it.value
+                }
+            }.toList()
+        )
+    }
+    val syncReply = SyncReply().apply {
+        this.actor = "http://schemas.xmlsoap.org/soap/actor/next"
+        this.isMustUnderstand = true
+        this.version = "2.0"
+    }
+    val messageHeader = MessageHeader().apply {
+        this.from = from
+        this.to = to
+        this.cpaId = ebmsMessage.cpaId
+        this.conversationId = ebmsMessage.conversationId
+        this.service = Service().apply {
+            this.value = ebmsMessage.addressing.service
+            this.type = "string"
+        }
+        this.action = ebmsMessage.addressing.action
+        this.messageData = messageData
+    }
+
+    return Header().apply {
+        this.any.addAll(
+            listOf(messageHeader, syncReply)
+        )
+    }
+}
 
 fun Route.postEbmsAsync(validator: DokumentValidator, processingService: ProcessingService): Route =
     post("/ebms") {
