@@ -19,13 +19,11 @@ import no.nav.emottak.constants.EbXMLConstants.EBMS_SERVICE_URI
 import no.nav.emottak.constants.EbXMLConstants.MESSAGE_ERROR_ACTION
 import no.nav.emottak.constants.EbXMLConstants.OASIS_EBXML_MSG_HEADER_TAG
 import no.nav.emottak.constants.EbXMLConstants.OASIS_EBXML_MSG_HEADER_XSD_NS_URI
-import no.nav.emottak.ebms.ebxml.ackRequested
 import no.nav.emottak.ebms.ebxml.acknowledgment
 import no.nav.emottak.ebms.ebxml.addressing
 import no.nav.emottak.ebms.ebxml.createResponseHeader
 import no.nav.emottak.ebms.ebxml.errorList
 import no.nav.emottak.ebms.ebxml.messageHeader
-import no.nav.emottak.ebms.validation.SignaturValidator
 import no.nav.emottak.ebms.xml.ebMSSigning
 import no.nav.emottak.ebms.xml.xmlMarshaller
 import no.nav.emottak.melding.model.ErrorCode
@@ -41,7 +39,6 @@ import org.w3c.dom.Document
 import org.w3c.dom.Node
 import org.xmlsoap.schemas.soap.envelope.Envelope
 import java.lang.RuntimeException
-import java.time.LocalDateTime
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.model")
 
@@ -143,32 +140,5 @@ fun EbMSDocument.signer(signatureDetails: SignatureDetails): EbMSDocument {
     } catch (e: Exception) {
         log.error(this.messageHeader().marker(), "Signering av ebms envelope feilet", e)
         throw SignatureException("Signering av ebms envelope feilet", e)
-    }
-}
-
-fun EbMSDocument.sjekkSignature(signatureDetails: SignatureDetails) {
-    SignaturValidator.validate(signatureDetails, this.dokument, this.attachments)
-    log.info(this.messageHeader().marker(), "Signatur OK")
-}
-
-fun EbMSDocument.buildEbmMessage(): EbmsBaseMessage {
-    val envelope: Envelope = xmlMarshaller.unmarshal(this.dokument)
-    val header = envelope.header!!
-    return if (header.acknowledgment() != null) {
-        log.info(header.messageHeader().marker(), "Mottatt melding av type Acknowledgment")
-        EbmsAcknowledgment(header.messageHeader(), header.acknowledgment()!!, this.dokument)
-    } else if (header.errorList() != null) {
-        log.info(header.messageHeader().marker(), "Mottatt melding av type ErrorList")
-        EbmsMessageError(header.messageHeader(), header.errorList()!!, this.dokument)
-    } else {
-        log.info(header.messageHeader().marker(), "Mottatt melding av type payload")
-        EbmsPayloadMessage(
-            this.requestId,
-            this.dokument,
-            header.messageHeader(),
-            header.ackRequested(),
-            this.attachments,
-            LocalDateTime.now()
-        )
     }
 }
