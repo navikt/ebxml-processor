@@ -5,10 +5,9 @@ import net.logstash.logback.marker.Markers
 import no.nav.emottak.constants.LogIndex
 import no.nav.emottak.ebms.model.EbmsMessage
 import no.nav.emottak.util.UKJENT_VERDI
-import no.nav.emottak.util.marker
 
-fun EbmsMessage.marker(loggableHeaderPairs: List<Pair<String, String>> = emptyList()) : LogstashMarker = Markers.appendEntries(
-     mapOf(
+fun EbmsMessage.marker(loggableHeaderPairs: List<Pair<String, String>> = emptyList()): LogstashMarker = Markers.appendEntries(
+    mapOf(
         Pair(LogIndex.MARKER_MOTTAK_ID, this.messageId),
         Pair(LogIndex.MARKER_CONVERSATION_ID, this.conversationId),
         Pair(LogIndex.CPA_ID, this.cpaId ?: UKJENT_VERDI),
