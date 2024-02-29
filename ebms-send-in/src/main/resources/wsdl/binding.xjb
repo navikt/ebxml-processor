@@ -1,0 +1,22 @@
+<jxb:bindings version="2.1"
+	xmlns:jxb="http://java.sun.com/xml/ns/jaxb"
+	xmlns:xjc="http://java.sun.com/xml/ns/jaxb/xjc"
+	xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+	jxb:extensionBindingPrefixes="xjc">
+<!--
+	<jxb:bindings schemaLocation="LIME-Types-1.0.xsd" node="/xsd:schema"> 
+	<jxb:globalBindings> 
+		<xjc:simple/> 
+	</jxb:globalBindings> 
+	</jxb:bindings>
+-->	
+	<!--
+ 	<jxb:bindings schemaLocation="Identifiers-1.0.xsd" node="/xsd:schema">  
+		<jxb:bindings node="//xsd:element[@name='ChannelIdentifier']">
+        	<jxb:nameXmlTransform>
+         		<jxb:typeName suffix="Type"/>
+      		</jxb:nameXmlTransform>
+     	</jxb:bindings>
+     </jxb:bindings>
+     --> 
+</jxb:bindings>

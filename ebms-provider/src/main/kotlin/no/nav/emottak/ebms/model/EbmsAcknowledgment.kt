@@ -53,4 +53,7 @@ class Acknowledgment(
     cpaId,
     addressing,
     document
-)
+) {
+
+
+}

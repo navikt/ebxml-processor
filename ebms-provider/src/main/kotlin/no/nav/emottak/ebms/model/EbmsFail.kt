@@ -11,6 +11,8 @@ import org.w3c.dom.Document
 import org.xmlsoap.schemas.soap.envelope.Header
 import org.xmlsoap.schemas.soap.envelope.ObjectFactory
 import java.util.UUID
+import no.nav.emottak.ebms.util.marker
+import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
 
 class EbmsFail(
     requestId: String,
@@ -32,11 +34,9 @@ class EbmsFail(
 ) {
 
     override fun toEbmsDokument(): EbMSDocument {
-        val messageHeader = this.createResponseHeader(
-            newAction = EbXMLConstants.MESSAGE_ERROR_ACTION,
-            newService = EbXMLConstants.EBMS_SERVICE_URI
-        )
-        log.warn(messageHeader.marker(), "Oppretter ErrorList")
+        val messageHeader = this.createMessageHeader( this.addressing.copy(action = EbXMLConstants.MESSAGE_ERROR_ACTION, service = EbXMLConstants.EBMS_SERVICE_URI))
+        val header = MessageHeader().marker()
+        log.warn(this.marker(), "Oppretter ErrorList")
         return ObjectFactory().createEnvelope()!!.also {
             it.header = Header().also {
                 it.any.add(messageHeader)
@@ -45,7 +45,7 @@ class EbmsFail(
         }.let {
             xmlMarshaller.marshal(it)
         }.let {
-            no.nav.emottak.ebms.model.log.info(messageHeader.marker(), "Signerer ErrorList (TODO)")
+            no.nav.emottak.ebms.model.log.info(this.marker(), "Signerer ErrorList (TODO)")
             // @TODO   val signatureDetails = runBlocking {  getPublicSigningDetails(this@EbMSMessageError.messageHeader) }
             EbMSDocument(UUID.randomUUID().toString(), it, emptyList())
             // @TODO      .signer(signatureDetails)
