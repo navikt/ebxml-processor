@@ -3,7 +3,6 @@
  */
 package no.nav.emottak.ebms.ebxml
 
-import no.nav.emottak.ebms.model.EbmsMessage
 import no.nav.emottak.melding.model.Addressing
 import no.nav.emottak.melding.model.Party
 import no.nav.emottak.melding.model.PartyId
@@ -37,8 +36,6 @@ fun MessageHeader.createResponseHeader(newAction: String?, newService: String?):
     }
     return messageHeader
 }
-
-
 
 fun MessageHeader.addressing() = Addressing(
     Party(this.to.partyId.map { PartyId(it.type!!, it.value!!) }, this.to.role!!),
