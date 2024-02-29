@@ -9,7 +9,6 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.post
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.model.EbMSDocument
-import no.nav.emottak.ebms.model.EbmsMessage
 import no.nav.emottak.ebms.model.Payload
 import no.nav.emottak.ebms.model.PayloadMessage
 import no.nav.emottak.ebms.processing.ProcessingService
@@ -22,14 +21,6 @@ import no.nav.emottak.melding.feil.EbmsException
 import no.nav.emottak.melding.model.PayloadProcessing
 import no.nav.emottak.util.marker
 import no.nav.emottak.util.retrieveLoggableHeaderPairs
-import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.From
-import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageData
-import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
-import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.PartyId
-import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Service
-import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.SyncReply
-import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.To
-import org.xmlsoap.schemas.soap.envelope.Header
 import java.util.*
 
 fun Route.postEbmsSyc(
@@ -106,7 +97,6 @@ fun Route.postEbmsSyc(
         }
     }
 }
-
 
 fun Route.postEbmsAsync(validator: DokumentValidator, processingService: ProcessingService): Route =
     post("/ebms") {

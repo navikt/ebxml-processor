@@ -6,8 +6,15 @@ import no.nav.emottak.ebms.xml.marshal
 import no.nav.emottak.melding.model.Addressing
 import no.nav.emottak.melding.model.Feil
 import no.nav.emottak.melding.model.SignatureDetails
+import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.From
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Manifest
+import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageData
+import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
+import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.PartyId
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Reference
+import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Service
+import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.SyncReply
+import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.To
 import org.w3c.dom.Document
 import org.xml.sax.InputSource
 import org.xmlsoap.schemas.soap.envelope.Body
@@ -16,13 +23,6 @@ import org.xmlsoap.schemas.soap.envelope.Header
 import java.io.StringReader
 import java.util.Date
 import java.util.UUID
-import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.From
-import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageData
-import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
-import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.PartyId
-import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Service
-import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.SyncReply
-import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.To
 
 open class EbmsMessage(
     open val requestId: String,
@@ -56,8 +56,7 @@ open class EbmsMessage(
     }
 }
 
-
-fun EbmsMessage.createMessageHeader(newAddressing:Addressing = this.addressing ): Header {
+fun EbmsMessage.createMessageHeader(newAddressing: Addressing = this.addressing): Header {
     val messageData = MessageData().apply {
         this.messageId = UUID.randomUUID().toString()
         this.refToMessageId = this.messageId
@@ -109,7 +108,6 @@ fun EbmsMessage.createMessageHeader(newAddressing:Addressing = this.addressing )
         )
     }
 }
-
 
 fun createEbmsDocument(ebxmlDokument: Header, payload: Payload? = null): EbMSDocument {
     val envelope = Envelope()
