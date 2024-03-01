@@ -14,7 +14,7 @@ class SendInService(val httpClient: SendInClient) {
             payloadMessage.messageId,
             payloadMessage.conversationId,
             payloadMessage.payload.contentId,
-            payloadMessage.payload.payload,
+            payloadMessage.payload.bytes,
             payloadMessage.addressing,
             EbmsProcessing()
         )

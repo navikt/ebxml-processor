@@ -26,15 +26,14 @@ import java.time.Instant
 import java.util.Date
 import java.util.UUID
 
-open class EbmsMessage(
-    open val requestId: String,
-    open val messageId: String,
-    open val conversationId: String,
-    open val cpaId: String,
-    open val addressing: Addressing,
-    val dokument: Document? = null,
-    open val refToMessageId: String? = null
-) {
+abstract class EbmsMessage{
+    abstract val requestId: String
+    abstract val messageId: String
+    abstract val conversationId: String
+    abstract val cpaId: String
+    abstract val addressing: Addressing
+    abstract val refToMessageId:String?
+    abstract val dokument: Document?
     val mottatt: Instant = Instant.now()
 
     open fun sjekkSignature(signatureDetails: SignatureDetails) {
@@ -153,7 +152,7 @@ fun createEbmsDocument(ebxmlDokument: Header, payload: Payload? = null): EbMSDoc
         )
     }
     val dokument = getDocumentBuilder().parse(InputSource(StringReader(marshal(envelope))))
-    val payloads = if (payload != null) listOf(EbmsAttachment(payload.payload, payload.contentType, payload.contentId)) else listOf()
+    val payloads = if (payload != null) listOf(EbmsAttachment(payload.bytes, payload.contentType, payload.contentId)) else listOf()
     return EbMSDocument(
         UUID.randomUUID().toString(),
         dokument,

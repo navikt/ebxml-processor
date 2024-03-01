@@ -14,17 +14,10 @@ data class PayloadMessage(
     override val cpaId: String,
     override val addressing: Addressing,
     val payload: Payload,
-    val document: Document? = null,
+    override val dokument: Document? = null,
     override val refToMessageId: String? = null
-) : EbmsMessage(
-    requestId,
-    messageId,
-    conversationId,
-    cpaId,
-    addressing,
-    document,
-    refToMessageId
-) {
+
+) : EbmsMessage() {
 
     override fun sjekkSignature(signatureDetails: SignatureDetails) {
         SignaturValidator.validate(signatureDetails, this.dokument!!, listOf(payload!!))

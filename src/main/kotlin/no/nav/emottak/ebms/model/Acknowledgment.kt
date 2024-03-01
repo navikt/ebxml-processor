@@ -1,24 +1,19 @@
 package no.nav.emottak.ebms.model
 
+import java.time.Instant
 import no.nav.emottak.melding.model.Addressing
 import org.w3c.dom.Document
 
 class Acknowledgment(
-    requestId: String,
-    messageId: String,
-    refToMessageId: String,
-    conversationId: String,
-    cpaId: String,
-    addressing: Addressing,
-    document: Document? = null
-) : EbmsMessage(
-    requestId,
-    messageId,
-    conversationId,
-    cpaId,
-    addressing,
-    document
-) {
+    override val requestId: String,
+    override val messageId: String,
+    override val refToMessageId: String,
+    override val conversationId: String,
+    override val cpaId: String,
+    override val addressing: Addressing,
+    override val dokument: Document? = null
+) : EbmsMessage()
+ {
 
     override fun toEbmsDokument(): EbMSDocument {
         return createEbmsDocument(createMessageHeader(withAcknowledgmentElement = true))
