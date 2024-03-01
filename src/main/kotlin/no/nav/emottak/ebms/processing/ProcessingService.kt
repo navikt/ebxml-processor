@@ -78,34 +78,4 @@ class ProcessingService(val httpClient: PayloadProcessingClient) {
     }
 }
 
-fun MessageHeader.payloadRequestHeader(): Header {
-    return Header(
-        messageId = this.messageData.messageId ?: throw BadRequestException("MessageID mangler fra header"),
-        cpaId = this.cpaId ?: throw BadRequestException("CPAID mangler fra header"),
-        conversationId = this.conversationId,
-        to = Party(
-            role = this.to.role ?: throw BadRequestException("Melding mangler role for en eller flere parter"),
-            partyId = listOf(
-                PartyId(
-                    type = this.to.partyId.firstOrNull()?.type
-                        ?: throw BadRequestException("Melding mangler to partyId"),
-                    value = this.to.partyId.firstOrNull()?.value
-                        ?: throw BadRequestException("Melding mangler to partyId")
-                )
-            )
-        ),
-        from = Party(
-            role = this.from.role ?: throw BadRequestException("Melding mangler role for en eller flere parter"),
-            partyId = listOf(
-                PartyId(
-                    type = this.from.partyId.firstOrNull()?.type
-                        ?: throw BadRequestException("Melding mangler from partyId"),
-                    value = this.from.partyId.firstOrNull()?.value
-                        ?: throw BadRequestException("Melding mangler from partyId")
-                )
-            )
-        ),
-        service = this.service.value ?: throw BadRequestException("Service mangler fra header"),
-        action = this.action
-    )
-}
+
