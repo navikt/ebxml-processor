@@ -14,9 +14,12 @@ import io.ktor.server.routing.routing
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import io.mockk.every
+import io.mockk.mockkStatic
 import io.mockk.verify
 import no.nav.emottak.constants.SMTPHeaders
+import no.nav.emottak.ebms.model.EbMSDocument
 import no.nav.emottak.ebms.model.PayloadMessage
+import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.DokumentValidator
 import no.nav.emottak.ebms.validation.MimeHeaders
@@ -127,6 +130,10 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
 
     @Test
     fun `Valid payload request should trigger processing and validation on way out`() = testSyncApp {
+        mockkStatic(EbMSDocument::signer)
+        every {
+            any<EbMSDocument>().signer(any())
+        } returnsArgument(0)
         val multipart = TestData.HarBorderEgenAndel.harBorgerEgenanderFritakRequest
         val response = client.post(SYNC_PATH, multipart.asHttpRequest())
         verify(exactly = 1) {

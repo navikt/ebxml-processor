@@ -26,13 +26,13 @@ import java.time.Instant
 import java.util.Date
 import java.util.UUID
 
-abstract class EbmsMessage{
+abstract class EbmsMessage {
     abstract val requestId: String
     abstract val messageId: String
     abstract val conversationId: String
     abstract val cpaId: String
     abstract val addressing: Addressing
-    abstract val refToMessageId:String?
+    abstract val refToMessageId: String?
     abstract val dokument: Document?
     val mottatt: Instant = Instant.now()
 

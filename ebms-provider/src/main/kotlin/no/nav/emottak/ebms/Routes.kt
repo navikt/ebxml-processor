@@ -11,6 +11,7 @@ import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.model.EbMSDocument
 import no.nav.emottak.ebms.model.Payload
 import no.nav.emottak.ebms.model.PayloadMessage
+import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.DokumentValidator
@@ -22,7 +23,6 @@ import no.nav.emottak.melding.model.PayloadProcessing
 import no.nav.emottak.util.marker
 import no.nav.emottak.util.retrieveLoggableHeaderPairs
 import java.util.*
-import no.nav.emottak.ebms.model.signer
 
 fun Route.postEbmsSyc(
     validator: DokumentValidator,
@@ -87,11 +87,13 @@ fun Route.postEbmsSyc(
                 }
             }.let { messageProcessing ->
                 val processedMessage = processingService.proccessSyncOut(messageProcessing.first, messageProcessing.second)
-                Pair<PayloadMessage,PayloadProcessing?> (processedMessage,messageProcessing.second)
+                Pair<PayloadMessage, PayloadProcessing?> (processedMessage, messageProcessing.second)
             }.let {
-                call.respondEbmsDokument(it.first.toEbmsDokument().also {ebmsDocument ->
-                    ebmsDocument.signer(it.second!!.signingCertificate)
-                })
+                call.respondEbmsDokument(
+                    it.first.toEbmsDokument().also { ebmsDocument ->
+                        ebmsDocument.signer(it.second!!.signingCertificate)
+                    }
+                )
                 return@post
             }
     } catch (ebmsException: EbmsException) {
