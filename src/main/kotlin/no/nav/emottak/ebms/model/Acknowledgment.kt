@@ -4,7 +4,7 @@ import java.time.Instant
 import no.nav.emottak.melding.model.Addressing
 import org.w3c.dom.Document
 
-class Acknowledgment(
+data class Acknowledgment(
     override val requestId: String,
     override val messageId: String,
     override val refToMessageId: String,
