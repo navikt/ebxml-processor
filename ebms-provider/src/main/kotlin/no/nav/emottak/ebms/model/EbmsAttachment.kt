@@ -15,5 +15,5 @@
  */
 package no.nav.emottak.ebms.model
 
-data class EbmsAttachment(val payload: ByteArray, val contentType: String, val contentId: String)
+data class EbmsAttachment(val bytes: ByteArray, val contentType: String, val contentId: String)
 typealias Payload = EbmsAttachment

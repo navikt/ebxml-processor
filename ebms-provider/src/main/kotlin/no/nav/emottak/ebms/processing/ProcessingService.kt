@@ -27,7 +27,7 @@ class ProcessingService(val httpClient: PayloadProcessingClient) {
                 conversationId = payloadMessage.conversationId,
                 processing = payloadProcessing,
                 payloadId = UUID.randomUUID().toString(),
-                payload = payloadMessage.payload.payload
+                payload = payloadMessage.payload.bytes
             )
             // TODO do something with the response?
             runBlocking {
@@ -40,7 +40,7 @@ class ProcessingService(val httpClient: PayloadProcessingClient) {
             if (payloadResponse.error != null) {
                 throw EbmsException(listOf(payloadResponse.error!!))
             } else {
-                payloadMessage.copy(payload = payloadMessage.payload.copy(payload = payloadResponse.processedPayload))
+                payloadMessage.copy(payload = payloadMessage.payload.copy(bytes = payloadResponse.processedPayload))
             }
         }.getOrElse {
             throw EbmsException("Processing has failed", exception = it)

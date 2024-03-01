@@ -38,7 +38,7 @@ class EbMSAttachmentResolver(private val attachments: List<EbmsAttachment>) : Re
             context.baseUri
         )
         return try {
-            val input = XMLSignatureInput(ByteArrayInputStream(result.payload))
+            val input = XMLSignatureInput(ByteArrayInputStream(result.bytes))
             input.sourceURI = context.uriToResolve
             input.mimeType = result.contentType
             input

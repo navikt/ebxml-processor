@@ -221,7 +221,7 @@ suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbMSDocument) {
     if (ebmsDokument.dokumentType() == DokumentType.PAYLOAD) {
         val ebxmlFormItem = PartData.FormItem(ebxml, {}, HeadersBuilder().build())
         val parts = mutableListOf<PartData>(ebxmlFormItem)
-        parts.add(PartData.FormItem(Base64.getMimeEncoder().encodeToString(ebmsDokument.attachments.first().payload), {}, HeadersBuilder().build()))
+        parts.add(PartData.FormItem(Base64.getMimeEncoder().encodeToString(ebmsDokument.attachments.first().bytes), {}, HeadersBuilder().build()))
         this.respond(
             MultiPartFormDataContent(
                 parts,
