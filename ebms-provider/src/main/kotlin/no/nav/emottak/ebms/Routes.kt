@@ -22,6 +22,7 @@ import no.nav.emottak.melding.model.PayloadProcessing
 import no.nav.emottak.util.marker
 import no.nav.emottak.util.retrieveLoggableHeaderPairs
 import java.util.*
+import no.nav.emottak.ebms.model.signer
 
 fun Route.postEbmsSyc(
     validator: DokumentValidator,
@@ -85,9 +86,12 @@ fun Route.postEbmsSyc(
                     Pair<PayloadMessage, PayloadProcessing?>(payloadMessage, it.payloadProcessing)
                 }
             }.let { messageProcessing ->
-                processingService.proccessSyncOut(messageProcessing.first, messageProcessing.second)
+                val processedMessage = processingService.proccessSyncOut(messageProcessing.first, messageProcessing.second)
+                Pair<PayloadMessage,PayloadProcessing?> (processedMessage,messageProcessing.second)
             }.let {
-                call.respondEbmsDokument(it.toEbmsDokument())
+                call.respondEbmsDokument(it.first.toEbmsDokument().also {ebmsDocument ->
+                    ebmsDocument.signer(it.second!!.signingCertificate)
+                })
                 return@post
             }
     } catch (ebmsException: EbmsException) {

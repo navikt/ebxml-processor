@@ -10,7 +10,7 @@ import org.w3c.dom.Document
 import org.xmlsoap.schemas.soap.envelope.ObjectFactory
 import java.util.UUID
 
-class EbmsFail(
+data class EbmsFail(
     override val requestId: String,
     override val messageId: String,
     override val refToMessageId: String?,
