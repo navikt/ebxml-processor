@@ -37,6 +37,11 @@ class EbMSSigning {
     }
 
     @Throws(XMLSecurityException::class)
+    private fun createSignature(document: Document, signatureMethodAlgorithm: String): XMLSignature {
+        return XMLSignature(document, null, signatureMethodAlgorithm, canonicalizationMethodAlgorithm)
+    }
+
+    @Throws(XMLSecurityException::class)
     private fun sign(
         document: Document,
         attachments: List<EbmsAttachment>,
@@ -61,11 +66,6 @@ class EbMSSigning {
         signature.addKeyInfo(keyPair.public)
         signature.addKeyInfo(publicCertificate)
         signature.sign(keyPair.private)
-    }
-
-    @Throws(XMLSecurityException::class)
-    private fun createSignature(document: Document, signatureMethodAlgorithm: String): XMLSignature {
-        return XMLSignature(document, null, signatureMethodAlgorithm, canonicalizationMethodAlgorithm)
     }
 
     private fun appendSignature(document: Document, signature: XMLSignature) {

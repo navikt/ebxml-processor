@@ -1,6 +1,5 @@
 package no.nav.emottak.ebms.model
 
-import java.time.Instant
 import no.nav.emottak.melding.model.Addressing
 import org.w3c.dom.Document
 
@@ -12,8 +11,7 @@ data class Acknowledgment(
     override val cpaId: String,
     override val addressing: Addressing,
     override val dokument: Document? = null
-) : EbmsMessage()
- {
+) : EbmsMessage() {
 
     override fun toEbmsDokument(): EbMSDocument {
         return createEbmsDocument(createMessageHeader(withAcknowledgmentElement = true))
