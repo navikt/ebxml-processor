@@ -1,6 +1,5 @@
 package no.nav.emottak.ebms.processing
 
-import io.ktor.server.plugins.BadRequestException
 import kotlinx.coroutines.runBlocking
 import no.nav.emottak.ebms.PayloadProcessingClient
 import no.nav.emottak.ebms.logger
@@ -10,12 +9,8 @@ import no.nav.emottak.ebms.model.EbmsMessage
 import no.nav.emottak.ebms.model.PayloadMessage
 import no.nav.emottak.melding.feil.EbmsException
 import no.nav.emottak.melding.model.Direction
-import no.nav.emottak.melding.model.Header
-import no.nav.emottak.melding.model.Party
-import no.nav.emottak.melding.model.PartyId
 import no.nav.emottak.melding.model.PayloadProcessing
 import no.nav.emottak.melding.model.PayloadRequest
-import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
 import java.util.UUID
 
 class ProcessingService(val httpClient: PayloadProcessingClient) {
@@ -77,5 +72,3 @@ class ProcessingService(val httpClient: PayloadProcessingClient) {
         }
     }
 }
-
-
