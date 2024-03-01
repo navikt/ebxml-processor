@@ -32,3 +32,11 @@ spec:
       rules:
         - application: cpa-repo
         - application: ebms-payload
+  env:
+    - name: KEYSTORE_FILE
+      value: /var/run/secrets/ebms-keystore-signering/signering-key.p12
+  envFrom:
+    - secret: ebms-payload-secret
+  filesFrom:
+    - secret: ebms-keystore-signering
+      mountPath: /var/run/secrets/ebms-keystore-signering

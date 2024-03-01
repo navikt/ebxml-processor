@@ -140,7 +140,6 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
             processingService.processSyncIn(any(), any())
         }
         assert(response.status == HttpStatusCode.OK)
-        //   println(response.bodyAsText())
         println(String(response.readBytes()))
         println("----=_Part_" + System.currentTimeMillis() + "." + System.nanoTime())
         println("----=_Part_" + UUID.randomUUID().toString())
