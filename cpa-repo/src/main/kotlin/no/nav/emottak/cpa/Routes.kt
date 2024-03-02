@@ -180,7 +180,7 @@ fun Route.validateCpa(cpaRepository: CPARepository) = post("/cpa/validate/{$CONT
         log.warn(validateRequest.marker(), ebmsEx.message, ebmsEx)
         call.respond(
             HttpStatusCode.OK,
-            ValidationResult(error = listOf(Feil(ebmsEx.errorCode, ebmsEx.descriptionText, ebmsEx.severity)))
+            ValidationResult(error = ebmsEx.feil)
         )
     } catch (ex: NotFoundException) {
         log.warn(validateRequest.marker(), "${ex.message}")
