@@ -10,7 +10,10 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
+import no.nav.emottak.constants.PartyTypeEnum
 import no.nav.emottak.cpa.feil.CpaValidationException
+import no.nav.emottak.cpa.feil.MultiplePartnerException
+import no.nav.emottak.cpa.feil.PartnerNotFoundException
 import no.nav.emottak.cpa.persistence.CPARepository
 import no.nav.emottak.cpa.persistence.gammel.PartnerRepository
 import no.nav.emottak.cpa.validation.validate
@@ -27,6 +30,7 @@ import no.nav.emottak.util.marker
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 import java.time.Instant
 import java.time.temporal.ChronoUnit
+import java.util.*
 
 fun Route.getCPA(cpaRepository: CPARepository): Route = get("/cpa/{$CPA_ID}") {
     val cpaId = call.parameters[CPA_ID] ?: throw BadRequestException("Mangler $CPA_ID")
@@ -38,14 +42,50 @@ fun Route.deleteAllCPA(cpaRepository: CPARepository): Route = get("/cpa/deleteAl
     call.respond("Number of deleted cpa ${cpaRepository.deleteAll()}")
 }
 
-fun Route.partnerId(partnerRepository: PartnerRepository, cpaRepository: CPARepository): Route = get("/partner/{$HER_ID}") {
-    val partner = partnerRepository.findPartners("nav:qass:35065")
-    call.respond("$partner")
-}
+fun Route.partnerId(partnerRepository: PartnerRepository, cpaRepository: CPARepository): Route =
+    get("/partner/her/{$HER_ID}") {
+        val herId = call.parameters[HER_ID] ?: throw BadRequestException("Mangler $HER_ID")
+        val role = call.request.queryParameters[ROLE] ?: throw BadRequestException("Mangler $ROLE")
+        val service = call.request.queryParameters[SERVICE] ?: throw BadRequestException("Mangler $SERVICE")
+        val action = call.request.queryParameters[ACTION] ?: throw BadRequestException("Mangler $ACTION")
+        val now = Date()
+
+        runCatching {
+            val sisteOppdatertCpa = cpaRepository.cpaByHerId(herId).filter {
+                it.value.start.before(now)
+                it.value.end.after(now)
+            }.filter {
+                // filter out alle med revokert sertifikat
+                val partyInfo = it.value.getPartyInfoByTypeAndID(PartyTypeEnum.HER.type, herId)
+                runCatching {
+                    createX509Certificate(partyInfo.getCertificateForEncryption()).validate()
+                }.isSuccess
+            }.filter {
+                // Sjekker at partner kan motta angitt melding
+                val partyInfo = it.value.getPartyInfoByTypeAndID(PartyTypeEnum.HER.type, herId)
+                runCatching {
+                    partyInfoHasRoleServiceActionCombo(partyInfo, role, service, action, MessageDirection.RECEIVE)
+                }.isSuccess
+            }.maxBy {
+                it.key
+            }.value
+            partnerRepository.findPartners(sisteOppdatertCpa.cpaid)
+        }.onSuccess {
+            log.info("Partner $it funnet for HER ID $herId")
+            call.respond(HttpStatusCode.OK, it)
+        }.onFailure {
+            log.warn("Feil ved henting av $PARTNER_ID", it)
+            when (it) {
+                is MultiplePartnerException -> call.respond(HttpStatusCode.Conflict, "Fant multiple $PARTNER_ID for $HER_ID $herId. Dette er en ugyldig tilstand.")
+                is PartnerNotFoundException -> call.respond(HttpStatusCode.NotFound, "Fant ikke $PARTNER_ID for $HER_ID $herId")
+                else -> call.respond(HttpStatusCode.NotFound, "Fant ikke $PARTNER_ID for $HER_ID $herId")
+            }
+        }
+    }
 
 fun Route.deleteCpa(cpaRepository: CPARepository): Route = delete("/cpa/delete/{$CPA_ID}") {
     val cpaId = call.parameters[CPA_ID] ?: throw BadRequestException("Mangler $CPA_ID")
-    cpaRepository.deleteCpa(cpaId) ?: throw NotFoundException("Fant ikke CPA")
+    cpaRepository.deleteCpa(cpaId)
     call.respond("$cpaId slettet!")
 }
 
@@ -65,6 +105,7 @@ fun Route.getTimeStamps(cpaRepository: CPARepository): Route = get("/cpa/timesta
         )
     )
 }
+
 fun Route.getTimeStampsLatest(cpaRepository: CPARepository) = get("/cpa/timestamps/latest") {
     log.info("Timestamplatest")
     call.respond(
@@ -86,29 +127,19 @@ fun Route.postCpa(cpaRepository: CPARepository) = post("/cpa") {
     val cpa = xmlMarshaller.unmarshal(cpaString, CollaborationProtocolAgreement::class.java)
 
     if (call.request.headers["upsert"].equals("true")) {
-        cpaRepository.upsertCpa(
-            CPARepository.CpaDbEntry(
-                cpa.cpaid,
-                cpa,
-                updatedDate,
-                Instant.now()
-            )
-        ).also {
-            log.info("Added CPA $it to repo")
-            call.respond(HttpStatusCode.OK, "Added CPA $it to repo")
-        }
+        cpaRepository
+            .upsertCpa(CPARepository.CpaDbEntry(cpa, updatedDate))
+            .also {
+                log.info("Added CPA $it to repo")
+                call.respond(HttpStatusCode.OK, "Added CPA $it to repo")
+            }
     } else {
-        cpaRepository.putCpa(
-            CPARepository.CpaDbEntry(
-                cpa.cpaid,
-                cpa,
-                updatedDate,
-                Instant.now()
-            )
-        ).also {
-            log.info("Added CPA $it to repo")
-            call.respond(HttpStatusCode.OK, "Added CPA $it to repo")
-        }
+        cpaRepository
+            .putCpa(CPARepository.CpaDbEntry(cpa, updatedDate))
+            .also {
+                log.info("Added CPA $it to repo")
+                call.respond(HttpStatusCode.OK, "Added CPA $it to repo")
+            }
     }
 }
 
@@ -147,28 +178,39 @@ fun Route.validateCpa(cpaRepository: CPARepository) = post("/cpa/validate/{$CONT
         )
     } catch (ebmsEx: EbmsException) {
         log.warn(validateRequest.marker(), ebmsEx.message, ebmsEx)
-        call.respond(HttpStatusCode.OK, ValidationResult(error = ebmsEx.feil))
+        call.respond(
+            HttpStatusCode.OK,
+            ValidationResult(error = listOf(Feil(ebmsEx.errorCode, ebmsEx.descriptionText, ebmsEx.severity)))
+        )
     } catch (ex: NotFoundException) {
         log.warn(validateRequest.marker(), "${ex.message}")
-        call.respond(HttpStatusCode.OK, ValidationResult(error = listOf(Feil(ErrorCode.DELIVERY_FAILURE, "Unable to find CPA"))))
+        call.respond(
+            HttpStatusCode.OK,
+            ValidationResult(error = listOf(Feil(ErrorCode.DELIVERY_FAILURE, "Unable to find CPA")))
+        )
     } catch (ex: Exception) {
         log.error(validateRequest.marker(), ex.message, ex)
-        call.respond(HttpStatusCode.OK, ValidationResult(error = listOf(Feil(ErrorCode.UNKNOWN, "Unexpected error during cpa validation"))))
+        call.respond(
+            HttpStatusCode.OK,
+            ValidationResult(error = listOf(Feil(ErrorCode.UNKNOWN, "Unexpected error during cpa validation")))
+        )
     }
 }
 
-fun Route.getCertificate(cpaRepository: CPARepository) = get("/cpa/{$CPA_ID}/party/{$PARTY_TYPE}/{$PARTY_ID}/encryption/certificate") {
-    val cpaId = call.parameters[CPA_ID] ?: throw BadRequestException("Mangler $CPA_ID")
-    val partyType = call.parameters[PARTY_TYPE] ?: throw BadRequestException("Mangler $PARTY_TYPE")
-    val partyId = call.parameters[PARTY_ID] ?: throw BadRequestException("Mangler $PARTY_ID")
-    val cpa = cpaRepository.findCpa(cpaId) ?: throw NotFoundException("Ingen CPA med ID $cpaId funnet")
-    val partyInfo = cpa.getPartyInfoByTypeAndID(partyType, partyId)
-    call.respond(partyInfo.getCertificateForEncryption())
-}
+fun Route.getCertificate(cpaRepository: CPARepository) =
+    get("/cpa/{$CPA_ID}/party/{$PARTY_TYPE}/{$PARTY_ID}/encryption/certificate") {
+        val cpaId = call.parameters[CPA_ID] ?: throw BadRequestException("Mangler $CPA_ID")
+        val partyType = call.parameters[PARTY_TYPE] ?: throw BadRequestException("Mangler $PARTY_TYPE")
+        val partyId = call.parameters[PARTY_ID] ?: throw BadRequestException("Mangler $PARTY_ID")
+        val cpa = cpaRepository.findCpa(cpaId) ?: throw NotFoundException("Ingen CPA med ID $cpaId funnet")
+        val partyInfo = cpa.getPartyInfoByTypeAndID(partyType, partyId)
+        call.respond(partyInfo.getCertificateForEncryption())
+    }
 
 fun Route.signingCertificate(cpaRepository: CPARepository) = post("/signing/certificate") {
     val signatureDetailsRequest = call.receive(SignatureDetailsRequest::class)
-    val cpa = cpaRepository.findCpa(signatureDetailsRequest.cpaId) ?: throw NotFoundException("Ingen CPA med ID ${signatureDetailsRequest.cpaId} funnet")
+    val cpa = cpaRepository.findCpa(signatureDetailsRequest.cpaId)
+        ?: throw NotFoundException("Ingen CPA med ID ${signatureDetailsRequest.cpaId} funnet")
     try {
         val partyInfo = cpa.getPartyInfoByTypeAndID(signatureDetailsRequest.partyType, signatureDetailsRequest.partyId)
         val signatureDetails = partyInfo.getCertificateForSignatureValidation(
@@ -198,6 +240,7 @@ private const val PARTY_TYPE = "partyType"
 private const val PARTY_ID = "partyId"
 private const val CONTENT_ID = "contentId"
 private const val HER_ID = "herId"
+private const val PARTNER_ID = "partnerId"
 private const val ROLE = "role"
 private const val SERVICE = "service"
 private const val ACTION = "action"

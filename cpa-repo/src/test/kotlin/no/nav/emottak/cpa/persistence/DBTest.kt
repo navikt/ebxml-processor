@@ -1,6 +1,8 @@
 package no.nav.emottak.cpa.persistence
 
 import com.zaxxer.hikari.HikariConfig
+import no.nav.emottak.constants.PartyTypeEnum
+import no.nav.emottak.cpa.getPartnerPartyIdByType
 import no.nav.emottak.cpa.xmlMarshaller
 import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.sql.deleteAll
@@ -15,7 +17,7 @@ import kotlin.test.BeforeTest
 val DEFAULT_TIMESTAMP = Instant.now().truncatedTo(ChronoUnit.SECONDS)
 abstract class DBTest() {
 
-    lateinit var db: Database
+    protected lateinit var db: Database
 
     @BeforeTest
     fun beforeEach() {
@@ -35,6 +37,7 @@ abstract class DBTest() {
                     it[cpa] = collaborationProtocolAgreement
                     it[updated_date] = DEFAULT_TIMESTAMP
                     it[entryCreated] = DEFAULT_TIMESTAMP
+                    it[herId] = collaborationProtocolAgreement.getPartnerPartyIdByType(PartyTypeEnum.HER)?.value
                 }
             }
         }

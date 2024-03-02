@@ -1,12 +1,13 @@
 package no.nav.emottak.cpa.persistence
 
+import no.nav.emottak.constants.PartyTypeEnum
+import no.nav.emottak.cpa.getPartnerPartyIdByType
 import no.nav.emottak.melding.model.ProcessConfig
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.deleteAll
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.upsert
@@ -17,9 +18,9 @@ class CPARepository(val database: Database) {
 
     fun findCpa(cpaId: String): CollaborationProtocolAgreement? {
         return transaction(db = database.db) {
-            CPA.select(where = {
+            CPA.selectAll().where {
                 CPA.id.eq(cpaId)
-            }).firstOrNull()?.get(
+            }.firstOrNull()?.get(
                 CPA.cpa
             )
         }
@@ -29,7 +30,7 @@ class CPARepository(val database: Database) {
         return transaction(db = database.db) {
             (
                 if (idList.isNotEmpty()) {
-                    CPA.select(where = { CPA.id inList idList })
+                    CPA.selectAll().where { CPA.id inList idList }
                 } else {
                     CPA.selectAll()
                 }
@@ -48,7 +49,7 @@ class CPARepository(val database: Database) {
 
     fun findLatestUpdatedCpaTimestamp(): String {
         return transaction(db = database.db) {
-            CPA.select(where = { CPA.updated_date.isNotNull() })
+            CPA.selectAll().where { CPA.updated_date.isNotNull() }
                 .orderBy(CPA.updated_date, SortOrder.DESC)
                 .first()[CPA.updated_date]
         }.toString()
@@ -56,14 +57,15 @@ class CPARepository(val database: Database) {
 
     fun findCpaEntry(cpaId: String): CpaDbEntry? {
         return transaction(db = database.db) {
-            CPA.select(where = {
+            CPA.selectAll().where {
                 CPA.id.eq(cpaId)
-            }).firstOrNull()?.let {
+            }.firstOrNull()?.let {
                 CpaDbEntry(
                     it[CPA.id],
                     it[CPA.cpa],
                     it[CPA.updated_date],
-                    it[CPA.entryCreated]
+                    it[CPA.entryCreated],
+                    it[CPA.herId]
                 )
             }
         }
@@ -74,8 +76,9 @@ class CPARepository(val database: Database) {
             CPA.insert {
                 it[CPA.id] = cpa.id
                 it[CPA.cpa] = cpa.cpa ?: throw IllegalArgumentException("Kan ikke sette null verdi for CPA i DB")
-                it[CPA.entryCreated] = cpa.create_date
-                it[CPA.updated_date] = cpa.updated_date
+                it[CPA.entryCreated] = cpa.createdDate
+                it[CPA.updated_date] = cpa.updatedDate
+                it[CPA.herId] = cpa.herId
             }
         }
         return cpa.id
@@ -86,8 +89,9 @@ class CPARepository(val database: Database) {
             CPA.upsert(CPA.id) {
                 it[CPA.id] = cpa.id
                 it[CPA.cpa] = cpa.cpa ?: throw IllegalArgumentException("Kan ikke sette null verdi for CPA i DB")
-                it[CPA.entryCreated] = cpa.create_date
-                it[CPA.updated_date] = cpa.updated_date
+                it[CPA.entryCreated] = cpa.createdDate
+                it[CPA.updated_date] = cpa.updatedDate
+                it[CPA.herId] = cpa.herId
             }
         }
         return cpa.id
@@ -106,15 +110,25 @@ class CPARepository(val database: Database) {
         }
     }
 
+    fun cpaByHerId(herId: String): Map<Instant, CollaborationProtocolAgreement> {
+        return transaction(database.db) {
+            CPA.select(CPA.updated_date, CPA.cpa).where { CPA.herId.eq(herId) }.toList().groupBy({
+                it[CPA.updated_date]
+            }, {
+                it[CPA.cpa]
+            }).mapValues {
+                it.value.first()
+            }
+        }
+    }
+
     fun getProcessConfig(role: String, service: String, action: String): ProcessConfig? {
         return transaction(database.db) {
-            ProcessConfigTable.select(
-                where = {
-                    ProcessConfigTable.role.eq(role)
-                    ProcessConfigTable.service.eq(service)
-                    ProcessConfigTable.action.eq(action)
-                }
-            ).firstOrNull()?.let {
+            ProcessConfigTable.selectAll().where {
+                ProcessConfigTable.role.eq(role)
+                ProcessConfigTable.service.eq(service)
+                ProcessConfigTable.action.eq(action)
+            }.firstOrNull()?.let {
                 ProcessConfig(
                     it[ProcessConfigTable.kryptering],
                     it[ProcessConfigTable.komprimering],
@@ -131,9 +145,18 @@ class CPARepository(val database: Database) {
     data class CpaDbEntry(
         val id: String,
         val cpa: CollaborationProtocolAgreement? = null,
-        val updated_date: Instant, // OBS! Truncates til seconds av praktiske hensyn.
-        val create_date: Instant // OBS! Truncates til seconds av praktiske hensyn.
-    )
+        val updatedDate: Instant, // OBS! Truncates til seconds av praktiske hensyn.
+        val createdDate: Instant, // OBS! Truncates til seconds av praktiske hensyn.
+        val herId: String?
+    ) {
+        constructor(cpa: CollaborationProtocolAgreement, updatedDate: Instant) : this(
+            id = cpa.cpaid,
+            cpa = cpa,
+            updatedDate = updatedDate,
+            createdDate = Instant.now(),
+            herId = cpa.getPartnerPartyIdByType(PartyTypeEnum.HER)?.value
+        )
+    }
 
     // @Serializable
     // data class TimestampResponse(

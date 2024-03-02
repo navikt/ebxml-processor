@@ -18,6 +18,12 @@ class CPARepositoryTest : DBTest() {
     @Test
     fun `CPA db entry bør ha timestamps`() {
         val cpaRepository = CPARepository(this.db)
-        assertEquals(DEFAULT_TIMESTAMP, cpaRepository.findCpaEntry(CPA_ID)?.updated_date)
+        assertEquals(DEFAULT_TIMESTAMP, cpaRepository.findCpaEntry(CPA_ID)?.updatedDate)
+    }
+
+    @Test
+    fun `CPA db entry bør ha partner HER ID`() {
+        val cpaRepository = CPARepository(this.db)
+        assertEquals("8141253", cpaRepository.findCpaEntry(CPA_ID)?.herId)
     }
 }

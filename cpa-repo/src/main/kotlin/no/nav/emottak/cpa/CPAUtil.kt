@@ -1,6 +1,7 @@
 package no.nav.emottak.cpa
 
 import no.nav.emottak.constants.EbXMLConstants.EBMS_SERVICE_URI
+import no.nav.emottak.constants.PartyTypeEnum
 import no.nav.emottak.cpa.feil.CpaValidationException
 import no.nav.emottak.cpa.feil.SecurityException
 import no.nav.emottak.melding.model.PartyId
@@ -116,6 +117,14 @@ fun DeliveryChannel.getHashFunction(): String {
         return docExchange.ebXMLSenderBinding!!.senderNonRepudiation!!.hashFunction
     }
     throw SecurityException("Hash Function eksisterer ikke for DeliveryChannel")
+}
+
+fun CollaborationProtocolAgreement.getPartnerPartyIdByType(partyType: PartyTypeEnum): org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PartyId? {
+    return this.partyInfo.firstOrNull { partyInfo ->
+        partyInfo.partyName != "NAV" // TODO Finne bedre måte å ekskludere NAV PartyInfo på
+    }?.partyId?.firstOrNull { partyId ->
+        partyId.type == partyType.type
+    }
 }
 
 fun CollaborationProtocolAgreement.getPartyInfoByTypeAndID(partyType: String, partyId: String): PartyInfo {
