@@ -46,6 +46,12 @@ fun SendInRequest.marker(): LogstashMarker = Markers.appendEntries(
     mapOf(
         Pair(MARKER_MOTTAK_ID, this.messageId),
         Pair(MARKER_CONVERSATION_ID, this.conversationId),
+        Pair(SERVICE, this.addressing.service),
+        Pair(ACTION, this.addressing.action),
+        Pair(TO_ROLE, this.addressing.to.role),
+        Pair(FROM_ROLE, this.addressing.from.role),
+        Pair(TO_PARTY, "${this.addressing.to.partyId.firstOrNull()?.type ?: UKJENT_VERDI}:${this.addressing.to.partyId.firstOrNull()?.value ?: UKJENT_VERDI}"),
+        Pair(FROM_PARTY, "${this.addressing.from.partyId.firstOrNull()?.type ?: UKJENT_VERDI}:${this.addressing.from.partyId.firstOrNull()?.value ?: UKJENT_VERDI}"),
     )
 )
 
