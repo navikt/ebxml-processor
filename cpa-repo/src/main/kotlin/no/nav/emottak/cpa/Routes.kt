@@ -158,7 +158,7 @@ fun Route.validateCpa(cpaRepository: CPARepository) = post("/cpa/validate/{$CONT
         runCatching {
             createX509Certificate(signingCertificate.certificate).validate()
         }.onFailure {
-            log.warn(validateRequest.marker(), "Validation feilet i sertifikat sjekk", it)
+            log.error(validateRequest.marker(), "Validation feilet i sertifikat sjekk", it)
             throw it
         }
         call.respond(
@@ -177,13 +177,13 @@ fun Route.validateCpa(cpaRepository: CPARepository) = post("/cpa/validate/{$CONT
             )
         )
     } catch (ebmsEx: EbmsException) {
-        log.warn(validateRequest.marker(), ebmsEx.message, ebmsEx)
+        log.error(validateRequest.marker(), ebmsEx.message, ebmsEx)
         call.respond(
             HttpStatusCode.OK,
             ValidationResult(error = ebmsEx.feil)
         )
     } catch (ex: NotFoundException) {
-        log.warn(validateRequest.marker(), "${ex.message}")
+        log.error(validateRequest.marker(), "${ex.message}")
         call.respond(
             HttpStatusCode.OK,
             ValidationResult(error = listOf(Feil(ErrorCode.DELIVERY_FAILURE, "Unable to find CPA")))
