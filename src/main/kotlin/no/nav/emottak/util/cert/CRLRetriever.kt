@@ -8,25 +8,29 @@ import kotlinx.coroutines.runBlocking
 import no.nav.emottak.util.createCRLFile
 import org.bouncycastle.asn1.x500.X500Name
 import java.security.cert.X509CRL
+import java.time.Instant
 
 class CRLRetriever(private val httpClient: HttpClient) {
-    suspend fun updateAllCRLs(): HashMap<X500Name, X509CRL> {
-        val crlFiles = hashMapOf<X500Name, X509CRL>()
+    suspend fun updateAllCRLs(): List<CRL> {
+        val crlFiles = mutableListOf<CRL>()
         log.info("Oppdatering av alle CRLer startet...")
         issuerList.forEach { issuer ->
             log.info("Oppdaterer CRL for <${issuer.key}>")
             val x500Name = X500Name(issuer.key)
-            try {
-                crlFiles[x500Name] = updateCRL(issuer.value)
-                log.info("CRL fra <${issuer.value}> oppdatert")
+            val crlFile = try {
+                updateCRL(issuer.value).also {
+                    log.info("CRL fra <${issuer.value}> oppdatert")
+                }
             } catch (e: Exception) {
                 log.warn("Oppdatering av CRL feilet fra <${issuer.value}>", e)
+                null
             }
+            crlFiles.add(CRL(x500Name, issuer.value, crlFile, Instant.now()))
         }
-        return crlFiles
+        return crlFiles.toList()
     }
 
-    private suspend fun updateCRL(crlUrl: String): X509CRL {
+    suspend fun updateCRL(crlUrl: String): X509CRL {
         try {
             val response = runBlocking {
                 httpClient.request(crlUrl) {
