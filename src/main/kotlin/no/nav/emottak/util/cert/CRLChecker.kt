@@ -75,7 +75,6 @@ class CRLChecker(
                 crlRetriever.updateCRL(crl.url)
             }
             crl.lastUpdated = Instant.now()
-            log.info("CRL for issuer ${crl.x500Name} oppdatert")
         } catch (e: Exception) {
             log.warn("Oppdatering av CRL for ${crl.x500Name} feilet!", e)
         }
