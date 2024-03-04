@@ -1,5 +1,6 @@
 package no.nav.emottak.cpa.validation
 
+import kotlinx.coroutines.runBlocking
 import no.nav.emottak.cpa.HttpClientUtil
 import no.nav.emottak.util.cert.CRLChecker
 import no.nav.emottak.util.cert.CRLRetriever
@@ -8,7 +9,9 @@ import no.nav.emottak.util.cert.SertifikatValidering
 import java.security.cert.X509Certificate
 
 val crlChecker = CRLChecker(
-    CRLRetriever(HttpClientUtil.client)
+    runBlocking {
+        CRLRetriever(HttpClientUtil.client).updateAllCRLs()
+    }
 )
 
 val sertifikatValidering = SertifikatValidering(crlChecker)

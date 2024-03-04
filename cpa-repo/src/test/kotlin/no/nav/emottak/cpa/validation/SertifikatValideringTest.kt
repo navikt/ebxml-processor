@@ -9,18 +9,14 @@ import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.runs
-import kotlinx.coroutines.runBlocking
 import no.nav.emottak.cpa.TestUtil
 import no.nav.emottak.cpa.TestUtil.Companion.crlFile
-import no.nav.emottak.util.cert.CRL
 import no.nav.emottak.util.cert.CRLChecker
-import no.nav.emottak.util.cert.CRLRetriever
 import no.nav.emottak.util.cert.CertificateValidationException
 import no.nav.emottak.util.cert.SertifikatValidering
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.decodeBase64
 import org.bouncycastle.asn1.x500.X500Name
-import java.time.Instant
 
 class SertifikatValideringTest : FunSpec({
 
@@ -54,19 +50,7 @@ class SertifikatValideringTest : FunSpec({
     }
 
     context("Sertifikatsjekk med CRLChecker med CRL fil") {
-        val crl = CRL(
-            X500Name("CN=Buypass Class 3 CA 2, O=Buypass AS-983163327, C=NO"),
-            "url",
-            crlFile,
-            Instant.now()
-        )
-        val crlRetriever = mockk<CRLRetriever>()
-        every {
-            runBlocking {
-                crlRetriever.updateAllCRLs()
-            }
-        } returns listOf(crl)
-        val crlChecker = CRLChecker(crlRetriever)
+        val crlChecker = CRLChecker(mapOf(Pair(X500Name("CN=Buypass Class 3 CA 2, O=Buypass AS-983163327, C=NO"), crlFile)))
         val sertifikatValidering = SertifikatValidering(crlChecker)
 
         withData(

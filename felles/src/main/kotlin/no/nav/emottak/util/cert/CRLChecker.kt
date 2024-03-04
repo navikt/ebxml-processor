@@ -1,12 +1,9 @@
 package no.nav.emottak.util.cert
 
-import kotlinx.coroutines.runBlocking
 import org.bouncycastle.asn1.x500.X500Name
 import java.math.BigInteger
 import java.security.cert.X509CRL
 import java.security.cert.X509CRLEntry
-import java.time.Instant
-import java.util.Date
 
 val issuerList = mapOf(
 //    Pair("CN=Buypass Class 3 CA 3,O=Buypass AS-983163327,C=NO","http://crl.buypass.no/crl/BPClass3CA3.crl"),
@@ -28,13 +25,8 @@ val issuerList = mapOf(
 )
 
 class CRLChecker(
-    private val crlRetriever: CRLRetriever
+    val crlFiles: Map<X500Name, X509CRL>
 ) {
-    private val crlMaximumAgeInSeconds: Long = 3600
-    private val crlList: List<CRL> = runBlocking {
-        crlRetriever.updateAllCRLs()
-    }
-
     fun getCRLRevocationInfo(issuer: String, serialNumber: BigInteger) {
         getRevokedCertificate(issuer = X500Name(issuer), serialNumber = serialNumber)?.let {
             throw CertificateValidationException("Sertifikat revokert: serienummer <$serialNumber> revokert med reason <${it.revocationReason}> at <${it.revocationDate}>")
@@ -46,45 +38,10 @@ class CRLChecker(
     }
 
     private fun getCRLFile(issuer: X500Name): X509CRL {
-        val crl = crlList.firstOrNull { it.x500Name == issuer }
+        val crlFile = crlFiles[issuer]
             ?: throw CertificateValidationException("Issuer $issuer ikke støttet. CRL liste må oppdateres med issuer om denne skal støttes")
-        when {
-            crl.file == null -> {
-                log.warn("Issuer $issuer støttet, men CRL er null. Forsøker oppdatering")
-                updateCRL(crl)
-            }
-            Date.from(Instant.now()).after(crl.file!!.nextUpdate) -> {
-                log.warn("Issuer $issuer støttet, men CRL er utdatert. Forsøker oppdatering")
-                updateCRL(crl)
-            }
-            crl.lastUpdated.isBefore(Instant.now().minusSeconds(crlMaximumAgeInSeconds)) -> {
-                log.info("CRL for Issuer $issuer er eldre enn $crlMaximumAgeInSeconds sekunder. Forsøker oppdatering")
-                updateCRL(crl)
-            }
-            else -> {
-                if (X500Name(crl.file!!.issuerX500Principal.name) != issuer)
-                    throw CertificateValidationException("Issuer $issuer har ikke utstedt denne CRL-filen, men ${crl.file!!.issuerX500Principal.name}! Dette skal ikke skje!")
-            }
-        }
-        return crl.file ?: throw CertificateValidationException("Issuer $issuer støttet, men henting av CRL feilet")
-    }
-
-    private fun updateCRL(crl: CRL) {
-        try {
-            crl.file = runBlocking {
-                crlRetriever.updateCRL(crl.url)
-            }
-            crl.lastUpdated = Instant.now()
-            log.info("CRL for issuer ${crl.x500Name} oppdatert")
-        } catch (e: Exception) {
-            log.warn("Oppdatering av CRL for ${crl.x500Name} feilet!", e)
-        }
+        if (X500Name(crlFile.issuerX500Principal.name) != issuer)
+            throw CertificateValidationException("Issuer $issuer har ikke utstedt denne CRL-filen, men ${crlFile.issuerX500Principal.name}! Dette skal ikke skje!")
+        return crlFile
     }
 }
-
-data class CRL(
-    val x500Name: X500Name,
-    val url: String,
-    var file: X509CRL?,
-    var lastUpdated: Instant
-)
