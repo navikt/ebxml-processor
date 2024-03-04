@@ -18,7 +18,9 @@ class CRLRetriever(private val httpClient: HttpClient) {
             log.info("Oppdaterer CRL for <${issuer.key}>")
             val x500Name = X500Name(issuer.key)
             val crlFile = try {
-                updateCRL(issuer.value)
+                updateCRL(issuer.value).also {
+                    log.info("CRL fra <${issuer.value}> oppdatert")
+                }
             } catch (e: Exception) {
                 log.warn("Oppdatering av CRL feilet fra <${issuer.value}>", e)
                 null
@@ -35,9 +37,7 @@ class CRLRetriever(private val httpClient: HttpClient) {
                     method = HttpMethod.Get
                 }.body<ByteArray>()
             }
-            return createCRLFile(response).also {
-                log.info("CRL fra <$crlUrl> oppdatert")
-            }
+            return createCRLFile(response)
         } catch (e: Exception) {
             throw RuntimeException("$crlUrl: Kunne ikke oppdatere CRL", e)
         }
