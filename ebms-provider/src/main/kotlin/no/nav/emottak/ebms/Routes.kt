@@ -97,6 +97,7 @@ fun Route.postEbmsSyc(
                 return@post
             }
     } catch (ebmsException: EbmsException) {
+        log.error(ebmsException.message, ebmsException)
         ebmsMessage.createFail(ebmsException.feil).toEbmsDokument().also {
             call.respondEbmsDokument(it)
             return@post
