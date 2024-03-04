@@ -2,7 +2,7 @@ name: "Naisjob read mail"
 on:
   push:
     branches:
-      - main
+      - main-disabled
 jobs:
   build:
     permissions:
