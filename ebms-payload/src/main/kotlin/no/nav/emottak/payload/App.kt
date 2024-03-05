@@ -48,13 +48,14 @@ private fun Application.serverSetup() {
                 call.respond(it)
             }.onFailure {
                 val processedPayload: ByteArray = try {
-                    if (request.processing.processConfig?.apprec == true) {
-                        log.info(request.marker(), "Oppretter negativ AppRec for payload ${request.payloadId}")
-                        val msgHead = unmarshal(String(request.payload), MsgHead::class.java)
-                        val apprec = createNegativeApprec(msgHead, it as Exception)
-                        marshal(apprec).toByteArray()
-                    } else {
-                        request.payload
+                    when (request.processing.processConfig?.apprec) {
+                        true -> {
+                            log.info(request.marker(), "Oppretter negativ AppRec for payload ${request.payloadId}")
+                            val msgHead = unmarshal(request.payload, MsgHead::class.java)
+                            val apprec = createNegativeApprec(msgHead, it as Exception)
+                            marshal(apprec).toByteArray()
+                        }
+                        else -> request.payload
                     }
                 } catch (e: Exception) {
                     log.error(request.marker(), "Opprettelse av apprec feilet", e)
