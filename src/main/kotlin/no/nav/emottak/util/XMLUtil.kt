@@ -11,6 +11,10 @@ import org.w3c.dom.NodeList
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.security.cert.X509Certificate
+import java.time.Instant
+import java.util.GregorianCalendar
+import javax.xml.datatype.DatatypeFactory
+import javax.xml.datatype.XMLGregorianCalendar
 import javax.xml.parsers.DocumentBuilderFactory
 import javax.xml.transform.TransformerFactory
 import javax.xml.transform.dom.DOMSource
@@ -52,3 +56,8 @@ fun Node.getFirstChildElement(): Element {
     while (child != null && child.nodeType != Node.ELEMENT_NODE) child = child.nextSibling
     return child as Element
 }
+
+fun Instant.toXMLGregorianCalendar(): XMLGregorianCalendar =
+    DatatypeFactory.newInstance().newXMLGregorianCalendar(
+        GregorianCalendar().also { it.setTimeInMillis(this.toEpochMilli()) }
+    )
