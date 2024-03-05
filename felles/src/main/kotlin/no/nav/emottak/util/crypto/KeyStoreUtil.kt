@@ -12,6 +12,7 @@ import java.security.PrivateKey
 import java.security.Security
 import java.security.cert.X509Certificate
 import java.util.HashMap
+import no.nav.emottak.util.cert.log
 
 //TODO Keystorefiler
 private val keystorePath = getEnvVar("KEYSTORE_FILE", "xml/signering_keystore.p12")
@@ -66,6 +67,7 @@ internal class KeyStoreUtil {
                 FileInputStream(storePath)
             } catch (e: FileNotFoundException) {
                 //TODO Kast exception om keystore ikke kan leses
+                log.error("Unable to load keystore $storePath falling back to truststore",e)
                 ByteArrayInputStream(this::class.java.classLoader.getResource("truststore.p12").readBytes())
             }
         keyStore!!.load(fileContent, storePass)
