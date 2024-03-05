@@ -1,5 +1,7 @@
 package no.nav.emottak.melding.apprec
 
+import no.nav.emottak.util.signatur.SignatureException
+
 enum class AppRecErrorCode(val description: String) {
     X99("Annen feil"),
     E10("Ugyldig meldingsidentifikator"),
@@ -14,4 +16,12 @@ enum class AppRecErrorCode(val description: String) {
     S02("Ugyldig sertifikat"),
     S03("Tilbaketrukket sertifikat"),
     S99("Annen feil på signatur eller sertifikat");
+
+    companion object{
+        fun getCode(exception: Exception): AppRecErrorCode =
+            when (exception) {
+                is SignatureException -> S01
+                else -> X99
+            }
+    }
 }
