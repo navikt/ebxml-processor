@@ -6,12 +6,10 @@ import no.nav.emottak.melding.model.Addressing
 import no.nav.emottak.melding.model.Party
 import no.nav.emottak.melding.model.PartyId
 import no.nav.emottak.melding.model.SendInRequest
+import no.nav.emottak.util.toXMLGregorianCalendar
 import no.trygdeetaten.xml.eiff._1.EIFellesformat
 import no.trygdeetaten.xml.eiff._1.ObjectFactory
 import java.time.Instant
-import java.util.GregorianCalendar
-import javax.xml.datatype.DatatypeFactory
-import javax.xml.datatype.XMLGregorianCalendar
 
 private val fellesFormatFactory = ObjectFactory()
 
@@ -49,8 +47,3 @@ private fun createFellesFormatMottakEnhetBlokk(mottaksId: String, conversationId
         it.meldingsType = "TODO"
         it.partnerReferanse = "TODO"
     }
-
-private fun Instant.toXMLGregorianCalendar(): XMLGregorianCalendar =
-    DatatypeFactory.newInstance().newXMLGregorianCalendar(
-        GregorianCalendar().also { it.setTimeInMillis(this.toEpochMilli()) }
-    )
