@@ -4,6 +4,7 @@ import no.nav.emottak.ebms.validation.SignaturValidator
 import no.nav.emottak.ebms.xml.getDocumentBuilder
 import no.nav.emottak.ebms.xml.marshal
 import no.nav.emottak.melding.model.Addressing
+import no.nav.emottak.melding.model.EbmsAttachment
 import no.nav.emottak.melding.model.Feil
 import no.nav.emottak.melding.model.SignatureDetails
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Acknowledgment
@@ -134,7 +135,7 @@ fun EbmsMessage.createMessageHeader(newAddressing: Addressing = this.addressing,
     }
 }
 
-fun createEbmsDocument(ebxmlDokument: Header, payload: Payload? = null): EbMSDocument {
+fun createEbmsDocument(ebxmlDokument: Header, payload: EbmsAttachment? = null): EbMSDocument {
     val envelope = Envelope()
     val attachmentUid = UUID.randomUUID().toString()
     envelope.header = ebxmlDokument

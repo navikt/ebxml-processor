@@ -3,6 +3,7 @@ package no.nav.emottak.ebms.model
 import no.nav.emottak.constants.EbXMLConstants
 import no.nav.emottak.ebms.validation.SignaturValidator
 import no.nav.emottak.melding.model.Addressing
+import no.nav.emottak.melding.model.EbmsAttachment
 import no.nav.emottak.melding.model.SignatureDetails
 import org.w3c.dom.Document
 import java.util.UUID
@@ -13,7 +14,7 @@ data class PayloadMessage(
     override val conversationId: String,
     override val cpaId: String,
     override val addressing: Addressing,
-    val payload: Payload,
+    val payload: EbmsAttachment,
     override val dokument: Document? = null,
     override val refToMessageId: String? = null
 

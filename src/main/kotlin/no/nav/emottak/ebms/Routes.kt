@@ -9,21 +9,21 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.post
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.model.EbMSDocument
-import no.nav.emottak.ebms.model.Payload
 import no.nav.emottak.ebms.model.PayloadMessage
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.DokumentValidator
 import no.nav.emottak.ebms.validation.MimeValidationException
+import no.nav.emottak.ebms.validation.parseAsSoapFault
 import no.nav.emottak.ebms.validation.validateMime
 import no.nav.emottak.melding.feil.EbmsException
+import no.nav.emottak.melding.model.Payload
 import no.nav.emottak.melding.model.PayloadProcessing
+import no.nav.emottak.melding.model.SignatureDetails
 import no.nav.emottak.util.marker
 import no.nav.emottak.util.retrieveLoggableHeaderPairs
 import java.util.*
-import no.nav.emottak.ebms.validation.parseAsSoapFault
-import no.nav.emottak.melding.model.SignatureDetails
 
 fun Route.postEbmsSyc(
     validator: DokumentValidator,
@@ -64,7 +64,7 @@ fun Route.postEbmsSyc(
     }
 
     val ebmsMessage = ebMSDocument.transform() as PayloadMessage
-    var signingCertificate:SignatureDetails? = null
+    var signingCertificate: SignatureDetails? = null
     try {
         validator.validateIn(ebmsMessage)
             .let { validationResult ->
@@ -102,8 +102,8 @@ fun Route.postEbmsSyc(
             call.respondEbmsDokument(it)
             return@post
         }
-    } catch (ex : Exception) {
-        log.error("Unknown error during message processing: ${ex.message}",ex)
+    } catch (ex: Exception) {
+        log.error("Unknown error during message processing: ${ex.message}", ex)
         call.respond(
             HttpStatusCode.InternalServerError,
             ex.parseAsSoapFault()
@@ -138,7 +138,7 @@ fun Route.postEbmsAsync(validator: DokumentValidator, processingService: Process
             // @TODO done only for demo fiks!
             call.respond(
                 HttpStatusCode.InternalServerError,
-                ex.parseAsSoapFault()
+                ex.parseAsSoapFault("Unable to transform request into EbmsDokument")
             )
             return@post
         }

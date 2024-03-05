@@ -25,6 +25,7 @@ import no.nav.emottak.ebms.xml.ebMSSigning
 import no.nav.emottak.ebms.xml.xmlMarshaller
 import no.nav.emottak.melding.model.ErrorCode
 import no.nav.emottak.melding.model.Feil
+import no.nav.emottak.melding.model.Payload
 import no.nav.emottak.melding.model.SignatureDetails
 import no.nav.emottak.util.marker
 import no.nav.emottak.util.signatur.SignatureException
@@ -37,7 +38,7 @@ import java.lang.RuntimeException
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.model")
 
-data class EbMSDocument(val requestId: String, val dokument: Document, val attachments: List<EbmsAttachment>) {
+data class EbMSDocument(val requestId: String, val dokument: Document, val attachments: List<Payload>) {
 
     private val envelope = lazy { xmlMarshaller.unmarshal(this.dokument) as Envelope }
 

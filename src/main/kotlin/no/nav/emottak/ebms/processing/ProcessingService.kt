@@ -11,7 +11,6 @@ import no.nav.emottak.melding.feil.EbmsException
 import no.nav.emottak.melding.model.Direction
 import no.nav.emottak.melding.model.PayloadProcessing
 import no.nav.emottak.melding.model.PayloadRequest
-import java.util.UUID
 
 class ProcessingService(val httpClient: PayloadProcessingClient) {
 
@@ -26,8 +25,7 @@ class ProcessingService(val httpClient: PayloadProcessingClient) {
                 messageId = payloadMessage.messageId,
                 conversationId = payloadMessage.conversationId,
                 processing = payloadProcessing,
-                payloadId = UUID.randomUUID().toString(),
-                payload = payloadMessage.payload.bytes
+                payload = payloadMessage.payload
             )
             // TODO do something with the response?
             runBlocking {
@@ -40,7 +38,7 @@ class ProcessingService(val httpClient: PayloadProcessingClient) {
             if (payloadResponse.error != null) {
                 throw EbmsException(listOf(payloadResponse.error!!))
             } else {
-                payloadMessage.copy(payload = payloadMessage.payload.copy(bytes = payloadResponse.processedPayload))
+                payloadMessage.copy(payload = payloadResponse.processedPayload)
             }
         }.getOrElse {
             throw EbmsException("Processing has failed", exception = it)

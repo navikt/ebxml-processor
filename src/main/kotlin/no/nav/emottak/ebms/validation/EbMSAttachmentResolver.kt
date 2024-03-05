@@ -1,6 +1,6 @@
 package no.nav.emottak.ebms.validation
 
-import no.nav.emottak.ebms.model.EbmsAttachment
+import no.nav.emottak.melding.model.EbmsAttachment
 import org.apache.xml.security.signature.XMLSignatureInput
 import org.apache.xml.security.utils.resolver.ResourceResolverContext
 import org.apache.xml.security.utils.resolver.ResourceResolverException
