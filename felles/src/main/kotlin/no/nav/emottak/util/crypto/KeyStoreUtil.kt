@@ -70,6 +70,7 @@ internal class KeyStoreUtil {
                 log.error("Unable to load keystore $storePath falling back to truststore",e)
                 ByteArrayInputStream(this::class.java.classLoader.getResource("truststore.p12").readBytes())
             }
+        log.info("loggppp " + String(storePass))
         keyStore!!.load(fileContent, storePass)
         return keyStore
     }
