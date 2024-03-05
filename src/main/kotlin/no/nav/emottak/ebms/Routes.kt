@@ -16,13 +16,14 @@ import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.DokumentValidator
 import no.nav.emottak.ebms.validation.MimeValidationException
-import no.nav.emottak.ebms.validation.asParseAsSoapFault
 import no.nav.emottak.ebms.validation.validateMime
 import no.nav.emottak.melding.feil.EbmsException
 import no.nav.emottak.melding.model.PayloadProcessing
 import no.nav.emottak.util.marker
 import no.nav.emottak.util.retrieveLoggableHeaderPairs
 import java.util.*
+import no.nav.emottak.ebms.validation.parseAsSoapFault
+import no.nav.emottak.melding.model.SignatureDetails
 
 fun Route.postEbmsSyc(
     validator: DokumentValidator,
@@ -43,7 +44,7 @@ fun Route.postEbmsSyc(
             "Mime validation has failed: ${ex.message} Message-Id ${call.request.header(SMTPHeaders.MESSAGE_ID)}",
             ex
         )
-        call.respond(HttpStatusCode.InternalServerError, ex.asParseAsSoapFault())
+        call.respond(HttpStatusCode.InternalServerError, ex.parseAsSoapFault())
         return@post
     } catch (ex: Exception) {
         logger().error(
@@ -57,15 +58,13 @@ fun Route.postEbmsSyc(
         // @TODO done only for demo fiks!
         call.respond(
             HttpStatusCode.InternalServerError,
-            MimeValidationException(
-                "Unable to transform request into EbmsDokument: ${ex.message}",
-                ex
-            ).asParseAsSoapFault()
+            ex.parseAsSoapFault()
         )
         return@post
     }
 
     val ebmsMessage = ebMSDocument.transform() as PayloadMessage
+    var signingCertificate:SignatureDetails? = null
     try {
         validator.validateIn(ebmsMessage)
             .let { validationResult ->
@@ -83,6 +82,7 @@ fun Route.postEbmsSyc(
                 }
             }.let { payloadMessage ->
                 validator.validateOut(payloadMessage).let {
+                    signingCertificate = it.payloadProcessing?.signingCertificate
                     Pair<PayloadMessage, PayloadProcessing?>(payloadMessage, it.payloadProcessing)
                 }
             }.let { messageProcessing ->
@@ -102,6 +102,12 @@ fun Route.postEbmsSyc(
             call.respondEbmsDokument(it)
             return@post
         }
+    } catch (ex : Exception) {
+        log.error("Unknown error during message processing: ${ex.message}",ex)
+        call.respond(
+            HttpStatusCode.InternalServerError,
+            ex.parseAsSoapFault()
+        )
     }
 }
 
@@ -118,7 +124,7 @@ fun Route.postEbmsAsync(validator: DokumentValidator, processingService: Process
                 "Mime validation has failed: ${ex.message} Message-Id ${call.request.header(SMTPHeaders.MESSAGE_ID)}",
                 ex
             )
-            call.respond(HttpStatusCode.InternalServerError, ex.asParseAsSoapFault())
+            call.respond(HttpStatusCode.InternalServerError, ex.parseAsSoapFault())
             return@post
         } catch (ex: Exception) {
             logger().error(
@@ -132,10 +138,7 @@ fun Route.postEbmsAsync(validator: DokumentValidator, processingService: Process
             // @TODO done only for demo fiks!
             call.respond(
                 HttpStatusCode.InternalServerError,
-                MimeValidationException(
-                    "Unable to transform request into EbmsDokument: ${ex.message}",
-                    ex
-                ).asParseAsSoapFault()
+                ex.parseAsSoapFault()
             )
             return@post
         }
