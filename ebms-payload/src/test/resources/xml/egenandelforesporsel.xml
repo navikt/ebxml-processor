@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ns:MsgHead xmlns:ns="http://www.kith.no/xmlstds/msghead/2006-05-24"
+            xmlns:kith="http://www.kith.no/xmlstds"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xsi:schemaLocation="http://www.kith.no/xmlstds/msghead/2006-05-24 MsgHead-v1_2.xsd">
+    <ns:MsgInfo>
+        <ns:Type V="EgenandelForesporsel" DN="Forespørsel om egenandel"/>
+        <ns:MIGversion>v1.2 2006-05-24</ns:MIGversion>
+        <ns:GenDate>2008-11-26T20:31:17.281+01:00</ns:GenDate>
+        <ns:MsgId>cc169595-bbf0-11dd-9ca9-117f241b4a68</ns:MsgId>
+        <ns:Sender><ns:ComMethod V="Dummy" DN="Dummy"/><ns:Organisation>
+            <ns:OrganisationName>TESTORGNAME</ns:OrganisationName>
+            <ns:Ident>
+                <ns:Id>889640782</ns:Id>
+                <ns:TypeId V="ENH" DN="Organisasjonsnummeret i Enhetsregister" S="2.16.578.1.12.4.1.1.9051"/>
+            </ns:Ident>
+        </ns:Organisation>
+        </ns:Sender>
+        <ns:Receiver>
+            <ns:Organisation>
+                <ns:OrganisationName>NAV</ns:OrganisationName>
+                <ns:Ident>
+                    <ns:Id>99999999</ns:Id>
+                    <ns:TypeId/>
+                </ns:Ident>
+            </ns:Organisation>
+        </ns:Receiver>
+    </ns:MsgInfo>
+    <ns:Document>
+        <ns:DocumentConnection V="H" DN="Hoveddokument"/>
+        <ns:RefDoc>
+            <ns:MsgType V="XML" DN="XML-instans"/>
+            <ns:Content>
+                <EgenandelForesporsel xmlns="http://www.kith.no/xmlstds/nav/egenandel/2010-02-01" xsi:schemaLocation="http://www.kith.no/xmlstds/nav/egenandel/2010-02-01 NAV-Egenandel-2010-02-01.xsd">
+                    <HarBorgerFrikort>
+                        <BorgerFnr>12345678910</BorgerFnr>
+                        <Dato>2010-06-25</Dato>
+                    </HarBorgerFrikort>
+                </EgenandelForesporsel>
+            </ns:Content>
+        </ns:RefDoc>
+    </ns:Document>
+</ns:MsgHead>

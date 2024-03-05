@@ -12,10 +12,14 @@ import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
+import no.kith.xmlstds.msghead._2006_05_24.MsgHead
+import no.nav.emottak.melding.apprec.createNegativeApprec
 import no.nav.emottak.melding.model.ErrorCode
 import no.nav.emottak.melding.model.Feil
 import no.nav.emottak.melding.model.PayloadRequest
 import no.nav.emottak.melding.model.PayloadResponse
+import no.nav.emottak.payload.util.marshal
+import no.nav.emottak.payload.util.unmarshal
 import no.nav.emottak.util.marker
 import org.slf4j.LoggerFactory
 
@@ -43,9 +47,22 @@ private fun Application.serverSetup() {
                 log.info(request.marker(), "Payload ${request.payloadId} prosessert OK")
                 call.respond(it)
             }.onFailure {
+                val processedPayload: ByteArray = try {
+                    if (request.processing.processConfig?.apprec == true) {
+                        log.info(request.marker(), "Oppretter negativ AppRec for payload ${request.payloadId}")
+                        val msgHead = unmarshal(String(request.payload), MsgHead::class.java)
+                        val apprec = createNegativeApprec(msgHead, it as Exception)
+                        marshal(apprec).toByteArray()
+                    } else {
+                        request.payload
+                    }
+                } catch (e: Exception) {
+                    log.error(request.marker(), "Opprettelse av apprec feilet", e)
+                    request.payload
+                }
                 val response = PayloadResponse(
                     payloadId = request.payloadId,
-                    processedPayload = request.payload,
+                    processedPayload = processedPayload,
                     error = Feil(ErrorCode.UNKNOWN, it.localizedMessage, "Error")
                 )
                 log.error(request.marker(), "Payload ${request.payloadId} prosessert med feil: ${it.message}", it)
