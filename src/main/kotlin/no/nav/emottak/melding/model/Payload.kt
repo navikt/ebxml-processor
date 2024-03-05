@@ -34,15 +34,13 @@ data class PayloadRequest(
     val direction: Direction,
     val messageId: String,
     val conversationId: String,
-    val payloadId: String,
     val processing: PayloadProcessing,
-    val payload: ByteArray
+    val payload: Payload
 )
 
 @Serializable
 data class PayloadResponse(
-    val payloadId: String,
-    val processedPayload: ByteArray,
+    val processedPayload: Payload,
     val error: Feil? = null
 )
 
@@ -148,6 +146,11 @@ data class Processing(
     val signingCertificate: SignatureDetails,
     val encryptionCertificate: ByteArray
 )
+
+@Serializable
+data class Payload(val bytes: ByteArray, val contentType: String, val contentId: String)
+
+typealias EbmsAttachment = Payload
 
 
  enum class ErrorCode(val value:String,val description:String) {
