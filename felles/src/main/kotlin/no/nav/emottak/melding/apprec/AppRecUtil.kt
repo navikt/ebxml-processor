@@ -11,6 +11,7 @@ import no.kith.xmlstds.msghead._2006_05_24.HealthcareProfessional
 import no.kith.xmlstds.msghead._2006_05_24.Ident
 import no.kith.xmlstds.msghead._2006_05_24.MsgHead
 import no.kith.xmlstds.msghead._2006_05_24.MsgInfo
+import no.nav.emottak.util.signatur.SignatureException
 import no.nav.emottak.util.toXMLGregorianCalendar
 import org.apache.commons.lang3.StringUtils
 import java.time.Instant
@@ -36,9 +37,9 @@ private const val NOK_DESCRIPTION = "Avvist"
 fun createPositiveApprec(msgHead: MsgHead): AppRec = createBaseApprec(msgHead).also {
     it.status = createCS(OK_VALUE, OK_DESCRIPTION)
 }
-fun createNegativeApprec(msgHead: MsgHead, exception: Exception, errorCode: AppRecErrorCode = AppRecErrorCode.X99): AppRec = createBaseApprec(msgHead).also {
+fun createNegativeApprec(msgHead: MsgHead, exception: Exception): AppRec = createBaseApprec(msgHead).also {
     it.status = createCS(NOK_VALUE, NOK_DESCRIPTION)
-    it.error.add(createApprecError(errorCode, exception.message))
+    it.error.add(createApprecError(exception.getErrorCode(), exception.message))
 }
 
 private fun createBaseApprec(msgHead: MsgHead): AppRec = objectFactory.createAppRec().also { apprec ->
@@ -117,4 +118,9 @@ private enum class OrgUnit(val description: String) {
     ENH("Organisasjonsnummeret i Enhetsregisteret"),
     HER("Identifikator fra Helsetjenesteenhetsregisteret (HER-id)"),
     LIN("Lokal identifikator for institusjoner");
+}
+
+private fun java.lang.Exception.getErrorCode(): AppRecErrorCode = when (this) {
+    is SignatureException -> AppRecErrorCode.S01
+    else -> AppRecErrorCode.X99
 }

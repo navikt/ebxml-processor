@@ -5,6 +5,7 @@ import no.nav.emottak.melding.apprec.AppRecErrorCode
 import no.nav.emottak.melding.apprec.createNegativeApprec
 import no.nav.emottak.payload.util.marshal
 import no.nav.emottak.payload.util.unmarshal
+import no.nav.emottak.util.signatur.SignatureException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
@@ -25,7 +26,16 @@ class AppRecUtilTest {
         assertEquals("2", apprec.status.v)
         assertEquals(AppRecErrorCode.X99.name, apprec.error.first().v)
         assertEquals("Oh no!", apprec.error.first().ot)
+    }
 
-        print(marshal(apprec))
+    @Test
+    fun `Create negative AppRec from SignatureException`() {
+        val msgHead = unmarshal(String(this::class.java.classLoader.getResource("xml/egenandelforesporsel.xml")!!.readBytes()), MsgHead::class.java)
+        val exception = SignatureException("Oh no!")
+        val apprec = createNegativeApprec(msgHead, exception)
+
+        assertEquals("2", apprec.status.v)
+        assertEquals(AppRecErrorCode.S01.name, apprec.error.first().v)
+        assertEquals("Oh no!", apprec.error.first().ot)
     }
 }
