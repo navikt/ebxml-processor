@@ -16,12 +16,14 @@ import no.kith.xmlstds.msghead._2006_05_24.MsgHead
 import no.nav.emottak.melding.apprec.createNegativeApprec
 import no.nav.emottak.melding.model.ErrorCode
 import no.nav.emottak.melding.model.Feil
+import no.nav.emottak.melding.model.Payload
 import no.nav.emottak.melding.model.PayloadRequest
 import no.nav.emottak.melding.model.PayloadResponse
 import no.nav.emottak.payload.util.marshal
 import no.nav.emottak.payload.util.unmarshal
 import no.nav.emottak.util.marker
 import org.slf4j.LoggerFactory
+import java.util.UUID
 
 val processor = Processor()
 internal val log = LoggerFactory.getLogger("no.nav.emottak.payload")
@@ -41,32 +43,32 @@ private fun Application.serverSetup() {
         post("/payload") {
             val request: PayloadRequest = call.receive(PayloadRequest::class)
             runCatching {
-                log.info(request.marker(), "Payload ${request.payloadId} mottatt for prosessering")
+                log.info(request.marker(), "Payload ${request.payload.contentId} mottatt for prosessering")
                 processor.process(request)
             }.onSuccess {
-                log.info(request.marker(), "Payload ${request.payloadId} prosessert OK")
+                log.info(request.marker(), "Payload ${request.payload.contentId} prosessert OK")
                 call.respond(it)
             }.onFailure {
-                val processedPayload: ByteArray = try {
+                val processedPayload: Payload = try {
                     when (request.processing.processConfig?.apprec) {
                         true -> {
-                            log.info(request.marker(), "Oppretter negativ AppRec for payload ${request.payloadId}")
-                            val msgHead = unmarshal(request.payload, MsgHead::class.java)
+                            log.info(request.marker(), "Oppretter negativ AppRec for payload ${request.payload.contentId}")
+                            val msgHead = unmarshal(request.payload.bytes, MsgHead::class.java)
                             val apprec = createNegativeApprec(msgHead, it as Exception)
-                            marshal(apprec).toByteArray()
+                            Payload(marshal(apprec).toByteArray(), "text/xml", UUID.randomUUID().toString())
                         }
-                        else -> request.payload
+                        // Alexander: Er dette ok ?
+                        else -> throw RuntimeException("Unexpected error during processing.")
                     }
                 } catch (e: Exception) {
                     log.error(request.marker(), "Opprettelse av apprec feilet", e)
                     request.payload
                 }
                 val response = PayloadResponse(
-                    payloadId = request.payloadId,
                     processedPayload = processedPayload,
                     error = Feil(ErrorCode.UNKNOWN, it.localizedMessage, "Error")
                 )
-                log.error(request.marker(), "Payload ${request.payloadId} prosessert med feil: ${it.message}", it)
+                log.error(request.marker(), "Payload ${request.payload.contentId} prosessert med feil: ${it.message}", it)
                 call.respond(HttpStatusCode.BadRequest, response)
             }
         }

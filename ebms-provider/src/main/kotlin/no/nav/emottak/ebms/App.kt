@@ -36,7 +36,6 @@ import net.logstash.logback.marker.Markers
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.model.DokumentType
 import no.nav.emottak.ebms.model.EbMSDocument
-import no.nav.emottak.ebms.model.EbmsAttachment
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.DokumentValidator
@@ -46,6 +45,7 @@ import no.nav.emottak.ebms.validation.validateMimeAttachment
 import no.nav.emottak.ebms.validation.validateMimeSoapEnvelope
 import no.nav.emottak.ebms.xml.asString
 import no.nav.emottak.ebms.xml.getDocumentBuilder
+import no.nav.emottak.melding.model.EbmsAttachment
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayInputStream
 import java.time.Duration
@@ -80,13 +80,13 @@ fun PartData.payload(clearText: Boolean = false): ByteArray {
         is PartData.FormItem -> if (clearText) {
             return this.value.toByteArray()
         } else {
-            java.util.Base64.getMimeDecoder().decode(this.value)
+            Base64.getMimeDecoder().decode(this.value)
         }
         is PartData.FileItem -> {
             val stream = this.streamProvider.invoke()
             val bytes = stream.readAllBytes()
             stream.close()
-            if (clearText) return bytes else java.util.Base64.getMimeDecoder().decode(bytes)
+            if (clearText) return bytes else Base64.getMimeDecoder().decode(bytes)
         }
         else -> byteArrayOf()
     }
@@ -232,16 +232,4 @@ suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbMSDocument) {
     } else {
         this.respondText(ebxml)
     }
-
-    /*
-    this.respondBytesWriter {
-
-        MultiPartFormDataContent(
-                                                        listOf(partData),
-                                                        "123",
-                                                        ContentType.parse("multipart/related")
-                                                    ).writeTo(this)
-    }*/
-
-    // this.respondText(payload, ContentType.parse("text/xml"))
 }

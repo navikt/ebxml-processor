@@ -2,9 +2,9 @@ package no.nav.emottak.ebms.xml
 
 import jakarta.xml.soap.SOAPConstants
 import no.nav.emottak.ebms.model.EbMSDocument
-import no.nav.emottak.ebms.model.EbmsAttachment
 import no.nav.emottak.ebms.validation.CID_PREFIX
 import no.nav.emottak.ebms.validation.EbMSAttachmentResolver
+import no.nav.emottak.melding.model.EbmsAttachment
 import no.nav.emottak.melding.model.SignatureDetails
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.crypto.getCertificateAlias

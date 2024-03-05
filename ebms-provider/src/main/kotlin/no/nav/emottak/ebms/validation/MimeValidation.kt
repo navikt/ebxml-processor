@@ -79,12 +79,14 @@ fun Headers.validateMimeHeaders() {
 
 class MimeValidationException(message: String, cause: Throwable? = null) : Exception(message, cause)
 
-fun Exception.parseAsSoapFault(): String {
+fun Exception.parseAsSoapFault(extraMessage: String? = null): String {
     val faultNs: QName = QName(SOAPConstants.URI_NS_SOAP_ENVELOPE, "Server")
     val message: SOAPMessage = SOAPMessageFactory1_1Impl.newInstance().createMessage()
     val fault: SOAPFault = message.soapBody.addFault()
     fault.setFaultCode(faultNs)
-    fault.faultString = this.message
+    fault.faultString = extraMessage?.let {
+        it + ": " + this.message
+    } ?: this.message
     val out = ByteArrayOutputStream()
     message.writeTo(out)
     return String(out.toByteArray())
