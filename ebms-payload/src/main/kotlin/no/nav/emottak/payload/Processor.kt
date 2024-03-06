@@ -54,12 +54,13 @@ class Processor(
         }.let {
             if (processConfig.komprimering) gZipUtil.compress(it) else it
         }.let {
-            val processedContent = if (processConfig.kryptering) {
-                kryptering.krypter(it, payloadRequest.processing.encryptionCertificate)
+            if (processConfig.kryptering) {
+                kryptering.krypter(it, payloadRequest.processing.encryptionCertificate).let {
+                    payloadRequest.payload.copy(bytes = it, contentType = "application/pkcs7-mime")
+                }
             } else {
-                it
+                payloadRequest.payload.copy(bytes = it)
             }
-            payloadRequest.payload.copy(bytes = processedContent)
         }
     }
 }
