@@ -13,7 +13,7 @@ open class EbmsException(
      constructor(
         message: String,
         errorCode: ErrorCode = ErrorCode.UNKNOWN,
-        severity: String = SeverityType.ERROR.value(),
+        severity: String = SeverityType.ERROR.value()!!,
         exception: Throwable? = null
     ) : this( listOf(Feil(errorCode, message, severity)), exception)
 
