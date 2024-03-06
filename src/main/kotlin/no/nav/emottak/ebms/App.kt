@@ -219,7 +219,15 @@ suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbMSDocument) {
     this.response.headers.append(MimeHeaders.SOAP_ACTION, "ebxml")
     this.response.headers.append(MimeHeaders.CONTENT_TRANSFER_ENCODING, "8bit")
     if (ebmsDokument.dokumentType() == DokumentType.PAYLOAD) {
-        val ebxmlFormItem = PartData.FormItem(ebxml, {}, HeadersBuilder().build())
+        val ebxmlFormItem = PartData.FormItem(
+            ebxml,
+            {},
+            HeadersBuilder().apply {
+                this.append(MimeHeaders.CONTENT_ID, UUID.randomUUID().toString())
+                this.append(MimeHeaders.CONTENT_TYPE, ContentType.Text.Xml.toString())
+                this.append(MimeHeaders.CONTENT_TRANSFER_ENCODING, "base64")
+            }.build()
+        )
         val parts = mutableListOf<PartData>(ebxmlFormItem)
         ebmsDokument.attachments.first().let {
             PartData.FormItem(
@@ -235,7 +243,6 @@ suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbMSDocument) {
                 parts.add(it)
             }
         }
-
         this.respond(
             MultiPartFormDataContent(
                 parts,
