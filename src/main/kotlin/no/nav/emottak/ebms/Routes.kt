@@ -99,7 +99,7 @@ fun Route.postEbmsSyc(
     } catch (ebmsException: EbmsException) {
         log.error(ebmsException.message, ebmsException)
         ebmsMessage.createFail(ebmsException.feil).toEbmsDokument().also {
-            signingCertificate?.let {signatureDetails ->
+            signingCertificate?.let { signatureDetails ->
                 it.signer(signatureDetails)
             }
             call.respondEbmsDokument(it)

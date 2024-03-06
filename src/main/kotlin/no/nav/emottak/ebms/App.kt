@@ -222,12 +222,16 @@ suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbMSDocument) {
         val ebxmlFormItem = PartData.FormItem(ebxml, {}, HeadersBuilder().build())
         val parts = mutableListOf<PartData>(ebxmlFormItem)
         ebmsDokument.attachments.first().let {
-            PartData.FormItem(Base64.getMimeEncoder().encodeToString(it.bytes), {}, HeadersBuilder().apply {
-                append(MimeHeaders.CONTENT_TRANSFER_ENCODING, "base64")
-                append(MimeHeaders.CONTENT_TYPE, it.contentType)
-                append(MimeHeaders.CONTENT_DISPOSITION, "attachment")
-                append(MimeHeaders.CONTENT_ID,it.contentId)
-            }.build()).also {
+            PartData.FormItem(
+                Base64.getMimeEncoder().encodeToString(it.bytes),
+                {},
+                HeadersBuilder().apply {
+                    append(MimeHeaders.CONTENT_TRANSFER_ENCODING, "base64")
+                    append(MimeHeaders.CONTENT_TYPE, it.contentType)
+                    append(MimeHeaders.CONTENT_DISPOSITION, "attachment")
+                    append(MimeHeaders.CONTENT_ID, it.contentId)
+                }.build()
+            ).also {
                 parts.add(it)
             }
         }
