@@ -2,7 +2,6 @@ package no.nav.emottak.ebms
 
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.application
 import io.ktor.server.application.call
 import io.ktor.server.request.header
 import io.ktor.server.response.respond
