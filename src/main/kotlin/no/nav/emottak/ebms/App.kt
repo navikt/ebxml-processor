@@ -243,6 +243,10 @@ suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbMSDocument) {
                 parts.add(it)
             }
         }
+        this.response.headers.apply {
+            this.append(MimeHeaders.SOAP_ACTION, """"ebXML"""")
+            this.append(MimeHeaders.CONTENT_TRANSFER_ENCODING, "8bit")
+        }
         this.respond(
             MultiPartFormDataContent(
                 parts,
