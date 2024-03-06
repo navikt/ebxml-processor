@@ -1,6 +1,8 @@
 package no.nav.emottak.ebms
 
+import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.application
 import io.ktor.server.application.call
 import io.ktor.server.request.header
 import io.ktor.server.response.respond
@@ -77,7 +79,7 @@ fun Route.postEbmsSyc(
                         it.conversationId,
                         ebmsMessage.cpaId,
                         it.addressing,
-                        Payload(it.payload, "text/xml", UUID.randomUUID().toString())
+                        Payload(it.payload, ContentType.Application.Xml.toString(), UUID.randomUUID().toString())
                     )
                 }
             }.let { payloadMessage ->

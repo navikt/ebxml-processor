@@ -1,5 +1,6 @@
 package no.nav.emottak.payload
 
+import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
@@ -55,7 +56,7 @@ private fun Application.serverSetup() {
                             log.info(request.marker(), "Oppretter negativ AppRec for payload ${request.payload.contentId}")
                             val msgHead = unmarshal(request.payload.bytes, MsgHead::class.java)
                             val apprec = createNegativeApprec(msgHead, it as Exception)
-                            Payload(marshal(apprec).toByteArray(), "text/xml", UUID.randomUUID().toString())
+                            Payload(marshal(apprec).toByteArray(), ContentType.Application.Xml.toString(), UUID.randomUUID().toString())
                         }
                         // Alexander: Er dette ok ?
                         else -> throw RuntimeException("Unexpected error during processing.")
