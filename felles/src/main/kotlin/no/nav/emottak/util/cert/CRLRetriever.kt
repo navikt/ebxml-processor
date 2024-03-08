@@ -8,6 +8,7 @@ import kotlinx.coroutines.runBlocking
 import no.nav.emottak.util.createCRLFile
 import org.bouncycastle.asn1.x500.X500Name
 import java.security.cert.X509CRL
+import no.nav.emottak.crypto.log
 
 class CRLRetriever(private val httpClient: HttpClient) {
     suspend fun updateAllCRLs(): HashMap<X500Name, X509CRL> {

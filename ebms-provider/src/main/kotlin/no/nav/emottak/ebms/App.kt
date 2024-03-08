@@ -216,8 +216,9 @@ suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbMSDocument) {
     }
     val ebxml = Base64.getMimeEncoder().encodeToString(ebmsDokument.dokument.asString().toByteArray())
 
-    this.response.headers.append(MimeHeaders.SOAP_ACTION, "ebxml")
-    this.response.headers.append(MimeHeaders.CONTENT_TRANSFER_ENCODING, "8bit")
+    this.response.headers.apply {
+        this.append(MimeHeaders.CONTENT_TYPE, ContentType.Text.Xml.toString())
+    }
     if (ebmsDokument.dokumentType() == DokumentType.PAYLOAD) {
         val ebxmlFormItem = PartData.FormItem(
             ebxml,
@@ -243,10 +244,7 @@ suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbMSDocument) {
                 parts.add(it)
             }
         }
-        this.response.headers.apply {
-            this.append(MimeHeaders.SOAP_ACTION, """"ebXML"""")
-            this.append(MimeHeaders.CONTENT_TRANSFER_ENCODING, "8bit")
-        }
+        this.response.headers.append(MimeHeaders.CONTENT_TRANSFER_ENCODING, "8bit")
         this.respond(
             MultiPartFormDataContent(
                 parts,
@@ -255,6 +253,8 @@ suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbMSDocument) {
             )
         )
     } else {
+        this.response.headers.append(MimeHeaders.CONTENT_TYPE, ContentType.Text.Xml.toString())
+        this.response.headers.append(MimeHeaders.CONTENT_TRANSFER_ENCODING, "base64")
         this.respondText(ebxml)
     }
 }

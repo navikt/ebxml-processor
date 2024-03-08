@@ -6,15 +6,15 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider
 import java.io.ByteArrayInputStream
 import java.io.FileInputStream
 import java.io.FileNotFoundException
-import java.security.KeyPair
 import java.security.KeyStore
 import java.security.PrivateKey
 import java.security.Security
 import java.security.cert.X509Certificate
 import java.util.HashMap
-import no.nav.emottak.util.cert.log
+import no.nav.emottak.crypto.log
 
 //TODO Keystorefiler
+/*
 private val keystorePath = getEnvVar("KEYSTORE_FILE", "xml/signering_keystore.p12")
 private val keystorePwd = getEnvVar("KEYSTORE_PWD", "123456789")
 private val keystoreType = getEnvVar("KEYSTORE_TYPE", "PKCS12")
@@ -23,13 +23,7 @@ private val truststorePath = getEnvVar("TRUSTSTORE_PATH", "truststore.p12")
 private val truststorePwd = getEnvVar("TRUSTSTORE_PWD", "123456789")
 
 internal val keyStoreUtil = KeyStoreUtil()
-fun getSignerCertificate(alias: String) = keyStoreUtil.getCertificate(alias)
-fun getSignerKey(alias: String) = keyStoreUtil.getKey(alias)
-fun getCertificateAlias(certificate: X509Certificate) = keyStoreUtil.getCertificateAlias(certificate)
-fun getKeyPair(alias: String) = KeyPair(getSignerCertificate(alias).publicKey, getSignerKey(alias))
 
-fun getDekrypteringKey(alias: String) = keyStoreUtil.getKey(alias)
-fun getPrivateCertificates() = keyStoreUtil.getPrivateCertificates()
 fun getTrustedRootCerts() = keyStoreUtil.getTrustedRootCerts()
 fun getIntermediateCerts() = keyStoreUtil.getIntermediateCerts()
 
@@ -97,3 +91,4 @@ internal class KeyStoreUtil {
     }
 }
 
+*/

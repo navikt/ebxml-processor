@@ -1,3 +1,4 @@
+
 package no.nav.emottak.cpa.validation
 
 import io.kotest.assertions.throwables.shouldThrow
@@ -13,7 +14,6 @@ import no.nav.emottak.cpa.TestUtil
 import no.nav.emottak.cpa.TestUtil.Companion.crlFile
 import no.nav.emottak.util.cert.CRLChecker
 import no.nav.emottak.util.cert.CertificateValidationException
-import no.nav.emottak.util.cert.SertifikatValidering
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.decodeBase64
 import org.bouncycastle.asn1.x500.X500Name
@@ -25,7 +25,7 @@ class SertifikatValideringTest : FunSpec({
         every {
             crlChecker.getCRLRevocationInfo(any(), any())
         } just runs
-        val sertifikatValidering = SertifikatValidering(crlChecker)
+        val sertifikatValidering = SertifikatValidering(crlChecker, trustStoreConfig)
 
         withData(
             mapOf(
@@ -51,7 +51,7 @@ class SertifikatValideringTest : FunSpec({
 
     context("Sertifikatsjekk med CRLChecker med CRL fil") {
         val crlChecker = CRLChecker(mapOf(Pair(X500Name("CN=Buypass Class 3 CA 2, O=Buypass AS-983163327, C=NO"), crlFile)))
-        val sertifikatValidering = SertifikatValidering(crlChecker)
+        val sertifikatValidering = SertifikatValidering(crlChecker, trustStoreConfig)
 
         withData(
             mapOf(

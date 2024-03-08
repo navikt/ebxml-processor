@@ -5,7 +5,6 @@ import no.nav.emottak.cpa.HttpClientUtil
 import no.nav.emottak.util.cert.CRLChecker
 import no.nav.emottak.util.cert.CRLRetriever
 import no.nav.emottak.util.cert.CertificateValidationException
-import no.nav.emottak.util.cert.SertifikatValidering
 import java.security.cert.X509Certificate
 
 val crlChecker = CRLChecker(
@@ -14,7 +13,7 @@ val crlChecker = CRLChecker(
     }
 )
 
-val sertifikatValidering = SertifikatValidering(crlChecker)
+val sertifikatValidering = SertifikatValidering(crlChecker, trustStoreConfig)
 
 @Throws(CertificateValidationException::class)
 fun X509Certificate.validate() {

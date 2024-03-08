@@ -1,6 +1,7 @@
 package no.nav.emottak.payload
 
-import no.nav.emottak.util.crypto.Dekryptering
+import no.nav.emottak.payload.crypto.Dekryptering
+import no.nav.emottak.payload.crypto.dekryperingConfig
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Disabled
@@ -11,7 +12,7 @@ class DekrypteringTest {
     @Test
     @Disabled
     fun dekrypterFil() {
-        val dekryptering = Dekryptering()
+        val dekryptering = Dekryptering(dekryperingConfig)
         val input = createInputstreamFromFile("src/test/resources/xml/kryptert_fil")
         val dekryptert = dekryptering.dekrypter(input.readBytes(), isBase64 = true)
 

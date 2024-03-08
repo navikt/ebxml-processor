@@ -58,7 +58,10 @@ fun Route.partnerId(partnerRepository: PartnerRepository, cpaRepository: CPARepo
                 // filter out alle med revokert sertifikat
                 val partyInfo = it.value.getPartyInfoByTypeAndID(PartyTypeEnum.HER.type, herId)
                 runCatching {
-                    createX509Certificate(partyInfo.getCertificateForEncryption()).validate()
+                    val certForEnc = partyInfo.getCertificateForEncryption()
+                    val cert = createX509Certificate(certForEnc)
+                    cert.validate()
+                    println(cert.toString())
                 }.isSuccess
             }.filter {
                 // Sjekker at partner kan motta angitt melding
@@ -75,6 +78,7 @@ fun Route.partnerId(partnerRepository: PartnerRepository, cpaRepository: CPARepo
             call.respond(HttpStatusCode.OK, it)
         }.onFailure {
             log.warn("Feil ved henting av $PARTNER_ID", it)
+            it.printStackTrace()
             when (it) {
                 is MultiplePartnerException -> call.respond(HttpStatusCode.Conflict, "Fant multiple $PARTNER_ID for $HER_ID $herId. Dette er en ugyldig tilstand.")
                 is PartnerNotFoundException -> call.respond(HttpStatusCode.NotFound, "Fant ikke $PARTNER_ID for $HER_ID $herId")

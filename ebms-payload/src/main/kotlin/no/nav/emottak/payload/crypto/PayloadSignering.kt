@@ -1,7 +1,8 @@
-package no.nav.emottak.util.signatur
+package no.nav.emottak.payload.crypto
 
-import no.nav.emottak.util.crypto.getSignerCertificate
-import no.nav.emottak.util.crypto.getSignerKey
+import no.nav.emottak.crypto.KeyStore
+import no.nav.emottak.crypto.KeyStoreConfig
+import no.nav.emottak.util.getEnvVar
 import org.w3c.dom.Document
 import java.security.Key
 import java.security.cert.X509Certificate
@@ -13,8 +14,12 @@ import javax.xml.crypto.dsig.dom.DOMSignContext
 import javax.xml.crypto.dsig.spec.C14NMethodParameterSpec
 import javax.xml.crypto.dsig.spec.TransformParameterSpec
 
-
-class Signering {
+val payloadSigneringConfig = object : KeyStoreConfig {
+    override val keystorePath: String = getEnvVar("KEYSTORE_FILE", "xml/signering_keystore.p12")
+    override val keyStorePwd: String = getEnvVar("KEYSTORE_PWD", "123456789")
+    override val keyStoreStype: String = getEnvVar("KEYSTORE_TYPE", "PKCS12")
+}
+class PayloadSignering(keyStoreConfig: KeyStoreConfig) {
 
     private val defaultAlias = "test2023"
     private val digestAlgorithm: String = "http://www.w3.org/2001/04/xmlenc#sha256"
@@ -23,9 +28,11 @@ class Signering {
 
     private val factory = XMLSignatureFactory.getInstance("DOM")
 
+    val keyStore: KeyStore = KeyStore(keyStoreConfig)
+
     fun signerXML(document: Document, alias: String = defaultAlias): Document {
-        val signerCertificate: X509Certificate = getSignerCertificate(alias)
-        val signerKey: Key = getSignerKey(alias)
+        val signerCertificate: X509Certificate = keyStore.getCertificate(alias)
+        val signerKey: Key = keyStore.getKey(alias)
         val keyInfoFactory = factory.keyInfoFactory
         val x509Content: MutableList<Any?> = ArrayList()
         x509Content.add(signerCertificate)
@@ -45,7 +52,8 @@ class Signering {
                 canonicalizationMethod,
                 null as C14NMethodParameterSpec?
             ),
-            factory.newSignatureMethod(signatureAlgorithm, null), listOf(createReference())
+            factory.newSignatureMethod(signatureAlgorithm, null),
+            listOf(createReference())
         )
     }
 
@@ -59,4 +67,3 @@ class Signering {
         )
     }
 }
-

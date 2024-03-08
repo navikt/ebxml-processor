@@ -1,7 +1,10 @@
-package no.nav.emottak.util.cert
+package no.nav.emottak.cpa.validation
 
-import no.nav.emottak.util.crypto.getIntermediateCerts
-import no.nav.emottak.util.crypto.getTrustedRootCerts
+import no.nav.emottak.crypto.KeyStore
+import no.nav.emottak.crypto.KeyStoreConfig
+import no.nav.emottak.util.cert.CRLChecker
+import no.nav.emottak.util.cert.CertificateValidationException
+import no.nav.emottak.util.getEnvVar
 import no.nav.emottak.util.isSelfSigned
 import org.bouncycastle.asn1.x509.CRLDistPoint
 import org.bouncycastle.asn1.x509.Extension
@@ -24,12 +27,19 @@ import java.time.Instant
 import java.util.Date
 
 internal val log = LoggerFactory.getLogger("no.nav.emottak.cpa.validation.SertifikatValidering")
+
+val trustStoreConfig = object : KeyStoreConfig {
+    override val keystorePath: String = getEnvVar("TRUSTSTORE_PATH", "truststore.p12")
+    override val keyStorePwd: String = getEnvVar("TRUSTSTORE_PWD", "123456789")
+    override val keyStoreStype: String = "PKCS12"
+}
+
 class SertifikatValidering(
     val crlChecker: CRLChecker,
-    val trustedRootCerts: Set<X509Certificate> = getTrustedRootCerts(),
-    val intermediateCerts: Set<X509Certificate> = getIntermediateCerts(),
+    trustStoreConfig: KeyStoreConfig,
     val provider: Provider = BouncyCastleProvider()
 ) {
+    val trustStore = KeyStore(trustStoreConfig)
     fun validateCertificate(certificate: X509Certificate) {
         if (isSelfSigned(certificate)) {
             throw CertificateValidationException("Sertifikat er selvsignert")
@@ -42,7 +52,7 @@ class SertifikatValidering(
     fun sjekkSertifikatMotTrustedCa(certificate: X509Certificate) {
         val selector = X509CertSelector()
         selector.certificate = certificate
-        val trustAnchors = trustedRootCerts.map {
+        val trustAnchors = trustStore.getTrustedRootCerts().map {
             TrustAnchor(it, null)
         }.toSet()
 
@@ -50,7 +60,7 @@ class SertifikatValidering(
         pkixParams.isRevocationEnabled = false
         pkixParams.date = Date.from(Instant.now())
 
-        val intermediateCertStore = CertStore.getInstance("Collection", CollectionCertStoreParameters(intermediateCerts), provider)
+        val intermediateCertStore = CertStore.getInstance("Collection", CollectionCertStoreParameters(trustStore.getIntermediateCerts()), provider)
         pkixParams.addCertStore(intermediateCertStore)
 
         val builder = CertPathBuilder.getInstance("PKIX", provider)
@@ -83,5 +93,4 @@ class SertifikatValidering(
             throw e
         }
     }
-
 }

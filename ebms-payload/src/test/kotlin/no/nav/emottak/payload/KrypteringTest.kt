@@ -1,6 +1,6 @@
 package no.nav.emottak.payload
 
-import no.nav.emottak.util.crypto.Kryptering
+import no.nav.emottak.payload.crypto.Kryptering
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 
