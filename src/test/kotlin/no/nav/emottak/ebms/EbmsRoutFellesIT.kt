@@ -50,7 +50,8 @@ abstract class EbmsRoutFellesIT(val endpoint: String) {
         true,
         true,
         true,
-        "HarBorgerFrikort"
+        "HarBorgerFrikort",
+        null
     )
 
     fun <T> validationTestApp(testBlock: suspend ApplicationTestBuilder.() -> T) = testApplication {
@@ -68,7 +69,7 @@ abstract class EbmsRoutFellesIT(val endpoint: String) {
                 processingService.processAsync(any(), any())
             } just runs
             routing {
-                postEbmsSyc(dokumentValidator, processingService, SendInService(sendInClient))
+                postEbmsSync(dokumentValidator, processingService, SendInService(sendInClient))
                 postEbmsAsync(dokumentValidator, processingService)
             }
         }

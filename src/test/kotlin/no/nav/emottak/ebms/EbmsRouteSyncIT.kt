@@ -24,6 +24,7 @@ import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.DokumentValidator
 import no.nav.emottak.ebms.validation.MimeHeaders
 import no.nav.emottak.melding.model.Addressing
+import no.nav.emottak.melding.model.Direction
 import no.nav.emottak.melding.model.EbmsProcessing
 import no.nav.emottak.melding.model.ErrorCode
 import no.nav.emottak.melding.model.Feil
@@ -57,7 +58,7 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
             every {
                 processingService.processSyncIn(any(), any())
             } answers {
-                it.invocation.args[0] as PayloadMessage
+                Pair(it.invocation.args[0] as PayloadMessage, Direction.IN)
             }
             every {
                 processingService.proccessSyncOut(any(), any())
@@ -66,7 +67,7 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
                 incomingMessage
             }
             routing {
-                postEbmsSyc(dokumentValidator, processingService, SendInService(sendInClient))
+                postEbmsSync(dokumentValidator, processingService, SendInService(sendInClient))
                 postEbmsAsync(dokumentValidator, processingService)
             }
         }
