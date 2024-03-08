@@ -12,8 +12,8 @@ import io.mockk.mockk
 import io.mockk.runs
 import no.nav.emottak.cpa.TestUtil
 import no.nav.emottak.cpa.TestUtil.Companion.crlFile
-import no.nav.emottak.util.cert.CRLChecker
-import no.nav.emottak.util.cert.CertificateValidationException
+import no.nav.emottak.cpa.cert.CRLChecker
+import no.nav.emottak.cpa.cert.CertificateValidationException
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.decodeBase64
 import org.bouncycastle.asn1.x500.X500Name

@@ -1,9 +1,9 @@
 package no.nav.emottak.cpa.validation
 
+import no.nav.emottak.cpa.cert.CRLChecker
+import no.nav.emottak.cpa.cert.CertificateValidationException
 import no.nav.emottak.crypto.KeyStore
 import no.nav.emottak.crypto.KeyStoreConfig
-import no.nav.emottak.util.cert.CRLChecker
-import no.nav.emottak.util.cert.CertificateValidationException
 import no.nav.emottak.util.getEnvVar
 import no.nav.emottak.util.isSelfSigned
 import org.bouncycastle.asn1.x509.CRLDistPoint

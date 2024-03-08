@@ -2,7 +2,6 @@ package no.nav.emottak.payload.crypto
 
 import no.nav.emottak.crypto.KeyStore
 import no.nav.emottak.crypto.KeyStoreConfig
-import no.nav.emottak.util.crypto.DecryptionException
 import no.nav.emottak.util.decodeBase64
 import no.nav.emottak.util.getEnvVar
 import org.bouncycastle.asn1.x500.X500Name

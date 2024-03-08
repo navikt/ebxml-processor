@@ -1,7 +1,6 @@
 package no.nav.emottak.payload.crypto
 
 import no.nav.emottak.util.createX509Certificate
-import no.nav.emottak.util.crypto.EncryptionException
 import org.bouncycastle.asn1.ASN1ObjectIdentifier
 import org.bouncycastle.cms.CMSAlgorithm
 import org.bouncycastle.cms.CMSEnvelopedDataGenerator
