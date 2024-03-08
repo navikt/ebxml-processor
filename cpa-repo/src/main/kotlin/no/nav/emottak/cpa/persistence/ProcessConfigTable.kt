@@ -14,5 +14,6 @@ object ProcessConfigTable : Table("process_config") {
     val validering: Column<Boolean> = bool("validering")
     val adapter: Column<String?> = varchar("adapter", 50).nullable()
     val apprec: Column<Boolean> = bool("apprec")
+    val errorAction: Column<String?> = varchar("error_action", 50).nullable()
     val pk = PrimaryKey(role, service, action)
 }

@@ -49,28 +49,38 @@ private fun Application.serverSetup() {
             }.onSuccess {
                 log.info(request.marker(), "Payload ${request.payload.contentId} prosessert OK")
                 call.respond(it)
-            }.onFailure {
-                val processedPayload: Payload = try {
-                    when (request.processing.processConfig?.apprec) {
+            }.onFailure { originalError ->
+                log.error(request.marker(), "Payload ${request.payload.contentId} prosessert med feil: ${originalError.message}", originalError)
+                val shouldRespondWithNegativeAppRec = request.processing.processConfig?.apprec ?: false
+
+                runCatching {
+                    when (shouldRespondWithNegativeAppRec) {
                         true -> {
                             log.info(request.marker(), "Oppretter negativ AppRec for payload ${request.payload.contentId}")
                             val msgHead = unmarshal(request.payload.bytes, MsgHead::class.java)
-                            val apprec = createNegativeApprec(msgHead, it as Exception)
+                            val apprec = createNegativeApprec(msgHead, originalError as Exception)
                             Payload(marshal(apprec).toByteArray(), ContentType.Application.Xml.toString(), UUID.randomUUID().toString())
                         }
-                        // Alexander: Er dette ok ?
-                        else -> throw RuntimeException("Unexpected error during processing.")
+                        false -> null
                     }
-                } catch (e: Exception) {
-                    log.error(request.marker(), "Opprettelse av apprec feilet", e)
-                    request.payload
+                }.onSuccess {
+                    call.respond(
+                        HttpStatusCode.BadRequest,
+                        PayloadResponse(
+                            processedPayload = it,
+                            error = Feil(ErrorCode.UNKNOWN, originalError.localizedMessage, "Error"),
+                            apprec = shouldRespondWithNegativeAppRec
+                        )
+                    )
+                }.onFailure {
+                    log.error(request.marker(), "Opprettelse av negativ apprec feilet", it)
+                    call.respond(
+                        HttpStatusCode.BadRequest,
+                        PayloadResponse(
+                            error = Feil(ErrorCode.UNKNOWN, it.localizedMessage, "Error")
+                        )
+                    )
                 }
-                val response = PayloadResponse(
-                    processedPayload = processedPayload,
-                    error = Feil(ErrorCode.UNKNOWN, it.localizedMessage, "Error")
-                )
-                log.error(request.marker(), "Payload ${request.payload.contentId} prosessert med feil: ${it.message}", it)
-                call.respond(HttpStatusCode.BadRequest, response)
             }
         }
     }

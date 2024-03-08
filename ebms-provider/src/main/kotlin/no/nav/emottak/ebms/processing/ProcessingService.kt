@@ -1,5 +1,8 @@
 package no.nav.emottak.ebms.processing
 
+import io.ktor.client.call.body
+import io.ktor.client.plugins.ClientRequestException
+import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.runBlocking
 import no.nav.emottak.ebms.PayloadProcessingClient
 import no.nav.emottak.ebms.logger
@@ -7,19 +10,22 @@ import no.nav.emottak.ebms.model.Acknowledgment
 import no.nav.emottak.ebms.model.EbmsFail
 import no.nav.emottak.ebms.model.EbmsMessage
 import no.nav.emottak.ebms.model.PayloadMessage
+import no.nav.emottak.ebms.util.marker
 import no.nav.emottak.melding.feil.EbmsException
 import no.nav.emottak.melding.model.Direction
+import no.nav.emottak.melding.model.Payload
 import no.nav.emottak.melding.model.PayloadProcessing
 import no.nav.emottak.melding.model.PayloadRequest
+import no.nav.emottak.melding.model.PayloadResponse
 
-class ProcessingService(val httpClient: PayloadProcessingClient) {
+class ProcessingService(private val httpClient: PayloadProcessingClient) {
 
     private fun processMessage(
         payloadMessage: PayloadMessage,
         payloadProcessing: PayloadProcessing,
         direction: Direction
-    ): PayloadMessage {
-        return runCatching {
+    ): Pair<PayloadMessage, Direction> {
+        return try {
             val payloadRequest = PayloadRequest(
                 direction,
                 messageId = payloadMessage.messageId,
@@ -27,22 +33,42 @@ class ProcessingService(val httpClient: PayloadProcessingClient) {
                 processing = payloadProcessing,
                 payload = payloadMessage.payload
             )
-            // TODO do something with the response?
-            runBlocking {
-                httpClient.postPayloadRequest(payloadRequest)
+            Pair(
+                payloadMessage.copy(
+                    payload = runBlocking {
+                        httpClient.postPayloadRequest(payloadRequest)
+                    }.processedPayload!!
+                ),
+                direction
+            )
+        } catch (clientRequestException: ClientRequestException) {
+            logger().error(payloadMessage.marker(), "Processing failed: ${clientRequestException.message}", clientRequestException)
+            when (clientRequestException.response.status) {
+                HttpStatusCode.BadRequest -> {
+                    return Pair(
+                        payloadMessage.convertToErrorActionMessage(
+                            clientRequestException.retrieveReturnableApprecResponse(direction).processedPayload!!,
+                            payloadProcessing.processConfig!!.errorAction!!
+                        ),
+                        Direction.OUT
+                    )
+                }
+                else -> throw EbmsException("Processing has failed", exception = clientRequestException)
             }
-        }.onFailure {
-            logger().error("Processing failed: ${it.message}", it)
-            throw EbmsException("Processing has failed", exception = it)
-        }.map { payloadResponse ->
-            if (payloadResponse.error != null) {
-                throw EbmsException(listOf(payloadResponse.error!!))
-            } else {
-                payloadMessage.copy(payload = payloadResponse.processedPayload)
-            }
-        }.getOrElse {
-            throw EbmsException("Processing has failed", exception = it)
+        } catch (exception: Exception) {
+            throw EbmsException("Processing has failed", exception = exception)
         }
+    }
+
+    private fun ClientRequestException.retrieveReturnableApprecResponse(
+        direction: Direction
+    ): PayloadResponse = runBlocking {
+        this@retrieveReturnableApprecResponse.response.body<PayloadResponse?>().takeIf { payloadResponse ->
+            payloadResponse != null &&
+                payloadResponse.apprec &&
+                payloadResponse.processedPayload != null &&
+                direction == Direction.IN
+        } ?: throw EbmsException("Processing has failed", exception = this@retrieveReturnableApprecResponse)
     }
 
     private fun acknowledgment(acknowledgment: Acknowledgment) {
@@ -51,14 +77,14 @@ class ProcessingService(val httpClient: PayloadProcessingClient) {
     private fun fail(fail: EbmsFail) {
     }
 
-    fun processSyncIn(message: PayloadMessage, payloadProcessing: PayloadProcessing?): PayloadMessage {
+    fun processSyncIn(message: PayloadMessage, payloadProcessing: PayloadProcessing?): Pair<PayloadMessage, Direction> {
         if (payloadProcessing == null) throw Exception("Processing information is missing for ${message.messageId}")
         return processMessage(message, payloadProcessing, Direction.IN)
     }
 
     fun proccessSyncOut(payloadMessage: PayloadMessage, payloadProcessing: PayloadProcessing?): PayloadMessage {
         if (payloadProcessing == null) throw Exception("Processing information is missing for ${payloadMessage.messageId}")
-        return processMessage(payloadMessage, payloadProcessing, Direction.OUT)
+        return processMessage(payloadMessage, payloadProcessing, Direction.OUT).first
     }
 
     fun processAsync(message: EbmsMessage, payloadProcessing: PayloadProcessing?) {
@@ -70,3 +96,12 @@ class ProcessingService(val httpClient: PayloadProcessingClient) {
         }
     }
 }
+
+private fun PayloadMessage.convertToErrorActionMessage(payload: Payload, errorAction: String): PayloadMessage = this.copy(
+    payload = payload,
+    addressing = this.addressing.copy(
+        action = errorAction,
+        to = this.addressing.from,
+        from = this.addressing.to
+    )
+)

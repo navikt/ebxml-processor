@@ -9,7 +9,8 @@ values ('Behandler',
         TRUE,
         TRUE,
            /* ADAPTER refererer til ekstra custom processering, nesten ingen flyter bruker det. */
-        'LoggEgenandel'),
+        'LoggEgenandel',
+        'Avvisning'),
     ('Utlever',
         'HarBorgerEgenandelFritak',
         'EgenandelForesporsel',
@@ -20,7 +21,8 @@ values ('Behandler',
         TRUE,
         TRUE,
            /* ADAPTER refererer til ekstra custom processering, nesten ingen flyter bruker det. */
-        'LoggEgenandel'),
+        'LoggEgenandel',
+        'Avvisning'),
     ('Frikortregister',
         'HarBorgerEgenandelFritak',
         'Svar',
@@ -31,6 +33,7 @@ values ('Behandler',
         false,
         false,
            /* ADAPTER refererer til ekstra custom processering, nesten ingen flyter bruker det. */
+        null,
         null),
     ('Frikortregister',
         'HarBorgerEgenandelFritak',
@@ -42,6 +45,7 @@ values ('Behandler',
         false,
         false,
            /* ADAPTER refererer til ekstra custom processering, nesten ingen flyter bruker det. */
+        null,
         null)
 on conflict (ROLE, SERVICE, ACTION) do update set KRYPTERING   = EXCLUDED.KRYPTERING,
                                                   KOMPRIMERING = EXCLUDED.KOMPRIMERING,
@@ -50,4 +54,5 @@ on conflict (ROLE, SERVICE, ACTION) do update set KRYPTERING   = EXCLUDED.KRYPTE
                                                   VALIDERING   = EXCLUDED.VALIDERING,
                                                   APPREC       = EXCLUDED.APPREC,
     /* ADAPTER refererer til ekstra custom processering, nesten ingen bruker det. */
-                                                  ADAPTER      = EXCLUDED.ADAPTER;
+                                                  ADAPTER      = EXCLUDED.ADAPTER,
+                                                  ERROR_ACTION = EXCLUDED.ERROR_ACTION;
