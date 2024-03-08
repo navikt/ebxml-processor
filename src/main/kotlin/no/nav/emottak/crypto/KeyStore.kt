@@ -21,9 +21,6 @@ interface KeyStoreConfig {
 
 class KeyStore(private val keyStoreConfig: KeyStoreConfig) {
 
-   // private val keystorePath = getEnvVar("KEYSTORE_FILE", "xml/signering_keystore.p12")
-   // private val keystorePwd = getEnvVar("KEYSTORE_PWD", "123456789")
-   // private val keystoreType = getEnvVar("KEYSTORE_TYPE", "PKCS12")
     private val keyStore = getKeyStoreResolver(keyStoreConfig.keystorePath, keyStoreConfig.keyStorePwd.toCharArray())
 
 
