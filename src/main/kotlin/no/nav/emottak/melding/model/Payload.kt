@@ -4,7 +4,6 @@ import kotlinx.serialization.Serializable
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Description
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ErrorList
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.SeverityType
-import java.util.EnumSet
 
 
 @Serializable
@@ -40,8 +39,9 @@ data class PayloadRequest(
 
 @Serializable
 data class PayloadResponse(
-    val processedPayload: Payload,
-    val error: Feil? = null
+    val processedPayload: Payload? = null,
+    val error: Feil? = null,
+    val apprec: Boolean = false
 )
 
 @Serializable
@@ -103,6 +103,7 @@ data class ProcessConfig(
     val validering: Boolean,
     val apprec: Boolean, // Kan denne løsrives?
     val adapter: String?,
+    val errorAction: String?,
 )
 
 @Serializable
