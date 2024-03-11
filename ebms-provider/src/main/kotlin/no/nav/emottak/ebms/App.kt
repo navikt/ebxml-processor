@@ -9,11 +9,11 @@ import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.auth.Auth
 import io.ktor.client.plugins.auth.providers.BearerTokens
 import io.ktor.client.plugins.auth.providers.bearer
+import io.ktor.client.request.forms.MultiPartFormDataContent
 import io.ktor.client.request.header
 import io.ktor.client.request.headers
 import io.ktor.client.request.post
 import io.ktor.client.statement.bodyAsText
-import io.ktor.client.request.forms.MultiPartFormDataContent
 import io.ktor.http.ContentDisposition
 import io.ktor.http.ContentType
 import io.ktor.http.HeadersBuilder
@@ -55,8 +55,8 @@ import no.nav.emottak.ebms.validation.validateMimeAttachment
 import no.nav.emottak.ebms.validation.validateMimeSoapEnvelope
 import no.nav.emottak.ebms.xml.asString
 import no.nav.emottak.ebms.xml.getDocumentBuilder
-import no.nav.emottak.util.getEnvVar
 import no.nav.emottak.melding.model.EbmsAttachment
+import no.nav.emottak.util.getEnvVar
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayInputStream
 import java.time.Duration
