@@ -5,6 +5,8 @@ import com.zaxxer.hikari.HikariConfig
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
+import io.ktor.server.auth.Authentication
+import io.ktor.server.auth.authenticate
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
@@ -15,6 +17,7 @@ import no.nav.emottak.cpa.persistence.cpaDbConfig
 import no.nav.emottak.cpa.persistence.cpaMigrationConfig
 import no.nav.emottak.cpa.persistence.gammel.PartnerRepository
 import no.nav.emottak.cpa.persistence.oracleConfig
+import no.nav.security.token.support.v2.tokenValidationSupport
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 import org.slf4j.LoggerFactory
 
@@ -31,6 +34,8 @@ fun main() {
     ).start(wait = true)
 }
 
+const val AZURE_AD_AUTH = "AZURE_AD"
+
 fun cpaApplicationModule(cpaDbConfig: HikariConfig, cpaMigrationConfig: HikariConfig, emottakDbConfig: HikariConfig? = null): Application.() -> Unit {
     return {
         val database = Database(cpaDbConfig)
@@ -41,7 +46,13 @@ fun cpaApplicationModule(cpaDbConfig: HikariConfig, cpaMigrationConfig: HikariCo
         install(ContentNegotiation) {
             json()
         }
+        install(Authentication) {
+            tokenValidationSupport(AZURE_AD_AUTH, Security().config)
+        }
         routing {
+            authenticate(AZURE_AD_AUTH) { // TODO upstream må requeste en token og sende i Auth header
+                whoAmI()
+            }
             if (oracleDb != null) {
                 partnerId(PartnerRepository(oracleDb), cpaRepository)
             }

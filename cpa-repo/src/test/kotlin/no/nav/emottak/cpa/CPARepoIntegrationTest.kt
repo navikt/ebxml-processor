@@ -14,6 +14,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.http.headers
 import io.ktor.serialization.kotlinx.json.json
+import io.ktor.server.config.MapApplicationConfig
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import no.nav.emottak.cpa.persistence.DBTest
@@ -23,6 +24,7 @@ import no.nav.emottak.melding.model.PartyId
 import no.nav.emottak.melding.model.SignatureDetails
 import no.nav.emottak.melding.model.SignatureDetailsRequest
 import no.nav.emottak.melding.model.ValidationRequest
+import no.nav.security.mock.oauth2.MockOAuth2Server
 import org.apache.commons.lang3.StringUtils
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -40,6 +42,8 @@ class CPARepoIntegrationTest : DBTest() {
         application(cpaApplicationModule(db.dataSource, db.dataSource))
         testBlock()
     }
+
+    val mockOAuth2Server = MockOAuth2Server().also { it.start(port = 3344) }
 
     @Test
     fun `Hent sertifikat for signatursjekk`() = cpaRepoTestApp {
@@ -226,6 +230,31 @@ class CPARepoIntegrationTest : DBTest() {
     }
 
     @Test
+    fun `Should require valid token`() = cpaRepoTestApp {
+        val token = mockOAuth2Server
+            .issueToken(
+                AZURE_AD_AUTH,
+                "testUser",
+                claims = mapOf(
+                    "NAVident" to "X112233"
+                )
+            )
+        val httpClient = createClient {
+            install(ContentNegotiation) {
+                json()
+            }
+        }
+        val response = httpClient.get("/whoami") {
+            header(
+                "Authorization",
+                "Bearer " +
+                    token.serialize()
+            )
+        }
+        assertEquals("X112233", response.bodyAsText())
+    }
+
+    @Test
     fun `Delete CPA should result in deletion`() = cpaRepoTestApp {
         val httpClient = createClient {
             install(ContentNegotiation) {
@@ -234,5 +263,18 @@ class CPARepoIntegrationTest : DBTest() {
         }
         val response = httpClient.delete("/cpa/delete/nav:qass:35065")
         assertEquals("nav:qass:35065 slettet!", response.bodyAsText())
+    }
+
+    private fun doConfig(acceptedIssuer: String = "ISSUER_ID", acceptedAudience: String = "ACCEPTED_AUDIENCE"): MapApplicationConfig {
+        return MapApplicationConfig().apply {
+            put("no.nav.security.jwt.expirythreshold", "5")
+            put("no.nav.security.jwt.issuers.size", "1")
+            put("no.nav.security.jwt.issuers.0.issuer_name", acceptedIssuer)
+            put(
+                "no.nav.security.jwt.issuers.0.discoveryurl",
+                mockOAuth2Server.wellKnownUrl("ISSUER_ID").toString()
+            ) // server.baseUrl() + "/.well-known/openid-configuration")
+            put("no.nav.security.jwt.issuers.0.accepted_audience", acceptedAudience)
+        }
     }
 }

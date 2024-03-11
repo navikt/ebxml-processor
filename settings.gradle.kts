@@ -13,7 +13,7 @@ dependencyResolutionManagement {
         create("libs") {
             version("bouncycastle", "1.76")
             version("exposed", "0.47.0")
-            version("ktor", "2.3.4")
+            version("ktor", "2.3.8")
             version("jakarta-mail", "2.1.2")
             version("eclipse-angus", "2.0.2")
             version("jsch", "0.2.16")
@@ -39,6 +39,7 @@ dependencyResolutionManagement {
             library("ktor-serialization-kotlinx-json", "io.ktor", "ktor-serialization-kotlinx-json").versionRef("ktor")
             library("ktor-client-core", "io.ktor", "ktor-client-core").versionRef("ktor")
             library("ktor-client-cio", "io.ktor", "ktor-client-cio").versionRef("ktor")
+            library("ktor-client-auth", "io.ktor", "ktor-client-auth").versionRef("ktor")
 
             library("logback-classic", "ch.qos.logback:logback-classic:1.4.11")
             library("logback-logstash", "net.logstash.logback:logstash-logback-encoder:7.4")
@@ -47,6 +48,8 @@ dependencyResolutionManagement {
             library("labai-jsr305x-annotations", "com.github.labai:labai-jsr305x-annotations:0.0.2")
             library("jakarta.xml.bind-api", "jakarta.xml.bind:jakarta.xml.bind-api:4.0.0")
             library("ebxml-protokoll", "no.nav.emottak:ebxml-protokoll:0.0.6")
+            library("ktor-server-auth-jvm", "io.ktor:ktor-server-auth-jvm:2.3.8")
+            library("token-validation-ktor-v2", "no.nav.security:token-validation-ktor-v2:3.0.0-SNAPSHOT")
             library("flyway-core", "org.flywaydb:flyway-core:9.16.3")
             library("emottak-payload-xsd", "no.nav.emottak:emottak-payload-xsd:0.0.2")
             library("jaxb-runtime", "org.glassfish.jaxb:jaxb-runtime:2.4.0-b180830.0438")
@@ -70,7 +73,7 @@ dependencyResolutionManagement {
         create("testLibs") {
             version("junit", "5.9.2")
             version("hamcrest", "2.2")
-            version("mockk", "1.13.8")
+            version("mockk", "1.13.10")
             version("testPostgres", "1.18.0")
             version("xmlunit", "2.9.1")
             version("ktor-server-test", "2.3.4")
@@ -80,6 +83,7 @@ dependencyResolutionManagement {
             library("junit-jupiter-api", "org.junit.jupiter", "junit-jupiter-api").versionRef("junit")
             library("junit-jupiter-engine", "org.junit.jupiter", "junit-jupiter-engine").versionRef("junit")
             library("junit-jupiter-params", "org.junit.jupiter", "junit-jupiter-params").versionRef("junit")
+            library("mock-oauth2-server", "no.nav.security:mock-oauth2-server:2.1.2")
 
             library("hamcrest", "org.hamcrest", "hamcrest").versionRef("hamcrest")
 
@@ -113,6 +117,22 @@ dependencyResolutionManagement {
         maven {
             name = "Emottak payload format"
             url = uri("https://maven.pkg.github.com/navikt/emottak-payload-xsd")
+            credentials {
+                username = "token"
+                password = System.getenv("GITHUB_TOKEN")
+            }
+        }
+        maven {
+            name = "Nav token-support"
+            url = uri("https://maven.pkg.github.com/navikt/token-support")
+            credentials {
+                username = "token"
+                password = System.getenv("GITHUB_TOKEN")
+            }
+        }
+        maven {
+            name = "Mock OAUTH2 server"
+            url = uri("https://maven.pkg.github.com/navikt/mock-oauth2-server")
             credentials {
                 username = "token"
                 password = System.getenv("GITHUB_TOKEN")

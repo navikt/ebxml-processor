@@ -2,6 +2,7 @@ package no.nav.emottak.cpa
 
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
+import io.ktor.server.auth.authentication
 import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.plugins.NotFoundException
 import io.ktor.server.request.receive
@@ -29,10 +30,19 @@ import no.nav.emottak.melding.model.ValidationRequest
 import no.nav.emottak.melding.model.ValidationResult
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.marker
+import no.nav.security.token.support.v2.TokenValidationContextPrincipal
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.*
+
+fun Route.whoAmI(): Route = get("/whoami") {
+    log.info("whoAmI")
+    val principal: TokenValidationContextPrincipal? = call.authentication.principal()
+    call.respond(
+        principal?.context?.anyValidClaims?.getStringClaim("NAVident") ?: "NULL"
+    )
+}
 
 fun Route.getCPA(cpaRepository: CPARepository): Route = get("/cpa/{$CPA_ID}") {
     val cpaId = call.parameters[CPA_ID] ?: throw BadRequestException("Mangler $CPA_ID")

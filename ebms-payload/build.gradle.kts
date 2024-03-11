@@ -4,7 +4,7 @@
 
 plugins {
     kotlin("jvm")
-    kotlin("plugin.serialization")
+    kotlin("plugin.serialization") apply true
     application
     id("io.ktor.plugin")
     id("org.jlleitschuh.gradle.ktlint") version "11.6.1"
@@ -57,11 +57,7 @@ dependencies {
 application {
     mainClass.set("no.nav.emottak.payload.AppKt")
 }
-kotlin {
-    jvmToolchain(17)
-}
 
-java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+kotlin {
+    jvmToolchain(21)
 }
