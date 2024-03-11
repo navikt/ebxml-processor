@@ -16,6 +16,8 @@ import no.nav.emottak.cpa.feil.MultiplePartnerException
 import no.nav.emottak.cpa.feil.PartnerNotFoundException
 import no.nav.emottak.cpa.persistence.CPARepository
 import no.nav.emottak.cpa.persistence.gammel.PartnerRepository
+import no.nav.emottak.cpa.validation.MessageDirection
+import no.nav.emottak.cpa.validation.partyInfoHasRoleServiceActionCombo
 import no.nav.emottak.cpa.validation.validate
 import no.nav.emottak.melding.feil.EbmsException
 import no.nav.emottak.melding.model.EbmsProcessing
@@ -31,8 +33,6 @@ import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProt
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.*
-import no.nav.emottak.cpa.validation.MessageDirection
-import no.nav.emottak.cpa.validation.partyInfoHasRoleServiceActionCombo
 
 fun Route.getCPA(cpaRepository: CPARepository): Route = get("/cpa/{$CPA_ID}") {
     val cpaId = call.parameters[CPA_ID] ?: throw BadRequestException("Mangler $CPA_ID")

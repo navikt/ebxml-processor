@@ -1,6 +1,9 @@
 package no.nav.emottak.cpa.validation
 
+import kotlinx.coroutines.runBlocking
+import no.nav.emottak.cpa.HttpClientUtil
 import no.nav.emottak.cpa.cert.CRLChecker
+import no.nav.emottak.cpa.cert.CRLRetriever
 import no.nav.emottak.cpa.cert.CertificateValidationException
 import no.nav.emottak.crypto.KeyStore
 import no.nav.emottak.crypto.KeyStoreConfig
@@ -25,9 +28,6 @@ import java.security.cert.X509CertSelector
 import java.security.cert.X509Certificate
 import java.time.Instant
 import java.util.Date
-import kotlinx.coroutines.runBlocking
-import no.nav.emottak.cpa.HttpClientUtil
-import no.nav.emottak.cpa.cert.CRLRetriever
 
 internal val log = LoggerFactory.getLogger("no.nav.emottak.cpa.validation.SertifikatValidering")
 
@@ -38,14 +38,17 @@ val trustStoreConfig = object : KeyStoreConfig {
 }
 
 private val sertifikatValidering = lazy {
-    SertifikatValidering(CRLChecker(
-        runBlocking {
-            CRLRetriever(HttpClientUtil.client).updateAllCRLs()
-        }
-    ), trustStoreConfig)
+    SertifikatValidering(
+        CRLChecker(
+            runBlocking {
+                CRLRetriever(HttpClientUtil.client).updateAllCRLs()
+            }
+        ),
+        trustStoreConfig
+    )
 }
 
-//Alexander: Jeg føler meg veldig usikkert med bruk av ekstension funksjon sammen med integrasjon + keystore.
+// Alexander: Jeg føler meg veldig usikkert med bruk av ekstension funksjon sammen med integrasjon + keystore.
 @Throws(CertificateValidationException::class)
 fun X509Certificate.validate() {
     sertifikatValidering.value.validateCertificate(this)
@@ -64,7 +67,6 @@ class SertifikatValidering(
         trustedRootCertificates = trustStore.getTrustedRootCerts()
         intermediateCertificates = trustStore.getIntermediateCerts()
     }
-
 
     fun validateCertificate(certificate: X509Certificate) {
         if (isSelfSigned(certificate)) {
