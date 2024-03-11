@@ -3,7 +3,7 @@
  */
 
 plugins {
-    kotlin("jvm")
+    kotlin("jvm") version "1.9.22"
     application
     id("io.ktor.plugin")
     kotlin("plugin.serialization")
@@ -51,7 +51,10 @@ dependencies {
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.cio)
     implementation(testLibs.postgresql)
+    implementation(libs.ktor.server.auth.jvm)
+    implementation(libs.token.validation.ktor.v2)
     testRuntimeOnly(testLibs.junit.jupiter.engine)
+    testImplementation(testLibs.mock.oauth2.server)
     testImplementation(testLibs.mockk.jvm)
     testImplementation(testLibs.mockk.dsl.jvm)
     testImplementation(testLibs.junit.jupiter.api)
