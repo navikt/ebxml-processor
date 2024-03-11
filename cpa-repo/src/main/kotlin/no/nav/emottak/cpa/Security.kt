@@ -10,8 +10,8 @@ class Security {
     val config = TokenSupportConfig(
         IssuerConfig(
             name = AZURE_AD_AUTH,
-            discoveryUrl =  getEnvVar("AZURE_APP_WELL_KNOWN_URL", "http://localhost:3344/") + TENANT_ID + "/.well-known/openid-configuration",
-            acceptedAudience =  listOf("default")
+            discoveryUrl = getEnvVar("AZURE_APP_WELL_KNOWN_URL", "http://localhost:3344/") + TENANT_ID + "/.well-known/openid-configuration",
+            acceptedAudience = listOf("default")
         )
     )
 }
