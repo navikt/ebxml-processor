@@ -6,6 +6,9 @@ metadata:
   labels:
     "team": "team-emottak"
 spec:
+  azure:
+    application:
+      enabled: true
   webproxy: true
   image: {{image}}
   replicas:

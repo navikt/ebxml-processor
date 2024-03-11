@@ -6,6 +6,9 @@ metadata:
   labels:
     "team": "team-emottak"
 spec:
+  azure:
+    application:
+      enabled: true
   image: {{image}}
   liveness:
     path: "/internal/health/liveness"
