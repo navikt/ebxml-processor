@@ -8,8 +8,13 @@ plugins {
     kotlin("jvm")
     application
     id("io.ktor.plugin")
+    kotlin("plugin.serialization") apply true
     id("org.jlleitschuh.gradle.ktlint") version "11.6.1"
 }
+
+// kotlin {
+//    compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
+// }
 
 tasks {
     shadowJar {
@@ -62,8 +67,12 @@ dependencies {
     implementation("com.sun.xml.messaging.saaj:saaj-impl:3.0.2")
     // implementation("org.glassfish.jaxb:jaxb-runtime:4.0.3") // TODO: Latest. Krever at protokoll oppdateres
     implementation(libs.ebxml.protokoll)
+    implementation(libs.ktor.client.auth)
     implementation("io.ktor:ktor-client-cio-jvm:2.3.4")
+    implementation(libs.ktor.server.auth.jvm)
+    implementation(libs.token.validation.ktor.v2)
     implementation(testLibs.postgresql)
+    testImplementation(testLibs.mock.oauth2.server)
     testImplementation(testLibs.ktor.server.test.host)
     testImplementation(testLibs.junit.jupiter.api)
     testImplementation(testLibs.mockk.jvm)

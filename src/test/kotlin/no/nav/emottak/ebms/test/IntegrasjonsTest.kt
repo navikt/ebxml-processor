@@ -20,6 +20,7 @@ import no.nav.emottak.ebms.defaultHttpClient
 import no.nav.emottak.ebms.ebmsProviderModule
 import no.nav.emottak.ebms.testConfiguration
 import no.nav.emottak.ebms.validation.MimeHeaders
+import no.nav.security.mock.oauth2.MockOAuth2Server
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeAll
@@ -31,6 +32,7 @@ open class EndToEndTest {
     companion object {
         val portnoEbmsProvider = 8089
         val portnoCpaRepo = 8088
+        val mockOAuth2Server = MockOAuth2Server().also { it.start(port = 3344) }
         val ebmsProviderUrl = "http://localhost:$portnoEbmsProvider"
         val cpaRepoUrl = "http://localhost:$portnoCpaRepo"
 
