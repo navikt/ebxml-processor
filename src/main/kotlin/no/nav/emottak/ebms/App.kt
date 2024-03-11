@@ -9,6 +9,7 @@ import io.ktor.client.request.forms.MultiPartFormDataContent
 import io.ktor.http.ContentDisposition
 import io.ktor.http.ContentType
 import io.ktor.http.HeadersBuilder
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.PartData
 import io.ktor.http.content.forEachPart
 import io.ktor.http.content.streamProvider
@@ -129,7 +130,8 @@ private fun Application.installRequestTimerPlugin() {
                         mapOf(
                             Pair("smtpMessageId", call.request.headers[SMTPHeaders.MESSAGE_ID] ?: "-"),
                             Pair("Endpoint", call.request.uri),
-                            Pair("RequestTime", endTime.toMillis())
+                            Pair("RequestTime", endTime.toMillis()),
+                            Pair("httpStatus", call.response.status()?.value ?: 0)
                         )
                     ),
                     "Finished " + call.request.uri + " request. Processing time: " + endTime.toKotlinDuration()
@@ -246,6 +248,7 @@ suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbMSDocument) {
         }
         this.response.headers.append(MimeHeaders.CONTENT_TRANSFER_ENCODING, "8bit")
         this.respond(
+            HttpStatusCode.OK,
             MultiPartFormDataContent(
                 parts,
                 "------=_Part" + System.currentTimeMillis() + "." + System.nanoTime(),
@@ -255,6 +258,6 @@ suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbMSDocument) {
     } else {
         this.response.headers.append(MimeHeaders.CONTENT_TYPE, ContentType.Text.Xml.toString())
         this.response.headers.append(MimeHeaders.CONTENT_TRANSFER_ENCODING, "base64")
-        this.respondText(ebxml)
+        this.respondText(status = HttpStatusCode.OK, text = ebxml)
     }
 }
