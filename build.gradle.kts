@@ -1,6 +1,4 @@
 
-import org.jetbrains.kotlin.js.translate.context.Namer.kotlin
-
 plugins {
     id("java-library")
     kotlin("jvm") version "1.9.22" apply false
