@@ -50,7 +50,7 @@ fun cpaApplicationModule(cpaDbConfig: HikariConfig, cpaMigrationConfig: HikariCo
             tokenValidationSupport(AZURE_AD_AUTH, Security().config)
         }
         routing {
-            authenticate(AZURE_AD_AUTH) {
+            authenticate(AZURE_AD_AUTH) { // TODO upstream må requeste en token og sende i Auth header
                 whoAmI()
             }
             if (oracleDb != null) {

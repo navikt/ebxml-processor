@@ -251,10 +251,7 @@ class CPARepoIntegrationTest : DBTest() {
                     token.serialize()
             )
         }
-        assertTrue(
-            StringUtils.isNotBlank(response.bodyAsText()),
-            "Response can't be null or blank"
-        )
+        assertEquals("X112233", response.bodyAsText())
     }
 
     @Test

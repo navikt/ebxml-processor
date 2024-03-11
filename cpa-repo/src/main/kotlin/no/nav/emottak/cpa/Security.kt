@@ -6,12 +6,12 @@ import no.nav.security.token.support.v2.TokenSupportConfig
 
 // TODO gjør felles?
 class Security {
-    // val DISCOVERY_URL = getEnvVar("AZURE_APP_TENANT_ID", "tenant_id")
+    val TENANT_ID = getEnvVar("AZURE_APP_TENANT_ID", AZURE_AD_AUTH)
     val config = TokenSupportConfig(
         IssuerConfig(
-            AZURE_AD_AUTH,
-            getEnvVar("AZURE_OPENID_CONFIG_ISSUER", "http://localhost:3344/") + AZURE_AD_AUTH + "/.well-known/openid-configuration",
-            listOf("default")
+            name = AZURE_AD_AUTH,
+            discoveryUrl =  getEnvVar("AZURE_APP_WELL_KNOWN_URL", "http://localhost:3344/") + TENANT_ID + "/.well-known/openid-configuration",
+            acceptedAudience =  listOf("default")
         )
     )
 }

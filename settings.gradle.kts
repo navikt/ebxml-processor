@@ -39,6 +39,7 @@ dependencyResolutionManagement {
             library("ktor-serialization-kotlinx-json", "io.ktor", "ktor-serialization-kotlinx-json").versionRef("ktor")
             library("ktor-client-core", "io.ktor", "ktor-client-core").versionRef("ktor")
             library("ktor-client-cio", "io.ktor", "ktor-client-cio").versionRef("ktor")
+            library("ktor-client-auth", "io.ktor", "ktor-client-auth").versionRef("ktor")
 
             library("logback-classic", "ch.qos.logback:logback-classic:1.4.11")
             library("logback-logstash", "net.logstash.logback:logstash-logback-encoder:7.4")

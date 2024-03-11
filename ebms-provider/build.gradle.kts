@@ -67,6 +67,7 @@ dependencies {
     implementation("com.sun.xml.messaging.saaj:saaj-impl:3.0.2")
     // implementation("org.glassfish.jaxb:jaxb-runtime:4.0.3") // TODO: Latest. Krever at protokoll oppdateres
     implementation(libs.ebxml.protokoll)
+    implementation(libs.ktor.client.auth)
     implementation("io.ktor:ktor-client-cio-jvm:2.3.4")
     implementation(libs.ktor.server.auth.jvm)
     implementation(libs.token.validation.ktor.v2)
