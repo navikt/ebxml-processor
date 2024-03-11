@@ -1,7 +1,10 @@
-package no.nav.emottak.util.cert
+package no.nav.emottak.cpa.validation
 
-import no.nav.emottak.util.crypto.getIntermediateCerts
-import no.nav.emottak.util.crypto.getTrustedRootCerts
+import no.nav.emottak.cpa.cert.CRLChecker
+import no.nav.emottak.cpa.cert.CertificateValidationException
+import no.nav.emottak.crypto.KeyStore
+import no.nav.emottak.crypto.KeyStoreConfig
+import no.nav.emottak.util.getEnvVar
 import no.nav.emottak.util.isSelfSigned
 import org.bouncycastle.asn1.x509.CRLDistPoint
 import org.bouncycastle.asn1.x509.Extension
@@ -22,14 +25,47 @@ import java.security.cert.X509CertSelector
 import java.security.cert.X509Certificate
 import java.time.Instant
 import java.util.Date
+import kotlinx.coroutines.runBlocking
+import no.nav.emottak.cpa.HttpClientUtil
+import no.nav.emottak.cpa.cert.CRLRetriever
 
 internal val log = LoggerFactory.getLogger("no.nav.emottak.cpa.validation.SertifikatValidering")
+
+val trustStoreConfig = object : KeyStoreConfig {
+    override val keystorePath: String = getEnvVar("TRUSTSTORE_PATH", "truststore.p12")
+    override val keyStorePwd: String = getEnvVar("TRUSTSTORE_PWD", "123456789")
+    override val keyStoreStype: String = "PKCS12"
+}
+
+private val sertifikatValidering = lazy {
+    SertifikatValidering(CRLChecker(
+        runBlocking {
+            CRLRetriever(HttpClientUtil.client).updateAllCRLs()
+        }
+    ), trustStoreConfig)
+}
+
+//Alexander: Jeg føler meg veldig usikkert med bruk av ekstension funksjon sammen med integrasjon + keystore.
+@Throws(CertificateValidationException::class)
+fun X509Certificate.validate() {
+    sertifikatValidering.value.validateCertificate(this)
+}
+
 class SertifikatValidering(
     val crlChecker: CRLChecker,
-    val trustedRootCerts: Set<X509Certificate> = getTrustedRootCerts(),
-    val intermediateCerts: Set<X509Certificate> = getIntermediateCerts(),
+    trustStoreConfig: KeyStoreConfig,
     val provider: Provider = BouncyCastleProvider()
 ) {
+    val trustedRootCertificates: Set<X509Certificate>
+    val intermediateCertificates: Set<X509Certificate>
+
+    init {
+        val trustStore = KeyStore(trustStoreConfig)
+        trustedRootCertificates = trustStore.getTrustedRootCerts()
+        intermediateCertificates = trustStore.getIntermediateCerts()
+    }
+
+
     fun validateCertificate(certificate: X509Certificate) {
         if (isSelfSigned(certificate)) {
             throw CertificateValidationException("Sertifikat er selvsignert")
@@ -42,7 +78,7 @@ class SertifikatValidering(
     fun sjekkSertifikatMotTrustedCa(certificate: X509Certificate) {
         val selector = X509CertSelector()
         selector.certificate = certificate
-        val trustAnchors = trustedRootCerts.map {
+        val trustAnchors = trustedRootCertificates.map {
             TrustAnchor(it, null)
         }.toSet()
 
@@ -50,7 +86,8 @@ class SertifikatValidering(
         pkixParams.isRevocationEnabled = false
         pkixParams.date = Date.from(Instant.now())
 
-        val intermediateCertStore = CertStore.getInstance("Collection", CollectionCertStoreParameters(intermediateCerts), provider)
+        val intermediateCertStore =
+            CertStore.getInstance("Collection", CollectionCertStoreParameters(intermediateCertificates), provider)
         pkixParams.addCertStore(intermediateCertStore)
 
         val builder = CertPathBuilder.getInstance("PKIX", provider)
@@ -78,10 +115,10 @@ class SertifikatValidering(
             throw e
         } catch (e: Exception) {
             val crlDistributionPoint = certificate.getExtensionValue(Extension.cRLDistributionPoints.toString())
-            val crlDistributionPoints = CRLDistPoint.getInstance(JcaX509ExtensionUtils.parseExtensionValue(crlDistributionPoint))
+            val crlDistributionPoints =
+                CRLDistPoint.getInstance(JcaX509ExtensionUtils.parseExtensionValue(crlDistributionPoint))
             log.warn("CRL for $crlDistributionPoints feilet")
             throw e
         }
     }
-
 }

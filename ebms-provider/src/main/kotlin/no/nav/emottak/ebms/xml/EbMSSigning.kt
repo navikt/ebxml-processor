@@ -1,14 +1,15 @@
 package no.nav.emottak.ebms.xml
 
 import jakarta.xml.soap.SOAPConstants
+import no.nav.emottak.crypto.KeyStore
+import no.nav.emottak.crypto.KeyStoreConfig
 import no.nav.emottak.ebms.model.EbMSDocument
 import no.nav.emottak.ebms.validation.CID_PREFIX
 import no.nav.emottak.ebms.validation.EbMSAttachmentResolver
 import no.nav.emottak.melding.model.EbmsAttachment
 import no.nav.emottak.melding.model.SignatureDetails
 import no.nav.emottak.util.createX509Certificate
-import no.nav.emottak.util.crypto.getCertificateAlias
-import no.nav.emottak.util.crypto.getKeyPair
+import no.nav.emottak.util.getEnvVar
 import no.nav.emottak.util.getFirstChildElement
 import no.nav.emottak.util.signatur.SignatureException
 import org.apache.xml.security.exceptions.XMLSecurityException
@@ -19,12 +20,19 @@ import org.w3c.dom.Document
 import org.w3c.dom.NodeList
 import java.security.cert.X509Certificate
 
-val ebMSSigning = EbMSSigning()
-class EbMSSigning {
+val signeringConfig = object : KeyStoreConfig {
+    override val keystorePath: String = getEnvVar("KEYSTORE_FILE", "xml/signering_keystore.p12")
+    override val keyStorePwd: String = getEnvVar("KEYSTORE_PWD", "123456789")
+    override val keyStoreStype: String = getEnvVar("KEYSTORE_TYPE", "PKCS12")
+}
+
+val ebMSSigning = EbMSSigning(signeringConfig)
+class EbMSSigning(keyStoreConfig: KeyStoreConfig) {
 
     private val canonicalizationMethodAlgorithm = Transforms.TRANSFORM_C14N_OMIT_COMMENTS
     private val SOAP_ENVELOPE = SOAPConstants.URI_NS_SOAP_1_1_ENVELOPE
     private val SOAP_NEXT_ACTOR = SOAPConstants.URI_SOAP_ACTOR_NEXT
+    private val keyStore = KeyStore(keyStoreConfig)
 
     fun sign(ebMSDocument: EbMSDocument, signatureDetails: SignatureDetails) {
         sign(
@@ -49,9 +57,9 @@ class EbMSSigning {
         signatureAlgorithm: String,
         hashFunction: String
     ) {
-        val alias = getCertificateAlias(publicCertificate)
+        val alias = keyStore.getCertificateAlias(publicCertificate)
             ?: throw SignatureException("Fant ikke sertifikat med subject ${publicCertificate.subjectX500Principal.name} i keystore")
-        val keyPair = getKeyPair(alias)
+        val keyPair = keyStore.getKeyPair(alias)
         val signature: XMLSignature = createSignature(document, signatureAlgorithm)
         appendSignature(document, signature)
         addAttachmentResolver(signature, attachments)

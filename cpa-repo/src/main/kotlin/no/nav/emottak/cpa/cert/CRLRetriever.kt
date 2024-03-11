@@ -1,10 +1,11 @@
-package no.nav.emottak.util.cert
+package no.nav.emottak.cpa.cert
 
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.request
 import io.ktor.http.HttpMethod
 import kotlinx.coroutines.runBlocking
+import no.nav.emottak.cpa.log
 import no.nav.emottak.util.createCRLFile
 import org.bouncycastle.asn1.x500.X500Name
 import java.security.cert.X509CRL

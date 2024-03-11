@@ -8,7 +8,7 @@ import java.net.InetSocketAddress
 import java.net.Proxy
 import java.net.URL
 
-val httpProxyUrl = getEnvVar("HTTPS_PROXY", "")
+private val httpProxyUrl = getEnvVar("HTTPS_PROXY", "")
 
 class HttpClientUtil {
     companion object {

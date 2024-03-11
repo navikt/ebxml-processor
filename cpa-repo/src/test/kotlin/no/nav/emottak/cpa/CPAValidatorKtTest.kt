@@ -1,6 +1,7 @@
 package no.nav.emottak.cpa
 
 import no.nav.emottak.cpa.feil.CpaValidationException
+import no.nav.emottak.cpa.validation.validate
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows

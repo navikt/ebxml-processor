@@ -1,4 +1,4 @@
-package no.nav.emottak.cpa
+package no.nav.emottak.cpa.validation
 
 import no.nav.emottak.constants.EbXMLConstants.ACKNOWLEDGMENT_ACTION
 import no.nav.emottak.constants.EbXMLConstants.EBMS_SERVICE_URI
@@ -10,6 +10,7 @@ import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProt
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PartyInfo
 import java.time.Instant
 import java.util.Date
+import no.nav.emottak.cpa.getPartyInfoByTypeAndID
 
 fun CollaborationProtocolAgreement.validate(validationRequest: ValidationRequest) {
     validateCpaId(validationRequest.cpaId)

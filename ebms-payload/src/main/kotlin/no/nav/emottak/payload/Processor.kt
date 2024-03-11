@@ -4,19 +4,21 @@ import no.nav.emottak.melding.model.Direction
 import no.nav.emottak.melding.model.Payload
 import no.nav.emottak.melding.model.PayloadRequest
 import no.nav.emottak.melding.model.PayloadResponse
+import no.nav.emottak.payload.crypto.Dekryptering
+import no.nav.emottak.payload.crypto.Kryptering
+import no.nav.emottak.payload.crypto.PayloadSignering
+import no.nav.emottak.payload.crypto.dekryperingConfig
+import no.nav.emottak.payload.crypto.payloadSigneringConfig
 import no.nav.emottak.payload.util.GZipUtil
 import no.nav.emottak.util.createDocument
-import no.nav.emottak.util.crypto.Dekryptering
-import no.nav.emottak.util.crypto.Kryptering
 import no.nav.emottak.util.getByteArrayFromDocument
 import no.nav.emottak.util.signatur.SignaturVerifisering
-import no.nav.emottak.util.signatur.Signering
 import java.io.ByteArrayInputStream
 
 class Processor(
     private val kryptering: Kryptering = Kryptering(),
-    private val dekryptering: Dekryptering = Dekryptering(),
-    private val signering: Signering = Signering(),
+    private val dekryptering: Dekryptering = Dekryptering(dekryperingConfig),
+    private val signering: PayloadSignering = PayloadSignering(payloadSigneringConfig),
     private val gZipUtil: GZipUtil = GZipUtil(),
     private val signatureVerifisering: SignaturVerifisering = SignaturVerifisering()
 ) {

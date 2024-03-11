@@ -1,4 +1,4 @@
-package no.nav.emottak.util.crypto
+package no.nav.emottak.payload.crypto
 
 import no.nav.emottak.util.createX509Certificate
 import org.bouncycastle.asn1.ASN1ObjectIdentifier
@@ -24,14 +24,13 @@ class Kryptering {
         val sertifikat = createX509Certificate(krypteringSertifikat)
         return krypterDokument(byteArray, sertifikat)
     }
-
 }
 
 private val encryptionAlgorithm: ASN1ObjectIdentifier = CMSAlgorithm.DES_EDE3_CBC
 private const val keysize: Int = 168
 
-//private val encryptionAlgorithm: ASN1ObjectIdentifier = CMSAlgorithm.AES256_CBC
-//private const val keysize: Int = 256
+// private val encryptionAlgorithm: ASN1ObjectIdentifier = CMSAlgorithm.AES256_CBC
+// private const val keysize: Int = 256
 
 fun X509Certificate.erGyldig(): Boolean {
     try {
@@ -53,8 +52,7 @@ fun krypterDokument(doc: ByteArray, certificate: X509Certificate): ByteArray {
 }
 
 private fun krypterDokument(input: ByteArray, certificates: List<X509Certificate>): ByteArray {
-
-    //val indefiniteLength = false
+    // val indefiniteLength = false
 
     return try {
         val dataGenerator = CMSEnvelopedDataGenerator()
