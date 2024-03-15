@@ -58,7 +58,6 @@ fun PartData.validateMimeSoapEnvelope() {
 
 // Krav 5.5.2.4 Valideringsdokument
 fun PartData.validateMimeAttachment() {
-    takeIf { this.contentDisposition?.disposition == "attachment" } ?: throw MimeValidationException("This is not attachment")
     takeIf { this.headers[MimeHeaders.CONTENT_TRANSFER_ENCODING] == "base64" } ?: throw MimeValidationException("Feil content transfer encoding")
     this.contentType?.withoutParameters().takeIf {
         it == ContentType.parse("application/pkcs7-mime")
