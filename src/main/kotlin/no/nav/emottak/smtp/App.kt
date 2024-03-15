@@ -126,6 +126,7 @@ fun Application.myApplicationModule() {
             call.respond(HttpStatusCode.OK, "Meldingslesing startet ...")
             var messageCount = 0
             val timeStart = Instant.now()
+            val dryRun = getEnvVar("DRY_RUN", "false")
             runCatching {
                 MailReader(incomingStore, false).use {
                     messageCount = it.count()
@@ -138,10 +139,12 @@ fun Application.myApplicationModule() {
                                 async(Dispatchers.IO) {
                                     runCatching {
                                         // withContext(Dispatchers.IO) {
-                                        if (message.parts.size == 1 && message.parts.first().headers.isEmpty()) {
-                                            httpClient.postEbmsMessageSinglePart(message)
-                                        } else {
-                                            httpClient.postEbmsMessageMultiPart(message)
+                                        if (dryRun != "true") {
+                                            if (message.parts.size == 1 && message.parts.first().headers.isEmpty()) {
+                                                httpClient.postEbmsMessageSinglePart(message)
+                                            } else {
+                                                httpClient.postEbmsMessageMultiPart(message)
+                                            }
                                         }
                                     }.onFailure {
                                         log.error(it.message, it)
