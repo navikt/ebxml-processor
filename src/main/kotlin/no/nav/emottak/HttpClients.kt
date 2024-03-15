@@ -132,9 +132,7 @@ fun Map<String, String>.filterHeader(vararg headerNames: String): HeadersBuilder
     }
 
     appendMessageIdAsContentIdIfContentIdIsMissingOnTextXMLContentTypes(caseInsensitiveMap)
-    if (headerNames.contains(MimeHeaders.CONTENT_DISPOSITION) && headerNames.contains(MimeHeaders.CONTENT_DESCRIPTION)) {
-        appendContentDescriptionAsContentDispositionIfDispositionIsMissing(caseInsensitiveMap)
-    }
+
 }
 
 private fun HeadersBuilder.appendMessageIdAsContentIdIfContentIdIsMissingOnTextXMLContentTypes(
@@ -151,14 +149,5 @@ private fun HeadersBuilder.appendMessageIdAsContentIdIfContentIdIsMissingOnTextX
             append(MimeHeaders.CONTENT_ID, headerValue)
             log.info("Header: <${MimeHeaders.CONTENT_ID}> - <$headerValue>")
         }
-    }
-}
-
-private fun HeadersBuilder.appendContentDescriptionAsContentDispositionIfDispositionIsMissing(
-    caseInsensitiveMap: CaseInsensitiveMap<String>
-) {
-    if (caseInsensitiveMap[MimeHeaders.CONTENT_DESCRIPTION] != null && caseInsensitiveMap[MimeHeaders.CONTENT_DISPOSITION] == null) {
-        val headerValue = MimeUtility.unfold(caseInsensitiveMap[MimeHeaders.CONTENT_DESCRIPTION]!!.replace("\t", " "))
-        append(MimeHeaders.CONTENT_DISPOSITION, headerValue)
     }
 }
