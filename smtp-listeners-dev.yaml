@@ -43,3 +43,5 @@ spec:
       value: "nyebmsbcc@test-es.nav.no"
     - name: SMTP_OUTGOING_USERNAME_NY
       value: "nyebms2@test-es.nav.no"
+    - name: DRY_RUN
+      value: "true"
