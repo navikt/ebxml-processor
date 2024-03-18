@@ -114,6 +114,7 @@ fun Application.myApplicationModule() {
                     }
                 }.onSuccess {
                     log.info("CPA synchronization completed in ${Duration.between(startTime, Instant.now()).toKotlinDuration()}")
+                    call.respond(HttpStatusCode.OK, "CPA sync complete")
                 }
             }
             call.respond(HttpStatusCode.OK, "Hello World!")

@@ -91,8 +91,11 @@ suspend fun getCpaRepoToken(): BearerTokens {
 fun HttpClientConfig<*>.installCpaRepoAuthentication() {
     install(Auth) {
         bearer {
-            refreshTokens { // FIXME dumt at pluginen refresher token på 401 og har ingen forhold til expires-in
+            refreshTokens { // FIXME ingen forhold til expires-in...
                 getCpaRepoToken()
+            }
+            sendWithoutRequest { request ->
+                request.url.host == URL_CPA_REPO_BASE
             }
         }
     }
