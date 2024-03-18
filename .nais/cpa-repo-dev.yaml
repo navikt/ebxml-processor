@@ -39,6 +39,7 @@ spec:
   accessPolicy:
     inbound:
       rules:
+        - application: smtp-listeners
         - application: ebms-provider
         - application: ebms-payload
     outbound:
