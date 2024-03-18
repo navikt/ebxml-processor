@@ -3,17 +3,9 @@
  */
 package no.nav.emottak.ebms
 
-import com.nimbusds.jwt.SignedJWT
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
-import io.ktor.client.plugins.auth.Auth
-import io.ktor.client.plugins.auth.providers.BearerTokens
-import io.ktor.client.plugins.auth.providers.bearer
 import io.ktor.client.request.forms.MultiPartFormDataContent
-import io.ktor.client.request.header
-import io.ktor.client.request.headers
-import io.ktor.client.request.post
-import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentDisposition
 import io.ktor.http.ContentType
 import io.ktor.http.HeadersBuilder
@@ -41,7 +33,6 @@ import io.ktor.server.routing.routing
 import io.ktor.util.logging.KtorSimpleLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.Json
 import net.logstash.logback.marker.Markers
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.model.DokumentType
@@ -56,7 +47,6 @@ import no.nav.emottak.ebms.validation.validateMimeSoapEnvelope
 import no.nav.emottak.ebms.xml.asString
 import no.nav.emottak.ebms.xml.getDocumentBuilder
 import no.nav.emottak.melding.model.EbmsAttachment
-import no.nav.emottak.util.getEnvVar
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayInputStream
 import java.time.Duration
@@ -74,50 +64,6 @@ fun main() {
     embeddedServer(Netty, port = 8080, module = Application::ebmsProviderModule, configure = {
         this.maxChunkSize = 100000
     }).start(wait = true)
-}
-
-fun cpaRepoAuthenticatedHttpClient(): () -> HttpClient {
-    suspend fun getCpaRepoToken(): BearerTokens {
-        return defaultHttpClient().invoke().post(getEnvVar("AZURE_OPENID_CONFIG_TOKEN_ENDPOINT", "http://localhost:3344/")) {
-            headers {
-                header("client_id", getEnvVar("AZURE_APP_CLIENT_ID", "cpa-repo"))
-                header("client_secret", getEnvVar("AZURE_APP_CLIENT_SECRET", "dummysecret"))
-                header(
-                    "scope",
-                    getEnvVar(
-                        "CPA_REPO_SCOPE",
-                        "api://" +
-                            getEnvVar("CLUSTER", "dev-fss") +
-                            ".team-emottak.cpa-repo/.default"
-                    )
-                )
-                header("grant_type", "client_credentials")
-            }
-        }.bodyAsText()
-            .let { tokenResponseString ->
-                SignedJWT.parse(
-                    Json.decodeFromString<Map<String, String>>(tokenResponseString)
-                        .get("access_token")
-                )
-            }
-            .let { parsedJwt ->
-                BearerTokens(parsedJwt.serialize(), "dummy")
-            } // FIXME dumt at den ikke tillater null for refresh token. Tyder på at den ikke bør brukes. Kanskje best å skrive egen handler
-    }
-    return {
-        HttpClient(CIO) {
-            install(io.ktor.client.plugins.contentnegotiation.ContentNegotiation) {
-                json()
-            }
-            install(Auth) {
-                bearer {
-                    refreshTokens { // FIXME dumt at pluginen refresher token på 401 og har ingen forhold til expires-in
-                        getCpaRepoToken()
-                    }
-                }
-            }
-        }
-    }
 }
 
 fun defaultHttpClient(): () -> HttpClient {
@@ -151,7 +97,7 @@ fun PartData.payload(clearText: Boolean = false): ByteArray {
 
 fun Application.ebmsProviderModule() {
     val client = defaultHttpClient()
-    val cpaClient = CpaRepoClient(cpaRepoAuthenticatedHttpClient())
+    val cpaClient = CpaRepoClient(client)
     val processingClient = PayloadProcessingClient(client)
     val sendInClient = SendInClient(client)
     val validator = DokumentValidator(cpaClient)
