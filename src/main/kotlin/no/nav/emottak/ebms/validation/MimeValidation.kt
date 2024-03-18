@@ -52,16 +52,18 @@ fun PartData.validateMimeSoapEnvelope() {
         throw MimeValidationException("Content ID is missing")
     }
     this.headers[MimeHeaders.CONTENT_TRANSFER_ENCODING].takeUnless { it.isNullOrBlank() }?.let {
-        it.takeIf { listOf("8bit", "base64", "binary", "quoted-printable").contains(it) } ?: throw MimeValidationException("Content-Transfer-Encoding should be 8 bit")
+        it.takeIf { listOf("8bit", "base64", "binary", "quoted-printable").contains(it) } ?: throw MimeValidationException("Unrecognised Content-Transfer-Encoding")
     } ?: throw MimeValidationException("Mandatory header Content-Transfer-Encoding is undefined")
 }
 
 // Krav 5.5.2.4 Valideringsdokument
 fun PartData.validateMimeAttachment() {
-    takeIf { this.headers[MimeHeaders.CONTENT_TRANSFER_ENCODING] == "base64" } ?: throw MimeValidationException("Feil content transfer encoding")
+
     this.contentType?.withoutParameters().takeIf {
         it == ContentType.parse("application/pkcs7-mime")
-    } ?: throw MimeValidationException("Incompatible content type on attachment")
+    }.apply {
+        this@validateMimeAttachment.headers[MimeHeaders.CONTENT_TRANSFER_ENCODING].takeIf { it == "base64" } ?: throw MimeValidationException("Feil content transfer encoding på kryptert content.")
+    }
 }
 
 // KRAV 5.5.2.1 validate MIME
