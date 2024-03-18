@@ -25,6 +25,7 @@ import kotlinx.coroutines.withContext
 import net.logstash.logback.marker.Markers
 import no.nav.emottak.deleteCPAinCPARepo
 import no.nav.emottak.getCPATimestamps
+import no.nav.emottak.getCpaRepoAuthenticatedClient
 import no.nav.emottak.nfs.NFSConnector
 import no.nav.emottak.postEbmsMessageMultiPart
 import no.nav.emottak.postEbmsMessageSinglePart
@@ -53,15 +54,12 @@ fun Application.myApplicationModule() {
 
         get("/testsftp") {
             val log = LoggerFactory.getLogger("no.nav.emottak.smtp.sftp")
-            val httpClient = HttpClient(CIO) {
-                install(io.ktor.client.plugins.contentnegotiation.ContentNegotiation) {
-                    json()
-                }
-            }
+
+            val cpaRepoClient = getCpaRepoAuthenticatedClient()
             withContext(Dispatchers.IO) {
                 val startTime = Instant.now()
                 runCatching {
-                    val cpaTimestamps = httpClient.getCPATimestamps().toMutableMap() // mappen tømmes ettersom entries behandles
+                    val cpaTimestamps = cpaRepoClient.getCPATimestamps().toMutableMap() // mappen tømmes ettersom entries behandles
                     NFSConnector().use { connector ->
                         connector.folder().forEach { entry ->
                             val filename = entry.filename
@@ -99,7 +97,7 @@ fun Application.myApplicationModule() {
                                     String(it.readAllBytes())
                                 }
                                 log.info("Uploading $filename")
-                                httpClient.putCPAinCPARepo(cpaFile, lastModified)
+                                cpaRepoClient.putCPAinCPARepo(cpaFile, lastModified)
                             }.onFailure {
                                 log.error("Error uploading $filename to cpa-repo: ${it.message}", it)
                             }
@@ -107,7 +105,7 @@ fun Application.myApplicationModule() {
                     }
                     // Any remaining timestamps means they exist in DB, but not in disk and should be cleaned
                     cpaTimestamps.forEach { (cpaId) ->
-                        httpClient.deleteCPAinCPARepo(cpaId)
+                        cpaRepoClient.deleteCPAinCPARepo(cpaId)
                     }
                 }.onFailure {
                     when (it) {

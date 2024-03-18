@@ -1,6 +1,13 @@
 package no.nav.emottak
 
+import com.nimbusds.jwt.SignedJWT
 import io.ktor.client.HttpClient
+import io.ktor.client.HttpClientConfig
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.auth.Auth
+import io.ktor.client.plugins.auth.providers.BearerTokens
+import io.ktor.client.plugins.auth.providers.bearer
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.delete
 import io.ktor.client.request.forms.MultiPartFormDataContent
 import io.ktor.client.request.get
@@ -14,6 +21,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.Headers
 import io.ktor.http.HeadersBuilder
 import io.ktor.http.content.PartData
+import io.ktor.serialization.kotlinx.json.json
 import io.ktor.util.CaseInsensitiveMap
 import jakarta.mail.internet.MimeUtility
 import kotlinx.serialization.json.Json
@@ -32,6 +40,63 @@ val URL_CPA_REPO_TIMESTAMPS = "$URL_CPA_REPO_BASE/cpa/timestamps"
 // val URL_EBMS_PROVIDER_BASE = getEnvVar("URL_EBMS_PROVIDER", "http://ebms-provider.team-emottak.svc.nais.local")
 val URL_EBMS_PROVIDER_BASE = getEnvVar("URL_EBMS_PROVIDER", "https://ebms-provider.intern.dev.nav.no")
 val URL_EBMS_PROVIDER_POST = "$URL_EBMS_PROVIDER_BASE/ebms"
+const val AZURE_AD_AUTH = "AZURE_AD"
+
+val CPA_REPO_SCOPE = getEnvVar(
+    "CPA_REPO_SCOPE",
+    "api://" + getEnvVar("CLUSTER", "dev-fss") + ".team-emottak.cpa-repo/.default"
+)
+
+val LENIENT_JSON_PARSER = Json {
+    isLenient = true
+}
+
+fun getCpaRepoAuthenticatedClient(): HttpClient {
+    return HttpClient(CIO) {
+        install(ContentNegotiation) {
+            json()
+        }
+        installCpaRepoAuthentication()
+    }
+}
+
+suspend fun getCpaRepoToken(): BearerTokens {
+    val requestBody =
+        "client_id=" + getEnvVar("AZURE_APP_CLIENT_ID", "cpa-repo") +
+            "&client_secret=" + getEnvVar("AZURE_APP_CLIENT_SECRET", "dummysecret") +
+            "&scope=" + CPA_REPO_SCOPE +
+            "&grant_type=client_credentials"
+
+    return HttpClient(CIO).post(
+        getEnvVar(
+            "AZURE_OPENID_CONFIG_TOKEN_ENDPOINT",
+            "http://localhost:3344/$AZURE_AD_AUTH/token"
+        )
+    ) {
+        headers {
+            header("Content-Type", "application/x-www-form-urlencoded")
+        }
+        setBody(requestBody)
+    }.bodyAsText()
+        .let { tokenResponseString ->
+            SignedJWT.parse(
+                LENIENT_JSON_PARSER.decodeFromString<Map<String, String>>(tokenResponseString)["access_token"] as String
+            )
+        }
+        .let { parsedJwt ->
+            BearerTokens(parsedJwt.serialize(), "dummy") // FIXME dumt at den ikke tillater null for refresh token. Tyder på at den ikke bør brukes. Kanskje best å skrive egen handler
+        }
+}
+
+fun HttpClientConfig<*>.installCpaRepoAuthentication() {
+    install(Auth) {
+        bearer {
+            refreshTokens { // FIXME dumt at pluginen refresher token på 401 og har ingen forhold til expires-in
+                getCpaRepoToken()
+            }
+        }
+    }
+}
 
 suspend fun HttpClient.getCPATimestamps() =
     Json.decodeFromString<Map<String, String>>(

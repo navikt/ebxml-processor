@@ -4,7 +4,11 @@ import no.nav.emottak.util.getEnvVar
 import no.nav.security.token.support.v2.IssuerConfig
 import no.nav.security.token.support.v2.TokenSupportConfig
 
-// TODO gjør felles?
+val CPA_REPO_SCOPE = getEnvVar(
+    "CPA_REPO_SCOPE",
+    "api://" + getEnvVar("CLUSTER", "dev-fss") + ".team-emottak.cpa-repo/.default"
+)
+
 class Security {
     val TENANT_ID = getEnvVar("AZURE_APP_TENANT_ID", AZURE_AD_AUTH)
     val config = TokenSupportConfig(
@@ -14,7 +18,7 @@ class Security {
                 "AZURE_APP_WELL_KNOWN_URL",
                 "http://localhost:3344/$TENANT_ID/.well-known/openid-configuration"
             ),
-            acceptedAudience = listOf("default")
+            acceptedAudience = listOf("default", CPA_REPO_SCOPE)
         )
     )
 }

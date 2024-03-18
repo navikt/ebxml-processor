@@ -1,10 +1,18 @@
 package no.nav.emottak.cpa
 
+import com.nimbusds.jwt.SignedJWT
+import io.ktor.client.HttpClient
+import io.ktor.client.HttpClientConfig
 import io.ktor.client.call.body
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.auth.Auth
+import io.ktor.client.plugins.auth.providers.BearerTokens
+import io.ktor.client.plugins.auth.providers.bearer
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.header
+import io.ktor.client.request.headers
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
@@ -12,11 +20,10 @@ import io.ktor.client.statement.readBytes
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
-import io.ktor.http.headers
 import io.ktor.serialization.kotlinx.json.json
-import io.ktor.server.config.MapApplicationConfig
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
+import kotlinx.serialization.json.Json
 import no.nav.emottak.cpa.persistence.DBTest
 import no.nav.emottak.melding.model.Addressing
 import no.nav.emottak.melding.model.Party
@@ -24,6 +31,7 @@ import no.nav.emottak.melding.model.PartyId
 import no.nav.emottak.melding.model.SignatureDetails
 import no.nav.emottak.melding.model.SignatureDetailsRequest
 import no.nav.emottak.melding.model.ValidationRequest
+import no.nav.emottak.util.getEnvVar
 import no.nav.security.mock.oauth2.MockOAuth2Server
 import org.apache.commons.lang3.StringUtils
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -32,6 +40,7 @@ import org.junit.jupiter.api.TestInstance
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import kotlin.test.assertContains
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -255,26 +264,67 @@ class CPARepoIntegrationTest : DBTest() {
     }
 
     @Test
-    fun `Delete CPA should result in deletion`() = cpaRepoTestApp {
-        val httpClient = createClient {
+    fun `Delete CPA without token is rejected`() = cpaRepoTestApp {
+        val client = createClient {
             install(ContentNegotiation) {
                 json()
             }
         }
-        val response = httpClient.delete("/cpa/delete/nav:qass:35065")
+        val response = client.delete("/cpa/delete/nav:qass:35065")
+        assertNotEquals("nav:qass:35065 slettet!", response.bodyAsText())
+    }
+
+    @Test
+    fun `Delete CPA should result in deletion`() = cpaRepoTestApp {
+        val c = createClient {
+            install(ContentNegotiation) {
+                json()
+            }
+            installCpaRepoAuthentication()
+        }
+        val response = c.delete("/cpa/delete/nav:qass:35065")
         assertEquals("nav:qass:35065 slettet!", response.bodyAsText())
     }
 
-    private fun doConfig(acceptedIssuer: String = "ISSUER_ID", acceptedAudience: String = "ACCEPTED_AUDIENCE"): MapApplicationConfig {
-        return MapApplicationConfig().apply {
-            put("no.nav.security.jwt.expirythreshold", "5")
-            put("no.nav.security.jwt.issuers.size", "1")
-            put("no.nav.security.jwt.issuers.0.issuer_name", acceptedIssuer)
-            put(
-                "no.nav.security.jwt.issuers.0.discoveryurl",
-                mockOAuth2Server.wellKnownUrl("ISSUER_ID").toString()
-            ) // server.baseUrl() + "/.well-known/openid-configuration")
-            put("no.nav.security.jwt.issuers.0.accepted_audience", acceptedAudience)
+    suspend fun getCpaRepoToken(): BearerTokens {
+        val requestBody =
+            "client_id=" + getEnvVar("AZURE_APP_CLIENT_ID", "cpa-repo") +
+                "&client_secret=" + getEnvVar("AZURE_APP_CLIENT_SECRET", "dummysecret") +
+                "&scope=" + CPA_REPO_SCOPE +
+                "&grant_type=client_credentials"
+
+        return HttpClient(CIO).post(
+            getEnvVar(
+                "AZURE_OPENID_CONFIG_TOKEN_ENDPOINT",
+                "http://localhost:3344/$AZURE_AD_AUTH/token"
+            )
+        ) {
+            headers {
+                header("Content-Type", "application/x-www-form-urlencoded")
+            }
+            setBody(requestBody)
+        }.bodyAsText()
+            .let { tokenResponseString ->
+                SignedJWT.parse(
+                    LENIENT_JSON_PARSER.decodeFromString<Map<String, String>>(tokenResponseString)["access_token"] as String
+                )
+            }
+            .let { parsedJwt ->
+                BearerTokens(parsedJwt.serialize(), "dummy") // FIXME dumt at den ikke tillater null for refresh token. Tyder på at den ikke bør brukes. Kanskje best å skrive egen handler
+            }
+    }
+
+    fun HttpClientConfig<*>.installCpaRepoAuthentication() {
+        install(Auth) {
+            bearer {
+                refreshTokens { // FIXME dumt at pluginen refresher token på 401 og har ingen forhold til expires-in
+                    getCpaRepoToken()
+                }
+            }
         }
+    }
+
+    val LENIENT_JSON_PARSER = Json {
+        isLenient = true
     }
 }

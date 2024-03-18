@@ -50,19 +50,19 @@ fun cpaApplicationModule(cpaDbConfig: HikariConfig, cpaMigrationConfig: HikariCo
             tokenValidationSupport(AZURE_AD_AUTH, Security().config)
         }
         routing {
-            authenticate(AZURE_AD_AUTH) { // TODO upstream må requeste en token og sende i Auth header
-                whoAmI()
-            }
             if (oracleDb != null) {
                 partnerId(PartnerRepository(oracleDb), cpaRepository)
             }
+            authenticate(AZURE_AD_AUTH) {
+                whoAmI()
+                deleteCpa(cpaRepository)
+                deleteAllCPA(cpaRepository)
+                postCpa(cpaRepository)
+            }
+            validateCpa(cpaRepository)
             getCPA(cpaRepository)
-            deleteCpa(cpaRepository)
-            deleteAllCPA(cpaRepository)
             getTimeStamps(cpaRepository)
             getTimeStampsLatest(cpaRepository)
-            postCpa(cpaRepository)
-            validateCpa(cpaRepository)
             getCertificate(cpaRepository)
             signingCertificate(cpaRepository)
         }

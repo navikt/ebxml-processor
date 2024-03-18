@@ -16,18 +16,6 @@ import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.Transport
 import org.w3._2000._09.xmldsig_.X509DataType
 import javax.xml.bind.JAXBElement
 
-fun getDummyCPA(id: String) = CPAUtil.getCpa(id)
-
-private class CPAUtil {
-    companion object {
-        fun getCpa(id: String): CollaborationProtocolAgreement? {
-            // TODO
-            val testCpaString = String(this::class.java.classLoader.getResource("cpa/nav-qass-35065.xml")!!.readBytes())
-            return unmarshal(testCpaString, CollaborationProtocolAgreement::class.java)
-        }
-    }
-}
-
 fun PartyInfo.getCertificateForEncryption(): ByteArray {
     // @TODO match role service action. ".first()" er ikke nokk
     val encryptionCert = this.collaborationRole.first().applicationCertificateRef.first().certId as Certificate

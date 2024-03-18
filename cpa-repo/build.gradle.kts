@@ -53,6 +53,8 @@ dependencies {
     implementation(testLibs.postgresql)
     implementation(libs.ktor.server.auth.jvm)
     implementation(libs.token.validation.ktor.v2)
+    implementation(libs.ktor.client.auth)
+    implementation(libs.ktor.server.auth.jvm)
     testRuntimeOnly(testLibs.junit.jupiter.engine)
     testImplementation(testLibs.mock.oauth2.server)
     testImplementation(testLibs.mockk.jvm)

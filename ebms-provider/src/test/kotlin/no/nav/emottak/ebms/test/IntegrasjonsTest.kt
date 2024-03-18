@@ -15,12 +15,14 @@ import io.mockk.clearAllMocks
 import kotlinx.coroutines.runBlocking
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.cpa.cpaApplicationModule
+import no.nav.emottak.cpa.persistence.Database
 import no.nav.emottak.ebms.cpaPostgres
 import no.nav.emottak.ebms.defaultHttpClient
 import no.nav.emottak.ebms.ebmsProviderModule
 import no.nav.emottak.ebms.testConfiguration
 import no.nav.emottak.ebms.validation.MimeHeaders
 import no.nav.security.mock.oauth2.MockOAuth2Server
+import org.flywaydb.core.Flyway
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeAll
@@ -49,7 +51,21 @@ open class EndToEndTest {
         fun setup() {
             System.setProperty("CPA_REPO_URL", cpaRepoUrl)
             cpaDbContainer.start()
-            cpaRepoServer = embeddedServer(Netty, port = portnoCpaRepo, module = cpaApplicationModule(cpaDbContainer.testConfiguration(), cpaDbContainer.testConfiguration())).also {
+            val db = Database(cpaDbContainer.testConfiguration())
+                .also {
+                    Flyway.configure()
+                        .dataSource(it.dataSource)
+                        .failOnMissingLocations(true)
+                        .cleanDisabled(false)
+                        .load()
+                        .also(Flyway::clean)
+                        .migrate()
+                }
+            cpaRepoServer = embeddedServer(
+                Netty,
+                port = portnoCpaRepo,
+                module = cpaApplicationModule(db.dataSource, db.dataSource)
+            ).also {
                 it.start()
             }
             ebmsProviderServer = embeddedServer(Netty, port = portnoEbmsProvider, module = { ebmsProviderModule() }).also {
@@ -84,6 +100,7 @@ class IntegrasjonsTest : EndToEndTest() {
 
     @Test
     fun testAlleIntegrasjoner() {
+        // TODO insert in cpa repo en cpa test oauth2
         clearAllMocks()
         val httpClient = defaultHttpClient().invoke()
         runBlocking {
