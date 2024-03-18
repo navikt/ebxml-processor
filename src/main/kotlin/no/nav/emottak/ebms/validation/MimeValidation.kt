@@ -40,7 +40,7 @@ fun ApplicationRequest.validateContentType() {
 
     if (contentType.withoutParameters() != ContentType.parse("multipart/related")) throw MimeValidationException("Content type should be multipart/related")
     contentType.parameter("boundary") ?: throw MimeValidationException("Boundary is mandatory on multipart related content")
-    contentType.parameter("start") ?: throw MimeValidationException("Start on multipart request not defined")
+    // start blir den første element hvis undefined contentType.parameter("start") ?: throw MimeValidationException("Start on multipart request not defined")
     // norsk helsenet spec sier at type bør vare altid text/xml men det er andre som ikke fyller det.
     if (contentType.parameter("type") != null && contentType.parameter("type") != "text/xml") throw MimeValidationException("Type of multipart related should be text/xml")
 }
@@ -58,7 +58,6 @@ fun PartData.validateMimeSoapEnvelope() {
 
 // Krav 5.5.2.4 Valideringsdokument
 fun PartData.validateMimeAttachment() {
-    takeIf { this.contentDisposition?.disposition == "attachment" } ?: throw MimeValidationException("This is not attachment")
     takeIf { this.headers[MimeHeaders.CONTENT_TRANSFER_ENCODING] == "base64" } ?: throw MimeValidationException("Feil content transfer encoding")
     this.contentType?.withoutParameters().takeIf {
         it == ContentType.parse("application/pkcs7-mime")
