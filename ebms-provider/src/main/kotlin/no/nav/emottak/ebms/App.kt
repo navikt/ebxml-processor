@@ -6,7 +6,6 @@ package no.nav.emottak.ebms
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.forms.MultiPartFormDataContent
-import io.ktor.http.ContentDisposition
 import io.ktor.http.ContentType
 import io.ktor.http.HeadersBuilder
 import io.ktor.http.HttpStatusCode
@@ -157,25 +156,18 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
                     it.dispose.invoke()
                 }
             }
-
+            var start = contentType.parameter("start") ?: allParts.first().headers[MimeHeaders.CONTENT_ID]
             val dokument = allParts.find {
-                it.contentType?.withoutParameters() == ContentType.parse("text/xml") && it.contentDisposition == null
-            }.also {
-                it?.validateMimeSoapEnvelope()
-                    ?: throw MimeValidationException(
-                        "Unable to find soap envelope multipart Message-Id ${
-                        this.request.header(
-                            SMTPHeaders.MESSAGE_ID
-                        )
-                        }"
-                    )
-            }!!.let {
+                it.headers[MimeHeaders.CONTENT_ID] == start
+            }!!.also {
+                it.validateMimeSoapEnvelope()
+            }.let {
                 val contentID = it.headers[MimeHeaders.CONTENT_ID]!!.convertToValidatedContentID()
                 val isBase64 = "base64" == it.headers[MimeHeaders.CONTENT_TRANSFER_ENCODING]
                 Pair(contentID, it.payload(debugClearText || !isBase64))
             }
             val attachments =
-                allParts.filter { it.contentDisposition?.disposition == ContentDisposition.Attachment.disposition }
+                allParts.filter { it.headers[MimeHeaders.CONTENT_ID] != start }
             attachments.forEach {
                 it.validateMimeAttachment()
             }

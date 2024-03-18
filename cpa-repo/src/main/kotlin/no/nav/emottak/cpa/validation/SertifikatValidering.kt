@@ -1,6 +1,5 @@
 package no.nav.emottak.cpa.validation
 
-import kotlinx.coroutines.runBlocking
 import no.nav.emottak.cpa.HttpClientUtil
 import no.nav.emottak.cpa.cert.CRLChecker
 import no.nav.emottak.cpa.cert.CRLRetriever
@@ -39,11 +38,7 @@ val trustStoreConfig = object : KeyStoreConfig {
 
 private val sertifikatValidering = lazy {
     SertifikatValidering(
-        CRLChecker(
-            runBlocking {
-                CRLRetriever(HttpClientUtil.client).updateAllCRLs()
-            }
-        ),
+        CRLChecker(CRLRetriever(HttpClientUtil.client)),
         trustStoreConfig
     )
 }
