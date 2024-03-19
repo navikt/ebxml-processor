@@ -6,11 +6,9 @@ import io.ktor.http.Headers
 import io.ktor.http.content.PartData
 import io.ktor.server.request.ApplicationRequest
 import io.ktor.server.request.contentType
-import io.ktor.util.toLowerCasePreservingASCIIRules
 import jakarta.xml.soap.SOAPConstants
 import jakarta.xml.soap.SOAPFault
 import jakarta.xml.soap.SOAPMessage
-import no.nav.emottak.util.marker
 import java.io.ByteArrayOutputStream
 import javax.xml.namespace.QName
 
@@ -71,10 +69,6 @@ fun PartData.validateMimeAttachment() {
 
 // KRAV 5.5.2.1 validate MIME
 fun Headers.validateMimeHeaders() {
-    this[MimeHeaders.MIME_VERSION]?.takeIf { it == "1.0" }
-        ?: log.warn(this.marker(), "MIME version is missing or incorrect <${this[MimeHeaders.MIME_VERSION]}>")
-    this[MimeHeaders.SOAP_ACTION]?.toLowerCasePreservingASCIIRules().takeIf { it == "\"ebxml\"" || it == "ebxml" }
-        ?: log.warn(this.marker(), "SOAPAction is undefined or incorrect <${this[MimeHeaders.SOAP_ACTION]}>")
     if (this[MimeHeaders.CONTENT_TYPE].isNullOrBlank() || this[MimeHeaders.CONTENT_TYPE] == "text/plain") {
         throw MimeValidationException("Content type is wrong <${this[MimeHeaders.CONTENT_TYPE]}")
     }
