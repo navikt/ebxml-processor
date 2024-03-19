@@ -27,12 +27,11 @@ class DokumentValidator(val httpClient: CpaRepoClient) {
             runCatching {
                 message.sjekkSignature(validationResult.payloadProcessing!!.signingCertificate)
             }.onFailure {
-                log.error("Signaturvalidering feilet ${it.message}", it)
                 throw EbmsException(
                     (validationResult.error ?: listOf()) + listOf(
                         Feil(
                             ErrorCode.SECURITY_FAILURE,
-                            "Feil signature"
+                            "Signeringsfeil: ${it.message}"
                         )
                     ),
                     it
