@@ -10,6 +10,7 @@ import io.ktor.util.toLowerCasePreservingASCIIRules
 import jakarta.xml.soap.SOAPConstants
 import jakarta.xml.soap.SOAPFault
 import jakarta.xml.soap.SOAPMessage
+import no.nav.emottak.util.marker
 import java.io.ByteArrayOutputStream
 import javax.xml.namespace.QName
 
@@ -27,7 +28,10 @@ fun ApplicationRequest.validateMime() {
         this.headers.validateMimeHeaders()
         this.validateContentType()
     }.onFailure {
-        if (it !is MimeValidationException) throw MimeValidationException("Unexpected validation fail.", it) else throw it
+        when (it) {
+            is MimeValidationException -> throw it
+            else -> throw MimeValidationException("Unexpected validation fail.", it)
+        }
     }
 }
 
@@ -67,13 +71,12 @@ fun PartData.validateMimeAttachment() {
 
 // KRAV 5.5.2.1 validate MIME
 fun Headers.validateMimeHeaders() {
-    if (this[MimeHeaders.MIME_VERSION] != "1.0") {
-        throw MimeValidationException("MIME version is missing or incorrect")
-    }
+    this[MimeHeaders.MIME_VERSION]?.takeIf { it == "1.0" }
+        ?: log.warn(this.marker(), "MIME version is missing or incorrect <${this[MimeHeaders.MIME_VERSION]}>")
     this[MimeHeaders.SOAP_ACTION]?.toLowerCasePreservingASCIIRules().takeIf { it == "\"ebxml\"" || it == "ebxml" }
-        ?: throw MimeValidationException("SOAPAction is undefined or incorrect")
+        ?: log.warn(this.marker(), "SOAPAction is undefined or incorrect <${this[MimeHeaders.SOAP_ACTION]}>")
     if (this[MimeHeaders.CONTENT_TYPE].isNullOrBlank() || this[MimeHeaders.CONTENT_TYPE] == "text/plain") {
-        throw MimeValidationException("Content type is wrong")
+        throw MimeValidationException("Content type is wrong <${this[MimeHeaders.CONTENT_TYPE]}")
     }
 }
 
