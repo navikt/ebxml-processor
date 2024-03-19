@@ -52,6 +52,28 @@ fun Application.myApplicationModule() {
             call.respond("Hello World!")
         }
 
+        get("/mail/check") {
+            val report = mutableMapOf<String, String>()
+            incomingStore.getFolder("INBOX").use {
+                it.open(Folder.READ_ONLY)
+                report["incomingStore Inbox"] = it.messageCount.toString()
+                it.close(false)
+            }
+
+            bccStore.getFolder("INBOX").use {
+                it.open(Folder.READ_ONLY)
+                report["bccStore Inbox"] = it.messageCount.toString()
+                it.close(false)
+            }
+
+            bccStore.getFolder("testdata").use {
+                it.open(Folder.READ_ONLY)
+                report["bccStore testdata"] = it.messageCount.toString()
+                it.close(false)
+            }
+            call.respond(HttpStatusCode.OK, report)
+        }
+
         get("/testsftp") {
             val log = LoggerFactory.getLogger("no.nav.emottak.smtp.sftp")
 
