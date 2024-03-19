@@ -57,19 +57,16 @@ fun Application.myApplicationModule() {
             incomingStore.getFolder("INBOX").use {
                 it.open(Folder.READ_ONLY)
                 report["incomingStore Inbox"] = it.messageCount.toString()
-                it.close(false)
             }
 
             bccStore.getFolder("INBOX").use {
                 it.open(Folder.READ_ONLY)
                 report["bccStore Inbox"] = it.messageCount.toString()
-                it.close(false)
             }
 
             bccStore.getFolder("testdata").use {
                 it.open(Folder.READ_ONLY)
                 report["bccStore testdata"] = it.messageCount.toString()
-                it.close(false)
             }
             call.respond(HttpStatusCode.OK, report)
         }
