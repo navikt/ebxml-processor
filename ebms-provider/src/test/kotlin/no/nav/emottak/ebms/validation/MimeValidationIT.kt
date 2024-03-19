@@ -50,7 +50,6 @@ class MimeValidationIT {
 
     @Test
     fun `Soap Fault om Mime Feil`() = mimeTestApp {
-        // TODO Finne ut hva vi gjør med mime version
         val wrongHeader = validMultipartRequest.modify(
             validMultipartRequest.parts.first() to validMultipartRequest.parts.first().modify {
                 it.remove(MimeHeaders.CONTENT_TRANSFER_ENCODING)
