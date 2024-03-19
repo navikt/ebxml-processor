@@ -44,6 +44,7 @@ fun Route.postEbmsSync(
         log.info(ebMSDocument.messageHeader().marker(loggableHeaders), "Melding mottatt")
     } catch (ex: MimeValidationException) {
         logger().error(
+            call.request.headers.marker(),
             "Mime validation has failed: ${ex.message} Message-Id ${call.request.header(SMTPHeaders.MESSAGE_ID)}",
             ex
         )
@@ -51,11 +52,9 @@ fun Route.postEbmsSync(
         return@post
     } catch (ex: Exception) {
         logger().error(
-            "Unable to transform request into EbmsDokument: ${ex.message} Message-Id ${
-            call.request.header(
-                SMTPHeaders.MESSAGE_ID
-            )
-            }",
+            call.request.headers.marker(),
+            "Unable to transform request into EbmsDokument: ${ex.message} " +
+                "Message-Id ${call.request.header(SMTPHeaders.MESSAGE_ID)}",
             ex
         )
         // @TODO done only for demo fiks!

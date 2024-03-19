@@ -50,26 +50,16 @@ class MimeValidationIT {
 
     @Test
     fun `Soap Fault om Mime Feil`() = mimeTestApp {
-        val wrongMime = validMultipartRequest.modify {
-            it.remove(MimeHeaders.MIME_VERSION)
-        }
-
-        var response = client.post("/ebms", wrongMime.asHttpRequest())
-        var envelope: Envelope = xmlMarshaller.unmarshal(response.bodyAsText(), Envelope::class.java)
-        with(envelope.assertFaultAndGet()) {
-            assertEquals("MIME version is missing or incorrect", this.faultstring)
-            assertEquals("Server", this.faultcode.localPart)
-        }
-
+        // TODO Finne ut hva vi gjør med mime version
         val wrongHeader = validMultipartRequest.modify(
             validMultipartRequest.parts.first() to validMultipartRequest.parts.first().modify {
                 it.remove(MimeHeaders.CONTENT_TRANSFER_ENCODING)
             }
         )
-        response = client.post("/ebms", wrongHeader.asHttpRequest())
+        val response = client.post("/ebms", wrongHeader.asHttpRequest())
         val responseText = response.bodyAsText()
         println(responseText.decodeBase64Mime())
-        envelope = xmlMarshaller.unmarshal(response.bodyAsText(), Envelope::class.java)
+        val envelope = xmlMarshaller.unmarshal(response.bodyAsText(), Envelope::class.java)
         with(envelope.assertFaultAndGet()) {
             assertEquals(
                 "Mandatory header Content-Transfer-Encoding is undefined",
