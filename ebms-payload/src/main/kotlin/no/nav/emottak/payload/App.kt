@@ -7,12 +7,15 @@ import io.ktor.server.application.Application
 import io.ktor.server.application.call
 import io.ktor.server.application.install
 import io.ktor.server.engine.embeddedServer
+import io.ktor.server.metrics.micrometer.MicrometerMetrics
 import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
+import io.micrometer.prometheus.PrometheusConfig
+import io.micrometer.prometheus.PrometheusMeterRegistry
 import no.kith.xmlstds.msghead._2006_05_24.MsgHead
 import no.nav.emottak.melding.apprec.createNegativeApprec
 import no.nav.emottak.melding.model.ErrorCode
@@ -38,8 +41,12 @@ private fun Application.serverSetup() {
     install(ContentNegotiation) {
         json()
     }
+    val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
+    install(MicrometerMetrics) {
+        registry = appMicrometerRegistry
+    }
     routing {
-        registerHealthEndpoints()
+        registerHealthEndpoints(appMicrometerRegistry)
 
         post("/payload") {
             val request: PayloadRequest = call.receive(PayloadRequest::class)

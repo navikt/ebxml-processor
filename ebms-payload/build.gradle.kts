@@ -46,7 +46,7 @@ dependencies {
     implementation(libs.jakarta.xml.bind.api)
     implementation(libs.jaxb.runtime)
     implementation(libs.bundles.logging)
-    implementation("io.micrometer:micrometer-registry-prometheus:1.11.3")
+    implementation(libs.bundles.prometheus)
     implementation(libs.emottak.payload.xsd)
 
     testImplementation(testLibs.junit.jupiter.api)
