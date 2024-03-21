@@ -175,8 +175,9 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
                 dokument.first,
                 getDocumentBuilder().parse(ByteArrayInputStream(dokument.second)),
                 attachments.map {
+                    val isBase64 = "base64" == it.headers[MimeHeaders.CONTENT_TRANSFER_ENCODING]
                     EbmsAttachment(
-                        it.payload(),
+                        it.payload(debugClearText || !isBase64),
                         it.contentType!!.contentType,
                         it.headers[MimeHeaders.CONTENT_ID]!!.convertToValidatedContentID()
                     )
