@@ -1,8 +1,11 @@
 package no.nav.emottak.payload.util
 
+import jakarta.xml.bind.JAXBElement
+import org.w3c.dom.Node
 import java.io.StringWriter
 import javax.xml.bind.JAXBContext
 import javax.xml.stream.XMLInputFactory
+import javax.xml.transform.dom.DOMResult
 
 val xmlMarshaller = XmlMarshaller()
 
@@ -31,6 +34,11 @@ class XmlMarshaller {
         val writer = StringWriter()
         marshaller.marshal(objekt, writer)
         return writer.toString()
+    }
+
+    fun marshal(jaxbElement: JAXBElement<*>, result: DOMResult): Node {
+        marshaller.marshal(jaxbElement, result)
+        return result.node
     }
 
     fun <T> unmarshal(xml: String, clazz: Class<T>): T {
