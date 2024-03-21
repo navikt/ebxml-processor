@@ -39,6 +39,7 @@ import no.nav.emottak.ebms.model.EbMSDocument
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.DokumentValidator
+import no.nav.emottak.ebms.validation.GENERERT_ID_PREFIX
 import no.nav.emottak.ebms.validation.MimeHeaders
 import no.nav.emottak.ebms.validation.MimeValidationException
 import no.nav.emottak.ebms.validation.validateMimeAttachment
@@ -156,9 +157,9 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
                     it.dispose.invoke()
                 }
             }
-            var start = contentType.parameter("start") ?: allParts.first().headers[MimeHeaders.CONTENT_ID]
+            val start = contentType.parameter("start") ?: allParts.first().headers[MimeHeaders.CONTENT_ID] ?: "$GENERERT_ID_PREFIX-${UUID.randomUUID()}"
             val dokument = allParts.find {
-                it.headers[MimeHeaders.CONTENT_ID] == start
+                it.headers[MimeHeaders.CONTENT_ID] == start || start.startsWith(GENERERT_ID_PREFIX)
             }!!.also {
                 it.validateMimeSoapEnvelope()
             }.let {
