@@ -7,7 +7,10 @@ import io.ktor.server.request.header
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
+import io.ktor.server.routing.Routing
+import io.ktor.server.routing.get
 import io.ktor.server.routing.post
+import io.micrometer.prometheus.PrometheusMeterRegistry
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.model.EbMSDocument
 import no.nav.emottak.ebms.model.PayloadMessage
@@ -181,3 +184,17 @@ fun Route.postEbmsAsync(validator: DokumentValidator, processingService: Process
             }
         }
     }
+
+fun Routing.registerHealthEndpoints(
+    collectorRegistry: PrometheusMeterRegistry
+) {
+    get("/internal/health/liveness") {
+        call.respondText("I'm alive! :)")
+    }
+    get("/internal/health/readiness") {
+        call.respondText("I'm ready! :)")
+    }
+    get("/prometheus") {
+        call.respond(collectorRegistry.scrape())
+    }
+}

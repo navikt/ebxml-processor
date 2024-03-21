@@ -19,6 +19,7 @@ import io.ktor.server.application.call
 import io.ktor.server.application.createRouteScopedPlugin
 import io.ktor.server.application.install
 import io.ktor.server.engine.embeddedServer
+import io.ktor.server.metrics.micrometer.MicrometerMetrics
 import io.ktor.server.netty.Netty
 import io.ktor.server.request.contentType
 import io.ktor.server.request.header
@@ -30,6 +31,8 @@ import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import io.ktor.util.logging.KtorSimpleLogger
+import io.micrometer.prometheus.PrometheusConfig
+import io.micrometer.prometheus.PrometheusMeterRegistry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import net.logstash.logback.marker.Markers
@@ -102,13 +105,24 @@ fun Application.ebmsProviderModule() {
     val validator = DokumentValidator(cpaClient)
     val processing = ProcessingService(processingClient)
     val sendInService = SendInService(sendInClient)
+
+    val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
+    installMicrometerRegistry(appMicrometerRegistry)
     installRequestTimerPlugin()
+
     routing {
         get("/") {
             call.respondText("Hello, world!")
         }
+        registerHealthEndpoints(appMicrometerRegistry)
         postEbmsAsync(validator, processing)
         postEbmsSync(validator, processing, sendInService)
+    }
+}
+
+private fun Application.installMicrometerRegistry(appMicrometerRegistry: PrometheusMeterRegistry) {
+    install(MicrometerMetrics) {
+        registry = appMicrometerRegistry
     }
 }
 
