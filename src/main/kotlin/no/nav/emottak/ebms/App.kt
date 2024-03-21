@@ -39,7 +39,6 @@ import no.nav.emottak.ebms.model.EbMSDocument
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.DokumentValidator
-import no.nav.emottak.ebms.validation.GENERERT_ID_PREFIX
 import no.nav.emottak.ebms.validation.MimeHeaders
 import no.nav.emottak.ebms.validation.MimeValidationException
 import no.nav.emottak.ebms.validation.validateMimeAttachment
@@ -157,13 +156,13 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
                     it.dispose.invoke()
                 }
             }
-            val start = contentType.parameter("start") ?: allParts.first().headers[MimeHeaders.CONTENT_ID] ?: "$GENERERT_ID_PREFIX-${UUID.randomUUID()}"
+            val start = contentType.parameter("start") ?: allParts.first().headers[MimeHeaders.CONTENT_ID]
             val dokument = allParts.find {
-                it.headers[MimeHeaders.CONTENT_ID] == start || start.startsWith(GENERERT_ID_PREFIX)
+                it.headers[MimeHeaders.CONTENT_ID] == start
             }!!.also {
                 it.validateMimeSoapEnvelope()
             }.let {
-                val contentID = it.headers[MimeHeaders.CONTENT_ID]!!.convertToValidatedContentID()
+                val contentID = it.headers[MimeHeaders.CONTENT_ID]?.convertToValidatedContentID() ?: "GENERERT-${UUID.randomUUID()}"
                 val isBase64 = "base64" == it.headers[MimeHeaders.CONTENT_TRANSFER_ENCODING]
                 Pair(contentID, it.payload(debugClearText || !isBase64))
             }
