@@ -21,6 +21,8 @@ object MimeHeaders {
     const val CONTENT_DISPOSITION = "Content-Disposition"
 }
 
+const val GENERERT_ID_PREFIX = "GENERERT"
+
 fun ApplicationRequest.validateMime() {
     runCatching {
         this.headers.validateMimeHeaders()
@@ -50,9 +52,10 @@ fun ApplicationRequest.validateContentType() {
 // KRAV 5.5.2.3 Valideringsdokument
 fun PartData.validateMimeSoapEnvelope() {
     this.contentType?.withoutParameters().takeIf { it == ContentType.parse("text/xml") } ?: throw MimeValidationException("Content type is missing or wrong ")
-    if (this.headers[MimeHeaders.CONTENT_ID].isNullOrBlank()) {
-        throw MimeValidationException("Content ID is missing")
-    }
+    // TODO Kontakt EPJ der Content ID mangler
+//    if (this.headers[MimeHeaders.CONTENT_ID].isNullOrBlank()) {
+//        throw MimeValidationException("Content ID is missing")
+//    }
     this.headers[MimeHeaders.CONTENT_TRANSFER_ENCODING].takeUnless { it.isNullOrBlank() }?.let {
         it.takeIf { listOf("8bit", "base64", "binary", "quoted-printable").contains(it) } ?: throw MimeValidationException("Unrecognised Content-Transfer-Encoding")
     } ?: throw MimeValidationException("Mandatory header Content-Transfer-Encoding is undefined")

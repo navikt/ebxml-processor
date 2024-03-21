@@ -112,9 +112,10 @@ class MimeValidationTest {
     @Test
     fun `5-2-2-3 feil på validering på SOAP envelope multipart`() {
         val notValid = listOf(
-            validSoapMimeHeaders.modify {
-                it.remove(MimeHeaders.CONTENT_ID)
-            },
+            // TODO Kontakt EPJ der Content ID mangler
+//            validSoapMimeHeaders.modify {
+//                it.remove(MimeHeaders.CONTENT_ID)
+//            },
             validSoapMimeHeaders.modify {
                 it[MimeHeaders.CONTENT_TRANSFER_ENCODING] = "noeannet"
             },
@@ -146,9 +147,10 @@ class MimeValidationTest {
     @Test
     fun `5-2-2-4 validering på SOAP attachment multipart`() {
         val notValid = listOf(
-            validSoapMimeHeaders.modify {
-                it.remove(MimeHeaders.CONTENT_ID)
-            },
+            // TODO Kontakt EPJ der Content ID mangler
+//            validSoapMimeHeaders.modify {
+//                it.remove(MimeHeaders.CONTENT_ID)
+//            },
             validSoapMimeHeaders.modify {
                 it[MimeHeaders.CONTENT_TRANSFER_ENCODING] = "noeannet"
             },
