@@ -21,8 +21,6 @@ object MimeHeaders {
     const val CONTENT_DISPOSITION = "Content-Disposition"
 }
 
-const val GENERERT_ID_PREFIX = "GENERERT"
-
 fun ApplicationRequest.validateMime() {
     runCatching {
         this.headers.validateMimeHeaders()
