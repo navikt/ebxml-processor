@@ -200,6 +200,28 @@ fun Application.myApplicationModule() {
             logBccMessages()
             call.respond(HttpStatusCode.OK)
         }
+
+        get("/mail/nuke") { // TODO fjern
+            val report = mutableMapOf<String, String>()
+            incomingStore.getFolder("INBOX").use {
+                val deleteFolder = it.getFolder("DELETE")
+                it.renameTo(deleteFolder)
+                deleteFolder.delete(true)
+            }
+
+            bccStore.getFolder("INBOX").use {
+                val deleteFolder = it.getFolder("DELETE")
+                it.renameTo(deleteFolder)
+                deleteFolder.delete(true)
+            }
+
+            bccStore.getFolder("testdata").use {
+                val deleteFolder = it.getFolder("DELETE")
+                it.renameTo(deleteFolder)
+                deleteFolder.delete(true)
+            }
+            call.respond(HttpStatusCode.OK, report)
+        }
     }
 }
 
