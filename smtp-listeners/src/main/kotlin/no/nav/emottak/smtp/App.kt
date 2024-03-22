@@ -175,6 +175,7 @@ fun Application.myApplicationModule() {
                         if(mailCounter < getEnvVar("MAIL_BATCH_LIMIT", "16").toInt()) {
                             asyncJobList.awaitAll()
                             asyncJobList.clear()
+                            mailCounter = 0
                         }
                         log.info("Inbox has messages ${messages.isNotEmpty()}")
                     } while (messages.isNotEmpty())
