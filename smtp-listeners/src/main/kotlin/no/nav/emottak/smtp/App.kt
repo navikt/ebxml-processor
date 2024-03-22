@@ -150,6 +150,7 @@ fun Application.myApplicationModule() {
                     messageCount = it.count()
                     log.info("read ${it.count()} from innbox")
                     val asyncJobList: ArrayList<Deferred<Any>> = ArrayList()
+                    var mailCounter = 0
                     do {
                         val messages = it.readMail()
                         messages.map { message ->
@@ -170,8 +171,9 @@ fun Application.myApplicationModule() {
                                 }
                             )
                         }
+                        mailCounter += 1
                         log.info("Inbox has messages ${messages.isNotEmpty()}")
-                    } while (messages.isNotEmpty())
+                    } while (messages.isNotEmpty() && mailCounter < getEnvVar("MAIL_BATCH_LIMIT", "16").toInt()) // Batch limit
                     asyncJobList.awaitAll()
                 }
             }.onSuccess {
