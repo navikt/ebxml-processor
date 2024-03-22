@@ -172,8 +172,12 @@ fun Application.myApplicationModule() {
                             )
                         }
                         mailCounter += 1
+                        if(mailCounter < getEnvVar("MAIL_BATCH_LIMIT", "16").toInt()) {
+                            asyncJobList.awaitAll()
+                            asyncJobList.clear()
+                        }
                         log.info("Inbox has messages ${messages.isNotEmpty()}")
-                    } while (messages.isNotEmpty() && mailCounter < getEnvVar("MAIL_BATCH_LIMIT", "16").toInt()) // Batch limit
+                    } while (messages.isNotEmpty())
                     asyncJobList.awaitAll()
                 }
             }.onSuccess {
