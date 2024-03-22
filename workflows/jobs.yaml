@@ -2,7 +2,7 @@ name: "Naisjob read mail"
 on:
   push:
     branches:
-      - main-disabled
+      - main
 jobs:
   build:
     permissions:
@@ -21,10 +21,17 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: "Pull push docker image"
         run: "docker pull ghcr.io/curl/curl-container/curl:master && docker tag ghcr.io/curl/curl-container/curl:master ghcr.io/${{ github.repository }}/curl:master && docker push ghcr.io/${{ github.repository }}/curl:master"
-      - name: "Deploy"
+      - name: "Naisjob Readmail"
         uses: "nais/deploy/actions/deploy@v1"
         env:
           APIKEY: "${{ secrets.NAIS_DEPLOY_APIKEY }}"
           CLUSTER: "dev-fss"
-          RESOURCE: ".nais/naisjob.yaml"
+          RESOURCE: ".nais/naisjob-readmail.yaml"
+          IMAGE: "ghcr.io/${{ github.repository }}/curl:master"
+      - name: "Naisjob CpaSync"
+        uses: "nais/deploy/actions/deploy@v1"
+        env:
+          APIKEY: "${{ secrets.NAIS_DEPLOY_APIKEY }}"
+          CLUSTER: "dev-fss"
+          RESOURCE: ".nais/naisjob-cpasync.yaml"
           IMAGE: "ghcr.io/${{ github.repository }}/curl:master"
