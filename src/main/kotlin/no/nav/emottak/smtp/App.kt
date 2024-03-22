@@ -204,21 +204,27 @@ fun Application.myApplicationModule() {
         get("/mail/nuke") { // TODO fjern
             val report = mutableMapOf<String, String>()
             incomingStore.getFolder("INBOX").use {
-                val deleteFolder = it.getFolder("DELETE")
-                it.renameTo(deleteFolder)
-                deleteFolder.delete(true)
+                it.open(Folder.READ_WRITE)
+                it.messages.forEach { message ->
+                    message.setFlag(Flags.Flag.DELETED, true)
+                }
+                it.expunge()
             }
 
             bccStore.getFolder("INBOX").use {
-                val deleteFolder = it.getFolder("DELETE")
-                it.renameTo(deleteFolder)
-                deleteFolder.delete(true)
+                it.open(Folder.READ_WRITE)
+                it.messages.forEach { message ->
+                    message.setFlag(Flags.Flag.DELETED, true)
+                }
+                it.expunge()
             }
 
             bccStore.getFolder("testdata").use {
-                val deleteFolder = it.getFolder("DELETE")
-                it.renameTo(deleteFolder)
-                deleteFolder.delete(true)
+                it.open(Folder.READ_WRITE)
+                it.messages.forEach { message ->
+                    message.setFlag(Flags.Flag.DELETED, true)
+                }
+                it.expunge()
             }
             call.respond(HttpStatusCode.OK, report)
         }
