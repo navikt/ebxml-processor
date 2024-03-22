@@ -172,7 +172,7 @@ fun Application.myApplicationModule() {
                             )
                         }
                         mailCounter += 1
-                        if(mailCounter < getEnvVar("MAIL_BATCH_LIMIT", "16").toInt()) {
+                        if (mailCounter < getEnvVar("MAIL_BATCH_LIMIT", "16").toInt()) {
                             asyncJobList.awaitAll()
                             asyncJobList.clear()
                             mailCounter = 0
