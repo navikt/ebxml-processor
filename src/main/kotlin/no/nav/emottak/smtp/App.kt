@@ -78,7 +78,8 @@ fun Application.myApplicationModule() {
             withContext(Dispatchers.IO) {
                 val startTime = Instant.now()
                 runCatching {
-                    val cpaTimestamps = cpaRepoClient.getCPATimestamps().toMutableMap() // mappen tømmes ettersom entries behandles
+                    val cpaTimestamps =
+                        cpaRepoClient.getCPATimestamps().toMutableMap() // mappen tømmes ettersom entries behandles
                     NFSConnector().use { connector ->
                         connector.folder().forEach { entry ->
                             val filename = entry.filename
@@ -101,7 +102,8 @@ fun Application.myApplicationModule() {
                                             } else {
                                                 false
                                             }
-                                        } && Instant.parse(cpaTimestamp.value).isAfter(lastModified.minusSeconds(2)) // Litt løs sjekk siden ikke alle systemer har samme millisec presisjon
+                                        } && Instant.parse(cpaTimestamp.value)
+                                        .isAfter(lastModified.minusSeconds(2)) // Litt løs sjekk siden ikke alle systemer har samme millisec presisjon
                                 }.let { matches ->
                                     forEach { cpaTimestamps.remove(it) }
                                     if (matches.any()) {
@@ -132,7 +134,11 @@ fun Application.myApplicationModule() {
                         else -> log.error(it.message, it)
                     }
                 }.onSuccess {
-                    log.info("CPA synchronization completed in ${Duration.between(startTime, Instant.now()).toKotlinDuration()}")
+                    log.info(
+                        "CPA synchronization completed in ${
+                        Duration.between(startTime, Instant.now()).toKotlinDuration()
+                        }"
+                    )
                     call.respond(HttpStatusCode.OK, "CPA sync complete")
                 }
             }
@@ -202,19 +208,43 @@ fun Application.myApplicationModule() {
         }
 
         get("/mail/nuke") { // TODO fjern
-            val report = mutableMapOf<String, String>()
             incomingStore.getFolder("INBOX").use {
-                it.delete(true)
+                for (i in 1..it.messageCount step 100) {
+                    it.open(Folder.READ_WRITE)
+                    val end = minOf(i + 100 - 1, it.messageCount)
+                    log.info("Deleting $i to $end")
+                    it.getMessages(i, end).forEach { message ->
+                        message.setFlag(Flags.Flag.DELETED, true)
+                    }
+                    it.close(true)
+                }
             }
-
             bccStore.getFolder("INBOX").use {
-                it.delete(true)
+                for (i in 1..it.messageCount step 100) {
+                    it.open(Folder.READ_WRITE)
+                    val end = minOf(i + 100 - 1, it.messageCount)
+                    log.info("Deleting $i to $end")
+                    it.getMessages(i, end)
+                        .forEach { message ->
+                            message.setFlag(Flags.Flag.DELETED, true)
+                        }
+                    it.close(true)
+                }
             }
 
             bccStore.getFolder("testdata").use {
-                it.delete(true)
+                for (i in 1..it.messageCount step 100) {
+                    it.open(Folder.READ_WRITE)
+                    val end = minOf(i + 100 - 1, it.messageCount)
+                    log.info("Deleting $i to $end")
+                    it.getMessages(i, end)
+                        .forEach { message ->
+                            message.setFlag(Flags.Flag.DELETED, true)
+                        }
+                    it.close(true)
+                }
             }
-            call.respond(HttpStatusCode.OK, report)
+            call.respond(HttpStatusCode.OK)
         }
     }
 }
