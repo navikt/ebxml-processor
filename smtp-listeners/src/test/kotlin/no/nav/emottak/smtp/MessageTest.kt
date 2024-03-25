@@ -66,4 +66,13 @@ class MessageTest {
         assertEquals(one.headers, two.headers)
         assertEquals(String(one.parts.first().bytes), String(two.parts.first().bytes))
     }
+
+    @Test
+    fun `Delete in batches`() {
+        val session = mockSession()
+        val stream = this.javaClass.classLoader.getResourceAsStream("mails/nyebmstest@test-es.nav.no/INBOX/example.eml")
+        val msg = MimeMessage(session, stream)
+        val store = mockStore(msg)
+        store.getFolder("INBOX").batchDelete(100)
+    }
 }
