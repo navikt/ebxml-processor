@@ -208,44 +208,26 @@ fun Application.myApplicationModule() {
         }
 
         get("/mail/nuke") { // TODO fjern
-            incomingStore.getFolder("INBOX").use {
-                for (i in 1..it.messageCount step 100) {
-                    it.open(Folder.READ_WRITE)
-                    val end = minOf(i + 100 - 1, it.messageCount)
-                    log.info("Deleting $i to $end")
-                    it.getMessages(i, end).forEach { message ->
-                        message.setFlag(Flags.Flag.DELETED, true)
-                    }
-                    it.close(true)
-                }
-            }
-            bccStore.getFolder("INBOX").use {
-                for (i in 1..it.messageCount step 100) {
-                    it.open(Folder.READ_WRITE)
-                    val end = minOf(i + 100 - 1, it.messageCount)
-                    log.info("Deleting $i to $end")
-                    it.getMessages(i, end)
-                        .forEach { message ->
-                            message.setFlag(Flags.Flag.DELETED, true)
-                        }
-                    it.close(true)
-                }
-            }
-
-            bccStore.getFolder("testdata").use {
-                for (i in 1..it.messageCount step 100) {
-                    it.open(Folder.READ_WRITE)
-                    val end = minOf(i + 100 - 1, it.messageCount)
-                    log.info("Deleting $i to $end")
-                    it.getMessages(i, end)
-                        .forEach { message ->
-                            message.setFlag(Flags.Flag.DELETED, true)
-                        }
-                    it.close(true)
-                }
-            }
+            incomingStore.getFolder("INBOX")
+                .batchDelete(100)
+            bccStore.getFolder("INBOX")
+                .batchDelete(100)
+            bccStore.getFolder("testdata")
+                .batchDelete(100)
             call.respond(HttpStatusCode.OK)
         }
+    }
+}
+
+fun Folder.batchDelete(batchSize: Int) {
+    for (i in 1..this.messageCount step batchSize) {
+        this.open(Folder.READ_WRITE)
+        val end = minOf(i + batchSize - 1, this.messageCount)
+        log.info("Deleting $i to $end")
+        this.getMessages(i, end).forEach { message ->
+            message.setFlag(Flags.Flag.DELETED, true)
+        }
+        this.close(true)
     }
 }
 
