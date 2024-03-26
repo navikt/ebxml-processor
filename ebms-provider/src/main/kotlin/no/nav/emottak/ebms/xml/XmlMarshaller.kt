@@ -10,7 +10,6 @@ import javax.xml.bind.JAXBContext
 import javax.xml.bind.JAXBElement
 import javax.xml.stream.XMLInputFactory
 import javax.xml.transform.dom.DOMResult
-import no.kith.xmlstds.msghead._2006_05_24.MsgHead
 
 val xmlMarshaller = XmlMarshaller()
 
@@ -26,8 +25,10 @@ class XmlMarshaller {
             org.xmlsoap.schemas.soap.envelope.ObjectFactory::class.java,
             org.w3._1999.xlink.ObjectFactory::class.java,
             org.w3._2009.xmldsig11_.ObjectFactory::class.java,
-            MsgHead::class.java
+            no.kith.xmlstds.msghead._2006_05_24.ObjectFactory::class.java,
+            no.nav.tjeneste.ekstern.frikort.v1.types.ObjectFactory::class.java
         )
+
         private val marshaller = jaxbContext.createMarshaller()
         private val unmarshaller = jaxbContext.createUnmarshaller()
     }

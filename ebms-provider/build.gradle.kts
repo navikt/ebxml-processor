@@ -82,7 +82,6 @@ dependencies {
     testImplementation(libs.apache.santuario)
     // testImplementation(testLibs.mockk.jvm)
     testRuntimeOnly(testLibs.junit.jupiter.engine)
-
 }
 
 application {
