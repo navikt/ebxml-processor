@@ -33,6 +33,7 @@ class NFSConnector(jSch: JSch = JSch()) : AutoCloseable {
 
         sftpChannel = session.openChannel(channelType) as ChannelSftp
         sftpChannel.connect()
+        sftpChannel.cd("/outbound/cpa")
     }
 
     fun folder(path: String = "/outbound/cpa"): Vector<ChannelSftp.LsEntry> = sftpChannel.ls(path) as Vector<ChannelSftp.LsEntry>

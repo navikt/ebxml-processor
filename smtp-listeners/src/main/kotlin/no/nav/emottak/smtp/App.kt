@@ -19,6 +19,7 @@ import jakarta.mail.Folder
 import jakarta.mail.internet.MimeMultipart
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO_PARALLELISM_PROPERTY_NAME
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.withContext
@@ -114,7 +115,7 @@ fun Application.myApplicationModule() {
                             }
                             runCatching {
                                 log.info("Fetching file $filename")
-                                val cpaFile = connector.file(filename).use {
+                                val cpaFile = connector.file(entry.filename).use {
                                     String(it.readAllBytes())
                                 }
                                 log.info("Uploading $filename")
@@ -178,7 +179,7 @@ fun Application.myApplicationModule() {
                             )
                         }
                         mailCounter += 1
-                        if (mailCounter < getEnvVar("MAIL_BATCH_LIMIT", "16").toInt()) {
+                        if (mailCounter < System.getProperty(IO_PARALLELISM_PROPERTY_NAME).toInt()) {
                             asyncJobList.awaitAll()
                             asyncJobList.clear()
                             mailCounter = 0
@@ -199,7 +200,7 @@ fun Application.myApplicationModule() {
                 log.error(it.message, it)
                 call.respond(it.localizedMessage)
             }
-            // logBccMessages()
+            logBccMessages()
         }
 
         get("/mail/log/outgoing") {
@@ -207,7 +208,7 @@ fun Application.myApplicationModule() {
             call.respond(HttpStatusCode.OK)
         }
 
-        get("/mail/nuke") { // TODO fjern
+        get("/mail/nuke") { // TODO fjern før prod
             incomingStore.getFolder("INBOX")
                 .batchDelete(100)
             bccStore.getFolder("INBOX")
@@ -232,6 +233,9 @@ fun Folder.batchDelete(batchSize: Int) {
 }
 
 fun logBccMessages() {
+    if ("dev-fss" != getEnvVar("CLUSTER", "dev-fss")) {
+        return
+    }
     val inbox = bccStore.getFolder("INBOX") as IMAPFolder
     val testDataInbox = bccStore.getFolder("testdata") as IMAPFolder
     testDataInbox.open(Folder.READ_WRITE)
@@ -244,6 +248,7 @@ fun logBccMessages() {
         }
     }
     inbox.open(Folder.READ_WRITE)
+    val expunge = inbox.messageCount > getEnvVar("INBOX_LIMIT", "2000").toInt()
     inbox.messages.forEach {
         if (it.content is MimeMultipart) {
             runCatching {
@@ -259,6 +264,7 @@ fun logBccMessages() {
         } else {
             log.info("Incoming singlepart request ${String(it.inputStream.readAllBytes())}")
         }
+        it.setFlag(Flags.Flag.DELETED, expunge)
     }.also {
         inbox.moveMessages(inbox.messages, testDataInbox)
     }
