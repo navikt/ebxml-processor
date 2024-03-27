@@ -62,6 +62,7 @@ class Processor(
 
     private fun shouldThrowExceptionForTestPurposes(bytes: ByteArray) {
         val fnr = try {
+            log.info("Evaluering av kandidat på negative apprec test")
             val payloadMsgHead = unmarshal(bytes, MsgHead::class.java)
             val egenandelforesporsel = payloadMsgHead.document.first().refDoc.content.any.first() as JAXBElement<*>
             val res = DOMResult()
@@ -71,9 +72,13 @@ class Processor(
             val borgerFnrExpression = xPath.compile("/EgenandelForesporsel/HarBorgerFrikort/BorgerFnr")
             borgerFnrExpression.evaluate(document)
         } catch (e: Exception) {
+            log.error("Payload processor: Klarer ikke å parse dokumenten via xpath", e)
             ""
         }
-        if (fnr == "58116541813") throw RuntimeException("Fikk rart fnr, kaster exception")
+        if (fnr == "58116541813") {
+            log.info("Negative apprect test case aktivert.")
+            throw RuntimeException("Fikk rart fnr, kaster exception")
+        }
     }
 
     private fun processOutgoing(payloadRequest: PayloadRequest): Payload {
