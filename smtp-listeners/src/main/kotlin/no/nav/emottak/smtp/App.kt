@@ -114,8 +114,8 @@ fun Application.myApplicationModule() {
                                 }
                             }
                             runCatching {
-                                log.info("Fetching file ${entry.longname}")
-                                val cpaFile = connector.file(entry.longname).use {
+                                log.info("Fetching file ${entry.filename}")
+                                val cpaFile = connector.file("/outbound/cpa/" + entry.filename).use {
                                     String(it.readAllBytes())
                                 }
                                 log.info("Uploading $filename")
@@ -179,7 +179,7 @@ fun Application.myApplicationModule() {
                             )
                         }
                         mailCounter += 1
-                        if (mailCounter < (System.getProperty(IO_PARALLELISM_PROPERTY_NAME)?:"64").toInt()) {
+                        if (mailCounter < (System.getProperty(IO_PARALLELISM_PROPERTY_NAME) ?: "64").toInt()) {
                             asyncJobList.awaitAll()
                             asyncJobList.clear()
                             mailCounter = 0
