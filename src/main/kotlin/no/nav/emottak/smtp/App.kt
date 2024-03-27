@@ -208,19 +208,19 @@ fun Application.myApplicationModule() {
             call.respond(HttpStatusCode.OK)
         }
 
-        get("/mail/nuke") { // TODO fjern før prod
-            incomingStore.getFolder("INBOX")
-                .batchDelete(100)
-            bccStore.getFolder("INBOX")
-                .batchDelete(100)
-            bccStore.getFolder("testdata")
-                .batchDelete(100)
-            call.respond(HttpStatusCode.OK)
-        }
+//        get("/mail/nuke") { // TODO fjern før prod
+//            incomingStore.getFolder("INBOX")
+//                .batchDelete(100)
+//            bccStore.getFolder("INBOX")
+//                .batchDelete(100)
+//            bccStore.getFolder("testdata")
+//                .batchDelete(100)
+//            call.respond(HttpStatusCode.OK)
+//        }
     }
 }
 
-fun Folder.batchDelete(batchSize: Int) {
+fun Folder.batchDelete(batchSize: Int) { // fixme: Skriv en test for denne før evt use
     val totalMessages = messageCount
     var previousMsgNum = 1
     do {
@@ -237,7 +237,7 @@ fun Folder.batchDelete(batchSize: Int) {
 
 fun Folder.deleteAll() {
     if (this is IMAPFolder) {
-        if(isOpen) close()
+        if (isOpen) close()
         val deleteMeFolder = getFolder("DeleteMe")
         this.renameTo(deleteMeFolder)
         deleteMeFolder.delete(true)
