@@ -223,7 +223,7 @@ fun Application.myApplicationModule() {
 fun Folder.batchDelete(batchSize: Int) {
     val totalMessages = messageCount
     var previousMsgNum = 1
-    while (messageCount != 0) {
+    while (totalMessages > previousMsgNum) {
         this.open(Folder.READ_WRITE)
         val end = minOf(batchSize - 1, this.messageCount)
         log.info("Deleting in ${this.fullName} message $previousMsgNum to ${previousMsgNum + end} out of $totalMessages")
