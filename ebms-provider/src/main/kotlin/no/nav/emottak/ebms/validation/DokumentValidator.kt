@@ -47,9 +47,6 @@ class DokumentValidator(val httpClient: CpaRepoClient) {
     }
 
     private fun validate(message: EbmsMessage, sjekSignature: Boolean): ValidationResult {
-        if (message is PayloadMessage) {
-            shouldThrowExceptionForTestPurposes(message.payload.bytes)
-        }
         val validationRequest =
             ValidationRequest(message.messageId, message.conversationId, message.cpaId, message.addressing)
         val validationResult = runBlocking {
@@ -59,6 +56,9 @@ class DokumentValidator(val httpClient: CpaRepoClient) {
         if (!validationResult.valid()) throw EbmsException(validationResult.error!!)
         if (sjekSignature) {
             runCatching {
+                if (message is PayloadMessage) {
+                    shouldThrowExceptionForTestPurposes(message.payload.bytes)
+                }
                 message.sjekkSignature(validationResult.payloadProcessing!!.signingCertificate)
             }.onFailure {
                 log.error("Signatursjekk har feilet", it)
