@@ -237,6 +237,7 @@ fun Folder.batchDelete(batchSize: Int) {
 
 fun Folder.deleteAll() {
     if (this is IMAPFolder) {
+        if(isOpen) close()
         val deleteMeFolder = getFolder("DeleteMe")
         this.renameTo(deleteMeFolder)
         deleteMeFolder.delete(true)
