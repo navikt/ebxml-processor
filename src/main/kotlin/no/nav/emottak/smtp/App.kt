@@ -179,7 +179,7 @@ fun Application.myApplicationModule() {
                             )
                         }
                         mailCounter += 1
-                        if (mailCounter < System.getProperty(IO_PARALLELISM_PROPERTY_NAME).toInt()) {
+                        if (mailCounter < (System.getProperty(IO_PARALLELISM_PROPERTY_NAME)?:"64").toInt()) {
                             asyncJobList.awaitAll()
                             asyncJobList.clear()
                             mailCounter = 0
