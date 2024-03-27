@@ -114,8 +114,8 @@ fun Application.myApplicationModule() {
                                 }
                             }
                             runCatching {
-                                log.info("Fetching file $filename")
-                                val cpaFile = connector.file(entry.filename).use {
+                                log.info("Fetching file ${entry.longname}")
+                                val cpaFile = connector.file(entry.longname).use {
                                     String(it.readAllBytes())
                                 }
                                 log.info("Uploading $filename")
@@ -221,15 +221,29 @@ fun Application.myApplicationModule() {
 }
 
 fun Folder.batchDelete(batchSize: Int) {
-    for (i in 1..this.messageCount step batchSize) {
+    val totalMessages = messageCount
+    var previousMsgNum = 1
+    while (messageCount != 0) {
         this.open(Folder.READ_WRITE)
-        val end = minOf(i + batchSize - 1, this.messageCount)
-        log.info("Deleting $i to $end")
-        this.getMessages(i, end).forEach { message ->
+        val end = minOf(batchSize - 1, this.messageCount)
+        log.info("Deleting in ${this.fullName} message $previousMsgNum to ${previousMsgNum + end} out of $totalMessages")
+        this.getMessages(1, end).forEach { message ->
             message.setFlag(Flags.Flag.DELETED, true)
         }
         this.close(true)
+        previousMsgNum += end
     }
+}
+
+fun Folder.deleteAll() {
+    if (this is IMAPFolder) {
+        val deleteMeFolder = getFolder("DeleteMe")
+        this.renameTo(deleteMeFolder)
+        deleteMeFolder.delete(true)
+        log.info("${this.fullName} deleted.")
+        return
+    }
+    log.warn("DeleteAll strategy only valid for IMAP")
 }
 
 fun logBccMessages() {
@@ -240,12 +254,13 @@ fun logBccMessages() {
     val testDataInbox = bccStore.getFolder("testdata") as IMAPFolder
     testDataInbox.open(Folder.READ_WRITE)
     if (testDataInbox.messageCount > getEnvVar("INBOX_LIMIT", "2000").toInt()) {
-        testDataInbox.messages.map {
-            it.setFlag(Flags.Flag.DELETED, true)
-            it
-        }.toTypedArray().also {
-            testDataInbox.expunge(it)
-        }
+//        testDataInbox.messages.map {  // TODO slett denne koden hvis deleteAll() funker
+//            it.setFlag(Flags.Flag.DELETED, true)
+//            it
+//        }.toTypedArray().also {
+//            testDataInbox.expunge(it)
+//        }
+        testDataInbox.deleteAll()
     }
     inbox.open(Folder.READ_WRITE)
     val expunge = inbox.messageCount > getEnvVar("INBOX_LIMIT", "2000").toInt()
