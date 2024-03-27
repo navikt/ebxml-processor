@@ -21,12 +21,13 @@ private const val OID_8221 = "2.16.578.1.12.4.1.1.8221"
 private const val VERSION_1_0 = "1.0 2004-11-21"
 
 private const val APPREC = "APPREC"
+private const val APPLIKASJONSKVITTERING = "Applikasjonskvittering"
 
 private const val NAV = "NAV"
 private const val NAV_HERID = "79768"
 private const val NAV_ORGNO = "889640782"
 
-private const val DEPT_NAME = "TOveisKommunikasjonsTjenesten"
+private const val DEPT_NAME = "Elektronisk mottak"
 
 private const val OK_VALUE = "1"
 private const val OK_DESCRIPTION = "OK"
@@ -46,7 +47,7 @@ private fun createBaseApprec(msgHead: MsgHead): AppRec = objectFactory.createApp
     apprec.genDate = Instant.now().toXMLGregorianCalendar()
     apprec.id = UUID.randomUUID().toString()
     apprec.miGversion = VERSION_1_0
-    apprec.msgType = createCS(APPREC)
+    apprec.msgType = createCS(APPREC,APPLIKASJONSKVITTERING)
     apprec.originalMsgId = createOriginalMessageId(msgHead.msgInfo)
     apprec.receiver = createReceiver(msgHead.msgInfo)
     apprec.sender = createSender()
