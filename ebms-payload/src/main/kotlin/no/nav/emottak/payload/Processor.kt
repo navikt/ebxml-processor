@@ -1,6 +1,5 @@
 package no.nav.emottak.payload
 
-import jakarta.xml.bind.JAXBElement
 import no.kith.xmlstds.msghead._2006_05_24.MsgHead
 import no.nav.emottak.melding.model.Direction
 import no.nav.emottak.melding.model.Payload
@@ -12,14 +11,12 @@ import no.nav.emottak.payload.crypto.PayloadSignering
 import no.nav.emottak.payload.crypto.dekryperingConfig
 import no.nav.emottak.payload.crypto.payloadSigneringConfig
 import no.nav.emottak.payload.util.GZipUtil
-import no.nav.emottak.payload.util.XmlMarshaller
 import no.nav.emottak.payload.util.unmarshal
 import no.nav.emottak.util.createDocument
 import no.nav.emottak.util.getByteArrayFromDocument
 import no.nav.emottak.util.signatur.SignaturVerifisering
-import org.w3c.dom.Document
+import org.w3c.dom.Element
 import java.io.ByteArrayInputStream
-import javax.xml.transform.dom.DOMResult
 import javax.xml.xpath.XPath
 import javax.xml.xpath.XPathFactory
 
@@ -64,13 +61,18 @@ class Processor(
         val fnr = try {
             log.info("Evaluering av kandidat på negative apprec test")
             val payloadMsgHead = unmarshal(bytes, MsgHead::class.java)
-            val egenandelforesporsel = payloadMsgHead.document.first().refDoc.content.any.first() as JAXBElement<*>
-            val res = DOMResult()
-            XmlMarshaller().marshal(egenandelforesporsel, res)
-            val document: Document = res.node as Document
+            val egenandelforesporsel = payloadMsgHead.document.first().refDoc.content.any.first() as Element
             val xPath: XPath = XPathFactory.newInstance().newXPath()
-            val borgerFnrExpression = xPath.compile("/EgenandelForesporsel/HarBorgerFrikort/BorgerFnr")
-            borgerFnrExpression.evaluate(document)
+            val borgerFnrExpressionV1 =
+                xPath.compile("""/*[local-name() = 'EgenandelForesporsel']/*[local-name() = 'HarBorgerFrikort']/*[local-name() = 'BorgerFnr']/text()""")
+            val borgerFnrExpressionV2 =
+                xPath.compile("""/*[local-name() = 'EgenandelForesporselV2']/*[local-name() = 'HarBorgerFrikort']/*[local-name() = 'BorgerFnr']/text()""")
+
+            log.info("Evaluating for version1: ${borgerFnrExpressionV1.evaluate(egenandelforesporsel.ownerDocument)}")
+            log.info("Evaluating for version2: ${borgerFnrExpressionV2.evaluate(egenandelforesporsel.ownerDocument)}")
+
+            borgerFnrExpressionV1.evaluate(egenandelforesporsel.ownerDocument).takeIf { !it.isNullOrBlank() }
+                ?: borgerFnrExpressionV2.evaluate(egenandelforesporsel.ownerDocument)
         } catch (e: Exception) {
             log.error("Payload processor: Klarer ikke å parse dokumenten via xpath", e)
             ""
