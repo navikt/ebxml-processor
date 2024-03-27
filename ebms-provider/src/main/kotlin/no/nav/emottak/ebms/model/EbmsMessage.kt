@@ -53,7 +53,7 @@ abstract class EbmsMessage {
             this.messageId,
             this.conversationId,
             this.cpaId,
-            this.addressing.copy(to = addressing.from, from = addressing.to),
+            this.addressing.copy(to = addressing.from.copy(), from = addressing.to.copy()),
             errorList
         )
     }
