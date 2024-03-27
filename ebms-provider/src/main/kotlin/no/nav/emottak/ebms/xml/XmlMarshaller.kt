@@ -9,6 +9,7 @@ import java.io.StringWriter
 import javax.xml.bind.JAXBContext
 import javax.xml.bind.JAXBElement
 import javax.xml.stream.XMLInputFactory
+import javax.xml.transform.dom.DOMResult
 
 val xmlMarshaller = XmlMarshaller()
 
@@ -23,8 +24,11 @@ class XmlMarshaller {
             org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ObjectFactory::class.java,
             org.xmlsoap.schemas.soap.envelope.ObjectFactory::class.java,
             org.w3._1999.xlink.ObjectFactory::class.java,
-            org.w3._2009.xmldsig11_.ObjectFactory::class.java
+            org.w3._2009.xmldsig11_.ObjectFactory::class.java,
+            no.kith.xmlstds.msghead._2006_05_24.ObjectFactory::class.java,
+            no.nav.tjeneste.ekstern.frikort.v1.types.ObjectFactory::class.java
         )
+
         private val marshaller = jaxbContext.createMarshaller()
         private val unmarshaller = jaxbContext.createUnmarshaller()
     }
@@ -39,6 +43,11 @@ class XmlMarshaller {
         val out = ByteArrayOutputStream()
         marshaller.marshal(envelope, out)
         return getDocumentBuilder().parse(ByteArrayInputStream(out.toByteArray()))
+    }
+
+    fun marshal(jaxbElement: jakarta.xml.bind.JAXBElement<*>, result: DOMResult): Node {
+        marshaller.marshal(jaxbElement, result)
+        return result.node
     }
 
     fun <T> unmarshal(xml: String, clazz: Class<T>): T {
