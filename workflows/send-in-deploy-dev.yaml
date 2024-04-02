@@ -1,0 +1,80 @@
+name: "Build and deploy ebms-send-in"
+on:
+  push:
+    branches:
+      - dev
+      - dev/**
+    paths:
+      - ebms-send-in/**
+
+env:
+  MODULE_NAME: "ebms-send-in"
+  IMAGE_SEND_IN: "ghcr.io/${{ github.repository }}/ebms-send-in:${{ github.sha }}"
+jobs:
+  build:
+    name: "build"
+    runs-on: "ubuntu-20.04"
+    permissions: 
+        packages: write
+        repository-projects: write
+        contents: write
+    steps:
+    - uses: "actions/checkout@v4"
+    - uses: "actions/setup-java@v3"
+      with:
+        java-version: "21"
+        distribution: "temurin"
+
+    - name: "Cache gradle wrapper"
+      uses: actions/cache@v3
+      with:
+        path: ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-wrapper-${{ hashFiles('**/gradle/wrapper/gradle-wrapper.properties') }}
+
+    - name: "Cache Gradle packages"
+      uses: actions/cache@v3
+      with:
+        path: ~/.gradle/caches
+        key: ${{ runner.os }}-gradle-cache-${{ hashFiles('build.gradle') }}
+        restore-keys: |
+            ${{ runner.os }}-gradle-cache-
+    
+    - name: "Build and tests ${{ env.MODULE_NAME }}"
+      run: ./gradlew :$MODULE_NAME:test :$MODULE_NAME:build
+      env:
+          ORG_GRADLE_PROJECT_githubUser: x-access-token
+          ORG_GRADLE_PROJECT_githubPassword: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: "Login to GitHub Packages Docker Registry"
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: "Build and push ${{ env.MODULE_NAME }} docker image"
+      run: | 
+        docker build --tag ${{ env.IMAGE_SEND_IN }} -f Dockerfile ${{ env.MODULE_NAME }} --pull 
+        docker push ${{ env.IMAGE_SEND_IN }}
+
+  deploy-ebms-send-in:
+    name: "Deploy ebms-send-in to dev"
+    needs: "build"
+    runs-on: "ubuntu-20.04"
+    steps:
+      - uses: "actions/checkout@v4"
+      - name: "Deploy secret to DEV"
+        uses: "nais/deploy/actions/deploy@v1"
+        env:
+          "APIKEY": "${{ secrets.NAIS_DEPLOY_APIKEY }}"
+          "CLUSTER": "dev-fss"
+          "RESOURCE": ".nais/ebms-send-in-secrets.yaml"
+          "VAR": "toktPassword=${{ secrets.TOKT_PASSWORD }}"
+      - name: "Deploy to DEV"
+        uses: "nais/deploy/actions/deploy@v1"
+        env:
+          APIKEY: "${{ secrets.NAIS_DEPLOY_APIKEY }}"
+          CLUSTER: "dev-fss"
+          RESOURCE: ".nais/ebms-send-in.yaml"
+          IMAGE: ${{env.IMAGE_SEND_IN}}
