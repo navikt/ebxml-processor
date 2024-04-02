@@ -67,14 +67,6 @@ jobs:
     steps:
       - uses: "actions/checkout@v4"
 
-      - name: "Deploy secret to DEV"
-        uses: "nais/deploy/actions/deploy@v1"
-        env:
-          "APIKEY": "${{ secrets.NAIS_DEPLOY_APIKEY }}"
-          "CLUSTER": "dev-fss"
-          "RESOURCE": ".nais/ebms-send-in-secrets.yaml"
-          "VAR": "toktPassword=${{ secrets.TOKT_PASSWORD }}"
-
       - name: "Deploy to DEV"
         uses: "nais/deploy/actions/deploy@v1"
         env:
