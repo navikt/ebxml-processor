@@ -120,10 +120,12 @@ fun EbmsMessage.createMessageHeader(newAddressing: Addressing = this.addressing,
         this.cpaId = this.cpaId
         this.conversationId = this.conversationId
         this.service = Service().apply {
-            this.value = this@createMessageHeader.addressing.service
+            this.value = newAddressing.service
             this.type = "string"
         }
-        this.action = this@createMessageHeader.addressing.action
+        this.isMustUnderstand = true
+        this.version = "2.0"
+        this.action = newAddressing.action
         this.messageData = messageData
     }
 
