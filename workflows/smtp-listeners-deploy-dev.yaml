@@ -1,0 +1,85 @@
+name: "Build and deploy smtp-listeners"
+on:
+  push:
+    branches:
+      - main
+      - dev
+      - dev/**
+    paths:
+      - smtp-listeners/**
+
+env:
+  MODULE_NAME: "smtp-listeners"
+  IMAGE_NAME: "ghcr.io/${{ github.repository }}/smtp-listeners:${{ github.sha }}"
+  NAIS_MANIFEST: "smtp-listeners-dev.yaml"
+
+jobs:
+  build:
+    name: "build"
+    runs-on: "ubuntu-20.04"
+    permissions: 
+        packages: write
+        repository-projects: write
+        contents: write
+    steps:
+      - uses: "actions/checkout@v4"
+      - uses: "actions/setup-java@v3"
+        with:
+          java-version: 21
+          distribution: temurin
+
+      - name: "Cache gradle wrapper"
+        uses: actions/cache@v3
+        with:
+          path: ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-wrapper-${{ hashFiles('**/gradle/wrapper/gradle-wrapper.properties') }}
+
+      - name: "Cache Gradle packages"
+        uses: actions/cache@v3
+        with:
+          path: ~/.gradle/caches
+          key: ${{ runner.os }}-gradle-cache-${{ hashFiles('build.gradle') }}
+          restore-keys: |
+              ${{ runner.os }}-gradle-cache-
+
+      - name: "Build and tests ${{ env.MODULE_NAME }}"
+        run: ./gradlew :$MODULE_NAME:test :$MODULE_NAME:build
+        env:
+            ORG_GRADLE_PROJECT_githubUser: x-access-token
+            ORG_GRADLE_PROJECT_githubPassword: ${{ secrets.GITHUB_TOKEN }}
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: "Login to GitHub Packages Docker Registry"
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: "Build and push ${{ env.MODULE_NAME }} docker image"
+        run: | 
+          docker build --tag ${{ env.IMAGE_NAME }} -f Dockerfile ${{ env.MODULE_NAME }} --pull 
+          docker push ${{ env.IMAGE_NAME }}
+
+  deploy:
+    name: "Deploy to dev"
+    needs: "build"
+    runs-on: "ubuntu-20.04"
+    steps:
+      - uses: "actions/checkout@v4"
+
+      - name: "Deploy secret to DEV"
+        uses: "nais/deploy/actions/deploy@v1"
+        env:
+          "APIKEY": "${{ secrets.NAIS_DEPLOY_APIKEY }}"
+          "CLUSTER": "dev-fss"
+          "RESOURCE": ".nais/smtp-router-secrets.yaml"
+          "VAR": "smtpPassword=${{ secrets.SMTP_PASSWORD }}"
+
+      - name: "Deploy to DEV"
+        uses: "nais/deploy/actions/deploy@v1"
+        env:
+          APIKEY: "${{ secrets.NAIS_DEPLOY_APIKEY }}"
+          CLUSTER: "dev-fss"
+          RESOURCE: ".nais/${{ env.NAIS_MANIFEST }}"
+          IMAGE: ${{env.IMAGE_NAME}}
