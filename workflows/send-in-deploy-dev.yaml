@@ -2,6 +2,7 @@ name: "Build and deploy ebms-send-in"
 on:
   push:
     branches:
+      - main
       - dev
       - dev/**
     paths:
