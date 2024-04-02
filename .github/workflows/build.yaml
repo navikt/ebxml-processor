@@ -1,4 +1,4 @@
-name: "Build and deploy ebms-provider"
+name: "Build and deploy (via build.yaml)"
 on:
   push:
     branches:
