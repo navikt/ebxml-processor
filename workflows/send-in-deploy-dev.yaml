@@ -60,9 +60,8 @@ jobs:
         run: |
           docker build --tag ${{ env.IMAGE_NAME }} -f Dockerfile ${{ env.MODULE_NAME }} --pull 
           docker push ${{ env.IMAGE_NAME }}
-
   deploy:
-    name: "Deploy ${{ env.MODULE_NAME }} to dev"
+    name: "Deploy to dev"
     needs: "build"
     runs-on: "ubuntu-20.04"
     steps:
