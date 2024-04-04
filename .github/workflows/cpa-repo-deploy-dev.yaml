@@ -2,11 +2,11 @@ name: "Build and deploy cpa-repo"
 on:
   push:
     branches:
-      - main
-      - dev
-      - dev/**
+      - main-disable
+      - dev-disable
+      - dev-disable/**
     paths:
-      - cpa-repo/**
+      - cpa-repo-disable/**
 
 env:
   MODULE_NAME: "cpa-repo"
