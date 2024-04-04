@@ -5,6 +5,7 @@ import com.jcraft.jsch.JSch
 import com.jcraft.jsch.Session
 import com.jcraft.jsch.UserInfo
 import no.nav.emottak.smtp.getEnvVar
+import java.io.File
 import java.io.InputStream
 import java.util.Vector
 
@@ -12,9 +13,11 @@ class NFSConnector(jSch: JSch = JSch()) : AutoCloseable {
 
     private val privateKeyFile = "/var/run/secrets/privatekey"
     private val publicKeyFile = "/var/run/secrets/publickey"
-    private val passphrase = getEnvVar("NFS_KEY_PASSPHRASE", "cpatest")
+    private val usernameMount = "/var/run/secrets/nfsusername"
+    private val passphraseMount = "/var/run/secrets/passphrase"
+    private val passphrase = String(File(passphraseMount).readBytes())
 
-    private val username = getEnvVar("NFS_SESSION_USERNAME", "srvEmottakCPA")
+    private val username = String(File(usernameMount).readBytes())
     private val host = getEnvVar("NFS_HOST", "10.183.32.98")
     private val port = getEnvVar("NFS_PORT", "22").toInt()
     private val channelType = "sftp"
@@ -26,7 +29,6 @@ class NFSConnector(jSch: JSch = JSch()) : AutoCloseable {
         val knownHosts = Thread.currentThread().getContextClassLoader().getResourceAsStream("known_hosts")
         jsch.setKnownHosts(knownHosts)
         jsch.addIdentity(privateKeyFile, publicKeyFile, passphrase.toByteArray())
-
         session = jsch.getSession(username, host, port)
         session.userInfo = DummyUserInfo()
         session.connect()
