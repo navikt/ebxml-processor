@@ -200,7 +200,7 @@ fun Route.logOutgoing(): Route = get("/mail/log/outgoing") {
 // }
 
 fun logBccMessages() {
-    if ("dev-fss" != getEnvVar("CLUSTER", "dev-fss")) {
+    if ("dev-fss" != getEnvVar("NAIS_CLUSTER_NAME", "dev-fss")) {
         return
     }
     val inbox = bccStore.getFolder("INBOX") as IMAPFolder
