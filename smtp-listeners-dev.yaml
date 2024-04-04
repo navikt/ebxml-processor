@@ -45,3 +45,5 @@ spec:
       value: "nyebms2@test-es.nav.no"
     - name: DRY_RUN
       value: "true"
+    - name: NFS_HOST
+      value: b27drvl011.preprod.local
