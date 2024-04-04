@@ -2,11 +2,11 @@ name: "Build and deploy ebms-provider"
 on:
   push:
     branches:
-      - main
-      - dev
-      - dev/**
+      - main-disable
+      - dev-disable
+      - dev-disable/**
     paths:
-      - ebms-provider/**
+      - ebms-provider-disable/**
 
 env:
   MODULE_NAME: "ebms-provider"
