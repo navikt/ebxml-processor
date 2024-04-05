@@ -84,7 +84,7 @@ fun EbmsMessage.createAcknowledgementJaxB(): org.oasis_open.committees.ebxml_msg
 fun EbmsMessage.createMessageHeader(newAddressing: Addressing = this.addressing, withAcknowledgmentElement: Boolean = false): Header {
     val messageData = MessageData().apply {
         this.messageId = UUID.randomUUID().toString()
-        this.refToMessageId = this@createMessageHeader.messageId
+        this.refToMessageId = this@createMessageHeader.refToMessageId
         this.timestamp = Date()
     }
     val from = From().apply {
