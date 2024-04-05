@@ -44,7 +44,7 @@ const val AZURE_AD_AUTH = "AZURE_AD"
 
 val CPA_REPO_SCOPE = getEnvVar(
     "CPA_REPO_SCOPE",
-    "api://" + getEnvVar("CLUSTER", "dev-fss") + ".team-emottak.cpa-repo/.default"
+    "api://" + getEnvVar("NAIS_CLUSTER_NAME", "dev-fss") + ".team-emottak.cpa-repo/.default"
 )
 
 val LENIENT_JSON_PARSER = Json {
