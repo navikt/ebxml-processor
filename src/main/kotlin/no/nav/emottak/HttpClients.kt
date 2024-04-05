@@ -24,6 +24,9 @@ import io.ktor.http.content.PartData
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.util.CaseInsensitiveMap
 import jakarta.mail.internet.MimeUtility
+import java.net.InetSocketAddress
+import java.net.Proxy
+import java.net.URL
 import kotlinx.serialization.json.Json
 import no.nav.emottak.smtp.EmailMsg
 import no.nav.emottak.smtp.MimeHeaders
@@ -55,6 +58,12 @@ fun getCpaRepoAuthenticatedClient(): HttpClient {
     return HttpClient(CIO) {
         install(ContentNegotiation) {
             json()
+        }
+        engine {
+            val httpProxyUrl = getEnvVar("HTTP_PROXY", "")
+            if (httpProxyUrl.isNotBlank()) {
+                proxy = Proxy(Proxy.Type.HTTP, InetSocketAddress(URL(httpProxyUrl).host, URL(httpProxyUrl).port))
+            }
         }
         installCpaRepoAuthentication()
     }
