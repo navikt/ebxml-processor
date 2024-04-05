@@ -118,12 +118,9 @@ jobs:
       id-token: write
     steps:
       - uses: "actions/checkout@v4"
-      - name: "Deploy secret to DEV"
-        uses: "nais/deploy/actions/deploy@v1"
       - name: "Deploy to DEV"
         uses: "nais/deploy/actions/deploy@v1"
         env:
-          APIKEY: "${{ secrets.NAIS_DEPLOY_APIKEY }}"
           CLUSTER: "prod-fss"
           RESOURCE: ".nais/ebms-send-in.yaml"
           IMAGE: ${{env.IMAGE_SEND_IN}}
