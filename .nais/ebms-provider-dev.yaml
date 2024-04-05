@@ -9,6 +9,7 @@ spec:
   azure:
     application:
       enabled: true
+  webproxy: true
   image: {{image}}
   liveness:
     path: "/internal/health/liveness"

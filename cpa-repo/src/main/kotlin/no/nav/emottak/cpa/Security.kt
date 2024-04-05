@@ -6,7 +6,7 @@ import no.nav.security.token.support.v2.TokenSupportConfig
 
 val CPA_REPO_SCOPE = getEnvVar(
     "CPA_REPO_SCOPE",
-    "api://" + getEnvVar("CLUSTER", "dev-fss") + ".team-emottak.cpa-repo/.default"
+    "api://" + getEnvVar("NAIS_CLUSTER_NAME", "dev-fss") + ".team-emottak.cpa-repo/.default"
 )
 
 class Security {
