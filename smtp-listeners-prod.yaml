@@ -23,7 +23,7 @@ spec:
       cpu: "200m"
       memory: "512Mi"
   ingresses:
-    - "https://smtp-listeners.intern.dev.nav.no"
+    - "https://smtp-listeners.intern.nav.no"
   filesFrom:
     - secret: cpa-sftp-keys
   env:
