@@ -59,12 +59,12 @@ fun getCpaRepoAuthenticatedClient(): HttpClient {
         install(ContentNegotiation) {
             json()
         }
-        engine {
-            val httpProxyUrl = getEnvVar("HTTP_PROXY", "")
-            if (httpProxyUrl.isNotBlank()) {
-                proxy = Proxy(Proxy.Type.HTTP, InetSocketAddress(URL(httpProxyUrl).host, URL(httpProxyUrl).port))
-            }
-        }
+        // engine { // TODO sjekk om vi trenger
+        //     val httpProxyUrl = getEnvVar("HTTP_PROXY", "")
+        //     if (httpProxyUrl.isNotBlank()) {
+        //         proxy = Proxy(Proxy.Type.HTTP, InetSocketAddress(URL(httpProxyUrl).host, URL(httpProxyUrl).port))
+        //     }
+        // }
         installCpaRepoAuthentication()
     }
 }
