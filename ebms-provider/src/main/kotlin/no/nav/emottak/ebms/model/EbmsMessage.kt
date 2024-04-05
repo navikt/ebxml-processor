@@ -145,9 +145,10 @@ fun createEbmsDocument(ebxmlDokument: Header, payload: EbmsAttachment? = null): 
     envelope.body = Body().apply {
         this.any.add(
             Manifest().apply {
+                this.version = "2.0"
                 this.reference.add(
                     Reference().apply {
-                        this.href = "cid:" + attachmentUid
+                        this.href = "cid:$attachmentUid"
                         this.type = "simple"
                     }
                 )
