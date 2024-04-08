@@ -32,6 +32,51 @@ import java.time.Instant
 import java.util.Date
 import kotlin.time.toKotlinDuration
 
+fun Route.testCpaIProd(): Route = get("/testcpa") {
+    withContext(Dispatchers.IO) {
+        val startTime = Instant.now()
+        runCatching {
+            NFSConnector().use { connector ->
+                connector.folder().forEach { entry ->
+                    val filename = entry.filename
+                    log.info("Checking $filename...")
+                    if (!filename.endsWith(".xml")) {
+                        log.warn(entry.filename + " is ignored")
+                        return@forEach
+                    }
+                    val lastModified = Date(entry.attrs.mTime.toLong() * 1000).toInstant()
+                    // Fjerner cpaId matches fra timestamp listen og skipper hvis nyere eksisterer
+                    // Todo refactor. Too "kotlinesque":
+
+                    runCatching {
+                        log.info("Fetching file ${entry.filename}")
+                        connector.file("/outbound/cpa/" + entry.filename).use {
+                            String(it.readAllBytes())
+                        }
+                        log.info("Uploading $filename")
+                    }.onFailure {
+                        log.error("Error uploading $filename to cpa-repo: ${it.message}", it)
+                    }
+                }
+            }
+            // Any remaining timestamps means they exist in DB, but not in disk and should be cleaned
+        }.onFailure {
+            when (it) {
+                is SftpException -> log.error("SftpException ID: [${it.id}]", it)
+                else -> log.error(it.message, it)
+            }
+        }.onSuccess {
+            log.info(
+                "CPA synchronization completed in ${
+                Duration.between(startTime, Instant.now()).toKotlinDuration()
+                }"
+            )
+            call.respond(HttpStatusCode.OK, "CPA sync complete")
+        }
+    }
+    call.respond(HttpStatusCode.OK, "Hello World!")
+}
+
 fun Route.cpaSync(): Route = get("/cpa-sync") {
     val log = LoggerFactory.getLogger("no.nav.emottak.smtp.sftp")
 
