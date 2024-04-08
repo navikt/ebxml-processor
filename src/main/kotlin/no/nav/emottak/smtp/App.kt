@@ -28,5 +28,6 @@ fun Application.myApplicationModule() {
         }
 
         cpaSync()
+        testCpaIProd()
     }
 }
