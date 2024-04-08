@@ -43,3 +43,5 @@ spec:
       value: "nyebms2@test-es.nav.no-not-in-use"
     - name: DRY_RUN
       value: "true"
+    - name: NFS_HOST
+      value: a01drvl100.adeo.no
