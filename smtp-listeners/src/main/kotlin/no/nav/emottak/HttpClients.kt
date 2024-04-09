@@ -44,7 +44,7 @@ const val AZURE_AD_AUTH = "AZURE_AD"
 
 val CPA_REPO_SCOPE = getEnvVar(
     "CPA_REPO_SCOPE",
-    "api://" + getEnvVar("CLUSTER", "dev-fss") + ".team-emottak.cpa-repo/.default"
+    "api://" + getEnvVar("NAIS_CLUSTER_NAME", "dev-fss") + ".team-emottak.cpa-repo/.default"
 )
 
 val LENIENT_JSON_PARSER = Json {
@@ -56,6 +56,12 @@ fun getCpaRepoAuthenticatedClient(): HttpClient {
         install(ContentNegotiation) {
             json()
         }
+        // engine { // TODO sjekk om vi trenger
+        //     val httpProxyUrl = getEnvVar("HTTP_PROXY", "")
+        //     if (httpProxyUrl.isNotBlank()) {
+        //         proxy = Proxy(Proxy.Type.HTTP, InetSocketAddress(URL(httpProxyUrl).host, URL(httpProxyUrl).port))
+        //     }
+        // }
         installCpaRepoAuthentication()
     }
 }

@@ -84,7 +84,7 @@ fun EbmsMessage.createAcknowledgementJaxB(): org.oasis_open.committees.ebxml_msg
 fun EbmsMessage.createMessageHeader(newAddressing: Addressing = this.addressing, withAcknowledgmentElement: Boolean = false): Header {
     val messageData = MessageData().apply {
         this.messageId = UUID.randomUUID().toString()
-        this.refToMessageId = this.messageId
+        this.refToMessageId = this@createMessageHeader.refToMessageId
         this.timestamp = Date()
     }
     val from = From().apply {
@@ -117,8 +117,8 @@ fun EbmsMessage.createMessageHeader(newAddressing: Addressing = this.addressing,
     val messageHeader = MessageHeader().apply {
         this.from = from
         this.to = to
-        this.cpaId = this.cpaId
-        this.conversationId = this.conversationId
+        this.cpaId = this@createMessageHeader.cpaId
+        this.conversationId = this@createMessageHeader.conversationId
         this.service = Service().apply {
             this.value = newAddressing.service
             this.type = "string"
@@ -145,9 +145,10 @@ fun createEbmsDocument(ebxmlDokument: Header, payload: EbmsAttachment? = null): 
     envelope.body = Body().apply {
         this.any.add(
             Manifest().apply {
+                this.version = "2.0"
                 this.reference.add(
                     Reference().apply {
-                        this.href = "cid:" + attachmentUid
+                        this.href = "cid:$attachmentUid"
                         this.type = "simple"
                     }
                 )

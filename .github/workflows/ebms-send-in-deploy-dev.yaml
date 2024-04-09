@@ -2,11 +2,11 @@ name: "Build and deploy ebms-send-in"
 on:
   push:
     branches:
-      - main
-      - dev
-      - dev/**
+      - main-disable
+      - dev-disable
+      - dev-disable/**
     paths:
-      - ebms-send-in/**
+      - ebms-send-in-disable/**
 
 env:
   MODULE_NAME: "ebms-send-in"

@@ -2,11 +2,11 @@ name: "Build and deploy ebms-payload"
 on:
   push:
     branches:
-      - main
-      - dev
-      - dev/**
+      - main-disable
+      - dev-disable
+      - dev-disable/**
     paths:
-      - ebms-payload/**
+      - ebms-payload-disable/**
 
 env:
   MODULE_NAME: "ebms-payload"

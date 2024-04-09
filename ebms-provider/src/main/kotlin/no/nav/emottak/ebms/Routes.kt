@@ -84,7 +84,8 @@ fun Route.postEbmsSync(
                                 it.conversationId,
                                 ebmsMessage.cpaId,
                                 it.addressing,
-                                Payload(it.payload, ContentType.Application.Xml.toString(), UUID.randomUUID().toString())
+                                Payload(it.payload, ContentType.Application.Xml.toString(), UUID.randomUUID().toString()),
+                                refToMessageId = it.messageId
                             )
                         }
                     }

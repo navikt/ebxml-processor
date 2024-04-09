@@ -23,9 +23,7 @@ spec:
       cpu: "200m"
       memory: "512Mi"
   ingresses:
-    - "https://smtp-listeners.intern.dev.nav.no"
-  envFrom:
-    - secret: smtp-router-secrets
+    - "https://smtp-listeners.intern.nav.no"
   filesFrom:
     - secret: cpa-sftp-keys
   env:
@@ -34,16 +32,16 @@ spec:
     - name: SMTP_POP3_PORT
       value: "110"
     - name: SMTP_POP3_HOST
-      value: "d32mxvl002.oera-t.local"
+      value: "d32mxvl002.oera-t.local-not-in-use"
     - name: SMTP_STORE_PROTOCOL
-      value: "pop3"
+      value: "pop3-not-in-use"
     - name: SMTP_INCOMING_USERNAME
-      value: "nyebmstest@test-es.nav.no"
+      value: "nyebmstest@test-es.nav.no-not-in-use"
     - name: SMTP_BCC_USERNAME
-      value: "nyebmsbcc@test-es.nav.no"
+      value: "nyebmsbcc@test-es.nav.no-not-in-use"
     - name: SMTP_OUTGOING_USERNAME_NY
-      value: "nyebms2@test-es.nav.no"
+      value: "nyebms2@test-es.nav.no-not-in-use"
     - name: DRY_RUN
       value: "true"
     - name: NFS_HOST
-      value: b27drvl011.preprod.local
+      value: a01drvl100.adeo.no

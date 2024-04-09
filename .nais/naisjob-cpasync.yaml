@@ -11,4 +11,4 @@ spec:
   schedule: "*/5 * * * *"
   command:
     - curl
-    - http://smtp-listeners/testsftp
+    - http://smtp-listeners/cpa-sync
