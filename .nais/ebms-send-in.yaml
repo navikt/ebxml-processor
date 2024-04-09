@@ -29,7 +29,7 @@ spec:
     paths:
         - kvPath: /serviceuser/data/dev/srvtokt
           mountPath: /secret/serviceuser
-  env:
-    - name: TEST_ENV
-      value: "test"
-
+  accessPolicy:
+    inbound:
+      rules:
+        - application: ebms-provider

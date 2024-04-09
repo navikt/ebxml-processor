@@ -101,9 +101,9 @@ fun Application.ebmsProviderModule() {
     val client = defaultHttpClient()
     val cpaClient = CpaRepoClient(client)
     val processingClient = PayloadProcessingClient(client)
-    val sendInClient = SendInClient(client)
     val validator = DokumentValidator(cpaClient)
     val processing = ProcessingService(processingClient)
+    val sendInClient = SendInClient()
     val sendInService = SendInService(sendInClient)
 
     val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)

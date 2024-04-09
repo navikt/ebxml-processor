@@ -23,6 +23,7 @@ dependencies {
     implementation(libs.bundles.logging)
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.cio)
+    implementation(libs.token.validation.ktor.v2)
     api(libs.bundles.bouncycastle)
     testImplementation(testLibs.junit.jupiter.api)
     testRuntimeOnly(testLibs.junit.jupiter.engine)

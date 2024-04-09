@@ -11,6 +11,8 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.routing.routing
+import no.nav.emottak.auth.AZURE_AD_AUTH
+import no.nav.emottak.auth.AuthConfig
 import no.nav.emottak.cpa.persistence.CPARepository
 import no.nav.emottak.cpa.persistence.Database
 import no.nav.emottak.cpa.persistence.cpaDbConfig
@@ -34,8 +36,6 @@ fun main() {
     ).start(wait = true)
 }
 
-const val AZURE_AD_AUTH = "AZURE_AD"
-
 fun cpaApplicationModule(cpaDbConfig: HikariConfig, cpaMigrationConfig: HikariConfig, emottakDbConfig: HikariConfig? = null): Application.() -> Unit {
     return {
         val database = Database(cpaDbConfig)
@@ -47,7 +47,7 @@ fun cpaApplicationModule(cpaDbConfig: HikariConfig, cpaMigrationConfig: HikariCo
             json()
         }
         install(Authentication) {
-            tokenValidationSupport(AZURE_AD_AUTH, Security().config)
+            tokenValidationSupport(AZURE_AD_AUTH, AuthConfig.getCpaRepoConfig())
         }
         routing {
             if (oracleDb != null) {

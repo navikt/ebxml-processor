@@ -52,7 +52,7 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
             }
         }
         val cpaRepoClient = CpaRepoClient { client }
-        val sendInClient = SendInClient { client }
+        val sendInClient = SendInClient()
         application {
             val dokumentValidator = DokumentValidator(cpaRepoClient)
             every {

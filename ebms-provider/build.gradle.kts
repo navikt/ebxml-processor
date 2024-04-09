@@ -48,7 +48,6 @@ dependencies {
     implementation(project(":felles"))
     implementation("io.ktor:ktor-server-call-logging-jvm:2.3.4")
     implementation("io.ktor:ktor-server-core-jvm:2.3.4")
-    testImplementation(project(":cpa-repo"))
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.netty)
     implementation(libs.ktor.client.core)
@@ -74,6 +73,7 @@ dependencies {
     implementation(libs.ktor.server.auth.jvm)
     implementation(libs.token.validation.ktor.v2)
     implementation(testLibs.postgresql)
+    testImplementation(project(":cpa-repo"))
     testImplementation(testLibs.mock.oauth2.server)
     testImplementation(testLibs.ktor.server.test.host)
     testImplementation(testLibs.junit.jupiter.api)
@@ -87,8 +87,3 @@ dependencies {
 application {
     mainClass.set("no.nav.emottak.ebms.AppKt")
 }
-/*
-ktlint {
-    ignoreFailures.set(false)
-}
- */

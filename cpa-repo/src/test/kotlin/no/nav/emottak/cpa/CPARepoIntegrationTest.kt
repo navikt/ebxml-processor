@@ -24,6 +24,8 @@ import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import kotlinx.serialization.json.Json
+import no.nav.emottak.auth.AZURE_AD_AUTH
+import no.nav.emottak.auth.AuthConfig
 import no.nav.emottak.cpa.persistence.DBTest
 import no.nav.emottak.melding.model.Addressing
 import no.nav.emottak.melding.model.Party
@@ -290,7 +292,7 @@ class CPARepoIntegrationTest : DBTest() {
         val requestBody =
             "client_id=" + getEnvVar("AZURE_APP_CLIENT_ID", "cpa-repo") +
                 "&client_secret=" + getEnvVar("AZURE_APP_CLIENT_SECRET", "dummysecret") +
-                "&scope=" + CPA_REPO_SCOPE +
+                "&scope=" + AuthConfig.getCpaRepoScope() +
                 "&grant_type=client_credentials"
 
         return HttpClient(CIO).post(
