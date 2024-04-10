@@ -51,13 +51,13 @@ import no.nav.emottak.ebms.validation.validateMimeSoapEnvelope
 import no.nav.emottak.ebms.xml.asString
 import no.nav.emottak.ebms.xml.getDocumentBuilder
 import no.nav.emottak.melding.model.EbmsAttachment
+import no.nav.emottak.util.getEnvVar
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayInputStream
 import java.time.Duration
 import java.time.Instant
 import java.util.*
 import kotlin.time.toKotlinDuration
-import no.nav.emottak.util.getEnvVar
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.App")
 
@@ -80,7 +80,6 @@ fun defaultHttpClient(): () -> HttpClient {
     }
 }
 
-
 fun httpClientWithSendInToken(): () -> HttpClient {
     val baseUrl = getEnvVar("URL_EBMS_SEND_IN_BASE", "http://ebms-send-in.team-emottak.svc.nais.local")
     return {
@@ -102,7 +101,6 @@ fun httpClientWithSendInToken(): () -> HttpClient {
         }
     }
 }
-
 
 fun PartData.payload(clearText: Boolean = false): ByteArray {
     return when (this) {

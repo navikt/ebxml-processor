@@ -48,7 +48,6 @@ class PayloadProcessingClient(clientProvider: () -> HttpClient) {
     }
 }
 
-
 class SendInClient(clientProvider: () -> HttpClient) {
     private val httpClient = clientProvider.invoke()
     private val sendInEndpoint = getEnvVar("SEND_IN_URL", "http://ebms-send-in/fagmelding/synkron")
