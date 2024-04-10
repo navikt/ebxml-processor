@@ -48,7 +48,7 @@ class AuthConfig {
 
 
         private fun getCluster(): String {
-            return getEnvVar("CLUSTER", "dev-fss")
+            return getEnvVar("NAIS_CLUSTER_NAME", "dev-fss")
         }
     }
 }

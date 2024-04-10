@@ -67,7 +67,7 @@ val LENIENT_JSON_PARSER = Json {
 suspend fun getEbmsSendInToken(): BearerTokens {
     val requestBody =
         "client_id=" + getEnvVar("AZURE_APP_CLIENT_ID", "ebms-send-in") +
-            "&client_secret=" + getEnvVar(" ", "dummysecret") +
+            "&client_secret=" + getEnvVar("AZURE_APP_CLIENT_SECRET", "dummysecret") +
             "&scope=" + AuthConfig.getEbmsSendInScope() +
             "&grant_type=client_credentials"
 
