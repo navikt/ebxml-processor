@@ -143,6 +143,7 @@ private fun Application.installRequestTimerPlugin() {
                 simpleLogger.info(
                     Markers.appendEntries(
                         mapOf(
+                            Pair("x_Headers", call.request.headers.toString()),
                             Pair("smtpMessageId", call.request.headers[SMTPHeaders.MESSAGE_ID] ?: "-"),
                             Pair("Endpoint", call.request.uri),
                             Pair("RequestTime", endTime.toMillis()),
