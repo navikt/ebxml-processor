@@ -22,7 +22,8 @@ class AuthConfig {
                     name = AZURE_AD_AUTH,
                     discoveryUrl = getAzureAppWellKnownUrl(),
                     acceptedAudience = listOf("default", appScopeUri)
-                ))
+                )
+            )
         }
 
         private fun getAzureAppWellKnownUrl(): String {
@@ -32,6 +33,7 @@ class AuthConfig {
                 "http://localhost:3344/$tenantId/.well-known/openid-configuration"
             )
         }
+
         fun getEbmsSendInScope(): String {
             val appName = "ebms-send-in"
             val cluster = getCluster()
@@ -43,7 +45,6 @@ class AuthConfig {
             val cluster = getCluster()
             return getEnvVar("CPA_REPO_SCOPE", "api://$cluster.team-emottak.$appName/.default")
         }
-
 
 
         private fun getCluster(): String {
