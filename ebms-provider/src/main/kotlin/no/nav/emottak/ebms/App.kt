@@ -5,6 +5,8 @@ package no.nav.emottak.ebms
 
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.auth.Auth
+import io.ktor.client.plugins.auth.providers.bearer
 import io.ktor.client.request.forms.MultiPartFormDataContent
 import io.ktor.http.ContentType
 import io.ktor.http.HeadersBuilder
@@ -55,13 +57,12 @@ import java.time.Duration
 import java.time.Instant
 import java.util.*
 import kotlin.time.toKotlinDuration
+import no.nav.emottak.util.getEnvVar
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.App")
 
 fun logger() = log
 fun main() {
-    // val database = Database(mapHikariConfig(DatabaseConfig()))
-    // database.migrate()
     System.setProperty("io.ktor.http.content.multipart.skipTempFile", "true")
     embeddedServer(Netty, port = 8080, module = Application::ebmsProviderModule, configure = {
         this.maxChunkSize = 100000
@@ -78,6 +79,30 @@ fun defaultHttpClient(): () -> HttpClient {
         }
     }
 }
+
+
+fun httpClientWithSendInToken(): () -> HttpClient {
+    val baseUrl = getEnvVar("URL_EBMS_SEND_IN_BASE", "http://ebms-send-in.team-emottak.svc.nais.local")
+    return {
+        HttpClient(CIO) {
+            expectSuccess = true
+            install(io.ktor.client.plugins.contentnegotiation.ContentNegotiation) {
+                json()
+            }
+            install(Auth) {
+                bearer {
+                    refreshTokens {
+                        getEbmsSendInToken()
+                    }
+                    sendWithoutRequest { request ->
+                        request.url.host == baseUrl
+                    }
+                }
+            }
+        }
+    }
+}
+
 
 fun PartData.payload(clearText: Boolean = false): ByteArray {
     return when (this) {
@@ -99,11 +124,15 @@ fun PartData.payload(clearText: Boolean = false): ByteArray {
 
 fun Application.ebmsProviderModule() {
     val client = defaultHttpClient()
+
     val cpaClient = CpaRepoClient(client)
-    val processingClient = PayloadProcessingClient(client)
     val validator = DokumentValidator(cpaClient)
+
+    val processingClient = PayloadProcessingClient(client)
     val processing = ProcessingService(processingClient)
-    val sendInClient = SendInClient()
+
+    val sendInHttpClient = httpClientWithSendInToken()
+    val sendInClient = SendInClient(sendInHttpClient)
     val sendInService = SendInService(sendInClient)
 
     val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)

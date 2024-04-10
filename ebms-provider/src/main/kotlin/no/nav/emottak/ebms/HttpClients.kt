@@ -4,9 +4,7 @@ import com.nimbusds.jwt.SignedJWT
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.cio.CIO
-import io.ktor.client.plugins.auth.Auth
 import io.ktor.client.plugins.auth.providers.BearerTokens
-import io.ktor.client.plugins.auth.providers.bearer
 import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -14,7 +12,6 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.http.headers
-import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import no.nav.emottak.auth.AZURE_AD_AUTH
 import no.nav.emottak.auth.AuthConfig
@@ -51,26 +48,9 @@ class PayloadProcessingClient(clientProvider: () -> HttpClient) {
     }
 }
 
-class SendInClient() {
-    private val baseUrl = getEnvVar("URL_EBMS_SEND_IN_BASE", "http://ebms-send-in.team-emottak.svc.nais.local")
 
-    var httpClient = HttpClient(CIO) {
-        expectSuccess = true
-        install(io.ktor.client.plugins.contentnegotiation.ContentNegotiation) {
-            json()
-        }
-        install(Auth) {
-            bearer {
-                refreshTokens {
-                    getEbmsSendInToken()
-                }
-                sendWithoutRequest { request ->
-                    request.url.host == baseUrl
-                }
-            }
-        }
-    }
-
+class SendInClient(clientProvider: () -> HttpClient) {
+    private val httpClient = clientProvider.invoke()
     private val sendInEndpoint = getEnvVar("SEND_IN_URL", "http://ebms-send-in/fagmelding/synkron")
 
     suspend fun postSendIn(sendInRequest: SendInRequest): SendInResponse {

@@ -61,7 +61,7 @@ abstract class EbmsRoutFellesIT(val endpoint: String) {
             }
         }
         val cpaRepoClient = CpaRepoClient { client }
-        val sendInClient = SendInClient()
+        val sendInClient = SendInClient { client }
         application {
             val dokumentValidator = DokumentValidator(cpaRepoClient)
 
