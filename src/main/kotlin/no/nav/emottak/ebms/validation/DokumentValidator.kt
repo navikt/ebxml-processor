@@ -5,6 +5,7 @@ import no.kith.xmlstds.msghead._2006_05_24.MsgHead
 import no.nav.emottak.ebms.CpaRepoClient
 import no.nav.emottak.ebms.model.EbmsMessage
 import no.nav.emottak.ebms.model.PayloadMessage
+import no.nav.emottak.ebms.util.marker
 import no.nav.emottak.ebms.xml.unmarshal
 import no.nav.emottak.melding.feil.EbmsException
 import no.nav.emottak.melding.model.ErrorCode
@@ -61,7 +62,7 @@ class DokumentValidator(val httpClient: CpaRepoClient) {
                 }
                 message.sjekkSignature(validationResult.payloadProcessing!!.signingCertificate)
             }.onFailure {
-                log.error("Signatursjekk har feilet", it)
+                log.warn(message.marker(), "Signatursjekk har feilet", it)
                 throw EbmsException(
                     (validationResult.error ?: listOf()) + listOf(
                         Feil(
