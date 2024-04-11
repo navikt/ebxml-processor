@@ -162,7 +162,7 @@ fun Headers.actuallyUsefulToString(): String {
     val sb = StringBuilder()
     entries().forEach {
         sb.append(it.key).append(":")
-            .append("[${it.value.joinToString()}]")
+            .append("[${it.value.joinToString()}]\n")
     }
     return sb.toString()
 }
