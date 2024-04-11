@@ -7,6 +7,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.forms.MultiPartFormDataContent
 import io.ktor.http.ContentType
+import io.ktor.http.Headers
 import io.ktor.http.HeadersBuilder
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.PartData
@@ -143,7 +144,7 @@ private fun Application.installRequestTimerPlugin() {
                 simpleLogger.info(
                     Markers.appendEntries(
                         mapOf(
-                            Pair("Headers", call.request.headers.entries().joinToString()),
+                            Pair("Headers", call.request.headers.actuallyUsefulToString()),
                             Pair("smtpMessageId", call.request.headers[SMTPHeaders.MESSAGE_ID] ?: "-"),
                             Pair("Endpoint", call.request.uri),
                             Pair("RequestTime", endTime.toMillis()),
@@ -155,6 +156,15 @@ private fun Application.installRequestTimerPlugin() {
             }
         }
     )
+}
+
+fun Headers.actuallyUsefulToString(): String {
+    val sb = StringBuilder()
+    entries().forEach {
+        sb.append(it.key).append(":")
+            .append("[${it.value.joinToString()}]")
+    }
+    return sb.toString()
 }
 
 @Throws(MimeValidationException::class)
