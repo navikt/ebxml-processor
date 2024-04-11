@@ -143,17 +143,19 @@ fun createEbmsDocument(ebxmlDokument: Header, payload: EbmsAttachment? = null): 
     envelope.header = ebxmlDokument
 
     envelope.body = Body().apply {
-        this.any.add(
-            Manifest().apply {
-                this.version = "2.0"
-                this.reference.add(
-                    Reference().apply {
-                        this.href = "cid:$attachmentUid"
-                        this.type = "simple"
-                    }
-                )
-            }
-        )
+        if (payload != null) {
+            this.any.add(
+                Manifest().apply {
+                    this.version = "2.0"
+                    this.reference.add(
+                        Reference().apply {
+                            this.href = "cid:${payload.contentId}"
+                            this.type = "simple"
+                        }
+                    )
+                }
+            )
+        }
     }
     val dokument = getDocumentBuilder().parse(InputSource(StringReader(marshal(envelope))))
     val payloads = if (payload != null) listOf(EbmsAttachment(payload.bytes, payload.contentType, payload.contentId)) else listOf()
