@@ -273,12 +273,13 @@ suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbMSDocument) {
             }
         }
         this.response.headers.append(MimeHeaders.CONTENT_TRANSFER_ENCODING, "8bit")
+        val boundary = "------=_Part" + System.currentTimeMillis() + "." + System.nanoTime()
         this.respond(
             HttpStatusCode.OK,
             MultiPartFormDataContent(
                 parts,
-                "------=_Part" + System.currentTimeMillis() + "." + System.nanoTime(),
-                ContentType.parse("""multipart/related;type="text/xml"""")
+                boundary,
+                ContentType.parse("""multipart/related;type="text/xml;boundary=$boundary"""")
             )
         )
     } else {
