@@ -63,7 +63,7 @@ fun CollaborationProtocolAgreement.validateCpaDatoGyldig() {
     if (!Date.from(Instant.now()) // TODO: Mottakstidspunkt?
         .let { it.after(this.start) && it.before(this.end) }
     ) {
-        throw CpaValidationException("CPA er ikke gyldig på meldingstidspunkt.")
+        throw CpaValidationException("CPA er ikke gyldig på meldingstidspunkt. Start: ${this.start} - End: ${this.end}")
     }
 }
 

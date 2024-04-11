@@ -91,7 +91,7 @@ class SertifikatValidering(
         try {
             builder.build(pkixParams) as PKIXCertPathBuilderResult
         } catch (e: CertPathBuilderException) {
-            throw CertificateValidationException("Sertifikatvalidering feilet", e)
+            throw CertificateValidationException("Sertifikatvalidering feilet for sertifikat utstedt av <${certificate.issuerX500Principal.name}>", e)
         }
     }
 
