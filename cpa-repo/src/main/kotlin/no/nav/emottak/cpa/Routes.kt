@@ -7,10 +7,13 @@ import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.plugins.NotFoundException
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
+import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
+import io.ktor.server.routing.Routing
 import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
+import io.micrometer.prometheus.PrometheusMeterRegistry
 import no.nav.emottak.constants.PartyTypeEnum
 import no.nav.emottak.cpa.feil.CpaValidationException
 import no.nav.emottak.cpa.feil.MultiplePartnerException
@@ -240,6 +243,20 @@ fun Route.signingCertificate(cpaRepository: CPARepository) = post("/signing/cert
     } catch (ex: CpaValidationException) {
         log.warn(signatureDetailsRequest.marker(), ex.message, ex)
         call.respond(HttpStatusCode.BadRequest, ex.localizedMessage)
+    }
+}
+
+fun Routing.registerHealthEndpoints(
+    collectorRegistry: PrometheusMeterRegistry
+) {
+    get("/internal/health/liveness") {
+        call.respondText("I'm alive! :)")
+    }
+    get("/internal/health/readiness") {
+        call.respondText("I'm ready! :)")
+    }
+    get("/prometheus") {
+        call.respond(collectorRegistry.scrape())
     }
 }
 

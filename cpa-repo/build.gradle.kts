@@ -47,6 +47,7 @@ dependencies {
     implementation(libs.flyway.core)
     implementation(libs.bundles.exposed)
     implementation(libs.bundles.logging)
+    implementation(libs.bundles.prometheus)
     implementation(libs.ktor.serialization.kotlinx.json)
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.cio)
