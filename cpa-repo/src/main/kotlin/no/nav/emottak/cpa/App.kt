@@ -59,6 +59,13 @@ fun cpaApplicationModule(cpaDbConfig: HikariConfig, cpaMigrationConfig: HikariCo
         install(MicrometerMetrics) {
             registry = appMicrometerRegistry
         }
+
+        if (canInitAuthenticatedRoutes()) { // TODO gjerne få til dette med 1 usage av canInit
+            install(Authentication) {
+                tokenValidationSupport(AZURE_AD_AUTH, Security().config)
+            }
+        }
+
         routing {
             if (oracleDb != null) {
                 partnerId(PartnerRepository(oracleDb), cpaRepository)
@@ -70,12 +77,7 @@ fun cpaApplicationModule(cpaDbConfig: HikariConfig, cpaMigrationConfig: HikariCo
             getCertificate(cpaRepository)
             signingCertificate(cpaRepository)
             registerHealthEndpoints(appMicrometerRegistry)
-        }
-        if (canInitAuthenticatedRoutes()) {
-            install(Authentication) {
-                tokenValidationSupport(AZURE_AD_AUTH, Security().config)
-            }
-            routing {
+            if (canInitAuthenticatedRoutes()) { // TODO gjerne få til dette med 1 usage av canInit
                 authenticate(AZURE_AD_AUTH) {
                     whoAmI()
                     deleteCpa(cpaRepository)
