@@ -100,8 +100,9 @@ fun HttpClientConfig<*>.installCpaRepoAuthentication() {
             refreshTokens { // FIXME ingen forhold til expires-in...
                 getCpaRepoToken()
             }
-            sendWithoutRequest { request ->
-                request.url.host == URL_CPA_REPO_BASE
+            sendWithoutRequest {
+                true
+                // request -> request.url.host == URL_CPA_REPO_BASE
             }
         }
     }
