@@ -32,13 +32,13 @@ import no.nav.emottak.smtp.getEnvVar
 import no.nav.emottak.smtp.log
 import java.time.Instant
 
-val URL_CPA_REPO_BASE = getEnvVar("URL_CPA_REPO", "https://cpa-repo-fss.intern.dev.nav.no")
+val URL_CPA_REPO_BASE = getEnvVar("URL_CPA_REPO", "http://cpa-repo")
 val URL_CPA_REPO_PUT = "$URL_CPA_REPO_BASE/cpa"
 val URL_CPA_REPO_DELETE = "$URL_CPA_REPO_BASE/cpa/delete"
 val URL_CPA_REPO_TIMESTAMPS = "$URL_CPA_REPO_BASE/cpa/timestamps"
 
 // val URL_EBMS_PROVIDER_BASE = getEnvVar("URL_EBMS_PROVIDER", "http://ebms-provider.team-emottak.svc.nais.local")
-val URL_EBMS_PROVIDER_BASE = getEnvVar("URL_EBMS_PROVIDER", "https://ebms-provider-fss.intern.dev.nav.no")
+val URL_EBMS_PROVIDER_BASE = getEnvVar("URL_EBMS_PROVIDER", "http://ebms-provider")
 val URL_EBMS_PROVIDER_POST = "$URL_EBMS_PROVIDER_BASE/ebms"
 const val AZURE_AD_AUTH = "AZURE_AD"
 
