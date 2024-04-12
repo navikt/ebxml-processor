@@ -31,7 +31,7 @@ import java.util.Date
 internal val log = LoggerFactory.getLogger("no.nav.emottak.cpa.validation.SertifikatValidering")
 
 val trustStoreConfig = object : KeyStoreConfig {
-    override val keystorePath: String = getEnvVar("TRUSTSTORE_PATH", "truststore.p12")
+    override val keystorePath: String = getEnvVar("TRUSTSTORE_PATH", "truststore_test.p12")
     override val keyStorePwd: String = getEnvVar("TRUSTSTORE_PWD", "123456789")
     override val keyStoreStype: String = "PKCS12"
 }
