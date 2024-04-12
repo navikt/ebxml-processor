@@ -2,6 +2,10 @@ package no.nav.emottak.cpa
 
 import com.github.dockerjava.zerodep.shaded.org.apache.commons.codec.binary.Base64
 import com.zaxxer.hikari.HikariConfig
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.request.get
+import io.ktor.client.statement.bodyAsText
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
@@ -11,12 +15,14 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.routing.routing
+import kotlinx.coroutines.runBlocking
 import no.nav.emottak.cpa.persistence.CPARepository
 import no.nav.emottak.cpa.persistence.Database
 import no.nav.emottak.cpa.persistence.cpaDbConfig
 import no.nav.emottak.cpa.persistence.cpaMigrationConfig
 import no.nav.emottak.cpa.persistence.gammel.PartnerRepository
 import no.nav.emottak.cpa.persistence.oracleConfig
+import no.nav.emottak.util.getEnvVar
 import no.nav.security.token.support.v2.tokenValidationSupport
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 import org.slf4j.LoggerFactory
@@ -46,18 +52,9 @@ fun cpaApplicationModule(cpaDbConfig: HikariConfig, cpaMigrationConfig: HikariCo
         install(ContentNegotiation) {
             json()
         }
-        install(Authentication) {
-            tokenValidationSupport(AZURE_AD_AUTH, Security().config)
-        }
         routing {
             if (oracleDb != null) {
                 partnerId(PartnerRepository(oracleDb), cpaRepository)
-            }
-            authenticate(AZURE_AD_AUTH) {
-                whoAmI()
-                deleteCpa(cpaRepository)
-                deleteAllCPA(cpaRepository)
-                postCpa(cpaRepository)
             }
             validateCpa(cpaRepository)
             getCPA(cpaRepository)
@@ -66,7 +63,42 @@ fun cpaApplicationModule(cpaDbConfig: HikariConfig, cpaMigrationConfig: HikariCo
             getCertificate(cpaRepository)
             signingCertificate(cpaRepository)
         }
+        if (canInitAuthenticatedRoutes()) {
+            install(Authentication) {
+                tokenValidationSupport(AZURE_AD_AUTH, Security().config)
+            }
+            routing {
+                authenticate(AZURE_AD_AUTH) {
+                    whoAmI()
+                    deleteCpa(cpaRepository)
+                    deleteAllCPA(cpaRepository)
+                    postCpa(cpaRepository)
+                }
+            }
+        }
     }
+}
+
+fun canInitAuthenticatedRoutes(): Boolean {
+    // muligens gjenbrukbar løsning?
+    val TENANT_ID = getEnvVar("AZURE_APP_TENANT_ID", AZURE_AD_AUTH)
+    val AZURE_WELL_KNOWN_URL = getEnvVar(
+        "AZURE_APP_WELL_KNOWN_URL",
+        "http://localhost:3344/$TENANT_ID/.well-known/openid-configuration"
+    )
+    if (AZURE_WELL_KNOWN_URL.contains("localhost")) {
+        return runBlocking {
+            runCatching {
+                HttpClient(CIO) {
+                }.get(AZURE_WELL_KNOWN_URL).bodyAsText()
+            }.onFailure {
+                log.warn("Skipping authenticated endpoint initialization. (No connection to Oauth2Server)")
+                return@runBlocking false
+            }
+            return@runBlocking true
+        }
+    }
+    return true
 }
 
 fun CollaborationProtocolAgreement.asText(): String {
