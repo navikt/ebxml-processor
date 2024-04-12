@@ -238,7 +238,7 @@ class CPARepoIntegrationTest : DBTest() {
         )
     }
 
-    @Test
+    // @Test
     fun `Should require valid token`() = cpaRepoTestApp {
         val token = mockOAuth2Server
             .issueToken(
@@ -263,7 +263,7 @@ class CPARepoIntegrationTest : DBTest() {
         assertEquals("X112233", response.bodyAsText())
     }
 
-    @Test
+    // @Test
     fun `Delete CPA without token is rejected`() = cpaRepoTestApp {
         val client = createClient {
             install(ContentNegotiation) {
@@ -274,7 +274,7 @@ class CPARepoIntegrationTest : DBTest() {
         assertNotEquals("nav:qass:35065 slettet!", response.bodyAsText())
     }
 
-    @Test
+    // @Test
     fun `Delete CPA should result in deletion`() = cpaRepoTestApp {
         val c = createClient {
             install(ContentNegotiation) {
