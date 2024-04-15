@@ -93,18 +93,15 @@ private fun SignedInfo.validateReferences() {
         if (uri == "") {
             foundRootReference = true
             // if (reference.transforms.length != 3) throw SignatureException("Root reference skal ha 3 references, har ${reference.transforms.length}")
-            var index = 0 // NB: for å være oasis compliant skal disse være i rekkefølge... men vi er pragmatisk
-            if (reference.transforms.item(index).uri == Transforms.TRANSFORM_ENVELOPED_SIGNATURE) {
-                index++
-            } else {
-                throw SignatureException("Transform: ${Transforms.TRANSFORM_ENVELOPED_SIGNATURE} har feil uri! ${reference.transforms.item(index).uri}")
+            // NB: for å være oasis compliant skal disse være i rekkefølge... men vi er pragmatiske
+            with(mutableListOf<String>()) {
+                for (transformIndex in 0 until reference.transforms.length) {
+                    this.add(reference.transforms.item(transformIndex).uri)
+                }
+                if (!this.contains(Transforms.TRANSFORM_ENVELOPED_SIGNATURE)) throw SignatureException("Transform: ${Transforms.TRANSFORM_ENVELOPED_SIGNATURE} mangler! $this")
+                if (!this.contains(Transforms.TRANSFORM_XPATH)) log.warn("Transform: ${Transforms.TRANSFORM_XPATH} mangler! $this") // throw SignatureException(("Transform 2 har feil uri! ${reference.transforms.item(1).uri}"))
+                if (!this.contains(Transforms.TRANSFORM_C14N_OMIT_COMMENTS)) throw SignatureException(("Transform: ${Transforms.TRANSFORM_C14N_OMIT_COMMENTS} mangler! $this"))
             }
-            if (reference.transforms.item(index).uri == Transforms.TRANSFORM_XPATH) {
-                index++
-            } else {
-                log.warn("Mangler ${Transforms.TRANSFORM_XPATH}") // throw SignatureException(("Transform 2 har feil uri! ${reference.transforms.item(1).uri}"))
-            }
-            if (reference.transforms.item(index).uri != Transforms.TRANSFORM_C14N_OMIT_COMMENTS) throw SignatureException(("Transform: ${Transforms.TRANSFORM_C14N_OMIT_COMMENTS} har feil uri! ${reference.transforms.item(index).uri}"))
         } else if (!uri.startsWith(CID_PREFIX)) throw SignatureException("Ugyldig URI $uri! Kun reference uri som starter med $CID_PREFIX er tillatt")
     }
     if (!foundRootReference) throw SignatureException("Root reference mangler!")
