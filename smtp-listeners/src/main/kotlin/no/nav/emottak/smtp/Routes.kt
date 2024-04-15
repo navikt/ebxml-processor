@@ -10,6 +10,7 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import jakarta.mail.Flags
 import jakarta.mail.Folder
+import jakarta.mail.Folder.HOLDS_MESSAGES
 import jakarta.mail.internet.MimeMultipart
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
@@ -304,6 +305,7 @@ fun Folder.deleteAll() {
     if (this is IMAPFolder) {
         if (isOpen) close()
         val deleteMeFolder = getFolder("DeleteMe")
+        if (!deleteMeFolder.exists()) create(HOLDS_MESSAGES)
         this.renameTo(deleteMeFolder)
         deleteMeFolder.delete(true)
         log.info("${this.fullName} deleted.")
