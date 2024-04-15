@@ -30,9 +30,6 @@ tasks {
 }
 
 dependencies {
-    implementation(project(":felles:")) {
-        exclude("no.nav.emottak", "emottak-payload-xsd")
-    }
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.netty)
     implementation(libs.ktor.server.content.negotiation)
