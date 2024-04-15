@@ -13,9 +13,10 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
+import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockkStatic
-import io.mockk.verify
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.model.EbMSDocument
 import no.nav.emottak.ebms.model.PayloadMessage
@@ -55,12 +56,12 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
         val sendInClient = SendInClient { client }
         application {
             val dokumentValidator = DokumentValidator(cpaRepoClient)
-            every {
+            coEvery {
                 processingService.processSyncIn(any(), any())
             } answers {
                 Pair(it.invocation.args[0] as PayloadMessage, Direction.IN)
             }
-            every {
+            coEvery {
                 processingService.proccessSyncOut(any(), any())
             } answers {
                 val incomingMessage = it.invocation.args[0] as PayloadMessage
@@ -137,7 +138,7 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
         } returnsArgument(0)
         val multipart = TestData.HarBorderEgenAndel.harBorgerEgenanderFritakRequest
         val response = client.post(SYNC_PATH, multipart.asHttpRequest())
-        verify(exactly = 1) {
+        coVerify(exactly = 1) {
             processingService.processSyncIn(any(), any())
         }
         assert(response.status == HttpStatusCode.OK)

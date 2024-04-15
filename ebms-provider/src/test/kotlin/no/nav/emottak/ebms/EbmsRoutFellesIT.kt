@@ -11,11 +11,11 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
-import io.mockk.every
+import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.runs
-import io.mockk.verify
 import no.nav.emottak.cpa.decodeBase64Mime
 import no.nav.emottak.ebms.ebxml.errorList
 import no.nav.emottak.ebms.ebxml.messageHeader
@@ -65,7 +65,7 @@ abstract class EbmsRoutFellesIT(val endpoint: String) {
         application {
             val dokumentValidator = DokumentValidator(cpaRepoClient)
 
-            every {
+            coEvery {
                 processingService.processAsync(any(), any())
             } just runs
             routing {
@@ -113,7 +113,7 @@ abstract class EbmsRoutFellesIT(val endpoint: String) {
             }
         )
         client.post("/ebms", multipart.asHttpRequest())
-        verify(exactly = 1) {
+        coVerify(exactly = 1) {
             processingService.processAsync(any(), any())
         }
     }
