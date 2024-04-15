@@ -1,6 +1,8 @@
 package no.nav.emottak.ebms.validation
 
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import no.kith.xmlstds.msghead._2006_05_24.MsgHead
 import no.nav.emottak.ebms.CpaRepoClient
 import no.nav.emottak.ebms.model.EbmsMessage
@@ -21,8 +23,8 @@ val log = LoggerFactory.getLogger("no.nav.emottak.ebms.DokumentValidator")
 
 class DokumentValidator(val httpClient: CpaRepoClient) {
 
-    fun validateIn(message: EbmsMessage) = validate(message, true)
-    fun validateOut(message: EbmsMessage) = validate(message, false)
+    suspend fun validateIn(message: EbmsMessage) = validate(message, true)
+    suspend fun validateOut(message: EbmsMessage) = validate(message, false)
 
     private fun shouldThrowExceptionForTestPurposes(bytes: ByteArray) {
         val fnr = try {
@@ -47,11 +49,13 @@ class DokumentValidator(val httpClient: CpaRepoClient) {
         if (fnr == "20118690681") throw RuntimeException("Dette er et test fnr 20118690681, kaster exception")
     }
 
-    private fun validate(message: EbmsMessage, sjekSignature: Boolean): ValidationResult {
+    private suspend fun validate(message: EbmsMessage, sjekSignature: Boolean): ValidationResult {
         val validationRequest =
             ValidationRequest(message.messageId, message.conversationId, message.cpaId, message.addressing)
-        val validationResult = runBlocking {
-            httpClient.postValidate(message.requestId, validationRequest)
+        val validationResult = withContext(Dispatchers.IO) {
+            runBlocking {
+                httpClient.postValidate(message.requestId, validationRequest)
+            }
         }
 
         if (!validationResult.valid()) throw EbmsException(validationResult.error!!)
