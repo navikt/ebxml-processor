@@ -242,12 +242,14 @@ suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbMSDocument) {
     if (ebmsDokument.dokumentType() == DokumentType.ACKNOWLEDGMENT) {
         log.info("Successfuly processed Payload Message")
     }
-    val ebxml = Base64.getMimeEncoder().encodeToString(ebmsDokument.dokument.asString().toByteArray())
+
+
 
     this.response.headers.apply {
         this.append(MimeHeaders.CONTENT_TYPE, ContentType.Text.Xml.toString())
     }
     if (ebmsDokument.dokumentType() == DokumentType.PAYLOAD) {
+        val ebxml = Base64.getMimeEncoder().encodeToString(ebmsDokument.dokument.asString().toByteArray())
         val ebxmlFormItem = PartData.FormItem(
             ebxml,
             {},
@@ -285,6 +287,6 @@ suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbMSDocument) {
     } else {
         this.response.headers.append(MimeHeaders.CONTENT_TYPE, ContentType.Text.Xml.toString())
         this.response.headers.append(MimeHeaders.CONTENT_TRANSFER_ENCODING, "base64")
-        this.respondText(status = HttpStatusCode.OK, text = ebxml)
+        this.respondText(status = HttpStatusCode.OK, text = ebmsDokument.dokument.asString())
     }
 }
