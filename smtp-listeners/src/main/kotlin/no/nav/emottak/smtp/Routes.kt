@@ -314,6 +314,7 @@ fun Folder.deleteAll() {
             delete(true)
             log.info("${this.fullName} deleted.")
         }
+    } else {
+        log.warn("DeleteAll strategy only valid for IMAP")
     }
-    log.warn("DeleteAll strategy only valid for IMAP")
 }
