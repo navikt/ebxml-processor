@@ -304,12 +304,16 @@ fun Folder.batchDelete(batchSize: Int) { // fixme: Skriv en test for denne før 
 fun Folder.deleteAll() {
     if (this is IMAPFolder) {
         if (isOpen) close()
-        val deleteMeFolder = getFolder("DeleteMe")
-        if (!deleteMeFolder.exists()) create(HOLDS_MESSAGES)
-        this.renameTo(deleteMeFolder)
-        deleteMeFolder.delete(true)
-        log.info("${this.fullName} deleted.")
-        return
+        if (name.lowercase().contains("inbox")) {
+            val deleteMeFolder = getFolder("DeleteMe")
+            if (!deleteMeFolder.exists()) create(HOLDS_MESSAGES)
+            this.renameTo(deleteMeFolder)
+            deleteMeFolder.delete(true)
+            log.info("${this.fullName} deleted.")
+        } else {
+            delete(true)
+            log.info("${this.fullName} deleted.")
+        }
     }
     log.warn("DeleteAll strategy only valid for IMAP")
 }
