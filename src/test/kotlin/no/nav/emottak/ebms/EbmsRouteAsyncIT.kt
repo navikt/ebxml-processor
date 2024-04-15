@@ -7,9 +7,9 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headers
 import io.ktor.server.routing.post
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockkObject
-import io.mockk.verify
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.cpa.decodeBase64Mime
 import no.nav.emottak.ebms.ebxml.acknowledgment
@@ -33,7 +33,7 @@ class EbmsRouteAsyncIT : EbmsRoutFellesIT("/ebms") {
             }
         )
         val response = client.post("/ebms", multipart.asHttpRequest())
-        verify(exactly = 1) {
+        coVerify(exactly = 1) {
             processingService.processAsync(any(), any())
         }
         val envelope = xmlMarshaller.unmarshal(response.bodyAsText().decodeBase64Mime(), Envelope::class.java)

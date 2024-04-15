@@ -3,7 +3,9 @@ package no.nav.emottak.ebms.processing
 import io.ktor.client.call.body
 import io.ktor.client.plugins.ClientRequestException
 import io.ktor.http.HttpStatusCode
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import no.nav.emottak.ebms.PayloadProcessingClient
 import no.nav.emottak.ebms.logger
 import no.nav.emottak.ebms.model.Acknowledgment
@@ -20,7 +22,7 @@ import no.nav.emottak.melding.model.PayloadResponse
 
 class ProcessingService(private val httpClient: PayloadProcessingClient) {
 
-    private fun processMessage(
+    private suspend fun processMessage(
         payloadMessage: PayloadMessage,
         payloadProcessing: PayloadProcessing,
         direction: Direction
@@ -35,9 +37,11 @@ class ProcessingService(private val httpClient: PayloadProcessingClient) {
             )
             Pair(
                 payloadMessage.copy(
-                    payload = runBlocking {
-                        httpClient.postPayloadRequest(payloadRequest)
-                    }.processedPayload!!
+                    payload = withContext(Dispatchers.IO) {
+                        runBlocking {
+                            httpClient.postPayloadRequest(payloadRequest)
+                        }.processedPayload!!
+                    }
                 ),
                 direction
             )
@@ -77,17 +81,17 @@ class ProcessingService(private val httpClient: PayloadProcessingClient) {
     private fun fail(fail: EbmsFail) {
     }
 
-    fun processSyncIn(message: PayloadMessage, payloadProcessing: PayloadProcessing?): Pair<PayloadMessage, Direction> {
+    suspend fun processSyncIn(message: PayloadMessage, payloadProcessing: PayloadProcessing?): Pair<PayloadMessage, Direction> {
         if (payloadProcessing == null) throw Exception("Processing information is missing for ${message.messageId}")
         return processMessage(message, payloadProcessing, Direction.IN)
     }
 
-    fun proccessSyncOut(payloadMessage: PayloadMessage, payloadProcessing: PayloadProcessing?): PayloadMessage {
+    suspend fun proccessSyncOut(payloadMessage: PayloadMessage, payloadProcessing: PayloadProcessing?): PayloadMessage {
         if (payloadProcessing == null) throw Exception("Processing information is missing for ${payloadMessage.messageId}")
         return processMessage(payloadMessage, payloadProcessing, Direction.OUT).first
     }
 
-    fun processAsync(message: EbmsMessage, payloadProcessing: PayloadProcessing?) {
+    suspend fun processAsync(message: EbmsMessage, payloadProcessing: PayloadProcessing?) {
         if (payloadProcessing == null) throw Exception("Processing information is missing for ${message.messageId}")
         when (message) {
             is Acknowledgment -> acknowledgment(message)
