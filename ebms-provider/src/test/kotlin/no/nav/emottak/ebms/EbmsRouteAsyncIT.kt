@@ -11,7 +11,6 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockkObject
 import no.nav.emottak.constants.SMTPHeaders
-import no.nav.emottak.cpa.decodeBase64Mime
 import no.nav.emottak.ebms.ebxml.acknowledgment
 import no.nav.emottak.ebms.ebxml.messageHeader
 import no.nav.emottak.ebms.validation.MimeHeaders
