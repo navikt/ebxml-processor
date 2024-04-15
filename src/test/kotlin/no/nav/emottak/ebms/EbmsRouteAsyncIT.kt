@@ -36,7 +36,7 @@ class EbmsRouteAsyncIT : EbmsRoutFellesIT("/ebms") {
         coVerify(exactly = 1) {
             processingService.processAsync(any(), any())
         }
-        val envelope = xmlMarshaller.unmarshal(response.bodyAsText().decodeBase64Mime(), Envelope::class.java)
+        val envelope = xmlMarshaller.unmarshal(response.bodyAsText(), Envelope::class.java)
         envelope.assertAcknowledgmen()
         assertEquals(HttpStatusCode.OK, response.status)
     }
