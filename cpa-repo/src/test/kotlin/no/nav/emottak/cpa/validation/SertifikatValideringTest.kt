@@ -29,6 +29,7 @@ class SertifikatValideringTest : FunSpec({
         every {
             crlChecker.getCRLRevocationInfo(any(), any())
         } just runs
+        System.setProperty("TRUSTSTORE_PATH", "truststore.p12")
         val sertifikatValidering = SertifikatValidering(crlChecker, trustStoreConfig)
 
         withData(
