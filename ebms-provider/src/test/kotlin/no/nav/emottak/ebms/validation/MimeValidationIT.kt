@@ -92,7 +92,7 @@ class MimeValidationIT {
         } returns validationResult
 
         val response = client.post("/ebms", validMultipartRequest.asHttpRequest())
-        val envelope = xmlMarshaller.unmarshal(response.bodyAsText().decodeBase64Mime(), Envelope::class.java)
+        val envelope = xmlMarshaller.unmarshal(response.bodyAsText(), Envelope::class.java)
         with(envelope.assertErrorAndGet().error.first()) {
             assertEquals("Signature Fail", this.description?.value)
             assertEquals(ErrorCode.SECURITY_FAILURE.value, this.errorCode)
@@ -107,7 +107,7 @@ class MimeValidationIT {
         } returns validationResult
 
         val response = client.post("/ebms", validMultipartRequest.asHttpRequest())
-        val envelope = xmlMarshaller.unmarshal(response.bodyAsText().decodeBase64Mime(), Envelope::class.java)
+        val envelope = xmlMarshaller.unmarshal(response.bodyAsText(), Envelope::class.java)
         with(envelope.assertErrorAndGet().error.first()) {
             assertEquals("Signature Fail", this.description?.value)
             assertEquals(
