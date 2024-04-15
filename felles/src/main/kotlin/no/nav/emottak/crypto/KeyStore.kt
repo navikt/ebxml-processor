@@ -2,7 +2,6 @@ package no.nav.emottak.crypto
 
 import java.io.ByteArrayInputStream
 import java.io.FileInputStream
-import java.io.FileNotFoundException
 import java.security.KeyPair
 import java.security.KeyStore
 import java.security.PrivateKey
@@ -11,6 +10,7 @@ import java.security.cert.X509Certificate
 import java.util.HashMap
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.slf4j.LoggerFactory
+import java.io.File
 
 internal val log = LoggerFactory.getLogger("no.nav.emottak.crypto.KeyStore")
 interface KeyStoreConfig {
@@ -33,11 +33,18 @@ class KeyStore(private val keyStoreConfig: KeyStoreConfig) {
         val keyStore = KeyStore.getInstance(keyStoreConfig.keyStoreStype)
         val fileContent =
             try {
-                FileInputStream(storePath)
-            } catch (e: FileNotFoundException) {
+                log.debug("Getting store file from $storePath")
+                if (File(storePath).exists()) {
+                    log.debug("Getting store file from file <$storePath>")
+                    FileInputStream(storePath)
+                } else {
+                    log.debug("Getting store file from resources <$storePath>")
+                    ByteArrayInputStream(this::class.java.classLoader.getResourceAsStream(storePath).readBytes())
+                }
+            } catch (e: Exception) {
                 //TODO Kast exception om keystore ikke kan leses
-                log.error("Unable to load keystore $storePath falling back to truststore",e)
-                ByteArrayInputStream(this::class.java.classLoader.getResourceAsStream("truststore.p12").readBytes())
+                log.error("Unable to load keystore $storePath falling back to truststore", e)
+                ByteArrayInputStream(this::class.java.classLoader.getResourceAsStream("truststore_test.p12").readBytes())
             }
         keyStore!!.load(fileContent, storePass)
         return keyStore
