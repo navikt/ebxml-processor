@@ -243,8 +243,6 @@ suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbMSDocument) {
         log.info("Successfuly processed Payload Message")
     }
 
-
-
     this.response.headers.apply {
         this.append(MimeHeaders.CONTENT_TYPE, ContentType.Text.Xml.toString())
     }
