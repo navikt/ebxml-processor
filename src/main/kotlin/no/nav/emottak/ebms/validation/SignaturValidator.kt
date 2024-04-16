@@ -100,7 +100,11 @@ private fun SignedInfo.validateReferences() {
                 }
                 if (!this.contains(Transforms.TRANSFORM_ENVELOPED_SIGNATURE)) throw SignatureException("Transform: ${Transforms.TRANSFORM_ENVELOPED_SIGNATURE} mangler! $this")
                 if (!this.contains(Transforms.TRANSFORM_XPATH)) log.warn("Transform: ${Transforms.TRANSFORM_XPATH} mangler! $this") // throw SignatureException(("Transform 2 har feil uri! ${reference.transforms.item(1).uri}"))
-                if (!this.contains(Transforms.TRANSFORM_C14N_OMIT_COMMENTS)) throw SignatureException(("Transform: ${Transforms.TRANSFORM_C14N_OMIT_COMMENTS} mangler! $this"))
+                if (!this.contains(Transforms.TRANSFORM_C14N_OMIT_COMMENTS) &&
+                    !this.contains(Transforms.TRANSFORM_C14N_EXCL_OMIT_COMMENTS)
+                ) {
+                    throw SignatureException(("Transform: ${Transforms.TRANSFORM_C14N_OMIT_COMMENTS} og ${Transforms.TRANSFORM_C14N_EXCL_OMIT_COMMENTS} mangler! $this"))
+                }
             }
         } else if (!uri.startsWith(CID_PREFIX)) throw SignatureException("Ugyldig URI $uri! Kun reference uri som starter med $CID_PREFIX er tillatt")
     }
