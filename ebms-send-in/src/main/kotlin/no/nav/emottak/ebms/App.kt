@@ -6,6 +6,7 @@ import io.ktor.server.application.Application
 import io.ktor.server.application.call
 import io.ktor.server.application.install
 import io.ktor.server.engine.embeddedServer
+import io.ktor.server.metrics.micrometer.MicrometerMetrics
 import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.request.receive
@@ -14,6 +15,8 @@ import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
+import io.micrometer.prometheus.PrometheusConfig
+import io.micrometer.prometheus.PrometheusMeterRegistry
 import no.nav.emottak.fellesformat.addressing
 import no.nav.emottak.fellesformat.wrapMessageInEIFellesFormat
 import no.nav.emottak.frikort.frikortClient
@@ -41,6 +44,10 @@ fun Application.ebmsSendInModule() {
     install(ContentNegotiation) {
         json()
     }
+    val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
+    install(MicrometerMetrics) {
+        registry = appMicrometerRegistry
+    }
     routing {
         get("/testFrikortEndepunkt") {
             val testCpaString = String(this::class.java.classLoader.getResource("frikortRequest.xml")!!.readBytes())
@@ -64,5 +71,7 @@ fun Application.ebmsSendInModule() {
                 call.respond(HttpStatusCode.BadRequest, it.localizedMessage)
             }
         }
+
+        registerHealthEndpoints(appMicrometerRegistry)
     }
 }

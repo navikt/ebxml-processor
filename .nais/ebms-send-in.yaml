@@ -11,6 +11,21 @@ spec:
       enabled: true
   webproxy: true
   image: {{image}}
+  liveness:
+    path: "/internal/health/liveness"
+    port: 8080
+    initialDelay: 30
+    timeout: 10
+    failureThreshold: 10
+  readiness:
+    path: "/internal/health/readiness"
+    port: 8080
+    initialDelay: 30
+    timeout: 10
+    failureThreshold: 10
+  prometheus:
+    enabled: true
+    path: /prometheus
   replicas:
     min: 2
     max: 6
