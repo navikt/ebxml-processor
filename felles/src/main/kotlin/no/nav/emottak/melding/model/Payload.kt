@@ -117,7 +117,9 @@ data class Addressing(
     val from: Party,
     val service: String,
     val action: String
-)
+) {
+    fun replayTo(service:String,action:String): Addressing = Addressing( to = from.copy(), from = to.copy(), service , action)
+}
 
 @Serializable
 data class Header(

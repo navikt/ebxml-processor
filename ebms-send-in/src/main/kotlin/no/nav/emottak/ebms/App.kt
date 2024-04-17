@@ -74,7 +74,7 @@ fun Application.ebmsSendInModule() {
                 frikortsporring(wrapMessageInEIFellesFormat(request))
             }.onSuccess {
                 log.info(request.marker(), "Payload ${request.payloadId} videresendt til fagsystem")
-                call.respond(SendInResponse(request.messageId, request.conversationId, it.eiFellesformat.addressing(request.addressing.from), marshal(it.eiFellesformat.msgHead).toByteArray()))
+                call.respond(SendInResponse(request.messageId, request.conversationId, request.addressing.replayTo(it.eiFellesformat.mottakenhetBlokk.ebService, it.eiFellesformat.mottakenhetBlokk.ebAction), marshal(it.eiFellesformat.msgHead).toByteArray()))
             }.onFailure {
                 log.error(request.marker(), "Payload ${request.payloadId} videresending feilet", it)
                 call.respond(HttpStatusCode.BadRequest, it.localizedMessage)
