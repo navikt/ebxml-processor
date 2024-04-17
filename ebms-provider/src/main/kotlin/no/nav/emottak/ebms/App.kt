@@ -3,9 +3,20 @@
  */
 package no.nav.emottak.ebms
 
+import com.nimbusds.jwt.SignedJWT
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.auth.Auth
+import io.ktor.client.plugins.auth.providers.BearerTokens
+import io.ktor.client.plugins.auth.providers.bearer
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.forms.MultiPartFormDataContent
+import io.ktor.client.request.get
+import io.ktor.client.request.header
+import io.ktor.client.request.headers
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.Headers
 import io.ktor.http.HeadersBuilder
@@ -13,6 +24,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.PartData
 import io.ktor.http.content.forEachPart
 import io.ktor.http.content.streamProvider
+import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
@@ -36,6 +48,7 @@ import io.micrometer.prometheus.PrometheusConfig
 import io.micrometer.prometheus.PrometheusMeterRegistry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
 import net.logstash.logback.marker.Markers
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.model.DokumentType
@@ -50,6 +63,7 @@ import no.nav.emottak.ebms.validation.validateMimeSoapEnvelope
 import no.nav.emottak.ebms.xml.asString
 import no.nav.emottak.ebms.xml.getDocumentBuilder
 import no.nav.emottak.melding.model.EbmsAttachment
+import no.nav.emottak.util.getEnvVar
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayInputStream
 import java.time.Duration
@@ -75,6 +89,58 @@ fun defaultHttpClient(): () -> HttpClient {
             expectSuccess = true
             install(io.ktor.client.plugins.contentnegotiation.ContentNegotiation) {
                 json()
+            }
+        }
+    }
+}
+
+val EBMS_SEND_IN_SCOPE = getEnvVar(
+    "EBMS_SEND_IN_SCOPE",
+    "api://" + getEnvVar("NAIS_CLUSTER_NAME", "dev-fss") + ".team-emottak.ebms-send-in/.default"
+)
+const val AZURE_AD_AUTH = "AZURE_AD"
+val LENIENT_JSON_PARSER = Json {
+    isLenient = true
+}
+fun sendInAuthHttpClient(): () -> HttpClient {
+    return {
+        HttpClient(CIO) {
+            install(ContentNegotiation) {
+                json()
+            }
+            install(Auth) {
+                bearer {
+                    refreshTokens {
+                        val requestBody =
+                            "client_id=" + getEnvVar("AZURE_APP_CLIENT_ID", "ebms-send-in") +
+                                "&client_secret=" + getEnvVar("AZURE_APP_CLIENT_SECRET", "dummysecret") +
+                                "&scope=" + EBMS_SEND_IN_SCOPE +
+                                "&grant_type=client_credentials"
+
+                        HttpClient(CIO).post(
+                            getEnvVar(
+                                "AZURE_OPENID_CONFIG_TOKEN_ENDPOINT",
+                                "http://localhost:3344/$AZURE_AD_AUTH/token"
+                            )
+                        ) {
+                            headers {
+                                header("Content-Type", "application/x-www-form-urlencoded")
+                            }
+                            setBody(requestBody)
+                        }.bodyAsText()
+                            .let { tokenResponseString ->
+                                SignedJWT.parse(
+                                    LENIENT_JSON_PARSER.decodeFromString<Map<String, String>>(tokenResponseString)["access_token"] as String
+                                )
+                            }
+                            .let { parsedJwt ->
+                                BearerTokens(parsedJwt.serialize(), "refresh token is unused")
+                            }
+                    }
+                    sendWithoutRequest {
+                        true
+                    }
+                }
             }
         }
     }
@@ -107,6 +173,8 @@ fun Application.ebmsProviderModule() {
     val processing = ProcessingService(processingClient)
     val sendInService = SendInService(sendInClient)
 
+    val sendInHttpClient = sendInAuthHttpClient()
+
     val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
     installMicrometerRegistry(appMicrometerRegistry)
     installRequestTimerPlugin()
@@ -114,6 +182,15 @@ fun Application.ebmsProviderModule() {
     routing {
         get("/") {
             call.respondText("Hello, world!")
+        }
+
+        get("/test-auth") {
+            val httpClient = sendInHttpClient.invoke()
+            val result = httpClient.get("http://ebms-send-in/") {
+                contentType(ContentType.Application.Json)
+            }.bodyAsText()
+
+            log.info("/test-auth: Received result from ebms-send-in's /test-auth: $result")
         }
         registerHealthEndpoints(appMicrometerRegistry)
         postEbmsAsync(validator, processing)

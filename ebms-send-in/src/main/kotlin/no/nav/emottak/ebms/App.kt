@@ -5,6 +5,8 @@ import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.call
 import io.ktor.server.application.install
+import io.ktor.server.auth.Authentication
+import io.ktor.server.auth.authenticate
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.metrics.micrometer.MicrometerMetrics
 import io.ktor.server.netty.Netty
@@ -26,11 +28,13 @@ import no.nav.emottak.frikort.unmarshal
 import no.nav.emottak.melding.model.SendInRequest
 import no.nav.emottak.melding.model.SendInResponse
 import no.nav.emottak.util.marker
+import no.nav.security.token.support.v2.tokenValidationSupport
 import no.nav.tjeneste.ekstern.frikort.v1.types.FrikortsporringRequest
 import org.slf4j.LoggerFactory
 import org.xmlsoap.schemas.soap.envelope.Envelope
 
-internal val log = LoggerFactory.getLogger("no.nav.emottak.ebms")
+internal val log = LoggerFactory.getLogger("no.nav.emottak.ebms.App")
+
 fun main() {
     // val database = Database(mapHikariConfig(DatabaseConfig()))
     // database.migrate()
@@ -48,6 +52,11 @@ fun Application.ebmsSendInModule() {
     install(MicrometerMetrics) {
         registry = appMicrometerRegistry
     }
+
+    install(Authentication) {
+        tokenValidationSupport(AZURE_AD_AUTH, Security().config)
+    }
+
     routing {
         get("/testFrikortEndepunkt") {
             val testCpaString = String(this::class.java.classLoader.getResource("frikortRequest.xml")!!.readBytes())
@@ -69,6 +78,13 @@ fun Application.ebmsSendInModule() {
             }.onFailure {
                 log.error(request.marker(), "Payload ${request.payloadId} videresending feilet", it)
                 call.respond(HttpStatusCode.BadRequest, it.localizedMessage)
+            }
+        }
+
+        authenticate(AZURE_AD_AUTH) {
+            get("/test-auth") {
+                log.info("Secure API '/test-auth' endpoint called")
+                call.respondText("Hello World from a secure context")
             }
         }
 
