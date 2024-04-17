@@ -1,11 +1,8 @@
 package no.nav.emottak.payload.util
 
-import jakarta.xml.bind.JAXBElement
-import org.w3c.dom.Node
 import java.io.StringWriter
 import javax.xml.bind.JAXBContext
 import javax.xml.stream.XMLInputFactory
-import javax.xml.transform.dom.DOMResult
 
 val xmlMarshaller = XmlMarshaller()
 
@@ -28,21 +25,20 @@ class XmlMarshaller {
         )
         private val marshaller = jaxbContext.createMarshaller()
         private val unmarshaller = jaxbContext.createUnmarshaller()
+        private val marshlingMonitor = Any()
+        private val unmarshlingMonitor = Any()
     }
 
     fun marshal(objekt: Any): String {
         val writer = StringWriter()
-        marshaller.marshal(objekt, writer)
+        synchronized(marshlingMonitor) {
+            marshaller.marshal(objekt, writer)
+        }
         return writer.toString()
-    }
-
-    fun marshal(jaxbElement: JAXBElement<*>, result: DOMResult): Node {
-        marshaller.marshal(jaxbElement, result)
-        return result.node
     }
 
     fun <T> unmarshal(xml: String, clazz: Class<T>): T {
         val reader = XMLInputFactory.newInstance().createXMLStreamReader(xml.reader())
-        return unmarshaller.unmarshal(reader, clazz).value
+        return synchronized(unmarshlingMonitor) { unmarshaller.unmarshal(reader, clazz).value }
     }
 }

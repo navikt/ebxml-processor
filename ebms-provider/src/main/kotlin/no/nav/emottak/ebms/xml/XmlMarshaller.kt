@@ -9,7 +9,6 @@ import java.io.StringWriter
 import javax.xml.bind.JAXBContext
 import javax.xml.bind.JAXBElement
 import javax.xml.stream.XMLInputFactory
-import javax.xml.transform.dom.DOMResult
 
 val xmlMarshaller = XmlMarshaller()
 
@@ -31,32 +30,37 @@ class XmlMarshaller {
 
         private val marshaller = jaxbContext.createMarshaller()
         private val unmarshaller = jaxbContext.createUnmarshaller()
+        private val marshlingMonitor = Any()
+        private val unmarshlingMonitor = Any()
     }
 
     fun marshal(objekt: Any): String {
         val writer = StringWriter()
-        marshaller.marshal(objekt, writer)
+        synchronized(marshlingMonitor) {
+            marshaller.marshal(objekt, writer)
+        }
         return writer.toString()
     }
 
     fun marshal(envelope: Envelope): Document {
         val out = ByteArrayOutputStream()
-        marshaller.marshal(envelope, out)
+        synchronized(marshlingMonitor) {
+            marshaller.marshal(envelope, out)
+        }
         return getDocumentBuilder().parse(ByteArrayInputStream(out.toByteArray()))
-    }
-
-    fun marshal(jaxbElement: jakarta.xml.bind.JAXBElement<*>, result: DOMResult): Node {
-        marshaller.marshal(jaxbElement, result)
-        return result.node
     }
 
     fun <T> unmarshal(xml: String, clazz: Class<T>): T {
         val reader = XMLInputFactory.newInstance().createXMLStreamReader(xml.reader())
-        return unmarshaller.unmarshal(reader, clazz).value
+        return synchronized(unmarshlingMonitor) {
+            unmarshaller.unmarshal(reader, clazz).value
+        }
     }
 
     fun <T> unmarshal(document: Node): T {
-        val unmarshaled = unmarshaller.unmarshal(document)
-        return if (unmarshaled is JAXBElement<*>) (unmarshaled as JAXBElement<T>).value else unmarshaled as T
+        val unmarshalled = synchronized(unmarshlingMonitor) {
+            unmarshaller.unmarshal(document)
+        }
+        return if (unmarshalled is JAXBElement<*>) (unmarshalled as JAXBElement<T>).value else unmarshalled as T
     }
 }
