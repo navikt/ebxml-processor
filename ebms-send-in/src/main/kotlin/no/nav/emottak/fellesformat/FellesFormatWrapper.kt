@@ -31,7 +31,7 @@ fun wrapMessageInEIFellesFormat(sendInRequest: SendInRequest): EIFellesformat =
         it.mottakenhetBlokk = createFellesFormatMottakEnhetBlokk(sendInRequest.messageId, sendInRequest.conversationId, sendInRequest.addressing)
         it.msgHead = unmarshal(sendInRequest.payload.toString(Charsets.UTF_8), MsgHead::class.java)
     }.also {
-        if (getEnvVar("NAIS_CLUSTER_NAME","local") != "prod-fss") {
+        if (getEnvVar("NAIS_CLUSTER_NAME", "local") != "prod-fss") {
             log.info("Sending in request to frikort with body " + xmlMarshaller.marshal(it))
         }
     }
