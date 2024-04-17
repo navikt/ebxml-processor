@@ -4,6 +4,7 @@ import com.jcraft.jsch.SftpException
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.get
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
 import io.ktor.server.response.respond
@@ -233,7 +234,7 @@ fun Route.mailRead(): Route = get("/mail/read") {
 fun Route.testAzureAuthToCpaRepo(): Route = get("/testCpaRepoConnection") {
     val cpaRepoClient = getCpaRepoAuthenticatedClient()
     call.respond(
-        cpaRepoClient.get("$URL_CPA_REPO_BASE/whoami")
+        cpaRepoClient.get("$URL_CPA_REPO_BASE/whoami").bodyAsText()
     )
 }
 

@@ -52,7 +52,7 @@ dependencyResolutionManagement {
             library("jakarta.xml.bind-api", "jakarta.xml.bind:jakarta.xml.bind-api:4.0.0")
             library("ebxml-protokoll", "no.nav.emottak:ebxml-protokoll:0.0.6")
             library("ktor-server-auth-jvm", "io.ktor:ktor-server-auth-jvm:2.3.8")
-            library("token-validation-ktor-v2", "no.nav.security:token-validation-ktor-v2:3.0.0-SNAPSHOT")
+            library("token-validation-ktor-v2", "no.nav.security:token-validation-ktor-v2:4.1.4")
             library("flyway-core", "org.flywaydb:flyway-core:9.16.3")
             library("emottak-payload-xsd", "no.nav.emottak:emottak-payload-xsd:0.0.2")
             library("jaxb-runtime", "org.glassfish.jaxb:jaxb-runtime:2.4.0-b180830.0438")

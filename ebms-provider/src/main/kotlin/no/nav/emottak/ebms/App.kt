@@ -25,6 +25,7 @@ import io.ktor.http.content.PartData
 import io.ktor.http.content.forEachPart
 import io.ktor.http.content.streamProvider
 import io.ktor.http.contentType
+import io.ktor.http.headers
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
@@ -111,17 +112,19 @@ fun sendInAuthHttpClient(): () -> HttpClient {
             install(Auth) {
                 bearer {
                     refreshTokens {
+                        val clientId = getEnvVar("AZURE_APP_CLIENT_ID", "ebms-send-in")
+                        val azureEndpoint = getEnvVar(
+                            "AZURE_OPENID_CONFIG_TOKEN_ENDPOINT",
+                            "http://localhost:3344/$AZURE_AD_AUTH/token"
+                        )
                         val requestBody =
-                            "client_id=" + getEnvVar("AZURE_APP_CLIENT_ID", "ebms-send-in") +
+                            "client_id=" + clientId +
                                 "&client_secret=" + getEnvVar("AZURE_APP_CLIENT_SECRET", "dummysecret") +
                                 "&scope=" + EBMS_SEND_IN_SCOPE +
                                 "&grant_type=client_credentials"
-
+                        log.info("sendInAuthHttpClient() -> refreshTokens: client_id: $clientId, scope: $EBMS_SEND_IN_SCOPE, doing a post request to $azureEndpoint")
                         HttpClient(CIO).post(
-                            getEnvVar(
-                                "AZURE_OPENID_CONFIG_TOKEN_ENDPOINT",
-                                "http://localhost:3344/$AZURE_AD_AUTH/token"
-                            )
+                            azureEndpoint
                         ) {
                             headers {
                                 header("Content-Type", "application/x-www-form-urlencoded")
@@ -129,11 +132,13 @@ fun sendInAuthHttpClient(): () -> HttpClient {
                             setBody(requestBody)
                         }.bodyAsText()
                             .let { tokenResponseString ->
+                                log.info("The token response string we received was: $tokenResponseString")
                                 SignedJWT.parse(
                                     LENIENT_JSON_PARSER.decodeFromString<Map<String, String>>(tokenResponseString)["access_token"] as String
                                 )
                             }
                             .let { parsedJwt ->
+                                log.info("After parsing it, we got: $parsedJwt")
                                 BearerTokens(parsedJwt.serialize(), "refresh token is unused")
                             }
                     }
@@ -191,6 +196,7 @@ fun Application.ebmsProviderModule() {
             }.bodyAsText()
 
             log.info("/test-auth: Received result from ebms-send-in's /test-auth: $result")
+            call.respondText("Response from /test-auth: $result")
         }
         registerHealthEndpoints(appMicrometerRegistry)
         postEbmsAsync(validator, processing)

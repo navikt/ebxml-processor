@@ -6,7 +6,8 @@ import no.nav.security.token.support.v2.TokenSupportConfig
 
 val CPA_REPO_SCOPE = getEnvVar(
     "CPA_REPO_SCOPE",
-    "api://" + getEnvVar("NAIS_CLUSTER_NAME", "dev-fss") + ".team-emottak.cpa-repo/.default"
+    "api://" + getEnvVar("NAIS_CLUSTER_NAME", "dev-fss") +
+        ".team-emottak.cpa-repo/.default"
 )
 
 class Security {
@@ -18,7 +19,8 @@ class Security {
                 "AZURE_APP_WELL_KNOWN_URL",
                 "http://localhost:3344/$TENANT_ID/.well-known/openid-configuration"
             ),
-            acceptedAudience = listOf("default", CPA_REPO_SCOPE)
+            optionalClaims = listOf("aud")
+            // acceptedAudience = listOf("default", CPA_REPO_SCOPE)
         )
     )
 }
