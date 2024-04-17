@@ -15,15 +15,7 @@ class Security {
                 "AZURE_APP_WELL_KNOWN_URL",
                 "http://localhost:3344/$TENANT_ID/.well-known/openid-configuration"
             ),
-            acceptedAudience = listOf(
-                "default",
-                getEnvVar(
-                    "EBMS_SEND_IN_SCOPE",
-                    "api://" + getEnvVar("NAIS_CLUSTER_NAME", "dev-fss") + ".team-emottak.ebms-send-in/.default"
-                )
-            ),
             optionalClaims = listOf("aud")
-
         )
     )
 }
