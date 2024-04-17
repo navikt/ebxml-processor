@@ -21,7 +21,9 @@ class Security {
                     "EBMS_SEND_IN_SCOPE",
                     "api://" + getEnvVar("NAIS_CLUSTER_NAME", "dev-fss") + ".team-emottak.ebms-send-in/.default"
                 )
-            )
+            ),
+            optionalClaims = listOf("aud")
+
         )
     )
 }
