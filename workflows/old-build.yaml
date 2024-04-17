@@ -1,7 +1,7 @@
-name: "Build and deploy ebms-provider"
+name: "Build and deploy provider, cpa, payload & send-in"
 on:
   push:
-    branches: # Do not use
+    branches:
     - main
     - dev/**
 env:

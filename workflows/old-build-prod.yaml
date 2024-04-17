@@ -1,4 +1,4 @@
-name: "Build and deploy ebms-provider"
+name: "PROD: Build and deploy smtp-listeners, send-in"
 on:
   workflow_dispatch:
     branches:
