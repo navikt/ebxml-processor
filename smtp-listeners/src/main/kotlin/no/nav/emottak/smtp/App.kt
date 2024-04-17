@@ -25,8 +25,8 @@ fun Application.myApplicationModule() {
             mailCheck()
             mailRead()
             logOutgoing()
+            testAzureAuthToCpaRepo()
         }
-
         cpaSync()
         testCpaIProd()
     }

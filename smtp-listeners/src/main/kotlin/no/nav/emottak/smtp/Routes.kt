@@ -3,6 +3,7 @@ package no.nav.emottak.smtp
 import com.jcraft.jsch.SftpException
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
+import io.ktor.client.request.get
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
 import io.ktor.server.response.respond
@@ -19,6 +20,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.withContext
 import net.logstash.logback.marker.Markers
+import no.nav.emottak.URL_CPA_REPO_BASE
 import no.nav.emottak.deleteCPAinCPARepo
 import no.nav.emottak.getCPATimestamps
 import no.nav.emottak.getCpaRepoAuthenticatedClient
@@ -226,6 +228,13 @@ fun Route.mailRead(): Route = get("/mail/read") {
         call.respond(it.localizedMessage)
     }
     logBccMessages()
+}
+
+fun Route.testAzureAuthToCpaRepo(): Route = get("/testCpaRepoConnection") {
+    val cpaRepoClient = getCpaRepoAuthenticatedClient()
+    call.respond(
+        cpaRepoClient.get("$URL_CPA_REPO_BASE/whoami")
+    )
 }
 
 fun Route.logOutgoing(): Route = get("/mail/log/outgoing") {

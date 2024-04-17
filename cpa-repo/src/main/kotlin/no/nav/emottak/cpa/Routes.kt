@@ -32,6 +32,7 @@ import no.nav.emottak.melding.model.SignatureDetailsRequest
 import no.nav.emottak.melding.model.ValidationRequest
 import no.nav.emottak.melding.model.ValidationResult
 import no.nav.emottak.util.createX509Certificate
+import no.nav.emottak.util.getEnvVar
 import no.nav.emottak.util.marker
 import no.nav.security.token.support.v2.TokenValidationContextPrincipal
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
@@ -42,9 +43,13 @@ import java.util.*
 fun Route.whoAmI(): Route = get("/whoami") {
     log.info("whoAmI")
     val principal: TokenValidationContextPrincipal? = call.authentication.principal()
-    call.respond(
-        principal?.context?.anyValidClaims?.getStringClaim("NAVident") ?: "NULL"
-    )
+    if (principal != null && "dev-fss" == getEnvVar("NAIS_CLUSTER_NAME", "dev-fss")) {
+        call.respond("Gyldig: " + principal.context.getJwtToken(AZURE_AD_AUTH)?.encodedToken)
+    } else {
+        call.respond(
+            principal?.context?.anyValidClaims?.getStringClaim("NAVident") ?: "NULL"
+        )
+    }
 }
 
 fun Route.getCPA(cpaRepository: CPARepository): Route = get("/cpa/{$CPA_ID}") {

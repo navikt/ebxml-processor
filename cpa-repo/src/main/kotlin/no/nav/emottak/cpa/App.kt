@@ -9,6 +9,7 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
+import io.ktor.server.auth.authenticate
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.metrics.micrometer.MicrometerMetrics
 import io.ktor.server.netty.Netty
@@ -77,12 +78,12 @@ fun cpaApplicationModule(cpaDbConfig: HikariConfig, cpaMigrationConfig: HikariCo
 
             // TODO Bare kluss i DEV-FSS pga flytting til Azure AD. Lar denne ligge foreløpig.
             // if (canInitAuthenticatedRoutes()) { // TODO gjerne få til dette med 1 usage av canInit
-            // authenticate(AZURE_AD_AUTH) {
-            whoAmI()
+            authenticate(AZURE_AD_AUTH) {
+                whoAmI()
+            }
             deleteCpa(cpaRepository)
             deleteAllCPA(cpaRepository)
             postCpa(cpaRepository)
-            // }
             // }
         }
     }
