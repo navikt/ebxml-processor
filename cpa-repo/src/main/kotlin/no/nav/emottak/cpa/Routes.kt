@@ -101,7 +101,10 @@ fun Route.partnerId(partnerRepository: PartnerRepository, cpaRepository: CPARepo
 fun Route.deleteCpa(cpaRepository: CPARepository): Route = delete("/cpa/delete/{$CPA_ID}") {
     val cpaId = call.parameters[CPA_ID] ?: throw BadRequestException("Mangler $CPA_ID")
     cpaRepository.deleteCpa(cpaId)
-    call.respond("$cpaId slettet!")
+    "$cpaId slettet!".let {
+        log.info(it)
+        call.respond(it)
+    }
 }
 
 fun Route.getTimeStamps(cpaRepository: CPARepository): Route = get("/cpa/timestamps") {
