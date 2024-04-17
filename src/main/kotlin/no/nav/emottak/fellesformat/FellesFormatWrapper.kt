@@ -1,11 +1,14 @@
 package no.nav.emottak.fellesformat
 
 import no.kith.xmlstds.msghead._2006_05_24.MsgHead
+import no.nav.emottak.ebms.log
 import no.nav.emottak.frikort.unmarshal
+import no.nav.emottak.frikort.xmlMarshaller
 import no.nav.emottak.melding.model.Addressing
 import no.nav.emottak.melding.model.Party
 import no.nav.emottak.melding.model.PartyId
 import no.nav.emottak.melding.model.SendInRequest
+import no.nav.emottak.util.getEnvVar
 import no.nav.emottak.util.toXMLGregorianCalendar
 import no.trygdeetaten.xml.eiff._1.EIFellesformat
 import no.trygdeetaten.xml.eiff._1.ObjectFactory
@@ -27,6 +30,10 @@ fun wrapMessageInEIFellesFormat(sendInRequest: SendInRequest): EIFellesformat =
     fellesFormatFactory.createEIFellesformat().also {
         it.mottakenhetBlokk = createFellesFormatMottakEnhetBlokk(sendInRequest.messageId, sendInRequest.conversationId, sendInRequest.addressing)
         it.msgHead = unmarshal(sendInRequest.payload.toString(Charsets.UTF_8), MsgHead::class.java)
+    }.also {
+        if (getEnvVar("NAIS_CLUSTER_NAME", "local") != "prod-fss") {
+            log.info("Sending in request to frikort with body " + xmlMarshaller.marshal(it))
+        }
     }
 
 private fun createFellesFormatMottakEnhetBlokk(mottaksId: String, conversationId: String, addressing: Addressing): EIFellesformat.MottakenhetBlokk =
