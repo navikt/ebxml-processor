@@ -186,7 +186,7 @@ fun Application.ebmsProviderModule() {
 
         get("/test-auth") {
             val httpClient = sendInHttpClient.invoke()
-            val result = httpClient.get("http://ebms-send-in/") {
+            val result = httpClient.get("http://ebms-send-in/test-auth") {
                 contentType(ContentType.Application.Json)
             }.bodyAsText()
 
