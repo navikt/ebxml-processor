@@ -10,6 +10,9 @@ import no.nav.emottak.util.toXMLGregorianCalendar
 import no.trygdeetaten.xml.eiff._1.EIFellesformat
 import no.trygdeetaten.xml.eiff._1.ObjectFactory
 import java.time.Instant
+import no.nav.emottak.ebms.log
+import no.nav.emottak.frikort.xmlMarshaller
+import no.nav.emottak.util.getEnvVar
 
 private val fellesFormatFactory = ObjectFactory()
 
@@ -27,6 +30,10 @@ fun wrapMessageInEIFellesFormat(sendInRequest: SendInRequest): EIFellesformat =
     fellesFormatFactory.createEIFellesformat().also {
         it.mottakenhetBlokk = createFellesFormatMottakEnhetBlokk(sendInRequest.messageId, sendInRequest.conversationId, sendInRequest.addressing)
         it.msgHead = unmarshal(sendInRequest.payload.toString(Charsets.UTF_8), MsgHead::class.java)
+    }.also {
+        if (getEnvVar("NAIS_CLUSTER_NAME") != "prod-fss") {
+            log.info("Sending in request to frikort with body " + xmlMarshaller.marshal(it))
+        }
     }
 
 private fun createFellesFormatMottakEnhetBlokk(mottaksId: String, conversationId: String, addressing: Addressing): EIFellesformat.MottakenhetBlokk =
