@@ -20,24 +20,3 @@ class Security {
         )
     )
 }
-
-val CPA_REPO_SCOPE = getEnvVar(
-    "CPA_REPO_SCOPE",
-    "api://" + getEnvVar("NAIS_CLUSTER_NAME", "dev-fss") +
-        ".team-emottak.cpa-repo/.default"
-)
-
-class Security {
-    val TENANT_ID = getEnvVar("AZURE_APP_TENANT_ID", AZURE_AD_AUTH)
-    val config = TokenSupportConfig(
-        IssuerConfig(
-            name = AZURE_AD_AUTH,
-            discoveryUrl = getEnvVar(
-                "AZURE_APP_WELL_KNOWN_URL",
-                "http://localhost:3344/$TENANT_ID/.well-known/openid-configuration"
-            ),
-            optionalClaims = listOf("aud")
-            // acceptedAudience = listOf("default", CPA_REPO_SCOPE)
-        )
-    )
-}
