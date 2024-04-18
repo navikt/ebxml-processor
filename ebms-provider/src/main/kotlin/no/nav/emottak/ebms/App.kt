@@ -4,6 +4,7 @@
 package no.nav.emottak.ebms
 
 import com.nimbusds.jwt.SignedJWT
+import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorRuntime
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.auth.Auth
@@ -79,6 +80,9 @@ fun main() {
     // val database = Database(mapHikariConfig(DatabaseConfig()))
     // database.migrate()
     System.setProperty("io.ktor.http.content.multipart.skipTempFile", "true")
+    if (getEnvVar("NAIS_CLUSTER_NAME","local") != "prod-fss") {
+        DecoroutinatorRuntime.load()
+    }
     embeddedServer(Netty, port = 8080, module = Application::ebmsProviderModule, configure = {
         this.maxChunkSize = 100000
     }).start(wait = true)
