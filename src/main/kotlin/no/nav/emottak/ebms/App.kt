@@ -1,5 +1,6 @@
 package no.nav.emottak.ebms
 
+import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorRuntime
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
@@ -28,6 +29,7 @@ import no.nav.emottak.frikort.marshal
 import no.nav.emottak.frikort.unmarshal
 import no.nav.emottak.melding.model.SendInRequest
 import no.nav.emottak.melding.model.SendInResponse
+import no.nav.emottak.util.getEnvVar
 import no.nav.emottak.util.marker
 import no.nav.security.token.support.v2.tokenValidationSupport
 import no.nav.tjeneste.ekstern.frikort.v1.types.FrikortsporringRequest
@@ -39,6 +41,10 @@ internal val log = LoggerFactory.getLogger("no.nav.emottak.ebms.App")
 fun main() {
     // val database = Database(mapHikariConfig(DatabaseConfig()))
     // database.migrate()
+
+    if (getEnvVar("NAIS_CLUSTER_NAME", "local") != "prod-fss") {
+        DecoroutinatorRuntime.load()
+    }
     System.setProperty("io.ktor.http.content.multipart.skipTempFile", "true")
     embeddedServer(Netty, port = 8080, module = Application::ebmsSendInModule, configure = {
         this.maxChunkSize = 100000
