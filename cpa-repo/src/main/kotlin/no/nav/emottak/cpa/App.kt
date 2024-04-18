@@ -2,6 +2,7 @@ package no.nav.emottak.cpa
 
 import com.github.dockerjava.zerodep.shaded.org.apache.commons.codec.binary.Base64
 import com.zaxxer.hikari.HikariConfig
+import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorRuntime
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.get
@@ -27,12 +28,16 @@ import no.nav.emottak.cpa.persistence.cpaDbConfig
 import no.nav.emottak.cpa.persistence.cpaMigrationConfig
 import no.nav.emottak.cpa.persistence.gammel.PartnerRepository
 import no.nav.emottak.cpa.persistence.oracleConfig
+import no.nav.emottak.util.getEnvVar
 import no.nav.security.token.support.v2.tokenValidationSupport
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 import org.slf4j.LoggerFactory
 
 internal val log = LoggerFactory.getLogger("no.nav.emottak.cpa.App")
 fun main() {
+    if (getEnvVar("NAIS_CLUSTER_NAME", "local") != "prod-fss") {
+        DecoroutinatorRuntime.load()
+    }
     embeddedServer(
         Netty,
         port = 8080,

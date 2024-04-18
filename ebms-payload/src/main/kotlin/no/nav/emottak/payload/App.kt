@@ -1,5 +1,6 @@
 package no.nav.emottak.payload
 
+import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorRuntime
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
@@ -28,10 +29,14 @@ import no.nav.emottak.payload.util.unmarshal
 import no.nav.emottak.util.marker
 import org.slf4j.LoggerFactory
 import java.util.UUID
+import no.nav.emottak.util.getEnvVar
 
 val processor = Processor()
 internal val log = LoggerFactory.getLogger("no.nav.emottak.payload")
 fun main() {
+    if (getEnvVar("NAIS_CLUSTER_NAME", "local") != "prod-fss") {
+        DecoroutinatorRuntime.load()
+    }
     embeddedServer(Netty, port = 8080) {
         serverSetup()
     }.start(wait = true)
