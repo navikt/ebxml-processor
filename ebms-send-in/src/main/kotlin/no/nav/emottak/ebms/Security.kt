@@ -16,7 +16,6 @@ class Security {
                 "http://localhost:3344/$TENANT_ID/.well-known/openid-configuration"
             ),
             optionalClaims = listOf("aud")
-
         )
     )
 }

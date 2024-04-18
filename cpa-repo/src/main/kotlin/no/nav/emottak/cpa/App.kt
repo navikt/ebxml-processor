@@ -19,13 +19,14 @@ import io.ktor.server.routing.routing
 import io.micrometer.prometheus.PrometheusConfig
 import io.micrometer.prometheus.PrometheusMeterRegistry
 import kotlinx.coroutines.runBlocking
+import no.nav.emottak.cpa.auth.AZURE_AD_AUTH
+import no.nav.emottak.cpa.auth.AuthConfig
 import no.nav.emottak.cpa.persistence.CPARepository
 import no.nav.emottak.cpa.persistence.Database
 import no.nav.emottak.cpa.persistence.cpaDbConfig
 import no.nav.emottak.cpa.persistence.cpaMigrationConfig
 import no.nav.emottak.cpa.persistence.gammel.PartnerRepository
 import no.nav.emottak.cpa.persistence.oracleConfig
-import no.nav.emottak.util.getEnvVar
 import no.nav.security.token.support.v2.tokenValidationSupport
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 import org.slf4j.LoggerFactory
@@ -42,8 +43,6 @@ fun main() {
         )
     ).start(wait = true)
 }
-
-const val AZURE_AD_AUTH = "AZURE_AD"
 
 fun cpaApplicationModule(
     cpaDbConfig: HikariConfig,
@@ -64,11 +63,11 @@ fun cpaApplicationModule(
             registry = appMicrometerRegistry
         }
 
-        if (canInitAuthenticatedRoutes()) { // TODO gjerne få til dette med 1 usage av canInit
-            install(Authentication) {
-                tokenValidationSupport(AZURE_AD_AUTH, Security().config)
-            }
+        // if (canInitAuthenticatedRoutes()) { // TODO gjerne få til dette med 1 usage av canInit
+        install(Authentication) {
+            tokenValidationSupport(AZURE_AD_AUTH, AuthConfig.getTokenSupportConfig())
         }
+        // }
 
         routing {
             if (oracleDb != null) {
@@ -96,17 +95,12 @@ fun cpaApplicationModule(
 }
 
 fun canInitAuthenticatedRoutes(): Boolean {
-    // muligens gjenbrukbar løsning?
-    val TENANT_ID = getEnvVar("AZURE_APP_TENANT_ID", AZURE_AD_AUTH)
-    val AZURE_WELL_KNOWN_URL = getEnvVar(
-        "AZURE_APP_WELL_KNOWN_URL",
-        "http://localhost:3344/$TENANT_ID/.well-known/openid-configuration"
-    )
-    if (AZURE_WELL_KNOWN_URL.contains("localhost")) {
+    val azureWellKnownUrl = AuthConfig.getAzureWellKnownUrl()
+    if (azureWellKnownUrl.contains("localhost")) {
         return runBlocking {
             runCatching {
                 HttpClient(CIO) {
-                }.get(AZURE_WELL_KNOWN_URL).bodyAsText()
+                }.get(azureWellKnownUrl).bodyAsText()
             }.onFailure {
                 log.warn("Skipping authenticated endpoint initialization. (No connection to Oauth2Server)")
                 return@runBlocking false
