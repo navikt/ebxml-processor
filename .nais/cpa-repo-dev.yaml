@@ -67,3 +67,6 @@ spec:
         - host: crl.test4.buypassca.com
           ports:
             - port: 80
+        - host: crl.test.commfides.com
+          ports:
+            - port: 80
