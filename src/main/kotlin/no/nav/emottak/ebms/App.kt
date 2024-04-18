@@ -80,7 +80,7 @@ fun main() {
     // val database = Database(mapHikariConfig(DatabaseConfig()))
     // database.migrate()
     System.setProperty("io.ktor.http.content.multipart.skipTempFile", "true")
-    if (getEnvVar("NAIS_CLUSTER_NAME","local") != "prod-fss") {
+    if (getEnvVar("NAIS_CLUSTER_NAME", "local") != "prod-fss") {
         DecoroutinatorRuntime.load()
     }
     embeddedServer(Netty, port = 8080, module = Application::ebmsProviderModule, configure = {
