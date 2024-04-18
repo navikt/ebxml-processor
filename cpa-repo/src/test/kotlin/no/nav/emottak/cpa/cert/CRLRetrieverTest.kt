@@ -14,9 +14,9 @@ class CRLRetrieverTest {
         val list = runBlocking {
             crlRetriever.updateAllCRLs()
         }
-        assert(defaultCAList.isNotEmpty())
-        assertEquals(defaultCAList.size, list.size)
-        defaultCAList.forEach { caEntry ->
+        assert(defaultCRLLists.isNotEmpty())
+        assertEquals(defaultCRLLists.size, list.size)
+        defaultCRLLists.forEach { caEntry ->
             assertContains(list.map { it.x500Name }, X500Name(caEntry.key), "List of CRL should contain entry for ${caEntry.key}")
         }
     }

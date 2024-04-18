@@ -15,7 +15,7 @@ import java.security.cert.X509CRL
 
 class CRLRetriever(
     private val httpClient: HttpClient,
-    private val issuerList: Map<String, String> = defaultCAList
+    private val issuerList: Map<String, String> = defaultCRLLists
 ) {
     suspend fun updateAllCRLs(): List<CRL> {
         log.info("Oppdatering av alle CRLer startet...")
