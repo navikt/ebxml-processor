@@ -26,10 +26,10 @@ import no.nav.emottak.melding.model.PayloadRequest
 import no.nav.emottak.melding.model.PayloadResponse
 import no.nav.emottak.payload.util.marshal
 import no.nav.emottak.payload.util.unmarshal
+import no.nav.emottak.util.getEnvVar
 import no.nav.emottak.util.marker
 import org.slf4j.LoggerFactory
 import java.util.UUID
-import no.nav.emottak.util.getEnvVar
 
 val processor = Processor()
 internal val log = LoggerFactory.getLogger("no.nav.emottak.payload")
