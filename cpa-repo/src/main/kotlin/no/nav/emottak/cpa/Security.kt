@@ -19,8 +19,8 @@ class Security {
                 "AZURE_APP_WELL_KNOWN_URL",
                 "http://localhost:3344/$TENANT_ID/.well-known/openid-configuration"
             ),
-            optionalClaims = listOf("aud")
-            // acceptedAudience = listOf("default", CPA_REPO_SCOPE)
+            // optionalClaims = listOf("aud")
+            acceptedAudience = listOf("default", getEnvVar("AZURE_APP_CLIENT_ID", CPA_REPO_SCOPE))
         )
     )
 }

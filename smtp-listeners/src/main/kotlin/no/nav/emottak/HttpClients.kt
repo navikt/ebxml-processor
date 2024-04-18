@@ -103,7 +103,6 @@ fun HttpClientConfig<*>.installCpaRepoAuthentication() {
             }
             sendWithoutRequest {
                 true
-                // request -> request.url.host == URL_CPA_REPO_BASE
             }
         }
     }

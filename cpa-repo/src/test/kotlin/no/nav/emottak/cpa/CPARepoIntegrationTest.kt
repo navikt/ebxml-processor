@@ -238,15 +238,12 @@ class CPARepoIntegrationTest : DBTest() {
         )
     }
 
-    // @Test
+    @Test
     fun `Should require valid token`() = cpaRepoTestApp {
         val token = mockOAuth2Server
             .issueToken(
                 AZURE_AD_AUTH,
-                "testUser",
-                claims = mapOf(
-                    "NAVident" to "X112233"
-                )
+                "testUser"
             )
         val httpClient = createClient {
             install(ContentNegotiation) {
@@ -260,7 +257,7 @@ class CPARepoIntegrationTest : DBTest() {
                     token.serialize()
             )
         }
-        assertEquals("X112233", response.bodyAsText())
+        assertTrue(response.bodyAsText().contains("Gyldig"))
     }
 
     // @Test
@@ -274,7 +271,7 @@ class CPARepoIntegrationTest : DBTest() {
         assertNotEquals("nav:qass:35065 slettet!", response.bodyAsText())
     }
 
-    // @Test
+    @Test
     fun `Delete CPA should result in deletion`() = cpaRepoTestApp {
         val c = createClient {
             install(ContentNegotiation) {
