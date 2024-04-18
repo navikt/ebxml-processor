@@ -17,7 +17,7 @@ class AuthConfig {
                 IssuerConfig(
                     name = AZURE_AD_AUTH,
                     discoveryUrl = getAzureWellKnownUrl(),
-                    acceptedAudience = listOf("default", getScope())
+                    acceptedAudience = getAcceptedAudience()
                 )
             )
         }
@@ -40,6 +40,10 @@ class AuthConfig {
                 "AZURE_OPENID_CONFIG_TOKEN_ENDPOINT",
                 "http://localhost:3344/$AZURE_AD_AUTH/token"
             )
+        }
+
+        private fun getAcceptedAudience(): List<String> {
+            return listOf("default", getEnvVar("AZURE_APP_CLIENT_ID", getScope()))
         }
     }
 }
