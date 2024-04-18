@@ -19,7 +19,8 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import io.micrometer.prometheus.PrometheusConfig
 import io.micrometer.prometheus.PrometheusMeterRegistry
-import no.nav.emottak.fellesformat.addressing
+import no.nav.emottak.auth.AZURE_AD_AUTH
+import no.nav.emottak.auth.AuthConfig
 import no.nav.emottak.fellesformat.wrapMessageInEIFellesFormat
 import no.nav.emottak.frikort.frikortClient
 import no.nav.emottak.frikort.frikortsporring
@@ -54,7 +55,7 @@ fun Application.ebmsSendInModule() {
     }
 
     install(Authentication) {
-        tokenValidationSupport(AZURE_AD_AUTH, Security().config)
+        tokenValidationSupport(AZURE_AD_AUTH, AuthConfig.getTokenSupportConfig())
     }
 
     routing {
