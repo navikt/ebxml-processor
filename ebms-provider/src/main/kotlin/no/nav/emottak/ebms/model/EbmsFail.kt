@@ -7,6 +7,7 @@ import no.nav.emottak.melding.model.Addressing
 import no.nav.emottak.melding.model.Feil
 import no.nav.emottak.melding.model.asErrorList
 import org.w3c.dom.Document
+import org.xmlsoap.schemas.soap.envelope.Body
 import org.xmlsoap.schemas.soap.envelope.ObjectFactory
 import java.util.UUID
 
@@ -29,6 +30,7 @@ data class EbmsFail(
             it.header = header.also {
                 it.any.add(this.feil.asErrorList())
             }
+            it.body = Body()
         }.let {
             xmlMarshaller.marshal(it)
         }.let {
