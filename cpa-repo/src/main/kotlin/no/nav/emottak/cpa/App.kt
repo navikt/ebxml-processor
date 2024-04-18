@@ -63,11 +63,11 @@ fun cpaApplicationModule(
             registry = appMicrometerRegistry
         }
 
-        // if (canInitAuthenticatedRoutes()) { // TODO gjerne få til dette med 1 usage av canInit
-        install(Authentication) {
-            tokenValidationSupport(AZURE_AD_AUTH, AuthConfig.getTokenSupportConfig())
+        if (canInitAuthenticatedRoutes()) {
+            install(Authentication) {
+                tokenValidationSupport(AZURE_AD_AUTH, AuthConfig.getTokenSupportConfig())
+            }
         }
-        // }
 
         routing {
             if (oracleDb != null) {
