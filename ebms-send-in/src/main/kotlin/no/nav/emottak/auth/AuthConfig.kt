@@ -1,4 +1,4 @@
-package no.nav.emottak.cpa.auth
+package no.nav.emottak.auth
 
 import no.nav.emottak.util.getEnvVar
 import no.nav.security.token.support.v2.IssuerConfig
@@ -6,8 +6,8 @@ import no.nav.security.token.support.v2.TokenSupportConfig
 
 const val AZURE_AD_AUTH = "AZURE_AD"
 
-private const val appName = "cpa-repo"
-private const val appScopeProperty = "CPA_REPO_SCOPE"
+private const val appName = "ebms-send-in"
+private const val appScopeProperty = "EBMS_SEND_IN_SCOPE"
 
 class AuthConfig {
 
