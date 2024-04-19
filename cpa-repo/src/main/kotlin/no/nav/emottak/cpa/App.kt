@@ -87,14 +87,14 @@ fun cpaApplicationModule(
             registerHealthEndpoints(appMicrometerRegistry)
 
             // TODO Bare kluss i DEV-FSS pga flytting til Azure AD. Lar denne ligge foreløpig.
-            // if (canInitAuthenticatedRoutes()) { // TODO gjerne få til dette med 1 usage av canInit
-            authenticate(AZURE_AD_AUTH) {
-                whoAmI()
+            if (canInitAuthenticatedRoutes()) { // TODO gjerne få til dette med 1 usage av canInit
+                authenticate(AZURE_AD_AUTH) {
+                    whoAmI()
+                }
+                deleteCpa(cpaRepository)
+                deleteAllCPA(cpaRepository)
+                postCpa(cpaRepository)
             }
-            deleteCpa(cpaRepository)
-            deleteAllCPA(cpaRepository)
-            postCpa(cpaRepository)
-            // }
         }
     }
 }

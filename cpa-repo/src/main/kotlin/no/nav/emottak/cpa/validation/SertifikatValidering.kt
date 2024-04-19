@@ -37,7 +37,7 @@ val trustStoreConfig = object : KeyStoreConfig {
 }
 
 fun resolveDefaultTruststorePath(): String? {
-    return when (getEnvVar("NAIS_CLUSTER_NAME")) {
+    return when (getEnvVar("NAIS_CLUSTER_NAME", "lokaltest")) {
         "dev-fss", "prod-fss" -> null
         else -> "truststore.p12" // basically lokal test
     }
