@@ -45,6 +45,9 @@ spec:
       - kvPath: /oracle/data/dev/config/emottak_q1
         mountPath: /secrets/oracle/config
   webproxy: true
+  env:
+    - name: TRUSTSTORE_PATH
+      value: truststore_test.p12
 #  gcp:
 #    sqlInstances:
 #        - type: POSTGRES_15

@@ -35,16 +35,15 @@ class KeyStore(private val keyStoreConfig: KeyStoreConfig) {
             try {
                 log.debug("Getting store file from $storePath")
                 if (File(storePath).exists()) {
-                    log.debug("Getting store file from file <$storePath>")
+                    log.info("Getting store file from file <$storePath>")
                     FileInputStream(storePath)
                 } else {
-                    log.debug("Getting store file from resources <$storePath>")
+                    log.info("Getting store file from resources <$storePath>")
                     ByteArrayInputStream(this::class.java.classLoader.getResourceAsStream(storePath).readBytes())
                 }
             } catch (e: Exception) {
-                //TODO Kast exception om keystore ikke kan leses
                 log.error("Unable to load keystore $storePath falling back to truststore", e)
-                ByteArrayInputStream(this::class.java.classLoader.getResourceAsStream("truststore_test.p12").readBytes())
+                throw RuntimeException("Unable to load keystore $storePath", e)
             }
         keyStore!!.load(fileContent, storePass)
         return keyStore
