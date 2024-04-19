@@ -42,9 +42,6 @@ fun main() {
     // val database = Database(mapHikariConfig(DatabaseConfig()))
     // database.migrate()
 
-    if (getEnvVar("NAIS_CLUSTER_NAME", "local") != "prod-fss") {
-        DecoroutinatorRuntime.load()
-    }
     System.setProperty("io.ktor.http.content.multipart.skipTempFile", "true")
     embeddedServer(Netty, port = 8080, module = Application::ebmsSendInModule, configure = {
         this.maxChunkSize = 100000
@@ -62,6 +59,10 @@ fun Application.ebmsSendInModule() {
 
     install(Authentication) {
         tokenValidationSupport(AZURE_AD_AUTH, AuthConfig.getTokenSupportConfig())
+    }
+
+    if (getEnvVar("NAIS_CLUSTER_NAME", "local") != "prod-fss") {
+        DecoroutinatorRuntime.load()
     }
 
     routing {
