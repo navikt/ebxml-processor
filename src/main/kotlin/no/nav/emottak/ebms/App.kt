@@ -329,6 +329,7 @@ suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbMSDocument) {
 
     this.response.headers.apply {
         this.append(MimeHeaders.CONTENT_TYPE, ContentType.Text.Xml.toString())
+        this.append(MimeHeaders.SOAP_ACTION, "ebXML")
     }
     if (ebmsDokument.dokumentType() == DokumentType.PAYLOAD) {
         val ebxml = Base64.getMimeEncoder().encodeToString(ebmsDokument.dokument.asString().toByteArray())
@@ -369,7 +370,6 @@ suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbMSDocument) {
     } else {
         this.response.headers.append(MimeHeaders.CONTENT_TYPE, ContentType.Text.Xml.toString())
         this.response.headers.append(MimeHeaders.CONTENT_TRANSFER_ENCODING, "8bit")
-        this.response.headers.append(MimeHeaders.SOAP_ACTION, "ebXML")
         this.respondText(status = HttpStatusCode.OK, text = ebmsDokument.dokument.asString())
     }
 }
