@@ -333,11 +333,12 @@ suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbMSDocument) {
     }
     if (ebmsDokument.dokumentType() == DokumentType.PAYLOAD) {
         val ebxml = Base64.getMimeEncoder().encodeToString(ebmsDokument.dokument.asString().toByteArray())
+        val contentId = UUID.randomUUID().toString()
         val ebxmlFormItem = PartData.FormItem(
             ebxml,
             {},
             HeadersBuilder().apply {
-                this.append(MimeHeaders.CONTENT_ID, UUID.randomUUID().toString())
+                this.append(MimeHeaders.CONTENT_ID, contentId)
                 this.append(MimeHeaders.CONTENT_TYPE, ContentType.Text.Xml.toString())
                 this.append(MimeHeaders.CONTENT_TRANSFER_ENCODING, "base64")
             }.build()
@@ -359,12 +360,13 @@ suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbMSDocument) {
         }
         this.response.headers.append(MimeHeaders.CONTENT_TRANSFER_ENCODING, "8bit")
         val boundary = "------=_Part" + System.currentTimeMillis() + "." + System.nanoTime()
+        val start = """"$contentId""""
         this.respond(
             HttpStatusCode.OK,
             MultiPartFormDataContent(
                 parts,
                 boundary,
-                ContentType.parse("""multipart/related;type="text/xml";boundary="$boundary"""")
+                ContentType.parse("""multipart/related;boundary="$boundary";start=$start;type="text/xml"""")
             )
         )
     } else {
