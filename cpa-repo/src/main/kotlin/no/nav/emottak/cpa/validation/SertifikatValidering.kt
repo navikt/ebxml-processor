@@ -31,9 +31,16 @@ import java.util.Date
 internal val log = LoggerFactory.getLogger("no.nav.emottak.cpa.validation.SertifikatValidering")
 
 val trustStoreConfig = object : KeyStoreConfig {
-    override val keystorePath: String = getEnvVar("TRUSTSTORE_PATH")
+    override val keystorePath: String = getEnvVar("TRUSTSTORE_PATH", resolveDefaultTruststorePath())
     override val keyStorePwd: String = getEnvVar("TRUSTSTORE_PWD", "123456789")
     override val keyStoreStype: String = "PKCS12"
+}
+
+fun resolveDefaultTruststorePath(): String? {
+    return when (getEnvVar("NAIS_CLUSTER_NAME")) {
+        "dev-fss", "prod-fss" -> null
+        else -> "truststore.p12" // basically lokal test
+    }
 }
 
 private val sertifikatValidering = lazy {
