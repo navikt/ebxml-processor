@@ -48,7 +48,7 @@ dependencies {
     implementation(libs.bundles.logging)
     implementation(libs.bundles.prometheus)
     implementation(libs.emottak.payload.xsd)
-
+    runtimeOnly("net.java.dev.jna:jna:5.12.1")
     testImplementation(testLibs.junit.jupiter.api)
     testRuntimeOnly(testLibs.junit.jupiter.engine)
     implementation(kotlin("stdlib-jdk8"))
