@@ -67,6 +67,6 @@ spec:
             - port: 80
   env:
     - name: VAULT_JDBC_URL
-      value: b27dbvl033.preprod.local
+      value: jdbc:postgresql://b27dbvl033.preprod.local:5432/
     - name: TRUSTSTORE_PATH
       value: truststore_test.p12

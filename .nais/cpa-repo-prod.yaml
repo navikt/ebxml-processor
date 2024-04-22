@@ -62,6 +62,6 @@ spec:
             - port: 80
   env:
     - name: VAULT_JDBC_URL
-      value: A01DBVL037.adeo.no
+      value: jdbc:postgresql://A01DBVL037.adeo.no:5432/
     - name: TRUSTSTORE_PATH
       value: truststore_prod.p12
