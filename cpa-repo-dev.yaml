@@ -45,14 +45,6 @@ spec:
       - kvPath: /oracle/data/dev/config/emottak_q1
         mountPath: /secrets/oracle/config
   webproxy: true
-  env:
-    - name: TRUSTSTORE_PATH
-      value: truststore_test.p12
-#  gcp:
-#    sqlInstances:
-#        - type: POSTGRES_15
-#          databases:
-#            - name: cpa-repo-db
   accessPolicy:
     inbound:
       rules:
@@ -73,3 +65,8 @@ spec:
         - host: crl.test.commfides.com
           ports:
             - port: 80
+  env:
+    - name: VAULT_JDBC_URL
+      value: b27dbvl034.preprod.local
+    - name: TRUSTSTORE_PATH
+      value: truststore_test.p12
