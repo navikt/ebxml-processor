@@ -1,6 +1,7 @@
 package no.nav.emottak.cpa.persistence
 
 import com.zaxxer.hikari.HikariConfig
+import no.nav.emottak.cpa.log
 import no.nav.emottak.util.fromEnv
 import no.nav.emottak.util.getEnvVar
 import no.nav.vault.jdbc.hikaricp.HikariCPVaultUtil
@@ -34,8 +35,12 @@ private const val prefix = "NAIS_DATABASE_CPA_REPO_CPA_REPO_DB"
 
 data class VaultConfig(
     val databaseName: String = CPA_DB_NAME,
-    val jdbcUrl: String = getEnvVar("VAULT_JDBC_URL", "jdbc:postgresql://b27dbvl033.preprod.local:5432/"),
-    val vaultMountPath: String = "postgresql/prod-fss".takeIf { getEnvVar("NAIS_CLSUTER_NAME", "local") == "prod-fss" } ?: "postgresql/preprod-fss"
+    val jdbcUrl: String = getEnvVar("VAULT_JDBC_URL", "jdbc:postgresql://b27dbvl033.preprod.local:5432/").also {
+        log.info("vault jdbc url set til: $it")
+    },
+    val vaultMountPath: String = ("postgresql/prod-fss".takeIf { getEnvVar("NAIS_CLSUTER_NAME", "local") == "prod-fss" } ?: "postgresql/preprod-fss").also {
+        log.info("vaultMountPath satt til $it")
+    }
 )
 
 fun VaultConfig.configure(role: String): HikariConfig {
