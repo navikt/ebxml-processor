@@ -38,7 +38,7 @@ data class VaultConfig(
     val jdbcUrl: String = getEnvVar("VAULT_JDBC_URL", "jdbc:postgresql://b27dbvl033.preprod.local:5432/").also {
         log.info("vault jdbc url set til: $it")
     },
-    val vaultMountPath: String = ("postgresql/prod-fss".takeIf { getEnvVar("NAIS_CLSUTER_NAME", "local") == "prod-fss" } ?: "postgresql/preprod-fss").also {
+    val vaultMountPath: String = ("postgresql/prod-fss".takeIf { getEnvVar("NAIS_CLUSTER_NAME", "local") == "prod-fss" } ?: "postgresql/preprod-fss").also {
         log.info("vaultMountPath satt til $it")
     }
 )
