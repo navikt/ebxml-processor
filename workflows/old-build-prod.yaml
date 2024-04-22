@@ -122,5 +122,5 @@ jobs:
         uses: "nais/deploy/actions/deploy@v2"
         env:
           CLUSTER: "prod-fss"
-          RESOURCE: ".nais/ebms-send-in.yaml"
+          RESOURCE: ".nais/ebms-send-in-prod.yaml"
           IMAGE: ${{env.IMAGE_SEND_IN}}
