@@ -366,7 +366,7 @@ suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbMSDocument) {
             MultiPartFormDataContent(
                 parts,
                 boundary,
-                ContentType.parse("""multipart/related;boundary="$boundary";start=$start;type="text/xml"""")
+                ContentType.parse("""multipart/related;boundary="$boundary";start="$start";type="text/xml"""")
             )
         )
     } else {
