@@ -13,6 +13,7 @@ val cpaDbConfig = lazy {
     when (cluster) {
         "dev-fss" -> VaultConfig().configure("user")
         "dev-gcp" -> GcpDBConfig().configure()
+        "prod-fss" -> VaultConfig().configure("user")
         else -> GcpDBConfig().configure()
     }
 }
@@ -20,6 +21,7 @@ val cpaMigrationConfig = lazy {
     when (cluster) {
         "dev-fss" -> VaultConfig().configure("admin")
         "dev-gcp" -> GcpDBConfig().configure()
+        "prod-fss" -> VaultConfig().configure("admin")
         else -> GcpDBConfig().configure()
     }
 }
