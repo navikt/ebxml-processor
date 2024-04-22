@@ -10,6 +10,18 @@ spec:
     application:
       enabled: true
   image: {{image}}
+  liveness:
+    path: "/internal/health/liveness"
+    port: 8080
+    initialDelay: 30
+    timeout: 10
+    failureThreshold: 10
+  readiness:
+    path: "/internal/health/readiness"
+    port: 8080
+    initialDelay: 30
+    timeout: 10
+    failureThreshold: 10
   replicas:
     min: 1
     max: 1
@@ -48,3 +60,8 @@ spec:
         - host: crl.buypassca.com
           ports:
             - port: 80
+  env:
+    - name: VAULT_JDBC_URL
+      value: b27dbvl034.preprod.local
+    - name: TRUSTSTORE_PATH
+      value: truststore_prod.p12

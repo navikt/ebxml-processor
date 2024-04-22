@@ -35,7 +35,7 @@ private const val prefix = "NAIS_DATABASE_CPA_REPO_CPA_REPO_DB"
 data class VaultConfig(
     val databaseName: String = CPA_DB_NAME,
     val jdbcUrl: String = getEnvVar("VAULT_JDBC_URL", "jdbc:postgresql://b27dbvl033.preprod.local:5432/"),
-    val vaultMountPath: String = "postgresql/preprod-fss"
+    val vaultMountPath: String = "postgresql/prod-fss".takeIf { getEnvVar("NAIS_CLSUTER_NAME") == "prod-fss" } ?: "postgresql/preprod-fss"
 )
 
 fun VaultConfig.configure(role: String): HikariConfig {
