@@ -62,6 +62,6 @@ spec:
             - port: 80
   env:
     - name: VAULT_JDBC_URL
-      value: b27dbvl034.preprod.local
+      value: A01DBVL037.adeo.no
     - name: TRUSTSTORE_PATH
       value: truststore_prod.p12
