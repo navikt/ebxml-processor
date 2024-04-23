@@ -1,5 +1,8 @@
 name: "Naisjob read mail"
 on:
+  workflow_dispatch:
+    branches:
+      - main
   push:
     branches:
       - main
@@ -28,10 +31,18 @@ jobs:
       #    CLUSTER: "dev-fss"
       #    RESOURCE: ".nais/naisjob-readmail.yaml"
       #    IMAGE: "ghcr.io/${{ github.repository }}/curl:master"
-      - name: "Naisjob CpaSync"
+      - name: "Naisjob CpaSync deploy DEV"
         uses: "nais/deploy/actions/deploy@v1"
         env:
           APIKEY: "${{ secrets.NAIS_DEPLOY_APIKEY }}"
           CLUSTER: "dev-fss"
+          RESOURCE: ".nais/naisjob-cpasync.yaml"
+          IMAGE: "ghcr.io/${{ github.repository }}/curl:master"
+      - name: "Naisjob CpaSync deploy PROD"
+        uses: "nais/deploy/actions/deploy@v1"
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          APIKEY: "${{ secrets.NAIS_DEPLOY_APIKEY }}"
+          CLUSTER: "prod-fss"
           RESOURCE: ".nais/naisjob-cpasync.yaml"
           IMAGE: "ghcr.io/${{ github.repository }}/curl:master"
