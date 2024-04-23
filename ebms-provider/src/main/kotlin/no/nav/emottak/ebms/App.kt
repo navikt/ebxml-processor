@@ -25,6 +25,8 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.PartData
 import io.ktor.http.content.forEachPart
 import io.ktor.http.content.streamProvider
+import io.ktor.http.contentType
+import io.ktor.http.headers
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
@@ -336,7 +338,7 @@ suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbMSDocument) {
             ebxml,
             {},
             HeadersBuilder().apply {
-                this.append(MimeHeaders.CONTENT_ID, "<$contentId>")
+                this.append(MimeHeaders.CONTENT_ID, contentId)
                 this.append(MimeHeaders.CONTENT_TYPE, ContentType.Text.Xml.toString())
                 this.append(MimeHeaders.CONTENT_TRANSFER_ENCODING, "base64")
             }.build()
@@ -350,7 +352,7 @@ suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbMSDocument) {
                     append(MimeHeaders.CONTENT_TRANSFER_ENCODING, "base64")
                     append(MimeHeaders.CONTENT_TYPE, it.contentType)
                     append(MimeHeaders.CONTENT_DISPOSITION, "attachment")
-                    append(MimeHeaders.CONTENT_ID, "<${it.contentId}>")
+                    append(MimeHeaders.CONTENT_ID, it.contentId)
                 }.build()
             ).also {
                 parts.add(it)
