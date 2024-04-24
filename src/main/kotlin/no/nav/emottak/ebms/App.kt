@@ -25,8 +25,6 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.PartData
 import io.ktor.http.content.forEachPart
 import io.ktor.http.content.streamProvider
-import io.ktor.http.contentType
-import io.ktor.http.headers
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
@@ -65,6 +63,7 @@ import no.nav.emottak.ebms.validation.validateMimeSoapEnvelope
 import no.nav.emottak.ebms.xml.asString
 import no.nav.emottak.ebms.xml.getDocumentBuilder
 import no.nav.emottak.melding.model.EbmsAttachment
+import no.nav.emottak.util.createUniqueMimeMessageId
 import no.nav.emottak.util.getEnvVar
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayInputStream
@@ -333,12 +332,12 @@ suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbMSDocument) {
     }
     if (ebmsDokument.dokumentType() == DokumentType.PAYLOAD) {
         val ebxml = Base64.getMimeEncoder().encodeToString(ebmsDokument.dokument.asString().toByteArray())
-        val contentId = UUID.randomUUID().toString()
+        val contentId = createUniqueMimeMessageId()
         val ebxmlFormItem = PartData.FormItem(
             ebxml,
             {},
             HeadersBuilder().apply {
-                this.append(MimeHeaders.CONTENT_ID, contentId)
+                this.append(MimeHeaders.CONTENT_ID, "<$contentId>")
                 this.append(MimeHeaders.CONTENT_TYPE, ContentType.Text.Xml.toString())
                 this.append(MimeHeaders.CONTENT_TRANSFER_ENCODING, "base64")
             }.build()
@@ -352,7 +351,7 @@ suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbMSDocument) {
                     append(MimeHeaders.CONTENT_TRANSFER_ENCODING, "base64")
                     append(MimeHeaders.CONTENT_TYPE, it.contentType)
                     append(MimeHeaders.CONTENT_DISPOSITION, "attachment")
-                    append(MimeHeaders.CONTENT_ID, it.contentId)
+                    append(MimeHeaders.CONTENT_ID, "<${it.contentId}>")
                 }.build()
             ).also {
                 parts.add(it)
@@ -360,13 +359,12 @@ suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbMSDocument) {
         }
         this.response.headers.append(MimeHeaders.CONTENT_TRANSFER_ENCODING, "8bit")
         val boundary = "------=_Part" + System.currentTimeMillis() + "." + System.nanoTime()
-        val start = """"$contentId""""
         this.respond(
             HttpStatusCode.OK,
             MultiPartFormDataContent(
                 parts,
                 boundary,
-                ContentType.parse("""multipart/related;boundary="$boundary";start="$start";type="text/xml"""")
+                ContentType.parse("""multipart/related;boundary="$boundary";start="<$contentId>";type="text/xml"""")
             )
         )
     } else {

@@ -79,12 +79,12 @@ fun Route.postEbmsSync(
                     Direction.IN -> {
                         sendInService.sendIn(processedMessage.first).let {
                             PayloadMessage(
-                                UUID.randomUUID().toString(),
-                                UUID.randomUUID().toString(),
-                                it.conversationId,
-                                ebmsMessage.cpaId,
-                                it.addressing,
-                                Payload(it.payload, ContentType.Application.Xml.toString(), UUID.randomUUID().toString()),
+                                requestId = UUID.randomUUID().toString(),
+                                messageId = UUID.randomUUID().toString(),
+                                conversationId = it.conversationId,
+                                cpaId = ebmsMessage.cpaId,
+                                addressing = it.addressing,
+                                payload = Payload(it.payload, ContentType.Application.Xml.toString()),
                                 refToMessageId = it.messageId
                             )
                         }
