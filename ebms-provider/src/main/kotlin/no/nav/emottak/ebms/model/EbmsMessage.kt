@@ -61,7 +61,7 @@ abstract class EbmsMessage {
 
 fun EbmsMessage.createAcknowledgementJaxB(): org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Acknowledgment {
     val acknowledgment = Acknowledgment()
-    acknowledgment.id = "ACK_ID" // Identifier for Acknowledgment elementet, IKKE message ID. // TODO avklar, dette er såvidt jeg vet en arbitrær verdi?
+    acknowledgment.id = "ACK_ID" // Identifier for Acknowledgment elementet, IKKE message ID (ebms spec 2.3.7)
     acknowledgment.version = "2.0"
     acknowledgment.isMustUnderstand = true // Alltid
     acknowledgment.actor = "http://schemas.xmlsoap.org/soap/actor/next"

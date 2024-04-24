@@ -1,0 +1,64 @@
+apiVersion: "nais.io/v1alpha1"
+kind: "Application"
+metadata:
+  name: "ebms-provider"
+  namespace: "team-emottak"
+  labels:
+    "team": "team-emottak"
+spec:
+  azure:
+    application:
+      enabled: true
+  webproxy: true
+  image: {{image}}
+  liveness:
+    path: "/internal/health/liveness"
+    port: 8080
+    initialDelay: 30
+    timeout: 10
+    failureThreshold: 10
+  readiness:
+    path: "/internal/health/readiness"
+    port: 8080
+    initialDelay: 30
+    timeout: 10
+    failureThreshold: 10
+  prometheus:
+    enabled: true
+    path: /prometheus
+  replicas:
+    min: 1
+    max: 1
+    cpuThresholdPercentage: 50
+  resources:
+    limits:
+      cpu: "1000m"
+      memory: "512Mi"
+    requests:
+      cpu: "500m"
+      memory: "512Mi"
+  ingresses:
+    - "https://ebms-provider-fss.intern.nav.no"
+  vault:
+    enabled: true
+    paths:
+      - kvPath: /secret/virksomhetssertifikat/prod/Arbeids-og-velferdsetaten
+        mountPath: /var/run/secrets/ebms-keystore-signering
+#  gcp:
+#    sqlInstances:
+#        - type: POSTGRES_15
+#          databases:
+#            - name: ebms-db
+  accessPolicy:
+    outbound:
+      rules:
+        - application: cpa-repo
+        - application: ebms-payload
+  env:
+    - name: KEYSTORE_FILE
+      value: /var/run/secrets/ebms-keystore-signering/signering-key.p12
+  envFrom:
+    - secret: ebms-payload-secret
+  filesFrom:
+    - secret: ebms-keystore-signering
+      mountPath: /var/run/secrets/ebms-keystore-signering

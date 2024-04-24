@@ -12,7 +12,6 @@ import io.ktor.client.plugins.auth.providers.BearerTokens
 import io.ktor.client.plugins.auth.providers.bearer
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.forms.MultiPartFormDataContent
-import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.headers
 import io.ktor.client.request.post
@@ -125,7 +124,7 @@ fun sendInAuthHttpClient(): () -> HttpClient {
                                 "&client_secret=" + getEnvVar("AZURE_APP_CLIENT_SECRET", "dummysecret") +
                                 "&scope=" + EBMS_SEND_IN_SCOPE +
                                 "&grant_type=client_credentials"
-                        log.info("sendInAuthHttpClient() -> refreshTokens: client_id: $clientId, scope: $EBMS_SEND_IN_SCOPE, doing a post request to $azureEndpoint")
+                        // log.info("sendInAuthHttpClient() -> refreshTokens: client_id: $clientId, scope: $EBMS_SEND_IN_SCOPE, doing a post request to $azureEndpoint")
                         HttpClient(CIO).post(
                             azureEndpoint
                         ) {
@@ -135,13 +134,13 @@ fun sendInAuthHttpClient(): () -> HttpClient {
                             setBody(requestBody)
                         }.bodyAsText()
                             .let { tokenResponseString ->
-                                log.info("The token response string we received was: $tokenResponseString")
+                                // log.info("The token response string we received was: $tokenResponseString")
                                 SignedJWT.parse(
                                     LENIENT_JSON_PARSER.decodeFromString<Map<String, String>>(tokenResponseString)["access_token"] as String
                                 )
                             }
                             .let { parsedJwt ->
-                                log.info("After parsing it, we got: $parsedJwt")
+                                // log.info("After parsing it, we got: $parsedJwt")
                                 BearerTokens(parsedJwt.serialize(), "refresh token is unused")
                             }
                     }
@@ -192,12 +191,12 @@ fun Application.ebmsProviderModule() {
             call.respondText("Hello, world!")
         }
 
-        get("/test-auth") {
-            val httpClient = sendInHttpClient.invoke()
-            val result = httpClient.get("http://ebms-send-in/test-auth").bodyAsText()
-            log.info("/test-auth: Received result from ebms-send-in's /test-auth: $result")
-            call.respond("Response from /test-auth: $result")
-        }
+//        get("/test-auth") {
+//            val httpClient = sendInHttpClient.invoke()
+//            val result = httpClient.get("http://ebms-send-in/test-auth").bodyAsText()
+//            log.info("/test-auth: Received result from ebms-send-in's /test-auth: $result")
+//            call.respond("Response from /test-auth: $result")
+//        }
         registerHealthEndpoints(appMicrometerRegistry)
         postEbmsAsync(validator, processing)
         postEbmsSync(validator, processing, sendInService)
