@@ -1,6 +1,7 @@
 package no.nav.emottak.melding.model
 
 import kotlinx.serialization.Serializable
+import no.nav.emottak.util.createUniqueMimeMessageId
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Description
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ErrorList
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.SeverityType
@@ -151,7 +152,7 @@ data class Processing(
 )
 
 @Serializable
-data class Payload(val bytes: ByteArray, val contentType: String, val contentId: String)
+data class Payload(val bytes: ByteArray, val contentType: String, val contentId: String = "att-${createUniqueMimeMessageId()}")
 
 typealias EbmsAttachment = Payload
 

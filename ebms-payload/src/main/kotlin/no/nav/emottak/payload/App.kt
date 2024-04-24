@@ -29,7 +29,6 @@ import no.nav.emottak.payload.util.unmarshal
 import no.nav.emottak.util.getEnvVar
 import no.nav.emottak.util.marker
 import org.slf4j.LoggerFactory
-import java.util.UUID
 
 val processor = Processor()
 internal val log = LoggerFactory.getLogger("no.nav.emottak.payload")
@@ -71,7 +70,7 @@ private fun Application.serverSetup() {
                             log.info(request.marker(), "Oppretter negativ AppRec for payload ${request.payload.contentId}")
                             val msgHead = unmarshal(request.payload.bytes, MsgHead::class.java)
                             val apprec = createNegativeApprec(msgHead, originalError as Exception)
-                            Payload(marshal(apprec).toByteArray(), ContentType.Application.Xml.toString(), UUID.randomUUID().toString())
+                            Payload(marshal(apprec).toByteArray(), ContentType.Application.Xml.toString())
                         }
                         false -> null
                     }
