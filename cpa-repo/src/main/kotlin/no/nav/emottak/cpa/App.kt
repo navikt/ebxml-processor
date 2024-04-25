@@ -86,7 +86,7 @@ fun cpaApplicationModule(
             signingCertificate(cpaRepository)
             registerHealthEndpoints(appMicrometerRegistry)
 
-            if (canInitAuthenticatedRoutes()) {
+            if (canInitAuthenticatedRoutes().also { log.info("INIT AZURE ENDPOINTS: [$it]") }) {
                 authenticate(AZURE_AD_AUTH) {
                     whoAmI()
                     deleteCpa(cpaRepository)
