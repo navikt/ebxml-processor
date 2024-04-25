@@ -16,7 +16,7 @@ import no.nav.emottak.util.getEnvVar
 
 class CpaRepoClient(clientProvider: () -> HttpClient) {
     private var httpClient = clientProvider.invoke()
-    private val cpaRepoEndpoint = getEnvVar("CPA_REPO_URL", "http://cpa-repo")
+    private val cpaRepoEndpoint = getEnvVar("CPA_REPO_URL", "http://cpa-repo.team-emottak.svc.nais.local")
 
     suspend fun postValidate(contentId: String, validationRequest: ValidationRequest): ValidationResult {
         log.info("$cpaRepoEndpoint/cpa/validate/$contentId")
