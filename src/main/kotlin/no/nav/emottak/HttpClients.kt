@@ -60,9 +60,6 @@ fun getCpaRepoAuthenticatedClient(): HttpClient {
         install(ContentNegotiation) {
             json()
         }
-        engine {
-            proxy = Proxy.NO_PROXY
-        }
         installCpaRepoAuthentication()
     }
 }
