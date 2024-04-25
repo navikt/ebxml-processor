@@ -73,7 +73,7 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
             }
         }
         externalServices {
-            hosts(getEnvVar("CPA_REPO_URL", "http://cpa-repo")) {
+            hosts(getEnvVar("CPA_REPO_URL", "http://cpa-repo.team-emottak.svc.nais.local")) {
                 this.install(ContentNegotiation) {
                     json()
                 }
