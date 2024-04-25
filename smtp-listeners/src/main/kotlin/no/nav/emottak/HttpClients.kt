@@ -61,13 +61,7 @@ fun getCpaRepoAuthenticatedClient(): HttpClient {
             json()
         }
         engine {
-            val httpProxyUrl = getEnvVar("HTTP_PROXY", "")
-            if (httpProxyUrl.isNotBlank()) {
-                proxy = Proxy(
-                    Proxy.Type.HTTP,
-                    InetSocketAddress(URL(httpProxyUrl).host, URL(httpProxyUrl).port)
-                )
-            }
+            proxy = Proxy.NO_PROXY
         }
         installCpaRepoAuthentication()
     }
@@ -80,7 +74,17 @@ suspend fun getCpaRepoToken(): BearerTokens {
             "&scope=" + CPA_REPO_SCOPE +
             "&grant_type=client_credentials"
 
-    return HttpClient(CIO).post(
+    return HttpClient(CIO) {
+        engine {
+            val httpProxyUrl = getEnvVar("HTTP_PROXY", "")
+            if (httpProxyUrl.isNotBlank()) {
+                proxy = Proxy(
+                    Proxy.Type.HTTP,
+                    InetSocketAddress(URL(httpProxyUrl).host, URL(httpProxyUrl).port)
+                )
+            }
+        }
+    }.post(
         getEnvVar(
             "AZURE_OPENID_CONFIG_TOKEN_ENDPOINT",
             "http://localhost:3344/$AZURE_AD_AUTH/token"
