@@ -81,14 +81,20 @@ class ProcessingService(private val httpClient: PayloadProcessingClient) {
     private fun fail(fail: EbmsFail) {
     }
 
-    suspend fun processSyncIn(message: PayloadMessage, payloadProcessing: PayloadProcessing?): Pair<PayloadMessage, Direction> {
-        if (payloadProcessing == null) throw Exception("Processing information is missing for ${message.messageId}")
-        return processMessage(message, payloadProcessing, Direction.IN)
+    suspend fun processSyncIn(payloadMessage: PayloadMessage, payloadProcessing: PayloadProcessing?): Pair<PayloadMessage, Direction> {
+        if (payloadProcessing == null) throw Exception("Processing information is missing for ${payloadMessage.messageId}")
+        return when (payloadProcessing.hasActionableProcessingSteps()) {
+            true -> processMessage(payloadMessage, payloadProcessing, Direction.IN)
+            false -> payloadMessage to Direction.IN
+        }
     }
 
     suspend fun proccessSyncOut(payloadMessage: PayloadMessage, payloadProcessing: PayloadProcessing?): PayloadMessage {
         if (payloadProcessing == null) throw Exception("Processing information is missing for ${payloadMessage.messageId}")
-        return processMessage(payloadMessage, payloadProcessing, Direction.OUT).first
+        return when (payloadProcessing.hasActionableProcessingSteps()) {
+            true -> processMessage(payloadMessage, payloadProcessing, Direction.OUT).first
+            false -> payloadMessage
+        }
     }
 
     suspend fun processAsync(message: EbmsMessage, payloadProcessing: PayloadProcessing?) {
@@ -96,10 +102,14 @@ class ProcessingService(private val httpClient: PayloadProcessingClient) {
         when (message) {
             is Acknowledgment -> acknowledgment(message)
             is EbmsFail -> fail(message)
-            is PayloadMessage -> processMessage(message, payloadProcessing!!, Direction.IN)
+            is PayloadMessage -> processMessage(message, payloadProcessing, Direction.IN)
         }
     }
 }
+
+private fun PayloadProcessing.hasActionableProcessingSteps(): Boolean =
+    this.processConfig != null &&
+        (this.processConfig!!.signering || this.processConfig!!.kryptering || this.processConfig!!.komprimering)
 
 private fun PayloadMessage.convertToErrorActionMessage(payload: Payload, errorAction: String): PayloadMessage = this.copy(
     payload = payload,

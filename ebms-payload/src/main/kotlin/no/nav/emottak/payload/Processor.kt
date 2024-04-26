@@ -14,6 +14,7 @@ import no.nav.emottak.payload.util.GZipUtil
 import no.nav.emottak.payload.util.unmarshal
 import no.nav.emottak.util.createDocument
 import no.nav.emottak.util.getByteArrayFromDocument
+import no.nav.emottak.util.marker
 import no.nav.emottak.util.signatur.SignaturVerifisering
 import org.w3c.dom.Element
 import java.io.ByteArrayInputStream
@@ -46,14 +47,51 @@ class Processor(
         shouldThrowExceptionForTestPurposes(payloadRequest.payload.bytes)
 
         return payloadRequest.payload.let {
-            if (processConfig.kryptering) dekryptering.dekrypter(it.bytes, false) else it.bytes
+            when (processConfig.kryptering) {
+                true -> dekryptering.dekrypter(it.bytes, false).also { log.info(payloadRequest.marker(), "Payload dekryptert") }
+                false -> it.bytes
+            }
         }.let {
-            if (processConfig.komprimering) gZipUtil.uncompress(it) else it
+            when (processConfig.komprimering) {
+                true -> gZipUtil.uncompress(it).also { log.info(payloadRequest.marker(), "Payload dekomprimert") }
+                false -> it
+            }
         }.let {
-            if (processConfig.signering) signatureVerifisering.validate(it)
+            if (processConfig.signering) {
+                signatureVerifisering.validate(it)
+                log.info(payloadRequest.marker(), "Payload signatur verifisert")
+            }
             it
         }.let {
             payloadRequest.payload.copy(bytes = it)
+        }
+    }
+
+    private fun processOutgoing(payloadRequest: PayloadRequest): Payload {
+        val processConfig = payloadRequest.processing.processConfig ?: throw RuntimeException("Processing configuration not defined for message with Id ${payloadRequest.messageId}")
+        return payloadRequest.payload.let {
+            when (processConfig.signering) {
+                true -> {
+                    getByteArrayFromDocument(signering.signerXML(createDocument(ByteArrayInputStream(it.bytes))))
+                        .also { log.info(payloadRequest.marker(), "Payload signert") }
+                }
+                false -> it.bytes
+            }
+        }.let {
+            when (processConfig.komprimering) {
+                true -> gZipUtil.compress(it).also { log.info(payloadRequest.marker(), "Payload komprimert") }
+                false -> it
+            }
+        }.let {
+            when (processConfig.kryptering) {
+                true -> {
+                    kryptering.krypter(it, payloadRequest.processing.encryptionCertificate).let {
+                        log.info(payloadRequest.marker(), "Payload kryptert")
+                        payloadRequest.payload.copy(bytes = it, contentType = "application/pkcs7-mime")
+                    }
+                }
+                false -> payloadRequest.payload.copy(bytes = it)
+            }
         }
     }
 
@@ -80,23 +118,6 @@ class Processor(
         if (fnr == "58116541813") {
             log.info("Negative apprect test case aktivert.")
             throw RuntimeException("Fikk rart fnr, kaster exception")
-        }
-    }
-
-    private fun processOutgoing(payloadRequest: PayloadRequest): Payload {
-        val processConfig = payloadRequest.processing.processConfig ?: throw RuntimeException("Processing configuration not defined for message with Id ${payloadRequest.messageId}")
-        return payloadRequest.payload.let {
-            if (processConfig.signering) getByteArrayFromDocument(signering.signerXML(createDocument(ByteArrayInputStream(it.bytes)))) else it.bytes
-        }.let {
-            if (processConfig.komprimering) gZipUtil.compress(it) else it
-        }.let {
-            if (processConfig.kryptering) {
-                kryptering.krypter(it, payloadRequest.processing.encryptionCertificate).let {
-                    payloadRequest.payload.copy(bytes = it, contentType = "application/pkcs7-mime")
-                }
-            } else {
-                payloadRequest.payload.copy(bytes = it)
-            }
         }
     }
 }

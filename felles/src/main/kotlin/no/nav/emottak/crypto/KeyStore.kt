@@ -42,8 +42,8 @@ class KeyStore(private val keyStoreConfig: KeyStoreConfig) {
                     ByteArrayInputStream(this::class.java.classLoader.getResourceAsStream(storePath).readBytes())
                 }
             } catch (e: Exception) {
-                log.error("Unable to load keystore $storePath falling back to truststore", e)
-                throw RuntimeException("Unable to load keystore $storePath", e)
+                log.error("Failed to load keystore $storePath", e)
+                throw RuntimeException("Failed to load keystore $storePath", e)
             }
         keyStore!!.load(fileContent, storePass)
         return keyStore
