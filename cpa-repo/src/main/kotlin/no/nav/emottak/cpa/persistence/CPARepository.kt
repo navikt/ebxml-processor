@@ -28,11 +28,11 @@ class CPARepository(val database: Database) {
 
     fun findCpaTimestamps(idList: List<String>): Map<String, String> {
         return transaction(db = database.db) {
-                if (idList.isNotEmpty()) {
-                    CPA.select(CPA.id, CPA.updated_date).where { CPA.id inList idList }
-                } else {
-                    CPA.select(CPA.id, CPA.updated_date)
-                }
+            if (idList.isNotEmpty()) {
+                CPA.select(CPA.id, CPA.updated_date).where { CPA.id inList idList }
+            } else {
+                CPA.select(CPA.id, CPA.updated_date)
+            }
                 .associate {
                     Pair(
                         it[CPA.id],
