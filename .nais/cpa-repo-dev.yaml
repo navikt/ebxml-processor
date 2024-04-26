@@ -53,16 +53,24 @@ spec:
         - application: ebms-payload
     outbound:
       external:
-        - host: crl.buypassca.com
+        - host: crl.buypass.no
           ports:
             - port: 80
         - host: crl.test4.buypass.no
           ports:
             - port: 80
+        - host: crl.buypassca.com
+          ports:
+            - port: 80
         - host: crl.test4.buypassca.com
           ports:
             - port: 80
+        - host: crl.commfides.com
         - host: crl.test.commfides.com
+        - host: crl1.commfides.com
+          ports:
+            - port: 80
+        - host: crl1.test.commfides.com
           ports:
             - port: 80
   env:

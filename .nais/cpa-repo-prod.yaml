@@ -57,7 +57,8 @@ spec:
         - host: crl.buypass.no
           ports:
             - port: 80
-        - host: crl.buypassca.com
+        - host: crl.commfides.com
+        - host: crl1.commfides.com
           ports:
             - port: 80
   env:
