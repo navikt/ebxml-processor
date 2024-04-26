@@ -14,6 +14,8 @@ import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.micrometer.prometheus.PrometheusMeterRegistry
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import no.nav.emottak.constants.PartyTypeEnum
 import no.nav.emottak.cpa.auth.AZURE_AD_AUTH
 import no.nav.emottak.cpa.feil.CpaValidationException
@@ -118,14 +120,16 @@ fun Route.getTimeStamps(cpaRepository: CPARepository): Route = get("/cpa/timesta
     call.respond(
         HttpStatusCode.OK,
         cpaRepository.findCpaTimestamps(
-            call.request.headers[CPA_IDS]
-                .let {
-                    if (!it.isNullOrBlank()) {
-                        it.split(",")
-                    } else {
-                        emptyList()
+            withContext(Dispatchers.IO) {
+                return@withContext call.request.headers[CPA_IDS]
+                    .let {
+                        if (!it.isNullOrBlank()) {
+                            it.split(",")
+                        } else {
+                            emptyList()
+                        }
                     }
-                }
+            }
         )
     )
 }
@@ -134,7 +138,9 @@ fun Route.getTimeStampsLatest(cpaRepository: CPARepository) = get("/cpa/timestam
     log.info("Timestamplatest")
     call.respond(
         HttpStatusCode.OK,
-        cpaRepository.findLatestUpdatedCpaTimestamp()
+        withContext(Dispatchers.IO) {
+            return@withContext cpaRepository.findLatestUpdatedCpaTimestamp()
+        }
     )
 }
 

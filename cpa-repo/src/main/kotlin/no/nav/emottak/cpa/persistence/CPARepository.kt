@@ -47,7 +47,7 @@ class CPARepository(val database: Database) {
 
     fun findLatestUpdatedCpaTimestamp(): String {
         return transaction(db = database.db) {
-            CPA.selectAll().where { CPA.updated_date.isNotNull() }
+            CPA.select(CPA.id, CPA.updated_date).where { CPA.updated_date.isNotNull() }
                 .orderBy(CPA.updated_date, SortOrder.DESC)
                 .first()[CPA.updated_date]
         }.toString()
