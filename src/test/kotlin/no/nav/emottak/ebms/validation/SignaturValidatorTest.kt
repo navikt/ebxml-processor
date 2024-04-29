@@ -2,15 +2,22 @@ package no.nav.emottak.ebms.validation
 
 import no.nav.emottak.ebms.model.EbMSDocument
 import no.nav.emottak.ebms.xml.getDocumentBuilder
+import no.nav.emottak.ebms.xml.signeringConfig
 import no.nav.emottak.melding.model.EbmsAttachment
 import no.nav.emottak.melding.model.SignatureDetails
 import no.nav.emottak.util.decodeBase64
 import no.nav.emottak.util.signatur.SignatureException
 import org.apache.xml.security.algorithms.MessageDigestAlgorithm
 import org.apache.xml.security.signature.XMLSignature
+import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 
 class SignaturValidatorTest {
+
+    @Test
+    fun `Signeringconfig kan parse Json`() {
+        Assertions.assertEquals(signeringConfig.keyStorePwd, "123456789")
+    }
 
     @Test
     fun `Validering av signatur`() {
