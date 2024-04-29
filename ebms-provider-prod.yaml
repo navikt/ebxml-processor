@@ -57,6 +57,8 @@ spec:
   env:
     - name: KEYSTORE_FILE
       value: /var/run/secrets/ebms-keystore-signering/key.p12.b64.2022
+    - name: KEYSTORE_PWD_FILE
+      value: /var/run/secrets/ebms-keystore-signering/credentials.2022
   #envFrom:
   #  - secret: ebms-payload-secret
   #filesFrom:
