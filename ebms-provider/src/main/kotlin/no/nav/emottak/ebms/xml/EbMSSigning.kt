@@ -1,6 +1,9 @@
 package no.nav.emottak.ebms.xml
 
 import jakarta.xml.soap.SOAPConstants
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import no.nav.emottak.crypto.KeyStore
 import no.nav.emottak.crypto.KeyStoreConfig
 import no.nav.emottak.ebms.model.EbMSDocument
@@ -18,15 +21,25 @@ import org.apache.xml.security.transforms.Transforms
 import org.apache.xml.security.transforms.params.XPathContainer
 import org.w3c.dom.Document
 import org.w3c.dom.NodeList
+import java.io.FileReader
 import java.security.cert.X509Certificate
 
 val signeringConfig = object : KeyStoreConfig {
     override val keystorePath: String = getEnvVar("KEYSTORE_FILE", "xml/signering_keystore.p12")
-    override val keyStorePwd: String = getEnvVar("KEYSTORE_PWD", "123456789")
+    override val keyStorePwd: String =
+        Json.parseToJsonElement(
+            FileReader(
+                getEnvVar(
+                    "KEYSTORE_PWD_FILE",
+                    javaClass.classLoader.getResource("credentials-test.json").path.toString()
+                )
+            ).readText()
+        ).jsonObject["password"]!!.jsonPrimitive.content
     override val keyStoreStype: String = getEnvVar("KEYSTORE_TYPE", "PKCS12")
 }
 
 val ebMSSigning = EbMSSigning(signeringConfig)
+
 class EbMSSigning(keyStoreConfig: KeyStoreConfig) {
 
     private val canonicalizationMethodAlgorithm = Transforms.TRANSFORM_C14N_OMIT_COMMENTS
