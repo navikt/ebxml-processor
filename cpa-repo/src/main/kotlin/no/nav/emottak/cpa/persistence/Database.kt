@@ -8,7 +8,10 @@ import org.jetbrains.exposed.sql.Database
 class Database(
     dbConfig: HikariConfig
 ) {
-    val dataSource = HikariDataSource(dbConfig)
+    val dataSource = when (dbConfig) {
+        is HikariDataSource -> dbConfig
+        else -> HikariDataSource(dbConfig)
+    }
     val db = Database.connect(dataSource)
     fun migrate(migrationConfig: HikariConfig) {
         migrationConfig.let(::HikariDataSource)
