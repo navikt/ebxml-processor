@@ -29,7 +29,7 @@ val signeringConfig = object : KeyStoreConfig {
 
     override val keyStorePwd: String =
         when (getEnvVar("NAIS_CLUSTER_NAME", "local")) {
-            "dev-fss" -> "123456789" // Fixme burde egentlig hente fra dev vault context for å matche prod oppførsel
+            "dev-fss" -> getEnvVar("KEYSTORE_PWD", "123456789") // Fixme burde egentlig hente fra dev vault context for å matche prod oppførsel
             else ->
                 Json.parseToJsonElement(
                     FileReader(
