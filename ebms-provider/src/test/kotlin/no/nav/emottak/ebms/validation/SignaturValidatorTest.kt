@@ -16,6 +16,10 @@ class SignaturValidatorTest {
 
     @Test
     fun `Signeringconfig kan parse Json`() {
+        System.setProperty(
+            "KEYSTORE_PWD_FILE",
+            javaClass.classLoader.getResource("credentials-test.json").path.toString()
+        )
         Assertions.assertEquals(signeringConfig.keyStorePwd, "123456789")
     }
 

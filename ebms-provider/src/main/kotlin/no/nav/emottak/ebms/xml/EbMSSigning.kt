@@ -26,15 +26,20 @@ import java.security.cert.X509Certificate
 
 val signeringConfig = object : KeyStoreConfig {
     override val keystorePath: String = getEnvVar("KEYSTORE_FILE", "xml/signering_keystore.p12")
+
     override val keyStorePwd: String =
-        Json.parseToJsonElement(
-            FileReader(
-                getEnvVar(
-                    "KEYSTORE_PWD_FILE",
-                    javaClass.classLoader.getResource("credentials-test.json").path.toString()
-                )
-            ).readText()
-        ).jsonObject["password"]!!.jsonPrimitive.content
+        when (getEnvVar("NAIS_CLUSTER_NAME", "local")) {
+            "dev-fss" -> "123456789" // Fixme burde egentlig hente fra dev vault context for å matche prod oppførsel
+            else ->
+                Json.parseToJsonElement(
+                    FileReader(
+                        getEnvVar(
+                            "KEYSTORE_PWD_FILE",
+                            javaClass.classLoader.getResource("credentials-test.json").path.toString()
+                        )
+                    ).readText()
+                ).jsonObject["password"]!!.jsonPrimitive.content
+        }
     override val keyStoreStype: String = getEnvVar("KEYSTORE_TYPE", "PKCS12")
 }
 
