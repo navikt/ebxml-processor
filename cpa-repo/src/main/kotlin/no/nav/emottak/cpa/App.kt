@@ -84,7 +84,7 @@ fun cpaApplicationModule(
             getTimeStampsLatest(cpaRepository)
             getCertificate(cpaRepository)
             signingCertificate(cpaRepository)
-            registerHealthEndpoints(appMicrometerRegistry)
+            registerHealthEndpoints(appMicrometerRegistry, cpaRepository)
 
             if (canInitAuthenticatedRoutes().also { log.info("INIT AZURE ENDPOINTS: [$it]") }) {
                 authenticate(AZURE_AD_AUTH) {

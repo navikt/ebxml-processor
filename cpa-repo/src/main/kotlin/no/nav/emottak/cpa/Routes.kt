@@ -262,13 +262,21 @@ fun Route.signingCertificate(cpaRepository: CPARepository) = post("/signing/cert
 }
 
 fun Routing.registerHealthEndpoints(
-    collectorRegistry: PrometheusMeterRegistry
+    collectorRegistry: PrometheusMeterRegistry,
+    cpaRepository: CPARepository
 ) {
     get("/internal/health/liveness") {
-        call.respondText("I'm alive! :)")
+        call.respondText("Liveness OK")
     }
     get("/internal/health/readiness") {
-        call.respondText("I'm ready! :)")
+        runCatching {
+            cpaRepository.findLatestUpdatedCpaTimestamp()
+        }.onSuccess {
+            call.respond(HttpStatusCode.OK, "Readiness OK")
+        }.onFailure {
+            log.warn("Readiness not OK! Reason: ${it.localizedMessage}", it)
+            call.respond(HttpStatusCode.InternalServerError, "Readiness not OK! Reason: ${it.localizedMessage}")
+        }
     }
     get("/prometheus") {
         call.respond(collectorRegistry.scrape())
