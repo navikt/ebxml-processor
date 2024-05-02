@@ -1,7 +1,6 @@
 package no.nav.emottak.ebms.validation
 
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import no.kith.xmlstds.msghead._2006_05_24.MsgHead
 import no.nav.emottak.ebms.CpaRepoClient
@@ -53,9 +52,7 @@ class DokumentValidator(val httpClient: CpaRepoClient) {
         val validationRequest =
             ValidationRequest(message.messageId, message.conversationId, message.cpaId, message.addressing)
         val validationResult = withContext(Dispatchers.IO) {
-            runBlocking {
-                httpClient.postValidate(message.requestId, validationRequest)
-            }
+            httpClient.postValidate(message.requestId, validationRequest)
         }
 
         if (!validationResult.valid()) throw EbmsException(validationResult.error!!)
