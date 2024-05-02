@@ -2,6 +2,7 @@ package no.nav.emottak.cpa.persistence
 
 import no.nav.emottak.constants.PartyTypeEnum
 import no.nav.emottak.cpa.getPartnerPartyIdByType
+import no.nav.emottak.cpa.log
 import no.nav.emottak.melding.model.ProcessConfig
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
@@ -137,6 +138,8 @@ class CPARepository(val database: Database) {
                     it[ProcessConfigTable.adapter],
                     it[ProcessConfigTable.errorAction]
                 )
+            }.also {
+                if (it == null) log.warn("Missing process config for $role, $service, $action")
             }
         }
     }
