@@ -1,7 +1,6 @@
 package no.nav.emottak.ebms.sendin
 
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import no.nav.emottak.ebms.SendInClient
 import no.nav.emottak.ebms.model.PayloadMessage
@@ -20,6 +19,8 @@ class SendInService(val httpClient: SendInClient) {
             payloadMessage.addressing,
             EbmsProcessing()
         )
-        return withContext(Dispatchers.IO) { runBlocking { httpClient.postSendIn(sendInRequest) } }
+        return withContext(Dispatchers.IO) {
+            httpClient.postSendIn(sendInRequest)
+        }
     }
 }
