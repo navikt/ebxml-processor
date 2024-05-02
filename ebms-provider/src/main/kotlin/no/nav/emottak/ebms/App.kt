@@ -213,28 +213,33 @@ private fun Application.installRequestTimerPlugin() {
     install(
         createRouteScopedPlugin("RequestTimer") {
             val simpleLogger = KtorSimpleLogger("RequestTimerLogger")
+            val timeableURIs = listOf("/ebms/sync")
             var startTime = Instant.now()
             onCall { call ->
-                startTime = Instant.now()
-                simpleLogger.info("Received " + call.request.uri)
+                if (call.request.uri in timeableURIs) {
+                    startTime = Instant.now()
+                    simpleLogger.info("Received " + call.request.uri)
+                }
             }
             onCallRespond { call ->
-                val endTime = Duration.between(
-                    startTime,
-                    Instant.now()
-                )
-                simpleLogger.info(
-                    Markers.appendEntries(
-                        mapOf(
-                            Pair("Headers", call.request.headers.actuallyUsefulToString()),
-                            Pair("smtpMessageId", call.request.headers[SMTPHeaders.MESSAGE_ID] ?: "-"),
-                            Pair("Endpoint", call.request.uri),
-                            Pair("RequestTime", endTime.toMillis()),
-                            Pair("httpStatus", call.response.status()?.value ?: 0)
-                        )
-                    ),
-                    "Finished " + call.request.uri + " request. Processing time: " + endTime.toKotlinDuration()
-                )
+                if (call.request.uri in timeableURIs) {
+                    val endTime = Duration.between(
+                        startTime,
+                        Instant.now()
+                    )
+                    simpleLogger.info(
+                        Markers.appendEntries(
+                            mapOf(
+                                Pair("Headers", call.request.headers.actuallyUsefulToString()),
+                                Pair("smtpMessageId", call.request.headers[SMTPHeaders.MESSAGE_ID] ?: "-"),
+                                Pair("Endpoint", call.request.uri),
+                                Pair("request_time", endTime.toMillis()),
+                                Pair("httpStatus", call.response.status()?.value ?: 0)
+                            )
+                        ),
+                        "Finished " + call.request.uri + " request. Processing time: " + endTime.toKotlinDuration()
+                    )
+                }
             }
         }
     )
