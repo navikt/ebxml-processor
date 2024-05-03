@@ -98,7 +98,7 @@ class SertifikatValidering(
         try {
             builder.build(pkixParams) as PKIXCertPathBuilderResult
         } catch (e: CertPathBuilderException) {
-            log.warn("Sertifikatvalidering feilet <${certificate.serialNumber}> <${certificate.subjectX500Principal.name}> utstedt av <${certificate.issuerX500Principal.name}>", e)
+            log.warn("Sertifikatvalidering feilet <${certificate.serialNumber.toString(16)}> <${certificate.subjectX500Principal.name}> utstedt av <${certificate.issuerX500Principal.name}>", e)
             throw CertificateValidationException("Sertifikatvalidering feilet for sertifikat utstedt av <${certificate.issuerX500Principal.name}>", e)
         }
     }

@@ -40,12 +40,12 @@ fun CollaborationProtocolAgreement.hasRoleServiceActionCombo(addressing: Address
 fun partyInfoHasRoleServiceActionCombo(partyInfo: PartyInfo, role: String, service: String, action: String, direction: MessageDirection) {
     val partyWithRole = partyInfo.collaborationRole.firstOrNull { r ->
         r.role.name == role && r.serviceBinding.service.value == service
-    } ?: throw CpaValidationException("Role og Service $role matcher ikke party info")
+    } ?: throw CpaValidationException("Role $role matcher ikke service $service for party ${partyInfo.partyName}")
     when (direction) {
         MessageDirection.SEND -> partyWithRole.serviceBinding.canSend.firstOrNull { a -> a.thisPartyActionBinding.action == action }
-            ?: throw CpaValidationException("Action $action matcher ikke service $service")
+            ?: throw CpaValidationException("Action $action matcher ikke service $service for sending party ${partyInfo.partyName}")
         MessageDirection.RECEIVE -> partyWithRole.serviceBinding.canReceive.firstOrNull { a -> a.thisPartyActionBinding.action == action }
-            ?: throw CpaValidationException("Action $action matcher ikke service $service")
+            ?: throw CpaValidationException("Action $action matcher ikke service $service for receiving party ${partyInfo.partyName}")
     }
 }
 
