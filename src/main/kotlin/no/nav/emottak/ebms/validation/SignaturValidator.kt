@@ -37,7 +37,13 @@ class SignaturValidator {
             val xmlSignature = dokument.retrieveSignatureElement()
             val sertfikatFraCPA = signatureDetails.retrievePublicX509Certificate()
             val sertifikatFraSignatur = xmlSignature.retrievePublicX509Certificate()
-            if (sertifikatFraSignatur != sertfikatFraCPA) throw SignatureException("Signert med annet sertifikat <${sertifikatFraSignatur.serialNumber}> enn definert i CPA <${sertfikatFraCPA.serialNumber}")
+            if (sertifikatFraSignatur != sertfikatFraCPA) {
+                throw SignatureException(
+                    "Signert med annet sertifikat enn definert i CPA. " +
+                        "Signatur: <${sertifikatFraSignatur.serialNumber.toString(16)}>, " +
+                        "CPA: <${sertfikatFraCPA.serialNumber.toString(16)}>"
+                )
+            }
             try {
                 if (!verify(
                         sertifikatFraSignatur,
