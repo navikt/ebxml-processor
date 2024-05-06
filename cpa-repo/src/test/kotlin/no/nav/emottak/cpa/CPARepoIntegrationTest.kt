@@ -26,7 +26,7 @@ import io.ktor.server.testing.testApplication
 import kotlinx.serialization.json.Json
 import no.nav.emottak.cpa.auth.AZURE_AD_AUTH
 import no.nav.emottak.cpa.auth.AuthConfig
-import no.nav.emottak.cpa.persistence.DBTest
+import no.nav.emottak.cpa.databasetest.PostgresTest
 import no.nav.emottak.melding.model.Addressing
 import no.nav.emottak.melding.model.Party
 import no.nav.emottak.melding.model.PartyId
@@ -39,6 +39,7 @@ import org.apache.commons.lang3.StringUtils
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import kotlin.test.assertContains
@@ -47,10 +48,10 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class CPARepoIntegrationTest : DBTest() {
+class CPARepoIntegrationTest : PostgresTest() {
 
     fun <T> cpaRepoTestApp(testBlock: suspend ApplicationTestBuilder.() -> T) = testApplication {
-        application(cpaApplicationModule(db.dataSource, db.dataSource))
+        application(cpaApplicationModule(postgres.dataSource, postgres.dataSource))
         testBlock()
     }
 
@@ -325,5 +326,10 @@ class CPARepoIntegrationTest : DBTest() {
 
     val LENIENT_JSON_PARSER = Json {
         isLenient = true
+    }
+
+    private fun loadTestCPA(cpaName: String): CollaborationProtocolAgreement {
+        val testCpaString = String(this::class.java.classLoader.getResource("cpa/$cpaName").readBytes())
+        return xmlMarshaller.unmarshal(testCpaString, CollaborationProtocolAgreement::class.java)
     }
 }
