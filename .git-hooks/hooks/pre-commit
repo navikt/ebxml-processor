@@ -1,0 +1,63 @@
+#!/bin/sh
+
+echo "Starting pre-commit hook..."
+stash_changes() {
+    echo "Checking for changes to stash..."
+    if ! git diff --quiet || ! git diff --cached --quiet; then
+        echo "Changes detected, stashing..."
+        git stash push -q --keep-index
+        return 0
+    else
+        echo "No changes to stash."
+        return 1
+    fi
+}
+
+HAS_STASH=0
+if stash_changes; then
+    HAS_STASH=1
+fi
+
+echo "Formatting staged Kotlin files with ktlintFormat..."
+./gradlew ktlintFormat
+RESULT=$?
+if [ $RESULT -ne 0 ]; then
+    echo "ktlint found formatting issues. Please review the changes."
+    if [ $HAS_STASH -eq 1 ]; then
+        echo "Popping stash due to formatting errors..."
+        git stash pop -q
+    fi
+    exit 1
+fi
+
+
+echo "Formatting staged Kotlin TEST files with ktlintTestFormat..."
+./gradlew ktlintTestFormat
+RESULT=$?
+if [ $RESULT -ne 0 ]; then
+    echo "ktlint found formatting issues in test files. Please review the changes."
+    if [ $HAS_STASH -eq 1 ]; then
+        echo "Popping stash due to formatting errors..."
+        git stash pop -q
+    fi
+    exit 1
+fi
+
+
+
+echo "Re-adding formatted Kotlin files to the staging area..."
+git add $(git diff --staged --name-only --diff-filter=d | grep '\.kt[s"]\?$')
+
+if [ $HAS_STASH -eq 1 ]; then
+    echo "Popping stash..."
+    git stash pop -q
+    if [ $? -ne 0 ]; then
+        echo "Conflicts detected after popping stash. Resolving conflicts by favoring formatted changes..."
+        git checkout --ours .
+        git add .
+        echo "Conflicts resolved. Formatted changes have been accepted."
+    fi
+fi
+
+echo "Pre-commit hook completed successfully."
+exit 0
