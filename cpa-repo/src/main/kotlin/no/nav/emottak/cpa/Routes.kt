@@ -74,7 +74,9 @@ fun Route.partnerId(partnerRepository: PartnerRepository, cpaRepository: CPARepo
         val now = Date()
 
         runCatching {
-            val sisteOppdatertCpa = cpaRepository.cpaByHerId(herId).filter {
+            val sisteOppdatertCpa = cpaRepository.cpaByHerId(herId).onEach {
+                log.info(xmlMarshaller.marshal(it.value))
+            }.filter {
                 it.value.start.before(now)
                 it.value.end.after(now)
             }.filter {
