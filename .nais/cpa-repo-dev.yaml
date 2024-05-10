@@ -37,6 +37,7 @@ spec:
       memory: "256Mi"
   ingresses:
     - "https://cpa-repo-fss.intern.dev.nav.no"
+    - "https://cpa-repo.dev-fss-pub.nais.io"
   vault:
     enabled: true
     paths:
