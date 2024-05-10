@@ -7,8 +7,8 @@ import no.nav.emottak.ebms.model.EbmsMessage
 
 fun EbmsMessage.marker(loggableHeaderPairs: Map<String, String> = emptyMap()): LogstashMarker = Markers.appendEntries(
     mapOf(
-        LogIndex.MARKER_MESSAGE_ID to this.messageId,
-        LogIndex.MARKER_CONVERSATION_ID to this.conversationId,
+        LogIndex.MESSAGE_ID to this.messageId,
+        LogIndex.CONVERSATION_ID to this.conversationId,
         LogIndex.CPA_ID to this.cpaId,
         LogIndex.SERVICE to this.addressing.service,
         LogIndex.ACTION to this.addressing.action,

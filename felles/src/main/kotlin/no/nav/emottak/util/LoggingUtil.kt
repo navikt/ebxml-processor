@@ -7,8 +7,8 @@ import no.nav.emottak.constants.LogIndex.ACTION
 import no.nav.emottak.constants.LogIndex.CPA_ID
 import no.nav.emottak.constants.LogIndex.FROM_PARTY
 import no.nav.emottak.constants.LogIndex.FROM_ROLE
-import no.nav.emottak.constants.LogIndex.MARKER_CONVERSATION_ID
-import no.nav.emottak.constants.LogIndex.MARKER_MESSAGE_ID
+import no.nav.emottak.constants.LogIndex.CONVERSATION_ID
+import no.nav.emottak.constants.LogIndex.MESSAGE_ID
 import no.nav.emottak.constants.LogIndex.SERVICE
 import no.nav.emottak.constants.LogIndex.TO_PARTY
 import no.nav.emottak.constants.LogIndex.TO_ROLE
@@ -23,8 +23,8 @@ import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
 
 fun Header.marker(): LogstashMarker = Markers.appendEntries(
     mapOf(
-        MARKER_MESSAGE_ID to this.messageId,
-        MARKER_CONVERSATION_ID to this.conversationId,
+        MESSAGE_ID to this.messageId,
+        CONVERSATION_ID to this.conversationId,
         CPA_ID to this.cpaId,
         SERVICE to this.service,
         ACTION to this.action,
@@ -37,22 +37,22 @@ fun Header.marker(): LogstashMarker = Markers.appendEntries(
 
 fun PayloadRequest.marker(): LogstashMarker = Markers.appendEntries(
     mapOf(
-        MARKER_MESSAGE_ID to this.messageId,
-        MARKER_CONVERSATION_ID to this.conversationId,
+        MESSAGE_ID to this.messageId,
+        CONVERSATION_ID to this.conversationId,
     )
 )
 
 fun SendInRequest.marker(): LogstashMarker = Markers.appendEntries(
     mapOf(
-        MARKER_MESSAGE_ID to this.messageId,
-        MARKER_CONVERSATION_ID to this.conversationId,
+        MESSAGE_ID to this.messageId,
+        CONVERSATION_ID to this.conversationId,
     )
 )
 
 fun ValidationRequest.marker(): LogstashMarker = Markers.appendEntries(
     mapOf(
-        MARKER_MESSAGE_ID to this.messageId,
-        MARKER_CONVERSATION_ID to this.conversationId,
+        MESSAGE_ID to this.messageId,
+        CONVERSATION_ID to this.conversationId,
         CPA_ID to this.cpaId,
         SERVICE to this.addressing.service,
         ACTION to this.addressing.action,
@@ -65,8 +65,8 @@ fun ValidationRequest.marker(): LogstashMarker = Markers.appendEntries(
 
 fun MessageHeader.marker(loggableHeaderPairs: Map<String, String> = mapOf()): LogstashMarker = Markers.appendEntries(
     mapOf(
-        MARKER_MESSAGE_ID to this.messageData.messageId,
-        MARKER_CONVERSATION_ID to this.conversationId,
+        MESSAGE_ID to this.messageData.messageId,
+        CONVERSATION_ID to this.conversationId,
         CPA_ID to (this.cpaId ?: UKJENT_VERDI),
         SERVICE to (this.service.value ?: UKJENT_VERDI),
         ACTION to this.action,
