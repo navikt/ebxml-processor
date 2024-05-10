@@ -1,7 +1,7 @@
 package no.nav.emottak.constants
 
 object LogIndex {
-    const val MARKER_MOTTAK_ID = "mottakId"
+    const val MARKER_MESSAGE_ID = "messageId"
     const val MARKER_CONVERSATION_ID = "ebConversationId"
     const val FROM_PARTY = "ebAvsenderId"
     const val TO_PARTY = "ebMottakerId"

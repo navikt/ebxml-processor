@@ -178,6 +178,7 @@ fun Route.postCpa(cpaRepository: CPARepository) = post("/cpa") {
 fun Route.validateCpa(cpaRepository: CPARepository) = post("/cpa/validate/{$CONTENT_ID}") {
     val validateRequest = call.receive(ValidationRequest::class)
     try {
+        log.info(validateRequest.marker(), "Validerer ebms mot CPA")
         val cpa = cpaRepository.findCpa(validateRequest.cpaId) ?: throw NotFoundException("Fant ikke CPA")
         cpa.validate(validateRequest) // Delivery Filure
         val partyInfo = cpa.getPartyInfoByTypeAndID(validateRequest.addressing.from.partyId) // delivery Failure

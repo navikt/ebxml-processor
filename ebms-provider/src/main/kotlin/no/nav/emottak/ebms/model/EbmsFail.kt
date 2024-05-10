@@ -34,7 +34,6 @@ data class EbmsFail(
         }.let {
             xmlMarshaller.marshal(it)
         }.let {
-            no.nav.emottak.ebms.model.log.info(this.marker(), "Signerer ErrorList (TODO)")
             // @TODO   val signatureDetails = runBlocking {  getPublicSigningDetails(this@EbMSMessageError.messageHeader) }
             EbMSDocument(UUID.randomUUID().toString(), it, emptyList())
             // @TODO      .signer(signatureDetails)

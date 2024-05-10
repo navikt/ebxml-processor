@@ -105,6 +105,7 @@ fun Route.postEbmsSync(
                         ebmsDocument.signer(it.second!!.signingCertificate)
                     }
                 )
+                log.info(it.first.marker(), "Melding ferdig behandlet og svar returnert")
                 return@post
             }
     } catch (ebmsException: EbmsException) {
