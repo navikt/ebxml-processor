@@ -75,21 +75,33 @@ fun Application.ebmsSendInModule() {
             call.respondText(marshal(response))
         }
 
-        post("/fagmelding/synkron") {
-            val request = this.call.receive(SendInRequest::class)
-            runCatching {
-                log.info(request.marker(), "Payload ${request.payloadId} videresendes til fagsystem")
-                frikortsporring(wrapMessageInEIFellesFormat(request))
-            }.onSuccess {
-                log.info(request.marker(), "Payload ${request.payloadId} videresending til fagsystem ferdig, svar mottatt og returnerert")
-                call.respond(SendInResponse(request.messageId, request.conversationId, request.addressing.replayTo(it.eiFellesformat.mottakenhetBlokk.ebService, it.eiFellesformat.mottakenhetBlokk.ebAction), marshal(it.eiFellesformat.msgHead).toByteArray()))
-            }.onFailure {
-                log.error(request.marker(), "Payload ${request.payloadId} videresending feilet", it)
-                call.respond(HttpStatusCode.BadRequest, it.localizedMessage)
-            }
-        }
-
         authenticate(AZURE_AD_AUTH) {
+            post("/fagmelding/synkron") {
+                val request = this.call.receive(SendInRequest::class)
+                runCatching {
+                    log.info(request.marker(), "Payload ${request.payloadId} videresendes til fagsystem")
+                    frikortsporring(wrapMessageInEIFellesFormat(request))
+                }.onSuccess {
+                    log.info(
+                        request.marker(),
+                        "Payload ${request.payloadId} videresending til fagsystem ferdig, svar mottatt og returnerert"
+                    )
+                    call.respond(
+                        SendInResponse(
+                            request.messageId,
+                            request.conversationId,
+                            request.addressing.replayTo(
+                                it.eiFellesformat.mottakenhetBlokk.ebService,
+                                it.eiFellesformat.mottakenhetBlokk.ebAction
+                            ),
+                            marshal(it.eiFellesformat.msgHead).toByteArray()
+                        )
+                    )
+                }.onFailure {
+                    log.error(request.marker(), "Payload ${request.payloadId} videresending feilet", it)
+                    call.respond(HttpStatusCode.BadRequest, it.localizedMessage)
+                }
+            }
             get("/test-auth") {
                 log.info("Secure API '/test-auth' endpoint called")
                 call.respondText("Hello World from a secure context")
