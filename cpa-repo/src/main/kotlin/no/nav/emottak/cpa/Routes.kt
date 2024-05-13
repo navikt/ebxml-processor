@@ -103,6 +103,7 @@ fun Route.partnerId(partnerRepository: PartnerRepository, cpaRepository: CPARepo
             when (it) {
                 is MultiplePartnerException -> call.respond(HttpStatusCode.Conflict, "Fant multiple $PARTNER_ID for $HER_ID $herId. Dette er en ugyldig tilstand.")
                 is PartnerNotFoundException -> call.respond(HttpStatusCode.NotFound, "Fant ikke $PARTNER_ID for $HER_ID $herId")
+                is CpaValidationException -> call.respond(HttpStatusCode.BadRequest, "Role, Service, Action kombinasjon ugyldig. [${it.message}]")
                 else -> call.respond(HttpStatusCode.NotFound, "Fant ikke $PARTNER_ID for $HER_ID $herId")
             }
         }
