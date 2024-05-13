@@ -47,3 +47,6 @@ spec:
     inbound:
       rules:
         - application: ebms-provider
+  env:
+    - name: FRIKORT_URL
+      value: https://wasapp-q1.adeo.no/nav-frikort/tjenestereksterne
