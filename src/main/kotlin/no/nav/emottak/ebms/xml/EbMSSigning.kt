@@ -31,12 +31,12 @@ val signeringConfig = object : KeyStoreConfig {
         when (getEnvVar("NAIS_CLUSTER_NAME", "local")) {
             "dev-fss" -> getEnvVar("KEYSTORE_PWD", "123456789") // Fixme burde egentlig hente fra dev vault context for å matche prod oppførsel
             "prod-fss" -> Json.parseToJsonElement(
-                    FileReader(
-                        getEnvVar(
-                            "KEYSTORE_PWD_FILE"
-                        )
-                    ).readText()
-                ).jsonObject["password"]!!.jsonPrimitive.content
+                FileReader(
+                    getEnvVar(
+                        "KEYSTORE_PWD_FILE"
+                    )
+                ).readText()
+            ).jsonObject["password"]!!.jsonPrimitive.content
             else ->
                 Json.parseToJsonElement(
                     FileReader(
