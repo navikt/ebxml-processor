@@ -37,6 +37,8 @@ dependencies {
     implementation(libs.ktor.server.netty)
     implementation(libs.ktor.server.call.logging.jvm)
     implementation(libs.ktor.server.content.negotiation)
+    implementation(libs.ktor.server.auth.jvm)
+    implementation(libs.token.validation.ktor.v2)
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.ktor.serialization.kotlinx.json)
     implementation(libs.ktor.client.core)
@@ -50,6 +52,8 @@ dependencies {
     implementation(libs.emottak.payload.xsd)
     runtimeOnly("net.java.dev.jna:jna:5.12.1")
     testImplementation(testLibs.junit.jupiter.api)
+    testImplementation(testLibs.ktor.server.test.host)
+    testImplementation(testLibs.mock.oauth2.server)
     testRuntimeOnly(testLibs.junit.jupiter.engine)
     implementation(kotlin("stdlib-jdk8"))
 }
