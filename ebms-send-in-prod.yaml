@@ -42,7 +42,7 @@ spec:
   vault:
     enabled: true
     paths:
-        - kvPath: /serviceuser/data/dev/srvtokt
+        - kvPath: /serviceuser/data/prod/srvtokt
           mountPath: /secret/serviceuser
   accessPolicy:
     inbound:
