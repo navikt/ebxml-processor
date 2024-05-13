@@ -66,6 +66,9 @@ import no.nav.emottak.util.createUniqueMimeMessageId
 import no.nav.emottak.util.getEnvVar
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayInputStream
+import java.net.InetSocketAddress
+import java.net.Proxy
+import java.net.URL
 import java.time.Duration
 import java.time.Instant
 import java.util.*
@@ -125,7 +128,17 @@ fun sendInAuthHttpClient(): () -> HttpClient {
                                 "&scope=" + EBMS_SEND_IN_SCOPE +
                                 "&grant_type=client_credentials"
                         // log.info("sendInAuthHttpClient() -> refreshTokens: client_id: $clientId, scope: $EBMS_SEND_IN_SCOPE, doing a post request to $azureEndpoint")
-                        HttpClient(CIO).post(
+                        HttpClient(CIO) {
+                            engine {
+                                val httpProxyUrl = getEnvVar("HTTP_PROXY", "")
+                                if (httpProxyUrl.isNotBlank()) {
+                                    proxy = Proxy(
+                                        Proxy.Type.HTTP,
+                                        InetSocketAddress(URL(httpProxyUrl).host, URL(httpProxyUrl).port)
+                                    )
+                                }
+                            }
+                        }.post(
                             azureEndpoint
                         ) {
                             headers {
@@ -175,12 +188,11 @@ fun Application.ebmsProviderModule() {
     val client = defaultHttpClient()
     val cpaClient = CpaRepoClient(client)
     val processingClient = PayloadProcessingClient(client)
-    val sendInClient = SendInClient(client)
+    val sendInHttpClient = sendInAuthHttpClient()
+    val sendInClient = SendInClient(sendInHttpClient)
     val validator = DokumentValidator(cpaClient)
     val processing = ProcessingService(processingClient)
     val sendInService = SendInService(sendInClient)
-
-    val sendInHttpClient = sendInAuthHttpClient()
 
     val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
     installMicrometerRegistry(appMicrometerRegistry)
