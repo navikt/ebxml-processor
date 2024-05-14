@@ -11,6 +11,10 @@ import java.util.HashMap
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.slf4j.LoggerFactory
 import java.io.File
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
+import kotlin.io.encoding.decodingWith
+import no.nav.emottak.util.getEnvVar
 
 internal val log = LoggerFactory.getLogger("no.nav.emottak.crypto.KeyStore")
 interface KeyStoreConfig {
@@ -29,9 +33,10 @@ class KeyStore(private val keyStoreConfig: KeyStoreConfig) {
     }
 
 
+    @OptIn(ExperimentalEncodingApi::class)
     private fun getKeyStoreResolver(storePath: String, storePass: CharArray): KeyStore {
         val keyStore = KeyStore.getInstance(keyStoreConfig.keyStoreStype)
-        val fileContent =
+        var fileContent =
             try {
                 log.debug("Getting store file from $storePath")
                 if (File(storePath).exists()) {
@@ -45,6 +50,9 @@ class KeyStore(private val keyStoreConfig: KeyStoreConfig) {
                 log.error("Failed to load keystore $storePath", e)
                 throw RuntimeException("Failed to load keystore $storePath", e)
             }
+        if (getEnvVar("NAIS_CLUSTER_NAME","local") == "prod-fss") {
+            fileContent = fileContent.decodingWith(Base64.Mime)
+        }
         keyStore!!.load(fileContent, storePass)
         return keyStore
     }
