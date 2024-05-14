@@ -73,11 +73,11 @@ class CPARepository(val database: Database) {
     fun putCpa(cpa: CpaDbEntry): String {
         transaction(database.db) {
             CPA.insert {
-                it[CPA.id] = cpa.id
+                it[id] = cpa.id
                 it[CPA.cpa] = cpa.cpa ?: throw IllegalArgumentException("Kan ikke sette null verdi for CPA i DB")
-                it[CPA.entryCreated] = cpa.createdDate
-                it[CPA.updated_date] = cpa.updatedDate
-                it[CPA.herId] = cpa.herId
+                it[entryCreated] = cpa.createdDate
+                it[updated_date] = cpa.updatedDate
+                it[herId] = cpa.herId
             }
         }
         return cpa.id
@@ -86,11 +86,11 @@ class CPARepository(val database: Database) {
     fun upsertCpa(cpa: CpaDbEntry): String {
         transaction(database.db) {
             CPA.upsert(CPA.id) {
-                it[CPA.id] = cpa.id
+                it[id] = cpa.id
                 it[CPA.cpa] = cpa.cpa ?: throw IllegalArgumentException("Kan ikke sette null verdi for CPA i DB")
-                it[CPA.entryCreated] = cpa.createdDate
-                it[CPA.updated_date] = cpa.updatedDate
-                it[CPA.herId] = cpa.herId
+                it[entryCreated] = cpa.createdDate
+                it[updated_date] = cpa.updatedDate
+                it[herId] = cpa.herId
             }
         }
         return cpa.id
@@ -98,7 +98,7 @@ class CPARepository(val database: Database) {
 
     fun deleteCpa(cpaId: String): String {
         transaction(database.db) {
-            CPA.deleteWhere { CPA.id.eq(cpaId) }
+            CPA.deleteWhere { id.eq(cpaId) }
         }
         return cpaId
     }

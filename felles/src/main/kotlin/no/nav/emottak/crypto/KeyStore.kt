@@ -50,7 +50,7 @@ class KeyStore(private val keyStoreConfig: KeyStoreConfig) {
                 log.error("Failed to load keystore $storePath", e)
                 throw RuntimeException("Failed to load keystore $storePath", e)
             }
-        if (getEnvVar("NAIS_CLUSTER_NAME","local") == "prod-fss") {
+        if (getEnvVar("NAIS_CLUSTER_NAME","local") == "prod-fss" && getEnvVar("NAIS_APP_NAME") == "ebms-provider") {
             fileContent = fileContent.decodingWith(Base64.Mime)
         }
         keyStore!!.load(fileContent, storePass)
