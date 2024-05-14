@@ -32,6 +32,5 @@ fun Application.myApplicationModule() {
             testAzureAuthToCpaRepo()
         }
         cpaSync()
-        testCpaIProd()
     }
 }
