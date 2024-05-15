@@ -86,6 +86,7 @@ class MailReader(private val store: Store, val expunge: Boolean = true) : AutoCl
                             runCatching {
                                 (mimeMessage.content as MimeMultipart).getBodyPart(0)
                             }.onSuccess {
+                                log.info("Content is" + String(mimeMessage.inputStream.readAllBytes()))
                                 log.info(
                                     "Incoming multipart request with headers ${
                                     mimeMessage.allHeaders.toList().map { it.name + ":" + it.value }
