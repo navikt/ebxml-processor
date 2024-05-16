@@ -86,7 +86,7 @@ fun Application.ebmsSendInModule() {
                         frikortsporring(wrapMessageInEIFellesFormat(request))
                     }
                 }.onSuccess {
-                    log.info(
+                    log.trace(
                         request.marker(),
                         "Payload ${request.payloadId} videresending til fagsystem ferdig, svar mottatt og returnerert"
                     )
