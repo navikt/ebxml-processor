@@ -11,7 +11,7 @@ on:
 env:
   MODULE_NAME: "ebms-send-in"
   IMAGE_NAME: "ghcr.io/${{ github.repository }}/ebms-send-in:${{ github.sha }}"
-  NAIS_MANIFEST: "ebms-send-in.yaml"
+  NAIS_MANIFEST: "ebms-send-in-dev.yaml"
 
 jobs:
   build:
