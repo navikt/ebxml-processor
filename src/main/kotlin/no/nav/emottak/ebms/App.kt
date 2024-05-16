@@ -194,7 +194,7 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
                 it.validateMimeSoapEnvelope()
             }.let {
                 val contentID = it.headers[MimeHeaders.CONTENT_ID]?.convertToValidatedContentID() ?: "GENERERT-${UUID.randomUUID()}"
-                val isBase64 = "base64" == it.headers[MimeHeaders.CONTENT_TRANSFER_ENCODING]
+                val isBase64 = "base64".equals(it.headers[MimeHeaders.CONTENT_TRANSFER_ENCODING], true)
                 Pair(contentID, it.payload(debugClearText || !isBase64))
             }
             val attachments =
