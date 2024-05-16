@@ -20,6 +20,8 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import io.micrometer.prometheus.PrometheusConfig
 import io.micrometer.prometheus.PrometheusMeterRegistry
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import no.nav.emottak.auth.AZURE_AD_AUTH
 import no.nav.emottak.auth.AuthConfig
 import no.nav.emottak.fellesformat.wrapMessageInEIFellesFormat
@@ -80,7 +82,9 @@ fun Application.ebmsSendInModule() {
                 val request = this.call.receive(SendInRequest::class)
                 runCatching {
                     log.info(request.marker(), "Payload ${request.payloadId} videresendes til fagsystem")
-                    frikortsporring(wrapMessageInEIFellesFormat(request))
+                    withContext(Dispatchers.IO) {
+                        frikortsporring(wrapMessageInEIFellesFormat(request))
+                    }
                 }.onSuccess {
                     log.info(
                         request.marker(),
