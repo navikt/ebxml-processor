@@ -105,5 +105,5 @@ jobs:
         env:
           APIKEY: "${{ secrets.NAIS_DEPLOY_APIKEY }}"
           CLUSTER: "dev-fss"
-          RESOURCE: ".nais/ebms-send-in.yaml"
+          RESOURCE: ".nais/ebms-send-in-dev.yaml"
           IMAGE: ${{env.IMAGE_SEND_IN}}
