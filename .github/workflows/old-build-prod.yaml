@@ -6,7 +6,7 @@ on:
 env:
   "IMAGE_EBMS": "ghcr.io/${{ github.repository }}/ebms-provider:${{ github.sha }}"
   "IMAGE_CPA": "ghcr.io/${{ github.repository }}/cpa-repo:${{ github.sha }}"
-  #"IMAGE_PAYLOAD": "ghcr.io/${{ github.repository }}/ebms-payload:${{ github.sha }}"
+  "IMAGE_PAYLOAD": "ghcr.io/${{ github.repository }}/ebms-payload:${{ github.sha }}"
   "IMAGE_LISTENERS": "ghcr.io/${{ github.repository }}/smtp-listeners:${{ github.sha }}"
   "IMAGE_SEND_IN": "ghcr.io/${{ github.repository }}/ebms-send-in:${{ github.sha }}"
 jobs:
@@ -51,8 +51,8 @@ jobs:
       run: "docker build ebms-provider --pull --tag ${IMAGE_EBMS} -f Dockerfile && docker push ${IMAGE_EBMS}"
     - name: "Build and push cpa-repo Docker image"
       run: "docker build cpa-repo --pull --tag ${IMAGE_CPA} -f Dockerfile && docker push ${IMAGE_CPA}"
-#    - name: "Build and push ebms-payload Docker image"
-#      run: "docker build ebms-payload --pull --tag ${IMAGE_PAYLOAD} -f Dockerfile && docker push ${IMAGE_PAYLOAD}"
+    - name: "Build and push ebms-payload Docker image"
+      run: "docker build ebms-payload --pull --tag ${IMAGE_PAYLOAD} -f Dockerfile && docker push ${IMAGE_PAYLOAD}"
     - name: "Build and push smtp-listeners Docker image"
       run: "docker build smtp-listeners --pull --tag ${IMAGE_LISTENERS} -f Dockerfile && docker push ${IMAGE_LISTENERS}"
     - name: "Build and push ebms-send-in Docker image"
@@ -83,19 +83,19 @@ jobs:
           CLUSTER: "prod-fss"
           RESOURCE: ".nais/cpa-repo-prod.yaml"
           IMAGE: ${{env.IMAGE_CPA}}
-#  deploy-ebms-payload:
-#    name: "Deploy ebms-payload to dev"
-#    needs: "build"
-#    runs-on: "ubuntu-20.04"
-#    steps:
-#      - uses: "actions/checkout@v4"
-#      - name: "Deploy to DEV"
-#        uses: "nais/deploy/actions/deploy@v1"
-#        env:
-#          APIKEY: "${{ secrets.NAIS_DEPLOY_APIKEY }}"
-#          CLUSTER: "dev-fss"
-#          RESOURCE: ".nais/ebms-payload-dev.yaml"
-#          IMAGE: ${{env.IMAGE_PAYLOAD}}
+  deploy-ebms-payload:
+    name: "Deploy ebms-payload to prod"
+    needs: "build"
+    runs-on: "ubuntu-20.04"
+    steps:
+      - uses: "actions/checkout@v4"
+      - name: "Deploy to PROD"
+        uses: "nais/deploy/actions/deploy@v1"
+        env:
+          APIKEY: "${{ secrets.NAIS_DEPLOY_APIKEY }}"
+          CLUSTER: "prod-fss"
+          RESOURCE: ".nais/ebms-payload-prod.yaml"
+          IMAGE: ${{env.IMAGE_PAYLOAD}}
   deploy-smtp-listeners:
     name: "Deploy smtp-listeners to prod"
     needs: "build"

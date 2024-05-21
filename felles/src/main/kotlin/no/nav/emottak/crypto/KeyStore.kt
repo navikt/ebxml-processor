@@ -1,37 +1,42 @@
 package no.nav.emottak.crypto
 
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import no.nav.emottak.util.getEnvVar
+import org.bouncycastle.jce.provider.BouncyCastleProvider
+import org.slf4j.LoggerFactory
 import java.io.ByteArrayInputStream
+import java.io.File
 import java.io.FileInputStream
 import java.security.KeyPair
 import java.security.KeyStore
 import java.security.PrivateKey
 import java.security.Security
 import java.security.cert.X509Certificate
-import java.util.HashMap
-import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.slf4j.LoggerFactory
-import java.io.File
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.io.encoding.decodingWith
-import no.nav.emottak.util.getEnvVar
 
 internal val log = LoggerFactory.getLogger("no.nav.emottak.crypto.KeyStore")
+
 interface KeyStoreConfig {
     val keystorePath:String
     val keyStorePwd:String
     val keyStoreStype:String
 }
 
+fun String.parseVaultJsonObject(field: String = "password") = Json.parseToJsonElement(
+    this
+).jsonObject[field]!!.jsonPrimitive.content
+
 class KeyStore(private val keyStoreConfig: KeyStoreConfig) {
 
     private val keyStore = getKeyStoreResolver(keyStoreConfig.keystorePath, keyStoreConfig.keyStorePwd.toCharArray())
 
-
     init {
         Security.addProvider(BouncyCastleProvider());
     }
-
 
     @OptIn(ExperimentalEncodingApi::class)
     private fun getKeyStoreResolver(storePath: String, storePass: CharArray): KeyStore {
