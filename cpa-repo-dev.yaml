@@ -37,9 +37,6 @@ spec:
     requests:
       cpu: "200m"
       memory: "256Mi"
-  prometheus:
-    enabled: true
-    path: /internal/metrics
   ingresses:
     - "https://cpa-repo-fss.intern.dev.nav.no"
     - "https://cpa-repo.dev-fss-pub.nais.io"

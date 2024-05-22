@@ -22,6 +22,9 @@ spec:
     initialDelay: 30
     timeout: 10
     failureThreshold: 10
+  prometheus:
+    enabled: true
+    path: /prometheus
   replicas:
     scalingStrategy:
       cpu:
@@ -35,9 +38,6 @@ spec:
     requests:
       cpu: "100m"
       memory: "256Mi"
-  prometheus:
-    enabled: true
-    path: /internal/metrics
   ingresses:
     - "https://cpa-repo-fss.intern.nav.no"
     #- "https://cpa-repo.prod-fss-pub.nais.io"
