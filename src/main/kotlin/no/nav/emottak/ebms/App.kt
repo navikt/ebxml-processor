@@ -6,10 +6,12 @@ import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.call
 import io.ktor.server.application.install
+import io.ktor.server.application.pluginRegistry
 import io.ktor.server.auth.Authentication
 import io.ktor.server.auth.authenticate
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.metrics.micrometer.MicrometerMetrics
+import io.ktor.server.metrics.micrometer.MicrometerMetricsConfig
 import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.request.receive
@@ -17,8 +19,10 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
+import io.micrometer.core.instrument.Timer.ResourceSample
 import io.micrometer.prometheus.PrometheusConfig
 import io.micrometer.prometheus.PrometheusMeterRegistry
+import java.util.Timer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import no.nav.emottak.auth.AZURE_AD_AUTH
@@ -45,6 +49,12 @@ fun main() {
     }).start(wait = true)
 }
 
+fun <T>  timed(meterRegistry: PrometheusMeterRegistry,metricName: String, process: ResourceSample.() -> T): T =
+   io.micrometer.core.instrument.Timer.resource(meterRegistry, metricName)
+       .use {
+           process(it)
+       }
+
 fun Application.ebmsSendInModule() {
     install(ContentNegotiation) {
         json()
@@ -64,12 +74,15 @@ fun Application.ebmsSendInModule() {
 
     routing {
         authenticate(AZURE_AD_AUTH) {
+
             post("/fagmelding/synkron") {
                 val request = this.call.receive(SendInRequest::class)
                 runCatching {
                     log.info(request.marker(), "Payload ${request.payloadId} videresendes til fagsystem")
                     withContext(Dispatchers.IO) {
-                        frikortsporring(wrapMessageInEIFellesFormat(request))
+                        timed(appMicrometerRegistry,"frikort-sporing") {
+                            frikortsporring(wrapMessageInEIFellesFormat(request))
+                        }
                     }
                 }.onSuccess {
                     log.trace(
