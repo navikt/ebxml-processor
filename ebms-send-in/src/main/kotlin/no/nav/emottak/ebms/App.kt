@@ -14,7 +14,6 @@ import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
-import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
@@ -25,18 +24,14 @@ import kotlinx.coroutines.withContext
 import no.nav.emottak.auth.AZURE_AD_AUTH
 import no.nav.emottak.auth.AuthConfig
 import no.nav.emottak.fellesformat.wrapMessageInEIFellesFormat
-import no.nav.emottak.frikort.frikortClient
 import no.nav.emottak.frikort.frikortsporring
 import no.nav.emottak.frikort.marshal
-import no.nav.emottak.frikort.unmarshal
 import no.nav.emottak.melding.model.SendInRequest
 import no.nav.emottak.melding.model.SendInResponse
 import no.nav.emottak.util.getEnvVar
 import no.nav.emottak.util.marker
 import no.nav.security.token.support.v2.tokenValidationSupport
-import no.nav.tjeneste.ekstern.frikort.v1.types.FrikortsporringRequest
 import org.slf4j.LoggerFactory
-import org.xmlsoap.schemas.soap.envelope.Envelope
 
 internal val log = LoggerFactory.getLogger("no.nav.emottak.ebms.App")
 
@@ -68,15 +63,6 @@ fun Application.ebmsSendInModule() {
     }
 
     routing {
-        get("/testFrikortEndepunkt") {
-            val testCpaString = String(this::class.java.classLoader.getResource("frikortRequest.xml")!!.readBytes())
-            val envelope = unmarshal(testCpaString, Envelope::class.java)
-            val frikortSporting = envelope.body.any.first() as FrikortsporringRequest
-            val response = frikortClient.frikortsporring(frikortSporting)
-            log.info(marshal(response))
-            call.respondText(marshal(response))
-        }
-
         authenticate(AZURE_AD_AUTH) {
             post("/fagmelding/synkron") {
                 val request = this.call.receive(SendInRequest::class)
@@ -105,10 +91,6 @@ fun Application.ebmsSendInModule() {
                     log.error(request.marker(), "Payload ${request.payloadId} videresending feilet", it)
                     call.respond(HttpStatusCode.BadRequest, it.localizedMessage)
                 }
-            }
-            get("/test-auth") {
-                log.info("Secure API '/test-auth' endpoint called")
-                call.respondText("Hello World from a secure context")
             }
         }
 
