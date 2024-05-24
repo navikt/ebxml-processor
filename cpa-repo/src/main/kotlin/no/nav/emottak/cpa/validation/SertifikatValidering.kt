@@ -4,8 +4,8 @@ import no.nav.emottak.cpa.HttpClientUtil
 import no.nav.emottak.cpa.cert.CRLChecker
 import no.nav.emottak.cpa.cert.CRLRetriever
 import no.nav.emottak.cpa.cert.CertificateValidationException
+import no.nav.emottak.crypto.FileKeyStoreConfig
 import no.nav.emottak.crypto.KeyStore
-import no.nav.emottak.crypto.KeyStoreConfig
 import no.nav.emottak.util.getEnvVar
 import no.nav.emottak.util.isSelfSigned
 import org.bouncycastle.asn1.x509.CRLDistPoint
@@ -30,11 +30,11 @@ import java.util.Date
 
 internal val log = LoggerFactory.getLogger("no.nav.emottak.cpa.validation.SertifikatValidering")
 
-val trustStoreConfig = object : KeyStoreConfig {
-    override val keystorePath: String = getEnvVar("TRUSTSTORE_PATH", resolveDefaultTruststorePath())
-    override val keyStorePwd: String = getEnvVar("TRUSTSTORE_PWD", "123456789")
-    override val keyStoreStype: String = "PKCS12"
-}
+private fun trustStoreConfig() = FileKeyStoreConfig(
+    keyStoreFilePath = getEnvVar("TRUSTSTORE_PATH", resolveDefaultTruststorePath()),
+    keyStorePass = getEnvVar("TRUSTSTORE_PWD", "123456789").toCharArray(),
+    keyStoreType = "PKCS12"
+)
 
 fun resolveDefaultTruststorePath(): String? {
     return when (getEnvVar("NAIS_CLUSTER_NAME", "lokaltest")) {
@@ -45,8 +45,7 @@ fun resolveDefaultTruststorePath(): String? {
 
 private val sertifikatValidering = lazy {
     SertifikatValidering(
-        CRLChecker(CRLRetriever(HttpClientUtil.client)),
-        trustStoreConfig
+        CRLChecker(CRLRetriever(HttpClientUtil.client))
     )
 }
 
@@ -57,18 +56,12 @@ fun X509Certificate.validate() {
 }
 
 class SertifikatValidering(
-    val crlChecker: CRLChecker,
-    trustStoreConfig: KeyStoreConfig,
-    val provider: Provider = BouncyCastleProvider()
+    private val crlChecker: CRLChecker,
+    trustStore: KeyStore = KeyStore(trustStoreConfig()),
+    private val provider: Provider = BouncyCastleProvider()
 ) {
-    val trustedRootCertificates: Set<X509Certificate>
-    val intermediateCertificates: Set<X509Certificate>
-
-    init {
-        val trustStore = KeyStore(trustStoreConfig)
-        trustedRootCertificates = trustStore.getTrustedRootCerts()
-        intermediateCertificates = trustStore.getIntermediateCerts()
-    }
+    private val trustedRootCertificates: Set<X509Certificate> = trustStore.getTrustedRootCerts()
+    private val intermediateCertificates: Set<X509Certificate> = trustStore.getIntermediateCerts()
 
     fun validateCertificate(certificate: X509Certificate) {
         if (isSelfSigned(certificate)) {
