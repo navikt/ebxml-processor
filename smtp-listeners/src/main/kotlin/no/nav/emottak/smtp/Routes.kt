@@ -33,7 +33,7 @@ import org.eclipse.angus.mail.imap.IMAPFolder
 import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.time.Instant
-import java.util.Date
+import java.util.*
 import kotlin.time.toKotlinDuration
 
 fun Route.cpaSync(): Route = get("/cpa-sync") {
@@ -78,11 +78,23 @@ fun Route.cpaSync(): Route = get("/cpa-sync") {
                         }.let { matches ->
                             forEach { cpaTimestamps.remove(it) }
                             if (matches.any()) {
+                                // TEMP START: FOR Å TVINGE AT JEG FÅR INNHOLD I CPAFILE LOGGET!
+                                runCatching {
+                                    val cpaFile = connector.file("/outbound/cpa/" + entry.filename).use {
+                                        String(it.readAllBytes())
+                                    }
+                                    log.info(" cpaFile: $cpaFile")
+                                }.onFailure {
+                                    log.error("[Route.cpaSync()]: Kunne ikke lese filen (for testing formål)!")
+                                }
+
+                                // TEMP END
                                 log.info("Newer version already exists $filename, skipping...")
                                 return@forEach
                             }
                         }
                     }
+
                     runCatching {
                         log.info("Fetching file ${entry.filename}")
                         val cpaFile = connector.file("/outbound/cpa/" + entry.filename).use {
