@@ -45,20 +45,17 @@ fun Route.cpaSync(): Route = get("/cpa-sync") {
         log.info("CPA sync started at $startTime")
         runCatching {
             val tempTimestamps = cpaRepoClient.getCPATimestamps()
-            log.info("[Route.cpaSync()] cpaRepoClient.getCPATimestamps(): $tempTimestamps")
             val cpaTimestamps = tempTimestamps.toMutableMap() // mappen tømmes ettersom entries behandles
 
             NFSConnector().use { connector ->
                 connector.folder().forEach { entry ->
                     val filename = entry.filename
-                    log.info("[Route.cpaSync()] entry.filename: $filename")
                     log.info("Checking $filename...")
                     if (!filename.endsWith(".xml")) {
                         log.warn(entry.filename + " is ignored")
                         return@forEach
                     }
                     val lastModified = Date(entry.attrs.mTime.toLong() * 1000).toInstant()
-                    log.info("[Route.cpaSync()] entry.attrs.mTime: ${entry.attrs.mTime}")
 
                     // Fjerner cpaId matches fra timestamp listen og skipper hvis nyere eksisterer
                     // Todo refactor. Too "kotlinesque":
@@ -78,17 +75,6 @@ fun Route.cpaSync(): Route = get("/cpa-sync") {
                         }.let { matches ->
                             forEach { cpaTimestamps.remove(it) }
                             if (matches.any()) {
-                                // TEMP START: FOR Å TVINGE AT JEG FÅR INNHOLD I CPAFILE LOGGET!
-                                runCatching {
-                                    val cpaFile = connector.file("/outbound/cpa/" + entry.filename).use {
-                                        String(it.readAllBytes())
-                                    }
-                                    log.info(" cpaFile: $cpaFile")
-                                }.onFailure {
-                                    log.error("[Route.cpaSync()]: Kunne ikke lese filen (for testing formål)!")
-                                }
-
-                                // TEMP END
                                 log.info("Newer version already exists $filename, skipping...")
                                 return@forEach
                             }
@@ -100,7 +86,6 @@ fun Route.cpaSync(): Route = get("/cpa-sync") {
                         val cpaFile = connector.file("/outbound/cpa/" + entry.filename).use {
                             String(it.readAllBytes())
                         }
-                        log.info("[Route.cpaSync()] cpaFile: $cpaFile")
                         log.info("Uploading $filename")
                         cpaRepoClient.putCPAinCPARepo(cpaFile, lastModified)
                     }.onFailure {
