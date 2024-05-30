@@ -79,7 +79,9 @@ class VaultUtil private constructor() {
         private val instance: VaultUtil = VaultUtil()
 
         fun readVaultPathResource(path: String, resource: String): String =
-            instance.client.logical().read(path).data[resource] ?: throw RuntimeException("Failed to read vault path resource: $path/$resource")
+            instance.client.logical().read(path).data[resource].also {
+                logger.info("Got vault resource $resource from vault path $path")
+            } ?: throw RuntimeException("Failed to read vault path resource: $path/$resource")
 
         // We should refresh tokens from Vault before they expire, so we add a MIN_REFRESH_MARGIN margin.
         // If the token is valid for less than MIN_REFRESH_MARGIN * 2, we use duration / 2 instead.
