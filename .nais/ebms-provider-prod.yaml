@@ -43,9 +43,6 @@ spec:
     - "https://ebms-provider-fss.intern.nav.no"
   vault:
     enabled: true
-    paths:
-      - kvPath: /secret/virksomhetssertifikat/prod/Arbeids-og-velferdsetaten
-        mountPath: /var/run/secrets/ebms-keystore-signering
 #  gcp:
 #    sqlInstances:
 #        - type: POSTGRES_15
@@ -56,13 +53,3 @@ spec:
       rules:
         - application: cpa-repo
         - application: ebms-payload
-  env:
-    - name: KEYSTORE_FILE
-      value: /var/run/secrets/ebms-keystore-signering/key.p12.b64.2022
-    - name: KEYSTORE_PWD_FILE
-      value: /var/run/secrets/ebms-keystore-signering/credentials.2022
-  #envFrom:
-  #  - secret: ebms-payload-secret
-  #filesFrom:
-  #  - secret: ebms-keystore-signering
-  #    mountPath: /var/run/secrets/ebms-keystore-signering
