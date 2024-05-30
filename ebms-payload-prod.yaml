@@ -46,18 +46,12 @@ spec:
         - application: ebms-provider
   vault:
     enabled: true
-    paths:
-      - kvPath: /secret/virksomhetssertifikat/prod/Arbeids-og-velferdsetaten
-        mountPath: /var/run/secrets/ebms-keystore
   env:
-    - name: KEYSTORE_FILE_DEKRYPT
-      value: /var/run/secrets/ebms-keystore/key.decrypt.p12.b64.2022
-    - name: KEYSTORE_FILE_SIGN
-      value: /var/run/secrets/ebms-keystore/key.p12.b64.2022
-    - name: KEYSTORE_PWD_FILE
-      value: /var/run/secrets/ebms-keystore/credentials.2022
-#  envFrom:
-#    - secret: ebms-payload-secret
-#  filesFrom:
-#    - secret: ebms-payload-keystore
-#      mountPath: /var/run/secrets/ebms-keystore
+    - name: VIRKSOMHETSSERTIFIKAT_PATH
+      value: /secret/virksomhetssertifikat/prod/Arbeids-og-velferdsetaten
+    - name: VIRKSOMHETSSERTIFIKAT_SIGNERING
+      value: key.p12.b64.2022
+    - name: VIRKSOMHETSSERTIFIKAT_DEKRYPTERING
+      value: key.decrypt.p12.b64.2022
+    - name: VIRKSOMHETSSERTIFIKAT_CREDENTIALS
+      value: credentials.2022

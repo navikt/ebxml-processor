@@ -53,3 +53,12 @@ spec:
       rules:
         - application: cpa-repo
         - application: ebms-payload
+  env:
+    - name: VIRKSOMHETSSERTIFIKAT_PATH
+      value: /secret/virksomhetssertifikat/prod/Arbeids-og-velferdsetaten
+    - name: VIRKSOMHETSSERTIFIKAT_SIGNERING
+      value: key.p12.b64.2022
+    - name: VIRKSOMHETSSERTIFIKAT_DEKRYPTERING
+      value: key.decrypt.p12.b64.2022
+    - name: VIRKSOMHETSSERTIFIKAT_CREDENTIALS
+      value: credentials.2022
