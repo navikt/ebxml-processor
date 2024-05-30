@@ -33,7 +33,7 @@ import org.eclipse.angus.mail.imap.IMAPFolder
 import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.time.Instant
-import java.util.Date
+import java.util.*
 import kotlin.time.toKotlinDuration
 
 fun Route.cpaSync(): Route = get("/cpa-sync") {
@@ -42,9 +42,11 @@ fun Route.cpaSync(): Route = get("/cpa-sync") {
     val cpaRepoClient = getCpaRepoAuthenticatedClient()
     withContext(Dispatchers.IO) {
         val startTime = Instant.now()
+        log.info("CPA sync started at $startTime")
         runCatching {
-            val cpaTimestamps =
-                cpaRepoClient.getCPATimestamps().toMutableMap() // mappen tømmes ettersom entries behandles
+            val tempTimestamps = cpaRepoClient.getCPATimestamps()
+            val cpaTimestamps = tempTimestamps.toMutableMap() // mappen tømmes ettersom entries behandles
+
             NFSConnector().use { connector ->
                 connector.folder().forEach { entry ->
                     val filename = entry.filename
@@ -54,6 +56,7 @@ fun Route.cpaSync(): Route = get("/cpa-sync") {
                         return@forEach
                     }
                     val lastModified = Date(entry.attrs.mTime.toLong() * 1000).toInstant()
+
                     // Fjerner cpaId matches fra timestamp listen og skipper hvis nyere eksisterer
                     // Todo refactor. Too "kotlinesque":
                     with(ArrayList<String>()) {
@@ -77,6 +80,7 @@ fun Route.cpaSync(): Route = get("/cpa-sync") {
                             }
                         }
                     }
+
                     runCatching {
                         log.info("Fetching file ${entry.filename}")
                         val cpaFile = connector.file("/outbound/cpa/" + entry.filename).use {

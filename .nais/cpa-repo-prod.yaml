@@ -22,12 +22,15 @@ spec:
     initialDelay: 30
     timeout: 10
     failureThreshold: 10
+  prometheus:
+    enabled: true
+    path: /prometheus
   replicas:
     scalingStrategy:
       cpu:
-        thresholdPercentage: 30
-    min: 1
-    max: 6
+        thresholdPercentage: 25
+    min: 2
+    max: 12
   resources:
     limits:
       cpu: "1000m"

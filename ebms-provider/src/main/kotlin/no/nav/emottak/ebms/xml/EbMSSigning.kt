@@ -1,8 +1,9 @@
 package no.nav.emottak.ebms.xml
 
 import jakarta.xml.soap.SOAPConstants
+import no.nav.emottak.crypto.FileKeyStoreConfig
 import no.nav.emottak.crypto.KeyStore
-import no.nav.emottak.crypto.KeyStoreConfig
+import no.nav.emottak.crypto.VaultKeyStoreConfig
 import no.nav.emottak.crypto.parseVaultJsonObject
 import no.nav.emottak.ebms.model.EbMSDocument
 import no.nav.emottak.ebms.validation.CID_PREFIX
@@ -22,40 +23,41 @@ import org.w3c.dom.NodeList
 import java.io.FileReader
 import java.security.cert.X509Certificate
 
-val signeringConfig = when (getEnvVar("NAIS_CLUSTER_NAME", "local")) {
-    "dev-fss" ->
-        object : KeyStoreConfig {
-            override val keystorePath: String = getEnvVar("KEYSTORE_FILE", "xml/signering_keystore.p12")
-            override val keyStorePwd: String = getEnvVar("KEYSTORE_PWD", "123456789") // Fixme burde egentlig hente fra dev vault context for å matche prod oppførsel
-            override val keyStoreStype: String = getEnvVar("KEYSTORE_TYPE", "PKCS12")
-        }
-    "prod-fss" ->
-        object : KeyStoreConfig {
-            override val keystorePath: String = getEnvVar("KEYSTORE_FILE")
-            override val keyStorePwd: String = FileReader(getEnvVar("KEYSTORE_PWD_FILE")).readText().parseVaultJsonObject()
-            override val keyStoreStype: String = getEnvVar("KEYSTORE_TYPE", "PKCS12")
-        }
-    else ->
-        object : KeyStoreConfig {
-            override val keystorePath: String = getEnvVar("KEYSTORE_FILE", "xml/signering_keystore.p12")
-            override val keyStorePwd: String = FileReader(
-                getEnvVar(
-                    "KEYSTORE_PWD_FILE",
-                    javaClass.classLoader.getResource("credentials-test.json").path.toString()
-                )
-            ).readText().parseVaultJsonObject()
-            override val keyStoreStype: String = getEnvVar("KEYSTORE_TYPE", "PKCS12")
-        }
-}
+fun signeringConfig() =
+    when (getEnvVar("NAIS_CLUSTER_NAME", "local")) {
+        "dev-fss" ->
+            // Fixme burde egentlig hente fra dev vault context for å matche prod oppførsel
+            FileKeyStoreConfig(
+                keyStoreFilePath = getEnvVar("KEYSTORE_FILE", "xml/signering_keystore.p12"),
+                keyStorePass = getEnvVar("KEYSTORE_PWD").toCharArray(),
+                keyStoreType = getEnvVar("KEYSTORE_TYPE", "PKCS12")
+            )
+        "prod-fss" ->
+            VaultKeyStoreConfig(
+                keyStoreVaultPath = "/secret/virksomhetssertifikat/prod/Arbeids-og-velferdsetaten",
+                keyStoreFileResource = "key.p12.b64.2022",
+                keyStorePassResource = "credentials.2022"
+            )
+        else ->
+            FileKeyStoreConfig(
+                keyStoreFilePath = getEnvVar("KEYSTORE_FILE", "xml/signering_keystore.p12"),
+                keyStorePass = FileReader(
+                    getEnvVar(
+                        "KEYSTORE_PWD_FILE",
+                        FileKeyStoreConfig::class.java.classLoader.getResource("credentials-test.json").path.toString()
+                    )
+                ).readText().parseVaultJsonObject("password").toCharArray(),
+                keyStoreType = getEnvVar("KEYSTORE_TYPE", "PKCS12")
+            )
+    }
 
-val ebMSSigning = EbMSSigning(signeringConfig)
+val ebMSSigning = EbMSSigning()
 
-class EbMSSigning(keyStoreConfig: KeyStoreConfig) {
+class EbMSSigning(private val keyStore: KeyStore = KeyStore(signeringConfig())) {
 
     private val canonicalizationMethodAlgorithm = Transforms.TRANSFORM_C14N_OMIT_COMMENTS
     private val SOAP_ENVELOPE = SOAPConstants.URI_NS_SOAP_1_1_ENVELOPE
     private val SOAP_NEXT_ACTOR = SOAPConstants.URI_SOAP_ACTOR_NEXT
-    private val keyStore = KeyStore(keyStoreConfig)
 
     fun sign(ebMSDocument: EbMSDocument, signatureDetails: SignatureDetails) {
         sign(

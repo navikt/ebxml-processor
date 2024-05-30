@@ -1,8 +1,7 @@
 package no.nav.emottak.payload.crypto
 
+import no.nav.emottak.crypto.FileKeyStoreConfig
 import no.nav.emottak.crypto.KeyStore
-import no.nav.emottak.crypto.KeyStoreConfig
-import no.nav.emottak.crypto.parseVaultJsonObject
 import no.nav.emottak.util.decodeBase64
 import no.nav.emottak.util.getEnvVar
 import org.bouncycastle.asn1.x500.X500Name
@@ -14,44 +13,22 @@ import org.bouncycastle.cms.RecipientInformation
 import org.bouncycastle.cms.RecipientInformationStore
 import org.bouncycastle.cms.jcajce.JceKeyTransEnvelopedRecipient
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import java.io.FileReader
 import java.security.PrivateKey
 import java.security.Security
 import java.security.cert.X509Certificate
 
-val dekryperingConfig = when (getEnvVar("NAIS_CLUSTER_NAME", "local")) {
-    "dev-fss" ->
-        object : KeyStoreConfig {
-            override val keystorePath: String = getEnvVar("KEYSTORE_FILE_DEKRYPT", "xml/signering_keystore.p12")
-            override val keyStorePwd: String = getEnvVar("KEYSTORE_PWD", "123456789") // Fixme burde egentlig hente fra dev vault context for å matche prod oppførsel
-            override val keyStoreStype: String = getEnvVar("KEYSTORE_TYPE", "PKCS12")
-        }
-    "prod-fss" ->
-        object : KeyStoreConfig {
-            override val keystorePath: String = getEnvVar("KEYSTORE_FILE_DEKRYPT")
-            override val keyStorePwd: String = FileReader(getEnvVar("KEYSTORE_PWD_FILE")).readText().parseVaultJsonObject()
-            override val keyStoreStype: String = getEnvVar("KEYSTORE_TYPE", "PKCS12")
-        }
-    else ->
-        object : KeyStoreConfig {
-            override val keystorePath: String = getEnvVar("KEYSTORE_FILE_DEKRYPT", "xml/signering_keystore.p12")
-            override val keyStorePwd: String = FileReader(
-                getEnvVar(
-                    "KEYSTORE_PWD_FILE",
-                    javaClass.classLoader.getResource("keystore/credentials-test.json").path.toString()
-                )
-            ).readText().parseVaultJsonObject()
-            override val keyStoreStype: String = getEnvVar("KEYSTORE_TYPE", "PKCS12")
-        }
-}
+private fun dekrypteringConfig() = FileKeyStoreConfig(
+    keyStoreFilePath = getEnvVar("KEYSTORE_FILE", "xml/signering_keystore.p12"),
+    keyStorePass = getEnvVar("KEYSTORE_PWD", "123456789").toCharArray(),
+    keyStoreType = getEnvVar("KEYSTORE_TYPE", "PKCS12")
+)
 
 /*
  *
  * 5.15.1 Dekryptering av vedlegg
  */
-class Dekryptering(keyStoreConfig: KeyStoreConfig) {
+class Dekryptering(private val keyStore: KeyStore = KeyStore(dekrypteringConfig())) {
 
-    val keyStore: KeyStore = KeyStore(keyStoreConfig)
     init {
         val provider = BouncyCastleProvider()
         Security.addProvider(provider)
