@@ -28,15 +28,15 @@ fun signeringConfig() =
         "dev-fss" ->
             // Fixme burde egentlig hente fra dev vault context for å matche prod oppførsel
             FileKeyStoreConfig(
-                keyStoreFilePath = getEnvVar("KEYSTORE_FILE", "xml/signering_keystore.p12"),
+                keyStoreFilePath = getEnvVar("KEYSTORE_FILE"),
                 keyStorePass = getEnvVar("KEYSTORE_PWD").toCharArray(),
                 keyStoreType = getEnvVar("KEYSTORE_TYPE", "PKCS12")
             )
         "prod-fss" ->
             VaultKeyStoreConfig(
-                keyStoreVaultPath = "/secret/virksomhetssertifikat/prod/Arbeids-og-velferdsetaten",
-                keyStoreFileResource = "key.p12.b64.2022",
-                keyStorePassResource = "credentials.2022"
+                keyStoreVaultPath = getEnvVar("VIRKSOMHETSSERTIFIKAT_PATH"),
+                keyStoreFileResource = getEnvVar("VIRKSOMHETSSERTIFIKAT_SIGNERING"),
+                keyStorePassResource = getEnvVar("VIRKSOMHETSSERTIFIKAT_CREDENTIALS")
             )
         else ->
             FileKeyStoreConfig(
