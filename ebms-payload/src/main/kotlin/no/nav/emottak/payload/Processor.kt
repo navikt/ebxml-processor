@@ -8,8 +8,6 @@ import no.nav.emottak.melding.model.PayloadResponse
 import no.nav.emottak.payload.crypto.Dekryptering
 import no.nav.emottak.payload.crypto.Kryptering
 import no.nav.emottak.payload.crypto.PayloadSignering
-import no.nav.emottak.payload.crypto.dekryperingConfig
-import no.nav.emottak.payload.crypto.payloadSigneringConfig
 import no.nav.emottak.payload.util.GZipUtil
 import no.nav.emottak.payload.util.unmarshal
 import no.nav.emottak.util.createDocument
@@ -23,8 +21,8 @@ import javax.xml.xpath.XPathFactory
 
 class Processor(
     private val kryptering: Kryptering = Kryptering(),
-    private val dekryptering: Dekryptering = Dekryptering(dekryperingConfig),
-    private val signering: PayloadSignering = PayloadSignering(payloadSigneringConfig),
+    private val dekryptering: Dekryptering = Dekryptering(),
+    private val signering: PayloadSignering = PayloadSignering(),
     private val gZipUtil: GZipUtil = GZipUtil(),
     private val signatureVerifisering: SignaturVerifisering = SignaturVerifisering()
 ) {

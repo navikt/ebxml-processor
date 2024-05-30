@@ -30,7 +30,7 @@ class SertifikatValideringTest : FunSpec({
             crlChecker.getCRLRevocationInfo(any(), any())
         } just runs
         System.setProperty("TRUSTSTORE_PATH", "truststore.p12")
-        val sertifikatValidering = SertifikatValidering(crlChecker, trustStoreConfig)
+        val sertifikatValidering = SertifikatValidering(crlChecker)
 
         withData(
             mapOf(
@@ -61,6 +61,7 @@ class SertifikatValideringTest : FunSpec({
             crlFile,
             Instant.now()
         )
+        System.setProperty("TRUSTSTORE_PATH", "truststore.p12")
         val crlRetriever = mockk<CRLRetriever>()
         every {
             runBlocking {
@@ -68,7 +69,7 @@ class SertifikatValideringTest : FunSpec({
             }
         } returns listOf(crl)
         val crlChecker = CRLChecker(crlRetriever)
-        val sertifikatValidering = SertifikatValidering(crlChecker, trustStoreConfig)
+        val sertifikatValidering = SertifikatValidering(crlChecker)
 
         withData(
             mapOf(
