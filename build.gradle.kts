@@ -51,12 +51,10 @@ dependencies {
     testImplementation(testLibs.mockk.dsl.jvm)
     testImplementation(testLibs.junit.jupiter.api)
     testImplementation(testLibs.bundles.kotest)
-    // testImplementation(libs.ktor.client.content.negotiation)
     testImplementation(testLibs.ktor.server.test.host)
     testImplementation("com.icegreen:greenmail:2.1.0-alpha-3")
     testImplementation("com.icegreen:greenmail-junit5:2.1.0-alpha-3")
     testImplementation(kotlin("test"))
-
     implementation(kotlin("stdlib-jdk8"))
 }
 
