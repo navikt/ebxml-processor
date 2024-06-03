@@ -17,11 +17,11 @@ class NFSConnector(
     private val publicKeyFile = "/var/run/secrets/publickey"
     private val usernameMount = "/var/run/secrets/nfsusername"
     private val passphraseMount = "/var/run/secrets/passphrase"
-
     private val passphrase = String(fileReader.read(passphraseMount))
     private val username = String(fileReader.read(usernameMount))
     private val host = getEnvVar("NFS_HOST", "10.183.32.98")
     private val port = getEnvVar("NFS_PORT", "22").toInt()
+    private val outboundCpa = "/outbound/cpa"
     private val channelType = "sftp"
     private val jsch: JSch = jSch
     private val session: Session
@@ -37,11 +37,11 @@ class NFSConnector(
 
         sftpChannel = session.openChannel(channelType) as ChannelSftp
         sftpChannel.connect()
-        sftpChannel.cd("/outbound/cpa")
+        sftpChannel.cd(outboundCpa)
     }
 
-    fun folder(path: String = "/outbound/cpa"): Vector<ChannelSftp.LsEntry> =
-        sftpChannel.ls(path) as Vector<ChannelSftp.LsEntry>
+    fun folder(): Vector<ChannelSftp.LsEntry> =
+        sftpChannel.ls(outboundCpa) as Vector<ChannelSftp.LsEntry>
 
     fun file(filename: String): InputStream = sftpChannel.get(filename)
 
