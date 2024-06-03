@@ -17,30 +17,28 @@ class CpaSyncService(private val cpaRepoClient: HttpClient, private val nfsConne
 
     suspend fun sync() {
         return runCatching {
-            val mutableCpaTimestamps = cpaRepoClient.getCPATimestamps().toMutableMap()
-            processAndSyncEntries(mutableCpaTimestamps, nfsConnector)
-            deleteStaleCpaEntries(mutableCpaTimestamps)
+            val cpaTimestamps = cpaRepoClient.getCPATimestamps()
+            processAndSyncEntries(cpaTimestamps)
         }.onFailure {
             logFailure(it)
         }.getOrThrow()
     }
 
-    private suspend fun processAndSyncEntries(
-        mutableCpaTimestamps: MutableMap<String, String>,
-        nfsConnector: NFSConnector
-    ) {
+    private suspend fun processAndSyncEntries(cpaTimestamps: Map<String, String>) {
         nfsConnector.use { connector ->
-            connector.folder().forEach { entry ->
+            val staleCpaTimestamps = connector.folder().fold(cpaTimestamps.toMap()) { acc, entry ->
                 val filename = entry.filename
                 log.info("Checking $filename...")
+
                 if (!filename.endsWith(".xml")) {
                     log.warn("$filename is ignored")
-                    return@forEach
+                    return@fold acc
                 }
 
                 val lastModified = Date(entry.attrs.mTime.toLong() * 1000).toInstant()
-                if (shouldSkipFile(filename, lastModified, mutableCpaTimestamps)) {
-                    return@forEach
+                val (shouldSkip, staleCpaTimestamps) = shouldSkipFile(filename, lastModified, acc)
+                if (shouldSkip) {
+                    return@fold staleCpaTimestamps
                 }
 
                 runCatching {
@@ -53,42 +51,43 @@ class CpaSyncService(private val cpaRepoClient: HttpClient, private val nfsConne
                 }.onFailure {
                     log.error("Error uploading $filename to cpa-repo: ${it.message}", it)
                 }
+
+                staleCpaTimestamps
             }
+
+            deleteStaleCpaEntries(staleCpaTimestamps)
         }
     }
 
     internal fun shouldSkipFile(
         filename: String,
         lastModified: Instant,
-        mutableCpaTimestamps: MutableMap<String, String>
-    ): Boolean {
-        val shouldNotBeDeleted = ArrayList<String>()
-        val matches = mutableCpaTimestamps.filter { (cpaId, timestamp) ->
+        cpaTimestamps: Map<String, String>
+    ): Pair<Boolean, Map<String, String>> {
+        var shouldSkip = false
+        val staleCpaTimestamps = cpaTimestamps.filter { (cpaId, timestamp) ->
             val formattedCpaId = cpaId.replace(":", ".")
             if (filename.contains(formattedCpaId)) {
-                shouldNotBeDeleted.add(cpaId)
                 if (Instant.parse(timestamp) == lastModified) {
                     log.info("$filename already exists with same timestamp")
-                    true
+                    shouldSkip = true
                 } else {
                     log.info("$filename has different timestamp, should be updated")
-                    false
                 }
-            } else {
                 false
+            } else {
+                true
             }
         }
 
-        shouldNotBeDeleted.forEach { mutableCpaTimestamps.remove(it) }
-
-        if (matches.any()) {
+        if (shouldSkip) {
             log.info("Newer version already exists $filename, skipping...")
-            return true
         }
-        return false
+
+        return shouldSkip to staleCpaTimestamps
     }
 
-    internal suspend fun deleteStaleCpaEntries(cpaTimestamps: MutableMap<String, String>) {
+    internal suspend fun deleteStaleCpaEntries(cpaTimestamps: Map<String, String>) {
         cpaTimestamps.forEach { (cpaId) ->
             cpaRepoClient.deleteCPAinCPARepo(cpaId)
         }
