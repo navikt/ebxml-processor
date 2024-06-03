@@ -49,6 +49,10 @@ spec:
 #          databases:
 #            - name: ebms-db
   accessPolicy:
+    inbound:
+      rules:
+        - application: statuspoll
+          namespace: navdig
     outbound:
       rules:
         - application: cpa-repo

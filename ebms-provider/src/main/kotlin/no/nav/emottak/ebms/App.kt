@@ -117,6 +117,7 @@ fun Application.ebmsProviderModule() {
 //            call.respond("Response from /test-auth: $result")
 //        }
         registerHealthEndpoints(appMicrometerRegistry)
+        navCheckStatus()
         postEbmsAsync(validator, processing)
         postEbmsSync(validator, processing, sendInService)
     }
