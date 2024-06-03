@@ -34,7 +34,7 @@ import java.time.Instant
 import kotlin.time.toKotlinDuration
 
 fun Route.cpaSync(): Route = get("/cpa-sync") {
-    val log = LoggerFactory.getLogger("no.nav.emottak.smtp.sftp.cpaSync")
+    val log = LoggerFactory.getLogger("no.nav.emottak.smtp.sftp")
     val cpaSyncService = CpaSyncService(getCpaRepoAuthenticatedClient(), NFSConnector())
 
     withContext(Dispatchers.IO) {
