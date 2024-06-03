@@ -1,7 +1,7 @@
 apiVersion: "nais.io/v1alpha1"
 kind: "Application"
 metadata:
-  name: "ebms-provider"
+  name: "ebms-payload"
   namespace: "team-emottak"
   labels:
     "team": "team-emottak"
@@ -9,7 +9,6 @@ spec:
   azure:
     application:
       enabled: true
-  webproxy: true
   image: {{image}}
   liveness:
     path: "/internal/health/liveness"
@@ -27,32 +26,26 @@ spec:
     enabled: true
     path: /prometheus
   replicas:
-    scalingStrategy:
-      cpu:
-        thresholdPercentage: 25
-    min: 2
-    max: 12
+    min: 1
+    max: 5
+    cpuThresholdPercentage: 50
   resources:
     limits:
-      cpu: "1000m"
-      memory: "512Mi"
+      memory: "1024Mi"
     requests:
-      cpu: "100m"
-      memory: "512Mi"
+      cpu: "200m"
+      memory: "256Mi"
   ingresses:
-    - "https://ebms-provider-fss.intern.nav.no"
-  vault:
-    enabled: true
-#  gcp:
-#    sqlInstances:
-#        - type: POSTGRES_15
-#          databases:
-#            - name: ebms-db
+    - "https://ebms-payload-fss.intern.nav.no"
   accessPolicy:
     outbound:
       rules:
         - application: cpa-repo
-        - application: ebms-payload
+    inbound:
+      rules:
+        - application: ebms-provider
+  vault:
+    enabled: true
   env:
     - name: VIRKSOMHETSSERTIFIKAT_PATH
       value: /secret/virksomhetssertifikat/prod/Arbeids-og-velferdsetaten

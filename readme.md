@@ -3,11 +3,13 @@
 # eMottak ebXML
 Dette prosjektet håndterer meldinger mottatt på ebXML-standarden.
 
-Prosjektet består av tre hovedmoduler for behandling av ebXML-meldinger.
-I tillegg er det en modul som lytter på epost, og router meldinger til ebMS-Provider for behandling.
+Prosjektet består av fire hovedmoduler for behandling av ebXML-meldinger.
 * EbMS Provider
 * EbMS Payload behandling
 * CPA Repo
+* EbMS Send In
+
+I tillegg er det en modul for asynkron trafikk som lytter på epost, og router meldinger til ebMS-Provider for behandling.
 * SMTP-Listener
 
 ### EbMS Provider
@@ -21,6 +23,11 @@ validerer at innholdet er en korrekt fagmelding og er klar for videreformidling 
 ### CPA Repo
 Holder på alle godkjente CPAer. Mottar ebXML-header informasjon fra ebMS-provider, og validerer innholdet mot
 relevant CPA.
+
+### EbMS Send In
+Denne tjenesten har ansvaret for å route fagmeldingene til og fra fagsystemene. På vei inn mottar den ferdigbehandlede 
+fagmeldinger som routes videre til riktig fagsystem. På vei ut mottar den fagmeldinger fra fagsystemene, og router dem 
+videre til EbMS provider som validerer, pakker og sender ut meldingene.
 
 ### SMTP Listener
 Liten modul som henter eposter fra definert innboks, og router meldingene videre til ebMS-Provider.
