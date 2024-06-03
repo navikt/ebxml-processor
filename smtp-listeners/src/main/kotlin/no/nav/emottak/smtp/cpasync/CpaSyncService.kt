@@ -2,14 +2,14 @@ package no.nav.emottak.smtp.cpasync
 
 import com.jcraft.jsch.SftpException
 import io.ktor.client.HttpClient
-import java.time.Instant
-import java.util.*
 import no.nav.emottak.deleteCPAinCPARepo
 import no.nav.emottak.getCPATimestamps
 import no.nav.emottak.nfs.NFSConnector
 import no.nav.emottak.putCPAinCPARepo
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.time.Instant
+import java.util.*
 
 class CpaSyncService(private val cpaRepoClient: HttpClient, private val nfsConnector: NFSConnector) {
 
