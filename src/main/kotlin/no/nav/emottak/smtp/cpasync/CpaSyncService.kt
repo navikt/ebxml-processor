@@ -68,7 +68,7 @@ class CpaSyncService(private val cpaRepoClient: HttpClient, private val nfsConne
         val staleCpaTimestamps = cpaTimestamps.filter { (cpaId, timestamp) ->
             val formattedCpaId = cpaId.replace(":", ".")
             if (filename.contains(formattedCpaId)) {
-                if (Instant.parse(timestamp) == lastModified) {
+                if (timestamp == lastModified.toString()) {
                     log.info("$filename already exists with same timestamp")
                     shouldSkip = true
                 } else {
