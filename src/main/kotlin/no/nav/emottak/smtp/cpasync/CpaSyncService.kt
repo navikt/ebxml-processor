@@ -11,11 +11,11 @@ import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.util.*
 
-class CpaSyncService(private val cpaRepoClient: HttpClient) {
+class CpaSyncService(private val cpaRepoClient: HttpClient, private val nfsConnector: NFSConnector) {
 
     private val log: Logger = LoggerFactory.getLogger("no.nav.emottak.smtp.cpasync")
 
-    suspend fun sync(nfsConnector: NFSConnector = NFSConnector()) {
+    suspend fun sync() {
         return runCatching {
             val mutableCpaTimestamps = cpaRepoClient.getCPATimestamps().toMutableMap()
             processAndSyncEntries(mutableCpaTimestamps, nfsConnector)

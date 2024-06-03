@@ -22,6 +22,7 @@ import kotlinx.coroutines.withContext
 import net.logstash.logback.marker.Markers
 import no.nav.emottak.URL_CPA_REPO_BASE
 import no.nav.emottak.getCpaRepoAuthenticatedClient
+import no.nav.emottak.nfs.NFSConnector
 import no.nav.emottak.postEbmsMessageMultiPart
 import no.nav.emottak.postEbmsMessageSinglePart
 import no.nav.emottak.smtp.cpasync.CpaSyncService
@@ -31,10 +32,11 @@ import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.time.Instant
 import kotlin.time.toKotlinDuration
+import no.nav.emottak.nfs.NFSConnector
 
 fun Route.cpaSync(): Route = get("/cpa-sync") {
     val log = LoggerFactory.getLogger("no.nav.emottak.smtp.sftp.cpaSync")
-    val cpaSyncService = CpaSyncService(getCpaRepoAuthenticatedClient())
+    val cpaSyncService = CpaSyncService(getCpaRepoAuthenticatedClient(), NFSConnector())
 
     withContext(Dispatchers.IO) {
         log.info("Starting CPA sync")

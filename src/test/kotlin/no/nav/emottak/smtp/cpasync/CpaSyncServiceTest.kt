@@ -15,6 +15,12 @@ import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.spyk
 import io.mockk.verify
+import java.io.ByteArrayInputStream
+import java.time.Instant
+import java.util.*
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import kotlinx.coroutines.runBlocking
 import no.nav.emottak.deleteCPAinCPARepo
 import no.nav.emottak.getCPATimestamps
@@ -22,23 +28,17 @@ import no.nav.emottak.nfs.NFSConnector
 import no.nav.emottak.putCPAinCPARepo
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import java.io.ByteArrayInputStream
-import java.time.Instant
-import java.util.*
-import kotlin.test.assertFailsWith
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 
 class CpaSyncServiceTest {
 
     private val cpaRepoClient: HttpClient = mockk(relaxed = true)
-    private val cpaSyncService: CpaSyncService = spyk(CpaSyncService(cpaRepoClient))
     private val mockHttpResponse: HttpResponse = mockk(relaxed = true)
+    private lateinit var cpaSyncService: CpaSyncService
 
     @BeforeEach
     fun setUp() {
         mockkStatic("no.nav.emottak.HttpClientsKt")
-        clearMocks(cpaRepoClient, cpaSyncService)
+        clearMocks(cpaRepoClient)
         coEvery { cpaRepoClient.deleteCPAinCPARepo(any()) } returns mockHttpResponse
         coEvery { cpaRepoClient.putCPAinCPARepo(any(), any()) } returns mockHttpResponse
     }
@@ -52,10 +52,11 @@ class CpaSyncServiceTest {
             mockLsEntry("cpa2.xml", mockedAttrs)
         )
         val mockedNFSConnector = mockNFSConnector(entries)
+        cpaSyncService = CpaSyncService(cpaRepoClient, mockedNFSConnector)
 
         coEvery { cpaRepoClient.getCPATimestamps() } returns cpaTimestampsFromDb
 
-        cpaSyncService.sync(mockedNFSConnector)
+        cpaSyncService.sync()
 
         coVerify(exactly = 0) { cpaRepoClient.putCPAinCPARepo(any(), any()) }
         coVerify(exactly = 0) { cpaRepoClient.deleteCPAinCPARepo(any()) }
@@ -67,10 +68,11 @@ class CpaSyncServiceTest {
         val mockedAttrs = mockSftpAttrs(1704067200)
         val entries = listOf(mockLsEntry("cpa1.xml", mockedAttrs))
         val mockedNFSConnector = mockNFSConnector(entries)
+        cpaSyncService = CpaSyncService(cpaRepoClient, mockedNFSConnector)
 
         coEvery { cpaRepoClient.getCPATimestamps() } returns cpaTimestampsFromDb
 
-        cpaSyncService.sync(mockedNFSConnector)
+        cpaSyncService.sync()
 
         coVerify(exactly = 0) { cpaRepoClient.putCPAinCPARepo(any(), any()) }
         coVerify(exactly = 1) { cpaRepoClient.deleteCPAinCPARepo("cpa2") }
@@ -84,11 +86,12 @@ class CpaSyncServiceTest {
             mockLsEntry("cpa1.xml", mockedAttrs),
             mockLsEntry("cpa2.xml", mockedAttrs)
         )
-        val mockedNFSConnector = mockNFSConnector(entries, withFile = true)
+        val mockedNFSConnector = mockNFSConnector(entries)
+        cpaSyncService = CpaSyncService(cpaRepoClient, mockedNFSConnector)
 
         coEvery { cpaRepoClient.getCPATimestamps() } returns cpaTimestampsFromDb
 
-        cpaSyncService.sync(mockedNFSConnector)
+        cpaSyncService.sync()
 
         coVerify(exactly = 1) {
             cpaRepoClient.putCPAinCPARepo(
@@ -109,11 +112,11 @@ class CpaSyncServiceTest {
             mockLsEntry("cpa1.xml", mockedAttrs),
             mockLsEntry("cpa2.xml", mockedAttrs)
         )
-        val mockedNFSConnector = mockNFSConnector(entries, withFile = true)
-
+        val mockedNFSConnector = mockNFSConnector(entries)
+        cpaSyncService = CpaSyncService(cpaRepoClient, mockedNFSConnector)
         coEvery { cpaRepoClient.getCPATimestamps() } returns cpaTimestampsFromDb
 
-        cpaSyncService.sync(mockedNFSConnector)
+        cpaSyncService.sync()
 
         coVerify(exactly = 1) {
             cpaRepoClient.putCPAinCPARepo(
@@ -133,11 +136,11 @@ class CpaSyncServiceTest {
         val entries = listOf(
             mockLsEntry("cpa1.xml", mockedAttrs)
         )
-        val mockedNFSConnector = mockNFSConnector(entries, withFile = true)
-
+        val mockedNFSConnector = mockNFSConnector(entries)
+        cpaSyncService = CpaSyncService(cpaRepoClient, mockedNFSConnector)
         coEvery { cpaRepoClient.getCPATimestamps() } returns cpaTimestampsFromDb
 
-        cpaSyncService.sync(mockedNFSConnector)
+        cpaSyncService.sync()
 
         coVerify(exactly = 1) {
             cpaRepoClient.putCPAinCPARepo(
@@ -168,12 +171,13 @@ class CpaSyncServiceTest {
             mockLsEntry("cpa1.xml", mockedAttrs),
             mockLsEntry("cpa2.xml", mockedAttrs)
         )
-        val mockedNFSConnector = mockNFSConnector(entries, withFile = true)
+        val mockedNFSConnector = mockNFSConnector(entries)
+        cpaSyncService = CpaSyncService(cpaRepoClient, mockedNFSConnector)
 
-        cpaSyncService.sync(mockedNFSConnector)
-        cpaSyncService.sync(mockedNFSConnector)
-        cpaSyncService.sync(mockedNFSConnector)
-        cpaSyncService.sync(mockedNFSConnector)
+        cpaSyncService.sync()
+        cpaSyncService.sync()
+        cpaSyncService.sync()
+        cpaSyncService.sync()
 
         coVerify(exactly = 1) {
             cpaRepoClient.putCPAinCPARepo(
@@ -200,6 +204,8 @@ class CpaSyncServiceTest {
         val filename = "cpa1.xml"
         val lastModified = Instant.parse("2024-01-01T00:00:00Z")
         val cpaTimestamps = mutableMapOf("cpa2" to "2023-12-31T23:59:59Z", "cpa3" to "2023-11-30T23:59:59Z")
+        val mockedNFSConnector = mockNFSConnector(emptyList())
+        cpaSyncService = spyk(CpaSyncService(cpaRepoClient, mockedNFSConnector))
 
         val result = cpaSyncService.shouldSkipFile(filename, lastModified, cpaTimestamps)
 
@@ -212,6 +218,8 @@ class CpaSyncServiceTest {
         val filename = "cpa1.xml"
         val lastModified = Instant.parse("2024-01-01T00:00:00Z")
         val cpaTimestamps = mutableMapOf("cpa1" to "2024-01-01T00:00:00Z", "cpa2" to "2023-12-31T23:59:59Z")
+        val mockedNFSConnector = mockNFSConnector(emptyList())
+        cpaSyncService = spyk(CpaSyncService(cpaRepoClient, mockedNFSConnector))
 
         val result = cpaSyncService.shouldSkipFile(filename, lastModified, cpaTimestamps)
 
@@ -222,6 +230,8 @@ class CpaSyncServiceTest {
     @Test
     fun `deleteStaleCpaEntries should delete remaining timestamps`() = runBlocking {
         val cpaTimestamps = mutableMapOf("cpa1" to "2024-01-01T00:00:00Z")
+        val mockedNFSConnector = mockNFSConnector(emptyList())
+        cpaSyncService = spyk(CpaSyncService(cpaRepoClient, mockedNFSConnector))
 
         cpaSyncService.deleteStaleCpaEntries(cpaTimestamps)
 
@@ -232,9 +242,11 @@ class CpaSyncServiceTest {
     fun `sync should handle SftpException`() = runBlocking {
         val expectedSftpException = SftpException(4, "SFTP error")
         coEvery { cpaRepoClient.getCPATimestamps() } throws expectedSftpException
+        val mockedNFSConnector = mockNFSConnector(emptyList())
+        cpaSyncService = spyk(CpaSyncService(cpaRepoClient, mockedNFSConnector))
 
         val resultException = assertFailsWith<SftpException> {
-            cpaSyncService.sync(mockk<NFSConnector>())
+            cpaSyncService.sync()
         }
 
         assert(expectedSftpException == resultException)
@@ -246,8 +258,11 @@ class CpaSyncServiceTest {
         val expectedException = Exception("generic error")
         coEvery { cpaRepoClient.getCPATimestamps() } throws expectedException
 
+        val mockedNFSConnector = mockNFSConnector(emptyList())
+        cpaSyncService = spyk(CpaSyncService(cpaRepoClient, mockedNFSConnector))
+
         val resultException = assertFailsWith<Exception> {
-            cpaSyncService.sync(mockk<NFSConnector>())
+            cpaSyncService.sync()
         }
 
         assert(expectedException == resultException)
@@ -263,11 +278,9 @@ class CpaSyncServiceTest {
         every { this@mockk.attrs } returns attrs
     }
 
-    private fun mockNFSConnector(entries: List<ChannelSftp.LsEntry>, withFile: Boolean = false): NFSConnector = mockk {
+    private fun mockNFSConnector(entries: List<ChannelSftp.LsEntry>): NFSConnector = mockk {
         every { folder() } returns Vector<ChannelSftp.LsEntry>().apply { addAll(entries) }
-        if (withFile) {
-            every { file(any()) } answers { ByteArrayInputStream("simulated file content for ${it.invocation.args[0]}".toByteArray()) }
-        }
+        every { file(any()) } answers { ByteArrayInputStream("simulated file content for ${it.invocation.args[0]}".toByteArray()) }
         every { close() } just Runs
     }
 }
