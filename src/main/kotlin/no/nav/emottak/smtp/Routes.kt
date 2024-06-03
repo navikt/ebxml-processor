@@ -32,7 +32,6 @@ import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.time.Instant
 import kotlin.time.toKotlinDuration
-import no.nav.emottak.nfs.NFSConnector
 
 fun Route.cpaSync(): Route = get("/cpa-sync") {
     val log = LoggerFactory.getLogger("no.nav.emottak.smtp.sftp.cpaSync")
