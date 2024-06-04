@@ -41,6 +41,11 @@ Alle modulene kjører som selvstendig applikasjoner, og er bygd opp av følgende
 * Ktor
 * Gradle
 
+### Avhengigheter
+Avhengigheter og relasjoner til andre repoer i teamet
+* https://github.com/navikt/emottak-payload-xsd
+* https://github.com/navikt/ebxml-protokoll
+* https://github.com/navikt/ebms-sync-router
 
 ### Bygg prosjektet
 For å bygge prosjektet brukes gradle.
