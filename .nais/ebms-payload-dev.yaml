@@ -46,7 +46,9 @@ spec:
         - application: ebms-provider
   webproxy: true
   env:
-    - name: KEYSTORE_FILE
+    - name: KEYSTORE_FILE_DEKRYPT
+      value: /var/run/secrets/ebms-keystore/nav_test.p12
+    - name: KEYSTORE_FILE_SIGN
       value: /var/run/secrets/ebms-keystore/nav_test.p12
   envFrom:
     - secret: ebms-payload-secret

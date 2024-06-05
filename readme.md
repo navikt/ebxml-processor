@@ -3,11 +3,13 @@
 # eMottak ebXML
 Dette prosjektet håndterer meldinger mottatt på ebXML-standarden.
 
-Prosjektet består av tre hovedmoduler for behandling av ebXML-meldinger.
-I tillegg er det en modul som lytter på epost, og router meldinger til ebMS-Provider for behandling.
+Prosjektet består av fire hovedmoduler for behandling av ebXML-meldinger.
 * EbMS Provider
 * EbMS Payload behandling
 * CPA Repo
+* EbMS Send In
+
+I tillegg er det en modul for asynkron trafikk som lytter på epost, og router meldinger til ebMS-Provider for behandling.
 * SMTP-Listener
 
 ### EbMS Provider
@@ -22,6 +24,11 @@ validerer at innholdet er en korrekt fagmelding og er klar for videreformidling 
 Holder på alle godkjente CPAer. Mottar ebXML-header informasjon fra ebMS-provider, og validerer innholdet mot
 relevant CPA.
 
+### EbMS Send In
+Denne tjenesten har ansvaret for å route fagmeldingene til og fra fagsystemene. På vei inn mottar den ferdigbehandlede 
+fagmeldinger som routes videre til riktig fagsystem. På vei ut mottar den fagmeldinger fra fagsystemene, og router dem 
+videre til EbMS provider som validerer, pakker og sender ut meldingene.
+
 ### SMTP Listener
 Liten modul som henter eposter fra definert innboks, og router meldingene videre til ebMS-Provider.
 Trigges av periodisk NAISJob, og leser alle mail i innboksen ved aktivering.
@@ -34,6 +41,11 @@ Alle modulene kjører som selvstendig applikasjoner, og er bygd opp av følgende
 * Ktor
 * Gradle
 
+### Avhengigheter
+Avhengigheter og relasjoner til andre repoer i teamet
+* https://github.com/navikt/emottak-payload-xsd
+* https://github.com/navikt/ebxml-protokoll
+* https://github.com/navikt/ebms-sync-router
 
 ### Bygg prosjektet
 For å bygge prosjektet brukes gradle.
