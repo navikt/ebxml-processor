@@ -11,6 +11,7 @@ import io.ktor.server.routing.Routing
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.micrometer.prometheus.PrometheusMeterRegistry
+import kotlinx.serialization.Serializable
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.model.EbMSDocument
 import no.nav.emottak.ebms.model.PayloadMessage
@@ -89,6 +90,7 @@ fun Route.postEbmsSync(
                             )
                         }
                     }
+
                     else -> processedMessage.first
                 }
             }.let { payloadMessage ->
@@ -97,8 +99,9 @@ fun Route.postEbmsSync(
                     Pair<PayloadMessage, PayloadProcessing?>(payloadMessage, it.payloadProcessing)
                 }
             }.let { messageProcessing ->
-                val processedMessage = processingService.proccessSyncOut(messageProcessing.first, messageProcessing.second)
-                Pair<PayloadMessage, PayloadProcessing?> (processedMessage, messageProcessing.second)
+                val processedMessage =
+                    processingService.proccessSyncOut(messageProcessing.first, messageProcessing.second)
+                Pair<PayloadMessage, PayloadProcessing?>(processedMessage, messageProcessing.second)
             }.let {
                 call.respondEbmsDokument(
                     it.first.toEbmsDokument().also { ebmsDocument ->
@@ -198,5 +201,14 @@ fun Routing.registerHealthEndpoints(
     }
     get("/prometheus") {
         call.respond(collectorRegistry.scrape())
+    }
+}
+
+fun Routing.navCheckStatus() {
+    @Serializable
+    data class StatusResponse(val status: String)
+
+    get("/internal/status") {
+        call.respond(StatusResponse(status = "OK"))
     }
 }

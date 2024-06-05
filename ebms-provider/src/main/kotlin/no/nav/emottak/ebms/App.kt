@@ -12,6 +12,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.PartData
 import io.ktor.http.content.forEachPart
 import io.ktor.http.content.streamProvider
+import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.call
@@ -20,6 +21,7 @@ import io.ktor.server.application.install
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.metrics.micrometer.MicrometerMetrics
 import io.ktor.server.netty.Netty
+import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.request.contentType
 import io.ktor.server.request.header
 import io.ktor.server.request.receive
@@ -105,18 +107,17 @@ fun Application.ebmsProviderModule() {
     installMicrometerRegistry(appMicrometerRegistry)
     installRequestTimerPlugin()
 
+    install(ContentNegotiation) {
+        json()
+    }
+
     routing {
         get("/") {
             call.respondText("Hello, world!")
         }
 
-//        get("/test-auth") {
-//            val httpClient = sendInHttpClient.invoke()
-//            val result = httpClient.get("http://ebms-send-in/test-auth").bodyAsText()
-//            log.info("/test-auth: Received result from ebms-send-in's /test-auth: $result")
-//            call.respond("Response from /test-auth: $result")
-//        }
         registerHealthEndpoints(appMicrometerRegistry)
+        navCheckStatus()
         postEbmsAsync(validator, processing)
         postEbmsSync(validator, processing, sendInService)
     }

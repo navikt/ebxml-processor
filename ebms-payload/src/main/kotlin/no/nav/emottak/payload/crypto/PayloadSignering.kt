@@ -1,9 +1,12 @@
 package no.nav.emottak.payload.crypto
 
+import no.nav.emottak.crypto.FileKeyStoreConfig
 import no.nav.emottak.crypto.KeyStore
-import no.nav.emottak.crypto.KeyStoreConfig
+import no.nav.emottak.crypto.VaultKeyStoreConfig
+import no.nav.emottak.crypto.parseVaultJsonObject
 import no.nav.emottak.util.getEnvVar
 import org.w3c.dom.Document
+import java.io.FileReader
 import java.security.Key
 import java.security.cert.X509Certificate
 import javax.xml.crypto.dsig.Reference
@@ -14,12 +17,35 @@ import javax.xml.crypto.dsig.dom.DOMSignContext
 import javax.xml.crypto.dsig.spec.C14NMethodParameterSpec
 import javax.xml.crypto.dsig.spec.TransformParameterSpec
 
-val payloadSigneringConfig = object : KeyStoreConfig {
-    override val keystorePath: String = getEnvVar("KEYSTORE_FILE", "xml/signering_keystore.p12")
-    override val keyStorePwd: String = getEnvVar("KEYSTORE_PWD", "123456789")
-    override val keyStoreStype: String = getEnvVar("KEYSTORE_TYPE", "PKCS12")
-}
-class PayloadSignering(keyStoreConfig: KeyStoreConfig) {
+private fun payloadSigneringConfig() =
+    when (getEnvVar("NAIS_CLUSTER_NAME", "local")) {
+        "dev-fss" ->
+            // Fixme burde egentlig hente fra dev vault context for å matche prod oppførsel
+            FileKeyStoreConfig(
+                keyStoreFilePath = getEnvVar("KEYSTORE_FILE_SIGN"),
+                keyStorePass = getEnvVar("KEYSTORE_PWD").toCharArray(),
+                keyStoreType = getEnvVar("KEYSTORE_TYPE", "PKCS12")
+            )
+        "prod-fss" ->
+            VaultKeyStoreConfig(
+                keyStoreVaultPath = getEnvVar("VIRKSOMHETSSERTIFIKAT_PATH"),
+                keyStoreFileResource = getEnvVar("VIRKSOMHETSSERTIFIKAT_SIGNERING"),
+                keyStorePassResource = getEnvVar("VIRKSOMHETSSERTIFIKAT_CREDENTIALS")
+            )
+        else ->
+            FileKeyStoreConfig(
+                keyStoreFilePath = getEnvVar("KEYSTORE_FILE_SIGN", "xml/signering_keystore.p12"),
+                keyStorePass = FileReader(
+                    getEnvVar(
+                        "KEYSTORE_PWD_FILE",
+                        FileKeyStoreConfig::class.java.classLoader.getResource("keystore/credentials-test.json").path.toString()
+                    )
+                ).readText().parseVaultJsonObject("password").toCharArray(),
+                keyStoreType = getEnvVar("KEYSTORE_TYPE", "PKCS12")
+            )
+    }
+
+class PayloadSignering(private val keyStore: KeyStore = KeyStore(payloadSigneringConfig())) {
 
     private val defaultAlias = "test2023"
     private val digestAlgorithm: String = "http://www.w3.org/2001/04/xmlenc#sha256"
@@ -27,8 +53,6 @@ class PayloadSignering(keyStoreConfig: KeyStoreConfig) {
     private val signatureAlgorithm: String = "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"
 
     private val factory = XMLSignatureFactory.getInstance("DOM")
-
-    val keyStore: KeyStore = KeyStore(keyStoreConfig)
 
     fun signerXML(document: Document, alias: String = defaultAlias): Document {
         val signerCertificate: X509Certificate = keyStore.getCertificate(alias)
