@@ -1,5 +1,6 @@
 package no.nav.emottak.smtp.cpasync
 
+import com.jcraft.jsch.ChannelSftp
 import com.jcraft.jsch.SftpException
 import io.ktor.client.HttpClient
 import no.nav.emottak.deleteCPAinCPARepo
@@ -26,36 +27,64 @@ class CpaSyncService(private val cpaRepoClient: HttpClient, private val nfsConne
 
     private suspend fun processAndSyncEntries(cpaTimestamps: Map<String, String>) {
         nfsConnector.use { connector ->
-            val staleCpaTimestamps = connector.folder().fold(cpaTimestamps.toMap()) { acc, entry ->
-                val filename = entry.filename
-                log.info("Checking $filename...")
+            val staleCpaTimestamps = connector.folder().asSequence().filter { entry -> isValidFileType(entry) }
+                .fold(cpaTimestamps) { accumulatedCpaTimestamps, entry ->
+                    val filename = entry.filename
+                    log.info("Checking $filename...")
 
-                if (!filename.endsWith(".xml")) {
-                    log.warn("$filename is ignored")
-                    return@fold acc
-                }
-
-                val lastModified = Date(entry.attrs.mTime.toLong() * 1000).toInstant()
-                val (shouldSkip, staleCpaTimestamps) = shouldSkipFile(filename, lastModified, acc)
-                if (shouldSkip) {
-                    return@fold staleCpaTimestamps
-                }
-
-                runCatching {
-                    log.info("Fetching file ${entry.filename}")
-                    val cpaFileContent = connector.file("/outbound/cpa/${entry.filename}").use {
-                        String(it.readAllBytes())
+                    val lastModified = Date(entry.attrs.mTime.toLong() * 1000).toInstant()
+                    val shouldSkip = shouldSkipFile(filename, lastModified, accumulatedCpaTimestamps)
+                    if (!shouldSkip) {
+                        runCatching {
+                            log.info("Fetching file $filename")
+                            val cpaFileContent = connector.file("/outbound/cpa/$filename").use {
+                                String(it.readAllBytes())
+                            }
+                            log.info("Uploading $filename")
+                            cpaRepoClient.putCPAinCPARepo(cpaFileContent, lastModified)
+                        }.onFailure {
+                            log.error("Error uploading $filename to cpa-repo: ${it.message}", it)
+                        }
                     }
-                    log.info("Uploading $filename")
-                    cpaRepoClient.putCPAinCPARepo(cpaFileContent, lastModified)
-                }.onFailure {
-                    log.error("Error uploading $filename to cpa-repo: ${it.message}", it)
-                }
 
-                staleCpaTimestamps
-            }
+                    filterStaleCpaTimestamps(filename, lastModified, accumulatedCpaTimestamps)
+                }
 
             deleteStaleCpaEntries(staleCpaTimestamps)
+        }
+    }
+
+    private fun isValidFileType(entry: ChannelSftp.LsEntry) = if (!entry.filename.endsWith(".xml")) {
+        log.warn("${entry.filename} is ignored")
+        false
+    } else {
+        true
+    }
+
+    private fun filterStaleCpaTimestamps(
+        filename: String,
+        lastModified: Instant,
+        cpaTimestamps: Map<String, String>
+    ): Map<String, String> {
+        return cpaTimestamps.filter { (cpaId, timestamp) -> isStaleCpa(cpaId, filename, timestamp, lastModified) }
+    }
+
+    private fun isStaleCpa(
+        cpaId: String,
+        filename: String,
+        timestamp: String,
+        lastModified: Instant
+    ): Boolean {
+        val formattedCpaId = cpaId.replace(":", ".")
+        return if (filename.contains(formattedCpaId)) {
+            if (timestamp == lastModified.toString()) {
+                log.info("$filename already exists with same timestamp")
+            } else {
+                log.info("$filename has different timestamp, should be updated")
+            }
+            false
+        } else {
+            true // delete!
         }
     }
 
@@ -63,28 +92,16 @@ class CpaSyncService(private val cpaRepoClient: HttpClient, private val nfsConne
         filename: String,
         lastModified: Instant,
         cpaTimestamps: Map<String, String>
-    ): Pair<Boolean, Map<String, String>> {
-        var shouldSkip = false
-        val staleCpaTimestamps = cpaTimestamps.filter { (cpaId, timestamp) ->
+    ): Boolean {
+        return cpaTimestamps.any { (cpaId, timestamp) ->
             val formattedCpaId = cpaId.replace(":", ".")
-            if (filename.contains(formattedCpaId)) {
-                if (timestamp == lastModified.toString()) {
-                    log.info("$filename already exists with same timestamp")
-                    shouldSkip = true
-                } else {
-                    log.info("$filename has different timestamp, should be updated")
-                }
-                false
-            } else {
+            if (filename.contains(formattedCpaId) && timestamp == lastModified.toString()) {
+                log.info("Newer version already exists $filename, skipping...")
                 true
+            } else {
+                false
             }
         }
-
-        if (shouldSkip) {
-            log.info("Newer version already exists $filename, skipping...")
-        }
-
-        return shouldSkip to staleCpaTimestamps
     }
 
     internal suspend fun deleteStaleCpaEntries(cpaTimestamps: Map<String, String>) {

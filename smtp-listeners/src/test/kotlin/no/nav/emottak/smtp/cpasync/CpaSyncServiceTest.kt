@@ -207,7 +207,7 @@ class CpaSyncServiceTest {
         val mockedNFSConnector = mockNFSConnector(emptyList())
         cpaSyncService = spyk(CpaSyncService(cpaRepoClient, mockedNFSConnector))
 
-        val (shouldSkip) = cpaSyncService.shouldSkipFile(filename, lastModified, cpaTimestamps)
+        val shouldSkip = cpaSyncService.shouldSkipFile(filename, lastModified, cpaTimestamps)
 
         assertFalse(shouldSkip)
         assertTrue(cpaTimestamps.isNotEmpty())
@@ -221,7 +221,7 @@ class CpaSyncServiceTest {
         val mockedNFSConnector = mockNFSConnector(emptyList())
         cpaSyncService = spyk(CpaSyncService(cpaRepoClient, mockedNFSConnector))
 
-        val (shouldSkip) = cpaSyncService.shouldSkipFile(filename, lastModified, cpaTimestamps)
+        val shouldSkip = cpaSyncService.shouldSkipFile(filename, lastModified, cpaTimestamps)
 
         assertTrue(shouldSkip)
         assertTrue(cpaTimestamps.isNotEmpty())
