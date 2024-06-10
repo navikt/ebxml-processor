@@ -274,7 +274,7 @@ fun Routing.registerHealthEndpoints(
     }
     get("/internal/health/readiness") {
         runCatching {
-           //cpaRepository.findLatestUpdatedCpaTimestamp()
+            // cpaRepository.findLatestUpdatedCpaTimestamp()
         }.onSuccess {
             call.respond(HttpStatusCode.OK, "Readiness OK")
         }.onFailure {
