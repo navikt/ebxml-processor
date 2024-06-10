@@ -4,6 +4,7 @@ import com.jcraft.jsch.SftpException
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.network.sockets.ConnectTimeoutException
+import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
@@ -103,7 +104,8 @@ fun Route.cpaSync(): Route = get("/cpa-sync") {
         }.onFailure {
             when (it) {
                 is SftpException -> log.error("SftpException ID: [${it.id}]", it)
-                is ConnectTimeoutException -> log.error("Connection Timeout", it).also { BUG_ENCOUNTERED_CPA_REPO_TIMEOUT = true }
+                is ConnectTimeoutException -> log.error("ConnectTimeoutException", it).also { BUG_ENCOUNTERED_CPA_REPO_TIMEOUT = true }
+                is HttpRequestTimeoutException -> log.error("HttpRequestTimeoutException", it).also { BUG_ENCOUNTERED_CPA_REPO_TIMEOUT = true }
                 else -> log.error(it.message, it)
             }
             call.respond(HttpStatusCode.ServiceUnavailable)
