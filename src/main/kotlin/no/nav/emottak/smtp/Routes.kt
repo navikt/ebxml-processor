@@ -7,7 +7,9 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
 import io.ktor.server.response.respond
+import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
+import io.ktor.server.routing.Routing
 import io.ktor.server.routing.get
 import jakarta.mail.Flags
 import jakarta.mail.Folder
@@ -227,5 +229,20 @@ fun Folder.deleteAll() {
         }
     } else {
         log.warn("DeleteAll strategy only valid for IMAP")
+    }
+}
+
+var BUG_ENCOUNTERED_CPA_REPO_TIMEOUT = false
+
+fun Routing.registerHealthEndpoints() {
+    get("/internal/health/liveness") {
+        if (BUG_ENCOUNTERED_CPA_REPO_TIMEOUT) { // TODO : årsak ukjent, cpa-repo/timestamps endepunkt timer ut etter en stund
+            call.respond(HttpStatusCode.ServiceUnavailable, "Restart me X_X")
+        } else {
+            call.respondText("I'm alive! :)")
+        }
+    }
+    get("/internal/health/readiness") {
+        call.respondText("I'm ready! :)")
     }
 }
