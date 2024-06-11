@@ -2,6 +2,8 @@ package no.nav.emottak.smtp
 
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
+import io.ktor.client.network.sockets.ConnectTimeoutException
+import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
@@ -41,7 +43,6 @@ fun Route.cpaSync(): Route = get("/cpa-sync") {
 
     withContext(Dispatchers.IO) {
         log.info("Starting CPA sync")
-
         val (result, duration) = measureTimeSuspended {
             runCatching {
                 cpaSyncService.sync()
