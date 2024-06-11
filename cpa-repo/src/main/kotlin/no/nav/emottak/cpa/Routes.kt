@@ -39,7 +39,7 @@ import no.nav.emottak.util.getEnvVar
 import no.nav.emottak.util.marker
 import no.nav.security.token.support.v2.TokenValidationContextPrincipal
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
-import java.util.*
+import java.util.Date
 
 fun Route.whoAmI(): Route = get("/whoami") {
     log.info("whoAmI")
@@ -149,12 +149,13 @@ fun Route.getTimeStamps(cpaRepository: CPARepository): Route = get("/cpa/timesta
 
 fun Route.getTimeStampsLatest(cpaRepository: CPARepository) = get("/cpa/timestamps/latest") {
     log.info("Timestamplatest")
-    call.respond(
-        HttpStatusCode.OK,
-        withContext(Dispatchers.IO) {
-            return@withContext cpaRepository.findLatestUpdatedCpaTimestamp()
-        }
-    )
+    val latestTimestamp = withContext(Dispatchers.IO) {
+        cpaRepository.findLatestUpdatedCpaTimestamp()
+    }
+    when (latestTimestamp) {
+        null -> call.respond(HttpStatusCode.NotFound, "No timestamps found")
+        else -> call.respond(HttpStatusCode.OK, latestTimestamp)
+    }
 }
 
 fun Route.postCpa(cpaRepository: CPARepository) = post("/cpa") {
@@ -270,7 +271,7 @@ fun Routing.registerHealthEndpoints(
     }
     get("/internal/health/readiness") {
         runCatching {
-            // cpaRepository.findLatestUpdatedCpaTimestamp()
+            cpaRepository.findLatestUpdatedCpaTimestamp()
         }.onSuccess {
             call.respond(HttpStatusCode.OK, "Readiness OK")
         }.onFailure {

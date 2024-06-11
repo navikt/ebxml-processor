@@ -33,25 +33,19 @@ class CPARepository(val database: Database) {
                 CPA.select(CPA.id, CPA.updated_date).where { CPA.id inList idList }
             } else {
                 CPA.select(CPA.id, CPA.updated_date)
+            }.associate {
+                it[CPA.id] to it[CPA.updated_date].toString()
             }
-                .associate {
-                    Pair(
-                        it[CPA.id],
-                        (
-                            it[CPA.updated_date]
-                                ?: Instant.ofEpochSecond(0) // False positive
-                            ).toString()
-                    )
-                }
         }
     }
 
-    fun findLatestUpdatedCpaTimestamp(): String {
+    fun findLatestUpdatedCpaTimestamp(): String? {
         return transaction(db = database.db) {
-            CPA.select(CPA.id, CPA.updated_date).where { CPA.updated_date.isNotNull() }
+            CPA.select(CPA.id, CPA.updated_date)
+                .where { CPA.updated_date.isNotNull() }
                 .orderBy(CPA.updated_date, SortOrder.DESC)
-                .first()[CPA.updated_date]
-        }.toString()
+                .firstOrNull()?.get(CPA.updated_date)
+        }?.toString()
     }
 
     fun findCpaEntry(cpaId: String): CpaDbEntry? {
