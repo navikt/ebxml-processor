@@ -46,6 +46,7 @@ spec:
         - application: ebms-provider
   vault:
     enabled: true
+  webproxy: true
   env:
     - name: VIRKSOMHETSSERTIFIKAT_PATH
       value: /secret/virksomhetssertifikat/prod/Arbeids-og-velferdsetaten
