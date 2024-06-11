@@ -31,6 +31,7 @@ fun Application.myApplicationModule() {
             logOutgoing()
             testAzureAuthToCpaRepo()
         }
+        registerHealthEndpoints()
         cpaSync()
     }
 }
