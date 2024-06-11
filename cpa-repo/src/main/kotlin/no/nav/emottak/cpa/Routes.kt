@@ -39,8 +39,6 @@ import no.nav.emottak.util.getEnvVar
 import no.nav.emottak.util.marker
 import no.nav.security.token.support.v2.TokenValidationContextPrincipal
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
-import java.time.Instant
-import java.time.temporal.ChronoUnit
 import java.util.*
 
 fun Route.whoAmI(): Route = get("/whoami") {
@@ -101,9 +99,21 @@ fun Route.partnerId(partnerRepository: PartnerRepository, cpaRepository: CPARepo
         }.onFailure {
             log.warn("Feil ved henting av $PARTNER_ID", it)
             when (it) {
-                is MultiplePartnerException -> call.respond(HttpStatusCode.Conflict, "Fant multiple $PARTNER_ID for $HER_ID $herId. Dette er en ugyldig tilstand.")
-                is PartnerNotFoundException -> call.respond(HttpStatusCode.NotFound, "Fant ikke $PARTNER_ID for $HER_ID $herId")
-                is CpaValidationException -> call.respond(HttpStatusCode.BadRequest, "Role, Service, Action kombinasjon ugyldig. [${it.message}]")
+                is MultiplePartnerException -> call.respond(
+                    HttpStatusCode.Conflict,
+                    "Fant multiple $PARTNER_ID for $HER_ID $herId. Dette er en ugyldig tilstand."
+                )
+
+                is PartnerNotFoundException -> call.respond(
+                    HttpStatusCode.NotFound,
+                    "Fant ikke $PARTNER_ID for $HER_ID $herId"
+                )
+
+                is CpaValidationException -> call.respond(
+                    HttpStatusCode.BadRequest,
+                    "Role, Service, Action kombinasjon ugyldig. [${it.message}]"
+                )
+
                 else -> call.respond(HttpStatusCode.NotFound, "Fant ikke $PARTNER_ID for $HER_ID $herId")
             }
         }
@@ -151,29 +161,15 @@ fun Route.postCpa(cpaRepository: CPARepository) = post("/cpa") {
     log.info("post-cpa")
     val cpaString = call.receive<String>()
     // TODO en eller annen form for validering av CPA
-    val updatedDate = call.request.headers["updated_date"].let {
-        if (it.isNullOrBlank()) {
-            Instant.now().truncatedTo(ChronoUnit.SECONDS)
-        }
-        Instant.parse(it).truncatedTo(ChronoUnit.SECONDS) // TODO feilhåndter
-    }
+    val updatedDateString: String? = call.request.headers["updated_date"]
     val cpa = xmlMarshaller.unmarshal(cpaString, CollaborationProtocolAgreement::class.java)
 
-    if (call.request.headers["upsert"].equals("true")) {
-        cpaRepository
-            .upsertCpa(CPARepository.CpaDbEntry(cpa, updatedDate))
-            .also {
-                log.info("Added CPA $it to repo")
-                call.respond(HttpStatusCode.OK, "Added CPA $it to repo")
-            }
-    } else {
-        cpaRepository
-            .putCpa(CPARepository.CpaDbEntry(cpa, updatedDate))
-            .also {
-                log.info("Added CPA $it to repo")
-                call.respond(HttpStatusCode.OK, "Added CPA $it to repo")
-            }
-    }
+    cpaRepository
+        .updateOrInsert(CPARepository.CpaDbEntry(cpa, updatedDateString))
+        .also {
+            log.info("Updated or Inserted CPA $it in repo")
+            call.respond(HttpStatusCode.OK, "Updated or Inserted CPA $it in repo")
+        }
 }
 
 fun Route.validateCpa(cpaRepository: CPARepository) = post("/cpa/validate/{$CONTENT_ID}") {
