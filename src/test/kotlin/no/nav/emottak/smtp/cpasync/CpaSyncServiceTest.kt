@@ -15,6 +15,12 @@ import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.spyk
 import io.mockk.verify
+import java.io.ByteArrayInputStream
+import java.time.Instant
+import java.util.*
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import kotlinx.coroutines.runBlocking
 import no.nav.emottak.deleteCPAinCPARepo
 import no.nav.emottak.getCPATimestamps
@@ -22,12 +28,6 @@ import no.nav.emottak.nfs.NFSConnector
 import no.nav.emottak.putCPAinCPARepo
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import java.io.ByteArrayInputStream
-import java.time.Instant
-import java.util.*
-import kotlin.test.assertFailsWith
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 
 class CpaSyncServiceTest {
 
@@ -267,6 +267,19 @@ class CpaSyncServiceTest {
 
         assert(expectedException == resultException)
         verify { cpaSyncService.logFailure(expectedException) }
+    }
+
+    @Test
+    fun `mTime to seconds should be accurate`() {
+        val mTimeInSeconds = 1686480930L
+        val expectedInstant = Instant.parse("2023-06-11T10:55:30Z")
+
+        val mockedNFSConnector = mockNFSConnector(emptyList())
+        cpaSyncService = CpaSyncService(cpaRepoClient, mockedNFSConnector)
+
+        val resultInstant = cpaSyncService.getLastModifiedInstant(mTimeInSeconds)
+
+        assert(expectedInstant == resultInstant)
     }
 
     private fun mockSftpAttrs(mTime: Int): SftpATTRS = mockk {

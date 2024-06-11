@@ -10,7 +10,7 @@ import no.nav.emottak.putCPAinCPARepo
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.time.Instant
-import java.util.*
+import java.time.temporal.ChronoUnit
 
 class CpaSyncService(private val cpaRepoClient: HttpClient, private val nfsConnector: NFSConnector) {
 
@@ -32,7 +32,7 @@ class CpaSyncService(private val cpaRepoClient: HttpClient, private val nfsConne
                     val filename = entry.filename
                     log.info("Checking $filename...")
 
-                    val lastModified = Date(entry.attrs.mTime.toLong() * 1000).toInstant()
+                    val lastModified = getLastModifiedInstant(entry.attrs.mTime.toLong())
                     val shouldSkip = shouldSkipFile(filename, lastModified, accumulatedCpaTimestamps)
                     if (!shouldSkip) {
                         runCatching {
@@ -52,6 +52,10 @@ class CpaSyncService(private val cpaRepoClient: HttpClient, private val nfsConne
 
             deleteStaleCpaEntries(staleCpaTimestamps)
         }
+    }
+
+    internal fun getLastModifiedInstant(mTimeInSeconds: Long): Instant {
+        return Instant.ofEpochSecond(mTimeInSeconds).truncatedTo(ChronoUnit.SECONDS)
     }
 
     private fun isValidFileType(entry: ChannelSftp.LsEntry) = if (!entry.filename.endsWith(".xml")) {
