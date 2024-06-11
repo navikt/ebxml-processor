@@ -1,10 +1,7 @@
 package no.nav.emottak.smtp
 
-import com.jcraft.jsch.SftpException
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
-import io.ktor.client.network.sockets.ConnectTimeoutException
-import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
@@ -26,99 +23,38 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.withContext
 import net.logstash.logback.marker.Markers
 import no.nav.emottak.URL_CPA_REPO_BASE
-import no.nav.emottak.deleteCPAinCPARepo
-import no.nav.emottak.getCPATimestamps
 import no.nav.emottak.getCpaRepoAuthenticatedClient
 import no.nav.emottak.nfs.NFSConnector
 import no.nav.emottak.postEbmsMessageMultiPart
 import no.nav.emottak.postEbmsMessageSinglePart
-import no.nav.emottak.putCPAinCPARepo
+import no.nav.emottak.smtp.cpasync.CpaSyncService
+import no.nav.emottak.util.measureTimeSuspended
 import org.eclipse.angus.mail.imap.IMAPFolder
 import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.time.Instant
-import java.util.*
 import kotlin.time.toKotlinDuration
 
 fun Route.cpaSync(): Route = get("/cpa-sync") {
     val log = LoggerFactory.getLogger("no.nav.emottak.smtp.sftp")
+    val cpaSyncService = CpaSyncService(getCpaRepoAuthenticatedClient(), NFSConnector())
 
-    val cpaRepoClient = getCpaRepoAuthenticatedClient()
     withContext(Dispatchers.IO) {
-        val startTime = Instant.now()
-        log.info("CPA sync started at $startTime")
-        runCatching {
-            val tempTimestamps = cpaRepoClient.getCPATimestamps()
-            val cpaTimestamps = tempTimestamps.toMutableMap() // mappen tømmes ettersom entries behandles
-
-            NFSConnector().use { connector ->
-                connector.folder().forEach { entry ->
-                    val filename = entry.filename
-                    log.info("Checking $filename...")
-                    if (!filename.endsWith(".xml")) {
-                        log.warn(entry.filename + " is ignored")
-                        return@forEach
-                    }
-                    val lastModified = Date(entry.attrs.mTime.toLong() * 1000).toInstant()
-
-                    // Fjerner cpaId matches fra timestamp listen og skipper hvis nyere eksisterer
-                    // Todo refactor. Too "kotlinesque":
-                    with(ArrayList<String>()) {
-                        cpaTimestamps.filter { cpaTimestamp ->
-                            cpaTimestamp.key
-                                .let { cpaId ->
-                                    return@let if (filename.contains(cpaId.replace(":", "."))) {
-                                        log.info("$filename already exists")
-                                        add(cpaId)
-                                        true
-                                    } else {
-                                        false
-                                    }
-                                } && Instant.parse(cpaTimestamp.value)
-                                .isAfter(lastModified.minusSeconds(2)) // Litt løs sjekk siden ikke alle systemer har samme millisec presisjon
-                        }.let { matches ->
-                            forEach { cpaTimestamps.remove(it) }
-                            if (matches.any()) {
-                                log.info("Newer version already exists $filename, skipping...")
-                                return@forEach
-                            }
-                        }
-                    }
-
-                    runCatching {
-                        log.info("Fetching file ${entry.filename}")
-                        val cpaFile = connector.file("/outbound/cpa/" + entry.filename).use {
-                            String(it.readAllBytes())
-                        }
-                        log.info("Uploading $filename")
-                        cpaRepoClient.putCPAinCPARepo(cpaFile, lastModified)
-                    }.onFailure {
-                        log.error("Error uploading $filename to cpa-repo: ${it.message}", it)
-                    }
-                }
+        log.info("Starting CPA sync")
+        val (result, duration) = measureTimeSuspended {
+            runCatching {
+                cpaSyncService.sync()
             }
-            // Any remaining timestamps means they exist in DB, but not in disk and should be cleaned
-            cpaTimestamps.forEach { (cpaId) ->
-                cpaRepoClient.deleteCPAinCPARepo(cpaId)
-            }
-        }.onFailure {
-            when (it) {
-                is SftpException -> log.error("SftpException ID: [${it.id}]", it)
-                is ConnectTimeoutException -> log.error("ConnectTimeoutException", it).also { BUG_ENCOUNTERED_CPA_REPO_TIMEOUT = true }
-                is HttpRequestTimeoutException -> log.error("HttpRequestTimeoutException", it).also { BUG_ENCOUNTERED_CPA_REPO_TIMEOUT = true }
-                else -> log.error(it.message, it)
-            }
-            call.respond(HttpStatusCode.ServiceUnavailable)
-        }.onSuccess {
-            log.info(
-                "CPA synchronization completed in ${
-                Duration.between(startTime, Instant.now()).toKotlinDuration()
-                }"
-            )
+        }
+        result.onSuccess {
+            log.info("CPA sync completed in $duration")
             call.respond(HttpStatusCode.OK, "CPA sync complete")
+        }.onFailure {
+            call.respond(HttpStatusCode.InternalServerError, "Something went wrong")
         }
     }
-    call.respond(HttpStatusCode.OK, "Hello World!")
+
+    call.respond(HttpStatusCode.Unauthorized, "Unauthorized")
 }
 
 fun Route.mailCheck(): Route = get("/mail/check") {

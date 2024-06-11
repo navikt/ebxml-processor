@@ -7,19 +7,21 @@ import com.jcraft.jsch.UserInfo
 import no.nav.emottak.smtp.getEnvVar
 import java.io.File
 import java.io.InputStream
-import java.util.Vector
+import java.util.*
 
-class NFSConnector(jSch: JSch = JSch()) : AutoCloseable {
+class NFSConnector(
+    jSch: JSch = JSch()
+) : AutoCloseable {
 
     private val privateKeyFile = "/var/run/secrets/privatekey"
     private val publicKeyFile = "/var/run/secrets/publickey"
     private val usernameMount = "/var/run/secrets/nfsusername"
     private val passphraseMount = "/var/run/secrets/passphrase"
     private val passphrase = String(File(passphraseMount).readBytes())
-
     private val username = String(File(usernameMount).readBytes())
     private val host = getEnvVar("NFS_HOST", "10.183.32.98")
     private val port = getEnvVar("NFS_PORT", "22").toInt()
+    private val outboundCpa = "/outbound/cpa"
     private val channelType = "sftp"
     private val jsch: JSch = jSch
     private val session: Session
@@ -35,10 +37,12 @@ class NFSConnector(jSch: JSch = JSch()) : AutoCloseable {
 
         sftpChannel = session.openChannel(channelType) as ChannelSftp
         sftpChannel.connect()
-        sftpChannel.cd("/outbound/cpa")
+        sftpChannel.cd(outboundCpa)
     }
 
-    fun folder(path: String = "/outbound/cpa"): Vector<ChannelSftp.LsEntry> = sftpChannel.ls(path) as Vector<ChannelSftp.LsEntry>
+    fun folder(): Vector<ChannelSftp.LsEntry> =
+        sftpChannel.ls(outboundCpa) as Vector<ChannelSftp.LsEntry>
+
     fun file(filename: String): InputStream = sftpChannel.get(filename)
 
     override fun close() {
