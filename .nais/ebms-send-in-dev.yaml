@@ -53,3 +53,13 @@ spec:
   env:
     - name: FRIKORT_URL
       value: https://wasapp-q1.adeo.no/nav-frikort/tjenestereksterne
+    - name: MQ_HOST_NAME
+      value: b27apvl222.preprod.local
+    - name: MQ_PORT
+      value: 1413
+    - name: MQ_GATEWAY_NAME
+      value: MQLS04
+    - name: MQ_CHANNEL_NAME
+      value: Q1_SYFOSMMOTTAK
+    - name: SYFO_QUEUE_IN
+      value: QA.Q1_SYFOSMMOTTAK.INPUT
