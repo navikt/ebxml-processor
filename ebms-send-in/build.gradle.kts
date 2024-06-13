@@ -66,6 +66,7 @@ dependencies {
     implementation(libs.token.validation.ktor.v2)
     implementation(libs.ktor.server.auth.jvm)
     implementation(libs.ktor.client.auth)
+    implementation(libs.ibm.mq)
     implementation("io.ktor:ktor-client-cio-jvm:2.3.4")
     implementation(libs.bundles.cxf)
     runtimeOnly("net.java.dev.jna:jna:5.12.1")
