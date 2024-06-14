@@ -14,7 +14,6 @@ import org.apache.xml.security.signature.XMLSignature
 import org.apache.xml.security.transforms.Transforms
 import org.apache.xml.security.utils.Constants
 import org.w3c.dom.Document
-import java.security.Key
 import java.security.cert.X509Certificate
 
 /**
@@ -67,15 +66,6 @@ class SignaturValidator {
             signature.validateIn()
             val resolver = EbMSAttachmentResolver(attachments)
             signature.addResourceResolver(resolver)
-            try {
-                log.info("Prøver å sjekke signatur med RSAKeyValue")
-                val publicKey: Key? = signature.keyInfo.publicKey
-                if (publicKey != null) {
-                    return signature.checkSignatureValue(publicKey) // TODO revert me
-                }
-            } catch (ex: Throwable) {
-                log.error("Failed sjekk med RSAKeyValue", ex)
-            }
             return signature.checkSignatureValue(certificate)
         }
     }
