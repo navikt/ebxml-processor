@@ -19,7 +19,7 @@
     <logger name="sun.security" level="TRACE"/>
 
 
-    <root level="TRACE">
+    <root level="INFO">
         <appender-ref ref="stdout_json"/>
     </root>
 </configuration>
