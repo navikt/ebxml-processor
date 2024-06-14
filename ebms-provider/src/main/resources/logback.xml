@@ -14,6 +14,10 @@
     </appender>
 
     <logger name="no.nav" level="INFO"/>
+    <logger name="org.apache.xml" level="TRACE"/>
+    <logger name="org.bouncycastle" level="TRACE"/>
+    <logger name="sun.security" level="TRACE"/>
+
 
     <root level="INFO">
         <appender-ref ref="stdout_json"/>
