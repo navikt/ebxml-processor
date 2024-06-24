@@ -100,9 +100,10 @@ class CpaSyncService(private val cpaRepoClient: HttpClient, private val nfsConne
         return cpaTimestamps.any { (cpaId, timestamp) ->
             val formattedCpaId = cpaId.replace(":", ".")
             if (filename.contains(formattedCpaId) && timestamp == lastModified.toString()) {
-                log.info("Newer version already exists $filename, skipping...")
+                log.info("$filename is already up to date, skipping...")
                 true
             } else {
+                log.info("$filename will be updated. Timestamp $timestamp compared with lastModified $lastModified")
                 false
             }
         }
