@@ -14,7 +14,6 @@ import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
-import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import io.micrometer.core.instrument.Timer.ResourceSample
@@ -33,7 +32,6 @@ import no.nav.emottak.util.getEnvVar
 import no.nav.emottak.util.marker
 import no.nav.security.token.support.v2.tokenValidationSupport
 import org.slf4j.LoggerFactory
-import java.util.Timer
 
 internal val log = LoggerFactory.getLogger("no.nav.emottak.ebms.App")
 
@@ -74,33 +72,67 @@ fun Application.ebmsSendInModule() {
         authenticate(AZURE_AD_AUTH) {
             post("/fagmelding/synkron") {
                 val request = this.call.receive(SendInRequest::class)
-                runCatching {
-                    log.info(request.marker(), "Payload ${request.payloadId} videresendes til fagsystem")
-                    withContext(Dispatchers.IO) {
-                        timed(appMicrometerRegistry, "frikort-sporing") {
-                            frikortsporring(wrapMessageInEIFellesFormat(request))
+
+                val service = request.addressing.service
+
+                if (service == "PasientlisteForesporsel") {
+                    runCatching {
+                        log.info(request.marker(), "PasientlisteForesporsel: Payload ${request.payloadId} videresendes til fagsystem")
+                        withContext(Dispatchers.IO) {
+                            timed(appMicrometerRegistry, "pasientlisteForesporsel") { // TODO: Fungerer dette out of the box?
+                                frikortsporring(wrapMessageInEIFellesFormat(request))
+                            }
                         }
-                    }
-                }.onSuccess {
-                    log.trace(
-                        request.marker(),
-                        "Payload ${request.payloadId} videresending til fagsystem ferdig, svar mottatt og returnerert"
-                    )
-                    call.respond(
-                        SendInResponse(
-                            request.messageId,
-                            request.conversationId,
-                            request.addressing.replayTo(
-                                it.eiFellesformat.mottakenhetBlokk.ebService,
-                                it.eiFellesformat.mottakenhetBlokk.ebAction
-                            ),
-                            marshal(it.eiFellesformat.msgHead).toByteArray()
+                    }.onSuccess {
+                        log.trace(
+                            request.marker(),
+                            "Payload ${request.payloadId} videresending til fagsystem ferdig, svar mottatt og returnerert"
                         )
-                    )
-                }.onFailure {
-                    log.error(request.marker(), "Payload ${request.payloadId} videresending feilet", it)
-                    call.respond(HttpStatusCode.BadRequest, it.localizedMessage)
+                        call.respond(
+                            SendInResponse(
+                                request.messageId,
+                                request.conversationId,
+                                request.addressing.replayTo(
+                                    it.eiFellesformat.mottakenhetBlokk.ebService,
+                                    it.eiFellesformat.mottakenhetBlokk.ebAction
+                                ),
+                                marshal(it.eiFellesformat.msgHead).toByteArray()
+                            )
+                        )
+                    }.onFailure {
+                        log.error(request.marker(), "Payload ${request.payloadId} videresending feilet", it)
+                        call.respond(HttpStatusCode.BadRequest, it.localizedMessage)
+                    }
+                } else if (service == "HarBorgerEgenandelFritak" || service == "HarBorgerFrikort") {
+                    runCatching {
+                        log.info(request.marker(), "Payload ${request.payloadId} videresendes til fagsystem")
+                        withContext(Dispatchers.IO) {
+                            timed(appMicrometerRegistry, "frikort-sporing") {
+                                frikortsporring(wrapMessageInEIFellesFormat(request))
+                            }
+                        }
+                    }.onSuccess {
+                        log.trace(
+                            request.marker(),
+                            "Payload ${request.payloadId} videresending til fagsystem ferdig, svar mottatt og returnerert"
+                        )
+                        call.respond(
+                            SendInResponse(
+                                request.messageId,
+                                request.conversationId,
+                                request.addressing.replayTo(
+                                    it.eiFellesformat.mottakenhetBlokk.ebService,
+                                    it.eiFellesformat.mottakenhetBlokk.ebAction
+                                ),
+                                marshal(it.eiFellesformat.msgHead).toByteArray()
+                            )
+                        )
+                    }.onFailure {
+                        log.error(request.marker(), "Payload ${request.payloadId} videresending feilet", it)
+                        call.respond(HttpStatusCode.BadRequest, it.localizedMessage)
+                    }
                 }
+                //
             }
         }
 
