@@ -98,16 +98,13 @@ class CpaSyncService(private val cpaRepoClient: HttpClient, private val nfsConne
         lastModified: Instant,
         cpaTimestamps: Map<String, String>
     ): Boolean {
-        for ((cpaId, timestamp) in cpaTimestamps) {
-            val formattedCpaId = cpaId.replace(":", ".")
-            if (filename.contains(formattedCpaId) && timestamp == lastModified.toString()) {
-                log.info("$filename is already up to date, skipping...")
-                return true
-            }
-        }
-
-        log.info("Could not find matching timestamp for file $filename with lastModified timestamp $lastModified")
-        return false
+        return cpaTimestamps
+            .filterKeys { cpaId -> filename.contains(cpaId.replace(":", ".")) }
+            .filterValues { timestamp -> lastModified.toString() == timestamp }
+            .ifEmpty {
+                log.info("Could not find matching timestamp for file $filename with lastModified timestamp $lastModified")
+                return false
+            }.any()
     }
 
     internal suspend fun deleteStaleCpaEntries(cpaTimestamps: Map<String, String>) {
