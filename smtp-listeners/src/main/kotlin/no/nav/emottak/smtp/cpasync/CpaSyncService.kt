@@ -27,7 +27,8 @@ class CpaSyncService(private val cpaRepoClient: HttpClient, private val nfsConne
 
     private suspend fun processAndSyncEntries(cpaTimestamps: Map<String, String>) {
         nfsConnector.use { connector ->
-            val staleCpaTimestamps = connector.folder().asSequence().filter { entry -> isValidFileType(entry) }
+            val staleCpaTimestamps = connector.folder().asSequence()
+                .filter { entry -> isXmlFileEntry(entry) }
                 .fold(cpaTimestamps) { accumulatedCpaTimestamps, entry ->
                     val filename = entry.filename
                     log.info("Checking $filename...")
@@ -58,7 +59,7 @@ class CpaSyncService(private val cpaRepoClient: HttpClient, private val nfsConne
         return Instant.ofEpochSecond(mTimeInSeconds).truncatedTo(ChronoUnit.SECONDS)
     }
 
-    private fun isValidFileType(entry: ChannelSftp.LsEntry) = if (!entry.filename.endsWith(".xml")) {
+    private fun isXmlFileEntry(entry: ChannelSftp.LsEntry) = if (!entry.filename.endsWith(".xml")) {
         log.warn("${entry.filename} is ignored")
         false
     } else {
@@ -97,16 +98,16 @@ class CpaSyncService(private val cpaRepoClient: HttpClient, private val nfsConne
         lastModified: Instant,
         cpaTimestamps: Map<String, String>
     ): Boolean {
-        return cpaTimestamps.any { (cpaId, timestamp) ->
+        for ((cpaId, timestamp) in cpaTimestamps) {
             val formattedCpaId = cpaId.replace(":", ".")
             if (filename.contains(formattedCpaId) && timestamp == lastModified.toString()) {
                 log.info("$filename is already up to date, skipping...")
-                true
-            } else {
-                log.info("$filename will be updated. Timestamp $timestamp compared with lastModified $lastModified")
-                false
+                return true
             }
         }
+
+        log.info("Could not find matching timestamp for file $filename with lastModified timestamp $lastModified")
+        return false
     }
 
     internal suspend fun deleteStaleCpaEntries(cpaTimestamps: Map<String, String>) {
