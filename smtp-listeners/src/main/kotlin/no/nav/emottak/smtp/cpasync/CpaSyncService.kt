@@ -33,7 +33,7 @@ class CpaSyncService(private val cpaRepoClient: HttpClient, private val nfsConne
                     val filename = entry.filename
                     log.info("Checking $filename...")
 
-                    val lastModified = getLastModifiedInstant(entry.attrs.mTime.toLong()) // Our "ID" for the CPA Repo
+                    val lastModified = getLastModifiedInstant(entry.attrs.mTime.toLong())
                     val shouldSkip = shouldSkipFile(filename, lastModified, accumulatedCpaTimestamps)
                     if (!shouldSkip) {
                         runCatching {
