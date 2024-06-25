@@ -80,7 +80,12 @@ fun PartData.payload(clearText: Boolean = false): ByteArray {
         is PartData.FormItem -> if (clearText) {
             return this.value.toByteArray()
         } else {
-            Base64.getMimeDecoder().decode(this.value.trim())
+            try {
+                Base64.getMimeDecoder().decode(this.value.trim())
+            } catch (e: IllegalArgumentException) {
+                log.warn("Last characters in failing string: <${this.value.takeLast(10)}>", e)
+                throw e
+            }
         }
 
         is PartData.FileItem -> {
