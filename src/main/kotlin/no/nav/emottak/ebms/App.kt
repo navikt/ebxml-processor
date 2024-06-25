@@ -80,7 +80,7 @@ fun PartData.payload(clearText: Boolean = false): ByteArray {
         is PartData.FormItem -> if (clearText) {
             return this.value.toByteArray()
         } else {
-            Base64.getMimeDecoder().decode(this.value)
+            Base64.getMimeDecoder().decode(this.value.trim())
         }
 
         is PartData.FileItem -> {
