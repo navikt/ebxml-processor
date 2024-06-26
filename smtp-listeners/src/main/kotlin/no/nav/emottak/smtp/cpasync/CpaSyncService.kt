@@ -98,13 +98,27 @@ class CpaSyncService(private val cpaRepoClient: HttpClient, private val nfsConne
         lastModified: Instant,
         cpaTimestamps: Map<String, String>
     ): Boolean {
-        return cpaTimestamps
-            .filterKeys { cpaId -> filename.contains(cpaId.replace(":", ".")) }
-            .filterValues { timestamp -> lastModified.toString() == timestamp }
-            .ifEmpty {
-                log.info("Could not find matching timestamp for file $filename with lastModified timestamp $lastModified")
-                return false
-            }.any()
+//        return cpaTimestamps
+//            .filterKeys { cpaId -> filename.contains(cpaId.replace(":", ".")) }
+//            .filterValues { timestamp -> lastModified.toString() == timestamp }
+//            .ifEmpty {
+//                log.info("Could not find matching timestamp for file $filename with lastModified timestamp $lastModified")
+//                return false
+//            }.any()
+
+        val filteredByCpaId = cpaTimestamps.filterKeys { cpaId -> filename.contains(cpaId.replace(":", ".")) }
+        if (filteredByCpaId.isEmpty()) {
+            log.info("Could not find matching filename in cpaTimestamps: $filename, will not skip")
+            return false
+        }
+
+        val hasMatchingTimestamp = filteredByCpaId.any { (_, timestamp) -> lastModified.toString() == timestamp }
+
+        if (!hasMatchingTimestamp) {
+            log.info("No matching timestamp found for file $filename with lastModified timestamp $lastModified. Will not skip. Available timestamps: ${filteredByCpaId.values}")
+        }
+
+        return hasMatchingTimestamp
     }
 
     internal suspend fun deleteStaleCpaEntries(cpaTimestamps: Map<String, String>) {
