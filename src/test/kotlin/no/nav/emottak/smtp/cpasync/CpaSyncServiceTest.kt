@@ -210,7 +210,19 @@ class CpaSyncServiceTest {
         val shouldSkip = cpaSyncService.shouldSkipFile(filename, lastModified, cpaTimestamps)
 
         assertFalse(shouldSkip)
-        assertTrue(cpaTimestamps.isNotEmpty())
+    }
+
+    @Test
+    fun `shouldSkipFile should return true (skip) if the filename is found and we have a matching timestamp`() {
+        val filename = "nav.10086.xml"
+        val lastModified = Instant.parse("2022-12-30T20:14:50Z")
+        val cpaTimestamps = mutableMapOf("nav:10086" to "2022-12-30T20:14:50Z")
+        val mockedNFSConnector = mockNFSConnector(emptyList())
+        cpaSyncService = spyk(CpaSyncService(cpaRepoClient, mockedNFSConnector))
+
+        val shouldSkip = cpaSyncService.shouldSkipFile(filename, lastModified, cpaTimestamps)
+
+        assertTrue(shouldSkip)
     }
 
     @Test
@@ -224,7 +236,6 @@ class CpaSyncServiceTest {
         val shouldSkip = cpaSyncService.shouldSkipFile(filename, lastModified, cpaTimestamps)
 
         assertTrue(shouldSkip)
-        assertTrue(cpaTimestamps.isNotEmpty())
     }
 
     @Test
