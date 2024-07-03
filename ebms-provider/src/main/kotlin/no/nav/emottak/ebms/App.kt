@@ -81,7 +81,7 @@ fun PartData.payload(clearText: Boolean = false): ByteArray {
             return this.value.toByteArray()
         } else {
             try {
-                Base64.getMimeDecoder().decode(this.value.substringBefore("-").trim())
+                Base64.getMimeDecoder().decode(this.value.trim())
             } catch (e: IllegalArgumentException) {
                 log.warn("Last characters in failing string: <${this.value.takeLast(50)}>", e)
                 throw e
