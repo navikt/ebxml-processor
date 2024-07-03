@@ -7,8 +7,13 @@ plugins {
     kotlin("plugin.serialization")
 }
 
-tasks.register<Wrapper>("wrapper") {
-    gradleVersion="8.1.1"
+tasks {
+    register<Wrapper>("wrapper") {
+        gradleVersion="8.1.1"
+    }
+    test {
+        useJUnitPlatform()
+    }
 }
 
 dependencies {
@@ -25,7 +30,7 @@ dependencies {
     implementation("com.bettercloud:vault-java-driver:5.1.0")
     api(libs.bundles.bouncycastle)
     testImplementation(testLibs.junit.jupiter.api)
-    testRuntimeOnly(testLibs.junit.jupiter.engine)
+    testImplementation(testLibs.junit.jupiter.engine)
 
     runtimeOnly("org.postgresql:postgresql:42.6.0")
 }

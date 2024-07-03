@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?><MsgHead xmlns="http://www.kith.no/xmlstds/msghead/2006-05-24" xmlns:fk1="http://www.kith.no/xmlstds/felleskomponent1" xmlns:ivt="http://www.kith.no/xmlstds/nav/innrapporteringtrekk/2010-02-04" xmlns:ns4="http://www.kith.no/xmlstds">
+    <MsgInfo>
+        <Type DN="Innrapportering av trekk" V="INNRAPPORTERING_TREKK"/>
+        <MIGversion>v1.2 2006-05-24</MIGversion>
+        <GenDate>2024-06-14T08:08:38.413+02:00</GenDate>
+        <MsgId>4637dc6a-ba52-4944-8785-4843e7411584</MsgId>
+        <Ack DN="Ja" V="J"/>
+        <Sender>
+            <Organisation>
+                <OrganisationName>STATENS INNKREVINGSSENTRAL</OrganisationName>
+                <Ident>
+                    <Id>971648198</Id>
+                    <TypeId DN="Organisasjonsnummeret i  Enhetsregister (Brønnøysund)" S="2.16.578.1.12.4.1.1.9051" V="ENH"/>
+                </Ident>
+                <Address>
+                    <StreetAdr>Terminalveien 2</StreetAdr>
+                    <PostalCode>8601</PostalCode>
+                    <City>MO I RANA</City>
+                    <County DN="MO I RANA" V="8601"/>
+                </Address>
+            </Organisation>
+        </Sender>
+        <Receiver>
+            <Organisation>
+                <OrganisationName>ARBEIDS- OG VELFERDSETATEN</OrganisationName>
+                <Ident>
+                    <Id>889640782</Id>
+                    <TypeId DN="Organisasjonsnummeret i  Enhetsregister (Brønnøysund)" S="2.16.578.1.12.4.1.1.9051" V="ENH"/>
+                </Ident>
+                <Address>
+                    <StreetAdr>Økernveien 94</StreetAdr>
+                    <PostalCode>0579</PostalCode>
+                    <City>OSLO</City>
+                    <County DN="OSLO" V="0579"/>
+                </Address>
+            </Organisation>
+        </Receiver>
+    </MsgInfo>
+    <Document>
+        <ContentDescription>Innrapportering av trekk</ContentDescription>
+        <Consent DN="" S="2.16.578.1.12.4.1.1.9064" V="1"/>
+        <RefDoc>
+            <IssueDate V="2011-05-27T12:47:38"/>
+            <MsgType DN="XML-instans" V="XML"/>
+            <Content>
+                <ivt:InnrapporteringTrekk>
+                    <ivt:Aksjonskode DN="Nytt trekk" V="NY"/>
+                    <ivt:Identifisering>
+                        <ivt:KreditorTrekkId>SIAN5460836</ivt:KreditorTrekkId>
+                        <ivt:DebitorId>
+                            <fk1:Id>04457518663</fk1:Id>
+                            <fk1:TypeId DN="Fødselsnummer" S="2.16.578.1.12.4.1.1.8116" V="FNR"/>
+                        </ivt:DebitorId>
+                    </ivt:Identifisering>
+                    <ivt:Trekk>
+                        <ivt:KodeTrekktype DN="Deknings.§ bokstav f" V="KRED"/>
+                        <ivt:KodeTrekkAlternativ DN="Saldotrekk måndedssats" V="SALM"/>
+                        <ivt:Sats V="300.00"/>
+                        <ivt:Saldo V="8295"/>
+                        <ivt:PrioritetFomDato>2024-06-14+02:00</ivt:PrioritetFomDato>
+                        <ivt:GyldigTomDato>2026-06-14+02:00</ivt:GyldigTomDato>
+                    </ivt:Trekk>
+                    <ivt:Periode>
+                        <ivt:PeriodeFomDato>2024-07-01+02:00</ivt:PeriodeFomDato>
+                        <ivt:PeriodeTomDato>2026-06-30+02:00</ivt:PeriodeTomDato>
+                    </ivt:Periode>
+                    <ivt:Kreditor>
+                        <ivt:OrgNr>
+                            <fk1:Id>00310234702</fk1:Id>
+                            <fk1:TypeId DN="DN" S="2.16.578.1.12.4.1.1.9051" V="ENH"/>
+                        </ivt:OrgNr>
+                        <ivt:Navn> Mange Trofast Katt Pukkel</ivt:Navn>
+                        <ivt:Adresse>
+                            <fk1:Type DN="adresse i SIAN" V="UM"/>
+                            <fk1:StreetAdr>Sundgata 123b</fk1:StreetAdr>
+                            <fk1:PostalCode>5527</fk1:PostalCode>
+                            <fk1:Country DN="Norge" V="NO"/>
+                        </ivt:Adresse>
+                        <ivt:Ref>T2024-000041</ivt:Ref>
+                        <ivt:Kontonr>45101245624</ivt:Kontonr>
+                    </ivt:Kreditor>
+                    <ivt:Namsmann>
+                        <ivt:OrgNr>
+                            <fk1:Id>988894907</fk1:Id>
+                            <fk1:TypeId DN="DN" S="2.16.578.1.12.4.1.1.9051" V="ENH"/>
+                        </ivt:OrgNr>
+                    </ivt:Namsmann>
+                </ivt:InnrapporteringTrekk>
+            </Content>
+        </RefDoc>
+    </Document>
+<Signature xmlns="http://www.w3.org/2000/09/xmldsig#"><SignedInfo><CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315#WithComments"/><SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1"/><Reference URI=""><Transforms><Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"/></Transforms><DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/><DigestValue>mdQaLxzEjkzpws1+BVy8wAb2PW8=</DigestValue></Reference></SignedInfo><SignatureValue>WtBCU3odLdLtA65K0psyOjBQCubmdcH5CQsNYXJ5qi6Z0JGgJm4enwiQwbMOov34E1YUPi4tz/ARVe06et2vc2nKqwu9TodqKQzXFKl+upt5eyZV6Y9XmmT2kGluruE3G+3BdI1ltfOI+gUPs21U6rI1xGDS+2P4HW0MskL6GeAr+UZJ5VNiQMnLeV9DL+9dJBpef8pURpzvWJgBhD4iMmNw/kt26TLJUDzeZgueQxZhg855jEwbKalDHjxw8Pch/p0TW/fimSZUvONZHlcbsrSOKQeuHcHWgxQbGd8baGQtEoqgP3pTkVcJAJk2iMUtE1NVioCTTUw3FhLljz+l8Tbyie1W1TuC430QOwFr+CJOATHQQ459eLAOHROAXoAfYPbBCU6X5aEKaReoqyWyjLvm/whlniAJj3yUgy7JEqRjBdqIDaz1nsgkVnp4ADwpxgxiQ/YAu5NyW1gWVAvfmzdO/QhdD0GUEDOJfe4VPdL2ZuhzddTm8kLS4Mgg3TDB</SignatureValue><KeyInfo><KeyValue><RSAKeyValue><Modulus>lsJiGkCd1s6qM+uBrYFEz30qlYZU/+SqrXmXf59KW8FamZycjvhYmYABvKrC0u2tnV141D4LBtdUTt1LmAgu3TF5A/aUqNBv5RGpG3fNGbXsijRTbthfYv4GIsULLUTKb77Z0lLY+oXy+ntfjWEmduz6L+LTphQuH/cFSy5jQ03d3Npt2Fg7mJUWEs7p/hUMv+dsc5cVh9nsWhYXSdfS+9FW8e1rbAa4qEPdOU6or78KETJUUH2+c3IubN9CGp3wl7RkZ41miww5nnhiGZmOpeFnrBraGv5yMdNSbUr9PxP2P0/+mWbY6OP+e4zlNeF4KNYWtXJatD5lZOPxJTDHAJfgrLP8Ctg84CrOAZsvZLMHaOUv8dlEJjzhBW0yRDHox8CqTsL7XZ9SHZKrUyZpMXzrsfLS7n0I/gDD/gRLIzyB5Sq6j0YqL6+is6xIUhV5Dnu9KyreCyfVbwgWDYPb8lP6UNVwhwv9qiMuRhSV6dfMdbFZydzDCwAyajwRzoBr</Modulus><Exponent>AQAB</Exponent></RSAKeyValue></KeyValue><X509Data><X509Certificate>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</X509Certificate></X509Data></KeyInfo></Signature></MsgHead>
