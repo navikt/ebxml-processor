@@ -83,6 +83,7 @@ fun PartData.payload(clearText: Boolean = false): ByteArray {
             try {
                 Base64.getMimeDecoder().decode(this.value.trim())
             } catch (e: IllegalArgumentException) {
+                log.warn("First characters in failing string: <${this.value.substring(0,50)}>", e)
                 log.warn("Last characters in failing string: <${this.value.takeLast(50)}>", e)
                 throw e
             }
