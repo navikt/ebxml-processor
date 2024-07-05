@@ -81,6 +81,7 @@ fun PartData.payload(clearText: Boolean = false): ByteArray {
             return this.value.toByteArray()
         } else {
             try {
+
                 Base64.getMimeDecoder().decode(this.value.trim())
             } catch (e: IllegalArgumentException) {
                 log.warn("First characters in failing string: <${this.value.substring(0,50)}>", e)
@@ -188,10 +189,18 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
         ContentType.parse("multipart/related") -> {
             val allParts = mutableListOf<PartData>().apply {
                 this@receiveEbmsDokument.receiveMultipart().forEachPart {
+                    var partDataToAdd = it;
                     if (it is PartData.FileItem) it.streamProvider.invoke()
-                    if (it is PartData.FormItem) it.value
-                    this.add(it)
-                    it.dispose.invoke()
+                    if (it is PartData.FormItem) {
+                        val boundary = this@receiveEbmsDokument.request.contentType().parameter("boundary");
+                        if (it.value.contains("--$boundary--")) {
+                            logger().warn("Encountered KTOR bug, trimming boundary")
+                            partDataToAdd = PartData.FormItem(it.value.substringBefore("--$boundary--").trim(),{},it.headers)
+                            partDataToAdd.dispose.invoke()
+                        }
+                    }
+                    this.add(partDataToAdd)
+                    partDataToAdd.dispose.invoke()
                 }
             }
             val start = contentType.parameter("start") ?: allParts.first().headers[MimeHeaders.CONTENT_ID]
