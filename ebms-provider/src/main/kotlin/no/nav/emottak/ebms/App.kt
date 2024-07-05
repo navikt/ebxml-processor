@@ -187,10 +187,7 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
             val allParts = mutableListOf<PartData>().apply {
                 this@receiveEbmsDokument.receiveMultipart().forEachPart {
                     if (it is PartData.FileItem) it.streamProvider.invoke()
-                    if (it is PartData.FormItem) {
-                        it.value
-                        logger().info("FormIem value is:" + it.value)
-                    }
+                    if (it is PartData.FormItem) it.value
                     this.add(it)
                     it.dispose.invoke()
                 }
