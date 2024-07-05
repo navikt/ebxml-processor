@@ -12,6 +12,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.PartData
 import io.ktor.http.content.forEachPart
 import io.ktor.http.content.streamProvider
+import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.call
@@ -20,6 +21,7 @@ import io.ktor.server.application.install
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.metrics.micrometer.MicrometerMetrics
 import io.ktor.server.netty.Netty
+import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.request.contentType
 import io.ktor.server.request.header
 import io.ktor.server.request.receive
@@ -110,18 +112,18 @@ fun Application.ebmsProviderModule() {
     val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
     installMicrometerRegistry(appMicrometerRegistry)
     installRequestTimerPlugin()
-/*
+
     install(ContentNegotiation) {
         json()
     }
-*/
+
     routing {
         get("/") {
             call.respondText("Hello, world!")
         }
 
         registerHealthEndpoints(appMicrometerRegistry)
-        //  navCheckStatus()
+        navCheckStatus()
         postEbmsAsync(validator, processing)
         postEbmsSync(validator, processing, sendInService)
     }
