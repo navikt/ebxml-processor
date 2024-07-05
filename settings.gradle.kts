@@ -13,7 +13,7 @@ dependencyResolutionManagement {
         create("libs") {
             version("bouncycastle", "1.76")
             version("exposed", "0.47.0")
-            version("ktor", "2.3.12")
+            version("ktor", "2.3.8")
             version("jakarta-mail", "2.1.2")
             version("eclipse-angus", "2.0.2")
             version("jsch", "0.2.16")
