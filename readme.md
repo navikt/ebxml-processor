@@ -57,6 +57,17 @@ For å bygge prosjektet brukes gradle.
 Noen av testene bruker [testcontainers](https://github.com/testcontainers/testcontainers-java) for å bygge opp et mer komplett
 kjøretidsmiljø. Disse er avhengig av et fungerende docker miljø. For eksempel docker eller [colima](https://github.com/abiosoft/colima) på mac.
 
+Hvis du har en mac som bruker de nyere "M"-chipene (eks. M3) vil du møte på problemer når du spinner opp testcontainers i dette prosjektet. 
+Dette gjelder containerne for Oracle DB (gvenzl/oracle-xe:21-slim-faststart) når man bruker docker desktop.
+For å unngå dette må man heller bruke Colima. Under er steg for hvordan:
+1. [Innstaller Colima](https://github.com/abiosoft/colima?tab=readme-ov-file#installation).
+2. Sett DOCKER_HOST env-variabel til Colima (mulig dette må reverseres når man bygger andre prosjekter).
+   - `export DOCKER_HOST="unix://${HOME}/.colima/default/docker.sock"`
+3. Start Colima med x86_64. 
+   - `colima start --arch x86_64 --memory 4`
+4. Bygg prosjekt/kjør tester.
+
+
 ### Oppsett av Github PAT
 For å kunne dra inn de riktige dependenciene, må man opprette en github PAT.
 Denne trenger rettigheten read:packages og må autoriseres for tilgang til organisasjonen [navikt](https://github.com/navikt).
