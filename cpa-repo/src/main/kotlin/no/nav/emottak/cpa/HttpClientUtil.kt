@@ -15,7 +15,7 @@ class HttpClientUtil {
         val client = HttpClient(CIO) {
             expectSuccess = true
             install(HttpRequestRetry) {
-                retryOnServerErrors(maxRetries = 5)
+                retryOnServerErrors(maxRetries = 1)
                 exponentialDelay()
             }
             engine {

@@ -27,7 +27,8 @@ class CpaSyncService(private val cpaRepoClient: HttpClient, private val nfsConne
 
     private suspend fun processAndSyncEntries(cpaTimestamps: Map<String, String>) {
         nfsConnector.use { connector ->
-            val staleCpaTimestamps = connector.folder().asSequence().filter { entry -> isValidFileType(entry) }
+            val staleCpaTimestamps = connector.folder().asSequence()
+                .filter { entry -> isXmlFileEntry(entry) }
                 .fold(cpaTimestamps) { accumulatedCpaTimestamps, entry ->
                     val filename = entry.filename
                     log.info("Checking $filename...")
@@ -58,7 +59,7 @@ class CpaSyncService(private val cpaRepoClient: HttpClient, private val nfsConne
         return Instant.ofEpochSecond(mTimeInSeconds).truncatedTo(ChronoUnit.SECONDS)
     }
 
-    private fun isValidFileType(entry: ChannelSftp.LsEntry) = if (!entry.filename.endsWith(".xml")) {
+    private fun isXmlFileEntry(entry: ChannelSftp.LsEntry) = if (!entry.filename.endsWith(".xml")) {
         log.warn("${entry.filename} is ignored")
         false
     } else {
@@ -79,8 +80,8 @@ class CpaSyncService(private val cpaRepoClient: HttpClient, private val nfsConne
         timestamp: String,
         lastModified: Instant
     ): Boolean {
-        val formattedCpaId = cpaId.replace(":", ".")
-        return if (filename.contains(formattedCpaId)) {
+        val formattedCpaId = cpaId.replace(":", ".") + ".xml"
+        return if (filename == formattedCpaId) {
             if (timestamp == lastModified.toString()) {
                 log.info("$filename already exists with same timestamp")
             } else {
@@ -97,15 +98,13 @@ class CpaSyncService(private val cpaRepoClient: HttpClient, private val nfsConne
         lastModified: Instant,
         cpaTimestamps: Map<String, String>
     ): Boolean {
-        return cpaTimestamps.any { (cpaId, timestamp) ->
-            val formattedCpaId = cpaId.replace(":", ".")
-            if (filename.contains(formattedCpaId) && timestamp == lastModified.toString()) {
-                log.info("Newer version already exists $filename, skipping...")
-                true
-            } else {
-                false
-            }
-        }
+        return cpaTimestamps
+            .filterKeys { cpaId -> filename == cpaId.replace(":", ".") + ".xml" }
+            .filterValues { timestamp -> lastModified.toString() == timestamp }
+            .ifEmpty {
+                log.info("Could not find matching timestamp for file $filename with lastModified timestamp $lastModified")
+                return false
+            }.any()
     }
 
     internal suspend fun deleteStaleCpaEntries(cpaTimestamps: Map<String, String>) {

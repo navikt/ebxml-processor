@@ -10,9 +10,10 @@ import java.time.Instant
 import java.util.Date
 
 class CRLChecker(
-    private val crlRetriever: CRLRetriever,
-    private val crlMaximumAgeInSeconds: Long = 3600
+    private val crlRetriever: CRLRetriever
 ) {
+    private val crlMaximumAgeInSeconds: Long = 3600L
+
     private val crlList: List<CRL> = runBlocking {
         crlRetriever.updateAllCRLs()
     }
