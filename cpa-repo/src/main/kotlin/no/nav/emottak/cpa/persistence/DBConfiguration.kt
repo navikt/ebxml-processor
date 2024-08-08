@@ -2,7 +2,6 @@ package no.nav.emottak.cpa.persistence
 
 import com.bettercloud.vault.response.LogicalResponse
 import com.zaxxer.hikari.HikariConfig
-import com.zaxxer.hikari.HikariDataSource
 import no.nav.emottak.cpa.log
 import no.nav.emottak.util.fromEnv
 import no.nav.emottak.util.getEnvVar
@@ -46,7 +45,7 @@ data class VaultConfig(
     }
 )
 
-fun VaultConfig.configure(role: String): HikariDataSource {
+fun VaultConfig.configure(role: String): HikariConfig {
     val hikariConfig = HikariConfig().apply {
         jdbcUrl = this@configure.jdbcUrl + databaseName
         driverClassName = "org.postgresql.Driver"
@@ -62,7 +61,7 @@ fun VaultConfig.configure(role: String): HikariDataSource {
     }
 
     if (role == "admin") {
-        return HikariDataSource(hikariConfig)
+        return hikariConfig
     }
     return HikariCPVaultUtil.createHikariDataSourceWithVaultIntegration(
         hikariConfig,
