@@ -28,6 +28,7 @@ import no.nav.emottak.frikort.frikortsporring
 import no.nav.emottak.frikort.marshal
 import no.nav.emottak.melding.model.SendInRequest
 import no.nav.emottak.melding.model.SendInResponse
+import no.nav.emottak.pasientliste.pasientlisteRequest
 import no.nav.emottak.util.getEnvVar
 import no.nav.emottak.util.marker
 import no.nav.security.token.support.v2.tokenValidationSupport
@@ -72,16 +73,16 @@ fun Application.ebmsSendInModule() {
         authenticate(AZURE_AD_AUTH) {
             post("/fagmelding/synkron") {
                 val request = this.call.receive(SendInRequest::class)
-
                 val service = request.addressing.service
-
                 if (service == "PasientlisteForesporsel") {
                     runCatching {
-                        log.info(request.marker(), "PasientlisteForesporsel: Payload ${request.payloadId} videresendes til fagsystem")
+                        log.info(
+                            request.marker(),
+                            "PasientlisteForesporsel: Payload ${request.payloadId} videresendes til fagsystem"
+                        )
                         withContext(Dispatchers.IO) {
-                            timed(appMicrometerRegistry, "pasientlisteForesporsel") { // TODO: Fungerer dette out of the box?
-                                frikortsporring(wrapMessageInEIFellesFormat(request))
-                            }
+                            // TODO: Legg til timer
+                            pasientlisteRequest(wrapMessageInEIFellesFormat(request))
                         }
                     }.onSuccess {
                         log.trace(
@@ -93,10 +94,10 @@ fun Application.ebmsSendInModule() {
                                 request.messageId,
                                 request.conversationId,
                                 request.addressing.replayTo(
-                                    it.eiFellesformat.mottakenhetBlokk.ebService,
-                                    it.eiFellesformat.mottakenhetBlokk.ebAction
+                                    it.mottakenhetBlokk.ebService,
+                                    it.mottakenhetBlokk.ebAction
                                 ),
-                                marshal(it.eiFellesformat.msgHead).toByteArray()
+                                marshal(it.msgHead).toByteArray()
                             )
                         )
                     }.onFailure {
@@ -131,8 +132,10 @@ fun Application.ebmsSendInModule() {
                         log.error(request.marker(), "Payload ${request.payloadId} videresending feilet", it)
                         call.respond(HttpStatusCode.BadRequest, it.localizedMessage)
                     }
+                } else {
+                    log.error("Service '$service' is not implemented")
+                    throw NotImplementedError("Service $service is not implemented")
                 }
-                //
             }
         }
 
