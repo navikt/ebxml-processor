@@ -31,6 +31,7 @@ import no.nav.emottak.smtp.cpasync.CpaSyncService
 import no.nav.emottak.util.measureTimeSuspended
 import org.eclipse.angus.mail.imap.IMAPFolder
 import org.slf4j.LoggerFactory
+import java.time.Duration
 import java.time.Instant
 import kotlin.time.toKotlinDuration
 
