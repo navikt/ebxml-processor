@@ -17,7 +17,7 @@ class Database(
         migrationConfig.let(::HikariDataSource)
             .also {
                 Flyway.configure()
-                    .dataSource(it)
+                    .dataSource(it.jdbcUrl, it.username, it.password)
                     .initSql("SET ROLE \"$CPA_DB_NAME-admin\"")
                     .lockRetryCount(50)
                     .load().apply {
