@@ -53,7 +53,7 @@ fun VaultConfig.configure(role: String): HikariDataSource {
         if (role == "admin") {
             this.maximumPoolSize = 2
             val vault = VaultUtil.getInstance().client
-            val path: String = vaultMountPath + "/creds/admin"
+            val path: String = this@configure.vaultMountPath + "/creds/$databaseName-$role"
             log.info("Fetching database credentials for role admin")
             val response: LogicalResponse = vault.logical().read(path)
             this.username = response.data["username"]
