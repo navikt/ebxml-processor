@@ -14,16 +14,11 @@ class Database(
     }
     val db = Database.connect(dataSource)
     fun migrate(migrationConfig: HikariConfig) {
-        migrationConfig.let(::HikariDataSource)
-            .also {
-                Flyway.configure()
-                    .dataSource(it.jdbcUrl, it.username, it.password)
-                    .initSql("SET ROLE \"$CPA_DB_NAME-admin\"")
-                    .lockRetryCount(50)
-                    .load().apply {
-                        migrate()
-                        configuration.dataSource.connection.close()
-                    }
-            }.close()
+        Flyway.configure()
+            .dataSource(migrationConfig.jdbcUrl, migrationConfig.username, migrationConfig.password)
+            .initSql("SET ROLE \"$CPA_DB_NAME-admin\"")
+            .lockRetryCount(50)
+            .load()
+            .migrate()
     }
 }
