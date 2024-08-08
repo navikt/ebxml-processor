@@ -1,11 +1,13 @@
 package no.nav.emottak.cpa.persistence
 
+import com.bettercloud.vault.response.LogicalResponse
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import no.nav.emottak.cpa.log
 import no.nav.emottak.util.fromEnv
 import no.nav.emottak.util.getEnvVar
 import no.nav.vault.jdbc.hikaricp.HikariCPVaultUtil
+import no.nav.vault.jdbc.hikaricp.VaultUtil
 
 const val CPA_DB_NAME = "emottak-cpa-repo-db"
 
@@ -50,7 +52,17 @@ fun VaultConfig.configure(role: String): HikariDataSource {
         driverClassName = "org.postgresql.Driver"
         if (role == "admin") {
             this.maximumPoolSize = 2
+            val vault = VaultUtil.getInstance().client
+            val path: String = vaultMountPath + "/creds/admin"
+            log.info("Fetching database credentials for role admin")
+            val response: LogicalResponse = vault.logical().read(path)
+            this.username = response.data["username"]
+            this.password = response.data["password"]
         }
+    }
+
+    if (role == "admin") {
+        return HikariDataSource(hikariConfig)
     }
     return HikariCPVaultUtil.createHikariDataSourceWithVaultIntegration(
         hikariConfig,
