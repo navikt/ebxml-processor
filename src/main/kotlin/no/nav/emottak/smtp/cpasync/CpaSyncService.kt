@@ -31,8 +31,6 @@ class CpaSyncService(private val cpaRepoClient: HttpClient, private val nfsConne
                 .filter { entry -> isXmlFileEntry(entry) }
                 .fold(cpaTimestamps) { accumulatedCpaTimestamps, entry ->
                     val filename = entry.filename
-                    log.info("Checking $filename...")
-
                     val lastModified = getLastModifiedInstant(entry.attrs.mTime.toLong())
                     val shouldSkip = shouldSkipFile(filename, lastModified, accumulatedCpaTimestamps)
                     if (!shouldSkip) {
@@ -82,14 +80,12 @@ class CpaSyncService(private val cpaRepoClient: HttpClient, private val nfsConne
     ): Boolean {
         val formattedCpaId = cpaId.replace(":", ".") + ".xml"
         return if (filename == formattedCpaId) {
-            if (timestamp == lastModified.toString()) {
-                log.info("$filename already exists with same timestamp")
-            } else {
+            if (timestamp != lastModified.toString()) {
                 log.info("$filename has different timestamp, should be updated")
             }
             false
         } else {
-            true // delete!
+            true // the file will be deleted
         }
     }
 
