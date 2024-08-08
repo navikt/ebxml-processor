@@ -48,6 +48,9 @@ fun VaultConfig.configure(role: String): HikariDataSource {
     val hikariConfig = HikariConfig().apply {
         jdbcUrl = this@configure.jdbcUrl + databaseName
         driverClassName = "org.postgresql.Driver"
+        if (role == "admin") {
+            this.maximumPoolSize = 2
+        }
     }
     return HikariCPVaultUtil.createHikariDataSourceWithVaultIntegration(
         hikariConfig,
