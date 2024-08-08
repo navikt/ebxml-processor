@@ -20,8 +20,10 @@ class Database(
                     .dataSource(it)
                     .initSql("SET ROLE \"$CPA_DB_NAME-admin\"")
                     .lockRetryCount(50)
-                    .load()
-                    .migrate()
+                    .load().apply {
+                        migrate()
+                        configuration.dataSource.connection.close()
+                    }
             }.close()
     }
 }
