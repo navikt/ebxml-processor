@@ -43,7 +43,7 @@ fun main() {
         port = 8080,
         module = cpaApplicationModule(
             cpaDbConfig.value,
-            cpaDbConfig.value,
+            cpaMigrationConfig.value,
             oracleConfig.value
         )
     ).start(wait = true)
