@@ -55,7 +55,7 @@ fun Route.whoAmI(): Route = get("/whoami") {
 
 fun Route.getCPA(cpaRepository: CPARepository): Route = get("/cpa/{$CPA_ID}") {
     val cpaId = call.parameters[CPA_ID] ?: throw BadRequestException("Mangler $CPA_ID")
-    val cpa = cpaRepository.findCpa(cpaId) ?: throw NotFoundException("Fant ikke CPA")
+    val cpa = cpaRepository.findCpa(cpaId) ?: throw NotFoundException("Fant ikke CPA $CPA_ID")
     call.respond(cpa.asText())
 }
 
@@ -217,7 +217,7 @@ fun Route.validateCpa(cpaRepository: CPARepository) = post("/cpa/validate/{$CONT
         log.error(validateRequest.marker(), "${ex.message}")
         call.respond(
             HttpStatusCode.OK,
-            ValidationResult(error = listOf(Feil(ErrorCode.DELIVERY_FAILURE, "Unable to find CPA")))
+            ValidationResult(error = listOf(Feil(ErrorCode.DELIVERY_FAILURE, "${ex.message}")))
         )
     } catch (ex: Exception) {
         log.error(validateRequest.marker(), ex.message, ex)
