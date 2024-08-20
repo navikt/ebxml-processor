@@ -14,7 +14,6 @@ import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
-import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import io.micrometer.core.instrument.Timer.ResourceSample
@@ -29,11 +28,12 @@ import no.nav.emottak.frikort.frikortsporring
 import no.nav.emottak.frikort.marshal
 import no.nav.emottak.melding.model.SendInRequest
 import no.nav.emottak.melding.model.SendInResponse
+import no.nav.emottak.utbetaling.InntektsForesporselClient
 import no.nav.emottak.util.getEnvVar
 import no.nav.emottak.util.marker
 import no.nav.security.token.support.v2.tokenValidationSupport
+import no.nav.tjeneste.ekstern.frikort.v1.types.FrikortsporringResponse
 import org.slf4j.LoggerFactory
-import java.util.Timer
 
 internal val log = LoggerFactory.getLogger("no.nav.emottak.ebms.App")
 
@@ -71,14 +71,22 @@ fun Application.ebmsSendInModule() {
     }
 
     routing {
+        val inntektsForesporselClient = InntektsForesporselClient()
         authenticate(AZURE_AD_AUTH) {
             post("/fagmelding/synkron") {
                 val request = this.call.receive(SendInRequest::class)
                 runCatching {
                     log.info(request.marker(), "Payload ${request.payloadId} videresendes til fagsystem")
                     withContext(Dispatchers.IO) {
-                        timed(appMicrometerRegistry, "frikort-sporing") {
-                            frikortsporring(wrapMessageInEIFellesFormat(request))
+                        when (request.addressing.service) {
+                            "Inntektsforesporsel" ->
+                                timed(appMicrometerRegistry, "Inntektsforesporsel") {
+                                    inntektsForesporselClient.sendInntektsforesporsel(request.payload) // TODO skal fellesformat brukes?
+                                }
+                            else ->
+                                timed(appMicrometerRegistry, "frikort-sporing") {
+                                    frikortsporring(wrapMessageInEIFellesFormat(request))
+                                }
                         }
                     }
                 }.onSuccess {
@@ -86,17 +94,29 @@ fun Application.ebmsSendInModule() {
                         request.marker(),
                         "Payload ${request.payloadId} videresending til fagsystem ferdig, svar mottatt og returnerert"
                     )
-                    call.respond(
-                        SendInResponse(
-                            request.messageId,
-                            request.conversationId,
-                            request.addressing.replayTo(
-                                it.eiFellesformat.mottakenhetBlokk.ebService,
-                                it.eiFellesformat.mottakenhetBlokk.ebAction
-                            ),
-                            marshal(it.eiFellesformat.msgHead).toByteArray()
-                        )
-                    )
+                    when (it) { // TODO gjerne tenk igjennom en bedre flyt
+                        is ByteArray ->
+                            call.respond(
+                                SendInResponse(
+                                    request.messageId,
+                                    request.conversationId,
+                                    request.addressing.replyTo(request.addressing.service, request.addressing.action), // TODO ser feil ut?
+                                    it
+                                )
+                            )
+                        is FrikortsporringResponse ->
+                            call.respond(
+                                SendInResponse(
+                                    request.messageId,
+                                    request.conversationId,
+                                    request.addressing.replyTo(
+                                        it.eiFellesformat.mottakenhetBlokk.ebService,
+                                        it.eiFellesformat.mottakenhetBlokk.ebAction
+                                    ),
+                                    marshal(it.eiFellesformat.msgHead).toByteArray()
+                                )
+                            )
+                    }
                 }.onFailure {
                     log.error(request.marker(), "Payload ${request.payloadId} videresending feilet", it)
                     call.respond(HttpStatusCode.BadRequest, it.localizedMessage)
