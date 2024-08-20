@@ -173,11 +173,22 @@ fun Route.postCpa(cpaRepository: CPARepository) = post("/cpa") {
         }
 }
 
+fun loadOverrideCPA(): CollaborationProtocolAgreement {
+    val cpaString = String(object {}::class.java.classLoader.getResource("cpa/nav_qass_30823_modified.xml").readBytes())
+    return xmlMarshaller.unmarshal(cpaString, CollaborationProtocolAgreement::class.java)
+}
+
 fun Route.validateCpa(cpaRepository: CPARepository) = post("/cpa/validate/{$CONTENT_ID}") {
     val validateRequest = call.receive(ValidationRequest::class)
     try {
         log.info(validateRequest.marker(), "Validerer ebms mot CPA")
-        val cpa = cpaRepository.findCpa(validateRequest.cpaId) ?: throw NotFoundException("Fant ikke CPA (${validateRequest.cpaId})")
+        val cpa =
+            // TODO fjern override CPA for Inntektsforesporsel test:
+            if (validateRequest.cpaId == "nav:qass:30823") {
+                loadOverrideCPA()
+            } else {
+                cpaRepository.findCpa(validateRequest.cpaId) ?: throw NotFoundException("Fant ikke CPA (${validateRequest.cpaId})")
+            }
         cpa.validate(validateRequest) // Delivery Failure
         val partyInfo = cpa.getPartyInfoByTypeAndID(validateRequest.addressing.from.partyId) // Delivery Failure
         val encryptionCertificate = partyInfo.getCertificateForEncryption() // Security Failure
