@@ -265,7 +265,6 @@ suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbMSDocument) {
     }
 
     this.response.headers.apply {
-        this.append(MimeHeaders.CONTENT_TYPE, ContentType.Text.Xml.toString())
         this.append(MimeHeaders.SOAP_ACTION, "ebXML")
     }
     if (ebmsDokument.dokumentType() == DokumentType.PAYLOAD) {
