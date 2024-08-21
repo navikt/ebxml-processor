@@ -22,7 +22,6 @@ import java.io.FileInputStream
 import javax.xml.namespace.QName
 import javax.xml.soap.SOAPElement
 import javax.xml.soap.SOAPFactory
-import javax.xml.ws.BindingProvider
 
 class InntektsForesporselClient {
 
@@ -45,24 +44,6 @@ class InntektsForesporselClient {
         val msgHead = xmlMarshaller.unmarshal(String(payloadBytes), MsgHead::class.java)
         val melding = msgHead.document.map { it.refDoc.content.any }.also { if (it.size > 1) log.warn("Inntektsforesporsel refdoc har size >1") }
             .first().also { if (it.size > 1) log.warn("Inntektsforesporsel content har size >1") }.first()
-
-        (inntektsforesporselSoapEndpoint as BindingProvider).requestContext
-            .apply {
-                put(
-                    "ws-security.username",
-                    when (getEnvVar("NAIS_CLUSTER_NAME", "local")) {
-                        "local" -> "testUserName"
-                        else -> String(FileInputStream("/secret/serviceuser/username").readAllBytes())
-                    }
-                )
-                put(
-                    "ws-security.password",
-                    when (getEnvVar("NAIS_CLUSTER_NAME", "local")) {
-                        "local" -> "testPassword"
-                        else -> String(FileInputStream("/secret/serviceuser/password").readAllBytes())
-                    }
-                )
-            }
         val response: Any = when (melding) {
             is FinnUtbetalingListe -> inntektsforesporselSoapEndpoint.finnUtbetalingListe(melding.request)
             is FinnBrukersUtbetalteYtelser -> inntektsforesporselSoapEndpoint.finnBrukersUtbetalteYtelser(melding.request)
@@ -175,14 +156,14 @@ val inntektsforesporselSoapEndpoint: no.nav.ekstern.virkemiddelokonomi.tjenester
         .withServiceName(QName("http://nav.no/ekstern/virkemiddelokonomi/tjenester/utbetaling/v1", "Utbetaling"))
         .withEndpointName(QName("http://nav.no/ekstern/virkemiddelokonomi/tjenester/utbetaling/v1", "UtbetalingPort"))
         .build()
-//        .withUserNameToken(
-//            when (getEnvVar("NAIS_CLUSTER_NAME", "local")) {
-//                "local" -> "testUserName"
-//                else -> String(FileInputStream("/secret/serviceuser/username").readAllBytes())
-//            },
-//            when (getEnvVar("NAIS_CLUSTER_NAME", "local")) {
-//                "local" -> "testPassword"
-//                else -> String(FileInputStream("/secret/serviceuser/password").readAllBytes())
-//            }
-//        )
+        .withUserNameToken(
+            when (getEnvVar("NAIS_CLUSTER_NAME", "local")) {
+                "local" -> "testUserName"
+                else -> String(FileInputStream("/secret/serviceuser/username").readAllBytes())
+            },
+            when (getEnvVar("NAIS_CLUSTER_NAME", "local")) {
+                "local" -> "testPassword"
+                else -> String(FileInputStream("/secret/serviceuser/password").readAllBytes())
+            }
+        )
         .get()
