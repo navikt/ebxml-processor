@@ -4,9 +4,12 @@ import org.apache.cxf.jaxws.JaxWsProxyFactoryBean
 import org.apache.cxf.transport.http.HTTPConduit
 import org.apache.cxf.ws.addressing.WSAddressingFeature
 import org.apache.cxf.ws.security.SecurityConstants
+import org.apache.cxf.ws.security.wss4j.WSS4JOutInterceptor
+import org.apache.wss4j.common.ConfigurationConstants
 import org.slf4j.LoggerFactory
 import java.io.FileInputStream
 import javax.xml.namespace.QName
+import javax.xml.ws.BindingProvider
 
 internal val log = LoggerFactory.getLogger("no.nav.emottak.cxf")
 
@@ -90,6 +93,16 @@ class ServiceBuilder<T>(resultClass: Class<T>) {
             val conduit: HTTPConduit = ClientProxy.getClient(portType).conduit as HTTPConduit
             conduit.authorization.userName = userName
             conduit.authorization.password = password
+            return this
+        }
+
+        fun withUserNameToken(username:String, password:String): PortTypeBuilder<R> {
+
+            val map = HashMap<String, Any>();
+            map[ConfigurationConstants.ACTION] = ConfigurationConstants.USERNAME_TOKEN
+            map[ConfigurationConstants.PASSWORD_TYPE] = "PasswordText"
+            map[ConfigurationConstants.USER] = username
+            ClientProxy.getClient(portType).outInterceptors.add(WSS4JOutInterceptor(map))
             return this
         }
 
