@@ -16,6 +16,8 @@ import no.nav.emottak.cxf.ServiceBuilder
 import no.nav.emottak.util.getEnvVar
 import org.slf4j.LoggerFactory
 import javax.xml.namespace.QName
+import javax.xml.soap.SOAPElement
+import javax.xml.soap.SOAPFactory
 
 class InntektsForesporselClient {
 
@@ -36,6 +38,7 @@ class InntektsForesporselClient {
 
     fun sendInntektsforesporsel(payloadBytes: ByteArray): suspend () -> ByteArray {
         log.info("Sender inntektsforespørsel til $UTBETAL_SOAP_ENDPOINT:\n" + String(payloadBytes))
+
         return {
             httpClient.post(UTBETAL_SOAP_ENDPOINT) {
                 setBody(payloadBytes)
@@ -61,6 +64,38 @@ class InntektsForesporselClient {
             }.bodyAsText()
         }
         return xmlMarshaller.unmarshal(response, FinnBrukersUtbetalteYtelserResponse::class.java)
+    }
+    fun createSecurityElement(username: String, password: String): SOAPElement {
+        val WSSE_URI = "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd"
+        val WSSE_PW_TYPE =
+            "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordText"
+        try {
+            // https://www.ibm.com/docs/en/was/9.0.5?topic=authentication-username-token
+            val soapFactory = SOAPFactory.newInstance()
+            val usernameElement = soapFactory
+                .createElement("Username", "wsse", WSSE_URI).addTextNode(username)
+            val passwordElement = soapFactory
+                .createElement("Password", "wsse", WSSE_URI).addTextNode(password)
+            passwordElement
+                .addAttribute(QName("Type"), WSSE_PW_TYPE)
+
+            val usernameTokenElement = soapFactory
+                .createElement("UsernameToken", "wsse", WSSE_URI)
+
+            usernameTokenElement.addChildElement(usernameElement)
+            usernameTokenElement.addChildElement(passwordElement)
+
+            val securityElement = soapFactory.createElement(
+                "Security",
+                "wsse",
+                WSSE_URI
+            )
+            securityElement.addChildElement(usernameTokenElement)
+            return securityElement
+        } catch (e: javax.xml.soap.SOAPException) {
+            log.error("Feil i createSecurityElement", e)
+            throw RuntimeException("Feil i generering av usernametoken")
+        }
     }
 }
 
