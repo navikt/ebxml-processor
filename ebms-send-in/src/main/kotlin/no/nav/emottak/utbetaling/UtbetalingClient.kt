@@ -8,13 +8,17 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.client.statement.readBytes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import no.kith.xmlstds.msghead._2006_05_24.MsgHead
 import no.nav.ekstern.virkemiddelokonomi.tjenester.utbetaling.meldinger.v1.FinnBrukersUtbetalteYtelserRequest
 import no.nav.ekstern.virkemiddelokonomi.tjenester.utbetaling.meldinger.v1.FinnBrukersUtbetalteYtelserResponse
 import no.nav.ekstern.virkemiddelokonomi.tjenester.utbetaling.meldinger.v1.FinnUtbetalingListeRequest
 import no.nav.ekstern.virkemiddelokonomi.tjenester.utbetaling.meldinger.v1.FinnUtbetalingListeResponse
+import no.nav.ekstern.virkemiddelokonomi.tjenester.utbetaling.v1.FinnBrukersUtbetalteYtelser
+import no.nav.ekstern.virkemiddelokonomi.tjenester.utbetaling.v1.FinnUtbetalingListe
 import no.nav.emottak.cxf.ServiceBuilder
 import no.nav.emottak.util.getEnvVar
 import org.slf4j.LoggerFactory
+import java.io.FileInputStream
 import javax.xml.namespace.QName
 import javax.xml.soap.SOAPElement
 import javax.xml.soap.SOAPFactory
@@ -36,9 +40,20 @@ class InntektsForesporselClient {
 
     val httpClient = HttpClient(CIO)
 
+    fun behandleInntektsforesporsel(payloadBytes: ByteArray): ByteArray {
+        val msgHead = xmlMarshaller.unmarshal(String(payloadBytes), MsgHead::class.java)
+        val melding = msgHead.document.map { it.refDoc.content.any }.also { if (it.size > 1) log.warn("Inntektsforesporsel refdoc har size >1") }
+            .first().also { if (it.size > 1) log.warn("Inntektsforesporsel content har size >1") }.first()
+        val response: Any = when (melding) {
+            is FinnUtbetalingListe -> inntektsforesporselSoapEndpoint.finnUtbetalingListe(melding.request)
+            is FinnBrukersUtbetalteYtelser -> inntektsforesporselSoapEndpoint.finnBrukersUtbetalteYtelser(melding.request)
+            else -> throw IllegalStateException("Ukjent meldingstype. Classname: " + melding.javaClass.name)
+        }
+        return marshal(response).toByteArray()
+    }
+
     fun sendInntektsforesporsel(payloadBytes: ByteArray): suspend () -> ByteArray {
         log.info("Sender inntektsforespørsel til $UTBETAL_SOAP_ENDPOINT:\n" + String(payloadBytes))
-
         return {
             httpClient.post(UTBETAL_SOAP_ENDPOINT) {
                 setBody(payloadBytes)
@@ -48,7 +63,36 @@ class InntektsForesporselClient {
         }
     }
 
-    suspend fun finnUtbetalingListe(p0: FinnUtbetalingListeRequest): FinnUtbetalingListeResponse {
+    suspend fun finnUtbetalingListe(payloadBytes: ByteArray): FinnUtbetalingListeResponse {
+        val unmarshal = xmlMarshaller.unmarshal(String(payloadBytes), MsgHead::class.java)
+//        unmarshal.document.map { doc -> doc.refDoc.content.any.find {
+//            rootElement -> rootElement is Element } as Element //&& rootElement.localName.equals("finnUtbetalingListe") }
+//        }.first {
+//            when((it).localName) {
+//                "finnUtbetalingListe" ->
+//                    unmarshal(it.toString(), )
+//                else
+//            }
+//        }
+
+        val response = withContext(Dispatchers.IO) {
+            httpClient.post(UTBETAL_SOAP_ENDPOINT) {
+                setBody(xmlMarshaller.marshal(payloadBytes))
+            }.bodyAsText()
+        }
+        return xmlMarshaller.unmarshal(response, FinnUtbetalingListeResponse::class.java)
+    }
+
+    suspend fun finnBrukersUtbetalteYtelser(payloadBytes: ByteArray): FinnBrukersUtbetalteYtelserResponse {
+        val response = withContext(Dispatchers.IO) {
+            httpClient.post(UTBETAL_SOAP_ENDPOINT) {
+                setBody(xmlMarshaller.marshal(payloadBytes))
+            }.bodyAsText()
+        }
+        return xmlMarshaller.unmarshal(response, FinnBrukersUtbetalteYtelserResponse::class.java)
+    }
+
+    suspend fun finnUtbetalingListeMedHttpClient(p0: FinnUtbetalingListeRequest): FinnUtbetalingListeResponse {
         val response = withContext(Dispatchers.IO) {
             httpClient.post(UTBETAL_SOAP_ENDPOINT) {
                 setBody(xmlMarshaller.marshal(p0))
@@ -57,7 +101,7 @@ class InntektsForesporselClient {
         return xmlMarshaller.unmarshal(response, FinnUtbetalingListeResponse::class.java)
     }
 
-    suspend fun finnBrukersUtbetalteYtelser(p0: FinnBrukersUtbetalteYtelserRequest): FinnBrukersUtbetalteYtelserResponse {
+    suspend fun finnBrukersUtbetalteYtelserMedHttpClient(p0: FinnBrukersUtbetalteYtelserRequest): FinnBrukersUtbetalteYtelserResponse {
         val response = withContext(Dispatchers.IO) {
             httpClient.post(UTBETAL_SOAP_ENDPOINT) {
                 setBody(xmlMarshaller.marshal(p0))
@@ -65,6 +109,7 @@ class InntektsForesporselClient {
         }
         return xmlMarshaller.unmarshal(response, FinnBrukersUtbetalteYtelserResponse::class.java)
     }
+
     fun createSecurityElement(username: String, password: String): SOAPElement {
         val WSSE_URI = "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd"
         val WSSE_PW_TYPE =
@@ -108,5 +153,8 @@ val inntektsforesporselSoapEndpoint: no.nav.ekstern.virkemiddelokonomi.tjenester
         .withServiceName(QName("http://nav.no/ekstern/virkemiddelokonomi/tjenester/utbetaling/v1", "Utbetaling"))
         .withEndpointName(QName("http://nav.no/ekstern/virkemiddelokonomi/tjenester/utbetaling/v1", "UtbetalingPort"))
         .build()
-        // .withBasicSecurity()
+        .withUserNameToken(
+            String(FileInputStream("/secret/serviceuser/username").readAllBytes()),
+            String(FileInputStream("/secret/serviceuser/password").readAllBytes())
+        )
         .get()
