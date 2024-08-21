@@ -6,8 +6,11 @@ import org.apache.cxf.ws.addressing.WSAddressingFeature
 import org.apache.cxf.ws.security.SecurityConstants
 import org.apache.cxf.ws.security.wss4j.WSS4JOutInterceptor
 import org.apache.wss4j.common.ConfigurationConstants
+import org.apache.wss4j.common.ext.WSPasswordCallback
 import org.slf4j.LoggerFactory
 import java.io.FileInputStream
+import javax.security.auth.callback.Callback
+import javax.security.auth.callback.CallbackHandler
 import javax.xml.namespace.QName
 
 internal val log = LoggerFactory.getLogger("no.nav.emottak.cxf")
@@ -100,6 +103,11 @@ class ServiceBuilder<T>(resultClass: Class<T>) {
             map[ConfigurationConstants.ACTION] = ConfigurationConstants.USERNAME_TOKEN
             map[ConfigurationConstants.PASSWORD_TYPE] = "PasswordText"
             map[ConfigurationConstants.USER] = username
+            val passwordCallbackHandler = CallbackHandler { callbacks: Array<Callback> ->
+                val callback = callbacks[0] as WSPasswordCallback
+                callback.password = password
+            }
+            map.put(ConfigurationConstants.PW_CALLBACK_REF, passwordCallbackHandler)
             ClientProxy.getClient(portType).outInterceptors.add(WSS4JOutInterceptor(map))
             return this
         }
