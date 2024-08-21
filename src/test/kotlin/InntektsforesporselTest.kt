@@ -1,5 +1,6 @@
 import no.kith.xmlstds.msghead._2006_05_24.MsgHead
 import no.nav.ekstern.virkemiddelokonomi.tjenester.utbetaling.v1.FinnUtbetalingListe
+import no.nav.emottak.utbetaling.inntektsforesporselSoapEndpoint
 import no.nav.emottak.utbetaling.unmarshal
 import org.junit.jupiter.api.Test
 
@@ -17,5 +18,9 @@ class InntektsforesporselTest {
 
         val request = response.document.map { doc -> doc.refDoc.content.any }.first().first()
         assert(request is FinnUtbetalingListe)
+
+        inntektsforesporselSoapEndpoint.finnUtbetalingListe(
+            (request as FinnUtbetalingListe).request
+        )
     }
 }

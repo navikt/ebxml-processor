@@ -69,6 +69,8 @@ dependencies {
     implementation("io.ktor:ktor-client-cio-jvm:2.3.4")
     implementation(libs.bundles.cxf)
     runtimeOnly("net.java.dev.jna:jna:5.12.1")
+    testImplementation("javax.activation:activation:1.1.1")
+    testImplementation("com.sun.xml.messaging.saaj:saaj-impl:1.5.1")
     testImplementation(testLibs.ktor.server.test.host)
     testImplementation(testLibs.junit.jupiter.api)
     testImplementation(testLibs.mockk.jvm)

@@ -149,12 +149,21 @@ val inntektsforesporselSoapEndpoint: no.nav.ekstern.virkemiddelokonomi.tjenester
         no.nav.ekstern.virkemiddelokonomi.tjenester.utbetaling.v1.Utbetaling::class.java
     )
         .withAddress(getEnvVar("UTBETALING_URL", "https://ytelser-rest-proxy.intern.nav.no/Utbetaling"))
-        .withWsdl("classpath:no/nav/ekstern/virkemiddelokonomi/utbetaling/utbetaling.wsdl")
+        .withWsdl(
+            "classpath:no.nav.ekstern.virkemiddelokonomi/tjenester/utbetaling/utbetaling.wsdl"
+            // "classpath:no.nav.ekstern.virkemiddelokonomi/tjenester.utbetaling/utbetaling.wsdl"
+        )
         .withServiceName(QName("http://nav.no/ekstern/virkemiddelokonomi/tjenester/utbetaling/v1", "Utbetaling"))
         .withEndpointName(QName("http://nav.no/ekstern/virkemiddelokonomi/tjenester/utbetaling/v1", "UtbetalingPort"))
         .build()
         .withUserNameToken(
-            String(FileInputStream("/secret/serviceuser/username").readAllBytes()),
-            String(FileInputStream("/secret/serviceuser/password").readAllBytes())
+            when (getEnvVar("NAIS_CLUSTER_NAME", "local")) {
+                "local" -> "testUserName"
+                else -> String(FileInputStream("/secret/serviceuser/username").readAllBytes())
+            },
+            when (getEnvVar("NAIS_CLUSTER_NAME", "local")) {
+                "local" -> "testPassword"
+                else -> String(FileInputStream("/secret/serviceuser/password").readAllBytes())
+            }
         )
         .get()
