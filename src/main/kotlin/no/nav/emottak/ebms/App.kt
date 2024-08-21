@@ -81,7 +81,7 @@ fun Application.ebmsSendInModule() {
                         when (request.addressing.service) {
                             "Inntektsforesporsel" ->
                                 timed(appMicrometerRegistry, "Inntektsforesporsel") {
-                                    inntektsForesporselClient.sendInntektsforesporsel(request.payload) // TODO skal fellesformat brukes?
+                                    inntektsForesporselClient.behandleInntektsforesporsel(request.payload) // TODO hva med fellesformat?
                                 }
                             else ->
                                 timed(appMicrometerRegistry, "frikort-sporing") {

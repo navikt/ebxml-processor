@@ -1,0 +1,89 @@
+<MsgHead xmlns="http://www.kith.no/xmlstds/msghead/2006-05-24" xmlns:xsd="http://www.w3.org/2001/XMLSchema.xsd"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://www.kith.no/xmlstds/msghead/2006-05-24 MsgHead-v1_2.xsd">
+    <MsgInfo>
+        <Type V="InntektsForesporse" DN="InntektsForesporse"/>
+        <MIGversion>v1.2 2006-05-24</MIGversion>
+        <GenDate>2024-06-25T13:37:45</GenDate>
+        <MsgId></MsgId>
+        <Sender>
+            <Organisation>
+                <OrganisationName>HELSEPLATTFORMEN AS</OrganisationName>
+                <Ident>
+                    <Id>8137980</Id>
+                    <TypeId S="2.16.578.1.12.4.1.1.9051" V="HER" DN="HER-ID"/>
+                </Ident>
+                <Organisation>
+                    <OrganisationName>Meldingsmottak</OrganisationName>
+                    <Ident>
+                        <Id>8138375</Id>
+                        <TypeId S="2.16.578.1.12.4.1.1.9051" V="HER" DN="HER-ID"/>
+                    </Ident>
+                </Organisation>
+            </Organisation>
+        </Sender>
+        <Receiver>
+            <Organisation>
+                <OrganisationName>NAV</OrganisationName>
+                <Ident>
+                    <Id>111949</Id>
+                    <TypeId DN="Identifikator fra Helsetjenesteenhetsregisteret (HER-id)" S="2.16.578.1.12.4.1.1.9051"
+                            V="HER"/>
+                </Ident>
+                <Ident>
+                    <Id>23</Id>
+                    <TypeId DN="Lokal identifikator uten nærmere angivelse" S="2.16.578.1.12.4.1.1.9051" V="LOK"/>
+                </Ident>
+            </Organisation>
+        </Receiver>
+    </MsgInfo>
+    <Document>
+        <RefDoc>
+            <MsgType V="XML" DN="XML instans"/>
+            <Content>
+                <finnUtbetalingListe
+                        xsi:schemaLocation="http://nav.no/ekstern/virkemiddelokonomi/tjenester/utbetaling/v1 inntektsforesporsel.xsd"
+                        xmlns="http://nav.no/ekstern/virkemiddelokonomi/tjenester/utbetaling/v1"
+                        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                    <request xmlns="">
+                        <bruker>
+                            <brukerId>***********</brukerId>
+                            <brukertypeKode>PERSON</brukertypeKode>
+                        </bruker>
+                        <hjemmelshaverKode>KOMMUNE</hjemmelshaverKode>
+                        <ytelsesfilter>
+                            <ytelsestypeKodeListe></ytelsestypeKodeListe>
+                        </ytelsesfilter>
+                        <posteringsperiodefilter>
+                            <fom>2024-04-01</fom>
+                            <tom>2024-04-30</tom>
+                        </posteringsperiodefilter>
+                    </request>
+                </finnUtbetalingListe>
+            </Content>
+        </RefDoc>
+    </Document>
+    <Signature xmlns="http://www.w3.org/2000/09/xmldsig#">
+        <SignedInfo>
+            <CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>
+            <SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1"/>
+            <Reference URI="">
+                <Transforms>
+                    <Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"/>
+                </Transforms>
+                <DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/>
+                <DigestValue>v5V8tYBd24Ajyrr+Tc1h+e9eTOc=</DigestValue>
+            </Reference>
+        </SignedInfo>
+        <SignatureValue>
+            YmDS/uhMaYGdxsup73EYt0Fa7CfEZHgzY7ZbM8BbuD4TOBq+6w2P27/o4MdSAwKk2OkpA2M+oPZAyosIz4XVbkiIHKQ37J/xN3D0pOo13eyGzBViMOS2zH3epYlELCYvWEmZWDRvjHDqIKhhJMQiQmfycUpS3qQ9RNmZjdu1MJDZA55EVaxMMH2+ADbge7LXpn4y82B6ZkSSNHflGyP7Sbkpg9S6jLaVZSKTu+hYhG264T47FpZ214uIUVK1XX+twpfMHiV/bPss81i3Aiqh+fby28xp1yKv61f8pC+NxS0x5TvUNd3IqaaLPp6gxG44xkLykr4RSFbJJDK2DzSQYMuG0zYAnAtxSofzPVk4zSO3iJ+jc6AixjP5tQkNpPseKl7+WYY/VaoS5CVaxyK5EJKHRSeSHVC9bOy4NUW2aNA/8IOHKjD4ZOfQE6Mjj8MnQYMm/93R7k1ilehkgVRFGNAvldipJ7bn4RAVO3dD4pPQ9M8G9H8t6bHsdtjqk/5P
+        </SignatureValue>
+        <KeyInfo>
+            <X509Data>
+                <X509Certificate>
+                    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
+                </X509Certificate>
+            </X509Data>
+        </KeyInfo>
+    </Signature>
+</MsgHead>
