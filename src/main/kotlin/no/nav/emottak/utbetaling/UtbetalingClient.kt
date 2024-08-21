@@ -148,7 +148,7 @@ val inntektsforesporselSoapEndpoint: no.nav.ekstern.virkemiddelokonomi.tjenester
     ServiceBuilder(
         no.nav.ekstern.virkemiddelokonomi.tjenester.utbetaling.v1.Utbetaling::class.java
     )
-        .withAddress(getEnvVar("UTBETALING_URL", "https://ytelser-rest-proxy.intern.nav.no/Utbetaling"))
+        .withAddress(getEnvVar("UTBETALING_URL", "https://ytelser-rest-proxy.dev.intern.nav.no/Utbetaling"))
         .withWsdl(
             "classpath:no.nav.ekstern.virkemiddelokonomi/tjenester/utbetaling/utbetaling.wsdl"
             // "classpath:no.nav.ekstern.virkemiddelokonomi/tjenester.utbetaling/utbetaling.wsdl"
