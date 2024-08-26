@@ -123,8 +123,7 @@ suspend fun HttpClient.getCPATimestamps() =
 suspend fun HttpClient.putCPAinCPARepo(cpaFile: String, lastModified: Instant) =
     this.post(URL_CPA_REPO_PUT) {
         headers {
-            header("updated_date", lastModified.toString())
-            header("upsert", "true") // Upsert kan nok alltid brukes (?)
+            header("updated_date", lastModified)
         }
         setBody(cpaFile)
     }
