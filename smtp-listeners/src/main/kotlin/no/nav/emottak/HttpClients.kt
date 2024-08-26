@@ -33,7 +33,6 @@ import no.nav.emottak.smtp.log
 import java.net.InetSocketAddress
 import java.net.Proxy
 import java.net.URL
-import java.time.Instant
 
 val URL_CPA_REPO_BASE = getEnvVar("URL_CPA_REPO", "http://cpa-repo.team-emottak.svc.nais.local")
 val URL_CPA_REPO_PUT = "$URL_CPA_REPO_BASE/cpa".also { log.info("CPA REPO PUT URL: [$it]") }
@@ -120,7 +119,7 @@ suspend fun HttpClient.getCPATimestamps() =
         this.get(URL_CPA_REPO_TIMESTAMPS).bodyAsText()
     )
 
-suspend fun HttpClient.putCPAinCPARepo(cpaFile: String, lastModified: Instant) =
+suspend fun HttpClient.putCPAinCPARepo(cpaFile: String, lastModified: String) =
     this.post(URL_CPA_REPO_PUT) {
         headers {
             header("updated_date", lastModified)

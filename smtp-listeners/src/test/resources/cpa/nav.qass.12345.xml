@@ -1,0 +1,581 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<cppa:CollaborationProtocolAgreement xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:cppa="http://www.oasis-open.org/committees/ebxml-cppa/schema/cpp-cpa-2_0.xsd" xmlns:ns3="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" cppa:cpaid="nav:qass:12345" cppa:version="2_0b" xsi:schemaLocation="http://www.oasis-open.org/committees/ebxml-cppa/schema/cpp-cpa-2_0.xsd cpp-cpa-2_0.xsd">
+    <cppa:Status cppa:value="proposed"/>
+    <cppa:Start>2023-09-26T11:19:19.000Z</cppa:Start>
+    <cppa:End>2025-09-07T21:59:00.000Z</cppa:End>
+    <cppa:PartyInfo cppa:partyName="TEST A1 Haugerud" cppa:defaultMshChannelId="Partner_channelSMTP0_partner" cppa:defaultMshPackageId="Partner_package_mshsignal">
+        <cppa:PartyId cppa:type="HER">8090595</cppa:PartyId>
+        <cppa:PartyId cppa:type="orgnummer">984886136</cppa:PartyId>
+        <cppa:PartyId cppa:type="ENH">984886136</cppa:PartyId>
+        <cppa:PartyRef ns3:type="simple" ns3:href="https://www.nav.no/about.html"/>
+        <cppa:CollaborationRole>
+            <cppa:ProcessSpecification cppa:name="Reseptoppgjor" cppa:version="2.5" cppa:uuid="9584df74-571a-487f-bc5c-jj438sg294bd " ns3:type="simple" ns3:href="http://www.helsedirektoratet.no/processes/eResept.xml"/>
+            <cppa:Role cppa:name="Utleverer" ns3:type="simple" ns3:href="http://www.nav.no/processes#Utleverer"/>
+            <cppa:ApplicationCertificateRef cppa:certId="Partner_cert_crypt_partner"/>
+            <cppa:ServiceBinding>
+                <cppa:Service cppa:type="string">OppgjorsKontroll</cppa:Service>
+                <cppa:CanSend>
+                    <cppa:ThisPartyActionBinding cppa:id="Partner_Oppgjorskrav60" cppa:action="Oppgjorskrav" cppa:packageId="Partner_package_oppgjorskrav_v2p5" ns3:type="simple">
+                        <cppa:BusinessTransactionCharacteristics cppa:isNonRepudiationRequired="true" cppa:isNonRepudiationReceiptRequired="true" cppa:isConfidential="none" cppa:isAuthenticated="none" cppa:isTamperProof="none" cppa:isAuthorizationRequired="false" cppa:isIntelligibleCheckRequired="false" cppa:timeToPerform="P180M"/>
+                        <cppa:ChannelId>Partner_channelSMTP0_partner</cppa:ChannelId>
+                    </cppa:ThisPartyActionBinding>
+                    <cppa:OtherPartyActionBinding>NAV_Oppgjorskrav6</cppa:OtherPartyActionBinding>
+                </cppa:CanSend>
+                <cppa:CanSend>
+                    <cppa:ThisPartyActionBinding cppa:id="Partner_A0761" cppa:action="Svarmelding" cppa:packageId="Partner_package_apprec_v1p0" ns3:type="simple">
+                        <cppa:BusinessTransactionCharacteristics cppa:isNonRepudiationRequired="true" cppa:isNonRepudiationReceiptRequired="true" cppa:isConfidential="none" cppa:isAuthenticated="none" cppa:isTamperProof="none" cppa:isAuthorizationRequired="false" cppa:isIntelligibleCheckRequired="false" cppa:timeToPerform="P180M"/>
+                        <cppa:ChannelId>Partner_channelSMTP0_partner</cppa:ChannelId>
+                    </cppa:ThisPartyActionBinding>
+                    <cppa:OtherPartyActionBinding>NAV_A076</cppa:OtherPartyActionBinding>
+                </cppa:CanSend>
+                <cppa:CanReceive>
+                    <cppa:ThisPartyActionBinding cppa:id="Partner_Oppgjorsresultat62" cppa:action="Oppgjorsresultat" cppa:packageId="Partner_package_oppgjorsresultat_v2p5" ns3:type="simple">
+                        <cppa:BusinessTransactionCharacteristics cppa:isNonRepudiationRequired="true" cppa:isNonRepudiationReceiptRequired="true" cppa:isConfidential="none" cppa:isAuthenticated="none" cppa:isTamperProof="none" cppa:isAuthorizationRequired="false" cppa:isIntelligibleCheckRequired="false" cppa:timeToPerform="P180M"/>
+                        <cppa:ChannelId>Partner_channelSMTP0_partner</cppa:ChannelId>
+                    </cppa:ThisPartyActionBinding>
+                    <cppa:OtherPartyActionBinding>NAV_Oppgjorsresultat6</cppa:OtherPartyActionBinding>
+                </cppa:CanReceive>
+                <cppa:CanReceive>
+                    <cppa:ThisPartyActionBinding cppa:id="Partner_Utbetaling63" cppa:action="Utbetaling" cppa:packageId="Partner_package_utbetaling_v2p5" ns3:type="simple">
+                        <cppa:BusinessTransactionCharacteristics cppa:isNonRepudiationRequired="true" cppa:isNonRepudiationReceiptRequired="true" cppa:isConfidential="none" cppa:isAuthenticated="none" cppa:isTamperProof="none" cppa:isAuthorizationRequired="false" cppa:isIntelligibleCheckRequired="false" cppa:timeToPerform="P180M"/>
+                        <cppa:ChannelId>Partner_channelSMTP0_partner</cppa:ChannelId>
+                    </cppa:ThisPartyActionBinding>
+                    <cppa:OtherPartyActionBinding>NAV_Utbetaling6</cppa:OtherPartyActionBinding>
+                </cppa:CanReceive>
+                <cppa:CanReceive>
+                    <cppa:ThisPartyActionBinding cppa:id="Partner_Bekreftelse64" cppa:action="Svarmelding" cppa:packageId="Partner_package_apprec_v1p0" ns3:type="simple">
+                        <cppa:BusinessTransactionCharacteristics cppa:isNonRepudiationRequired="true" cppa:isNonRepudiationReceiptRequired="true" cppa:isConfidential="none" cppa:isAuthenticated="none" cppa:isTamperProof="none" cppa:isAuthorizationRequired="false" cppa:isIntelligibleCheckRequired="false" cppa:timeToPerform="P180M"/>
+                        <cppa:ChannelId>Partner_channelSMTP0_partner</cppa:ChannelId>
+                    </cppa:ThisPartyActionBinding>
+                    <cppa:OtherPartyActionBinding>NAV_Bekreftelse6</cppa:OtherPartyActionBinding>
+                </cppa:CanReceive>
+            </cppa:ServiceBinding>
+        </cppa:CollaborationRole>
+        <cppa:CollaborationRole>
+            <cppa:ProcessSpecification cppa:name="EgenandelFritak" cppa:version="1.0" cppa:uuid="b9b31088-eb0a-42ca-a47d-37f025958f02" ns3:type="simple" ns3:href="http://www.helsedirektoratet.no/processes/Egenandel.xml"/>
+            <cppa:Role cppa:name="Utleverer" ns3:type="simple" ns3:href="http://www.nav.no/processes#Utleverer"/>
+            <cppa:ApplicationCertificateRef cppa:certId="Partner_cert_crypt_partner"/>
+            <cppa:ServiceBinding>
+                <cppa:Service cppa:type="string">HarBorgerEgenandelFritak</cppa:Service>
+                <cppa:CanSend>
+                    <cppa:ThisPartyActionBinding cppa:id="Partner_EgenandelFritak_EgenandelForesporsel0" cppa:action="EgenandelForesporsel" cppa:packageId="Partner_package_egenandelforesporsel_v1p0" ns3:type="simple">
+                        <cppa:BusinessTransactionCharacteristics cppa:isNonRepudiationRequired="true" cppa:isNonRepudiationReceiptRequired="true" cppa:isConfidential="none" cppa:isAuthenticated="none" cppa:isTamperProof="none" cppa:isAuthorizationRequired="false" cppa:isIntelligibleCheckRequired="false" cppa:timeToPerform="P180M"/>
+                        <cppa:ChannelId>Partner_channelHTTP1_partner</cppa:ChannelId>
+                    </cppa:ThisPartyActionBinding>
+                    <cppa:OtherPartyActionBinding>NAV_EgenandelFritak_EgenandelForesporsel</cppa:OtherPartyActionBinding>
+                </cppa:CanSend>
+                <cppa:CanReceive>
+                    <cppa:ThisPartyActionBinding cppa:id="Partner_EgenandelFritak_Svar1" cppa:action="Svar" cppa:packageId="Partner_package_egenandelsvar_v1p0" ns3:type="simple">
+                        <cppa:BusinessTransactionCharacteristics cppa:isNonRepudiationRequired="true" cppa:isNonRepudiationReceiptRequired="true" cppa:isConfidential="none" cppa:isAuthenticated="none" cppa:isTamperProof="none" cppa:isAuthorizationRequired="false" cppa:isIntelligibleCheckRequired="false" cppa:timeToPerform="P180M"/>
+                        <cppa:ChannelId>Partner_channelHTTP1_partner</cppa:ChannelId>
+                    </cppa:ThisPartyActionBinding>
+                    <cppa:OtherPartyActionBinding>NAV_EgenandelFritak_Svar</cppa:OtherPartyActionBinding>
+                </cppa:CanReceive>
+                <cppa:CanReceive>
+                    <cppa:ThisPartyActionBinding cppa:id="Partner_EgenandelFritak_Avvisning2" cppa:action="Avvisning" cppa:packageId="Partner_package_apprec_v1p0" ns3:type="simple">
+                        <cppa:BusinessTransactionCharacteristics cppa:isNonRepudiationRequired="true" cppa:isNonRepudiationReceiptRequired="true" cppa:isConfidential="none" cppa:isAuthenticated="none" cppa:isTamperProof="none" cppa:isAuthorizationRequired="false" cppa:isIntelligibleCheckRequired="false" cppa:timeToPerform="P180M"/>
+                        <cppa:ChannelId>Partner_channelHTTP1_partner</cppa:ChannelId>
+                    </cppa:ThisPartyActionBinding>
+                    <cppa:OtherPartyActionBinding>NAV_EgenandelFritak_Avvisning</cppa:OtherPartyActionBinding>
+                </cppa:CanReceive>
+            </cppa:ServiceBinding>
+        </cppa:CollaborationRole>
+        <cppa:Certificate cppa:certId="Partner_cert_sign_partner">
+            <ds:KeyInfo>
+<ds:X509Data>
+                    <ds:X509Certificate>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</ds:X509Certificate>
+                </ds:X509Data>
+            </ds:KeyInfo>
+        </cppa:Certificate>
+        <cppa:Certificate cppa:certId="Partner_cert_crypt_partner">
+            <ds:KeyInfo>
+<ds:X509Data>
+                    <ds:X509Certificate>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</ds:X509Certificate>
+                </ds:X509Data>
+            </ds:KeyInfo>
+        </cppa:Certificate>
+        <cppa:SecurityDetails cppa:securityId="Partner_initiator_transport_security"/>
+        <cppa:DeliveryChannel cppa:channelId="Partner_channelSMTP0_partner" cppa:transportId="Partner_transportSMTP0_partner" cppa:docExchangeId="Partner_docexchange_smtp_eresept">
+            <cppa:MessagingCharacteristics cppa:syncReplyMode="none" cppa:ackRequested="always" cppa:ackSignatureRequested="always" cppa:duplicateElimination="always"/>
+        </cppa:DeliveryChannel>
+        <cppa:DeliveryChannel cppa:channelId="Partner_channelHTTP1_partner" cppa:transportId="Partner_transportHTTP1_partner" cppa:docExchangeId="Partner_docexchange_http">
+            <cppa:MessagingCharacteristics cppa:syncReplyMode="signalsAndResponse" cppa:ackRequested="never" cppa:ackSignatureRequested="never" cppa:duplicateElimination="never"/>
+        </cppa:DeliveryChannel>
+        <cppa:Transport cppa:transportId="Partner_transportSMTP0_partner">
+            <cppa:TransportSender>
+                <cppa:TransportProtocol cppa:version="1.1">SMTP</cppa:TransportProtocol>
+            </cppa:TransportSender>
+            <cppa:TransportReceiver>
+                <cppa:TransportProtocol cppa:version="1.1">SMTP</cppa:TransportProtocol>
+                <cppa:Endpoint cppa:uri="mailto://TEST_A1_Haugerud_t1@edi.nhn.no" cppa:type="allPurpose"/>
+            </cppa:TransportReceiver>
+        </cppa:Transport>
+        <cppa:Transport cppa:transportId="Partner_transportHTTP1_partner">
+            <cppa:TransportSender>
+                <cppa:TransportProtocol cppa:version="1.1">HTTP</cppa:TransportProtocol>
+                <cppa:TransportClientSecurity>
+                    <cppa:TransportSecurityProtocol cppa:version="3.0">SSL</cppa:TransportSecurityProtocol>
+                </cppa:TransportClientSecurity>
+            </cppa:TransportSender>
+            <cppa:TransportReceiver>
+                <cppa:TransportProtocol cppa:version="1.1">HTTP</cppa:TransportProtocol>
+                <cppa:Endpoint cppa:uri="http://foo.bar" cppa:type="allPurpose"/>
+            </cppa:TransportReceiver>
+        </cppa:Transport>
+        <cppa:DocExchange cppa:docExchangeId="Partner_docexchange_smtp_eresept">
+            <cppa:ebXMLSenderBinding cppa:version="2.0">
+                <cppa:ReliableMessaging>
+                    <cppa:Retries>4</cppa:Retries>
+                    <cppa:RetryInterval>PT240M</cppa:RetryInterval>
+                    <cppa:MessageOrderSemantics>NotGuaranteed</cppa:MessageOrderSemantics>
+                </cppa:ReliableMessaging>
+                <cppa:PersistDuration>P2D</cppa:PersistDuration>
+                <cppa:SenderNonRepudiation>
+                    <cppa:NonRepudiationProtocol cppa:version="string">http://www.w3.org/2000/09/xmldsig#</cppa:NonRepudiationProtocol>
+                    <cppa:HashFunction>http://www.w3.org/2001/04/xmlenc#sha256</cppa:HashFunction>
+                    <cppa:SignatureAlgorithm cppa:oid="1.2.840.113549.1.1.5" cppa:w3c="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256">http://www.w3.org/2001/04/xmldsig-more#rsa-sha256</cppa:SignatureAlgorithm>
+                    <cppa:SigningCertificateRef cppa:certId="Partner_cert_sign_partner"/>
+                </cppa:SenderNonRepudiation>
+            </cppa:ebXMLSenderBinding>
+            <cppa:ebXMLReceiverBinding cppa:version="2.0">
+                <cppa:ReliableMessaging>
+                    <cppa:Retries>4</cppa:Retries>
+                    <cppa:RetryInterval>PT240M</cppa:RetryInterval>
+                    <cppa:MessageOrderSemantics>NotGuaranteed</cppa:MessageOrderSemantics>
+                </cppa:ReliableMessaging>
+                <cppa:PersistDuration>P2D</cppa:PersistDuration>
+                <cppa:ReceiverNonRepudiation>
+                    <cppa:NonRepudiationProtocol cppa:version="string">http://www.w3.org/2000/09/xmldsig#</cppa:NonRepudiationProtocol>
+                    <cppa:HashFunction>http://www.w3.org/2001/04/xmlenc#sha256</cppa:HashFunction>
+                    <cppa:SignatureAlgorithm cppa:oid="1.2.840.113549.1.1.5" cppa:w3c="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256">http://www.w3.org/2001/04/xmldsig-more#rsa-sha256</cppa:SignatureAlgorithm>
+                </cppa:ReceiverNonRepudiation>
+            </cppa:ebXMLReceiverBinding>
+        </cppa:DocExchange>
+        <cppa:DocExchange cppa:docExchangeId="Partner_docexchange_http">
+            <cppa:ebXMLSenderBinding cppa:version="2.0">
+                <cppa:SenderNonRepudiation>
+                    <cppa:NonRepudiationProtocol>http://www.w3.org/2000/09/xmldsig#</cppa:NonRepudiationProtocol>
+                    <cppa:HashFunction>http://www.w3.org/2001/04/xmlenc#sha256</cppa:HashFunction>
+                    <cppa:SignatureAlgorithm cppa:oid="1.2.840.113549.1.1.5" cppa:w3c="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256">http://www.w3.org/2001/04/xmldsig-more#rsa-sha256</cppa:SignatureAlgorithm>
+                    <cppa:SigningCertificateRef cppa:certId="Partner_cert_sign_partner"/>
+                </cppa:SenderNonRepudiation>
+            </cppa:ebXMLSenderBinding>
+            <cppa:ebXMLReceiverBinding cppa:version="2.0">
+                <cppa:ReceiverNonRepudiation>
+                    <cppa:NonRepudiationProtocol>
+						http://www.w3.org/2000/09/xmldsig#
+					</cppa:NonRepudiationProtocol>
+                    <cppa:HashFunction>http://www.w3.org/2001/04/xmlenc#sha256</cppa:HashFunction>
+                    <cppa:SignatureAlgorithm cppa:oid="1.2.840.113549.1.1.5" cppa:w3c="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256">http://www.w3.org/2001/04/xmldsig-more#rsa-sha256</cppa:SignatureAlgorithm>
+                </cppa:ReceiverNonRepudiation>
+            </cppa:ebXMLReceiverBinding>
+        </cppa:DocExchange>
+    </cppa:PartyInfo>
+    <cppa:PartyInfo cppa:partyName="NAV" cppa:defaultMshChannelId="NAV_asyncSMTPChannelA2" cppa:defaultMshPackageId="NAV_package_mshsignal">
+        <cppa:PartyId cppa:type="HER">79768</cppa:PartyId>
+        <cppa:PartyId cppa:type="ENH">889640782</cppa:PartyId>
+        <cppa:PartyId cppa:type="orgnummer">889640782</cppa:PartyId>
+        <cppa:PartyRef ns3:type="simple" ns3:href="https://www.nav.no/about.html"/>
+        <cppa:CollaborationRole>
+            <cppa:ProcessSpecification cppa:name="Reseptoppgjor" cppa:version="2.5" cppa:uuid="9584df74-571a-487f-bc5c-jj438sg294bd " ns3:type="simple" ns3:href="http://www.helsedirektoratet.no/processes/eResept.xml"/>
+            <cppa:Role cppa:name="KontrollUtbetaler" ns3:type="simple" ns3:href="http://www.helsedirektoratet.no/processes#KontrollUtbetaler"/>
+            <cppa:ApplicationCertificateRef cppa:certId="NAV_default_crypt_cert"/>
+            <cppa:ServiceBinding>
+                <cppa:Service cppa:type="string">OppgjorsKontroll</cppa:Service>
+                <cppa:CanSend>
+                    <cppa:ThisPartyActionBinding cppa:id="NAV_Oppgjorsresultat6" cppa:action="Oppgjorsresultat" cppa:packageId="NAV_package_oppgjorsresultat_v2p5" ns3:type="simple">
+                        <cppa:BusinessTransactionCharacteristics cppa:isNonRepudiationRequired="true" cppa:isNonRepudiationReceiptRequired="true" cppa:isConfidential="none" cppa:isAuthenticated="none" cppa:isTamperProof="none" cppa:isAuthorizationRequired="false" cppa:isIntelligibleCheckRequired="false" cppa:timeToPerform="P180M"/>
+                        <cppa:ChannelId>NAV_asyncSMTPChannelA2</cppa:ChannelId>
+                    </cppa:ThisPartyActionBinding>
+                    <cppa:OtherPartyActionBinding>Partner_Oppgjorsresultat62</cppa:OtherPartyActionBinding>
+                </cppa:CanSend>
+                <cppa:CanSend>
+                    <cppa:ThisPartyActionBinding cppa:id="NAV_Utbetaling6" cppa:action="Utbetaling" cppa:packageId="NAV_package_utbetaling_v2p5" ns3:type="simple">
+                        <cppa:BusinessTransactionCharacteristics cppa:isNonRepudiationRequired="true" cppa:isNonRepudiationReceiptRequired="true" cppa:isConfidential="none" cppa:isAuthenticated="none" cppa:isTamperProof="none" cppa:isAuthorizationRequired="false" cppa:isIntelligibleCheckRequired="false" cppa:timeToPerform="P180M"/>
+                        <cppa:ChannelId>NAV_asyncSMTPChannelA2</cppa:ChannelId>
+                    </cppa:ThisPartyActionBinding>
+                    <cppa:OtherPartyActionBinding>Partner_Utbetaling63</cppa:OtherPartyActionBinding>
+                </cppa:CanSend>
+                <cppa:CanSend>
+                    <cppa:ThisPartyActionBinding cppa:id="NAV_Bekreftelse6" cppa:action="Svarmelding" cppa:packageId="NAV_package_apprec_v1p0" ns3:type="simple">
+                        <cppa:BusinessTransactionCharacteristics cppa:isNonRepudiationRequired="true" cppa:isNonRepudiationReceiptRequired="true" cppa:isConfidential="none" cppa:isAuthenticated="none" cppa:isTamperProof="none" cppa:isAuthorizationRequired="false" cppa:isIntelligibleCheckRequired="false" cppa:timeToPerform="P180M"/>
+                        <cppa:ChannelId>NAV_asyncSMTPChannelA2</cppa:ChannelId>
+                    </cppa:ThisPartyActionBinding>
+                    <cppa:OtherPartyActionBinding>Partner_Bekreftelse64</cppa:OtherPartyActionBinding>
+                </cppa:CanSend>
+                <cppa:CanReceive>
+                    <cppa:ThisPartyActionBinding cppa:id="NAV_Oppgjorskrav6" cppa:action="Oppgjorskrav" cppa:packageId="NAV_package_oppgjorskrav_v2p5" ns3:type="simple">
+                        <cppa:BusinessTransactionCharacteristics cppa:isNonRepudiationRequired="true" cppa:isNonRepudiationReceiptRequired="true" cppa:isConfidential="none" cppa:isAuthenticated="none" cppa:isTamperProof="none" cppa:isAuthorizationRequired="false" cppa:isIntelligibleCheckRequired="false" cppa:timeToPerform="P180M"/>
+                        <cppa:ChannelId>NAV_asyncSMTPChannelA2</cppa:ChannelId>
+                    </cppa:ThisPartyActionBinding>
+                    <cppa:OtherPartyActionBinding>Partner_Oppgjorskrav60</cppa:OtherPartyActionBinding>
+                </cppa:CanReceive>
+                <cppa:CanReceive>
+                    <cppa:ThisPartyActionBinding cppa:id="NAV_A076" cppa:action="Svarmelding" cppa:packageId="NAV_package_apprec_v1p0" ns3:type="simple">
+                        <cppa:BusinessTransactionCharacteristics cppa:isNonRepudiationRequired="true" cppa:isNonRepudiationReceiptRequired="true" cppa:isConfidential="none" cppa:isAuthenticated="none" cppa:isTamperProof="none" cppa:isAuthorizationRequired="false" cppa:isIntelligibleCheckRequired="false" cppa:timeToPerform="P180M"/>
+                        <cppa:ChannelId>NAV_asyncSMTPChannelA2</cppa:ChannelId>
+                    </cppa:ThisPartyActionBinding>
+                    <cppa:OtherPartyActionBinding>Partner_A0761</cppa:OtherPartyActionBinding>
+                </cppa:CanReceive>
+            </cppa:ServiceBinding>
+        </cppa:CollaborationRole>
+        <cppa:CollaborationRole>
+            <cppa:ProcessSpecification cppa:name="EgenandelFritak" cppa:version="1.0" cppa:uuid="b9b31088-eb0a-42ca-a47d-37f025958f02" ns3:type="simple" ns3:href="http://www.helsedirektoratet.no/processes/Egenandel.xml"/>
+            <cppa:Role cppa:name="Frikortregister" ns3:type="simple" ns3:href="http://www.helsedirektoratet.no/processes#Frikortregister"/>
+            <cppa:ApplicationCertificateRef cppa:certId="NAV_default_crypt_cert"/>
+            <cppa:ServiceBinding>
+                <cppa:Service cppa:type="string">HarBorgerEgenandelFritak</cppa:Service>
+                <cppa:CanSend>
+                    <cppa:ThisPartyActionBinding cppa:id="NAV_EgenandelFritak_Svar" cppa:action="Svar" cppa:packageId="NAV_package_egenandelsvar_v1p0" ns3:type="simple">
+                        <cppa:BusinessTransactionCharacteristics cppa:isNonRepudiationRequired="true" cppa:isNonRepudiationReceiptRequired="true" cppa:isConfidential="none" cppa:isAuthenticated="none" cppa:isTamperProof="none" cppa:isAuthorizationRequired="false" cppa:isIntelligibleCheckRequired="false" cppa:timeToPerform="P180M"/>
+                        <cppa:ChannelId>NAV_SyncHttpChannelB1</cppa:ChannelId>
+                    </cppa:ThisPartyActionBinding>
+                    <cppa:OtherPartyActionBinding>Partner_EgenandelFritak_Svar1</cppa:OtherPartyActionBinding>
+                </cppa:CanSend>
+                <cppa:CanSend>
+                    <cppa:ThisPartyActionBinding cppa:id="NAV_EgenandelFritak_Avvisning" cppa:action="Avvisning" cppa:packageId="NAV_package_apprec_v1p0" ns3:type="simple">
+                        <cppa:BusinessTransactionCharacteristics cppa:isNonRepudiationRequired="true" cppa:isNonRepudiationReceiptRequired="true" cppa:isConfidential="none" cppa:isAuthenticated="none" cppa:isTamperProof="none" cppa:isAuthorizationRequired="false" cppa:isIntelligibleCheckRequired="false" cppa:timeToPerform="P180M"/>
+                        <cppa:ChannelId>NAV_SyncHttpChannelB1</cppa:ChannelId>
+                    </cppa:ThisPartyActionBinding>
+                    <cppa:OtherPartyActionBinding>Partner_EgenandelFritak_Avvisning2</cppa:OtherPartyActionBinding>
+                </cppa:CanSend>
+                <cppa:CanReceive>
+                    <cppa:ThisPartyActionBinding cppa:id="NAV_EgenandelFritak_EgenandelForesporsel" cppa:action="EgenandelForesporsel" cppa:packageId="NAV_package_egenandelforesporsel_v1p0" ns3:type="simple">
+                        <cppa:BusinessTransactionCharacteristics cppa:isNonRepudiationRequired="true" cppa:isNonRepudiationReceiptRequired="true" cppa:isConfidential="none" cppa:isAuthenticated="none" cppa:isTamperProof="none" cppa:isAuthorizationRequired="false" cppa:isIntelligibleCheckRequired="false" cppa:timeToPerform="P180M"/>
+                        <cppa:ChannelId>NAV_SyncHttpChannelB1</cppa:ChannelId>
+                    </cppa:ThisPartyActionBinding>
+                    <cppa:OtherPartyActionBinding>Partner_EgenandelFritak_EgenandelForesporsel0</cppa:OtherPartyActionBinding>
+                </cppa:CanReceive>
+            </cppa:ServiceBinding>
+        </cppa:CollaborationRole>
+        <cppa:Certificate cppa:certId="NAV_default_sign_cert">
+            <ds:KeyInfo>
+<ds:X509Data>
+                    <ds:X509Certificate>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</ds:X509Certificate>
+                </ds:X509Data>
+            </ds:KeyInfo>
+        </cppa:Certificate>
+        <cppa:Certificate cppa:certId="NAV_default_crypt_cert">
+            <ds:KeyInfo>
+<ds:X509Data>
+                    <ds:X509Certificate>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</ds:X509Certificate>
+                </ds:X509Data>
+            </ds:KeyInfo>
+        </cppa:Certificate>
+        <cppa:SecurityDetails cppa:securityId="NAV_trustAnchorsAndPolicy"/>
+        <cppa:DeliveryChannel cppa:channelId="NAV_asyncSMTPChannelA2" cppa:transportId="NAV_transportSMTP_eresept" cppa:docExchangeId="NAV_docexchange_smtp_eresept">
+            <cppa:MessagingCharacteristics cppa:syncReplyMode="none" cppa:ackRequested="always" cppa:ackSignatureRequested="always" cppa:duplicateElimination="always"/>
+        </cppa:DeliveryChannel>
+        <cppa:DeliveryChannel cppa:channelId="NAV_SyncHttpChannelB1" cppa:transportId="NAV_transportHttp" cppa:docExchangeId="NAV_docexchange_http">
+            <cppa:MessagingCharacteristics cppa:syncReplyMode="signalsAndResponse" cppa:ackRequested="never" cppa:ackSignatureRequested="never" cppa:duplicateElimination="never"/>
+        </cppa:DeliveryChannel>
+        <cppa:Transport cppa:transportId="NAV_transportSMTP_eresept">
+            <cppa:TransportSender>
+                <cppa:TransportProtocol cppa:version="1.1">SMTP</cppa:TransportProtocol>
+            </cppa:TransportSender>
+            <cppa:TransportReceiver>
+                <cppa:TransportProtocol cppa:version="1.1">SMTP</cppa:TransportProtocol>
+                <cppa:Endpoint cppa:uri="mailto://mottak-qass@test-es.nav.no" cppa:type="allPurpose"/>
+            </cppa:TransportReceiver>
+        </cppa:Transport>
+        <cppa:Transport cppa:transportId="NAV_transportHttp">
+            <cppa:TransportSender>
+                <cppa:TransportProtocol cppa:version="1.1">HTTP</cppa:TransportProtocol>
+                <cppa:TransportClientSecurity>
+                    <cppa:TransportSecurityProtocol cppa:version="3.0">SSL</cppa:TransportSecurityProtocol>
+                </cppa:TransportClientSecurity>
+            </cppa:TransportSender>
+            <cppa:TransportReceiver>
+                <cppa:TransportProtocol cppa:version="1.1">HTTP</cppa:TransportProtocol>
+                <cppa:Endpoint cppa:uri="https://nhn-gw-q.nav.no:9443/ebxml/msh" cppa:type="allPurpose"/>
+                <cppa:TransportServerSecurity>
+                    <cppa:TransportSecurityProtocol cppa:version="3.0">SSL</cppa:TransportSecurityProtocol>
+                    <cppa:ServerCertificateRef cppa:certId="NAV_default_crypt_cert"/>
+                </cppa:TransportServerSecurity>
+            </cppa:TransportReceiver>
+        </cppa:Transport>
+        <cppa:DocExchange cppa:docExchangeId="NAV_docexchange_smtp_eresept">
+            <cppa:ebXMLSenderBinding cppa:version="2.0">
+                <cppa:ReliableMessaging>
+                    <cppa:Retries>4</cppa:Retries>
+                    <cppa:RetryInterval>PT240M</cppa:RetryInterval>
+                    <cppa:MessageOrderSemantics>NotGuaranteed</cppa:MessageOrderSemantics>
+                </cppa:ReliableMessaging>
+                <cppa:PersistDuration>P2D</cppa:PersistDuration>
+                <cppa:SenderNonRepudiation>
+                    <cppa:NonRepudiationProtocol cppa:version="string">http://www.w3.org/2000/09/xmldsig#</cppa:NonRepudiationProtocol>
+                    <cppa:HashFunction>http://www.w3.org/2001/04/xmlenc#sha256</cppa:HashFunction>
+                    <cppa:SignatureAlgorithm cppa:oid="1.2.840.113549.1.1.5" cppa:w3c="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256">http://www.w3.org/2001/04/xmldsig-more#rsa-sha256</cppa:SignatureAlgorithm>
+                    <cppa:SigningCertificateRef cppa:certId="NAV_default_sign_cert"/>
+                </cppa:SenderNonRepudiation>
+            </cppa:ebXMLSenderBinding>
+            <cppa:ebXMLReceiverBinding cppa:version="2.0">
+                <cppa:ReliableMessaging>
+                    <cppa:Retries>4</cppa:Retries>
+                    <cppa:RetryInterval>PT240M</cppa:RetryInterval>
+                    <cppa:MessageOrderSemantics>NotGuaranteed</cppa:MessageOrderSemantics>
+                </cppa:ReliableMessaging>
+                <cppa:PersistDuration>P2D</cppa:PersistDuration>
+                <cppa:ReceiverNonRepudiation>
+                    <cppa:NonRepudiationProtocol cppa:version="string">http://www.w3.org/2000/09/xmldsig#</cppa:NonRepudiationProtocol>
+                    <cppa:HashFunction>http://www.w3.org/2001/04/xmlenc#sha256</cppa:HashFunction>
+                    <cppa:SignatureAlgorithm cppa:oid="1.2.840.113549.1.1.5" cppa:w3c="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256">http://www.w3.org/2001/04/xmldsig-more#rsa-sha256</cppa:SignatureAlgorithm>
+                </cppa:ReceiverNonRepudiation>
+            </cppa:ebXMLReceiverBinding>
+        </cppa:DocExchange>
+        <cppa:DocExchange cppa:docExchangeId="NAV_docexchange_http">
+            <cppa:ebXMLSenderBinding cppa:version="2.0">
+                <cppa:SenderNonRepudiation>
+                    <cppa:NonRepudiationProtocol>
+						http://www.w3.org/2000/09/xmldsig#
+					</cppa:NonRepudiationProtocol>
+                    <cppa:HashFunction>http://www.w3.org/2001/04/xmlenc#sha256</cppa:HashFunction>
+                    <cppa:SignatureAlgorithm cppa:oid="1.2.840.113549.1.1.5" cppa:w3c="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256">http://www.w3.org/2001/04/xmldsig-more#rsa-sha256</cppa:SignatureAlgorithm>
+                    <cppa:SigningCertificateRef cppa:certId="NAV_default_sign_cert"/>
+                </cppa:SenderNonRepudiation>
+            </cppa:ebXMLSenderBinding>
+            <cppa:ebXMLReceiverBinding cppa:version="2.0">
+                <cppa:ReceiverNonRepudiation>
+                    <cppa:NonRepudiationProtocol>http://www.w3.org/2000/09/xmldsig#</cppa:NonRepudiationProtocol>
+                    <cppa:HashFunction>http://www.w3.org/2001/04/xmlenc#sha256</cppa:HashFunction>
+                    <cppa:SignatureAlgorithm cppa:oid="1.2.840.113549.1.1.5" cppa:w3c="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256">http://www.w3.org/2001/04/xmldsig-more#rsa-sha256</cppa:SignatureAlgorithm>
+                </cppa:ReceiverNonRepudiation>
+            </cppa:ebXMLReceiverBinding>
+        </cppa:DocExchange>
+    </cppa:PartyInfo>
+    <cppa:SimplePart cppa:id="Partner_msg_header" cppa:mimetype="application/xml">
+        <cppa:NamespaceSupported cppa:location="msg-header-2_0.xsd" cppa:version="2.0">http://www.oasis-open.org/committees/ebxml-msg/schema</cppa:NamespaceSupported>
+    </cppa:SimplePart>
+    <cppa:SimplePart cppa:id="Partner_message_apprec_v1p0" cppa:mimetype="application/xml">
+        <cppa:NamespaceSupported cppa:location="AppRec-v1-2004-11-21.xsd" cppa:version="1.0">http://www.kith.no/xmlstds/apprec/2004-11-21</cppa:NamespaceSupported>
+    </cppa:SimplePart>
+    <cppa:SimplePart cppa:id="Partner_message_erm18_v2p5" cppa:mimetype="application/xml">
+        <cppa:NamespaceSupported cppa:location="MsgHead-v1_2.xsd" cppa:version="1.2">http://www.kith.no/xmlstds/msghead/2006-05-24</cppa:NamespaceSupported>
+        <cppa:NamespaceSupported cppa:location="ER-M18-2013-04-16.xsd" cppa:version="2.5">http://www.kith.no/xmlstds/eresept/m18/2013-04-16</cppa:NamespaceSupported>
+    </cppa:SimplePart>
+    <cppa:SimplePart cppa:id="Partner_message_erm22_v2p5" cppa:mimetype="application/xml">
+        <cppa:NamespaceSupported cppa:location="MsgHead-v1_2.xsd" cppa:version="1.2">http://www.kith.no/xmlstds/msghead/2006-05-24</cppa:NamespaceSupported>
+        <cppa:NamespaceSupported cppa:location="ER-M22-2006-10-06.xsd" cppa:version="2.5">http://www.kith.no/xmlstds/eresept/m22/2006-10-06</cppa:NamespaceSupported>
+    </cppa:SimplePart>
+    <cppa:SimplePart cppa:id="Partner_message_erm23_v2p5" cppa:mimetype="application/xml">
+        <cppa:NamespaceSupported cppa:location="MsgHead-v1_2.xsd" cppa:version="1.2">http://www.kith.no/xmlstds/msghead/2006-05-24</cppa:NamespaceSupported>
+        <cppa:NamespaceSupported cppa:location="ER-M23-2006-10-06.xsd" cppa:version="2.5">http://www.kith.no/xmlstds/eresept/m23/2006-10-06</cppa:NamespaceSupported>
+    </cppa:SimplePart>
+    <cppa:SimplePart cppa:id="Partner_message_egenandel_v1p0" cppa:mimetype="application/xml">
+        <cppa:NamespaceSupported cppa:location="MsgHead-v1_2.xsd" cppa:version="1.2">http://www.kith.no/xmlstds/msghead/2006-05-24</cppa:NamespaceSupported>
+        <cppa:NamespaceSupported cppa:location="NAV-Egenandel-2010-02-01.xsd" cppa:version="1.0">http://www.kith.no/xmlstds/nav/egenandel/2010-02-01</cppa:NamespaceSupported>
+    </cppa:SimplePart>
+    <cppa:SimplePart cppa:id="Partner_message_egenandelsvar_v1p0" cppa:mimetype="application/xml">
+        <cppa:NamespaceSupported cppa:location="MsgHead-v1_2.xsd" cppa:version="1.2">http://www.kith.no/xmlstds/msghead/2006-05-24</cppa:NamespaceSupported>
+        <cppa:NamespaceSupported cppa:location="NAV-Egenandel-2010-02-01.xsd" cppa:version="1.0">http://www.kith.no/xmlstds/nav/egenandel/2010-02-01</cppa:NamespaceSupported>
+    </cppa:SimplePart>
+    <cppa:SimplePart cppa:id="NAV_msg_header" cppa:mimetype="application/xml">
+        <cppa:NamespaceSupported cppa:location="msg-header-2_0.xsd" cppa:version="2.0">http://www.oasis-open.org/committees/ebxml-msg/schema</cppa:NamespaceSupported>
+    </cppa:SimplePart>
+    <cppa:SimplePart cppa:id="NAV_message_apprec_v1p0" cppa:mimetype="application/xml">
+        <cppa:NamespaceSupported cppa:location="AppRec-v1-2004-11-21.xsd" cppa:version="1.0">http://www.kith.no/xmlstds/apprec/2004-11-21</cppa:NamespaceSupported>
+    </cppa:SimplePart>
+    <cppa:SimplePart cppa:id="NAV_message_erm18_v2p5" cppa:mimetype="application/xml">
+        <cppa:NamespaceSupported cppa:location="MsgHead-v1_2.xsd" cppa:version="1.2">http://www.kith.no/xmlstds/msghead/2006-05-24</cppa:NamespaceSupported>
+        <cppa:NamespaceSupported cppa:location="ER-M18-2013-04-16.xsd" cppa:version="2.5">http://www.kith.no/xmlstds/eresept/m18/2013-04-16</cppa:NamespaceSupported>
+    </cppa:SimplePart>
+    <cppa:SimplePart cppa:id="NAV_message_erm22_v2p5" cppa:mimetype="application/xml">
+        <cppa:NamespaceSupported cppa:location="MsgHead-v1_2.xsd" cppa:version="1.2">http://www.kith.no/xmlstds/msghead/2006-05-24</cppa:NamespaceSupported>
+        <cppa:NamespaceSupported cppa:location="ER-M22-2006-10-06.xsd" cppa:version="2.5">http://www.kith.no/xmlstds/eresept/m22/2006-10-06</cppa:NamespaceSupported>
+    </cppa:SimplePart>
+    <cppa:SimplePart cppa:id="NAV_message_erm23_v2p5" cppa:mimetype="application/xml">
+        <cppa:NamespaceSupported cppa:location="MsgHead-v1_2.xsd" cppa:version="1.2">http://www.kith.no/xmlstds/msghead/2006-05-24</cppa:NamespaceSupported>
+        <cppa:NamespaceSupported cppa:location="ER-M23-2006-10-06.xsd" cppa:version="2.5">http://www.kith.no/xmlstds/eresept/m23/2006-10-06</cppa:NamespaceSupported>
+    </cppa:SimplePart>
+    <cppa:SimplePart cppa:id="NAV_message_egenandel_v1p0" cppa:mimetype="application/xml">
+        <cppa:NamespaceSupported cppa:location="MsgHead-v1_2.xsd" cppa:version="1.2">http://www.kith.no/xmlstds/msghead/2006-05-24</cppa:NamespaceSupported>
+        <cppa:NamespaceSupported cppa:location="NAV-Egenandel-2010-02-01.xsd" cppa:version="1.0">http://www.kith.no/xmlstds/nav/egenandel/2010-02-01</cppa:NamespaceSupported>
+    </cppa:SimplePart>
+    <cppa:SimplePart cppa:id="NAV_message_egenandelsvar_v1p0" cppa:mimetype="application/xml">
+        <cppa:NamespaceSupported cppa:location="MsgHead-v1_2.xsd" cppa:version="1.2">http://www.kith.no/xmlstds/msghead/2006-05-24</cppa:NamespaceSupported>
+        <cppa:NamespaceSupported cppa:location="NAV-Egenandel-2010-02-01.xsd" cppa:version="1.0">http://www.kith.no/xmlstds/nav/egenandel/2010-02-01</cppa:NamespaceSupported>
+    </cppa:SimplePart>
+    <cppa:Packaging cppa:id="Partner_package_mshsignal">
+        <cppa:ProcessingCapabilities cppa:parse="true" cppa:generate="true"/>
+        <cppa:CompositeList>
+            <cppa:Composite cppa:id="Partner_msh_signal" cppa:mimetype="multipart/related" cppa:mimeparameters="type=text/xml">
+                <cppa:Constituent cppa:idref="Partner_msg_header" cppa:excludedFromSignature="false"/>
+            </cppa:Composite>
+        </cppa:CompositeList>
+    </cppa:Packaging>
+    <cppa:Packaging cppa:id="Partner_package_apprec_v1p0">
+        <cppa:ProcessingCapabilities cppa:parse="true" cppa:generate="true"/>
+        <cppa:CompositeList>
+            <cppa:Encapsulation cppa:id="Partner_enc_apprec_v1p0" cppa:mimetype="application/pkcs7-mime" cppa:mimeparameters="smime-type=&quot;enveloped-data&quot;">
+                <cppa:Constituent cppa:idref="Partner_message_apprec_v1p0" cppa:excludedFromSignature="false"/>
+            </cppa:Encapsulation>
+            <cppa:Composite cppa:id="Partner_msg_apprec_v1p0" cppa:mimetype="multipart/related" cppa:mimeparameters="type=text/xml">
+                <cppa:Constituent cppa:idref="Partner_msg_header" cppa:excludedFromSignature="false"/>
+                <cppa:Constituent cppa:idref="Partner_enc_apprec_v1p0" cppa:excludedFromSignature="false"/>
+            </cppa:Composite>
+        </cppa:CompositeList>
+    </cppa:Packaging>
+    <cppa:Packaging cppa:id="Partner_package_oppgjorskrav_v2p5">
+        <cppa:ProcessingCapabilities cppa:parse="true" cppa:generate="true"/>
+        <cppa:CompositeList>
+            <cppa:Encapsulation cppa:id="Partner_zip_erm18_v2p5" cppa:mimetype="application/x-gzip" cppa:mimeparameters="type=application/x-gzip">
+                <cppa:Constituent cppa:idref="Partner_message_erm18_v2p5" cppa:excludedFromSignature="false"/>
+            </cppa:Encapsulation>
+            <cppa:Encapsulation cppa:id="Partner_enc_erm18_v2p5" cppa:mimetype="application/pkcs7-mime" cppa:mimeparameters="smime-type=&quot;enveloped-data&quot;">
+                <cppa:Constituent cppa:idref="Partner_zip_erm18_v2p5" cppa:excludedFromSignature="false"/>
+            </cppa:Encapsulation>
+            <cppa:Composite cppa:id="Partner_msg_erm18_v2p5" cppa:mimetype="multipart/related" cppa:mimeparameters="type=text/xml">
+                <cppa:Constituent cppa:idref="Partner_msg_header" cppa:excludedFromSignature="false"/>
+                <cppa:Constituent cppa:idref="Partner_enc_erm18_v2p5" cppa:excludedFromSignature="false"/>
+            </cppa:Composite>
+        </cppa:CompositeList>
+    </cppa:Packaging>
+    <cppa:Packaging cppa:id="Partner_package_oppgjorsresultat_v2p5">
+        <cppa:ProcessingCapabilities cppa:parse="true" cppa:generate="true"/>
+        <cppa:CompositeList>
+            <cppa:Encapsulation cppa:id="Partner_enc_erm22_v2p5" cppa:mimetype="application/pkcs7-mime" cppa:mimeparameters="smime-type=&quot;enveloped-data&quot;">
+                <cppa:Constituent cppa:idref="Partner_message_erm22_v2p5" cppa:excludedFromSignature="false"/>
+            </cppa:Encapsulation>
+            <cppa:Composite cppa:id="Partner_msg_erm22_v2p5" cppa:mimetype="multipart/related" cppa:mimeparameters="type=text/xml">
+                <cppa:Constituent cppa:idref="Partner_msg_header" cppa:excludedFromSignature="false"/>
+                <cppa:Constituent cppa:idref="Partner_enc_erm22_v2p5" cppa:excludedFromSignature="false"/>
+            </cppa:Composite>
+        </cppa:CompositeList>
+    </cppa:Packaging>
+    <cppa:Packaging cppa:id="Partner_package_utbetaling_v2p5">
+        <cppa:ProcessingCapabilities cppa:parse="true" cppa:generate="true"/>
+        <cppa:CompositeList>
+            <cppa:Encapsulation cppa:id="Partner_enc_erm23_v2p5" cppa:mimetype="application/pkcs7-mime" cppa:mimeparameters="smime-type=&quot;enveloped-data&quot;">
+                <cppa:Constituent cppa:idref="Partner_message_erm23_v2p5" cppa:excludedFromSignature="false"/>
+            </cppa:Encapsulation>
+            <cppa:Composite cppa:id="Partner_msg_erm23_v2p5" cppa:mimetype="multipart/related" cppa:mimeparameters="type=text/xml">
+                <cppa:Constituent cppa:idref="Partner_msg_header" cppa:excludedFromSignature="false"/>
+                <cppa:Constituent cppa:idref="Partner_enc_erm23_v2p5" cppa:excludedFromSignature="false"/>
+            </cppa:Composite>
+        </cppa:CompositeList>
+    </cppa:Packaging>
+    <cppa:Packaging cppa:id="Partner_package_egenandelforesporsel_v1p0">
+        <cppa:ProcessingCapabilities cppa:parse="true" cppa:generate="true"/>
+        <cppa:CompositeList>
+            <cppa:Encapsulation cppa:id="Partner_enc_egenandel_v1p0" cppa:mimetype="application/pkcs7-mime" cppa:mimeparameters="smime-type=&quot;enveloped-data&quot;">
+                <cppa:Constituent cppa:idref="Partner_message_egenandel_v1p0" cppa:excludedFromSignature="false"/>
+            </cppa:Encapsulation>
+            <cppa:Composite cppa:id="Partner_request_msg_egenandel_v1p0" cppa:mimetype="multipart/related" cppa:mimeparameters="type=text/xml">
+                <cppa:Constituent cppa:idref="Partner_msg_header" cppa:excludedFromSignature="false"/>
+                <cppa:Constituent cppa:idref="Partner_enc_egenandel_v1p0" cppa:excludedFromSignature="false"/>
+            </cppa:Composite>
+        </cppa:CompositeList>
+    </cppa:Packaging>
+    <cppa:Packaging cppa:id="Partner_package_egenandelsvar_v1p0">
+        <cppa:ProcessingCapabilities cppa:parse="true" cppa:generate="true"/>
+        <cppa:CompositeList>
+            <cppa:Encapsulation cppa:id="Partner_enc_egenandelsvar_v1p0" cppa:mimetype="application/pkcs7-mime" cppa:mimeparameters="smime-type=&quot;enveloped-data&quot;">
+                <cppa:Constituent cppa:idref="Partner_message_egenandelsvar_v1p0" cppa:excludedFromSignature="false"/>
+            </cppa:Encapsulation>
+            <cppa:Composite cppa:id="Partner_request_msg_egenandelsvar_v1p0" cppa:mimetype="multipart/related" cppa:mimeparameters="type=text/xml">
+                <cppa:Constituent cppa:idref="Partner_msg_header" cppa:excludedFromSignature="false"/>
+                <cppa:Constituent cppa:idref="Partner_enc_egenandelsvar_v1p0" cppa:excludedFromSignature="false"/>
+            </cppa:Composite>
+        </cppa:CompositeList>
+    </cppa:Packaging>
+    <cppa:Packaging cppa:id="NAV_package_mshsignal">
+        <cppa:ProcessingCapabilities cppa:parse="true" cppa:generate="true"/>
+        <cppa:CompositeList>
+            <cppa:Composite cppa:id="NAV_msh_signal" cppa:mimetype="multipart/related" cppa:mimeparameters="type=text/xml">
+                <cppa:Constituent cppa:idref="NAV_msg_header" cppa:excludedFromSignature="false"/>
+            </cppa:Composite>
+        </cppa:CompositeList>
+    </cppa:Packaging>
+    <cppa:Packaging cppa:id="NAV_package_apprec_v1p0">
+        <cppa:ProcessingCapabilities cppa:parse="true" cppa:generate="true"/>
+        <cppa:CompositeList>
+            <cppa:Encapsulation cppa:id="NAV_enc_apprec_v1p0" cppa:mimetype="application/pkcs7-mime" cppa:mimeparameters="smime-type=&quot;enveloped-data&quot;">
+                <cppa:Constituent cppa:idref="NAV_message_apprec_v1p0" cppa:excludedFromSignature="false"/>
+            </cppa:Encapsulation>
+            <cppa:Composite cppa:id="NAV_msg_apprec_v1p0" cppa:mimetype="multipart/related" cppa:mimeparameters="type=text/xml">
+                <cppa:Constituent cppa:idref="NAV_msg_header" cppa:excludedFromSignature="false"/>
+                <cppa:Constituent cppa:idref="NAV_enc_apprec_v1p0" cppa:excludedFromSignature="false"/>
+            </cppa:Composite>
+        </cppa:CompositeList>
+    </cppa:Packaging>
+    <cppa:Packaging cppa:id="NAV_package_oppgjorskrav_v2p5">
+        <cppa:ProcessingCapabilities cppa:parse="true" cppa:generate="true"/>
+        <cppa:CompositeList>
+            <cppa:Encapsulation cppa:id="NAV_zip_erm18_v2p5" cppa:mimetype="application/x-gzip" cppa:mimeparameters="type=application/x-gzip">
+                <cppa:Constituent cppa:idref="NAV_message_erm18_v2p5" cppa:excludedFromSignature="false"/>
+            </cppa:Encapsulation>
+            <cppa:Encapsulation cppa:id="NAV_enc_erm18_v2p5" cppa:mimetype="application/pkcs7-mime" cppa:mimeparameters="smime-type=&quot;enveloped-data&quot;">
+                <cppa:Constituent cppa:idref="NAV_zip_erm18_v2p5" cppa:excludedFromSignature="false"/>
+            </cppa:Encapsulation>
+            <cppa:Composite cppa:id="NAV_msg_erm18_v2p5" cppa:mimetype="multipart/related" cppa:mimeparameters="type=text/xml">
+                <cppa:Constituent cppa:idref="NAV_msg_header" cppa:excludedFromSignature="false"/>
+                <cppa:Constituent cppa:idref="NAV_enc_erm18_v2p5" cppa:excludedFromSignature="false"/>
+            </cppa:Composite>
+        </cppa:CompositeList>
+    </cppa:Packaging>
+    <cppa:Packaging cppa:id="NAV_package_oppgjorsresultat_v2p5">
+        <cppa:ProcessingCapabilities cppa:parse="true" cppa:generate="true"/>
+        <cppa:CompositeList>
+            <cppa:Encapsulation cppa:id="NAV_enc_erm22_v2p5" cppa:mimetype="application/pkcs7-mime" cppa:mimeparameters="smime-type=&quot;enveloped-data&quot;">
+                <cppa:Constituent cppa:idref="NAV_message_erm22_v2p5" cppa:excludedFromSignature="false"/>
+            </cppa:Encapsulation>
+            <cppa:Composite cppa:id="NAV_msg_erm22_v2p5" cppa:mimetype="multipart/related" cppa:mimeparameters="type=text/xml">
+                <cppa:Constituent cppa:idref="NAV_msg_header" cppa:excludedFromSignature="false"/>
+                <cppa:Constituent cppa:idref="NAV_enc_erm22_v2p5" cppa:excludedFromSignature="false"/>
+            </cppa:Composite>
+        </cppa:CompositeList>
+    </cppa:Packaging>
+    <cppa:Packaging cppa:id="NAV_package_utbetaling_v2p5">
+        <cppa:ProcessingCapabilities cppa:parse="true" cppa:generate="true"/>
+        <cppa:CompositeList>
+            <cppa:Encapsulation cppa:id="NAV_enc_erm23_v2p5" cppa:mimetype="application/pkcs7-mime" cppa:mimeparameters="smime-type=&quot;enveloped-data&quot;">
+                <cppa:Constituent cppa:idref="NAV_message_erm23_v2p5" cppa:excludedFromSignature="false"/>
+            </cppa:Encapsulation>
+            <cppa:Composite cppa:id="NAV_msg_erm23_v2p5" cppa:mimetype="multipart/related" cppa:mimeparameters="type=text/xml">
+                <cppa:Constituent cppa:idref="NAV_msg_header" cppa:excludedFromSignature="false"/>
+                <cppa:Constituent cppa:idref="NAV_enc_erm23_v2p5" cppa:excludedFromSignature="false"/>
+            </cppa:Composite>
+        </cppa:CompositeList>
+    </cppa:Packaging>
+    <cppa:Packaging cppa:id="NAV_package_egenandelforesporsel_v1p0">
+        <cppa:ProcessingCapabilities cppa:parse="true" cppa:generate="true"/>
+        <cppa:CompositeList>
+            <cppa:Encapsulation cppa:id="NAV_enc_egenandel_v1p0" cppa:mimetype="application/pkcs7-mime" cppa:mimeparameters="smime-type=&quot;enveloped-data&quot;">
+                <cppa:Constituent cppa:idref="NAV_message_egenandel_v1p0" cppa:excludedFromSignature="false"/>
+            </cppa:Encapsulation>
+            <cppa:Composite cppa:id="NAV_request_msg_egenandel_v1p0" cppa:mimetype="multipart/related" cppa:mimeparameters="type=text/xml">
+                <cppa:Constituent cppa:idref="NAV_msg_header" cppa:excludedFromSignature="false"/>
+                <cppa:Constituent cppa:idref="NAV_enc_egenandel_v1p0" cppa:excludedFromSignature="false"/>
+            </cppa:Composite>
+        </cppa:CompositeList>
+    </cppa:Packaging>
+    <cppa:Packaging cppa:id="NAV_package_egenandelsvar_v1p0">
+        <cppa:ProcessingCapabilities cppa:parse="true" cppa:generate="true"/>
+        <cppa:CompositeList>
+            <cppa:Encapsulation cppa:id="NAV_enc_egenandelsvar_v1p0" cppa:mimetype="application/pkcs7-mime" cppa:mimeparameters="smime-type=&quot;enveloped-data&quot;">
+                <cppa:Constituent cppa:idref="NAV_message_egenandelsvar_v1p0" cppa:excludedFromSignature="false"/>
+            </cppa:Encapsulation>
+            <cppa:Composite cppa:id="NAV_request_msg_egenandelsvar_v1p0" cppa:mimetype="multipart/related" cppa:mimeparameters="type=text/xml">
+                <cppa:Constituent cppa:idref="NAV_msg_header" cppa:excludedFromSignature="false"/>
+                <cppa:Constituent cppa:idref="NAV_enc_egenandelsvar_v1p0" cppa:excludedFromSignature="false"/>
+            </cppa:Composite>
+        </cppa:CompositeList>
+    </cppa:Packaging>
+    <cppa:Signature>
+        <ds:Signature>
+            <ds:SignedInfo>
+                <ds:CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>
+                <ds:SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1"/>
+                <ds:Reference URI="">
+                    <ds:Transforms>
+                        <ds:Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"/>
+                        <ds:Transform Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>
+                    </ds:Transforms>
+                    <ds:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/>
+                    <ds:DigestValue></ds:DigestValue>
+                </ds:Reference>
+            </ds:SignedInfo>
+            <ds:SignatureValue/>
+        </ds:Signature>
+    </cppa:Signature>
+</cppa:CollaborationProtocolAgreement>
