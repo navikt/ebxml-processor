@@ -128,6 +128,20 @@ class CpaSyncServiceTest {
     }
 
     @Test
+    fun `zipping and unzipping should compress the file and return the same result`() {
+        val cpaFile = File(ClassLoader.getSystemResource("cpa/nav.qass.12345.xml").file).readText()
+
+        val cpaSyncService = CpaSyncService(mockCpaRepoClient, mockNFSConnector)
+
+        val zipped = cpaSyncService.zipCpaContent(cpaFile)
+        val unzipped = cpaSyncService.unzipCpaContent(zipped)
+
+
+        assert(zipped.size < unzipped.toByteArray().size)
+        assert(cpaFile == unzipped)
+    }
+
+    @Test
     fun `sync should abort if duplicate cpa IDs is found in nfs`() = runBlocking {
         val lsEntries = listOf(
             mockLsEntry("nav.qass.12345.xml", "2025-01-01T00:00:00Z"),
