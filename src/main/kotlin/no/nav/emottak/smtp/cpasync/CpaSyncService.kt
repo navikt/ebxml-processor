@@ -51,7 +51,7 @@ class CpaSyncService(private val cpaRepoClient: HttpClient, private val nfsConne
         if (entry.filename.endsWith(".xml")) {
             return true
         }
-        log.warn("${entry.filename} is ignored. Invalid file ending")
+        log.debug("${entry.filename} is ignored. Invalid file ending")
         return false
     }
 
@@ -98,7 +98,7 @@ class CpaSyncService(private val cpaRepoClient: HttpClient, private val nfsConne
                 val unzippedCpaContent = unzipCpaContent(entry.value.content)
                 cpaRepoClient.putCPAinCPARepo(unzippedCpaContent, entry.value.timestamp)
             } else {
-                log.info("Skipping upsert for unmodified CPA: ${entry.key} - ${entry.value.timestamp}")
+                log.debug("Skipping upsert for unmodified CPA: ${entry.key} - ${entry.value.timestamp}")
             }
         }
     }
