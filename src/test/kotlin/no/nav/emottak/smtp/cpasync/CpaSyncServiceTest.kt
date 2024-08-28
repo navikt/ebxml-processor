@@ -136,7 +136,6 @@ class CpaSyncServiceTest {
         val zipped = cpaSyncService.zipCpaContent(cpaFile)
         val unzipped = cpaSyncService.unzipCpaContent(zipped)
 
-
         assert(zipped.size < unzipped.toByteArray().size)
         assert(cpaFile == unzipped)
     }
