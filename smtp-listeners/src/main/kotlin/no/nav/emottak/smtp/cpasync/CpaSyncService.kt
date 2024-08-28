@@ -9,10 +9,14 @@ import no.nav.emottak.nfs.NFSConnector
 import no.nav.emottak.putCPAinCPARepo
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.io.ByteArrayOutputStream
+import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.time.temporal.ChronoUnit
+import java.util.zip.GZIPInputStream
+import java.util.zip.GZIPOutputStream
 
-data class NfsCpa(val id: String, val timestamp: String, val content: String)
+data class NfsCpa(val id: String, val timestamp: String, val content: ByteArray)
 
 class CpaSyncService(private val cpaRepoClient: HttpClient, private val nfsConnector: NFSConnector) {
     private val log: Logger = LoggerFactory.getLogger("no.nav.emottak.smtp.cpasync")
@@ -59,8 +63,9 @@ class CpaSyncService(private val cpaRepoClient: HttpClient, private val nfsConne
             "Regex to find CPA ID in file ${nfsCpaFile.filename} did not find any match. " +
                 "File corrupted or wrongful regex. Aborting sync."
         }
+        val zippedCpaContent = zipCpaContent(cpaContent)
 
-        return NfsCpa(cpaId, timestamp, cpaContent)
+        return NfsCpa(cpaId, timestamp, zippedCpaContent)
     }
 
     private fun fetchNfsCpaContent(nfsConnector: NFSConnector, nfsCpaFile: ChannelSftp.LsEntry): String {
@@ -78,15 +83,28 @@ class CpaSyncService(private val cpaRepoClient: HttpClient, private val nfsConne
         return Instant.ofEpochSecond(mTimeInSeconds).truncatedTo(ChronoUnit.SECONDS).toString()
     }
 
+    internal fun zipCpaContent(cpaContent: String): ByteArray {
+        val byteStream = ByteArrayOutputStream()
+        GZIPOutputStream(byteStream)
+            .bufferedWriter(StandardCharsets.UTF_8)
+            .use { it.write(cpaContent) }
+        return byteStream.toByteArray()
+    }
+
     private suspend fun upsertFreshCpa(nfsCpaMap: Map<String, NfsCpa>, dbCpaMap: Map<String, String>) {
         nfsCpaMap.forEach { entry ->
             if (shouldUpsertCpa(entry.value.timestamp, dbCpaMap[entry.key])) {
                 log.info("Upserting new/modified CPA: ${entry.key} - ${entry.value.timestamp}")
-                cpaRepoClient.putCPAinCPARepo(entry.value.content, entry.value.timestamp)
+                val unzippedCpaContent = unzipCpaContent(entry.value.content)
+                cpaRepoClient.putCPAinCPARepo(unzippedCpaContent, entry.value.timestamp)
             } else {
                 log.info("Skipping upsert for unmodified CPA: ${entry.key} - ${entry.value.timestamp}")
             }
         }
+    }
+
+    internal fun unzipCpaContent(byteArray: ByteArray): String {
+        return GZIPInputStream(byteArray.inputStream()).bufferedReader(StandardCharsets.UTF_8).use { it.readText() }
     }
 
     internal fun shouldUpsertCpa(nfsTimestamp: String, dbTimestamp: String?): Boolean {
