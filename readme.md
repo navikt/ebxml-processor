@@ -86,6 +86,7 @@ Les dokumentasjon fra e-helse for deres tolkning av ebXML-standarden.
 
 * [ebXML Rammeverk](https://sarepta.helsedir.no/standard/EBXML%20rammeverk)
 * [Basert på ebXML](https://git.sarepta.ehelse.no/publisert/standarder/raw/master/kravdokument/EBXMLrammeverk/HIS%201037_2011%20Rammeverk%20for%20meldingsutveksling%20v1.1%20-oppdatert.pdf)
+* [Implementasjon og bruk av ebXML som rammeverk for meldingsutveksling](https://git.sarepta.ehelse.no/publisert/standarder/raw/master/kravdokument/VeiledningTilRiktigBrukAvebXML/HITS%201171_2017%20Implementasjon%20og%20bruk%20av%20ebXML%20-oppdatert.pdf)
 * [Validering av ebXML-meldinger](https://git.sarepta.ehelse.no/publisert/standarder/raw/master/kravdokument/ValideringAvebXMLMeldinger/HITS%201172_2017%20Validering%20av%20ebXML-meldinger%20-oppdatert.pdf)
 * [Profil for CPP/CPA](https://www.ehelse.no/standardisering/standarder/profil-for-cpp-cpa--partnerprofiler-og-avtaler/_/attachment/inline/8ff59f07-70be-459a-a644-6b11451d1dc2:b47b3b4b5740def9e91c0cd2795c872dd4196d3c/Profil%20for%20CPP%20CPA%20%E2%80%93%20partnerprofiler%20og%20avtaler.pdf)
 
