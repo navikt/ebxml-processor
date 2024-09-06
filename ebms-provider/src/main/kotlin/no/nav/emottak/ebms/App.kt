@@ -47,6 +47,7 @@ import no.nav.emottak.ebms.validation.MimeHeaders
 import no.nav.emottak.ebms.validation.MimeValidationException
 import no.nav.emottak.ebms.validation.validateMimeAttachment
 import no.nav.emottak.ebms.validation.validateMimeSoapEnvelope
+import no.nav.emottak.ebms.xml.asByteArray
 import no.nav.emottak.ebms.xml.asString
 import no.nav.emottak.ebms.xml.getDocumentBuilder
 import no.nav.emottak.melding.model.EbmsAttachment
@@ -54,6 +55,7 @@ import no.nav.emottak.util.createUniqueMimeMessageId
 import no.nav.emottak.util.getEnvVar
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayInputStream
+import java.nio.charset.StandardCharsets
 import java.time.Duration
 import java.time.Instant
 import java.util.Base64
@@ -268,7 +270,7 @@ suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbMSDocument) {
         this.append(MimeHeaders.SOAP_ACTION, "ebXML")
     }
     if (ebmsDokument.dokumentType() == DokumentType.PAYLOAD) {
-        val ebxml = Base64.getMimeEncoder().encodeToString(ebmsDokument.dokument.asString().toByteArray())
+        val ebxml = Base64.getMimeEncoder().encodeToString(ebmsDokument.dokument.asByteArray())
         val contentId = createUniqueMimeMessageId()
         val ebxmlFormItem = PartData.FormItem(
             ebxml,
@@ -282,7 +284,8 @@ suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbMSDocument) {
         val parts = mutableListOf<PartData>(ebxmlFormItem)
         ebmsDokument.attachments.first().let {
             PartData.FormItem(
-                Base64.getMimeEncoder().encodeToString(it.bytes),
+                // Base64.getMimeEncoder().encodeToString(it.bytes), // Implicit ISO_8859_1
+                String(Base64.getEncoder().encode(it.bytes), StandardCharsets.UTF_8), // TODO verifiser
                 {},
                 HeadersBuilder().apply {
                     append(MimeHeaders.CONTENT_TRANSFER_ENCODING, "base64")

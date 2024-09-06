@@ -1,6 +1,7 @@
 package no.nav.emottak.ebms.xml
 
 import org.w3c.dom.Document
+import java.io.ByteArrayOutputStream
 import java.io.StringWriter
 import javax.xml.parsers.DocumentBuilder
 import javax.xml.parsers.DocumentBuilderFactory
@@ -30,4 +31,12 @@ fun Document.asString(): String {
     val sr = StreamResult(sw)
     transformer.transform(domSource, sr)
     return sw.toString()
+}
+
+fun Document.asByteArray(): ByteArray {
+    return ByteArrayOutputStream().use {
+        TransformerFactory.newInstance().newTransformer()
+            .transform(DOMSource(this), StreamResult(it))
+        it.toByteArray()
+    }
 }
