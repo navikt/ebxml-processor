@@ -21,6 +21,7 @@ import io.micrometer.prometheus.PrometheusConfig
 import io.micrometer.prometheus.PrometheusMeterRegistry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import no.kith.xmlstds.msghead._2006_05_24.MsgHead
 import no.nav.emottak.auth.AZURE_AD_AUTH
 import no.nav.emottak.auth.AuthConfig
 import no.nav.emottak.fellesformat.wrapMessageInEIFellesFormat
@@ -29,6 +30,8 @@ import no.nav.emottak.frikort.marshal
 import no.nav.emottak.melding.model.SendInRequest
 import no.nav.emottak.melding.model.SendInResponse
 import no.nav.emottak.utbetaling.InntektsForesporselClient
+import no.nav.emottak.utbetaling.MsgHeadUtil
+import no.nav.emottak.utbetaling.utbetalingXmlMarshaller
 import no.nav.emottak.util.getEnvVar
 import no.nav.emottak.util.marker
 import no.nav.security.token.support.v2.tokenValidationSupport
@@ -81,7 +84,10 @@ fun Application.ebmsSendInModule() {
                         when (request.addressing.service) {
                             "Inntektsforesporsel" ->
                                 timed(appMicrometerRegistry, "Inntektsforesporsel") {
-                                    inntektsForesporselClient.behandleInntektsforesporsel(request.payload) // TODO hva med fellesformat?
+                                    MsgHeadUtil().msgHeadResponse(
+                                        request,
+                                        inntektsForesporselClient.behandleInntektsforesporsel(request.payload)
+                                    )
                                 }
                             else ->
                                 timed(appMicrometerRegistry, "frikort-sporing") {
@@ -94,14 +100,14 @@ fun Application.ebmsSendInModule() {
                         request.marker(),
                         "Payload ${request.payloadId} videresending til fagsystem ferdig, svar mottatt og returnerert"
                     )
-                    when (it) { // TODO gjerne tenk igjennom en bedre flyt
-                        is ByteArray ->
+                    when (it) { // TODO gjerne tenk igjennom en bedre flyt, kanskje alt burde få MsgHead
+                        is MsgHead ->
                             call.respond(
                                 SendInResponse(
                                     request.messageId,
                                     request.conversationId,
                                     request.addressing.replyTo(request.addressing.service, request.addressing.action), // TODO ser feil ut?
-                                    it
+                                    utbetalingXmlMarshaller.marshal(it).toByteArray()
                                 )
                             )
                         is FrikortsporringResponse ->
