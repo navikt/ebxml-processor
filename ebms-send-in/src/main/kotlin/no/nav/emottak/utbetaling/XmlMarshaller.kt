@@ -20,6 +20,7 @@ class XmlMarshaller {
             FinnUtbetalingListeRequest::class.java,
             FinnBrukersUtbetalteYtelserRequest::class.java,
             FinnUtbetalingListe::class.java,
+            org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.ObjectFactory::class.java,
             no.nav.ekstern.virkemiddelokonomi.tjenester.utbetaling.meldinger.v1.ObjectFactory::class.java,
             no.nav.ekstern.virkemiddelokonomi.tjenester.utbetaling.feil.v1.ObjectFactory::class.java,
             no.nav.ekstern.virkemiddelokonomi.tjenester.utbetaling.v1.ObjectFactory::class.java,

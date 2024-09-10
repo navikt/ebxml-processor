@@ -107,7 +107,7 @@ fun Application.ebmsSendInModule() {
                                     request.messageId,
                                     request.conversationId,
                                     request.addressing.replyTo(request.addressing.service, request.addressing.action), // TODO ser feil ut?
-                                    utbetalingXmlMarshaller.marshal(it).toByteArray()
+                                    utbetalingXmlMarshaller.marshalToByteArray(it)
                                 )
                             )
                         is FrikortsporringResponse ->
