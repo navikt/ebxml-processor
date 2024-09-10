@@ -44,11 +44,11 @@ class InntektsForesporselClient {
                 is FinnBrukersUtbetalteYtelser -> inntektsforesporselSoapEndpoint.finnBrukersUtbetalteYtelser(melding.request)
                 else -> throw IllegalStateException("Ukjent meldingstype. Classname: " + melding.javaClass.name)
             }
-            return marshal(response).toByteArray()
+            return marshal(response)
         } catch (utbetalError: Throwable) {
             log.info("Handling inntektsforesporsel error: " + utbetalError.message)
             val feil = FinnUtbetalingListeFeil()
-            return when (utbetalError) {
+            when (utbetalError) {
                 is FinnUtbetalingListeBrukerIkkeFunnet
                 -> feil.finnUtbetalingListebrukerIkkeFunnet = utbetalError.faultInfo
                 is FinnUtbetalingListeBaksystemIkkeTilgjengelig
@@ -62,6 +62,7 @@ class InntektsForesporselClient {
                 else ->
                     throw utbetalError.also { log.error("Ukjent feiltype: " + it.message, it) }
             }
+            return feil
         }
     }
 }
