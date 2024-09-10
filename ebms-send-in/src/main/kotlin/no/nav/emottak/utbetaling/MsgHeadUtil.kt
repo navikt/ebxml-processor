@@ -12,7 +12,7 @@ import java.util.UUID
 
 class MsgHeadUtil {
 
-    fun msgHeadResponse(sendInRequest: SendInRequest, fagmeldingResponse: ByteArray): MsgHead {
+    fun msgHeadResponse(sendInRequest: SendInRequest, fagmeldingResponse: Any): MsgHead {
         val msgHead: MsgHead =
             utbetalingXmlMarshaller
                 .unmarshal(sendInRequest.payload.toString(Charsets.UTF_8), MsgHead::class.java)
