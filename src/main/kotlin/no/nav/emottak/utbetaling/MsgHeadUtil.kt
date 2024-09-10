@@ -50,7 +50,7 @@ class MsgHeadUtil {
                         mimeType = "text/xml"
                         content = RefDoc.Content().apply {
                             any.add(
-                                listOf(String(fagmeldingResponse, StandardCharsets.UTF_8))
+                                String(fagmeldingResponse, StandardCharsets.UTF_8)
                             )
                         }
                     }
