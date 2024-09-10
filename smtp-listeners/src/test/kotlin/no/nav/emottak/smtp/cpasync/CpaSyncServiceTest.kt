@@ -20,241 +20,307 @@ import no.nav.emottak.deleteCPAinCPARepo
 import no.nav.emottak.getCPATimestamps
 import no.nav.emottak.nfs.NFSConnector
 import no.nav.emottak.putCPAinCPARepo
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import java.io.ByteArrayInputStream
+import java.io.File
 import java.time.Instant
 import java.util.*
+import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class CpaSyncServiceTest {
-
-    private val cpaRepoClient: HttpClient = mockk(relaxed = true)
+    private val mockCpaRepoClient: HttpClient = mockk(relaxed = true)
     private val mockHttpResponse: HttpResponse = mockk(relaxed = true)
-    private lateinit var cpaSyncService: CpaSyncService
+    private val mockNFSConnector: NFSConnector = mockk(relaxed = true)
 
     @BeforeEach
     fun setUp() {
         mockkStatic("no.nav.emottak.HttpClientsKt")
-        clearMocks(cpaRepoClient)
-        coEvery { cpaRepoClient.deleteCPAinCPARepo(any()) } returns mockHttpResponse
-        coEvery { cpaRepoClient.putCPAinCPARepo(any(), any()) } returns mockHttpResponse
+        clearMocks(mockCpaRepoClient)
+        coEvery { mockCpaRepoClient.deleteCPAinCPARepo(any()) } returns mockHttpResponse
+        coEvery { mockCpaRepoClient.putCPAinCPARepo(any(), any()) } returns mockHttpResponse
     }
 
     @Test
-    fun `sync should do nothing when all entries match own database`() = runBlocking {
-        val cpaTimestampsFromDb = mutableMapOf("cpa1" to "2024-01-01T00:00:00Z", "cpa2" to "2024-01-01T00:00:00Z")
-        val mockedAttrs = mockSftpAttrs(1704067200)
-        val entries = listOf(
-            mockLsEntry("cpa1.xml", mockedAttrs),
-            mockLsEntry("cpa2.xml", mockedAttrs)
+    fun `should return true for XML file`() {
+        val lsEntry = mockLsEntry("nav.qass.12345.xml", "2024-01-01T00:00:00Z")
+        val cpaSyncService = CpaSyncService(mockCpaRepoClient, mockNFSConnector)
+
+        assertTrue(cpaSyncService.isXmlFileEntry(lsEntry))
+    }
+
+    @Test
+    fun `should return false for invalid file type`() {
+        val lsEntry = mockLsEntry("nav.qass.12345.txt", "2024-01-01T00:00:00Z")
+        val cpaSyncService = CpaSyncService(mockCpaRepoClient, mockNFSConnector)
+
+        assertFalse(cpaSyncService.isXmlFileEntry(lsEntry))
+    }
+
+    @Test
+    fun `should not send request if invalid file type`() = runBlocking {
+        val lsEntry = mockLsEntry("nav.qass.12345.txt", "2025-01-01T00:00:00Z")
+        val mockNfs = mockNfsFromEntries(listOf(lsEntry), listOf("nav:qass:12345"))
+
+        mockCpaRepoFromMap(emptyMap())
+
+        val cpaSyncService = CpaSyncService(mockCpaRepoClient, mockNfs)
+        cpaSyncService.sync()
+
+        coVerify(exactly = 0) { mockCpaRepoClient.putCPAinCPARepo(any(), any()) }
+        coVerify(exactly = 0) { mockCpaRepoClient.deleteCPAinCPARepo(any()) }
+    }
+
+    @Test
+    fun `should get cpaId from xml content`() = runBlocking {
+        val lsEntry = mockLsEntry("nav.qass.12345.xml", "2025-01-01T00:00:00Z")
+        val mockNfs = mockNfsFromEntries(listOf(lsEntry), listOf("nav:qass:12345"))
+
+        val cpaSyncService = CpaSyncService(mockCpaRepoClient, mockNfs)
+        val nfsCpa = cpaSyncService.getNfsCpa(mockNfs, lsEntry)
+
+        assertEquals("nav:qass:12345", nfsCpa.id)
+    }
+
+    @Test
+    fun `should find cpaId from an actual CPA file`() = runBlocking {
+        val lsEntry = mockLsEntry("nav.qass.12345.txt", "2025-01-01T00:00:00Z")
+        val mockNfs: NFSConnector = mockk {
+            every { folder() } returns Vector<ChannelSftp.LsEntry>().apply { add(lsEntry) }
+            every { file(any()) } returns File(ClassLoader.getSystemResource("cpa/nav.qass.12345.xml").file).inputStream()
+            every { close() } just Runs
+        }
+
+        val cpaSyncService = CpaSyncService(mockCpaRepoClient, mockNfs)
+        val nfsCpa = cpaSyncService.getNfsCpa(mockNfs, lsEntry)
+
+        assertEquals("nav:qass:12345", nfsCpa.id)
+    }
+
+    @Test
+    fun `should throw exception if CPA ID is missing in content`() = runBlocking {
+        val lsEntry = mockLsEntry("nav.qass.missing.txt", "2025-01-01T00:00:00Z")
+        val mockNfs = mockNfsFromEntries(listOf(lsEntry), listOf(""))
+
+        val cpaSyncService = CpaSyncService(mockCpaRepoClient, mockNfs)
+
+        val exception = assertThrows<IllegalArgumentException> {
+            cpaSyncService.getNfsCpa(mockNfs, lsEntry)
+        }
+
+        assertTrue(exception.message!!.contains("Regex to find CPA ID in file nav.qass.missing.txt did not find any match."))
+    }
+
+    @Test
+    fun `nfs mTime conversion to db timestamp should be accurate`() {
+        val mTimeInSeconds = 1704067200L
+        val expectedTimestamp = "2024-01-01T00:00:00Z"
+
+        val cpaSyncService = CpaSyncService(mockCpaRepoClient, mockNFSConnector)
+
+        val actualTimestamp = cpaSyncService.getLastModified(mTimeInSeconds)
+
+        assert(expectedTimestamp == actualTimestamp)
+    }
+
+    @Test
+    fun `zipping and unzipping should compress the file and return the same result`() {
+        val cpaFile = File(ClassLoader.getSystemResource("cpa/nav.qass.12345.xml").file).readText()
+
+        val cpaSyncService = CpaSyncService(mockCpaRepoClient, mockNFSConnector)
+
+        val zipped = cpaSyncService.zipCpaContent(cpaFile)
+        val unzipped = cpaSyncService.unzipCpaContent(zipped)
+
+        assert(zipped.size < unzipped.toByteArray().size)
+        assert(cpaFile == unzipped)
+    }
+
+    @Test
+    fun `sync should abort if duplicate cpa IDs is found in nfs`() = runBlocking {
+        val lsEntries = listOf(
+            mockLsEntry("nav.qass.12345.xml", "2025-01-01T00:00:00Z"),
+            mockLsEntry("nav.qass.12345.xml", "2025-01-01T00:00:00Z")
         )
-        val mockedNFSConnector = mockNFSConnector(entries)
-        cpaSyncService = CpaSyncService(cpaRepoClient, mockedNFSConnector)
+        val mockNfs = mockNfsFromEntries(lsEntries, listOf("nav:qass:12345", "nav:qass:12345"))
 
-        coEvery { cpaRepoClient.getCPATimestamps() } returns cpaTimestampsFromDb
+        val cpaSyncService = CpaSyncService(mockCpaRepoClient, mockNfs)
 
-        cpaSyncService.sync()
+        val exception = assertThrows<IllegalArgumentException> {
+            cpaSyncService.getNfsCpaMap()
+        }
 
-        coVerify(exactly = 0) { cpaRepoClient.putCPAinCPARepo(any(), any()) }
-        coVerify(exactly = 0) { cpaRepoClient.deleteCPAinCPARepo(any()) }
+        assertTrue(exception.message!!.contains("NFS contains duplicate CPA IDs. Aborting sync."))
     }
 
     @Test
-    fun `sync should delete entry cpa2 from own database after it is gone from files`() = runBlocking {
-        val cpaTimestampsFromDb = mutableMapOf("cpa1" to "2024-01-01T00:00:00Z", "cpa2" to "2024-01-01T00:00:00Z")
-        val mockedAttrs = mockSftpAttrs(1704067200)
-        val entries = listOf(mockLsEntry("cpa1.xml", mockedAttrs))
-        val mockedNFSConnector = mockNFSConnector(entries)
-        cpaSyncService = CpaSyncService(cpaRepoClient, mockedNFSConnector)
+    fun `sync should do nothing when all entries match database`() = runBlocking {
+        val nfsCpa = mapOf("nav:qass:12345" to "2024-01-01T00:00:00Z")
+        val dbCpa = mapOf("nav:qass:12345" to "2024-01-01T00:00:00Z")
 
-        coEvery { cpaRepoClient.getCPATimestamps() } returns cpaTimestampsFromDb
+        val mockNfs = mockNfsFromMap(nfsCpa)
+        mockCpaRepoFromMap(dbCpa)
 
+        val cpaSyncService = CpaSyncService(mockCpaRepoClient, mockNfs)
         cpaSyncService.sync()
 
-        coVerify(exactly = 0) { cpaRepoClient.putCPAinCPARepo(any(), any()) }
-        coVerify(exactly = 1) { cpaRepoClient.deleteCPAinCPARepo("cpa2") }
+        coVerify(exactly = 0) { mockCpaRepoClient.putCPAinCPARepo(any(), any()) }
+        coVerify(exactly = 0) { mockCpaRepoClient.deleteCPAinCPARepo(any()) }
     }
 
     @Test
-    fun `sync should insert new entry into our database after receiving it from files`() = runBlocking {
-        val cpaTimestampsFromDb = mutableMapOf("cpa1" to "2024-01-01T00:00:00Z")
-        val mockedAttrs = mockSftpAttrs(1704067200)
-        val entries = listOf(
-            mockLsEntry("cpa1.xml", mockedAttrs),
-            mockLsEntry("cpa2.xml", mockedAttrs)
+    fun `sync should ignore entries when db timestamp is newer`() = runBlocking {
+        val nfsCpa = mapOf("nav:qass:12345" to "2024-01-01T00:00:00Z")
+        val dbCpa = mapOf("nav:qass:12345" to "2025-01-01T00:00:00Z")
+
+        val mockNfs = mockNfsFromMap(nfsCpa)
+        mockCpaRepoFromMap(dbCpa)
+
+        val cpaSyncService = CpaSyncService(mockCpaRepoClient, mockNfs)
+        cpaSyncService.sync()
+
+        coVerify(exactly = 0) { mockCpaRepoClient.putCPAinCPARepo(any(), any()) }
+        coVerify(exactly = 0) { mockCpaRepoClient.deleteCPAinCPARepo(any()) }
+    }
+
+    @Test
+    fun `sync should upsert when nfs timestamp is newer`() = runBlocking {
+        val nfsCpa = mapOf("nav:qass:12345" to "2025-01-01T00:00:00Z")
+        val dbCpa = mapOf("nav:qass:12345" to "2024-01-01T00:00:00Z")
+
+        val mockNfs = mockNfsFromMap(nfsCpa)
+        mockCpaRepoFromMap(dbCpa)
+
+        val cpaSyncService = CpaSyncService(mockCpaRepoClient, mockNfs)
+        cpaSyncService.sync()
+
+        coVerify(exactly = 1) { mockCpaRepoClient.putCPAinCPARepo(any(), any()) }
+    }
+
+    @Test
+    fun `sync should upsert when entry does not exist in db`() = runBlocking {
+        val nfsCpa = mapOf("nav:qass:12345" to "2024-01-01T00:00:00Z")
+        val dbCpa = emptyMap<String, String>()
+
+        val mockNfs = mockNfsFromMap(nfsCpa)
+        mockCpaRepoFromMap(dbCpa)
+
+        val cpaSyncService = CpaSyncService(mockCpaRepoClient, mockNfs)
+        cpaSyncService.sync()
+
+        coVerify(exactly = 1) { mockCpaRepoClient.putCPAinCPARepo(any(), any()) }
+    }
+
+    @Test
+    fun `sync should only delete entries that are stale`() = runBlocking {
+        val nfsCpa = mapOf("nav:qass:12345" to "2024-01-01T00:00:00Z")
+        val dbCpa = mapOf(
+            "nav:qass:12345" to "2024-01-01T00:00:00Z",
+            "nav:qass:67890" to "2024-01-01T00:00:00Z"
         )
-        val mockedNFSConnector = mockNFSConnector(entries)
-        cpaSyncService = CpaSyncService(cpaRepoClient, mockedNFSConnector)
 
-        coEvery { cpaRepoClient.getCPATimestamps() } returns cpaTimestampsFromDb
+        val mockNfs = mockNfsFromMap(nfsCpa)
+        mockCpaRepoFromMap(dbCpa)
 
+        val cpaSyncService = CpaSyncService(mockCpaRepoClient, mockNfs)
         cpaSyncService.sync()
+
+        coVerify(exactly = 1) { mockCpaRepoClient.deleteCPAinCPARepo("nav:qass:67890") }
+    }
+
+    @Test
+    fun `sync should delete and upsert in same sync`() = runBlocking {
+        val nfsCpa = mapOf("nav:qass:12345" to "2024-01-01T00:00:00Z")
+        val dbCpa = mapOf("nav:qass:67890" to "2024-01-01T00:00:00Z")
+
+        val mockNfs = mockNfsFromMap(nfsCpa)
+        mockCpaRepoFromMap(dbCpa)
+
+        val cpaSyncService = CpaSyncService(mockCpaRepoClient, mockNfs)
+        cpaSyncService.sync()
+
+        coVerify(exactly = 1) { mockCpaRepoClient.putCPAinCPARepo(any(), any()) }
+        coVerify(exactly = 1) { mockCpaRepoClient.deleteCPAinCPARepo("nav:qass:67890") }
+    }
+
+    @Test
+    fun `sync should upsert correct CPA content`() = runBlocking {
+        val nfsCpa = mapOf("nav:qass:12345" to "2024-01-01T00:00:00Z")
+        val dbCpa = emptyMap<String, String>()
+
+        val mockNfs = mockNfsFromMap(nfsCpa)
+        mockCpaRepoFromMap(dbCpa)
+
+        val cpaSyncService = CpaSyncService(mockCpaRepoClient, mockNfs)
+        cpaSyncService.sync()
+
+        val expectedFileContent = """
+            <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <cppa:CollaborationProtocolAgreement cppa:cpaid="nav:qass:12345">
+                <!-- CPA content removed -->
+            </cppa:CollaborationProtocolAgreement>
+        """.trimIndent()
 
         coVerify(exactly = 1) {
-            cpaRepoClient.putCPAinCPARepo(
-                "simulated file content for /outbound/cpa/cpa2.xml",
-                any()
-            )
+            mockCpaRepoClient.putCPAinCPARepo(expectedFileContent, "2024-01-01T00:00:00Z")
         }
-        coVerify(exactly = 0) { cpaRepoClient.deleteCPAinCPARepo(any()) }
     }
 
     @Test
-    fun `sync should update existing entry into our database after it have been modified in files`() = runBlocking {
-        val lastModifiedDifferentThanFile = "2023-11-01T00:00:00Z"
-        val cpaTimestampsFromDb =
-            mutableMapOf("cpa1" to lastModifiedDifferentThanFile, "cpa2" to "2024-01-01T00:00:00Z")
-        val mockedAttrs = mockSftpAttrs(1704067200)
-        val entries = listOf(
-            mockLsEntry("cpa1.xml", mockedAttrs),
-            mockLsEntry("cpa2.xml", mockedAttrs)
-        )
-        val mockedNFSConnector = mockNFSConnector(entries)
-        cpaSyncService = CpaSyncService(cpaRepoClient, mockedNFSConnector)
-        coEvery { cpaRepoClient.getCPATimestamps() } returns cpaTimestampsFromDb
-
-        cpaSyncService.sync()
-
-        coVerify(exactly = 1) {
-            cpaRepoClient.putCPAinCPARepo(
-                "simulated file content for /outbound/cpa/cpa1.xml",
-                any()
-            )
+    fun `multiple syncs should persist CPA only once`() = runBlocking {
+        val lsEntry = mockLsEntry("nav.qass.12345.xml", "2025-01-01T00:00:00Z")
+        val mockNfs: NFSConnector = mockk {
+            every { folder() } returns Vector<ChannelSftp.LsEntry>().apply { add(lsEntry) }
+            every { file(any()) } answers { ByteArrayInputStream(simulateFileContent("nav:qass:12345").toByteArray()) }
+            every { close() } just Runs
         }
-        coVerify(exactly = 0) { cpaRepoClient.deleteCPAinCPARepo(any()) }
-    }
 
-    @Test
-    fun `sync should update an existing entry cpa1 and delete old entry cpa2 in database`() = runBlocking {
-        val lastModifiedDifferentThanFile = "2023-11-01T00:00:00Z"
-        val cpaTimestampsFromDb =
-            mutableMapOf("cpa1" to lastModifiedDifferentThanFile, "cpa2" to "2024-01-01T00:00:00Z")
-        val mockedAttrs = mockSftpAttrs(1704067200)
-        val entries = listOf(
-            mockLsEntry("cpa1.xml", mockedAttrs)
-        )
-        val mockedNFSConnector = mockNFSConnector(entries)
-        cpaSyncService = CpaSyncService(cpaRepoClient, mockedNFSConnector)
-        coEvery { cpaRepoClient.getCPATimestamps() } returns cpaTimestampsFromDb
+        val dbCpaMapFirst = mapOf("nav:qass:12345" to "2024-01-01T00:00:00Z")
+        val dbCpaMapSecond = mapOf("nav:qass:12345" to "2025-01-01T00:00:00Z")
 
-        cpaSyncService.sync()
-
-        coVerify(exactly = 1) {
-            cpaRepoClient.putCPAinCPARepo(
-                "simulated file content for /outbound/cpa/cpa1.xml",
-                any()
-            )
-        }
-        coVerify(exactly = 1) { cpaRepoClient.deleteCPAinCPARepo("cpa2") }
-    }
-
-    @Test
-    fun `sync should insert new entry into our database only once`() = runBlocking {
-        val firstRunCpaTimestampsFromDb = mutableMapOf("cpa1" to "2024-01-01T00:00:00Z")
-        val secondRunCpaTimestampsFromDb =
-            mutableMapOf("cpa1" to "2024-01-01T00:00:00Z", "cpa2" to "2024-01-01T00:00:00Z")
         var callCount = 0
-
-        coEvery { cpaRepoClient.getCPATimestamps() } answers {
+        coEvery { mockCpaRepoClient.getCPATimestamps() } answers {
             callCount++
             when (callCount) {
-                1 -> firstRunCpaTimestampsFromDb
-                else -> secondRunCpaTimestampsFromDb
+                1 -> dbCpaMapFirst
+                else -> dbCpaMapSecond
             }
         }
 
-        val mockedAttrs = mockSftpAttrs(1704067200)
-        val entries = listOf(
-            mockLsEntry("cpa1.xml", mockedAttrs),
-            mockLsEntry("cpa2.xml", mockedAttrs)
-        )
-        val mockedNFSConnector = mockNFSConnector(entries)
-        cpaSyncService = CpaSyncService(cpaRepoClient, mockedNFSConnector)
+        val cpaSyncService = CpaSyncService(mockCpaRepoClient, mockNfs)
 
-        cpaSyncService.sync()
         cpaSyncService.sync()
         cpaSyncService.sync()
         cpaSyncService.sync()
 
         coVerify(exactly = 1) {
-            cpaRepoClient.putCPAinCPARepo(
-                "simulated file content for /outbound/cpa/cpa2.xml",
-                any()
-            )
+            mockCpaRepoClient.putCPAinCPARepo(any(), any())
         }
         coVerify(exactly = 0) {
-            cpaRepoClient.putCPAinCPARepo(
-                eq("simulated file content for /outbound/cpa/cpa1.xml"),
-                any()
-            )
-        }
-        coVerify(exactly = 1) {
-            cpaRepoClient.putCPAinCPARepo(
-                eq("simulated file content for /outbound/cpa/cpa2.xml"),
-                any()
-            )
+            mockCpaRepoClient.deleteCPAinCPARepo(any())
         }
     }
 
     @Test
-    fun `shouldSkipFile should return false (not skip) if the filename is not contained in mutable map`() {
-        val filename = "cpa1.xml"
-        val lastModified = Instant.parse("2024-01-01T00:00:00Z")
-        val cpaTimestamps = mutableMapOf("cpa2" to "2023-12-31T23:59:59Z", "cpa3" to "2023-11-30T23:59:59Z")
-        val mockedNFSConnector = mockNFSConnector(emptyList())
-        cpaSyncService = spyk(CpaSyncService(cpaRepoClient, mockedNFSConnector))
+    fun `upsert check should return true if nfs timestamp is newer than db timestamp`() {
+        val cpaSyncService = CpaSyncService(mockCpaRepoClient, mockNFSConnector)
 
-        val shouldSkip = cpaSyncService.shouldSkipFile(filename, lastModified, cpaTimestamps)
-
-        assertFalse(shouldSkip)
-    }
-
-    @Test
-    fun `shouldSkipFile should return true (skip) if the filename is found and we have a matching timestamp`() {
-        val filename = "nav.10086.xml"
-        val lastModified = Instant.parse("2022-12-30T20:14:50Z")
-        val cpaTimestamps = mutableMapOf("nav:10086" to "2022-12-30T20:14:50Z")
-        val mockedNFSConnector = mockNFSConnector(emptyList())
-        cpaSyncService = spyk(CpaSyncService(cpaRepoClient, mockedNFSConnector))
-
-        val shouldSkip = cpaSyncService.shouldSkipFile(filename, lastModified, cpaTimestamps)
-
-        assertTrue(shouldSkip)
-    }
-
-    @Test
-    fun `shouldSkipFile should return true (skip) if the filename is contained in mutable map`() {
-        val filename = "cpa1.xml"
-        val lastModified = Instant.parse("2024-01-01T00:00:00Z")
-        val cpaTimestamps = mutableMapOf("cpa1" to "2024-01-01T00:00:00Z", "cpa2" to "2023-12-31T23:59:59Z")
-        val mockedNFSConnector = mockNFSConnector(emptyList())
-        cpaSyncService = spyk(CpaSyncService(cpaRepoClient, mockedNFSConnector))
-
-        val shouldSkip = cpaSyncService.shouldSkipFile(filename, lastModified, cpaTimestamps)
-
-        assertTrue(shouldSkip)
-    }
-
-    @Test
-    fun `deleteStaleCpaEntries should delete remaining timestamps`() = runBlocking {
-        val cpaTimestamps = mutableMapOf("cpa1" to "2024-01-01T00:00:00Z")
-        val mockedNFSConnector = mockNFSConnector(emptyList())
-        cpaSyncService = spyk(CpaSyncService(cpaRepoClient, mockedNFSConnector))
-
-        cpaSyncService.deleteStaleCpaEntries(cpaTimestamps)
-
-        coVerify { cpaRepoClient.deleteCPAinCPARepo("cpa1") }
+        assertTrue { cpaSyncService.shouldUpsertCpa("2025-01-01T00:00:00Z", null) }
+        assertTrue { cpaSyncService.shouldUpsertCpa("2025-01-01T00:00:00Z", "2024-01-01T00:00:00Z") }
+        assertFalse { cpaSyncService.shouldUpsertCpa("2024-01-01T00:00:00Z", "2025-01-01T00:00:00Z") }
+        assertFalse { cpaSyncService.shouldUpsertCpa("2024-01-01T00:00:00Z", "2024-01-01T00:00:00Z") }
     }
 
     @Test
     fun `sync should handle SftpException`() = runBlocking {
         val expectedSftpException = SftpException(4, "SFTP error")
-        coEvery { cpaRepoClient.getCPATimestamps() } throws expectedSftpException
-        val mockedNFSConnector = mockNFSConnector(emptyList())
-        cpaSyncService = spyk(CpaSyncService(cpaRepoClient, mockedNFSConnector))
+        coEvery { mockCpaRepoClient.getCPATimestamps() } throws expectedSftpException
+        val mockedNFSConnector = mockNfsFromMap(emptyMap())
+        val cpaSyncService = spyk(CpaSyncService(mockCpaRepoClient, mockedNFSConnector))
 
         val resultException = assertFailsWith<SftpException> {
             cpaSyncService.sync()
@@ -267,10 +333,10 @@ class CpaSyncServiceTest {
     @Test
     fun `sync should handle a generic exception`() = runBlocking {
         val expectedException = Exception("generic error")
-        coEvery { cpaRepoClient.getCPATimestamps() } throws expectedException
+        coEvery { mockCpaRepoClient.getCPATimestamps() } throws expectedException
 
-        val mockedNFSConnector = mockNFSConnector(emptyList())
-        cpaSyncService = spyk(CpaSyncService(cpaRepoClient, mockedNFSConnector))
+        val mockedNFSConnector = mockNfsFromMap(emptyMap())
+        val cpaSyncService = spyk(CpaSyncService(mockCpaRepoClient, mockedNFSConnector))
 
         val resultException = assertFailsWith<Exception> {
             cpaSyncService.sync()
@@ -280,31 +346,44 @@ class CpaSyncServiceTest {
         verify { cpaSyncService.logFailure(expectedException) }
     }
 
-    @Test
-    fun `mTime to seconds should be accurate`() {
-        val mTimeInSeconds = 1686480930L
-        val expectedInstant = Instant.parse("2023-06-11T10:55:30Z")
-
-        val mockedNFSConnector = mockNFSConnector(emptyList())
-        cpaSyncService = CpaSyncService(cpaRepoClient, mockedNFSConnector)
-
-        val resultInstant = cpaSyncService.getLastModifiedInstant(mTimeInSeconds)
-
-        assert(expectedInstant == resultInstant)
+    private fun mockCpaRepoFromMap(dbCpaMap: Map<String, String>) {
+        coEvery { mockCpaRepoClient.getCPATimestamps() } returns dbCpaMap
     }
 
-    private fun mockSftpAttrs(mTime: Int): SftpATTRS = mockk {
-        every { this@mockk.mTime } returns mTime
+    private fun mockNfsFromMap(nfsCpaMap: Map<String, String>): NFSConnector {
+        val lsEntries = nfsCpaMap.map { mockLsEntry(createFilename(it.key), it.value) }
+
+        return mockNfsFromEntries(lsEntries, nfsCpaMap.keys.toList())
     }
 
-    private fun mockLsEntry(filename: String, attrs: SftpATTRS): ChannelSftp.LsEntry = mockk {
-        every { this@mockk.filename } returns filename
-        every { this@mockk.attrs } returns attrs
+    private fun mockNfsFromEntries(lsEntries: List<ChannelSftp.LsEntry>, nfsCpaIds: List<String>): NFSConnector {
+        return mockk {
+            every { folder() } returns Vector<ChannelSftp.LsEntry>().apply { addAll(lsEntries) }
+            every { file(any()) } returnsMany nfsCpaIds.map { ByteArrayInputStream(simulateFileContent(it).toByteArray()) }
+            every { close() } just Runs
+        }
     }
 
-    private fun mockNFSConnector(entries: List<ChannelSftp.LsEntry>): NFSConnector = mockk {
-        every { folder() } returns Vector<ChannelSftp.LsEntry>().apply { addAll(entries) }
-        every { file(any()) } answers { ByteArrayInputStream("simulated file content for ${it.invocation.args[0]}".toByteArray()) }
-        every { close() } just Runs
+    private fun mockLsEntry(entryName: String, timestamp: String): ChannelSftp.LsEntry =
+        mockk {
+            every { filename } returns entryName
+            every { attrs } returns mockSftpAttrs(timestamp)
+        }
+
+    private fun mockSftpAttrs(timestamp: String): SftpATTRS = mockk {
+        every { mTime } returns Instant.parse(timestamp).epochSecond.toInt()
+    }
+
+    private fun createFilename(cpaId: String): String {
+        return "${cpaId.replace(":", ".")}.xml"
+    }
+
+    private fun simulateFileContent(cpaId: String): String {
+        return """
+            <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <cppa:CollaborationProtocolAgreement cppa:cpaid="$cpaId">
+                <!-- CPA content removed -->
+            </cppa:CollaborationProtocolAgreement>
+        """.trimIndent()
     }
 }

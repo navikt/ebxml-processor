@@ -9,103 +9,114 @@ import no.nav.emottak.nfs.NFSConnector
 import no.nav.emottak.putCPAinCPARepo
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.io.ByteArrayOutputStream
+import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.time.temporal.ChronoUnit
+import java.util.zip.GZIPInputStream
+import java.util.zip.GZIPOutputStream
+
+data class NfsCpa(val id: String, val timestamp: String, val content: ByteArray)
 
 class CpaSyncService(private val cpaRepoClient: HttpClient, private val nfsConnector: NFSConnector) {
-
     private val log: Logger = LoggerFactory.getLogger("no.nav.emottak.smtp.cpasync")
 
     suspend fun sync() {
         return runCatching {
-            val cpaTimestamps = cpaRepoClient.getCPATimestamps()
-            processAndSyncEntries(cpaTimestamps)
+            val dbCpaMap = cpaRepoClient.getCPATimestamps()
+            val nfsCpaMap = getNfsCpaMap()
+            upsertFreshCpa(nfsCpaMap, dbCpaMap)
+            deleteStaleCpa(nfsCpaMap.keys, dbCpaMap)
         }.onFailure {
             logFailure(it)
         }.getOrThrow()
     }
 
-    private suspend fun processAndSyncEntries(cpaTimestamps: Map<String, String>) {
-        nfsConnector.use { connector ->
-            val staleCpaTimestamps = connector.folder().asSequence()
+    internal fun getNfsCpaMap(): Map<String, NfsCpa> {
+        return nfsConnector.use { connector ->
+            connector.folder().asSequence()
                 .filter { entry -> isXmlFileEntry(entry) }
-                .fold(cpaTimestamps) { accumulatedCpaTimestamps, entry ->
-                    val filename = entry.filename
-                    val lastModified = getLastModifiedInstant(entry.attrs.mTime.toLong())
-                    val shouldSkip = shouldSkipFile(filename, lastModified, accumulatedCpaTimestamps)
-                    if (!shouldSkip) {
-                        runCatching {
-                            log.info("Fetching file $filename")
-                            val cpaFileContent = connector.file("/outbound/cpa/$filename").use {
-                                String(it.readAllBytes())
-                            }
-                            log.info("Uploading $filename")
-                            cpaRepoClient.putCPAinCPARepo(cpaFileContent, lastModified)
-                        }.onFailure {
-                            log.error("Error uploading $filename to cpa-repo: ${it.message}", it)
-                        }
-                    }
+                .fold(mutableMapOf()) { accumulator, nfsCpaFile ->
+                    val nfsCpa = getNfsCpa(connector, nfsCpaFile)
 
-                    filterStaleCpaTimestamps(filename, lastModified, accumulatedCpaTimestamps)
+                    val existingEntry = accumulator.put(nfsCpa.id, nfsCpa)
+                    require(existingEntry == null) { "NFS contains duplicate CPA IDs. Aborting sync." }
+
+                    accumulator
                 }
-
-            deleteStaleCpaEntries(staleCpaTimestamps)
         }
     }
 
-    internal fun getLastModifiedInstant(mTimeInSeconds: Long): Instant {
-        return Instant.ofEpochSecond(mTimeInSeconds).truncatedTo(ChronoUnit.SECONDS)
+    internal fun isXmlFileEntry(entry: ChannelSftp.LsEntry): Boolean {
+        if (entry.filename.endsWith(".xml")) {
+            return true
+        }
+        log.debug("${entry.filename} is ignored. Invalid file ending")
+        return false
     }
 
-    private fun isXmlFileEntry(entry: ChannelSftp.LsEntry) = if (!entry.filename.endsWith(".xml")) {
-        log.warn("${entry.filename} is ignored")
-        false
-    } else {
-        true
+    internal fun getNfsCpa(connector: NFSConnector, nfsCpaFile: ChannelSftp.LsEntry): NfsCpa {
+        val timestamp = getLastModified(nfsCpaFile.attrs.mTime.toLong())
+        val cpaContent = fetchNfsCpaContent(connector, nfsCpaFile)
+        val cpaId = getCpaIdFromCpaContent(cpaContent)
+        require(cpaId != null) {
+            "Regex to find CPA ID in file ${nfsCpaFile.filename} did not find any match. " +
+                "File corrupted or wrongful regex. Aborting sync."
+        }
+        val zippedCpaContent = zipCpaContent(cpaContent)
+
+        return NfsCpa(cpaId, timestamp, zippedCpaContent)
     }
 
-    private fun filterStaleCpaTimestamps(
-        filename: String,
-        lastModified: Instant,
-        cpaTimestamps: Map<String, String>
-    ): Map<String, String> {
-        return cpaTimestamps.filter { (cpaId, timestamp) -> isStaleCpa(cpaId, filename, timestamp, lastModified) }
+    private fun fetchNfsCpaContent(nfsConnector: NFSConnector, nfsCpaFile: ChannelSftp.LsEntry): String {
+        return nfsConnector.file("/outbound/cpa/${nfsCpaFile.filename}").use {
+            String(it.readAllBytes())
+        }
     }
 
-    private fun isStaleCpa(
-        cpaId: String,
-        filename: String,
-        timestamp: String,
-        lastModified: Instant
-    ): Boolean {
-        val formattedCpaId = cpaId.replace(":", ".") + ".xml"
-        return if (filename == formattedCpaId) {
-            if (timestamp != lastModified.toString()) {
-                log.info("$filename has different timestamp, should be updated")
+    private fun getCpaIdFromCpaContent(cpaContent: String): String? {
+        return Regex("cppa:cpaid=\"(?<cpaId>.+?)\"")
+            .find(cpaContent)?.groups?.get("cpaId")?.value
+    }
+
+    internal fun getLastModified(mTimeInSeconds: Long): String {
+        return Instant.ofEpochSecond(mTimeInSeconds).truncatedTo(ChronoUnit.SECONDS).toString()
+    }
+
+    internal fun zipCpaContent(cpaContent: String): ByteArray {
+        val byteStream = ByteArrayOutputStream()
+        GZIPOutputStream(byteStream)
+            .bufferedWriter(StandardCharsets.UTF_8)
+            .use { it.write(cpaContent) }
+        return byteStream.toByteArray()
+    }
+
+    private suspend fun upsertFreshCpa(nfsCpaMap: Map<String, NfsCpa>, dbCpaMap: Map<String, String>) {
+        nfsCpaMap.forEach { entry ->
+            if (shouldUpsertCpa(entry.value.timestamp, dbCpaMap[entry.key])) {
+                log.info("Upserting new/modified CPA: ${entry.key} - ${entry.value.timestamp}")
+                val unzippedCpaContent = unzipCpaContent(entry.value.content)
+                cpaRepoClient.putCPAinCPARepo(unzippedCpaContent, entry.value.timestamp)
+            } else {
+                log.debug("Skipping upsert for unmodified CPA: ${entry.key} - ${entry.value.timestamp}")
             }
-            false
-        } else {
-            true // the file will be deleted
         }
     }
 
-    internal fun shouldSkipFile(
-        filename: String,
-        lastModified: Instant,
-        cpaTimestamps: Map<String, String>
-    ): Boolean {
-        return cpaTimestamps
-            .filterKeys { cpaId -> filename == cpaId.replace(":", ".") + ".xml" }
-            .filterValues { timestamp -> lastModified.toString() == timestamp }
-            .ifEmpty {
-                log.info("Could not find matching timestamp for file $filename with lastModified timestamp $lastModified")
-                return false
-            }.any()
+    internal fun unzipCpaContent(byteArray: ByteArray): String {
+        return GZIPInputStream(byteArray.inputStream()).bufferedReader(StandardCharsets.UTF_8).use { it.readText() }
     }
 
-    internal suspend fun deleteStaleCpaEntries(cpaTimestamps: Map<String, String>) {
-        cpaTimestamps.forEach { (cpaId) ->
-            cpaRepoClient.deleteCPAinCPARepo(cpaId)
+    internal fun shouldUpsertCpa(nfsTimestamp: String, dbTimestamp: String?): Boolean {
+        if (dbTimestamp == null) return true
+        return Instant.parse(nfsTimestamp) > Instant.parse(dbTimestamp)
+    }
+
+    private suspend fun deleteStaleCpa(nfsCpaIds: Set<String>, dbCpaMap: Map<String, String>) {
+        val staleCpa = dbCpaMap - nfsCpaIds
+        staleCpa.forEach { entry ->
+            log.info("Deleting stale entry: ${entry.key} - ${entry.value}")
+            cpaRepoClient.deleteCPAinCPARepo(entry.key)
         }
     }
 
