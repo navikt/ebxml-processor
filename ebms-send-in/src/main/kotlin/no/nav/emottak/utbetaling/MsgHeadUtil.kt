@@ -7,7 +7,6 @@ import no.kith.xmlstds.msghead._2006_05_24.MsgHead
 import no.kith.xmlstds.msghead._2006_05_24.RefDoc
 import no.nav.emottak.melding.model.SendInRequest
 import no.nav.emottak.util.toXMLGregorianCalendar
-import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.util.UUID
 
@@ -50,7 +49,7 @@ class MsgHeadUtil {
                         mimeType = "text/xml"
                         content = RefDoc.Content().apply {
                             any.add(
-                                String(fagmeldingResponse, StandardCharsets.UTF_8)
+                                fagmeldingResponse
                             )
                         }
                     }
