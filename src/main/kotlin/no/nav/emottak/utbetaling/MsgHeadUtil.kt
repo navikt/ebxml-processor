@@ -1,5 +1,7 @@
 package no.nav.emottak.utbetaling
 
+import no.kith.xmlstds.msghead._2006_05_24.CS
+import no.kith.xmlstds.msghead._2006_05_24.ConversationRef
 import no.kith.xmlstds.msghead._2006_05_24.Document
 import no.kith.xmlstds.msghead._2006_05_24.MsgHead
 import no.kith.xmlstds.msghead._2006_05_24.RefDoc
@@ -18,13 +20,13 @@ class MsgHeadUtil {
 
         return msgHead.apply {
             msgInfo.apply {
-                type.apply {
+                type = CS().apply {
                     dn = "Svar på forespørsel om inntekt"
                     v = "InntektInformasjon"
                 }
                 genDate = Instant.now().toXMLGregorianCalendar()
                 msgId = UUID.randomUUID().toString()
-                ack.apply {
+                ack = CS().apply {
                     v = "N"
                     dn = "Nei"
                 }
@@ -32,7 +34,7 @@ class MsgHeadUtil {
                 val newSender = receiver
                 sender.apply { organisation = newSender.organisation }
                 receiver.apply { organisation = newReceiver.organisation }
-                conversationRef.apply {
+                conversationRef = ConversationRef().apply {
                     refToParent = sendInRequest.messageId
                     refToConversation = sendInRequest.conversationId
                 }
@@ -40,8 +42,8 @@ class MsgHeadUtil {
             document.clear()
             document.add(
                 Document().apply {
-                    refDoc.apply {
-                        msgType.apply {
+                    refDoc = RefDoc().apply {
+                        msgType = CS().apply {
                             v = "XML"
                             dn = "XML-instans"
                         }
