@@ -5,6 +5,7 @@ import no.nav.ekstern.virkemiddelokonomi.tjenester.utbetaling.v1.FinnBrukersUtbe
 import no.nav.ekstern.virkemiddelokonomi.tjenester.utbetaling.v1.FinnUtbetalingListe
 import no.nav.ekstern.virkemiddelokonomi.tjenester.utbetaling.v1.FinnUtbetalingListeBaksystemIkkeTilgjengelig
 import no.nav.ekstern.virkemiddelokonomi.tjenester.utbetaling.v1.FinnUtbetalingListeBrukerIkkeFunnet
+import no.nav.ekstern.virkemiddelokonomi.tjenester.utbetaling.v1.FinnUtbetalingListeFeil
 import no.nav.ekstern.virkemiddelokonomi.tjenester.utbetaling.v1.FinnUtbetalingListeIngenTilgangTilEnEllerFlereYtelser
 import no.nav.ekstern.virkemiddelokonomi.tjenester.utbetaling.v1.FinnUtbetalingListeUgyldigDato
 import no.nav.ekstern.virkemiddelokonomi.tjenester.utbetaling.v1.FinnUtbetalingListeUgyldigKombinasjonBrukerIdOgBrukertype
@@ -32,7 +33,7 @@ class InntektsForesporselClient {
         }
     val UTBETAL_SOAP_ENDPOINT = RESOLVED_UTBETAL_URL + "/Utbetaling"
 
-    fun behandleInntektsforesporsel(payloadBytes: ByteArray): ByteArray {
+    fun behandleInntektsforesporsel(payloadBytes: ByteArray): Any {
         val msgHead = utbetalingXmlMarshaller.unmarshal(String(payloadBytes), MsgHead::class.java)
         val melding = msgHead.document.map { it.refDoc.content.any }
             .also { if (it.size > 1) log.warn("Inntektsforesporsel refdoc har size >1") }
@@ -46,27 +47,21 @@ class InntektsForesporselClient {
             return marshal(response).toByteArray()
         } catch (utbetalError: Throwable) {
             log.info("Handling inntektsforesporsel error: " + utbetalError.message)
-            return utbetalingXmlMarshaller.marshalToByteArray(
-                when (utbetalError) {
-                    is FinnUtbetalingListeBrukerIkkeFunnet
-                    -> utbetalingObjectFactory
-                        .createFinnUtbetalingListebrukerIkkeFunnet(utbetalError.faultInfo)
-                    is FinnUtbetalingListeBaksystemIkkeTilgjengelig
-                    -> utbetalingObjectFactory
-                        .createFinnUtbetalingListebaksystemIkkeTilgjengelig(utbetalError.faultInfo)
-                    is FinnUtbetalingListeIngenTilgangTilEnEllerFlereYtelser
-                    -> utbetalingObjectFactory
-                        .createFinnUtbetalingListeingenTilgangTilEnEllerFlereYtelser(utbetalError.faultInfo)
-                    is FinnUtbetalingListeUgyldigDato
-                    -> utbetalingObjectFactory
-                        .createFinnUtbetalingListeugyldigDato(utbetalError.faultInfo)
-                    is FinnUtbetalingListeUgyldigKombinasjonBrukerIdOgBrukertype
-                    -> utbetalingObjectFactory
-                        .createFinnUtbetalingListeugyldigKombinasjonBrukerIdOgBrukertype(utbetalError.faultInfo)
-                    else ->
-                        throw utbetalError.also { log.error("Ukjent feiltype: " + it.message, it) }
-                }
-            )
+            val feil = FinnUtbetalingListeFeil()
+            return when (utbetalError) {
+                is FinnUtbetalingListeBrukerIkkeFunnet
+                -> feil.finnUtbetalingListebrukerIkkeFunnet = utbetalError.faultInfo
+                is FinnUtbetalingListeBaksystemIkkeTilgjengelig
+                -> feil.finnUtbetalingListebaksystemIkkeTilgjengelig = utbetalError.faultInfo
+                is FinnUtbetalingListeIngenTilgangTilEnEllerFlereYtelser
+                -> feil.finnUtbetalingListeingenTilgangTilEnEllerFlereYtelser = utbetalError.faultInfo
+                is FinnUtbetalingListeUgyldigDato
+                -> feil.finnUtbetalingListeugyldigDato = utbetalError.faultInfo
+                is FinnUtbetalingListeUgyldigKombinasjonBrukerIdOgBrukertype
+                -> feil.finnUtbetalingListeugyldigKombinasjonBrukerIdOgBrukertype = utbetalError.faultInfo
+                else ->
+                    throw utbetalError.also { log.error("Ukjent feiltype: " + it.message, it) }
+            }
         }
     }
 }
