@@ -28,7 +28,7 @@ import no.nav.emottak.frikort.frikortXmlMarshaller
 import no.nav.emottak.frikort.frikortsporring
 import no.nav.emottak.melding.model.SendInRequest
 import no.nav.emottak.melding.model.SendInResponse
-import no.nav.emottak.utbetaling.InntektsForesporselClient
+import no.nav.emottak.utbetaling.UtbetalingClient
 import no.nav.emottak.utbetaling.utbetalingXmlMarshaller
 import no.nav.emottak.util.getEnvVar
 import no.nav.emottak.util.marker
@@ -80,7 +80,7 @@ fun Application.ebmsSendInModule() {
                         when (request.addressing.service) {
                             "Inntektsforesporsel" ->
                                 timed(appMicrometerRegistry, "Inntektsforesporsel") {
-                                    InntektsForesporselClient.behandleInntektsforesporsel(request).let {
+                                    UtbetalingClient.behandleInntektsforesporsel(request).let {
                                         SendInResponse(
                                             request.messageId,
                                             request.conversationId,
