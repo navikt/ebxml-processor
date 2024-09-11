@@ -285,7 +285,7 @@ suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbMSDocument) {
         ebmsDokument.attachments.first().let {
             PartData.FormItem(
                 // Base64.getMimeEncoder().encodeToString(it.bytes), // Implicit ISO_8859_1
-                String(Base64.getEncoder().encode(it.bytes), StandardCharsets.UTF_8), // TODO verifiser
+                String(Base64.getMimeEncoder().encode(it.bytes), StandardCharsets.UTF_8), // TODO verifiser
                 {},
                 HeadersBuilder().apply {
                     append(MimeHeaders.CONTENT_TRANSFER_ENCODING, "base64")
