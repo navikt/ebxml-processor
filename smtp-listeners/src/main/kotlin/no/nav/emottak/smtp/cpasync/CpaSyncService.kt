@@ -37,7 +37,7 @@ class CpaSyncService(private val cpaRepoClient: HttpClient, private val nfsConne
             connector.folder().asSequence()
                 .filter { entry -> isXmlFileEntry(entry) }
                 .fold(mutableMapOf()) { accumulator, nfsCpaFile ->
-                    val nfsCpa = getNfsCpa(connector, nfsCpaFile)
+                    val nfsCpa = getNfsCpa(connector, nfsCpaFile) ?: return accumulator
 
                     val existingEntry = accumulator.put(nfsCpa.id, nfsCpa)
                     require(existingEntry == null) { "NFS contains duplicate CPA IDs. Aborting sync." }
@@ -55,14 +55,18 @@ class CpaSyncService(private val cpaRepoClient: HttpClient, private val nfsConne
         return false
     }
 
-    internal fun getNfsCpa(connector: NFSConnector, nfsCpaFile: ChannelSftp.LsEntry): NfsCpa {
+    internal fun getNfsCpa(connector: NFSConnector, nfsCpaFile: ChannelSftp.LsEntry): NfsCpa? {
         val timestamp = getLastModified(nfsCpaFile.attrs.mTime.toLong())
         val cpaContent = fetchNfsCpaContent(connector, nfsCpaFile)
         val cpaId = getCpaIdFromCpaContent(cpaContent)
-        require(cpaId != null) {
-            "Regex to find CPA ID in file ${nfsCpaFile.filename} did not find any match. " +
-                "File corrupted or wrongful regex. Aborting sync."
+
+        if (cpaId == null) {
+            log.warn("Regex to find CPA ID in file ${nfsCpaFile.filename} did not find any match. " +
+                        "File corrupted or wrongful regex. Aborting sync."
+            )
+            return null
         }
+
         val zippedCpaContent = zipCpaContent(cpaContent)
 
         return NfsCpa(cpaId, timestamp, zippedCpaContent)
@@ -75,7 +79,7 @@ class CpaSyncService(private val cpaRepoClient: HttpClient, private val nfsConne
     }
 
     private fun getCpaIdFromCpaContent(cpaContent: String): String? {
-        return Regex("cppa:cpaid=\"(?<cpaId>.+?)\"")
+        return Regex("cpaid=\"(?<cpaId>.+?)\"")
             .find(cpaContent)?.groups?.get("cpaId")?.value
     }
 

@@ -83,7 +83,7 @@ class CpaSyncServiceTest {
         val cpaSyncService = CpaSyncService(mockCpaRepoClient, mockNfs)
         val nfsCpa = cpaSyncService.getNfsCpa(mockNfs, lsEntry)
 
-        assertEquals("nav:qass:12345", nfsCpa.id)
+        assertEquals("nav:qass:12345", nfsCpa?.id)
     }
 
     @Test
@@ -98,21 +98,18 @@ class CpaSyncServiceTest {
         val cpaSyncService = CpaSyncService(mockCpaRepoClient, mockNfs)
         val nfsCpa = cpaSyncService.getNfsCpa(mockNfs, lsEntry)
 
-        assertEquals("nav:qass:12345", nfsCpa.id)
+        assertEquals("nav:qass:12345", nfsCpa?.id)
     }
 
     @Test
-    fun `should throw exception if CPA ID is missing in content`() = runBlocking {
+    fun `should return null if cpa ID is not found`() = runBlocking {
         val lsEntry = mockLsEntry("nav.qass.missing.txt", "2025-01-01T00:00:00Z")
         val mockNfs = mockNfsFromEntries(listOf(lsEntry), listOf(""))
 
         val cpaSyncService = CpaSyncService(mockCpaRepoClient, mockNfs)
+        val cpa = cpaSyncService.getNfsCpa(mockNfs, lsEntry)
 
-        val exception = assertThrows<IllegalArgumentException> {
-            cpaSyncService.getNfsCpa(mockNfs, lsEntry)
-        }
-
-        assertTrue(exception.message!!.contains("Regex to find CPA ID in file nav.qass.missing.txt did not find any match."))
+        assertTrue(cpa == null)
     }
 
     @Test
@@ -155,6 +152,21 @@ class CpaSyncServiceTest {
         }
 
         assertTrue(exception.message!!.contains("NFS contains duplicate CPA IDs. Aborting sync."))
+    }
+
+    @Test
+    fun `should skip processing if cpa ID is not found in CPA`() = runBlocking {
+        val lsEntry = mockLsEntry("nav.qass.missing.txt", "2025-01-01T00:00:00Z")
+        val mockNfs = mockNfsFromEntries(listOf(lsEntry), listOf(""))
+
+        val dbCpa = emptyMap<String, String>()
+        mockCpaRepoFromMap(dbCpa)
+
+        val cpaSyncService = CpaSyncService(mockCpaRepoClient, mockNfs)
+        cpaSyncService.sync()
+
+        coVerify(exactly = 0) { mockCpaRepoClient.putCPAinCPARepo(any(), any()) }
+        coVerify(exactly = 0) { mockCpaRepoClient.deleteCPAinCPARepo(any()) }
     }
 
     @Test
