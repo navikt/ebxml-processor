@@ -56,7 +56,7 @@ dependencyResolutionManagement {
             library("ktor-server-auth-jvm", "io.ktor:ktor-server-auth-jvm:2.3.8")
             library("token-validation-ktor-v2", "no.nav.security:token-validation-ktor-v2:4.1.4")
             library("flyway-core", "org.flywaydb:flyway-core:9.16.3")
-            library("emottak-payload-xsd", "no.nav.emottak:emottak-payload-xsd:0.0.2")
+            library("emottak-payload-xsd", "no.nav.emottak:emottak-payload-xsd:0.0.5")
             library("jaxb-runtime", "org.glassfish.jaxb:jaxb-runtime:2.4.0-b180830.0438")
             library("cxf-rt-frontend-jaxws", "org.apache.cxf", "cxf-rt-frontend-jaxws").versionRef("cxf")
             library("cxf-rt-transports-http", "org.apache.cxf", "cxf-rt-transports-http").versionRef("cxf")

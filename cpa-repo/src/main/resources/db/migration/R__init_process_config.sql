@@ -12,7 +12,9 @@ values ('Behandler',        'HarBorgerFrikort',         'EgenandelForesporsel', 
        ('Fastlege',         'PasientlisteForesporsel',  'HentAbonnementStatus', false, false, TRUE,  TRUE,  TRUE,  TRUE,  null,            'Avvisning'),
        ('Fastlege',         'PasientlisteForesporsel',  'HentPasientliste',     false, false, TRUE,  TRUE,  TRUE,  TRUE,  null,            'Avvisning'),
        ('Fastlege',         'PasientlisteForesporsel',  'StartAbonnement',      false, false, TRUE,  TRUE,  TRUE,  TRUE,  null,            'Avvisning'),
-       ('Fastlege',         'PasientlisteForesporsel',  'StoppAbonnement',      false, false, TRUE,  TRUE,  TRUE,  TRUE,  null,            'Avvisning')
+       ('Fastlege',         'PasientlisteForesporsel',  'StoppAbonnement',      false, false, TRUE,  TRUE,  TRUE,  TRUE,  null,            'Avvisning'),
+       ('Fordringshaver',   'Inntektsforesporsel',      'Foresporsel',          true,  false, TRUE,  false, TRUE,  TRUE,  null,            'Avvisning')
+
 on conflict (ROLE, SERVICE, ACTION) do update set KRYPTERING   = EXCLUDED.KRYPTERING,
                                                   KOMPRIMERING = EXCLUDED.KOMPRIMERING,
                                                   SIGNERING    = EXCLUDED.SIGNERING,

@@ -119,7 +119,7 @@ data class Addressing(
     val service: String,
     val action: String
 ) {
-    fun replayTo(service:String,action:String): Addressing = Addressing( to = from.copy(), from = to.copy(), service , action)
+    fun replyTo(service:String, action:String): Addressing = Addressing( to = from.copy(), from = to.copy(), service , action)
 }
 
 @Serializable

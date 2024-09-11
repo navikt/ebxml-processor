@@ -1,27 +1,33 @@
-package no.nav.emottak.frikort
+package no.nav.emottak.utbetaling
 
+import no.nav.ekstern.virkemiddelokonomi.tjenester.utbetaling.meldinger.v1.FinnBrukersUtbetalteYtelserRequest
+import no.nav.ekstern.virkemiddelokonomi.tjenester.utbetaling.meldinger.v1.FinnUtbetalingListeRequest
+import no.nav.ekstern.virkemiddelokonomi.tjenester.utbetaling.v1.FinnUtbetalingListe
 import java.io.ByteArrayOutputStream
 import java.io.StringWriter
 import javax.xml.bind.JAXBContext
 import javax.xml.stream.XMLInputFactory
 
-val frikortXmlMarshaller = XmlMarshaller()
+val utbetalingXmlMarshaller = XmlMarshaller()
 
-fun marshal(objekt: Any) = frikortXmlMarshaller.marshal(objekt)
-fun <T> unmarshal(xml: String, clazz: Class<T>): T = frikortXmlMarshaller.unmarshal(xml, clazz)
+fun marshal(objekt: Any) = utbetalingXmlMarshaller.marshal(objekt)
+fun <T> unmarshal(xml: String, clazz: Class<T>): T = utbetalingXmlMarshaller.unmarshal(xml, clazz)
 
 class XmlMarshaller {
 
     companion object {
         private val jaxbContext = JAXBContext.newInstance(
+            FinnUtbetalingListeRequest::class.java,
+            FinnBrukersUtbetalteYtelserRequest::class.java,
+            FinnUtbetalingListe::class.java,
             org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.ObjectFactory::class.java,
+            no.nav.ekstern.virkemiddelokonomi.tjenester.utbetaling.meldinger.v1.ObjectFactory::class.java,
+            no.nav.ekstern.virkemiddelokonomi.tjenester.utbetaling.feil.v1.ObjectFactory::class.java,
+            no.nav.ekstern.virkemiddelokonomi.tjenester.utbetaling.v1.ObjectFactory::class.java,
             org.xmlsoap.schemas.soap.envelope.ObjectFactory::class.java,
-            org.w3._1999.xlink.ObjectFactory::class.java,
-            org.w3._2009.xmldsig11_.ObjectFactory::class.java,
-            no.trygdeetaten.xml.eiff._1.ObjectFactory::class.java,
             no.kith.xmlstds.msghead._2006_05_24.ObjectFactory::class.java,
-            no.nav.tjeneste.ekstern.frikort.v1.types.ObjectFactory::class.java
-
+            org.w3._1999.xlink.ObjectFactory::class.java,
+            org.w3._2009.xmldsig11_.ObjectFactory::class.java
         )
         private val marshaller = jaxbContext.createMarshaller()
         private val unmarshaller = jaxbContext.createUnmarshaller()
