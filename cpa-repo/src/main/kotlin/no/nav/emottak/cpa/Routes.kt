@@ -173,11 +173,6 @@ fun Route.postCpa(cpaRepository: CPARepository) = post("/cpa") {
         }
 }
 
-fun loadOverrideCPA(): CollaborationProtocolAgreement {
-    val cpaString = String(object {}::class.java.classLoader.getResource("cpa/nav_qass_30823_modified.xml").readBytes())
-    return xmlMarshaller.unmarshal(cpaString, CollaborationProtocolAgreement::class.java)
-}
-
 fun Route.validateCpa(cpaRepository: CPARepository) = post("/cpa/validate/{$CONTENT_ID}") {
     val validateRequest = call.receive(ValidationRequest::class)
     try {
