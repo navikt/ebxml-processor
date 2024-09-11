@@ -10,12 +10,13 @@ import no.nav.ekstern.virkemiddelokonomi.tjenester.utbetaling.v1.FinnUtbetalingL
 import no.nav.ekstern.virkemiddelokonomi.tjenester.utbetaling.v1.FinnUtbetalingListeUgyldigDato
 import no.nav.ekstern.virkemiddelokonomi.tjenester.utbetaling.v1.FinnUtbetalingListeUgyldigKombinasjonBrukerIdOgBrukertype
 import no.nav.emottak.cxf.ServiceBuilder
+import no.nav.emottak.melding.model.SendInRequest
 import no.nav.emottak.util.getEnvVar
 import org.slf4j.LoggerFactory
 import java.io.FileInputStream
 import javax.xml.namespace.QName
 
-class InntektsForesporselClient {
+object InntektsForesporselClient {
 
     val log = LoggerFactory.getLogger(InntektsForesporselClient::class.java)
 
@@ -33,8 +34,8 @@ class InntektsForesporselClient {
         }
     val UTBETAL_SOAP_ENDPOINT = RESOLVED_UTBETAL_URL + "/Utbetaling"
 
-    fun behandleInntektsforesporsel(payloadBytes: ByteArray): Any {
-        val msgHead = utbetalingXmlMarshaller.unmarshal(String(payloadBytes), MsgHead::class.java)
+    fun behandleInntektsforesporsel(sendInRequest: SendInRequest): MsgHead {
+        val msgHead = utbetalingXmlMarshaller.unmarshal(String(sendInRequest.payload), MsgHead::class.java)
         val melding = msgHead.document.map { it.refDoc.content.any }
             .also { if (it.size > 1) log.warn("Inntektsforesporsel refdoc har size >1") }
             .first().also { if (it.size > 1) log.warn("Inntektsforesporsel content har size >1") }.first()
@@ -44,7 +45,7 @@ class InntektsForesporselClient {
                 is FinnBrukersUtbetalteYtelser -> inntektsforesporselSoapEndpoint.finnBrukersUtbetalteYtelser(melding.request)
                 else -> throw IllegalStateException("Ukjent meldingstype. Classname: " + melding.javaClass.name)
             }
-            return marshal(response)
+            return msgHeadResponse(sendInRequest, marshal(response))
         } catch (utbetalError: Throwable) {
             log.info("Handling inntektsforesporsel error: " + utbetalError.message)
             val feil = FinnUtbetalingListeFeil()
@@ -62,7 +63,7 @@ class InntektsForesporselClient {
                 else ->
                     throw utbetalError.also { log.error("Ukjent feiltype: " + it.message, it) }
             }
-            return feil
+            return msgHeadResponse(sendInRequest, feil)
         }
     }
 }
