@@ -21,7 +21,6 @@ import io.micrometer.prometheus.PrometheusConfig
 import io.micrometer.prometheus.PrometheusMeterRegistry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import no.kith.xmlstds.msghead._2006_05_24.MsgHead
 import no.nav.emottak.auth.AZURE_AD_AUTH
 import no.nav.emottak.auth.AuthConfig
 import no.nav.emottak.fellesformat.wrapMessageInEIFellesFormat
@@ -30,12 +29,10 @@ import no.nav.emottak.frikort.frikortsporring
 import no.nav.emottak.melding.model.SendInRequest
 import no.nav.emottak.melding.model.SendInResponse
 import no.nav.emottak.utbetaling.InntektsForesporselClient
-import no.nav.emottak.utbetaling.MsgHeadUtil
 import no.nav.emottak.utbetaling.utbetalingXmlMarshaller
 import no.nav.emottak.util.getEnvVar
 import no.nav.emottak.util.marker
 import no.nav.security.token.support.v2.tokenValidationSupport
-import no.nav.tjeneste.ekstern.frikort.v1.types.FrikortsporringResponse
 import org.slf4j.LoggerFactory
 
 internal val log = LoggerFactory.getLogger("no.nav.emottak.ebms.App")
@@ -74,7 +71,6 @@ fun Application.ebmsSendInModule() {
     }
 
     routing {
-        val inntektsForesporselClient = InntektsForesporselClient()
         authenticate(AZURE_AD_AUTH) {
             post("/fagmelding/synkron") {
                 val request = this.call.receive(SendInRequest::class)
@@ -84,14 +80,28 @@ fun Application.ebmsSendInModule() {
                         when (request.addressing.service) {
                             "Inntektsforesporsel" ->
                                 timed(appMicrometerRegistry, "Inntektsforesporsel") {
-                                    MsgHeadUtil().msgHeadResponse(
-                                        request,
-                                        inntektsForesporselClient.behandleInntektsforesporsel(request.payload)
-                                    )
+                                    InntektsForesporselClient.behandleInntektsforesporsel(request).let {
+                                        SendInResponse(
+                                            request.messageId,
+                                            request.conversationId,
+                                            request.addressing.replyTo(request.addressing.service, it.msgInfo.type.v),
+                                            utbetalingXmlMarshaller.marshalToByteArray(it)
+                                        )
+                                    }
                                 }
                             else ->
                                 timed(appMicrometerRegistry, "frikort-sporing") {
-                                    frikortsporring(wrapMessageInEIFellesFormat(request))
+                                    frikortsporring(wrapMessageInEIFellesFormat(request)).let {
+                                        SendInResponse(
+                                            request.messageId,
+                                            request.conversationId,
+                                            request.addressing.replyTo(
+                                                it.eiFellesformat.mottakenhetBlokk.ebService,
+                                                it.eiFellesformat.mottakenhetBlokk.ebAction
+                                            ),
+                                            frikortXmlMarshaller.marshalToByteArray(it.eiFellesformat.msgHead)
+                                        )
+                                    }
                                 }
                         }
                     }
@@ -100,29 +110,7 @@ fun Application.ebmsSendInModule() {
                         request.marker(),
                         "Payload ${request.payloadId} videresending til fagsystem ferdig, svar mottatt og returnerert"
                     )
-                    when (it) { // TODO gjerne tenk igjennom en bedre flyt, kanskje alt burde få MsgHead
-                        is MsgHead ->
-                            call.respond(
-                                SendInResponse(
-                                    request.messageId,
-                                    request.conversationId,
-                                    request.addressing.replyTo(request.addressing.service, "InntektInformasjon"),
-                                    utbetalingXmlMarshaller.marshalToByteArray(it)
-                                )
-                            )
-                        is FrikortsporringResponse ->
-                            call.respond(
-                                SendInResponse(
-                                    request.messageId,
-                                    request.conversationId,
-                                    request.addressing.replyTo(
-                                        it.eiFellesformat.mottakenhetBlokk.ebService,
-                                        it.eiFellesformat.mottakenhetBlokk.ebAction
-                                    ),
-                                    frikortXmlMarshaller.marshalToByteArray(it.eiFellesformat.msgHead)
-                                )
-                            )
-                    }
+                    call.respond(it)
                 }.onFailure {
                     log.error(request.marker(), "Payload ${request.payloadId} videresending feilet", it)
                     call.respond(HttpStatusCode.BadRequest, it.localizedMessage)

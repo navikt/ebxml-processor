@@ -8,7 +8,7 @@ import no.nav.emottak.melding.model.EbmsProcessing
 import no.nav.emottak.melding.model.Party
 import no.nav.emottak.melding.model.PartyId
 import no.nav.emottak.melding.model.SendInRequest
-import no.nav.emottak.utbetaling.MsgHeadUtil
+import no.nav.emottak.utbetaling.msgHeadResponse
 import no.nav.emottak.utbetaling.unmarshal
 import no.nav.emottak.utbetaling.utbetalingXmlMarshaller
 import org.junit.jupiter.api.Test
@@ -37,7 +37,7 @@ class InntektsforesporselTest {
         val finnUtbetalingListeFeil = FinnUtbetalingListeFeil()
         finnUtbetalingListeFeil.finnUtbetalingListebrukerIkkeFunnet = brukerIkkeFunnetException.faultInfo
 
-        val msgHeadResponse = MsgHeadUtil().msgHeadResponse(
+        val msgHeadResponse = msgHeadResponse(
             SendInRequest(
                 "my-message-id",
                 "my-conversation-id",
