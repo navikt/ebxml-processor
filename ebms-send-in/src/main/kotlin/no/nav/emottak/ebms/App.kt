@@ -106,7 +106,7 @@ fun Application.ebmsSendInModule() {
                                 SendInResponse(
                                     request.messageId,
                                     request.conversationId,
-                                    request.addressing.replyTo(request.addressing.service, "InntektInformasjon"), // TODO ser feil ut?
+                                    request.addressing.replyTo(request.addressing.service, "InntektInformasjon"),
                                     utbetalingXmlMarshaller.marshalToByteArray(it)
                                 )
                             )
