@@ -40,7 +40,7 @@ class XmlMarshaller {
     fun marshalToByteArray(objekt: Any): ByteArray {
         return ByteArrayOutputStream().use {
             synchronized(no.nav.emottak.utbetaling.XmlMarshaller.marshlingMonitor) {
-                no.nav.emottak.utbetaling.XmlMarshaller.marshaller.marshal(objekt, it)
+                marshaller.marshal(objekt, it)
             }
             it.toByteArray()
         }
