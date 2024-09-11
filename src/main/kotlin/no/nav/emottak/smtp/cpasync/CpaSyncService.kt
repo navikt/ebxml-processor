@@ -61,8 +61,9 @@ class CpaSyncService(private val cpaRepoClient: HttpClient, private val nfsConne
         val cpaId = getCpaIdFromCpaContent(cpaContent)
 
         if (cpaId == null) {
-            log.warn("Regex to find CPA ID in file ${nfsCpaFile.filename} did not find any match. " +
-                        "File corrupted or wrongful regex. Aborting sync."
+            log.warn(
+                "Regex to find CPA ID in file ${nfsCpaFile.filename} did not find any match. " +
+                    "File corrupted or wrongful regex. Aborting sync."
             )
             return null
         }
