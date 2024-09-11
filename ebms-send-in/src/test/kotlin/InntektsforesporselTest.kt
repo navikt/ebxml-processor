@@ -37,7 +37,9 @@ class InntektsforesporselTest {
         val finnUtbetalingListeFeil = FinnUtbetalingListeFeil()
         finnUtbetalingListeFeil.finnUtbetalingListebrukerIkkeFunnet = brukerIkkeFunnetException.faultInfo
 
+        val msgHeadRequest = utbetalingXmlMarshaller.unmarshal(msgHeadEksempel, MsgHead::class.java)
         val msgHeadResponse = msgHeadResponse(
+            msgHeadRequest,
             SendInRequest(
                 "my-message-id",
                 "my-conversation-id",

@@ -1,6 +1,10 @@
 package no.nav.emottak.utbetaling
 
+import no.kith.xmlstds.msghead._2006_05_24.CS
+import no.kith.xmlstds.msghead._2006_05_24.ConversationRef
+import no.kith.xmlstds.msghead._2006_05_24.Document
 import no.kith.xmlstds.msghead._2006_05_24.MsgHead
+import no.kith.xmlstds.msghead._2006_05_24.RefDoc
 import no.nav.ekstern.virkemiddelokonomi.tjenester.utbetaling.v1.FinnBrukersUtbetalteYtelser
 import no.nav.ekstern.virkemiddelokonomi.tjenester.utbetaling.v1.FinnUtbetalingListe
 import no.nav.ekstern.virkemiddelokonomi.tjenester.utbetaling.v1.FinnUtbetalingListeBaksystemIkkeTilgjengelig
@@ -12,13 +16,16 @@ import no.nav.ekstern.virkemiddelokonomi.tjenester.utbetaling.v1.FinnUtbetalingL
 import no.nav.emottak.cxf.ServiceBuilder
 import no.nav.emottak.melding.model.SendInRequest
 import no.nav.emottak.util.getEnvVar
+import no.nav.emottak.util.toXMLGregorianCalendar
 import org.slf4j.LoggerFactory
 import java.io.FileInputStream
+import java.time.Instant
+import java.util.UUID
 import javax.xml.namespace.QName
 
-object InntektsForesporselClient {
+object UtbetalingClient {
 
-    val log = LoggerFactory.getLogger(InntektsForesporselClient::class.java)
+    val log = LoggerFactory.getLogger(UtbetalingClient::class.java)
 
     val utbetalingObjectFactory: no.nav.ekstern.virkemiddelokonomi.tjenester.utbetaling.v1.ObjectFactory =
         no.nav.ekstern.virkemiddelokonomi.tjenester.utbetaling.v1.ObjectFactory()
@@ -35,8 +42,8 @@ object InntektsForesporselClient {
     val UTBETAL_SOAP_ENDPOINT = RESOLVED_UTBETAL_URL + "/Utbetaling"
 
     fun behandleInntektsforesporsel(sendInRequest: SendInRequest): MsgHead {
-        val msgHead = utbetalingXmlMarshaller.unmarshal(String(sendInRequest.payload), MsgHead::class.java)
-        val melding = msgHead.document.map { it.refDoc.content.any }
+        val msgHeadRequest = utbetalingXmlMarshaller.unmarshal(sendInRequest.payload.toString(Charsets.UTF_8), MsgHead::class.java)
+        val melding = msgHeadRequest.document.map { it.refDoc.content.any }
             .also { if (it.size > 1) log.warn("Inntektsforesporsel refdoc har size >1") }
             .first().also { if (it.size > 1) log.warn("Inntektsforesporsel content har size >1") }.first()
         try {
@@ -45,7 +52,7 @@ object InntektsForesporselClient {
                 is FinnBrukersUtbetalteYtelser -> inntektsforesporselSoapEndpoint.finnBrukersUtbetalteYtelser(melding.request)
                 else -> throw IllegalStateException("Ukjent meldingstype. Classname: " + melding.javaClass.name)
             }
-            return msgHeadResponse(sendInRequest, marshal(response))
+            return msgHeadResponse(msgHeadRequest, sendInRequest, marshal(response))
         } catch (utbetalError: Throwable) {
             log.info("Handling inntektsforesporsel error: " + utbetalError.message)
             val feil = FinnUtbetalingListeFeil()
@@ -63,7 +70,7 @@ object InntektsForesporselClient {
                 else ->
                     throw utbetalError.also { log.error("Ukjent feiltype: " + it.message, it) }
             }
-            return msgHeadResponse(sendInRequest, feil)
+            return msgHeadResponse(msgHeadRequest, sendInRequest, feil)
         }
     }
 }
@@ -91,3 +98,46 @@ val inntektsforesporselSoapEndpoint: no.nav.ekstern.virkemiddelokonomi.tjenester
             }
         )
         .get()
+
+fun msgHeadResponse(incomingMsgHead: MsgHead, sendInRequest: SendInRequest, fagmeldingResponse: Any): MsgHead {
+    return incomingMsgHead.apply {
+        msgInfo.apply {
+            type = CS().apply {
+                dn = "Svar på forespørsel om inntekt"
+                v = "InntektInformasjon"
+            }
+            genDate = Instant.now().toXMLGregorianCalendar()
+            msgId = UUID.randomUUID().toString()
+            ack = CS().apply {
+                v = "N"
+                dn = "Nei"
+            }
+            val newReceiver = sender
+            val newSender = receiver
+            sender.apply { organisation = newSender.organisation }
+            receiver.apply { organisation = newReceiver.organisation }
+            conversationRef = ConversationRef().apply {
+                refToParent = sendInRequest.messageId
+                refToConversation = sendInRequest.conversationId
+            }
+        }
+        document.clear()
+        document.add(
+            Document().apply {
+                refDoc = RefDoc().apply {
+                    msgType = CS().apply {
+                        v = "XML"
+                        dn = "XML-instans"
+                    }
+                    mimeType = "text/xml"
+                    content = RefDoc.Content().apply {
+                        any.add(
+                            fagmeldingResponse
+                        )
+                    }
+                }
+            }
+        )
+        signature = null // TODO? (Dette er ikke "send-in" sin jobb, blir gjort senere)
+    }
+}
