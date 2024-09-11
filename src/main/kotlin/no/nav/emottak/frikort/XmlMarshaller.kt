@@ -1,13 +1,14 @@
 package no.nav.emottak.frikort
 
+import java.io.ByteArrayOutputStream
 import java.io.StringWriter
 import javax.xml.bind.JAXBContext
 import javax.xml.stream.XMLInputFactory
 
-val xmlMarshaller = XmlMarshaller()
+val frikortXmlMarshaller = XmlMarshaller()
 
-fun marshal(objekt: Any) = xmlMarshaller.marshal(objekt)
-fun <T> unmarshal(xml: String, clazz: Class<T>): T = xmlMarshaller.unmarshal(xml, clazz)
+fun marshal(objekt: Any) = frikortXmlMarshaller.marshal(objekt)
+fun <T> unmarshal(xml: String, clazz: Class<T>): T = frikortXmlMarshaller.unmarshal(xml, clazz)
 
 class XmlMarshaller {
 
@@ -34,6 +35,15 @@ class XmlMarshaller {
             marshaller.marshal(objekt, writer)
         }
         return writer.toString()
+    }
+
+    fun marshalToByteArray(objekt: Any): ByteArray {
+        return ByteArrayOutputStream().use {
+            synchronized(no.nav.emottak.utbetaling.XmlMarshaller.marshlingMonitor) {
+                no.nav.emottak.utbetaling.XmlMarshaller.marshaller.marshal(objekt, it)
+            }
+            it.toByteArray()
+        }
     }
 
     fun <T> unmarshal(xml: String, clazz: Class<T>): T {

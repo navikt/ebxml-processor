@@ -26,6 +26,6 @@ fun frikortsporring(fellesformat: EIFellesformat): FrikortsporringResponse = fri
     frikortObjectFactory.createFrikortsporringRequest().also { it.eiFellesformat = fellesformat }
 ).also {
     if (getEnvVar("NAIS_CLUSTER_NAME", "local") != "prod-fss") {
-        log.info("Send in Frikort response " + xmlMarshaller.marshal(it))
+        log.info("Send in Frikort response " + frikortXmlMarshaller.marshal(it))
     }
 }

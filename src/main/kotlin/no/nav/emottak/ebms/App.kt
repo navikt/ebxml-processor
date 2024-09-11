@@ -25,8 +25,8 @@ import no.kith.xmlstds.msghead._2006_05_24.MsgHead
 import no.nav.emottak.auth.AZURE_AD_AUTH
 import no.nav.emottak.auth.AuthConfig
 import no.nav.emottak.fellesformat.wrapMessageInEIFellesFormat
+import no.nav.emottak.frikort.frikortXmlMarshaller
 import no.nav.emottak.frikort.frikortsporring
-import no.nav.emottak.frikort.marshal
 import no.nav.emottak.melding.model.SendInRequest
 import no.nav.emottak.melding.model.SendInResponse
 import no.nav.emottak.utbetaling.InntektsForesporselClient
@@ -119,7 +119,7 @@ fun Application.ebmsSendInModule() {
                                         it.eiFellesformat.mottakenhetBlokk.ebService,
                                         it.eiFellesformat.mottakenhetBlokk.ebAction
                                     ),
-                                    marshal(it.eiFellesformat.msgHead).toByteArray()
+                                    frikortXmlMarshaller.marshalToByteArray(it.eiFellesformat.msgHead)
                                 )
                             )
                     }
