@@ -64,7 +64,7 @@ For å unngå dette må man heller bruke Colima. Under er steg for hvordan:
 2. Sett DOCKER_HOST env-variabel til Colima (mulig dette må reverseres når man bygger andre prosjekter).
    - `export DOCKER_HOST="unix://${HOME}/.colima/default/docker.sock"`
 3. Start Colima med x86_64. 
-   - `colima start --arch x86_64 --memory 4`
+   - `colima start`
 4. Bygg prosjekt/kjør tester.
 
 
