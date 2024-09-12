@@ -1,6 +1,7 @@
 # .git hooks
 
-Copy the hooks directly into `.git/hooks`.
+1. Copy the hooks directly into `.git/hooks`.
+2. Grant the hooks executable permission: `chmod +x .git/hooks/pre-commit` 
 
 ## Why are not .git/hooks included by default?
 - Automatically executing scripts that can be pushed to a repository could be a significant security risk.
