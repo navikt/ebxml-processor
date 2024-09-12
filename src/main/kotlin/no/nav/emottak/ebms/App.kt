@@ -290,7 +290,6 @@ suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbMSDocument) {
                 HeadersBuilder().apply {
                     append(MimeHeaders.CONTENT_TRANSFER_ENCODING, "base64")
                     append(MimeHeaders.CONTENT_TYPE, it.contentType)
-                    append(MimeHeaders.CONTENT_DISPOSITION, "attachment")
                     append(MimeHeaders.CONTENT_ID, "<${it.contentId}>")
                 }.build()
             ).also {
