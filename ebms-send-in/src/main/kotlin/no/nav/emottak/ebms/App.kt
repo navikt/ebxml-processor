@@ -23,13 +23,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import no.nav.emottak.auth.AZURE_AD_AUTH
 import no.nav.emottak.auth.AuthConfig
-import no.nav.emottak.fellesformat.fellesFormatXmlMarshaller
+import no.nav.emottak.fellesformat.FellesFormatXmlMarshaller
 import no.nav.emottak.fellesformat.wrapMessageInEIFellesFormat
 import no.nav.emottak.frikort.frikortsporring
 import no.nav.emottak.melding.model.SendInRequest
 import no.nav.emottak.melding.model.SendInResponse
 import no.nav.emottak.utbetaling.UtbetalingClient
-import no.nav.emottak.utbetaling.utbetalingXmlMarshaller
+import no.nav.emottak.utbetaling.UtbetalingXmlMarshaller
 import no.nav.emottak.util.getEnvVar
 import no.nav.emottak.util.marker
 import no.nav.security.token.support.v2.tokenValidationSupport
@@ -85,7 +85,7 @@ fun Application.ebmsSendInModule() {
                                             request.messageId,
                                             request.conversationId,
                                             request.addressing.replyTo(request.addressing.service, it.msgInfo.type.v),
-                                            utbetalingXmlMarshaller.marshalToByteArray(it)
+                                            UtbetalingXmlMarshaller.marshalToByteArray(it)
                                         )
                                     }
                                 }
@@ -99,7 +99,7 @@ fun Application.ebmsSendInModule() {
                                                 it.eiFellesformat.mottakenhetBlokk.ebService,
                                                 it.eiFellesformat.mottakenhetBlokk.ebAction
                                             ),
-                                            fellesFormatXmlMarshaller.marshalToByteArray(it.eiFellesformat.msgHead)
+                                            FellesFormatXmlMarshaller.marshalToByteArray(it.eiFellesformat.msgHead)
                                         )
                                     }
                                 }
@@ -108,7 +108,7 @@ fun Application.ebmsSendInModule() {
                 }.onSuccess {
                     log.trace(
                         request.marker(),
-                        "Payload ${request.payloadId} videresending til fagsystem ferdig, svar mottatt og returnerert"
+                        "Payload ${request.payloadId} videresending til fagsystem ferdig, svar mottatt og returnert"
                     )
                     call.respond(it)
                 }.onFailure {

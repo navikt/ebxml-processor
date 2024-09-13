@@ -44,7 +44,7 @@ object UtbetalingClient {
     val UTBETAL_SOAP_ENDPOINT = RESOLVED_UTBETAL_URL + "/Utbetaling"
 
     fun behandleInntektsforesporsel(sendInRequest: SendInRequest): MsgHead {
-        val msgHeadRequest = utbetalingXmlMarshaller.unmarshal(sendInRequest.payload.toString(Charsets.UTF_8), MsgHead::class.java)
+        val msgHeadRequest = UtbetalingXmlMarshaller.unmarshal(sendInRequest.payload.toString(Charsets.UTF_8), MsgHead::class.java)
         val melding = msgHeadRequest.document.map { it.refDoc.content.any }
             .also { if (it.size > 1) log.warn("Inntektsforesporsel refdoc har size >1") }
             .first().also { if (it.size > 1) log.warn("Inntektsforesporsel content har size >1") }.first()

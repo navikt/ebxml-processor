@@ -30,7 +30,7 @@ fun wrapMessageInEIFellesFormat(sendInRequest: SendInRequest): EIFellesformat =
         it.msgHead = unmarshal(sendInRequest.payload.toString(Charsets.UTF_8), MsgHead::class.java)
     }.also {
         if (getEnvVar("NAIS_CLUSTER_NAME", "local") != "prod-fss") {
-            log.info("Sending in request with body: " + fellesFormatXmlMarshaller.marshal(it))
+            log.info("Sending in request with body: " + FellesFormatXmlMarshaller.marshal(it))
         }
     }
 
