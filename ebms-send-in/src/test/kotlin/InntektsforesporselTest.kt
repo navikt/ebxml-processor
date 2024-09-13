@@ -8,9 +8,9 @@ import no.nav.emottak.melding.model.EbmsProcessing
 import no.nav.emottak.melding.model.Party
 import no.nav.emottak.melding.model.PartyId
 import no.nav.emottak.melding.model.SendInRequest
+import no.nav.emottak.utbetaling.UtbetalingXmlMarshaller
 import no.nav.emottak.utbetaling.msgHeadResponse
 import no.nav.emottak.utbetaling.unmarshal
-import no.nav.emottak.utbetaling.utbetalingXmlMarshaller
 import org.junit.jupiter.api.Test
 
 class InntektsforesporselTest {
@@ -37,7 +37,7 @@ class InntektsforesporselTest {
         val finnUtbetalingListeFeil = FinnUtbetalingListeFeil()
         finnUtbetalingListeFeil.finnUtbetalingListebrukerIkkeFunnet = brukerIkkeFunnetException.faultInfo
 
-        val msgHeadRequest = utbetalingXmlMarshaller.unmarshal(msgHeadEksempel, MsgHead::class.java)
+        val msgHeadRequest = UtbetalingXmlMarshaller.unmarshal(msgHeadEksempel, MsgHead::class.java)
         val msgHeadResponse = msgHeadResponse(
             msgHeadRequest,
             SendInRequest(
@@ -58,7 +58,7 @@ class InntektsforesporselTest {
         )
 
         val feilElementString = String(
-            utbetalingXmlMarshaller.marshalToByteArray(msgHeadResponse)
+            UtbetalingXmlMarshaller.marshalToByteArray(msgHeadResponse)
         )
         println(feilElementString)
     }

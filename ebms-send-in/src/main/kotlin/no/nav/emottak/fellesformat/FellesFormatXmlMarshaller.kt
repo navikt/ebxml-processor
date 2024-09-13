@@ -1,14 +1,14 @@
-package no.nav.emottak.frikort
+package no.nav.emottak.fellesformat
 
 import java.io.ByteArrayOutputStream
 import java.io.StringWriter
 import javax.xml.bind.JAXBContext
 import javax.xml.stream.XMLInputFactory
 
-val frikortXmlMarshaller = XmlMarshaller()
+val FellesFormatXmlMarshaller = XmlMarshaller()
 
-fun marshal(objekt: Any) = frikortXmlMarshaller.marshal(objekt)
-fun <T> unmarshal(xml: String, clazz: Class<T>): T = frikortXmlMarshaller.unmarshal(xml, clazz)
+fun marshal(objekt: Any) = FellesFormatXmlMarshaller.marshal(objekt)
+fun <T> unmarshal(xml: String, clazz: Class<T>): T = FellesFormatXmlMarshaller.unmarshal(xml, clazz)
 
 class XmlMarshaller {
 
@@ -21,17 +21,16 @@ class XmlMarshaller {
             no.trygdeetaten.xml.eiff._1.ObjectFactory::class.java,
             no.kith.xmlstds.msghead._2006_05_24.ObjectFactory::class.java,
             no.nav.tjeneste.ekstern.frikort.v1.types.ObjectFactory::class.java
-
         )
         private val marshaller = jaxbContext.createMarshaller()
         private val unmarshaller = jaxbContext.createUnmarshaller()
-        private val marshlingMonitor = Any()
-        private val unmarshlingMonitor = Any()
+        private val marshallingMonitor = Any()
+        private val unmarshallingMonitor = Any()
     }
 
     fun marshal(objekt: Any): String {
         val writer = StringWriter()
-        synchronized(marshlingMonitor) {
+        synchronized(marshallingMonitor) {
             marshaller.marshal(objekt, writer)
         }
         return writer.toString()
@@ -39,7 +38,7 @@ class XmlMarshaller {
 
     fun marshalToByteArray(objekt: Any): ByteArray {
         return ByteArrayOutputStream().use {
-            synchronized(marshlingMonitor) {
+            synchronized(marshallingMonitor) {
                 marshaller.marshal(objekt, it)
             }
             it.toByteArray()
@@ -48,7 +47,7 @@ class XmlMarshaller {
 
     fun <T> unmarshal(xml: String, clazz: Class<T>): T {
         val reader = XMLInputFactory.newInstance().createXMLStreamReader(xml.reader())
-        return synchronized(unmarshlingMonitor) {
+        return synchronized(unmarshallingMonitor) {
             unmarshaller.unmarshal(reader, clazz).value
         }
     }
