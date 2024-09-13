@@ -1,14 +1,14 @@
-package no.nav.emottak.frikort
+package no.nav.emottak.fellesformat
 
 import java.io.ByteArrayOutputStream
 import java.io.StringWriter
 import javax.xml.bind.JAXBContext
 import javax.xml.stream.XMLInputFactory
 
-val frikortXmlMarshaller = XmlMarshaller()
+val fellesFormatXmlMarshaller = XmlMarshaller()
 
-fun marshal(objekt: Any) = frikortXmlMarshaller.marshal(objekt)
-fun <T> unmarshal(xml: String, clazz: Class<T>): T = frikortXmlMarshaller.unmarshal(xml, clazz)
+fun marshal(objekt: Any) = fellesFormatXmlMarshaller.marshal(objekt)
+fun <T> unmarshal(xml: String, clazz: Class<T>): T = fellesFormatXmlMarshaller.unmarshal(xml, clazz)
 
 class XmlMarshaller {
 

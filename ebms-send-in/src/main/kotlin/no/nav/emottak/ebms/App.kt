@@ -23,8 +23,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import no.nav.emottak.auth.AZURE_AD_AUTH
 import no.nav.emottak.auth.AuthConfig
+import no.nav.emottak.fellesformat.fellesFormatXmlMarshaller
 import no.nav.emottak.fellesformat.wrapMessageInEIFellesFormat
-import no.nav.emottak.frikort.frikortXmlMarshaller
 import no.nav.emottak.frikort.frikortsporring
 import no.nav.emottak.melding.model.SendInRequest
 import no.nav.emottak.melding.model.SendInResponse
@@ -99,7 +99,7 @@ fun Application.ebmsSendInModule() {
                                                 it.eiFellesformat.mottakenhetBlokk.ebService,
                                                 it.eiFellesformat.mottakenhetBlokk.ebAction
                                             ),
-                                            frikortXmlMarshaller.marshalToByteArray(it.eiFellesformat.msgHead)
+                                            fellesFormatXmlMarshaller.marshalToByteArray(it.eiFellesformat.msgHead)
                                         )
                                     }
                                 }

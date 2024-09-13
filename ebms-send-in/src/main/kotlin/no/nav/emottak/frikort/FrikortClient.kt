@@ -2,6 +2,7 @@ package no.nav.emottak.frikort
 
 import no.nav.emottak.cxf.ServiceBuilder
 import no.nav.emottak.ebms.log
+import no.nav.emottak.fellesformat.fellesFormatXmlMarshaller
 import no.nav.emottak.util.getEnvVar
 import no.nav.tjeneste.ekstern.frikort.v1.FrikortV1Port
 import no.nav.tjeneste.ekstern.frikort.v1.types.FrikortsporringResponse
@@ -26,6 +27,6 @@ fun frikortsporring(fellesformat: EIFellesformat): FrikortsporringResponse = fri
     frikortObjectFactory.createFrikortsporringRequest().also { it.eiFellesformat = fellesformat }
 ).also {
     if (getEnvVar("NAIS_CLUSTER_NAME", "local") != "prod-fss") {
-        log.info("Send in Frikort response " + frikortXmlMarshaller.marshal(it))
+        log.info("Send in Frikort response " + fellesFormatXmlMarshaller.marshal(it))
     }
 }

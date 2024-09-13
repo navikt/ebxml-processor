@@ -2,8 +2,6 @@ package no.nav.emottak.fellesformat
 
 import no.kith.xmlstds.msghead._2006_05_24.MsgHead
 import no.nav.emottak.ebms.log
-import no.nav.emottak.frikort.frikortXmlMarshaller
-import no.nav.emottak.frikort.unmarshal
 import no.nav.emottak.melding.model.Addressing
 import no.nav.emottak.melding.model.Party
 import no.nav.emottak.melding.model.PartyId
@@ -32,7 +30,7 @@ fun wrapMessageInEIFellesFormat(sendInRequest: SendInRequest): EIFellesformat =
         it.msgHead = unmarshal(sendInRequest.payload.toString(Charsets.UTF_8), MsgHead::class.java)
     }.also {
         if (getEnvVar("NAIS_CLUSTER_NAME", "local") != "prod-fss") {
-            log.info("Sending in request to frikort with body " + frikortXmlMarshaller.marshal(it))
+            log.info("Sending in request with body: " + fellesFormatXmlMarshaller.marshal(it))
         }
     }
 
