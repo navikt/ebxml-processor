@@ -28,6 +28,7 @@ import no.nav.emottak.fellesformat.wrapMessageInEIFellesFormat
 import no.nav.emottak.frikort.frikortsporring
 import no.nav.emottak.melding.model.SendInRequest
 import no.nav.emottak.melding.model.SendInResponse
+import no.nav.emottak.pasientliste.PasientlisteClient
 import no.nav.emottak.utbetaling.UtbetalingClient
 import no.nav.emottak.utbetaling.UtbetalingXmlMarshaller
 import no.nav.emottak.util.getEnvVar
@@ -89,20 +90,39 @@ fun Application.ebmsSendInModule() {
                                         )
                                     }
                                 }
-                            else ->
-                                timed(appMicrometerRegistry, "frikort-sporing") {
-                                    frikortsporring(wrapMessageInEIFellesFormat(request)).let {
-                                        SendInResponse(
-                                            request.messageId,
-                                            request.conversationId,
-                                            request.addressing.replyTo(
-                                                it.eiFellesformat.mottakenhetBlokk.ebService,
-                                                it.eiFellesformat.mottakenhetBlokk.ebAction
-                                            ),
-                                            FellesFormatXmlMarshaller.marshalToByteArray(it.eiFellesformat.msgHead)
-                                        )
-                                    }
+                            "HarBorgerEgenandelFritak", "HarBorgerFrikort" -> timed(appMicrometerRegistry, "frikort-sporing") {
+                                frikortsporring(wrapMessageInEIFellesFormat(request)).let {
+                                    SendInResponse(
+                                        request.messageId,
+                                        request.conversationId,
+                                        request.addressing.replyTo(
+                                            it.eiFellesformat.mottakenhetBlokk.ebService,
+                                            it.eiFellesformat.mottakenhetBlokk.ebAction
+                                        ),
+                                        FellesFormatXmlMarshaller.marshalToByteArray(it.eiFellesformat.msgHead)
+                                    )
                                 }
+                            }
+                            "PasientlisteForesporsel" -> timed(appMicrometerRegistry, "PasientlisteForesporsel") {
+                                if (getEnvVar("NAIS_CLUSTER_NAME", "local") == "prod-fss") {
+                                    throw NotImplementedError("PasientlisteForesporsel is used in prod. Feature is not ready. Aborting.")
+                                }
+
+                                PasientlisteClient.hentPasientListe(request).let {
+                                    SendInResponse(
+                                        request.messageId,
+                                        request.conversationId,
+                                        request.addressing.replyTo(
+                                            it.mottakenhetBlokk.ebService,
+                                            it.mottakenhetBlokk.ebAction
+                                        ),
+                                        FellesFormatXmlMarshaller.marshalToByteArray(it.msgHead)
+                                    )
+                                }
+                            }
+                            else -> {
+                                throw NotImplementedError("Service: ${request.addressing.service} is not implemented")
+                            }
                         }
                     }
                 }.onSuccess {
