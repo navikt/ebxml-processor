@@ -8,10 +8,10 @@ import java.io.StringWriter
 import javax.xml.bind.JAXBContext
 import javax.xml.stream.XMLInputFactory
 
-val utbetalingXmlMarshaller = XmlMarshaller()
+val UtbetalingXmlMarshaller = XmlMarshaller()
 
-fun marshal(objekt: Any) = utbetalingXmlMarshaller.marshal(objekt)
-fun <T> unmarshal(xml: String, clazz: Class<T>): T = utbetalingXmlMarshaller.unmarshal(xml, clazz)
+fun marshal(objekt: Any) = UtbetalingXmlMarshaller.marshal(objekt)
+fun <T> unmarshal(xml: String, clazz: Class<T>): T = UtbetalingXmlMarshaller.unmarshal(xml, clazz)
 
 class XmlMarshaller {
 
