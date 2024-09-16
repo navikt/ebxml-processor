@@ -4,7 +4,9 @@ import no.kith.xmlstds.msghead._2006_05_24.CS
 import no.kith.xmlstds.msghead._2006_05_24.ConversationRef
 import no.kith.xmlstds.msghead._2006_05_24.Document
 import no.kith.xmlstds.msghead._2006_05_24.MsgHead
+import no.kith.xmlstds.msghead._2006_05_24.Receiver
 import no.kith.xmlstds.msghead._2006_05_24.RefDoc
+import no.kith.xmlstds.msghead._2006_05_24.Sender
 import no.nav.ekstern.virkemiddelokonomi.tjenester.utbetaling.v1.FinnBrukersUtbetalteYtelser
 import no.nav.ekstern.virkemiddelokonomi.tjenester.utbetaling.v1.FinnUtbetalingListe
 import no.nav.ekstern.virkemiddelokonomi.tjenester.utbetaling.v1.FinnUtbetalingListeBaksystemIkkeTilgjengelig
@@ -99,6 +101,20 @@ val inntektsforesporselSoapEndpoint: no.nav.ekstern.virkemiddelokonomi.tjenester
         )
         .get()
 
+fun senderToReceiver(sender: Sender): Receiver {
+    val receiver = Receiver()
+    receiver.organisation = sender.organisation
+    receiver.comMethod = sender.comMethod
+    return receiver
+}
+
+fun receiverToSender(receiver: Receiver): Sender {
+    val sender = Sender()
+    sender.organisation = receiver.organisation
+    sender.comMethod = receiver.comMethod
+    return sender
+}
+
 fun msgHeadResponse(incomingMsgHead: MsgHead, sendInRequest: SendInRequest, fagmeldingResponse: Any): MsgHead {
     return incomingMsgHead.apply {
         msgInfo.apply {
@@ -112,10 +128,10 @@ fun msgHeadResponse(incomingMsgHead: MsgHead, sendInRequest: SendInRequest, fagm
                 v = "N"
                 dn = "Nei"
             }
-            val newReceiver = sender
-            val newSender = receiver
-            sender.apply { organisation = newSender.organisation }
-            receiver.apply { organisation = newReceiver.organisation }
+            val newReceiver = senderToReceiver(sender)
+            val newSender = receiverToSender(receiver)
+            sender = newSender
+            receiver = newReceiver
             conversationRef = ConversationRef().apply {
                 refToParent = sendInRequest.messageId
                 refToConversation = sendInRequest.conversationId
