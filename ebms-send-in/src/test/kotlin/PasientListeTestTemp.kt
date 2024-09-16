@@ -7,13 +7,11 @@ import no.nav.emottak.melding.model.EbmsProcessing
 import no.nav.emottak.melding.model.Party
 import no.nav.emottak.melding.model.PartyId
 import no.nav.emottak.melding.model.SendInRequest
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
 class PasientListeTestTemp {
 
     @Test
-    @Disabled
     fun `Build request`() {
         val processedPayload = this::class.java.classLoader
             .getResourceAsStream("hentpasientliste/hentpasientliste-payload.xml")!!.readAllBytes()
@@ -60,7 +58,6 @@ class PasientListeTestTemp {
     }
 
     @Test
-    @Disabled
     fun marshalBase64Payload() {
         val processedPayload = this::class.java.classLoader
             .getResourceAsStream("hentpasientliste/hentpasientliste-payload.xml")!!.readAllBytes()

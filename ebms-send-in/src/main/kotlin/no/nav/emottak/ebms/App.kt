@@ -102,7 +102,11 @@ fun Application.ebmsSendInModule() {
                                         )
                                     }
                                 }
-                            "HarBorgerEgenandelFritak", "HarBorgerFrikort" -> timed(appMicrometerRegistry, "frikort-sporing") {
+
+                            "HarBorgerEgenandelFritak", "HarBorgerFrikort" -> timed(
+                                appMicrometerRegistry,
+                                "frikort-sporing"
+                            ) {
                                 frikortsporring(wrapMessageInEIFellesFormat(request)).let {
                                     SendInResponse(
                                         request.messageId,
@@ -115,12 +119,21 @@ fun Application.ebmsSendInModule() {
                                     )
                                 }
                             }
+
                             "PasientlisteForesporsel" -> timed(appMicrometerRegistry, "PasientlisteForesporsel") {
                                 if (getEnvVar("NAIS_CLUSTER_NAME", "local") == "prod-fss") {
                                     throw NotImplementedError("PasientlisteForesporsel is used in prod. Feature is not ready. Aborting.")
                                 }
 
                                 PasientlisteClient.hentPasientListe(request).let {
+                                    val payload = if (it.appRec != null) {
+                                        log.info("PasientlisteClient.hentPasientListe: Found AppRec in response")
+                                        FellesFormatXmlMarshaller.marshalToByteArray(it.appRec)
+                                    } else {
+                                        log.info("PasientlisteClient.hentPasientListe: No AppRec in response")
+                                        FellesFormatXmlMarshaller.marshalToByteArray(it.msgHead)
+                                    }
+
                                     SendInResponse(
                                         request.messageId,
                                         request.conversationId,
@@ -128,10 +141,11 @@ fun Application.ebmsSendInModule() {
                                             it.mottakenhetBlokk.ebService,
                                             it.mottakenhetBlokk.ebAction
                                         ),
-                                        FellesFormatXmlMarshaller.marshalToByteArray(it.msgHead)
+                                        payload
                                     )
                                 }
                             }
+
                             else -> {
                                 throw NotImplementedError("Service: ${request.addressing.service} is not implemented")
                             }
