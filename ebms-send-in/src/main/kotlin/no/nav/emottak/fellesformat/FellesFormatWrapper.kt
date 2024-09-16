@@ -40,15 +40,15 @@ private fun createFellesFormatMottakEnhetBlokk(mottaksId: String, conversationId
         it.ebAction = addressing.action
         it.ebService = addressing.service
         it.ebRole = addressing.from.role
-        it.avsender = "TODO"
-        it.avsenderRef = "TODO"
+        it.avsender = "1"
+        it.avsenderRef = "2"
         it.mottaksId = mottaksId
         it.mottattDatotid = Instant.now().toXMLGregorianCalendar()
-        it.ediLoggId = "TODO"
-        it.avsenderFnrFraDigSignatur = "TODO"
-        it.avsenderOrgNrFraDigSignatur = "TODO"
-        it.herIdentifikator = "TODO"
-        it.orgNummer = "TODO"
-        it.meldingsType = "TODO"
-        it.partnerReferanse = "TODO"
+        it.ediLoggId = "3"
+        it.avsenderFnrFraDigSignatur = "4"
+        it.avsenderOrgNrFraDigSignatur = "5"
+        it.herIdentifikator = "6"
+        it.orgNummer = "7"
+        it.meldingsType = "8"
+        it.partnerReferanse = "9"
     }
