@@ -6,6 +6,8 @@ import io.ktor.client.request.basicAuth
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
 import kotlinx.coroutines.runBlocking
 import no.nav.emottak.ebms.log
 import no.nav.emottak.fellesformat.FellesFormatXmlMarshaller
@@ -20,12 +22,14 @@ object PasientlisteClient {
         val username = String(FileInputStream("/secret/serviceuser/username").readAllBytes())
         val password = String(FileInputStream("/secret/serviceuser/password").readAllBytes())
         val fellesformat = wrapMessageInEIFellesFormat(request)
+        val marshalledFellesformat = FellesFormatXmlMarshaller.marshal(fellesformat)
         val httpClient = HttpClient(CIO)
 
         val result = runBlocking {
             try {
                 httpClient.post(url) {
-                    setBody(fellesformat)
+                    setBody(marshalledFellesformat)
+                    contentType(ContentType.Application.Xml)
                     basicAuth(username, password)
                 }.bodyAsText()
             } catch (e: Exception) {
