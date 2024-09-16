@@ -6,8 +6,6 @@ import io.ktor.client.request.basicAuth
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
-import io.ktor.http.ContentType
-import io.ktor.http.contentType
 import kotlinx.coroutines.runBlocking
 import no.nav.emottak.ebms.log
 import no.nav.emottak.fellesformat.FellesFormatXmlMarshaller
@@ -29,7 +27,6 @@ object PasientlisteClient {
                 httpClient.post(url) {
                     setBody(fellesformat)
                     basicAuth(username, password)
-                    contentType(ContentType.Application.Xml)
                 }.bodyAsText()
             } catch (e: Exception) {
                 log.error("PasientlisteForesporsel error", e)
