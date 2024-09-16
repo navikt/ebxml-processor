@@ -39,6 +39,7 @@ import org.slf4j.LoggerFactory
 internal val log = LoggerFactory.getLogger("no.nav.emottak.ebms.App")
 
 fun main() {
+    log.info("temp: ebms-send-in started")
     // val database = Database(mapHikariConfig(DatabaseConfig()))
     // database.migrate()
 
@@ -55,6 +56,8 @@ fun <T> timed(meterRegistry: PrometheusMeterRegistry, metricName: String, proces
         }
 
 fun Application.ebmsSendInModule() {
+    log.info("temp: Configuring ebmsSendInModule")
+
     install(ContentNegotiation) {
         json()
     }
@@ -72,9 +75,18 @@ fun Application.ebmsSendInModule() {
     }
 
     routing {
+        log.info("temp: routing")
         authenticate(AZURE_AD_AUTH) {
+            log.info("temp: authenticate")
             post("/fagmelding/synkron") {
-                val request = this.call.receive(SendInRequest::class)
+                log.info("temp: /fagmelding/synkron endpoint hit")
+
+                val request = try {
+                    this.call.receive(SendInRequest::class)
+                } catch (e: Exception) {
+                    log.error("Mapping error: " + e.printStackTrace())
+                    throw e
+                }
                 runCatching {
                     log.info(request.marker(), "Payload ${request.payloadId} videresendes til fagsystem")
                     withContext(Dispatchers.IO) {
