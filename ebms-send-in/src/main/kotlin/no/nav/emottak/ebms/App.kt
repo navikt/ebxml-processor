@@ -126,14 +126,6 @@ fun Application.ebmsSendInModule() {
                                 }
 
                                 PasientlisteClient.hentPasientListe(request).let {
-                                    val payload = if (it.appRec != null) {
-                                        log.info("PasientlisteClient.hentPasientListe: Found AppRec in response")
-                                        FellesFormatXmlMarshaller.marshalToByteArray(it.appRec)
-                                    } else {
-                                        log.info("PasientlisteClient.hentPasientListe: No AppRec in response")
-                                        FellesFormatXmlMarshaller.marshalToByteArray(it.msgHead)
-                                    }
-
                                     SendInResponse(
                                         request.messageId,
                                         request.conversationId,
@@ -141,7 +133,7 @@ fun Application.ebmsSendInModule() {
                                             it.mottakenhetBlokk.ebService,
                                             it.mottakenhetBlokk.ebAction
                                         ),
-                                        payload
+                                        FellesFormatXmlMarshaller.marshalToByteArray(it.appRec)
                                     )
                                 }
                             }
