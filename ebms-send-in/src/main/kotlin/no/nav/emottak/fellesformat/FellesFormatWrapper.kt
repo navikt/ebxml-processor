@@ -41,7 +41,7 @@ private fun createFellesFormatMottakEnhetBlokk(mottaksId: String, conversationId
         it.ebService = addressing.service
         it.ebRole = addressing.from.role
         it.avsender = "TODO1" // Hentes fra from. Må være dynamisk basert på relevant informasjon?
-        it.avsenderRef = "TODO2" // En ID som f.eks er generert fra kilde.
+        it.avsenderRef = "" // Hentet fra Cert: Eksempelverdi: "SERIALNUMBER=132547698, CN=Blå &amp; Bjørnebær AS, O=Blå &amp; Bjørnebær AS, C=NO"
         it.mottaksId = mottaksId
         it.mottattDatotid = Instant.now().toXMLGregorianCalendar()
         it.ediLoggId = mottaksId
@@ -49,6 +49,6 @@ private fun createFellesFormatMottakEnhetBlokk(mottaksId: String, conversationId
         it.avsenderOrgNrFraDigSignatur = "TODO4"
         it.herIdentifikator = "TODO5" // HER id fra Avsender
         it.orgNummer = "TODO6" //  Fra avsender
-        it.meldingsType = "TODO7" // Pasientliste eller AppRec. Se kolonne D.
-        it.partnerReferanse = "TODO8"
+        it.meldingsType = "xml"
+        it.partnerReferanse = "" // må være int (eller tom?)
     }
