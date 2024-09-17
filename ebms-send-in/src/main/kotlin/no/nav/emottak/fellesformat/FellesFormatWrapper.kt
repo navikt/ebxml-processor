@@ -50,5 +50,5 @@ private fun createFellesFormatMottakEnhetBlokk(mottaksId: String, conversationId
         it.herIdentifikator = "TODO5" // HER id fra Avsender
         it.orgNummer = "TODO6" //  Fra avsender
         it.meldingsType = "xml"
-        it.partnerReferanse = "" // må være int (eller tom?)
+//        it.partnerReferanse = "" // må være int (eller tom?)
     }
