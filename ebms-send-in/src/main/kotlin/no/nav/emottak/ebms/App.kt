@@ -75,9 +75,7 @@ fun Application.ebmsSendInModule() {
     }
 
     routing {
-        log.info("temp: routing")
         authenticate(AZURE_AD_AUTH) {
-            log.info("temp: authenticate")
             post("/fagmelding/synkron") {
                 log.info("temp: /fagmelding/synkron endpoint hit")
 
@@ -125,7 +123,15 @@ fun Application.ebmsSendInModule() {
                                     throw NotImplementedError("PasientlisteForesporsel is used in prod. Feature is not ready. Aborting.")
                                 }
 
-                                PasientlisteClient.hentPasientListe(request).let {
+                                PasientlisteClient.behandlePasientlisteForesporsel(request).let {
+                                    val payload = if (it.appRec != null) {
+                                        log.info("PasientlisteClient.hentPasientListe: Found AppRec in response")
+                                        FellesFormatXmlMarshaller.marshalToByteArray(it.appRec)
+                                    } else {
+                                        log.info("PasientlisteClient.hentPasientListe: No AppRec in response")
+                                        FellesFormatXmlMarshaller.marshalToByteArray(it.msgHead)
+                                    }
+
                                     SendInResponse(
                                         request.messageId,
                                         request.conversationId,
@@ -133,7 +139,7 @@ fun Application.ebmsSendInModule() {
                                             it.mottakenhetBlokk.ebService,
                                             it.mottakenhetBlokk.ebAction
                                         ),
-                                        FellesFormatXmlMarshaller.marshalToByteArray(it.appRec)
+                                        payload
                                     )
                                 }
                             }

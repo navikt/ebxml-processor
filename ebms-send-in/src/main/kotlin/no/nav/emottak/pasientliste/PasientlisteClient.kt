@@ -17,7 +17,7 @@ import no.trygdeetaten.xml.eiff._1.EIFellesformat
 import java.io.FileInputStream
 
 object PasientlisteClient {
-    fun hentPasientListe(request: SendInRequest): EIFellesformat {
+    fun behandlePasientlisteForesporsel(request: SendInRequest): EIFellesformat {
         val url = "https://wasapp-q1.adeo.no/nav-emottak-practitioner-web/remoting/httpreqhandler-practitioner"
         val username = String(FileInputStream("/secret/serviceuser/username").readAllBytes())
         val password = String(FileInputStream("/secret/serviceuser/password").readAllBytes())
@@ -40,12 +40,10 @@ object PasientlisteClient {
             }
         }
 
-        log.info("HentPasientListe result: {}", result)
-
-        // Not sure if this makes sense yet
+        log.info("PasientlisteForesporsel result: {}", result)
         val unmarshalledResult = FellesFormatXmlMarshaller.unmarshal(result, EIFellesformat::class.java)
 
-        log.info("HentPasientListe unmarshalled result: {}", unmarshalledResult)
+        log.info("PasientlisteForesporsel unmarshalled result: {}", unmarshalledResult)
 
         return unmarshalledResult
     }

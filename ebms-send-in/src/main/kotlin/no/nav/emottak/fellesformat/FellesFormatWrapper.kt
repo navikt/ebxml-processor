@@ -40,15 +40,15 @@ private fun createFellesFormatMottakEnhetBlokk(mottaksId: String, conversationId
         it.ebAction = addressing.action
         it.ebService = addressing.service
         it.ebRole = addressing.from.role
-        it.avsender = "1"
-        it.avsenderRef = "2"
+//        it.avsender = "TODO1" // Hentes fra from. Må være dynamisk basert på relevant informasjon?
+//        it.avsenderRef = "TODO2" // En ID som f.eks er generert fra kilde.
         it.mottaksId = mottaksId
         it.mottattDatotid = Instant.now().toXMLGregorianCalendar()
-        it.ediLoggId = "3"
-        it.avsenderFnrFraDigSignatur = "4"
-        it.avsenderOrgNrFraDigSignatur = "5"
-        it.herIdentifikator = "6"
-        it.orgNummer = "7"
-        it.meldingsType = "8"
-        it.partnerReferanse = "9"
+        it.ediLoggId = mottaksId
+//        it.avsenderFnrFraDigSignatur = "TODO3" // OCSB (Buypass)
+//        it.avsenderOrgNrFraDigSignatur = "TODO4"
+//        it.herIdentifikator = "TODO5" //HER id fra Avsender
+//        it.orgNummer = "TODO6" //  Fra avsender
+//        it.meldingsType = "TODO7" // Pasientliste eller AppRec. Se kolonne D.
+//        it.partnerReferanse = "TODO8" //
     }
