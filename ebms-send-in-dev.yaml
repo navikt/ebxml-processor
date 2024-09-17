@@ -51,8 +51,8 @@ spec:
       rules:
         - application: ebms-provider
         - application: azure-token-generator
-          namespace: team-emottak
-          cluster: dev-fss
+          namespace: aura
+          cluster: dev-gcp
   env:
     - name: FRIKORT_URL
       value: https://wasapp-q1.adeo.no/nav-frikort/tjenestereksterne
