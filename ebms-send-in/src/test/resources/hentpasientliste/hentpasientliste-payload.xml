@@ -16,14 +16,10 @@
                     <TypeId V="HER" DN="HER-id" S="2.16.578.1.12.4.1.1.9051"/>
                 </Ident>
                 <HealthcareProfessional>
-                    <FamilyName>Davotine Dr KerekesFamily</FamilyName>
-                    <GivenName>Kinga Valeria</GivenName>
+                    <FamilyName>Toska</FamilyName>
+                    <GivenName>Emil</GivenName>
                     <Ident>
-                        <Id>9124063</Id>
-                        <TypeId V="HER" DN="HER-id" S="2.16.578.1.12.4.1.1.8116"/>
-                    </Ident>
-                    <Ident>
-                        <Id>29057026241</Id>
+                        <Id>17087000133</Id>
                         <TypeId DN="Fødselsnummer" S="2.16.578.1.12.4.1.1.8116" V="FNR"/>
                     </Ident>
                 </HealthcareProfessional>
@@ -52,7 +48,7 @@
             <Content>
                 <ep2:PasientlisteForesporsel xmlns:ep2="http://www.kith.no/xmlstds/nav/pasientliste/2010-02-01">
                     <ep2:HentPasientliste>
-                        <ep2:FnrLege>29057026241</ep2:FnrLege>
+                        <ep2:FnrLege>17087000133</ep2:FnrLege>
                         <ep2:KommuneNr>0301</ep2:KommuneNr>
                         <ep2:Format DN="PasientInformasjon" V="PI"/>
                     </ep2:HentPasientliste>
@@ -71,14 +67,14 @@
                     <dsig:Transform Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"></dsig:Transform>
                 </dsig:Transforms>
                 <dsig:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"></dsig:DigestMethod>
-                <dsig:DigestValue>GrQUqN6hkZWUybcLSS20Cahw1TiP8ei3M9+FJQ/8Yx8=</dsig:DigestValue>
+                <dsig:DigestValue>YcNcAnTeHNLKvU38/aurCUppyv9bLhatfroV4OodtP4=</dsig:DigestValue>
             </dsig:Reference>
         </dsig:SignedInfo>
-        <dsig:SignatureValue>KXfBnaPWjd36ZRsac3If9IiHovCjRn9Skv2Q/r4HCFxykxPh/EUTFG06Ev5jeqEdhmkHh5al
-            kg9ZJ+/n+5zhFt0IfdHb8lNmdLYsnONq+rnPjFX6uWFmHALk3uFxoLJzHyunbAc1W8Yyj4i+
-            X2OaMnIpnjSsCxHwZIJmmacrSRi/SAjupclqqDQimRaXSKH6ylyslMLfYcVFaBO42/7nPd3X
-            mPklKYNJvony23Z+1tKFpyMMr3Mgm0EULC8FP5CDrMsi+ItOtX3OOvQVwVZLZVvzMoLL1pBt
-            25fuPfEaSmU+wuL+9TjqwWf7HtmWfzdy/AhtkNnXWBkJ0H3EOOoMKA==
+        <dsig:SignatureValue>RucQnGbNf2pRTDnDBhRN+S46oCj1nUedDkVgQsWRbX/7pjwS+B/RprcGqIeAMqEDOJW9CJJF
+            M58exQ/s/Ke1qP+3Dhrw5HZtLc4spBblfKk4hENCphICcFsRTv5Aw7hVqk/VsMBR2YfQahwf
+            JjTZ75SIrmYbG3dzy+x60FOqN71nPFF9+Gi10Dn4Oymh1W0ttttBegkumhnx5MQ2dD+MkXGe
+            +yIqfbZk4ADyRxBno+QfOjgpmPhYRiHCE2y2eWgLoS3yxZKpun1+OK4/aZymtBxfTLlG4dlK
+            wnL+QbkjwQHqsyiyMtMS/FvEADb64mcWi7GXRe2sxekBEhZoNh8HLQ==
         </dsig:SignatureValue>
         <dsig:KeyInfo>
             <dsig:X509Data>

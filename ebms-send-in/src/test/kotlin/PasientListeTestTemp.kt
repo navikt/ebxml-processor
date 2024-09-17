@@ -7,28 +7,24 @@ import no.nav.emottak.melding.model.EbmsProcessing
 import no.nav.emottak.melding.model.Party
 import no.nav.emottak.melding.model.PartyId
 import no.nav.emottak.melding.model.SendInRequest
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
 class PasientListeTestTemp {
-
-    @Test
-    @Disabled
-    fun `Build request`() {
+    private fun createSendInRequest(): SendInRequest {
         val processedPayload = this::class.java.classLoader
             .getResourceAsStream("hentpasientliste/hentpasientliste-payload.xml")!!.readAllBytes()
 
-        val sendInRequest = SendInRequest(
-            messageId = "90e65f73-1622-4c5a-84df-cac621e67858",
-            conversationId = "a1d4e6c8-25f0-47f8-ad49-8bad23842ef3",
-            payloadId = "cid:attachment-1-90e65f73-1622-4c5a-84df-cac621e67858",
+        return SendInRequest(
+            messageId = "0fbf83c3-03e1-4698-a134-cc61ac5498e0",
+            conversationId = "5b24c5cd-22e6-4224-a734-4e813f107e89",
+            payloadId = "attachment-1-0fbf83c3-03e1-4698-a134-cc61ac5498e0",
             payload = processedPayload,
             addressing = Addressing(
                 to = Party(
                     listOf(
                         PartyId(
                             type = "HER",
-                            value = "79768" // NAV
+                            value = "79768"
                         )
                     ),
                     "Fastlegeregister"
@@ -49,6 +45,11 @@ class PasientListeTestTemp {
                 test = "123"
             )
         )
+    }
+
+    @Test
+    fun `Build request`() {
+        val sendInRequest = createSendInRequest()
 
         val prettyJson = Json {
             prettyPrint = true
@@ -60,49 +61,14 @@ class PasientListeTestTemp {
     }
 
     @Test
-    @Disabled
     fun marshalBase64Payload() {
-        val processedPayload = this::class.java.classLoader
-            .getResourceAsStream("hentpasientliste/hentpasientliste-payload.xml")!!.readAllBytes()
-
-        val sendInRequest = SendInRequest(
-            messageId = "90e65f73-1622-4c5a-84df-cac621e67858",
-            conversationId = "a1d4e6c8-25f0-47f8-ad49-8bad23842ef3",
-            payloadId = "cid:attachment-1-90e65f73-1622-4c5a-84df-cac621e67858",
-            payload = processedPayload,
-            addressing = Addressing(
-                to = Party(
-                    listOf(
-                        PartyId(
-                            type = "HER",
-                            value = "79768" // NAV
-                        )
-                    ),
-                    "Fastlegeregister"
-                ),
-                from = Party(
-                    listOf(
-                        PartyId(
-                            type = "HER",
-                            value = "8140996"
-                        )
-                    ),
-                    "Fastlege"
-                ),
-                service = "PasientlisteForesporsel",
-                action = "HentPasientliste"
-            ),
-            ebmsProcessing = EbmsProcessing(
-                test = "123"
-            )
-        )
-
+        val sendInRequest = createSendInRequest()
         val fellesFormat = wrapMessageInEIFellesFormat(sendInRequest)
-        print("Here is marshalled fellesformat: " + marshal(fellesFormat))
+
+        println(marshal(fellesFormat))
     }
 
     @Test
-    @Disabled
     fun readByteArrayToString() {
         val payloadAsByteArray = byteArrayOf(
             60,
@@ -767,17 +733,17 @@ class PasientListeTestTemp {
             54,
             84,
             49,
-            52,
-            58,
-            53,
-            51,
-            58,
-            52,
-            50,
-            46,
             54,
+            58,
+            48,
+            54,
+            58,
+            51,
             53,
+            46,
+            48,
             55,
+            53,
             43,
             48,
             50,
@@ -806,42 +772,42 @@ class PasientListeTestTemp {
             73,
             100,
             62,
-            51,
-            57,
-            102,
-            97,
+            101,
+            55,
+            49,
+            55,
             53,
-            53,
-            98,
-            48,
-            45,
-            97,
-            98,
-            56,
-            51,
-            45,
-            52,
-            51,
-            56,
             50,
-            45,
-            97,
-            101,
-            52,
-            101,
-            45,
-            53,
+            51,
             100,
-            99,
-            99,
-            51,
-            98,
-            98,
-            55,
-            55,
-            51,
+            45,
+            52,
             50,
+            50,
+            57,
+            45,
+            52,
+            97,
+            99,
+            97,
+            45,
+            57,
+            101,
+            100,
+            51,
+            45,
             48,
+            56,
+            50,
+            54,
+            56,
+            102,
+            99,
+            57,
+            100,
+            52,
+            51,
+            97,
             60,
             47,
             110,
@@ -1303,45 +1269,16 @@ class PasientListeTestTemp {
             109,
             101,
             62,
-            75,
-            105,
-            110,
-            103,
-            97,
-            32,
-            86,
-            97,
-            108,
-            101,
-            114,
-            105,
-            97,
-            32,
-            68,
-            97,
-            118,
-            111,
-            116,
-            105,
-            110,
-            101,
-            32,
-            68,
-            114,
-            32,
-            75,
-            101,
-            114,
-            101,
-            107,
-            101,
-            115,
-            70,
-            97,
+            69,
             109,
             105,
             108,
-            121,
+            32,
+            84,
+            111,
+            115,
+            107,
+            97,
             60,
             47,
             110,
@@ -1361,12 +1298,16 @@ class PasientListeTestTemp {
             73,
             100,
             62,
-            57,
             49,
-            50,
-            52,
+            55,
             48,
-            54,
+            56,
+            55,
+            48,
+            48,
+            48,
+            49,
+            51,
             51,
             60,
             47,
@@ -1392,8 +1333,8 @@ class PasientListeTestTemp {
             86,
             61,
             34,
-            72,
-            69,
+            70,
+            78,
             82,
             34,
             47,
