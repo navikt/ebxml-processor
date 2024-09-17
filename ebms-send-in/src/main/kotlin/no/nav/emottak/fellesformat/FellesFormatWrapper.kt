@@ -41,14 +41,14 @@ private fun createFellesFormatMottakEnhetBlokk(mottaksId: String, conversationId
         it.ebService = addressing.service
         it.ebRole = addressing.from.role
         it.avsender = "TODO1" // Hentes fra from. Må være dynamisk basert på relevant informasjon?
-        it.avsenderRef = "" // Hentet fra Cert: Eksempelverdi: "SERIALNUMBER=132547698, CN=Blå &amp; Bjørnebær AS, O=Blå &amp; Bjørnebær AS, C=NO"
+        it.avsenderRef = "TODO2" // Hentet fra Cert: Eksempelverdi: "SERIALNUMBER=132547698, CN=Blå &amp; Bjørnebær AS, O=Blå &amp; Bjørnebær AS, C=NO"
         it.mottaksId = mottaksId
         it.mottattDatotid = Instant.now().toXMLGregorianCalendar()
         it.ediLoggId = mottaksId
         it.avsenderFnrFraDigSignatur = "TODO3" // OCSB (Buypass)
-        it.avsenderOrgNrFraDigSignatur = "TODO4"
-        it.herIdentifikator = "TODO5" // HER id fra Avsender
+        it.avsenderOrgNrFraDigSignatur = "TODO4" // OCSB (Buypass)
+        it.herIdentifikator = "TODO5" // HER ID fra Avsender
         it.orgNummer = "TODO6" //  Fra avsender
         it.meldingsType = "xml"
-//        it.partnerReferanse = "" // må være int (eller tom?)
+        it.partnerReferanse = "101" // Må ha verdi og være et tall, men brukes ikke. Settes til vilkårlig verdi.
     }
