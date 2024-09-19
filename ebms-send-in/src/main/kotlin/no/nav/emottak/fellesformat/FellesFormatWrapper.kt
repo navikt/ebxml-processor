@@ -28,7 +28,7 @@ fun EIFellesformat.addressing(toParty: Party): Addressing {
 
 fun wrapMessageInEIFellesFormat(sendInRequest: SendInRequest): EIFellesformat =
     fellesFormatFactory.createEIFellesformat().also {
-        it.mottakenhetBlokk = createFellesFormatMottakEnhetBlokk(sendInRequest.messageId, sendInRequest.conversationId, sendInRequest.addressing)
+        it.mottakenhetBlokk = createFellesFormatMottakEnhetBlokk(sendInRequest)
         it.msgHead = unmarshal(sendInRequest.payload.toString(Charsets.UTF_8), MsgHead::class.java)
     }.also {
         if (getEnvVar("NAIS_CLUSTER_NAME", "local") != "prod-fss") {
@@ -36,15 +36,15 @@ fun wrapMessageInEIFellesFormat(sendInRequest: SendInRequest): EIFellesformat =
         }
     }
 
-private fun createFellesFormatMottakEnhetBlokk(mottaksId: String, conversationId: String, addressing: Addressing): EIFellesformat.MottakenhetBlokk =
+private fun createFellesFormatMottakEnhetBlokk(sendInRequest: SendInRequest): EIFellesformat.MottakenhetBlokk =
     fellesFormatFactory.createEIFellesformatMottakenhetBlokk().also {
-        it.ebXMLSamtaleId = conversationId
-        it.ebAction = addressing.action
-        it.ebService = addressing.service
-        it.ebRole = addressing.from.role
+        it.ebXMLSamtaleId = sendInRequest.conversationId
+        it.ebAction = sendInRequest.addressing.action
+        it.ebService = sendInRequest.addressing.service
+        it.ebRole = sendInRequest.addressing.from.role
         it.avsender = "TODO"
         it.avsenderRef = "TODO"
-        it.mottaksId = mottaksId
+        it.mottaksId = sendInRequest.messageId
         it.mottattDatotid = Instant.now().toXMLGregorianCalendar()
         it.ediLoggId = "TODO"
         it.avsenderFnrFraDigSignatur = "TODO"
@@ -52,5 +52,5 @@ private fun createFellesFormatMottakEnhetBlokk(mottaksId: String, conversationId
         it.herIdentifikator = "TODO"
         it.orgNummer = "TODO"
         it.meldingsType = "TODO"
-        it.partnerReferanse = "TODO"
+        it.partnerReferanse = sendInRequest.cpaId
     }
