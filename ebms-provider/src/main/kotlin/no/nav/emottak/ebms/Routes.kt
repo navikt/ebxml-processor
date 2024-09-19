@@ -4,6 +4,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
 import io.ktor.server.request.header
+import io.ktor.server.request.receiveText
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
@@ -12,6 +13,8 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.micrometer.prometheus.PrometheusMeterRegistry
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.encodeToJsonElement
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.model.EbMSDocument
 import no.nav.emottak.ebms.model.PayloadMessage
@@ -40,8 +43,16 @@ fun Route.postEbmsSync(
     log.info("Recieving synchroneus reqyest")
 
     val debug: Boolean = call.request.header("debug")?.isNotBlank() ?: false
+
     val ebMSDocument: EbMSDocument
     val loggableHeaders = call.request.headers.retrieveLoggableHeaderPairs()
+
+    // TEMP Logging to fetch full contents of these requests
+    val requestBody = call.receiveText()
+    log.info("X1234: Request Body: $requestBody")
+    val headersJson = Json.encodeToJsonElement(loggableHeaders)
+    log.info("X1234: Request Headers: $headersJson")
+
     try {
         call.request.validateMime()
         ebMSDocument = call.receiveEbmsDokument()
