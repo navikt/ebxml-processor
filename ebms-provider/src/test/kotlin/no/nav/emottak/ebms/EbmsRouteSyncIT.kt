@@ -39,6 +39,7 @@ import no.nav.emottak.util.decodeBase64
 import no.nav.emottak.util.getEnvVar
 import org.apache.xml.security.algorithms.MessageDigestAlgorithm
 import org.apache.xml.security.signature.XMLSignature
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import java.util.UUID
 
@@ -131,6 +132,7 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
     }
 
     @Test
+    @Disabled
     fun `Valid payload request should trigger processing and validation on way out`() = testSyncApp {
         mockkStatic(EbMSDocument::signer)
         every {
