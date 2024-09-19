@@ -154,6 +154,7 @@ private fun processConfig(
     signering = signering,
     internformat = internformat,
     validering = false,
+    ocspSjekk = false,
     apprec = false,
     adapter = null,
     errorAction = null

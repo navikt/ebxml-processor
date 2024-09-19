@@ -1,5 +1,7 @@
 package no.nav.emottak.crypto
 
+import org.bouncycastle.cert.X509CertificateHolder
+import org.bouncycastle.cert.jcajce.JcaX509CertificateHolder
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.slf4j.LoggerFactory
 import java.io.InputStream
@@ -7,7 +9,9 @@ import java.security.KeyPair
 import java.security.KeyStore
 import java.security.PrivateKey
 import java.security.Security
+import java.security.cert.Certificate
 import java.security.cert.X509Certificate
+import java.util.Enumeration
 
 internal val log = LoggerFactory.getLogger("no.nav.emottak.crypto.KeyStore")
 
@@ -58,6 +62,15 @@ class KeyStore(private val keyStoreConfig: KeyStoreConfig) {
 
     fun getCertificate(alias: String): X509Certificate {
         return keyStore.getCertificate(alias) as X509Certificate
+    }
+
+    fun aliases() : Enumeration<String> {
+        return keyStore.aliases()
+    }
+
+    fun getCertificateChain(alias: String): Array<X509CertificateHolder> {
+        val chain = keyStore.getCertificateChain(alias)
+        return chain?.filterIsInstance<X509Certificate>()?.map { JcaX509CertificateHolder(it) }?.toTypedArray() ?: emptyArray()
     }
 
     private fun hasPrivateKeyEntry(alias: String): Boolean {

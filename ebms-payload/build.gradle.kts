@@ -50,7 +50,10 @@ dependencies {
     implementation(libs.bundles.logging)
     implementation(libs.bundles.prometheus)
     implementation(libs.emottak.payload.xsd)
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.7.1-2")
+    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.7.1")
     runtimeOnly("net.java.dev.jna:jna:5.12.1")
+
     testImplementation(testLibs.junit.jupiter.api)
     testImplementation(testLibs.ktor.server.test.host)
     testImplementation(testLibs.mock.oauth2.server)

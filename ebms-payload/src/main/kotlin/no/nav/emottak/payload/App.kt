@@ -1,6 +1,8 @@
 package no.nav.emottak.payload
 
 import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorRuntime
+import io.ktor.client.*
+import io.ktor.client.engine.cio.*
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
@@ -17,7 +19,7 @@ import no.nav.emottak.util.getEnvVar
 import no.nav.security.token.support.v2.tokenValidationSupport
 import org.slf4j.LoggerFactory
 
-val processor = Processor()
+
 internal val log = LoggerFactory.getLogger("no.nav.emottak.payload")
 fun main() {
     if (getEnvVar("NAIS_CLUSTER_NAME", "local") != "prod-fss") {
@@ -28,6 +30,14 @@ fun main() {
         port = 8080,
         module = payloadApplicationModule()
     ).start(wait = true)
+}
+
+fun defaultHttpClient(): () -> HttpClient {
+    return {
+        HttpClient(CIO) {
+            expectSuccess = true
+        }
+    }
 }
 
 fun payloadApplicationModule(): Application.() -> Unit {

@@ -19,6 +19,7 @@ import java.io.ByteArrayInputStream
 import javax.xml.xpath.XPath
 import javax.xml.xpath.XPathFactory
 
+val processor = Processor()
 class Processor(
     private val kryptering: Kryptering = Kryptering(),
     private val dekryptering: Dekryptering = Dekryptering(),

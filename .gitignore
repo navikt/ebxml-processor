@@ -47,3 +47,4 @@ ebms-payload/out/
 *.orig
 smtp-listeners/out/
 smtp-router/out/
+.github/
