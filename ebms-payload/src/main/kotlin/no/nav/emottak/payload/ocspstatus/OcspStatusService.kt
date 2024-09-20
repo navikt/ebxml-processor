@@ -44,7 +44,7 @@ data class SertifikatInfo(
 )
 
 enum class SertifikatStatus {
-    OK, FEIL_MED_INPUT, UTGAATT, REVOKERT, FEIL_MED_SERTIFIKAT, FEIL_MED_TJENESTEN, UKJENT
+    OK, REVOKERT, UKJENT
 }
 
 enum class SertifikatType {
@@ -52,7 +52,7 @@ enum class SertifikatType {
 }
 
 enum class SEIDVersion {
-    SEID10, SEID20, UKJENT
+    SEID10, SEID20
 }
 
 
