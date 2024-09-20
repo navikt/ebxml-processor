@@ -123,13 +123,12 @@ class OcspChecker(
             Certificates that have an OCSP service locator will be verified against the OCSP responder.
              */
             getCertificateChain(certificate.issuerX500Principal.name).also {
-                certificate.addServiceLocator(extensionsGenerator, provider, it)
+                extensionsGenerator.addServiceLocator(certificate, provider, it)
             }
             if (!certificate.isVirksomhetssertifikat()) {
-                addSsnExtension(extensionsGenerator)
+                extensionsGenerator.addSsnExtension()
             }
-
-            addNonceExtension(extensionsGenerator)
+            extensionsGenerator.addNonceExtension()
 
             ocspReqBuilder.setRequestExtensions(extensionsGenerator.generate())
 
@@ -145,6 +144,16 @@ class OcspChecker(
             log.error("Feil ved opprettelse av OCSP request")
             throw SertifikatError("Feil ved opprettelse av OCSP request", e)
         }
+    }
+
+
+    internal fun ExtensionsGenerator.addNonceExtension() {
+        val nonce = BigInteger.valueOf(System.currentTimeMillis())
+        this.addExtension(
+            OCSPObjectIdentifiers.id_pkix_ocsp_nonce,
+            false,
+            DEROctetString(nonce.toByteArray())
+        )
     }
 
     private fun getOcspResponderCertificate(certificateIssuer: String): X509Certificate {
@@ -173,20 +182,6 @@ class OcspChecker(
         return getOCSPResp(response.readBytes())
     }
 
-    private fun getOCSPUrl(certificate: X509Certificate): String {
-        val x500Name = X500Name(certificate.issuerX500Principal.name)
-        return certificateAuthorities.caList.firstOrNull {
-            it.x500Name == x500Name
-        }?.ocspUrl ?: certificate.getOCSPUrlFromCertificate()
-    }
-
-
-
-
-
-
-
-
     suspend fun getOCSPStatus(certificate: X509Certificate): SertifikatInfo {
 
         return try {
@@ -195,7 +190,7 @@ class OcspChecker(
             val ocspResponderCertificate = getOcspResponderCertificate(certificateIssuer)
 
             val request: OCSPReq = createOCSPRequest(certificate, ocspResponderCertificate)
-            val response = postOCSPRequest(getOCSPUrl(certificate), request.encoded)
+            val response = postOCSPRequest(certificate.getOCSPUrl(), request.encoded)
             decodeResponse(
                 response,
                 certificate,
