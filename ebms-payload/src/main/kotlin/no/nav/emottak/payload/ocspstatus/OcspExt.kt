@@ -1,4 +1,4 @@
-package no.nav.emottak.payload.fnrsjekk
+package no.nav.emottak.payload.ocspstatus
 
 import org.bouncycastle.asn1.*
 import org.bouncycastle.asn1.ocsp.OCSPObjectIdentifiers
@@ -6,6 +6,8 @@ import org.bouncycastle.asn1.x500.X500Name
 import org.bouncycastle.asn1.x509.Extension
 import org.bouncycastle.asn1.x509.ExtensionsGenerator
 import org.bouncycastle.cert.X509CertificateHolder
+import org.bouncycastle.cert.ocsp.BasicOCSPResp
+import java.io.IOException
 import java.security.cert.X509Certificate
 
 private val accessIdentifierOCSP = ASN1ObjectIdentifier("1.3.6.1.5.5.7.48.1")
@@ -72,4 +74,23 @@ internal fun ExtensionsGenerator.addServiceLocator(certificate: X509Certificate,
 
 internal fun ExtensionsGenerator.addSsnExtension() {
     this.addExtension(ssnPolicyID, false, DEROctetString(byteArrayOf(0)))
+}
+
+internal fun getSSN( bresp: BasicOCSPResp) : String {
+    val response = bresp.responses[0]
+    var ssn = getSsn(response.getExtension(ssnPolicyID))
+    if ("" == ssn) {
+        ssn = getSsn(bresp.getExtension(ssnPolicyID))
+    }
+    return ssn
+}
+
+private fun getSsn(ssnExtension: Extension?): String {
+    return if (ssnExtension != null) {
+        try {
+            String(ssnExtension.extnValue.encoded).replace(Regex("\\D"), "")
+        } catch (e: IOException) {
+            throw SertifikatError("Failed to extract SSN", cause = e)
+        }
+    } else ""
 }

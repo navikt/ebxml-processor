@@ -1,4 +1,4 @@
-package no.nav.emottak.payload.fnrsjekk
+package no.nav.emottak.payload.ocspstatus
 
 import io.ktor.client.*
 import io.ktor.client.request.*
@@ -67,19 +67,13 @@ fun resolveDefaultTruststorePath(): String? {
 class SertifikatError(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
 
 val ssnPolicyID = ASN1ObjectIdentifier("2.16.578.1.16.3.2")
-class OcspChecker(
+class OcspStatusService(
     val httpClient: HttpClient,
     val signeringKeyStore: KeyStore,
     val trustStore: KeyStore
 ) {
 
     private val bcProvider = BouncyCastleProvider()
-
-
-
-
-
-
 
 
     internal fun getCertificateChain(alias: String): Array<X509CertificateHolder> {
@@ -186,20 +180,19 @@ class OcspChecker(
     }
 
     suspend fun getOCSPStatus(certificate: X509Certificate): SertifikatInfo {
-
         return try {
             val certificateIssuer = certificate.issuerX500Principal.name
             // issue av personsertifikaten eller virksomhetsertifikaten (f.ex. Buypass)
             val ocspResponderCertificate = getOcspResponderCertificate(certificateIssuer)
-
             val request: OCSPReq = createOCSPRequest(certificate, ocspResponderCertificate)
-            val response = postOCSPRequest(certificate.getOCSPUrl(), request.encoded)
-            decodeResponse(
-                response,
-                certificate,
-                request.getExtension(OCSPObjectIdentifiers.id_pkix_ocsp_nonce),
-                ocspResponderCertificate
-            )
+            postOCSPRequest(certificate.getOCSPUrl(), request.encoded).also {
+                validateOcspResponse(it, request.getExtension(OCSPObjectIdentifiers.id_pkix_ocsp_nonce),ocspResponderCertificate)
+            }.let {
+                it.responseObject as BasicOCSPResp
+            }.let {
+                val ssn = getSSN(it)
+                createSertifikatInfoFromOCSPResponse(certificate, it.responses[0],ssn)
+            }
         } catch (e: SertifikatError) {
             throw SertifikatError(e.localizedMessage, e)
         } catch (e: Exception) {
@@ -207,44 +200,17 @@ class OcspChecker(
         }
     }
 
-    private fun decodeResponse(
-        response: OCSPResp,
-        certificate: X509Certificate,
-        requestNonce: Extension,
-        ocspResponderCertificate: X509Certificate
-    ): SertifikatInfo {
-
+    private fun validateOcspResponse(response: OCSPResp,requestNonce: Extension,ocspResponderCertificate: X509Certificate) {
         checkOCSPResponseStatus(response.status)
         val basicOCSPResponse: BasicOCSPResp = getBasicOCSPResp(response)
         verifyNonce(requestNonce, basicOCSPResponse.getExtension(OCSPObjectIdentifiers.id_pkix_ocsp_nonce))
         val ocspCertificates = basicOCSPResponse.certs
         verifyOCSPCerts(basicOCSPResponse, ocspCertificates, ocspResponderCertificate)
-        val singleResponse = if (basicOCSPResponse.responses.size == 1) basicOCSPResponse.responses[0] else
+        if (basicOCSPResponse.responses.size == 1) basicOCSPResponse.responses[0] else
             throw SertifikatError("OCSP response included wrong number of status, expected one")
-        val ssn = getSSN(basicOCSPResponse)
-        return createSertifikatInfoFromOCSPResponse(certificate, singleResponse, ssn)
     }
 
 
-
-    private fun getSSN( bresp: BasicOCSPResp) : String {
-        val response = bresp.responses[0]
-        var ssn = getSsn(response.getExtension(ssnPolicyID))
-        if ("" == ssn) {
-            ssn = getSsn(bresp.getExtension(ssnPolicyID))
-        }
-        return ssn
-    }
-
-    private fun getSsn(ssnExtension: Extension?): String {
-        return if (ssnExtension != null) {
-            try {
-                String(ssnExtension.extnValue.encoded).replace(Regex("\\D"), "")
-            } catch (e: IOException) {
-                throw SertifikatError("Failed to extract SSN", cause = e)
-            }
-        } else ""
-    }
 
     private fun verifyOCSPCerts(
         basicOCSPResponse: BasicOCSPResp,

@@ -1,4 +1,4 @@
-package no.nav.emottak.payload.fnrsjekk
+package no.nav.emottak.payload.ocspstatus
 
 enum class RevocationReason {
     Unspecified,
