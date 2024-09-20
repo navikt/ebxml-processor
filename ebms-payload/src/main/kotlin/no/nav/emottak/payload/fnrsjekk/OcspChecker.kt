@@ -169,17 +169,20 @@ class OcspChecker(
 
     private suspend fun postOCSPRequest(url: String, encoded: ByteArray): OCSPResp {
         log.debug("OCSP URL: $url")
-        val response = try {
-            withContext(Dispatchers.IO) {
+        try {
+            return withContext(Dispatchers.IO) {
                 httpClient.post(url) {
                     setBody(encoded)
                 }
+            }.let {
+                OCSPResp(it.readBytes())
             }
+        } catch (e: IOException) {
+            throw SertifikatError("Feil ved opprettelse av OCSP respons", cause = e)
         } catch (e: Exception) {
             log.error("OCSP feilet ${e.localizedMessage}", e)
             throw SertifikatError("Ukjent feil ved OCSP spørring. Kanskje OCSP endepunktet er nede?")
         }
-        return getOCSPResp(response.readBytes())
     }
 
     suspend fun getOCSPStatus(certificate: X509Certificate): SertifikatInfo {
@@ -212,38 +215,25 @@ class OcspChecker(
     ): SertifikatInfo {
 
         checkOCSPResponseStatus(response.status)
-
         val basicOCSPResponse: BasicOCSPResp = getBasicOCSPResp(response)
-
         verifyNonce(requestNonce, basicOCSPResponse.getExtension(OCSPObjectIdentifiers.id_pkix_ocsp_nonce))
-
         val ocspCertificates = basicOCSPResponse.certs
-
         verifyOCSPCerts(basicOCSPResponse, ocspCertificates, ocspResponderCertificate)
-        val certstat = basicOCSPResponse.responses
-        return getCertificateStatusFromResponse(basicOCSPResponse, certificate, certstat)
-    }
-
-    private fun getCertificateStatusFromResponse(
-        bresp: BasicOCSPResp, certificate: X509Certificate, certstat: Array<SingleResp>
-    ): SertifikatInfo {
-        if (certstat.size != 1) {
+        val singleResponse = if (basicOCSPResponse.responses.size == 1) basicOCSPResponse.responses[0] else
             throw SertifikatError("OCSP response included wrong number of status, expected one")
-        }
-        val sr = certstat[0]
-        var ssn = getSsn(sr)
+        val ssn = getSSN(basicOCSPResponse)
+        return createSertifikatInfoFromOCSPResponse(certificate, singleResponse, ssn)
+    }
+
+
+
+    private fun getSSN( bresp: BasicOCSPResp) : String {
+        val response = bresp.responses[0]
+        var ssn = getSsn(response.getExtension(ssnPolicyID))
         if ("" == ssn) {
-            ssn = getSsn(bresp)
+            ssn = getSsn(bresp.getExtension(ssnPolicyID))
         }
-        return createSertifikatInfoFromOCSPResponse(certificate, sr, ssn)
-    }
-
-    private fun getSsn(sr: SingleResp): String {
-        return getSsn(sr.getExtension(ssnPolicyID))
-    }
-
-    private fun getSsn(bresp: BasicOCSPResp): String {
-        return getSsn(bresp.getExtension(ssnPolicyID))
+        return ssn
     }
 
     private fun getSsn(ssnExtension: Extension?): String {
@@ -290,6 +280,7 @@ class OcspChecker(
     private fun getBasicOCSPResp(ocspresp: OCSPResp): BasicOCSPResp {
         return try {
             ocspresp.responseObject as BasicOCSPResp
+
         } catch (e: OCSPException) {
             throw SertifikatError("Feil ved opprettelse av OCSP respons", cause = e)
         }
@@ -327,13 +318,7 @@ class OcspChecker(
         }
     }
 
-    private fun getOCSPResp(response: ByteArray): OCSPResp {
-        return try {
-            OCSPResp(response)
-        } catch (e: IOException) {
-            throw SertifikatError("Feil ved opprettelse av OCSP respons", cause = e)
-        }
-    }
+
 
 }
 
