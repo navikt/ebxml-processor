@@ -22,7 +22,8 @@ class FellesFormatWrapperTest {
             addressing = createAddressing(),
             ebmsProcessing = EbmsProcessing(),
             cpaId = "dummyCpa",
-            payload = processedPayload
+            payload = processedPayload,
+            signedOf = null
         )
         val fellesFormat = wrapMessageInEIFellesFormat(sendInRequest)
         Assertions.assertEquals(fellesFormat.mottakenhetBlokk.partnerReferanse, sendInRequest.cpaId)

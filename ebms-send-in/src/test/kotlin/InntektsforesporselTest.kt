@@ -52,7 +52,8 @@ class InntektsforesporselTest {
                     "Inntektsforesporsel"
                 ),
                 "dummycpa",
-                EbmsProcessing()
+                EbmsProcessing(),
+                null
             ),
             finnUtbetalingListeFeil
         )

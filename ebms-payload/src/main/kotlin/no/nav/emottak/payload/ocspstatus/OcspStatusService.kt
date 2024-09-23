@@ -154,7 +154,7 @@ class OcspStatusService(
         }
     }
 
-     fun getOCSPStatus(certificate: X509Certificate): SertifikatInfo {
+    fun getOCSPStatus(certificate: X509Certificate): SertifikatInfo {
         return try {
             val certificateIssuer = certificate.issuerX500Principal.name
             // issue av personsertifikaten eller virksomhetsertifikaten (f.ex. Buypass)
