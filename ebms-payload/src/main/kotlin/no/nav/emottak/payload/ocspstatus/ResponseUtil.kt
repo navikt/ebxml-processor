@@ -1,7 +1,6 @@
 package no.nav.emottak.payload.ocspstatus
 
 import no.nav.emottak.payload.log
-
 import org.bouncycastle.cert.ocsp.CertificateStatus
 import org.bouncycastle.cert.ocsp.RevokedStatus
 import org.bouncycastle.cert.ocsp.SingleResp
@@ -61,8 +60,9 @@ internal fun formatDate(date: Date): String {
 }
 
 private fun getSertifikatType(certificate: X509Certificate): SertifikatType {
-    return if (certificate.isVirksomhetssertifikat())
+    return if (certificate.isVirksomhetssertifikat()) {
         SertifikatType.VIRKSOMHET
-    else
+    } else {
         SertifikatType.PERSONLIG
+    }
 }

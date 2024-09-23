@@ -28,7 +28,6 @@ import java.io.IOException
 import java.math.BigInteger
 import java.security.cert.X509Certificate
 
-
 data class SertifikatInfo(
     val serienummer: String,
     val status: SertifikatStatus,
@@ -55,8 +54,6 @@ enum class SEIDVersion {
     SEID10, SEID20
 }
 
-
-
 fun resolveDefaultTruststorePath(): String? {
     return when (getEnvVar("NAIS_CLUSTER_NAME", "lokaltest")) {
         "dev-fss", "prod-fss" -> null
@@ -75,13 +72,11 @@ class OcspStatusService(
 
     private val bcProvider = BouncyCastleProvider()
 
-
     internal fun getCertificateChain(alias: String): Array<X509CertificateHolder> {
         val chain = signeringKeyStore.getCertificateChain(alias)
         return chain?.filterIsInstance<X509Certificate>()?.map { JcaX509CertificateHolder(it) }?.toTypedArray()
             ?: emptyArray()
     }
-
 
     private fun getSignerAlias(providerName: String): String {
         val x500Name = X500Name(providerName)
@@ -90,7 +85,6 @@ class OcspStatusService(
         }?.ocspSignerAlias
             ?: throw SertifikatError("Fant ikke sertifikat for signering for issuer DN: $providerName")
     }
-
 
     private fun createOCSPRequest(
         certificate: X509Certificate,
@@ -140,7 +134,6 @@ class OcspStatusService(
         }
     }
 
-
     internal fun ExtensionsGenerator.addNonceExtension() {
         val nonce = BigInteger.valueOf(System.currentTimeMillis())
         this.addExtension(
@@ -186,12 +179,12 @@ class OcspStatusService(
             val ocspResponderCertificate = getOcspResponderCertificate(certificateIssuer)
             val request: OCSPReq = createOCSPRequest(certificate, ocspResponderCertificate)
             postOCSPRequest(certificate.getOCSPUrl(), request.encoded).also {
-                validateOcspResponse(it, request.getExtension(OCSPObjectIdentifiers.id_pkix_ocsp_nonce),ocspResponderCertificate)
+                validateOcspResponse(it, request.getExtension(OCSPObjectIdentifiers.id_pkix_ocsp_nonce), ocspResponderCertificate)
             }.let {
                 it.responseObject as BasicOCSPResp
             }.let {
                 val ssn = getSSN(it)
-                createSertifikatInfoFromOCSPResponse(certificate, it.responses[0],ssn)
+                createSertifikatInfoFromOCSPResponse(certificate, it.responses[0], ssn)
             }
         } catch (e: SertifikatError) {
             throw SertifikatError(e.localizedMessage, e)
@@ -200,17 +193,18 @@ class OcspStatusService(
         }
     }
 
-    private fun validateOcspResponse(response: OCSPResp,requestNonce: Extension,ocspResponderCertificate: X509Certificate) {
+    private fun validateOcspResponse(response: OCSPResp, requestNonce: Extension, ocspResponderCertificate: X509Certificate) {
         checkOCSPResponseStatus(response.status)
         val basicOCSPResponse: BasicOCSPResp = getBasicOCSPResp(response)
         verifyNonce(requestNonce, basicOCSPResponse.getExtension(OCSPObjectIdentifiers.id_pkix_ocsp_nonce))
         val ocspCertificates = basicOCSPResponse.certs
         verifyOCSPCerts(basicOCSPResponse, ocspCertificates, ocspResponderCertificate)
-        if (basicOCSPResponse.responses.size == 1) basicOCSPResponse.responses[0] else
+        if (basicOCSPResponse.responses.size == 1) {
+            basicOCSPResponse.responses[0]
+        } else {
             throw SertifikatError("OCSP response included wrong number of status, expected one")
+        }
     }
-
-
 
     private fun verifyOCSPCerts(
         basicOCSPResponse: BasicOCSPResp,
@@ -246,7 +240,6 @@ class OcspStatusService(
     private fun getBasicOCSPResp(ocspresp: OCSPResp): BasicOCSPResp {
         return try {
             ocspresp.responseObject as BasicOCSPResp
-
         } catch (e: OCSPException) {
             throw SertifikatError("Feil ved opprettelse av OCSP respons", cause = e)
         }
@@ -283,9 +276,4 @@ class OcspStatusService(
             OCSPResponseStatus.SUCCESSFUL -> log.info("OCSP Request successful")
         }
     }
-
-
-
 }
-
-

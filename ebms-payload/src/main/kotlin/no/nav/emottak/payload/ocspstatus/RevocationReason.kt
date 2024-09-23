@@ -27,6 +27,4 @@ enum class RevocationReason {
             }
         }
     }
-
 }
-

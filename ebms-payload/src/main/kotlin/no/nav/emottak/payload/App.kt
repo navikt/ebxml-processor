@@ -19,7 +19,6 @@ import no.nav.emottak.util.getEnvVar
 import no.nav.security.token.support.v2.tokenValidationSupport
 import org.slf4j.LoggerFactory
 
-
 internal val log = LoggerFactory.getLogger("no.nav.emottak.payload")
 fun main() {
     if (getEnvVar("NAIS_CLUSTER_NAME", "local") != "prod-fss") {

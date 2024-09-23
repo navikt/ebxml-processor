@@ -10,18 +10,13 @@ import javax.naming.ldap.LdapName
 import javax.naming.ldap.Rdn
 import javax.security.auth.x500.X500Principal
 
-
 private val policyIdVirksomhet = listOf(
-    "[2.16.578.1.26.1.0.3.2]", //buypass.test.policy.id.agency
-    "[2.16.578.1.26.1.3.2]", //buypass.prod.policy.id.agency
-    "[2.16.578.1.29.13.1.1.0]", //commfides.prod.policy.id.agency
-    "[2.16.578.1.29.913.1.1.0]", //commfides.test.policy.id.agency
-    "[2.16.578.1.29.13.200.1.0]" //commfides.g3.prod.policy.id.agency
+    "[2.16.578.1.26.1.0.3.2]", // buypass.test.policy.id.agency
+    "[2.16.578.1.26.1.3.2]", // buypass.prod.policy.id.agency
+    "[2.16.578.1.29.13.1.1.0]", // commfides.prod.policy.id.agency
+    "[2.16.578.1.29.913.1.1.0]", // commfides.test.policy.id.agency
+    "[2.16.578.1.29.13.200.1.0]" // commfides.g3.prod.policy.id.agency
 )
-
-
-
-
 
 private val EXTRACT_ORGNO_PATTERN = Pattern.compile("^(\\d{9})$|^.*-\\s*(\\d{9})$")
 
@@ -39,7 +34,6 @@ internal fun X509Certificate.getSEIDVersion(): SEIDVersion {
     return SEIDVersion.SEID10
 }
 
-
 fun X509Certificate.getExtension(oid: String): ASN1Primitive? {
     val value = this.getExtensionValue(oid)
     return if (value == null) {
@@ -51,10 +45,11 @@ fun X509Certificate.getExtension(oid: String): ASN1Primitive? {
 }
 
 internal fun X509Certificate.getOrganizationNumber(): String? {
-    return if (this.isVirksomhetssertifikat())
+    return if (this.isVirksomhetssertifikat()) {
         getOrganizationNumberFromDN(this.subjectX500Principal.getName(X500Principal.RFC1779))
-    else
+    } else {
         null
+    }
 }
 
 internal fun X509Certificate.isVirksomhetssertifikat(): Boolean {
@@ -63,7 +58,7 @@ internal fun X509Certificate.isVirksomhetssertifikat(): Boolean {
     val policies = ASN1Primitive.fromByteArray(octetString.octets) as DLSequence
     return policies.map { policy ->
         (policy as DLSequence).toString()
-    }.any {  it in policyIdVirksomhet }
+    }.any { it in policyIdVirksomhet }
 }
 
 private fun newLdapName(name: String): LdapName {
@@ -73,8 +68,6 @@ private fun newLdapName(name: String): LdapName {
         throw SertifikatError("failed to create LdapName", cause = e)
     }
 }
-
-
 
 private fun getOrganizationNumberFromDN(dn: String): String {
     try {
@@ -100,10 +93,3 @@ private fun getOrganizationNumberFromRDN(rdns: List<Rdn>, type: String): String?
     }
     return null
 }
-
-
-
-
-
-
-
