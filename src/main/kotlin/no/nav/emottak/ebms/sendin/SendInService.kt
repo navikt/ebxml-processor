@@ -17,6 +17,7 @@ class SendInService(val httpClient: SendInClient) {
             payloadMessage.payload.contentId,
             payloadMessage.payload.bytes,
             payloadMessage.addressing,
+            payloadMessage.cpaId,
             EbmsProcessing()
         )
         return withContext(Dispatchers.IO) {
