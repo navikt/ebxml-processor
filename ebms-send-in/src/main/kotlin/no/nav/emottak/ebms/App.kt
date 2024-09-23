@@ -23,14 +23,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import no.nav.emottak.auth.AZURE_AD_AUTH
 import no.nav.emottak.auth.AuthConfig
+import no.nav.emottak.fellesformat.FellesFormatXmlMarshaller
 import no.nav.emottak.fellesformat.wrapMessageInEIFellesFormat
-import no.nav.emottak.frikort.frikortXmlMarshaller
 import no.nav.emottak.frikort.frikortsporring
 import no.nav.emottak.melding.model.SendInRequest
 import no.nav.emottak.melding.model.SendInResponse
+import no.nav.emottak.pasientliste.PasientlisteService
 import no.nav.emottak.utbetaling.UtbetalingClient
-import no.nav.emottak.utbetaling.utbetalingXmlMarshaller
-import no.nav.emottak.util.getEnvVar
+import no.nav.emottak.utbetaling.UtbetalingXmlMarshaller
+import no.nav.emottak.util.isProdEnv
 import no.nav.emottak.util.marker
 import no.nav.security.token.support.v2.tokenValidationSupport
 import org.slf4j.LoggerFactory
@@ -38,6 +39,7 @@ import org.slf4j.LoggerFactory
 internal val log = LoggerFactory.getLogger("no.nav.emottak.ebms.App")
 
 fun main() {
+    log.info("ebms-send-in starting")
     // val database = Database(mapHikariConfig(DatabaseConfig()))
     // database.migrate()
 
@@ -66,14 +68,19 @@ fun Application.ebmsSendInModule() {
         tokenValidationSupport(AZURE_AD_AUTH, AuthConfig.getTokenSupportConfig())
     }
 
-    if (getEnvVar("NAIS_CLUSTER_NAME", "local") != "prod-fss") {
+    if (!isProdEnv()) {
         DecoroutinatorRuntime.load()
     }
 
     routing {
         authenticate(AZURE_AD_AUTH) {
             post("/fagmelding/synkron") {
-                val request = this.call.receive(SendInRequest::class)
+                val request = try {
+                    this.call.receive(SendInRequest::class)
+                } catch (e: Exception) {
+                    log.error("SendInRequest mapping error", e)
+                    throw e
+                }
                 runCatching {
                     log.info(request.marker(), "Payload ${request.payloadId} videresendes til fagsystem")
                     withContext(Dispatchers.IO) {
@@ -85,30 +92,44 @@ fun Application.ebmsSendInModule() {
                                             request.messageId,
                                             request.conversationId,
                                             request.addressing.replyTo(request.addressing.service, it.msgInfo.type.v),
-                                            utbetalingXmlMarshaller.marshalToByteArray(it)
+                                            UtbetalingXmlMarshaller.marshalToByteArray(it)
                                         )
                                     }
                                 }
-                            else ->
-                                timed(appMicrometerRegistry, "frikort-sporing") {
-                                    frikortsporring(wrapMessageInEIFellesFormat(request)).let {
-                                        SendInResponse(
-                                            request.messageId,
-                                            request.conversationId,
-                                            request.addressing.replyTo(
-                                                it.eiFellesformat.mottakenhetBlokk.ebService,
-                                                it.eiFellesformat.mottakenhetBlokk.ebAction
-                                            ),
-                                            frikortXmlMarshaller.marshalToByteArray(it.eiFellesformat.msgHead)
-                                        )
-                                    }
+
+                            "HarBorgerEgenandelFritak", "HarBorgerFrikort" -> timed(
+                                appMicrometerRegistry,
+                                "frikort-sporing"
+                            ) {
+                                frikortsporring(wrapMessageInEIFellesFormat(request)).let {
+                                    SendInResponse(
+                                        request.messageId,
+                                        request.conversationId,
+                                        request.addressing.replyTo(
+                                            it.eiFellesformat.mottakenhetBlokk.ebService,
+                                            it.eiFellesformat.mottakenhetBlokk.ebAction
+                                        ),
+                                        FellesFormatXmlMarshaller.marshalToByteArray(it.eiFellesformat.msgHead)
+                                    )
                                 }
+                            }
+
+                            "PasientlisteForesporsel" -> timed(appMicrometerRegistry, "PasientlisteForesporsel") {
+                                if (isProdEnv()) {
+                                    throw NotImplementedError("PasientlisteForesporsel is used in prod. Feature is not ready. Aborting.")
+                                }
+                                PasientlisteService.pasientlisteForesporsel(request)
+                            }
+
+                            else -> {
+                                throw NotImplementedError("Service: ${request.addressing.service} is not implemented")
+                            }
                         }
                     }
                 }.onSuccess {
                     log.trace(
                         request.marker(),
-                        "Payload ${request.payloadId} videresending til fagsystem ferdig, svar mottatt og returnerert"
+                        "Payload ${request.payloadId} videresending til fagsystem ferdig, svar mottatt og returnert"
                     )
                     call.respond(it)
                 }.onFailure {

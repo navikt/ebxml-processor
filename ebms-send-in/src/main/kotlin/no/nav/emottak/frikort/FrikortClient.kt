@@ -2,7 +2,9 @@ package no.nav.emottak.frikort
 
 import no.nav.emottak.cxf.ServiceBuilder
 import no.nav.emottak.ebms.log
+import no.nav.emottak.fellesformat.FellesFormatXmlMarshaller
 import no.nav.emottak.util.getEnvVar
+import no.nav.emottak.util.isProdEnv
 import no.nav.tjeneste.ekstern.frikort.v1.FrikortV1Port
 import no.nav.tjeneste.ekstern.frikort.v1.types.FrikortsporringResponse
 import no.nav.tjeneste.ekstern.frikort.v1.types.ObjectFactory
@@ -22,10 +24,16 @@ fun frikortEndpoint(): FrikortV1Port =
         .withBasicSecurity()
         .get()
 
-fun frikortsporring(fellesformat: EIFellesformat): FrikortsporringResponse = frikortClient.frikortsporring(
-    frikortObjectFactory.createFrikortsporringRequest().also { it.eiFellesformat = fellesformat }
-).also {
-    if (getEnvVar("NAIS_CLUSTER_NAME", "local") != "prod-fss") {
-        log.info("Send in Frikort response " + frikortXmlMarshaller.marshal(it))
+fun frikortsporring(fellesformat: EIFellesformat): FrikortsporringResponse {
+    if (!isProdEnv()) {
+        log.info("Sending in frikortsporring request with body: " + FellesFormatXmlMarshaller.marshal(fellesformat))
+    }
+
+    return frikortClient.frikortsporring(
+        frikortObjectFactory.createFrikortsporringRequest().also { it.eiFellesformat = fellesformat }
+    ).also {
+        if (!isProdEnv()) {
+            log.info("Send in Frikort response " + FellesFormatXmlMarshaller.marshal(it))
+        }
     }
 }

@@ -1,7 +1,6 @@
 package no.nav.emottak.fellesformat
 
 import no.nav.emottak.ebms.log
-import no.nav.emottak.frikort.marshal
 import no.nav.emottak.melding.model.Addressing
 import no.nav.emottak.melding.model.EbmsProcessing
 import no.nav.emottak.melding.model.Party
