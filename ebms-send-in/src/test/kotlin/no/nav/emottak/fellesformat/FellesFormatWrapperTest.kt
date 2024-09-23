@@ -7,6 +7,7 @@ import no.nav.emottak.melding.model.EbmsProcessing
 import no.nav.emottak.melding.model.Party
 import no.nav.emottak.melding.model.PartyId
 import no.nav.emottak.melding.model.SendInRequest
+import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 
 class FellesFormatWrapperTest {
@@ -21,9 +22,11 @@ class FellesFormatWrapperTest {
             payloadId = "123",
             addressing = createAddressing(),
             ebmsProcessing = EbmsProcessing(),
+            cpaId = "dummyCpa",
             payload = processedPayload
         )
         val fellesFormat = wrapMessageInEIFellesFormat(sendInRequest)
+        Assertions.assertEquals(fellesFormat.mottakenhetBlokk.partnerReferanse, sendInRequest.cpaId)
         log.info(marshal(fellesFormat))
     }
 }

@@ -14,6 +14,7 @@ data class SendInRequest(
     val payloadId: String,
     val payload: ByteArray,
     val addressing: Addressing,
+    val cpaId:String,
     val ebmsProcessing: EbmsProcessing
 )
 
