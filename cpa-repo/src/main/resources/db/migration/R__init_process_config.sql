@@ -1,5 +1,5 @@
 insert into process_config
-/*      Role                Service                     Action                  Krypt  Komp   Sign   IntF   Val    AppR    fnrCheck   Adapter          ErrorAction */
+/*      Role                Service                     Action                  Krypt  Komp   Sign   IntF   Val    AppR    ocspCheck   Adapter          ErrorAction */
 values ('Behandler',        'HarBorgerFrikort',         'EgenandelForesporsel', false, false, false, TRUE,  TRUE,  TRUE,   false,  'LoggEgenandel', 'Avvisning'),
        ('Frikortregister',  'HarBorgerFrikort',         'Svar',                 false, false, false, TRUE,  false, false,  false,   null,            null       ),
        ('Frikortregister',  'HarBorgerFrikort',         'Avvisning',            false, false, false, TRUE,  false, false,  false,   null,            null       ),
