@@ -1,14 +1,16 @@
 package no.nav.emottak.payload.ocspstatus
 
-import io.ktor.client.*
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
+import io.ktor.client.HttpClient
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.client.statement.readBytes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import no.nav.emottak.crypto.KeyStore
 import no.nav.emottak.payload.log
 import no.nav.emottak.util.getEnvVar
-import org.bouncycastle.asn1.*
+import org.bouncycastle.asn1.ASN1ObjectIdentifier
+import org.bouncycastle.asn1.DEROctetString
 import org.bouncycastle.asn1.ocsp.OCSPObjectIdentifiers
 import org.bouncycastle.asn1.ocsp.OCSPResponseStatus
 import org.bouncycastle.asn1.x500.X500Name
@@ -18,7 +20,12 @@ import org.bouncycastle.asn1.x509.ExtensionsGenerator
 import org.bouncycastle.asn1.x509.GeneralName
 import org.bouncycastle.cert.X509CertificateHolder
 import org.bouncycastle.cert.jcajce.JcaX509CertificateHolder
-import org.bouncycastle.cert.ocsp.*
+import org.bouncycastle.cert.ocsp.BasicOCSPResp
+import org.bouncycastle.cert.ocsp.CertificateID
+import org.bouncycastle.cert.ocsp.OCSPException
+import org.bouncycastle.cert.ocsp.OCSPReq
+import org.bouncycastle.cert.ocsp.OCSPReqBuilder
+import org.bouncycastle.cert.ocsp.OCSPResp
 import org.bouncycastle.cert.ocsp.jcajce.JcaCertificateID
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder
@@ -27,32 +34,6 @@ import org.bouncycastle.operator.jcajce.JcaDigestCalculatorProviderBuilder
 import java.io.IOException
 import java.math.BigInteger
 import java.security.cert.X509Certificate
-
-data class SertifikatInfo(
-    val serienummer: String,
-    val status: SertifikatStatus,
-    val type: SertifikatType,
-    val seid: SEIDVersion,
-    val gyldigFra: String,
-    val gyldigTil: String,
-    val utsteder: String,
-    val orgnummer: String? = null,
-    val fnr: String? = null,
-    val beskrivelse: String,
-    val feilmelding: String? = null
-)
-
-enum class SertifikatStatus {
-    OK, REVOKERT, UKJENT
-}
-
-enum class SertifikatType {
-    PERSONLIG, VIRKSOMHET
-}
-
-enum class SEIDVersion {
-    SEID10, SEID20
-}
 
 fun resolveDefaultTruststorePath(): String? {
     return when (getEnvVar("NAIS_CLUSTER_NAME", "lokaltest")) {

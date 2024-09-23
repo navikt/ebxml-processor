@@ -1,6 +1,9 @@
 package no.nav.emottak.payload.ocspstatus
 
-import org.bouncycastle.asn1.*
+import org.bouncycastle.asn1.ASN1OctetString
+import org.bouncycastle.asn1.ASN1Primitive
+import org.bouncycastle.asn1.ASN1Sequence
+import org.bouncycastle.asn1.DLSequence
 import org.bouncycastle.asn1.x509.Extension
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils
 import java.security.cert.X509Certificate

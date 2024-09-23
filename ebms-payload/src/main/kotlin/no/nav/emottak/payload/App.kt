@@ -1,8 +1,8 @@
 package no.nav.emottak.payload
 
 import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorRuntime
-import io.ktor.client.*
-import io.ktor.client.engine.cio.*
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
