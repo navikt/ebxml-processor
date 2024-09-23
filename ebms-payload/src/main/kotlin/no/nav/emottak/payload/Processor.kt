@@ -1,6 +1,7 @@
 package no.nav.emottak.payload
 
 import no.kith.xmlstds.msghead._2006_05_24.MsgHead
+import no.nav.emottak.crypto.KeyStore
 import no.nav.emottak.melding.model.Direction
 import no.nav.emottak.melding.model.Payload
 import no.nav.emottak.melding.model.PayloadRequest
@@ -8,11 +9,15 @@ import no.nav.emottak.melding.model.PayloadResponse
 import no.nav.emottak.payload.crypto.Dekryptering
 import no.nav.emottak.payload.crypto.Kryptering
 import no.nav.emottak.payload.crypto.PayloadSignering
+import no.nav.emottak.payload.crypto.payloadSigneringConfig
+import no.nav.emottak.payload.ocspstatus.OcspStatusService
+import no.nav.emottak.payload.ocspstatus.trustStoreConfig
 import no.nav.emottak.payload.util.GZipUtil
 import no.nav.emottak.payload.util.unmarshal
 import no.nav.emottak.util.createDocument
 import no.nav.emottak.util.getByteArrayFromDocument
 import no.nav.emottak.util.marker
+import no.nav.emottak.util.retrieveSignatureElement
 import no.nav.emottak.util.signatur.SignaturVerifisering
 import org.w3c.dom.Element
 import java.io.ByteArrayInputStream
@@ -34,7 +39,6 @@ class Processor(
             Direction.OUT -> processOutgoing(payloadRequest)
             else -> throw RuntimeException("Direction can be either IN or Out")
         }
-
         return PayloadResponse(
             processedPayload
         )
@@ -63,6 +67,17 @@ class Processor(
             it
         }.let {
             payloadRequest.payload.copy(bytes = it)
+        }.let {
+            if (processConfig.ocspSjekk) {
+                val dom = createDocument(ByteArrayInputStream(it.bytes))
+                val signature = dom.retrieveSignatureElement()
+                val certificateFromSignature = signature.keyInfo.x509Certificate
+                val signedOf = OcspStatusService(defaultHttpClient().invoke(), KeyStore(payloadSigneringConfig()),KeyStore( trustStoreConfig())).getOCSPStatus(certificateFromSignature).fnr
+                it.copy(signedOf = signedOf)
+            }
+            else {
+               it
+            }
         }
     }
 

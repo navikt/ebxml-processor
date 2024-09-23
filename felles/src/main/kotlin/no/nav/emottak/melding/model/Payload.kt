@@ -15,7 +15,8 @@ data class SendInRequest(
     val payload: ByteArray,
     val addressing: Addressing,
     val cpaId:String,
-    val ebmsProcessing: EbmsProcessing
+    val ebmsProcessing: EbmsProcessing,
+    val signedOf: String?
 )
 
 @Serializable
@@ -154,7 +155,7 @@ data class Processing(
 )
 
 @Serializable
-data class Payload(val bytes: ByteArray, val contentType: String, val contentId: String = "att-${createUniqueMimeMessageId()}")
+data class Payload(val bytes: ByteArray, val contentType: String, val contentId: String = "att-${createUniqueMimeMessageId()}",val signedOf :String? = null)
 
 typealias EbmsAttachment = Payload
 
