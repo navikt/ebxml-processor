@@ -30,7 +30,6 @@ private fun getStringFromGeneralName(names: ASN1Object): String {
 
 internal fun X509Certificate.getAuthorityInfoAccessObject(certificateChain: Array<X509CertificateHolder>): ASN1Object? {
     var authorityInfoAccess = this.getExtension(Extension.authorityInfoAccess.id)
-    // val certificateChain = getCertificateChain(certificate.subjectX500Principal.name)
     var i = 0
     while (authorityInfoAccess == null && i < certificateChain.size) {
         authorityInfoAccess = (certificateChain[i].toASN1Structure() as X509Certificate).getExtension(
@@ -80,27 +79,22 @@ internal fun ExtensionsGenerator.addServiceLocator(
     }
 }
 
-internal fun ExtensionsGenerator.addSsnExtension() {
-    this.addExtension(ssnPolicyID, false, DEROctetString(byteArrayOf(0)))
-}
+internal fun ExtensionsGenerator.addSsnExtension() = this.addExtension(ssnPolicyID, false, DEROctetString(byteArrayOf(0)))
 
 internal fun getSSN(bresp: BasicOCSPResp): String {
     val response = bresp.responses[0]
-    var ssn = getSsn(response.getExtension(ssnPolicyID))
+    var ssn = getSSN(response.getExtension(ssnPolicyID))
     if ("" == ssn) {
-        ssn = getSsn(bresp.getExtension(ssnPolicyID))
+        ssn = getSSN(bresp.getExtension(ssnPolicyID))
     }
     return ssn
 }
 
-private fun getSsn(ssnExtension: Extension?): String {
-    return if (ssnExtension != null) {
-        try {
-            String(ssnExtension.extnValue.encoded).replace(Regex("\\D"), "")
-        } catch (e: IOException) {
-            throw SertifikatError("Failed to extract SSN", cause = e)
-        }
-    } else {
-        ""
+private fun getSSN(ssnExtension: Extension?): String {
+    ssnExtension ?: return ""
+    try {
+        return String(ssnExtension.extnValue.encoded).replace(Regex("\\D"), "")
+    } catch (e: IOException) {
+        throw SertifikatError("Failed to extract SSN", cause = e)
     }
 }

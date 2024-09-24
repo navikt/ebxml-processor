@@ -10,19 +10,11 @@ enum class RevocationReason {
     CertificateHold;
 
     companion object {
-        private fun valueOf(i: Int): RevocationReason {
-            entries.forEach {
-                if (i == it.ordinal) {
-                    return it
-                }
-            }
-            throw IllegalArgumentException("no RevocationReason for ordinal $i")
-        }
 
         fun getRevocationReason(i: Int): String {
             return try {
-                valueOf(i).name
-            } catch (e: IllegalArgumentException) {
+                entries[i].name
+            } catch (e: IndexOutOfBoundsException) {
                 i.toString()
             }
         }
