@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test
 class PasientlisteServiceTest {
 
     @Test
-    fun testpasientListe() {
+    fun `Skall kaste exception hvis fnr fra sertifikat matcher ikke fnr fra fagmelding`() {
         val sendIndRequest = validSendInRequest.value
         try {
             PasientlisteService.pasientlisteForesporsel(sendIndRequest)
