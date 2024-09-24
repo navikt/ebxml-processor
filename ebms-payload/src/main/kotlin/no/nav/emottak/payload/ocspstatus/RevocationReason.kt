@@ -11,7 +11,7 @@ enum class RevocationReason {
 
     companion object {
         private fun valueOf(i: Int): RevocationReason {
-            values().forEach {
+            entries.forEach {
                 if (i == it.ordinal) {
                     return it
                 }
