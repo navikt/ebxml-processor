@@ -17,7 +17,7 @@ import javax.xml.crypto.dsig.dom.DOMSignContext
 import javax.xml.crypto.dsig.spec.C14NMethodParameterSpec
 import javax.xml.crypto.dsig.spec.TransformParameterSpec
 
-private fun payloadSigneringConfig() =
+fun payloadSigneringConfig() =
     when (getEnvVar("NAIS_CLUSTER_NAME", "local")) {
         "dev-fss" ->
             // Fixme burde egentlig hente fra dev vault context for å matche prod oppførsel
@@ -38,7 +38,7 @@ private fun payloadSigneringConfig() =
                 keyStorePass = FileReader(
                     getEnvVar(
                         "KEYSTORE_PWD_FILE",
-                        FileKeyStoreConfig::class.java.classLoader.getResource("keystore/credentials-test.json").path.toString()
+                        FileKeyStoreConfig::class.java.classLoader.getResource("keystore/credentials-test.json")?.path.toString()
                     )
                 ).readText().parseVaultJsonObject("password").toCharArray(),
                 keyStoreType = getEnvVar("KEYSTORE_TYPE", "PKCS12")

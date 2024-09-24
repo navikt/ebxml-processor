@@ -93,7 +93,7 @@ data class ValidationResult(
 data class PayloadProcessing(
     val signingCertificate: SignatureDetails,
     val encryptionCertificate: ByteArray,
-    val processConfig: ProcessConfig? = null
+    val processConfig: ProcessConfig? = null,
 )
 
 @Serializable
@@ -104,6 +104,7 @@ data class ProcessConfig(
     val internformat: Boolean,
     val validering: Boolean,
     val apprec: Boolean, // Kan denne løsrives?
+    val ocspSjekk: Boolean,
     val adapter: String?,
     val errorAction: String?,
 )
