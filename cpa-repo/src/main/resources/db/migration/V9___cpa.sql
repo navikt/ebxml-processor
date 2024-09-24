@@ -1,2 +1,2 @@
 ALTER TABLE process_config
-    ADD OCSP_CHECK boolean NOT NULL;
+    ADD OCSP_CHECK boolean NOT NULL DEFAULT FALSE;
