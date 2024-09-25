@@ -1,3 +1,5 @@
+package no.nav.emottak
+
 import no.kith.xmlstds.msghead._2006_05_24.MsgHead
 import no.nav.ekstern.virkemiddelokonomi.tjenester.utbetaling.feil.v1.ObjectFactory
 import no.nav.ekstern.virkemiddelokonomi.tjenester.utbetaling.v1.FinnUtbetalingListe
@@ -52,7 +54,8 @@ class InntektsforesporselTest {
                     "Inntektsforesporsel"
                 ),
                 "dummycpa",
-                EbmsProcessing()
+                EbmsProcessing(),
+                null
             ),
             finnUtbetalingListeFeil
         )

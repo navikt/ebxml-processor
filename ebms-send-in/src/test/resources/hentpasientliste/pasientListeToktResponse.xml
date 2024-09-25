@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ff:EI_fellesformat xmlns:ea2="http://www.kith.no/xmlstds/nav/egenandel/2016-06-10" xmlns:eam2="http://www.kith.no/xmlstds/nav/egenandelmengde/2016-06-10" xmlns:ns18="http://schemas.nhn.no/reg/flr" xmlns:ns19="http://register.nhn.no/Common" xmlns:ns20="http://schemas.nhn.no/reg/Common/en" xmlns:ns21="http://schemas.datacontract.org/2004/07/System" xmlns:ns22="http://register.nhn.no/Corporate" xmlns:ff="http://www.trygdeetaten.no/xml/eiff/1/" xmlns:ar="http://www.kith.no/xmlstds/apprec/2004-11-21" xmlns:mh="http://www.kith.no/xmlstds/msghead/2006-05-24" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:dia="http://www.kith.no/xmlstds/dialog/2006-10-11" xmlns:b64c="http://www.kith.no/xmlstds/base64container" xmlns:ea="http://www.kith.no/xmlstds/nav/egenandel/2010-02-01" xmlns:eam="http://www.kith.no/xmlstds/nav/egenandelmengde/2010-10-06" xmlns:fl="http://www.kith.no/xmlstds/nav/fastlege/2010-02-01" xmlns:fk1="http://www.kith.no/xmlstds/felleskomponent1" xmlns:kith="http://www.kith.no/xmlstds" xmlns:pl="http://www.kith.no/xmlstds/nav/pasientliste/2010-02-01" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:dsig11="http://www.w3.org/2009/xmldsig11#">
+    <ff:MottakenhetBlokk ediLoggId="3" partnerReferanse="9" ebRole="Fastlegeregister" ebService="PasientlisteForesporsel" ebAction="Kvittering"/>
+    <ar:AppRec>
+        <ar:MsgType V="APPREC"/>
+        <ar:MIGversion>1.0 2004-11-21</ar:MIGversion>
+        <ar:GenDate>2024-09-24T10:19:47.759+02:00</ar:GenDate>
+        <ar:Id>7138ffcf-7c75-441b-a201-d41c8e496083</ar:Id>
+        <ar:Sender>
+            <ar:HCP>
+                <ar:Inst>
+                    <ar:Name>NAV</ar:Name>
+                    <ar:Id>889640782</ar:Id>
+                    <ar:TypeId V="ENH" DN="Organisasjonsnummeret i Enhetsregisteret"/>
+                    <ar:Dept>
+                        <ar:Name>TOveisKommunikasjonsTjenesten</ar:Name>
+                    </ar:Dept>
+                </ar:Inst>
+            </ar:HCP>
+        </ar:Sender>
+        <ar:Receiver>
+            <ar:HCP>
+                <ar:Inst>
+                    <ar:Name>Tveita Legesenter</ar:Name>
+                    <ar:Id>1382</ar:Id>
+                    <ar:TypeId V="HER" DN="Identifikator fra Helsetjenesteenhetsregisteret (HER-id)"/>
+                    <ar:HCPerson>
+                        <ar:Name>Emil Toska</ar:Name>
+                        <ar:Id>17087000133</ar:Id>
+                        <ar:TypeId V="FNR"/>
+                    </ar:HCPerson>
+                </ar:Inst>
+            </ar:HCP>
+        </ar:Receiver>
+        <ar:Status V="2" DN="Avvist"/>
+        <ar:Error V="X99" S="2.16.578.1.12.4.1.1.8221" DN="Finner ingen data om Abonnementet"/>
+        <ar:OriginalMsgId>
+            <ar:MsgType V="HentPasientliste" DN="Hent pasientliste"/>
+            <ar:IssueDate>2021-01-18T14:58:14</ar:IssueDate>
+            <ar:Id>1ed4dd1b-ec4f-4fc3-b152-1737555b47b9</ar:Id>
+        </ar:OriginalMsgId>
+    </ar:AppRec>
+</ff:EI_fellesformat>

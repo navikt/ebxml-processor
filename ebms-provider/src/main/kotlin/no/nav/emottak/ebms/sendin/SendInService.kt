@@ -18,7 +18,8 @@ class SendInService(val httpClient: SendInClient) {
             payloadMessage.payload.bytes,
             payloadMessage.addressing,
             payloadMessage.cpaId,
-            EbmsProcessing()
+            EbmsProcessing(),
+            payloadMessage.payload.signedOf
         )
         return withContext(Dispatchers.IO) {
             httpClient.postSendIn(sendInRequest)

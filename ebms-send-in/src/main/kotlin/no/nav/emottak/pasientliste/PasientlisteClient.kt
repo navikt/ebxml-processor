@@ -18,8 +18,8 @@ import java.io.FileInputStream
 
 object PasientlisteClient {
     private val url = getEnvVar("PASIENTLISTE_URL", "https://wasapp-q1.adeo.no/nav-emottak-practitioner-web/remoting/httpreqhandler-practitioner")
-    private val username = String(FileInputStream("/secret/serviceuser/username").readAllBytes())
-    private val password = String(FileInputStream("/secret/serviceuser/password").readAllBytes())
+    private val username = lazy { String(FileInputStream("/secret/serviceuser/username").readAllBytes()) }
+    private val password = lazy { String(FileInputStream("/secret/serviceuser/password").readAllBytes()) }
 
     fun hentPasientliste(request: EIFellesformat): EIFellesformat {
         val marshalledFellesformat = FellesFormatXmlMarshaller.marshal(request)
@@ -34,7 +34,7 @@ object PasientlisteClient {
                 httpClient.post(url) {
                     setBody(marshalledFellesformat)
                     contentType(ContentType.Application.Xml)
-                    basicAuth(username, password)
+                    basicAuth(username.value, password.value)
                 }.bodyAsText()
             } catch (e: Exception) {
                 log.error("PasientlisteForesporsel error", e)
