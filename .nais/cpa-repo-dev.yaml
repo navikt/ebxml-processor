@@ -81,3 +81,5 @@ spec:
       value: jdbc:postgresql://b27dbvl033.preprod.local:5432/
     - name: TRUSTSTORE_PATH
       value: truststore_test.p12
+    - name: EMOTTAK_LOGGING_LEVEL
+      value: DEBUG
