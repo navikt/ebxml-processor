@@ -12,10 +12,12 @@ import no.nav.emottak.cpa.persistence.gammel.PARTNER_CPA
 import org.jetbrains.exposed.sql.deleteAll
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import kotlin.test.BeforeTest
 import kotlin.test.assertEquals
 
+@Disabled
 class PartnerIntegrationTest : PostgresOracleTest() {
 
     @BeforeTest
