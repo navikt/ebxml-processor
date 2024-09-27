@@ -50,6 +50,8 @@ spec:
       value: /var/run/secrets/ebms-keystore/nav_test.p12
     - name: KEYSTORE_FILE_SIGN
       value: /var/run/secrets/ebms-keystore/nav_test.p12
+    - name: EMOTTAK_LOGGING_LEVEL
+      value: DEBUG
   envFrom:
     - secret: ebms-payload-secret
   filesFrom:
