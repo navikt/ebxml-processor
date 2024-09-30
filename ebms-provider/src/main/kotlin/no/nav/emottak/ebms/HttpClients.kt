@@ -14,6 +14,7 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
@@ -58,10 +59,14 @@ class SendInClient(clientProvider: () -> HttpClient) {
     private val sendInEndpoint = getEnvVar("SEND_IN_URL", "http://ebms-send-in/fagmelding/synkron")
 
     suspend fun postSendIn(sendInRequest: SendInRequest): SendInResponse {
-        return httpClient.post(sendInEndpoint) {
+        val response = httpClient.post(sendInEndpoint) {
             setBody(sendInRequest)
             contentType(ContentType.Application.Json)
-        }.body()
+        }
+        if (response.status == HttpStatusCode.BadRequest){
+            throw Exception(response.bodyAsText())
+        }
+        return response.body()
     }
 }
 
