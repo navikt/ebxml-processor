@@ -51,7 +51,7 @@ spec:
   accessPolicy:
     inbound:
       rules:
-        - application: smtp-listeners
+        - application: cpa-sync
         - application: ebms-provider
         - application: ebms-payload
     outbound:
