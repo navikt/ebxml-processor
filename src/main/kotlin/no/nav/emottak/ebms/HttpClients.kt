@@ -63,7 +63,7 @@ class SendInClient(clientProvider: () -> HttpClient) {
             setBody(sendInRequest)
             contentType(ContentType.Application.Json)
         }
-        if (response.status == HttpStatusCode.BadRequest){
+        if (response.status == HttpStatusCode.BadRequest) {
             throw Exception(response.bodyAsText())
         }
         return response.body()
