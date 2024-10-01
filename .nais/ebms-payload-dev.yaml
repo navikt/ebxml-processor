@@ -52,9 +52,9 @@ spec:
       mountPath: /var/run/secrets/ebms-keystore
   env:
     - name: KEYSTORE_FILE_DEKRYPT
-      value: /var/run/secrets/ebms-keystore/nav_test.p12
+      value: /var/run/secrets/ebms-keystore/nav_signering_test.p12
     - name: KEYSTORE_FILE_SIGN
-      value: /var/run/secrets/ebms-keystore/nav_test.p12
+      value: /var/run/secrets/ebms-keystore/nav_signering_test.p12
     - name: EMOTTAK_LOGGING_LEVEL
       value: DEBUG
     - name: TRUSTSTORE_PATH
