@@ -146,6 +146,39 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
         println("----=_Part_" + System.currentTimeMillis() + "." + System.nanoTime())
         println("----=_Part_" + UUID.randomUUID().toString())
     }
+
+    @Test
+    fun `Feilmelding fra fagsystemet må propageres til brukeren`() = testSyncApp {
+        val soapFault = "<SOAP-ENV:Envelope xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\"><SOAP-ENV:Header/><SOAP-ENV:Body><SOAP-ENV:Fault><faultcode>SOAP-ENV:Server</faultcode><faultstring>Noe gikk galt i fagsystemet</faultstring></SOAP-ENV:Fault></SOAP-ENV:Body></SOAP-ENV:Envelope>"
+        mockkStatic(EbMSDocument::signer)
+        every {
+            any<EbMSDocument>().signer(any())
+        } returnsArgument(0)
+        externalServices {
+            hosts(getEnvVar("SEND_IN_URL", "http://ebms-send-in")) {
+                this.install(ContentNegotiation) {
+                    json()
+                }
+                routing {
+                    post("/fagmelding/synkron") {
+                        call.respond(
+                            HttpStatusCode.BadRequest,
+                            "Noe gikk galt i fagsystemet"
+                        )
+                    }
+                }
+            }
+        }
+        val multipart = TestData.HarBorderEgenAndel.harBorgerEgenanderFritakRequest
+        val response = client.post(SYNC_PATH, multipart.asHttpRequest())
+        coVerify(exactly = 1) {
+            processingService.processSyncIn(any(), any())
+        }
+        assert(response.status == HttpStatusCode.InternalServerError)
+        assert(String(response.readBytes()) == soapFault)
+        println("----=_Part_" + System.currentTimeMillis() + "." + System.nanoTime())
+        println("----=_Part_" + UUID.randomUUID().toString())
+    }
 }
 
 internal class TestData {
