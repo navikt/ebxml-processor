@@ -56,3 +56,5 @@ spec:
       value: key.decrypt.p12.b64.2022
     - name: VIRKSOMHETSSERTIFIKAT_CREDENTIALS
       value: credentials.2022
+    - name: TRUSTSTORE_PATH
+      value: truststore_prod.p12
