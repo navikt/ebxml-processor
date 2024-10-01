@@ -64,7 +64,9 @@ class SendInClient(clientProvider: () -> HttpClient) {
             contentType(ContentType.Application.Json)
         }
         if (response.status == HttpStatusCode.BadRequest) {
-            throw Exception(response.bodyAsText())
+            val errorMessage = response.bodyAsText()
+            log.debug("Propagerer feilmelding fra fagsystemet til brukeren: $errorMessage")
+            throw Exception(errorMessage)
         }
         return response.body()
     }
