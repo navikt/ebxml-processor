@@ -18,6 +18,9 @@ import io.micrometer.prometheus.PrometheusMeterRegistry
 import no.nav.emottak.util.getEnvVar
 import no.nav.security.token.support.v2.tokenValidationSupport
 import org.slf4j.LoggerFactory
+import java.net.InetSocketAddress
+import java.net.Proxy
+import java.net.URL
 
 internal val log = LoggerFactory.getLogger("no.nav.emottak.payload")
 fun main() {
@@ -30,11 +33,16 @@ fun main() {
         module = payloadApplicationModule()
     ).start(wait = true)
 }
-
+private val httpProxyUrl = getEnvVar("HTTP_PROXY", "")
 fun defaultHttpClient(): () -> HttpClient {
     return {
         HttpClient(CIO) {
             expectSuccess = true
+            engine {
+                if (httpProxyUrl.isNotBlank()) {
+                    proxy = Proxy(Proxy.Type.HTTP, InetSocketAddress(URL(httpProxyUrl).host, URL(httpProxyUrl).port))
+                }
+            }
         }
     }
 }

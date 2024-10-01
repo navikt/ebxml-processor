@@ -38,9 +38,6 @@ spec:
   ingresses:
     - "https://ebms-payload-fss.intern.dev.nav.no"
   accessPolicy:
-    outbound:
-      rules:
-        - application: cpa-repo
     inbound:
       rules:
         - application: ebms-provider
