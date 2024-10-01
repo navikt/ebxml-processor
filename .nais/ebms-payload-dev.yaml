@@ -45,6 +45,11 @@ spec:
       rules:
         - application: ebms-provider
   webproxy: true
+  envFrom:
+    - secret: ebms-payload-secret
+  filesFrom:
+    - secret: ebms-payload-keystore
+      mountPath: /var/run/secrets/ebms-keystore
   env:
     - name: KEYSTORE_FILE_DEKRYPT
       value: /var/run/secrets/ebms-keystore/nav_test.p12
@@ -52,9 +57,7 @@ spec:
       value: /var/run/secrets/ebms-keystore/nav_test.p12
     - name: EMOTTAK_LOGGING_LEVEL
       value: DEBUG
-  envFrom:
-    - secret: ebms-payload-secret
-  filesFrom:
-    - secret: ebms-payload-keystore
-      mountPath: /var/run/secrets/ebms-keystore
+    - name: TRUSTSTORE_PATH
+      value: truststore_test.p12
+  
       
