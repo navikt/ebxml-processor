@@ -47,9 +47,11 @@ spec:
   filesFrom:
     - secret: ebms-payload-keystore
       mountPath: /var/run/secrets/ebms-keystore
+    - secret: ebms-payload-encryption-keystore
+      mountPath: /var/run/secrets/ebms-encryption-keystore
   env:
     - name: KEYSTORE_FILE_DEKRYPT
-      value: /var/run/secrets/ebms-keystore/nav_signering_test.p12
+      value: /var/run/secrets/ebms-encryption-keystore/nav_encryption_test.p12
     - name: KEYSTORE_FILE_SIGN
       value: /var/run/secrets/ebms-keystore/nav_signering_test.p12
     - name: EMOTTAK_LOGGING_LEVEL
