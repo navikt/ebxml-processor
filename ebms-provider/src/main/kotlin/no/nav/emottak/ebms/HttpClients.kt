@@ -47,11 +47,10 @@ class PayloadProcessingClient(clientProvider: () -> HttpClient) {
     private val payloadProcessorEndpoint = getEnvVar("PAYLOAD_PROCESSOR_URL", "http://ebms-payload/payload")
 
     suspend fun postPayloadRequest(payloadRequest: PayloadRequest): PayloadResponse {
-        val response = httpClient.post(payloadProcessorEndpoint) {
+        return httpClient.post(payloadProcessorEndpoint) {
             setBody(payloadRequest)
             contentType(ContentType.Application.Json)
-        }
-        return response.body()
+        }.body()
     }
 }
 
