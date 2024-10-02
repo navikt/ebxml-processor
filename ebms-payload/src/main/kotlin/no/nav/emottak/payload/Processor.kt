@@ -69,6 +69,7 @@ class Processor(
             payloadRequest.payload.copy(bytes = it)
         }.let {
             if (processConfig.ocspSjekk) {
+                throw Exception("My test oscp exception")
                 val dom = createDocument(ByteArrayInputStream(it.bytes))
                 val signature = dom.retrieveSignatureElement()
                 val certificateFromSignature = signature.keyInfo.x509Certificate
