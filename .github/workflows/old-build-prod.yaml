@@ -7,8 +7,6 @@ env:
   "IMAGE_EBMS": "ghcr.io/${{ github.repository }}/ebms-provider:${{ github.sha }}"
   "IMAGE_CPA": "ghcr.io/${{ github.repository }}/cpa-repo:${{ github.sha }}"
   "IMAGE_PAYLOAD": "ghcr.io/${{ github.repository }}/ebms-payload:${{ github.sha }}"
-  "IMAGE_LISTENERS": "ghcr.io/${{ github.repository }}/smtp-listeners:${{ github.sha }}"
-  "IMAGE_SEND_IN": "ghcr.io/${{ github.repository }}/ebms-send-in:${{ github.sha }}"
 jobs:
   build:
     name: "build"
@@ -53,10 +51,6 @@ jobs:
       run: "docker build cpa-repo --pull --tag ${IMAGE_CPA} -f Dockerfile && docker push ${IMAGE_CPA}"
     - name: "Build and push ebms-payload Docker image"
       run: "docker build ebms-payload --pull --tag ${IMAGE_PAYLOAD} -f Dockerfile && docker push ${IMAGE_PAYLOAD}"
-    - name: "Build and push smtp-listeners Docker image"
-      run: "docker build smtp-listeners --pull --tag ${IMAGE_LISTENERS} -f Dockerfile && docker push ${IMAGE_LISTENERS}"
-    - name: "Build and push ebms-send-in Docker image"
-      run: "docker build ebms-send-in --pull --tag ${IMAGE_SEND_IN} -f Dockerfile && docker push ${IMAGE_SEND_IN}"
   deploy-processor:
     name: "Deploy ebms provider to PROD"
     needs: "build"
@@ -96,31 +90,3 @@ jobs:
           CLUSTER: "prod-fss"
           RESOURCE: ".nais/ebms-payload-prod.yaml"
           IMAGE: ${{env.IMAGE_PAYLOAD}}
-  deploy-smtp-listeners:
-    name: "Deploy smtp-listeners to prod"
-    needs: "build"
-    runs-on: "ubuntu-20.04"
-    steps:
-      - uses: "actions/checkout@v4"
-      - name: "Deploy to PROD"
-        uses: "nais/deploy/actions/deploy@v1"
-        env:
-          APIKEY: "${{ secrets.NAIS_DEPLOY_APIKEY }}"
-          CLUSTER: "prod-fss"
-          RESOURCE: ".nais/smtp-listeners-prod.yaml"
-          IMAGE: ${{env.IMAGE_LISTENERS}}
-  deploy-ebms-send-in:
-    name: "Deploy ebms-send-in to prod"
-    needs: "build"
-    runs-on: "ubuntu-20.04"
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - uses: "actions/checkout@v4"
-      - name: "Deploy to PROD"
-        uses: "nais/deploy/actions/deploy@v2"
-        env:
-          CLUSTER: "prod-fss"
-          RESOURCE: ".nais/ebms-send-in-prod.yaml"
-          IMAGE: ${{env.IMAGE_SEND_IN}}
