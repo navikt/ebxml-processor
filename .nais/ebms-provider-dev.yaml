@@ -17,6 +17,17 @@ spec:
     initialDelay: 30
     timeout: 10
     failureThreshold: 10
+  observability:
+    autoInstrumentation:
+      enabled: true
+      runtime: java
+      destinations:
+        - id: "grafana-lgtm"
+        - id: "elastic-apm"
+    logging:
+      destinations:
+        - id: loki
+        - id: elastic
   readiness:
     path: "/internal/health/readiness"
     port: 8080
