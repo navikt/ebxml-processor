@@ -26,7 +26,6 @@ spec:
         - id: "elastic-apm"
     logging:
       destinations:
-        - id: loki
         - id: elastic
   readiness:
     path: "/internal/health/readiness"
