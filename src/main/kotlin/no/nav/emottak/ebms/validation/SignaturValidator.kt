@@ -1,7 +1,7 @@
 package no.nav.emottak.ebms.validation
 
-import no.nav.emottak.melding.model.EbmsAttachment
-import no.nav.emottak.melding.model.SignatureDetails
+import no.nav.emottak.message.model.EbmsAttachment
+import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.util.retrievePublicX509Certificate
 import no.nav.emottak.util.retrieveSignatureElement
 import no.nav.emottak.util.signatur.SignatureException
