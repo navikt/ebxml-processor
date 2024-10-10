@@ -37,7 +37,7 @@ fun Route.postEbmsSync(
     processingService: ProcessingService,
     sendInService: SendInService
 ): Route = post("/ebms/sync") {
-    log.info("Recieving synchroneus reqyest")
+    log.info("Receiving synchronous request")
 
     val debug: Boolean = call.request.header("debug")?.isNotBlank() ?: false
     val ebMSDocument: EbMSDocument
