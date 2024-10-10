@@ -36,6 +36,7 @@ tasks {
 
 dependencies {
     api(project(":felles"))
+    api(project(":ebxml-processing-api"))
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.netty)
     implementation(libs.ktor.server.content.negotiation)

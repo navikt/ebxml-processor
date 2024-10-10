@@ -1,6 +1,6 @@
 package no.nav.emottak.util
 
-import no.nav.emottak.melding.model.SignatureDetails
+
 import no.nav.emottak.util.signatur.SignatureException
 import org.apache.xml.security.signature.XMLSignature
 import org.apache.xml.security.utils.Constants
@@ -19,6 +19,7 @@ import javax.xml.parsers.DocumentBuilderFactory
 import javax.xml.transform.TransformerFactory
 import javax.xml.transform.dom.DOMSource
 import javax.xml.transform.stream.StreamResult
+import no.nav.emottak.message.model.SignatureDetails
 
 fun Document.retrieveSignatureElement(): XMLSignature {
     val nodeList: NodeList = this.getElementsByTagNameNS(Constants.SignatureSpecNS, Constants._TAG_SIGNATURE)

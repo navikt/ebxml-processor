@@ -3,10 +3,10 @@ package no.nav.emottak.ebms.model
 import no.nav.emottak.ebms.validation.SignaturValidator
 import no.nav.emottak.ebms.xml.getDocumentBuilder
 import no.nav.emottak.ebms.xml.marshal
-import no.nav.emottak.melding.model.Addressing
-import no.nav.emottak.melding.model.EbmsAttachment
-import no.nav.emottak.melding.model.Feil
-import no.nav.emottak.melding.model.SignatureDetails
+import no.nav.emottak.message.model.Addressing
+import no.nav.emottak.message.model.EbmsAttachment
+import no.nav.emottak.message.model.Feil
+import no.nav.emottak.message.model.SignatureDetails
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Acknowledgment
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.From
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Manifest
@@ -24,8 +24,7 @@ import org.xmlsoap.schemas.soap.envelope.Envelope
 import org.xmlsoap.schemas.soap.envelope.Header
 import java.io.StringReader
 import java.time.Instant
-import java.util.Date
-import java.util.UUID
+import java.util.*
 
 abstract class EbmsMessage {
     abstract val requestId: String

@@ -4,9 +4,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import no.nav.emottak.ebms.SendInClient
 import no.nav.emottak.ebms.model.PayloadMessage
-import no.nav.emottak.melding.model.EbmsProcessing
-import no.nav.emottak.melding.model.SendInRequest
-import no.nav.emottak.melding.model.SendInResponse
+import no.nav.emottak.message.model.EbmsProcessing
+import no.nav.emottak.message.model.SendInRequest
+import no.nav.emottak.message.model.SendInResponse
 
 class SendInService(val httpClient: SendInClient) {
 

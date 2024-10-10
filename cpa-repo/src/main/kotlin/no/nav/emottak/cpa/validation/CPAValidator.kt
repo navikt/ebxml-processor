@@ -5,8 +5,8 @@ import no.nav.emottak.constants.EbXMLConstants.EBMS_SERVICE_URI
 import no.nav.emottak.constants.EbXMLConstants.MESSAGE_ERROR_ACTION
 import no.nav.emottak.cpa.feil.CpaValidationException
 import no.nav.emottak.cpa.getPartyInfoByTypeAndID
-import no.nav.emottak.melding.model.Addressing
-import no.nav.emottak.melding.model.ValidationRequest
+import no.nav.emottak.message.model.Addressing
+import no.nav.emottak.message.model.ValidationRequest
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PartyInfo
 import java.time.Instant
