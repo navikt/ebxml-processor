@@ -13,6 +13,7 @@ import io.ktor.server.routing.post
 import io.micrometer.prometheus.PrometheusMeterRegistry
 import kotlinx.serialization.Serializable
 import no.nav.emottak.constants.SMTPHeaders
+import no.nav.emottak.ebms.ebxml.receiveEbmsDokument
 import no.nav.emottak.ebms.model.EbMSDocument
 import no.nav.emottak.ebms.model.PayloadMessage
 import no.nav.emottak.ebms.model.signer
@@ -30,7 +31,7 @@ import no.nav.emottak.melding.model.PayloadProcessing
 import no.nav.emottak.melding.model.SignatureDetails
 import no.nav.emottak.util.marker
 import no.nav.emottak.util.retrieveLoggableHeaderPairs
-import java.util.*
+import java.util.UUID
 
 fun Route.postEbmsSync(
     validator: DokumentValidator,
