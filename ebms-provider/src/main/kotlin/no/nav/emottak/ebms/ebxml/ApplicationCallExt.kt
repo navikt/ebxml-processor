@@ -37,81 +37,76 @@ import java.util.UUID
 @Throws(MimeValidationException::class)
 suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
     log.info("Parsing message with Message-Id: ${request.header(SMTPHeaders.MESSAGE_ID)}")
-    val debugClearText = !request.header("cleartext").isNullOrBlank()
+
     return when (val contentType = this.request.contentType().withoutParameters()) {
-        ContentType.parse("multipart/related") -> {
-            val allParts = mutableListOf<PartData>().apply {
-                this@receiveEbmsDokument.receiveMultipart().forEachPart {
-                    var partDataToAdd = it
-                    if (it is PartData.FileItem) it.streamProvider.invoke()
-                    if (it is PartData.FormItem) {
-                        val boundary = this@receiveEbmsDokument.request.contentType().parameter("boundary")
-                        if (it.value.contains("--$boundary--")) {
-                            log.warn("Encountered KTOR bug, trimming boundary")
-                            partDataToAdd =
-                                PartData.FormItem(it.value.substringBefore("--$boundary--").trim(), {}, it.headers)
-                        }
-                    }
-                    this.add(partDataToAdd)
-                    partDataToAdd.dispose.invoke()
-                    it.dispose.invoke()
-                }
-            }
-            val start = contentType.parameter("start") ?: allParts.first().headers[MimeHeaders.CONTENT_ID]
-
-            val dokument = allParts.find {
-                it.headers[MimeHeaders.CONTENT_ID] == start
-            }!!.also {
-                it.validateMimeSoapEnvelope()
-            }.let {
-                val contentID =
-                    it.headers[MimeHeaders.CONTENT_ID]?.convertToValidatedContentID() ?: "GENERERT-${UUID.randomUUID()}"
-                val isBase64 = "base64".equals(it.headers[MimeHeaders.CONTENT_TRANSFER_ENCODING], true)
-                Pair(contentID, it.payload(debugClearText || !isBase64))
-            }
-
-            val attachments =
-                allParts.filter { it.headers[MimeHeaders.CONTENT_ID] != start }
-            attachments.forEach {
-                it.validateMimeAttachment()
-            }
-
-            EbMSDocument(
-                dokument.first,
-                getDocumentBuilder().parse(ByteArrayInputStream(dokument.second)),
-                attachments.map {
-                    val isBase64 = "base64".equals(it.headers[MimeHeaders.CONTENT_TRANSFER_ENCODING], true)
-                    EbmsAttachment(
-                        it.payload(debugClearText || !isBase64),
-                        it.contentType!!.contentType,
-                        it.headers[MimeHeaders.CONTENT_ID]!!.convertToValidatedContentID()
-                    )
-                }
-            )
-        }
-
-        ContentType.parse("text/xml") -> {
-            val dokument = withContext(Dispatchers.IO) {
-                if (debugClearText || "base64" != request.header(MimeHeaders.CONTENT_TRANSFER_ENCODING)?.lowercase()) {
-                    this@receiveEbmsDokument.receive<ByteArray>()
-                } else {
-                    Base64.getMimeDecoder()
-                        .decode(this@receiveEbmsDokument.receive<ByteArray>())
-                }
-            }
-            EbMSDocument(
-                this.request.headers[MimeHeaders.CONTENT_ID]!!.convertToValidatedContentID(),
-                getDocumentBuilder().parse(ByteArrayInputStream(dokument)),
-                emptyList()
-            )
-        }
-
+        ContentType.parse("multipart/related") -> handleMultipartRelated()
+        ContentType.parse("text/xml") -> handleTextXml()
         else -> {
             throw MimeValidationException("Ukjent request body med Content-Type $contentType")
-            // call.respond(HttpStatusCode.BadRequest, "Ukjent request body med Content-Type $contentType")
-            // return@post
         }
     }
+}
+
+suspend fun ApplicationCall.handleTextXml(): EbMSDocument {
+    val debugClearText = !request.header("cleartext").isNullOrBlank()
+    val dokument = withContext(Dispatchers.IO) {
+        if (debugClearText || "base64" != request.header(MimeHeaders.CONTENT_TRANSFER_ENCODING)?.lowercase()) {
+            receive<ByteArray>()
+        } else {
+            Base64.getMimeDecoder()
+                .decode(receive<ByteArray>())
+        }
+    }
+    return EbMSDocument(
+        this.request.headers[MimeHeaders.CONTENT_ID]!!.convertToValidatedContentID(),
+        getDocumentBuilder().parse(ByteArrayInputStream(dokument)),
+        emptyList()
+    )
+}
+
+suspend fun ApplicationCall.handleMultipartRelated(): EbMSDocument {
+    val debugClearText = !request.header("cleartext").isNullOrBlank()
+    val allParts = mutableListOf<PartData>().apply {
+        receiveMultipart().forEachPart {
+            var partDataToAdd = it
+            if (it is PartData.FileItem) it.streamProvider.invoke()
+            if (it is PartData.FormItem) {
+                val boundary = request.contentType().parameter("boundary")
+                if (it.value.contains("--$boundary--")) {
+                    log.warn("Encountered KTOR bug, trimming boundary")
+                    partDataToAdd = PartData.FormItem(it.value.substringBefore("--$boundary--").trim(), {}, it.headers)
+                }
+            }
+            this.add(partDataToAdd)
+            partDataToAdd.dispose.invoke()
+            it.dispose.invoke()
+        }
+    }
+    val start =
+        request.contentType().withoutParameters().parameter("start") ?: allParts.first().headers[MimeHeaders.CONTENT_ID]
+    val dokument = allParts.find { it.headers[MimeHeaders.CONTENT_ID] == start }!!.also {
+        it.validateMimeSoapEnvelope()
+    }.let {
+        val contentID =
+            it.headers[MimeHeaders.CONTENT_ID]?.convertToValidatedContentID() ?: "GENERERT-${UUID.randomUUID()}"
+        val isBase64 = "base64".equals(it.headers[MimeHeaders.CONTENT_TRANSFER_ENCODING], true)
+        Pair(contentID, it.payload(debugClearText || !isBase64))
+    }
+    val attachments = allParts.filter { it.headers[MimeHeaders.CONTENT_ID] != start }
+    attachments.forEach { it.validateMimeAttachment() }
+
+    return EbMSDocument(
+        dokument.first,
+        getDocumentBuilder().parse(ByteArrayInputStream(dokument.second)),
+        attachments.map {
+            val isBase64 = "base64".equals(it.headers[MimeHeaders.CONTENT_TRANSFER_ENCODING], true)
+            EbmsAttachment(
+                it.payload(debugClearText || !isBase64),
+                it.contentType!!.contentType,
+                it.headers[MimeHeaders.CONTENT_ID]!!.convertToValidatedContentID()
+            )
+        }
+    )
 }
 
 private fun String.convertToValidatedContentID(): String {
