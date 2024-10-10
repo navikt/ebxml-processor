@@ -12,8 +12,8 @@ import no.nav.emottak.ebms.CpaRepoClient
 import no.nav.emottak.ebms.asHttpRequest
 import no.nav.emottak.ebms.ebxml.errorList
 import no.nav.emottak.ebms.ebxml.messageHeader
+import no.nav.emottak.ebms.ebxml.payload
 import no.nav.emottak.ebms.modify
-import no.nav.emottak.ebms.payload
 import no.nav.emottak.ebms.postEbmsAsync
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.validMultipartRequest

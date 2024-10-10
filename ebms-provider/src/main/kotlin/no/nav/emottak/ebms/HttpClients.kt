@@ -18,6 +18,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
+import no.nav.emottak.ebms.ebxml.log
 import no.nav.emottak.melding.model.PayloadRequest
 import no.nav.emottak.melding.model.PayloadResponse
 import no.nav.emottak.melding.model.SendInRequest
@@ -28,6 +29,7 @@ import no.nav.emottak.util.getEnvVar
 import java.net.InetSocketAddress
 import java.net.Proxy
 import java.net.URI
+import no.nav.emottak.ebms.ebxml.log
 
 class CpaRepoClient(clientProvider: () -> HttpClient) {
     private var httpClient = clientProvider.invoke()
