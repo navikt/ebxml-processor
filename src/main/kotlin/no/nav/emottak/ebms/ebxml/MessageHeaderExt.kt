@@ -3,10 +3,10 @@
  */
 package no.nav.emottak.ebms.ebxml
 
-import no.nav.emottak.melding.model.Addressing
-import no.nav.emottak.melding.model.Party
-import no.nav.emottak.melding.model.PartyId
-import no.nav.emottak.melding.model.ValidationRequest
+import no.nav.emottak.message.model.Addressing
+import no.nav.emottak.message.model.Party
+import no.nav.emottak.message.model.PartyId
+import no.nav.emottak.message.model.ValidationRequest
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.From
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageData
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader

@@ -24,23 +24,23 @@ import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.DokumentValidator
 import no.nav.emottak.ebms.validation.MimeHeaders
-import no.nav.emottak.melding.model.Addressing
-import no.nav.emottak.melding.model.Direction
-import no.nav.emottak.melding.model.EbmsProcessing
-import no.nav.emottak.melding.model.ErrorCode
-import no.nav.emottak.melding.model.Feil
-import no.nav.emottak.melding.model.Party
-import no.nav.emottak.melding.model.PartyId
-import no.nav.emottak.melding.model.PayloadProcessing
-import no.nav.emottak.melding.model.SendInResponse
-import no.nav.emottak.melding.model.SignatureDetails
-import no.nav.emottak.melding.model.ValidationResult
+import no.nav.emottak.message.model.Addressing
+import no.nav.emottak.message.model.Direction
+import no.nav.emottak.message.model.EbmsProcessing
+import no.nav.emottak.message.model.ErrorCode
+import no.nav.emottak.message.model.Feil
+import no.nav.emottak.message.model.Party
+import no.nav.emottak.message.model.PartyId
+import no.nav.emottak.message.model.PayloadProcessing
+import no.nav.emottak.message.model.SendInResponse
+import no.nav.emottak.message.model.SignatureDetails
+import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.util.decodeBase64
 import no.nav.emottak.util.getEnvVar
 import org.apache.xml.security.algorithms.MessageDigestAlgorithm
 import org.apache.xml.security.signature.XMLSignature
 import org.junit.jupiter.api.Test
-import java.util.UUID
+import java.util.*
 
 private const val SYNC_PATH = "/ebms/sync"
 

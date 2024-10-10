@@ -50,8 +50,8 @@ import no.nav.emottak.ebms.validation.validateMimeSoapEnvelope
 import no.nav.emottak.ebms.xml.asByteArray
 import no.nav.emottak.ebms.xml.asString
 import no.nav.emottak.ebms.xml.getDocumentBuilder
-import no.nav.emottak.melding.model.EbmsAttachment
-import no.nav.emottak.util.createUniqueMimeMessageId
+import no.nav.emottak.message.model.EbmsAttachment
+import no.nav.emottak.message.util.createUniqueMimeMessageId
 import no.nav.emottak.util.getEnvVar
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayInputStream
