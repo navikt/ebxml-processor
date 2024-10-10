@@ -156,6 +156,7 @@ private fun processConfig(
     validering = false,
     ocspSjekk = false,
     apprec = false,
+    juridiskLogg = false,
     adapter = null,
     errorAction = null
 )

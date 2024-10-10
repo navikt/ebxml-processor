@@ -106,8 +106,9 @@ data class ProcessConfig(
     val validering: Boolean,
     val apprec: Boolean, // Kan denne løsrives?
     val ocspSjekk: Boolean,
+    val juridiskLogg: Boolean,
     val adapter: String?,
-    val errorAction: String?,
+    val errorAction: String?
 )
 
 @Serializable
