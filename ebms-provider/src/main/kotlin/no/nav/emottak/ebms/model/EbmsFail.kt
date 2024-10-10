@@ -3,13 +3,13 @@ package no.nav.emottak.ebms.model
 import no.nav.emottak.constants.EbXMLConstants
 import no.nav.emottak.ebms.util.marker
 import no.nav.emottak.ebms.xml.xmlMarshaller
-import no.nav.emottak.melding.model.Addressing
-import no.nav.emottak.melding.model.Feil
-import no.nav.emottak.melding.model.asErrorList
+import no.nav.emottak.message.model.Addressing
+import no.nav.emottak.message.model.Feil
+import no.nav.emottak.message.model.asErrorList
 import org.w3c.dom.Document
 import org.xmlsoap.schemas.soap.envelope.Body
 import org.xmlsoap.schemas.soap.envelope.ObjectFactory
-import java.util.UUID
+import java.util.*
 
 data class EbmsFail(
     override val requestId: String,

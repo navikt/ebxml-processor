@@ -1,4 +1,4 @@
-package no.nav.emottak.melding.model
+package no.nav.emottak.message.model
 
 import kotlinx.serialization.Serializable
 

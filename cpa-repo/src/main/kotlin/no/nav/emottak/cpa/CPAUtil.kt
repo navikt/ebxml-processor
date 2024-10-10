@@ -4,8 +4,8 @@ import no.nav.emottak.constants.EbXMLConstants.EBMS_SERVICE_URI
 import no.nav.emottak.constants.PartyTypeEnum
 import no.nav.emottak.cpa.feil.CpaValidationException
 import no.nav.emottak.cpa.feil.SecurityException
-import no.nav.emottak.melding.model.PartyId
-import no.nav.emottak.melding.model.SignatureDetails
+import no.nav.emottak.message.model.PartyId
+import no.nav.emottak.message.model.SignatureDetails
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.Certificate
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.DeliveryChannel

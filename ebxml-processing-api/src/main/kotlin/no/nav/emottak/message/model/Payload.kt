@@ -1,7 +1,7 @@
-package no.nav.emottak.melding.model
+package no.nav.emottak.message.model
 
 import kotlinx.serialization.Serializable
-import no.nav.emottak.util.createUniqueMimeMessageId
+import no.nav.emottak.message.util.createUniqueMimeMessageId
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Description
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ErrorList
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.SeverityType
@@ -48,7 +48,7 @@ data class PayloadResponse(
 )
 
 @Serializable
-data class Feil(val code:ErrorCode,
+data class Feil(val code: ErrorCode,
                 val descriptionText:String,
                 val sevirity:String? = null) {
 
@@ -149,14 +149,9 @@ data class PartyId(
     val value: String,
 )
 
-@Serializable
-data class Processing(
-    val signingCertificate: SignatureDetails,
-    val encryptionCertificate: ByteArray
-)
 
 @Serializable
-data class Payload(val bytes: ByteArray, val contentType: String, val contentId: String = "att-${createUniqueMimeMessageId()}",val signedOf :String? = null)
+data class Payload(val bytes: ByteArray, val contentType: String, val contentId: String = "att-${createUniqueMimeMessageId()}", val signedOf :String? = null)
 
 typealias EbmsAttachment = Payload
 

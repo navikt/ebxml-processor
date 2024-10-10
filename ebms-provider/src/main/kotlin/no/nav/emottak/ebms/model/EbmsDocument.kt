@@ -23,10 +23,10 @@ import no.nav.emottak.ebms.ebxml.errorList
 import no.nav.emottak.ebms.ebxml.messageHeader
 import no.nav.emottak.ebms.xml.ebMSSigning
 import no.nav.emottak.ebms.xml.xmlMarshaller
-import no.nav.emottak.melding.model.ErrorCode
-import no.nav.emottak.melding.model.Feil
-import no.nav.emottak.melding.model.Payload
-import no.nav.emottak.melding.model.SignatureDetails
+import no.nav.emottak.message.model.ErrorCode
+import no.nav.emottak.message.model.Feil
+import no.nav.emottak.message.model.Payload
+import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.util.marker
 import no.nav.emottak.util.signatur.SignatureException
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader

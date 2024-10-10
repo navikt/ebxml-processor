@@ -6,10 +6,10 @@ import no.nav.emottak.ebms.CpaRepoClient
 import no.nav.emottak.ebms.model.EbmsMessage
 import no.nav.emottak.ebms.util.marker
 import no.nav.emottak.melding.feil.EbmsException
-import no.nav.emottak.melding.model.ErrorCode
-import no.nav.emottak.melding.model.Feil
-import no.nav.emottak.melding.model.ValidationRequest
-import no.nav.emottak.melding.model.ValidationResult
+import no.nav.emottak.message.model.ErrorCode
+import no.nav.emottak.message.model.Feil
+import no.nav.emottak.message.model.ValidationRequest
+import no.nav.emottak.message.model.ValidationResult
 import org.slf4j.LoggerFactory
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.DokumentValidator")

@@ -24,13 +24,13 @@ import no.nav.emottak.ebms.validation.MimeValidationException
 import no.nav.emottak.ebms.validation.parseAsSoapFault
 import no.nav.emottak.ebms.validation.validateMime
 import no.nav.emottak.melding.feil.EbmsException
-import no.nav.emottak.melding.model.Direction
-import no.nav.emottak.melding.model.Payload
-import no.nav.emottak.melding.model.PayloadProcessing
-import no.nav.emottak.melding.model.SignatureDetails
+import no.nav.emottak.message.model.Direction
+import no.nav.emottak.message.model.Payload
+import no.nav.emottak.message.model.PayloadProcessing
+import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.util.marker
 import no.nav.emottak.util.retrieveLoggableHeaderPairs
-import java.util.*
+import java.util.UUID
 
 fun Route.postEbmsSync(
     validator: DokumentValidator,

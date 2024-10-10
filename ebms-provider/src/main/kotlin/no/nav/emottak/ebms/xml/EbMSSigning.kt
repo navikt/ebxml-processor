@@ -8,8 +8,8 @@ import no.nav.emottak.crypto.parseVaultJsonObject
 import no.nav.emottak.ebms.model.EbMSDocument
 import no.nav.emottak.ebms.validation.CID_PREFIX
 import no.nav.emottak.ebms.validation.EbMSAttachmentResolver
-import no.nav.emottak.melding.model.EbmsAttachment
-import no.nav.emottak.melding.model.SignatureDetails
+import no.nav.emottak.message.model.EbmsAttachment
+import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.getEnvVar
 import no.nav.emottak.util.getFirstChildElement
