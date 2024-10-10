@@ -18,7 +18,7 @@ import no.nav.emottak.cpa.cpaApplicationModule
 import no.nav.emottak.cpa.persistence.Database
 import no.nav.emottak.ebms.cpaPostgres
 import no.nav.emottak.ebms.defaultHttpClient
-import no.nav.emottak.ebms.ebxml.ebmsProviderModule
+import no.nav.emottak.ebms.ebmsProviderModule
 import no.nav.emottak.ebms.testConfiguration
 import no.nav.emottak.ebms.validation.MimeHeaders
 import no.nav.security.mock.oauth2.MockOAuth2Server
