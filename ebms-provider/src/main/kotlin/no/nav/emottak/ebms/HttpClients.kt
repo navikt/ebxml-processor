@@ -29,7 +29,6 @@ import no.nav.emottak.util.getEnvVar
 import java.net.InetSocketAddress
 import java.net.Proxy
 import java.net.URI
-import no.nav.emottak.ebms.ebxml.log
 
 class CpaRepoClient(clientProvider: () -> HttpClient) {
     private var httpClient = clientProvider.invoke()
