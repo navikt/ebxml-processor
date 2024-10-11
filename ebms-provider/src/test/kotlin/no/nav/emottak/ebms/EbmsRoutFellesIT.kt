@@ -50,6 +50,7 @@ abstract class EbmsRoutFellesIT(val endpoint: String) {
         true,
         true,
         false,
+        false,
         "HarBorgerFrikort",
         null
     )

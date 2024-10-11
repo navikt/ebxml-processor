@@ -1,0 +1,2 @@
+ALTER TABLE process_config
+    ADD JURIDISK_LOGG boolean NOT NULL DEFAULT FALSE;
