@@ -27,8 +27,8 @@ import no.nav.emottak.ebms.validation.validateMimeSoapEnvelope
 import no.nav.emottak.ebms.xml.asByteArray
 import no.nav.emottak.ebms.xml.asString
 import no.nav.emottak.ebms.xml.getDocumentBuilder
-import no.nav.emottak.melding.model.EbmsAttachment
-import no.nav.emottak.util.createUniqueMimeMessageId
+import no.nav.emottak.message.model.EbmsAttachment
+import no.nav.emottak.message.util.createUniqueMimeMessageId
 import java.io.ByteArrayInputStream
 import java.nio.charset.StandardCharsets
 import java.util.Base64
@@ -47,7 +47,7 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
     }
 }
 
-suspend fun ApplicationCall.handleTextXml(): EbMSDocument {
+private suspend fun ApplicationCall.handleTextXml(): EbMSDocument {
     val debugClearText = !request.header("cleartext").isNullOrBlank()
     val dokument = withContext(Dispatchers.IO) {
         if (debugClearText || "base64" != request.header(MimeHeaders.CONTENT_TRANSFER_ENCODING)?.lowercase()) {
@@ -64,7 +64,7 @@ suspend fun ApplicationCall.handleTextXml(): EbMSDocument {
     )
 }
 
-suspend fun ApplicationCall.handleMultipartRelated(): EbMSDocument {
+private suspend fun ApplicationCall.handleMultipartRelated(): EbMSDocument {
     val debugClearText = !request.header("cleartext").isNullOrBlank()
     val allParts = mutableListOf<PartData>().apply {
         receiveMultipart().forEachPart {
