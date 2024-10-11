@@ -2,11 +2,11 @@ package no.nav.emottak.ebms.model
 
 import no.nav.emottak.constants.EbXMLConstants
 import no.nav.emottak.ebms.validation.SignaturValidator
-import no.nav.emottak.melding.model.Addressing
-import no.nav.emottak.melding.model.EbmsAttachment
-import no.nav.emottak.melding.model.SignatureDetails
+import no.nav.emottak.message.model.Addressing
+import no.nav.emottak.message.model.EbmsAttachment
+import no.nav.emottak.message.model.SignatureDetails
 import org.w3c.dom.Document
-import java.util.UUID
+import java.util.*
 
 data class PayloadMessage(
     override val requestId: String,

@@ -1,10 +1,10 @@
 package no.nav.emottak.cpa
 
-import no.nav.emottak.melding.model.Addressing
-import no.nav.emottak.melding.model.Header
-import no.nav.emottak.melding.model.Party
-import no.nav.emottak.melding.model.PartyId
-import no.nav.emottak.melding.model.ValidationRequest
+import no.nav.emottak.message.model.Addressing
+import no.nav.emottak.message.model.Header
+import no.nav.emottak.message.model.Party
+import no.nav.emottak.message.model.PartyId
+import no.nav.emottak.message.model.ValidationRequest
 import no.nav.emottak.util.createCRLFile
 import no.nav.emottak.util.createX509Certificate
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement

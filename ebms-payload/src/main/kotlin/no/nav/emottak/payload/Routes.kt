@@ -13,11 +13,11 @@ import io.ktor.server.routing.post
 import io.micrometer.prometheus.PrometheusMeterRegistry
 import no.kith.xmlstds.msghead._2006_05_24.MsgHead
 import no.nav.emottak.melding.apprec.createNegativeApprec
-import no.nav.emottak.melding.model.ErrorCode
-import no.nav.emottak.melding.model.Feil
-import no.nav.emottak.melding.model.Payload
-import no.nav.emottak.melding.model.PayloadRequest
-import no.nav.emottak.melding.model.PayloadResponse
+import no.nav.emottak.message.model.ErrorCode
+import no.nav.emottak.message.model.Feil
+import no.nav.emottak.message.model.Payload
+import no.nav.emottak.message.model.PayloadRequest
+import no.nav.emottak.message.model.PayloadResponse
 import no.nav.emottak.payload.util.marshal
 import no.nav.emottak.payload.util.unmarshal
 import no.nav.emottak.util.marker

@@ -2,10 +2,10 @@ package no.nav.emottak.payload
 
 import no.kith.xmlstds.msghead._2006_05_24.MsgHead
 import no.nav.emottak.crypto.KeyStore
-import no.nav.emottak.melding.model.Direction
-import no.nav.emottak.melding.model.Payload
-import no.nav.emottak.melding.model.PayloadRequest
-import no.nav.emottak.melding.model.PayloadResponse
+import no.nav.emottak.message.model.Direction
+import no.nav.emottak.message.model.Payload
+import no.nav.emottak.message.model.PayloadRequest
+import no.nav.emottak.message.model.PayloadResponse
 import no.nav.emottak.payload.crypto.Dekryptering
 import no.nav.emottak.payload.crypto.Kryptering
 import no.nav.emottak.payload.crypto.PayloadSignering

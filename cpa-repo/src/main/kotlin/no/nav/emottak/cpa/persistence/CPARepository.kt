@@ -3,7 +3,7 @@ package no.nav.emottak.cpa.persistence
 import no.nav.emottak.constants.PartyTypeEnum
 import no.nav.emottak.cpa.getPartnerPartyIdByType
 import no.nav.emottak.cpa.log
-import no.nav.emottak.melding.model.ProcessConfig
+import no.nav.emottak.message.model.ProcessConfig
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.deleteAll
@@ -117,6 +117,7 @@ class CPARepository(val database: Database) {
                     it[ProcessConfigTable.validering],
                     it[ProcessConfigTable.apprec],
                     it[ProcessConfigTable.ocspCheck],
+                    it[ProcessConfigTable.juridiskLogg],
                     it[ProcessConfigTable.adapter],
                     it[ProcessConfigTable.errorAction]
                 )

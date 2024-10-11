@@ -14,11 +14,12 @@ import no.nav.emottak.constants.LogIndex.TO_PARTY
 import no.nav.emottak.constants.LogIndex.TO_ROLE
 import no.nav.emottak.constants.LogIndex.X_MAILER
 import no.nav.emottak.constants.SMTPHeaders
-import no.nav.emottak.melding.model.Header
-import no.nav.emottak.melding.model.PayloadRequest
-import no.nav.emottak.melding.model.SendInRequest
-import no.nav.emottak.melding.model.SignatureDetailsRequest
-import no.nav.emottak.melding.model.ValidationRequest
+import no.nav.emottak.message.model.Header
+import no.nav.emottak.message.model.PayloadRequest
+import no.nav.emottak.message.model.SendInRequest
+import no.nav.emottak.message.model.SignatureDetailsRequest
+import no.nav.emottak.message.model.ValidationRequest
+
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
 
 fun Header.marker(): LogstashMarker = Markers.appendEntries(

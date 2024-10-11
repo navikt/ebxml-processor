@@ -18,9 +18,9 @@ import no.nav.emottak.ebms.postEbmsAsync
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.validMultipartRequest
 import no.nav.emottak.ebms.xml.xmlMarshaller
-import no.nav.emottak.melding.model.ErrorCode
-import no.nav.emottak.melding.model.Feil
-import no.nav.emottak.melding.model.ValidationResult
+import no.nav.emottak.message.model.ErrorCode
+import no.nav.emottak.message.model.Feil
+import no.nav.emottak.message.model.ValidationResult
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -111,7 +111,7 @@ class MimeValidationIT {
         with(envelope.assertErrorAndGet().error.first()) {
             assertEquals("Signature Fail", this.description?.value)
             assertEquals(
-                no.nav.emottak.melding.model.ErrorCode.SECURITY_FAILURE.value,
+                ErrorCode.SECURITY_FAILURE.value,
                 this.errorCode
             )
         }

@@ -1,4 +1,4 @@
-package no.nav.emottak.util
+package no.nav.emottak.message.util
 
 import java.util.UUID
 

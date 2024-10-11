@@ -13,11 +13,11 @@ import no.nav.emottak.ebms.model.EbmsMessage
 import no.nav.emottak.ebms.model.PayloadMessage
 import no.nav.emottak.ebms.util.marker
 import no.nav.emottak.melding.feil.EbmsException
-import no.nav.emottak.melding.model.Direction
-import no.nav.emottak.melding.model.Payload
-import no.nav.emottak.melding.model.PayloadProcessing
-import no.nav.emottak.melding.model.PayloadRequest
-import no.nav.emottak.melding.model.PayloadResponse
+import no.nav.emottak.message.model.Direction
+import no.nav.emottak.message.model.Payload
+import no.nav.emottak.message.model.PayloadProcessing
+import no.nav.emottak.message.model.PayloadRequest
+import no.nav.emottak.message.model.PayloadResponse
 
 class ProcessingService(private val httpClient: PayloadProcessingClient) {
 

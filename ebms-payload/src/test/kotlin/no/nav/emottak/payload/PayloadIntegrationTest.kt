@@ -12,14 +12,14 @@ import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
-import no.nav.emottak.melding.model.Direction
-import no.nav.emottak.melding.model.ErrorCode
-import no.nav.emottak.melding.model.Payload
-import no.nav.emottak.melding.model.PayloadProcessing
-import no.nav.emottak.melding.model.PayloadRequest
-import no.nav.emottak.melding.model.PayloadResponse
-import no.nav.emottak.melding.model.ProcessConfig
-import no.nav.emottak.melding.model.SignatureDetails
+import no.nav.emottak.message.model.Direction
+import no.nav.emottak.message.model.ErrorCode
+import no.nav.emottak.message.model.Payload
+import no.nav.emottak.message.model.PayloadProcessing
+import no.nav.emottak.message.model.PayloadRequest
+import no.nav.emottak.message.model.PayloadResponse
+import no.nav.emottak.message.model.ProcessConfig
+import no.nav.emottak.message.model.SignatureDetails
 import no.nav.security.mock.oauth2.MockOAuth2Server
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
@@ -156,6 +156,7 @@ private fun processConfig(
     validering = false,
     ocspSjekk = false,
     apprec = false,
+    juridiskLogg = false,
     adapter = null,
     errorAction = null
 )

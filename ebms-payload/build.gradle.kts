@@ -33,6 +33,7 @@ tasks {
 
 dependencies {
     implementation(project(":felles"))
+    implementation(project(":ebxml-processing-api"))
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.netty)
     implementation(libs.ktor.server.call.logging.jvm)
