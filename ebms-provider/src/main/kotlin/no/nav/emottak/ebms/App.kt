@@ -23,6 +23,15 @@ import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.DokumentValidator
+import no.nav.emottak.ebms.validation.MimeHeaders
+import no.nav.emottak.ebms.validation.MimeValidationException
+import no.nav.emottak.ebms.validation.validateMimeAttachment
+import no.nav.emottak.ebms.validation.validateMimeSoapEnvelope
+import no.nav.emottak.ebms.xml.asByteArray
+import no.nav.emottak.ebms.xml.asString
+import no.nav.emottak.ebms.xml.getDocumentBuilder
+import no.nav.emottak.message.model.EbmsAttachment
+import no.nav.emottak.message.util.createUniqueMimeMessageId
 import no.nav.emottak.util.getEnvVar
 import org.slf4j.LoggerFactory
 import java.time.Duration
