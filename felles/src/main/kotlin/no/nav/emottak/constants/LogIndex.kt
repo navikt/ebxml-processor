@@ -11,4 +11,5 @@ object LogIndex {
     const val CPA_ID = "cpaId"
     const val ACTION = "action"
     const val X_MAILER = "systemkilde"
+    const val X_REQUEST_ID = "requestId"
 }

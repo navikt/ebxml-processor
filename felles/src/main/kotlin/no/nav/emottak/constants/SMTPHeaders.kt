@@ -6,4 +6,5 @@ object SMTPHeaders {
     const val MESSAGE_ID = "Message-Id"
     const val DATE = "Date"
     const val X_MAILER = "X-Mailer"
+    const val X_REQUEST_ID = "X-Request-Id"
 }
