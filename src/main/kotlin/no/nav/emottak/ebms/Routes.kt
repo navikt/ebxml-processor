@@ -132,7 +132,7 @@ fun Route.postEbmsSync(
 }
 
 fun Route.postEbmsAsync(validator: DokumentValidator, processingService: ProcessingService): Route =
-    post("/ebms") {
+    post("/ebms/async") {
         // KRAV 5.5.2.1 validate MIME
         val debug: Boolean = call.request.header("debug")?.isNotBlank() ?: false
         val ebMSDocument: EbMSDocument
@@ -189,6 +189,13 @@ fun Route.postEbmsAsync(validator: DokumentValidator, processingService: Process
                 call.respondEbmsDokument(it)
                 return@post
             }
+        } catch (ex: Exception) {
+            log.error(ebmsMessage.marker(), "Unknown error during message processing: ${ex.message}", ex)
+            call.respond(
+                HttpStatusCode.InternalServerError,
+                ex.parseAsSoapFault()
+            )
+            return@post
         }
     }
 

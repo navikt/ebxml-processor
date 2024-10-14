@@ -5,8 +5,6 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
-import io.ktor.http.headers
-import io.ktor.server.routing.post
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockkObject
@@ -21,7 +19,7 @@ import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
 import org.xmlsoap.schemas.soap.envelope.Envelope
 
-class EbmsRouteAsyncIT : EbmsRoutFellesIT("/ebms") {
+class EbmsRouteAsyncIT : EbmsRoutFellesIT("/ebms/async") {
 
     @Test
     fun `Valid Payload should produce Acknowledgment`() = validationTestApp {
@@ -31,7 +29,7 @@ class EbmsRouteAsyncIT : EbmsRoutFellesIT("/ebms") {
                 it.append(MimeHeaders.CONTENT_ID, "<contentID-validRequest>")
             }
         )
-        val response = client.post("/ebms", multipart.asHttpRequest())
+        val response = client.post("/ebms/async", multipart.asHttpRequest())
         coVerify(exactly = 1) {
             processingService.processAsync(any(), any())
         }
@@ -51,7 +49,7 @@ class EbmsRouteAsyncIT : EbmsRoutFellesIT("/ebms") {
         every {
             SignaturValidator.validate(any(), any(), any())
         } returns Unit
-        val response = client.post("/ebms") {
+        val response = client.post("/ebms/async") {
             headers {
                 feilmelding.headers.entries().forEach {
                     append(it.key, it.value.first())
@@ -75,7 +73,7 @@ class EbmsRouteAsyncIT : EbmsRoutFellesIT("/ebms") {
         every {
             SignaturValidator.validate(any(), any(), any())
         } returns Unit
-        val response = client.post("/ebms") {
+        val response = client.post("/ebms/async") {
             headers {
                 ack.headers.entries().forEach {
                     append(it.key, it.value.first())

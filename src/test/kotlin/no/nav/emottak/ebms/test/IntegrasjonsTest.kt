@@ -104,7 +104,7 @@ class IntegrasjonsTest : EndToEndTest() {
         clearAllMocks()
         val httpClient = defaultHttpClient().invoke()
         runBlocking {
-            val post = httpClient.post("$ebmsProviderUrl/ebms") {
+            val post = httpClient.post("$ebmsProviderUrl/ebms/async") {
                 mockMultipartRequest()
                 // TODO send en melding som ikke feiler CPA-ID validation
             }
@@ -116,7 +116,7 @@ class IntegrasjonsTest : EndToEndTest() {
     fun testDevFssEndpoint() {
         runBlocking {
             defaultHttpClient()
-                .invoke().post("https://ebms-provider.intern.dev.nav.no/ebms") {
+                .invoke().post("https://ebms-provider.intern.dev.nav.no/ebms/async") {
                     mockMultipartRequest()
                 }
         }

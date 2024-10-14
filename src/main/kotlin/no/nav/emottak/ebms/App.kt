@@ -83,7 +83,7 @@ private fun Application.installRequestTimerPlugin() {
     install(
         createRouteScopedPlugin("RequestTimer") {
             val simpleLogger = KtorSimpleLogger("RequestTimerLogger")
-            val timeableURIs = listOf("/ebms/sync")
+            val timeableURIs = listOf("/ebms/sync", "/ebms/async")
             var startTime = Instant.now()
             onCall { call ->
                 if (call.request.uri in timeableURIs) {

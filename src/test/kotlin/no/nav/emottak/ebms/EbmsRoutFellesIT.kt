@@ -111,7 +111,7 @@ abstract class EbmsRoutFellesIT(val endpoint: String) {
 
     @Test
     fun `Feil på signature should answer with Feil Signal`() = validationTestApp {
-        val response = client.post("/ebms", validMultipartRequest.asHttpRequest())
+        val response = client.post("/ebms/async", validMultipartRequest.asHttpRequest())
         val envelope = xmlMarshaller.unmarshal(response.bodyAsText(), Envelope::class.java)
         with(envelope.assertErrorAndGet().error.first()) {
             Assertions.assertEquals("Signature Fail", this.description.value)
@@ -130,7 +130,7 @@ abstract class EbmsRoutFellesIT(val endpoint: String) {
                 it.append(MimeHeaders.CONTENT_ID, "<contentID-validRequest>")
             }
         )
-        client.post("/ebms", multipart.asHttpRequest())
+        client.post("/ebms/async", multipart.asHttpRequest())
         coVerify(exactly = 1) {
             processingService.processAsync(any(), any())
         }

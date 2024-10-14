@@ -55,7 +55,7 @@ class MimeValidationIT {
                 it.remove(MimeHeaders.CONTENT_TRANSFER_ENCODING)
             }
         )
-        val response = client.post("/ebms", wrongHeader.asHttpRequest())
+        val response = client.post("/ebms/async", wrongHeader.asHttpRequest())
         val responseText = response.bodyAsText()
         println(responseText.decodeBase64Mime())
         val envelope = xmlMarshaller.unmarshal(response.bodyAsText(), Envelope::class.java)
@@ -73,7 +73,7 @@ class MimeValidationIT {
     fun `Sending unparsable xml as dokument should Soap Fault`() = mimeTestApp {
         val illegalContent = validMultipartRequest.modify(validMultipartRequest.parts.first() to validMultipartRequest.parts.first().payload("Illegal payload"))
 
-        val response = client.post("/ebms", illegalContent.asHttpRequest())
+        val response = client.post("/ebms/async", illegalContent.asHttpRequest())
         val envelope = xmlMarshaller.unmarshal(response.bodyAsText(), Envelope::class.java)
         with(envelope.assertFaultAndGet()) {
             assertEquals(
@@ -91,7 +91,7 @@ class MimeValidationIT {
             cpaRepoClient.postValidate(any(), any())
         } returns validationResult
 
-        val response = client.post("/ebms", validMultipartRequest.asHttpRequest())
+        val response = client.post("/ebms/async", validMultipartRequest.asHttpRequest())
         val envelope = xmlMarshaller.unmarshal(response.bodyAsText(), Envelope::class.java)
         with(envelope.assertErrorAndGet().error.first()) {
             assertEquals("Signature Fail", this.description?.value)
@@ -106,7 +106,7 @@ class MimeValidationIT {
             cpaRepoClient.postValidate(any(), any())
         } returns validationResult
 
-        val response = client.post("/ebms", validMultipartRequest.asHttpRequest())
+        val response = client.post("/ebms/async", validMultipartRequest.asHttpRequest())
         val envelope = xmlMarshaller.unmarshal(response.bodyAsText(), Envelope::class.java)
         with(envelope.assertErrorAndGet().error.first()) {
             assertEquals("Signature Fail", this.description?.value)
