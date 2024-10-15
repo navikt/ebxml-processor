@@ -37,7 +37,7 @@ fun payloadSigneringConfig() =
             )
         else ->
             FileKeyStoreConfig(
-                keyStoreFilePath = getEnvVar("KEYSTORE_FILE_SIGN", "xml/signering_keystore.p12"),
+                keyStoreFilePath = getEnvVar("KEYSTORE_FILE_SIGN", "keystore/test_keystore2024.p12"),
                 keyStorePass = FileReader(
                     getEnvVar(
                         "KEYSTORE_PWD_FILE",
