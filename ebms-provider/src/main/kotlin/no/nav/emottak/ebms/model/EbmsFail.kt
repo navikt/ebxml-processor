@@ -1,5 +1,7 @@
 package no.nav.emottak.ebms.model
 
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import no.nav.emottak.constants.EbXMLConstants
 import no.nav.emottak.ebms.util.marker
 import no.nav.emottak.ebms.xml.xmlMarshaller
@@ -11,6 +13,8 @@ import org.xmlsoap.schemas.soap.envelope.Body
 import org.xmlsoap.schemas.soap.envelope.ObjectFactory
 import java.util.*
 
+@Serializable
+@SerialName("EbmsFail")
 data class EbmsFail(
     override val requestId: String,
     override val messageId: String,

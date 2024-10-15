@@ -1,5 +1,7 @@
 package no.nav.emottak.ebms.model
 
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import no.nav.emottak.ebms.validation.SignaturValidator
 import no.nav.emottak.ebms.xml.getDocumentBuilder
 import no.nav.emottak.ebms.xml.marshal
@@ -26,6 +28,7 @@ import java.io.StringReader
 import java.time.Instant
 import java.util.*
 
+@Serializable
 abstract class EbmsMessage {
     abstract val requestId: String
     abstract val messageId: String
@@ -33,7 +36,11 @@ abstract class EbmsMessage {
     abstract val cpaId: String
     abstract val addressing: Addressing
     abstract val refToMessageId: String?
+
+    @Transient
     abstract val dokument: Document?
+
+    @Transient
     val mottatt: Instant = Instant.now()
 
     open fun sjekkSignature(signatureDetails: SignatureDetails) {

@@ -14,7 +14,6 @@ import no.nav.emottak.ebms.model.PayloadMessage
 import no.nav.emottak.ebms.util.marker
 import no.nav.emottak.melding.feil.EbmsException
 import no.nav.emottak.message.model.Direction
-import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadProcessing
 import no.nav.emottak.message.model.PayloadRequest
 import no.nav.emottak.message.model.PayloadResponse
@@ -51,7 +50,7 @@ class ProcessingService(private val httpClient: PayloadProcessingClient) {
             when (clientRequestException.response.status) {
                 HttpStatusCode.BadRequest -> {
                     return Pair(
-                        payloadMessage.convertToErrorActionMessage(
+                        payloadMessage.createNegativApprec(
                             clientRequestException.retrieveReturnableApprecResponse(direction).processedPayload!!,
                             payloadProcessing.processConfig!!.errorAction!!
                         ),
@@ -115,13 +114,3 @@ class ProcessingService(private val httpClient: PayloadProcessingClient) {
 private fun PayloadProcessing.hasActionableProcessingSteps(): Boolean =
     this.processConfig != null &&
         (this.processConfig!!.signering || this.processConfig!!.kryptering || this.processConfig!!.komprimering)
-
-private fun PayloadMessage.convertToErrorActionMessage(payload: Payload, errorAction: String): PayloadMessage =
-    this.copy(
-        payload = payload,
-        addressing = this.addressing.copy(
-            action = errorAction,
-            to = this.addressing.from,
-            from = this.addressing.to
-        )
-    )
