@@ -17,7 +17,7 @@ tasks {
 }
 
 dependencies {
-    implementation(project(":ebxml-processing-api"))
+    implementation(project(":ebxml-processing-model"))
     implementation(libs.ebxml.protokoll)
     implementation(libs.emottak.payload.xsd)
     implementation(libs.hikari)

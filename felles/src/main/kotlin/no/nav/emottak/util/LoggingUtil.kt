@@ -4,22 +4,22 @@ import io.ktor.http.Headers
 import net.logstash.logback.marker.LogstashMarker
 import net.logstash.logback.marker.Markers
 import no.nav.emottak.constants.LogIndex.ACTION
+import no.nav.emottak.constants.LogIndex.CONVERSATION_ID
 import no.nav.emottak.constants.LogIndex.CPA_ID
 import no.nav.emottak.constants.LogIndex.FROM_PARTY
 import no.nav.emottak.constants.LogIndex.FROM_ROLE
-import no.nav.emottak.constants.LogIndex.CONVERSATION_ID
 import no.nav.emottak.constants.LogIndex.MESSAGE_ID
 import no.nav.emottak.constants.LogIndex.SERVICE
 import no.nav.emottak.constants.LogIndex.TO_PARTY
 import no.nav.emottak.constants.LogIndex.TO_ROLE
 import no.nav.emottak.constants.LogIndex.X_MAILER
+import no.nav.emottak.constants.LogIndex.X_REQUEST_ID
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.message.model.Header
 import no.nav.emottak.message.model.PayloadRequest
 import no.nav.emottak.message.model.SendInRequest
 import no.nav.emottak.message.model.SignatureDetailsRequest
 import no.nav.emottak.message.model.ValidationRequest
-
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
 
 fun Header.marker(): LogstashMarker = Markers.appendEntries(
@@ -86,7 +86,8 @@ fun Headers.marker(): LogstashMarker = Markers.appendEntries(
 fun Headers.retrieveLoggableHeaderPairs(): Map<String, String> {
     return mapOf(
         X_MAILER to (this[SMTPHeaders.X_MAILER] ?: "-"),
-        "messageId" to (this[SMTPHeaders.MESSAGE_ID] ?: this["X-Request-Id"] ?: "-")
+        "mimeMessageId" to (this[SMTPHeaders.MESSAGE_ID] ?: "-"),
+        X_REQUEST_ID to (this[SMTPHeaders.X_REQUEST_ID] ?: "-")
     )
 }
 

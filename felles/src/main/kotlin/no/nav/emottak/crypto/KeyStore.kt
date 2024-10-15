@@ -75,6 +75,7 @@ class KeyStore(private val keyStoreConfig: KeyStoreConfig) {
 
     private fun hasPrivateKeyEntry(alias: String): Boolean {
         if (keyStore.isKeyEntry(alias)) {
+            log.debug("Checking alias: $alias")
             val key = keyStore.getKey(alias, keyStoreConfig.keyStorePass)
             if (key is PrivateKey) {
                 return true
