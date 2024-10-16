@@ -8,7 +8,8 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.Payload
@@ -39,17 +40,19 @@ class JuridiskLoggService() {
         )
         log.debug("Juridisk logg forespørsel: $request")
 
-        val response = runBlocking {
-            try {
-                httpClient.post(juridiskLoggUrl) {
-                    setBody(request)
-                    contentType(ContentType.Application.Json)
-                    basicAuth(userName.value, userPassword.value)
-                }.body<JuridiskLoggResponse>()
-            } catch (e: Exception) {
-                log.error("Feil med å sende forespørsel til juridisk logg", e)
-            } finally {
-                httpClient.close()
+        val response = suspend {
+            withContext(Dispatchers.IO) {
+                try {
+                    httpClient.post(juridiskLoggUrl) {
+                        setBody(request)
+                        contentType(ContentType.Application.Json)
+                        basicAuth(userName.value, userPassword.value)
+                    }.body<JuridiskLoggResponse>()
+                } catch (e: Exception) {
+                    log.error("Feil med å sende forespørsel til juridisk logg", e)
+                } finally {
+                    httpClient.close()
+                }
             }
         }
         log.debug("Juridisk logg respons: $response")
