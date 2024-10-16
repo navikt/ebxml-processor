@@ -14,6 +14,8 @@ import io.ktor.server.routing.post
 import io.micrometer.prometheus.PrometheusMeterRegistry
 import kotlinx.serialization.Serializable
 import no.nav.emottak.constants.SMTPHeaders
+import no.nav.emottak.ebms.ebxml.receiveEbmsDokument
+import no.nav.emottak.ebms.ebxml.respondEbmsDokument
 import no.nav.emottak.ebms.model.EbMSDocument
 import no.nav.emottak.ebms.model.EbmsMessage
 import no.nav.emottak.ebms.model.PayloadMessage
@@ -156,7 +158,7 @@ fun Route.postEbmsSync(
         ebMSDocument = call.receiveEbmsDokument()
         log.info(ebMSDocument.messageHeader().marker(loggableHeaders), "Melding mottatt")
     } catch (ex: MimeValidationException) {
-        logger().error(
+        log.error(
             call.request.headers.marker(),
             "Mime validation has failed: ${ex.message} Message-Id ${call.request.header(SMTPHeaders.MESSAGE_ID)}",
             ex
@@ -164,7 +166,7 @@ fun Route.postEbmsSync(
         call.respond(HttpStatusCode.InternalServerError, ex.parseAsSoapFault())
         return@post
     } catch (ex: Exception) {
-        logger().error(
+        log.error(
             call.request.headers.marker(),
             "Unable to transform request into EbmsDokument: ${ex.message} " +
                 "Message-Id ${call.request.header(SMTPHeaders.MESSAGE_ID)}",
@@ -247,14 +249,14 @@ fun Route.postEbmsAsync(validator: DokumentValidator, processingService: Process
             call.request.validateMime()
             ebMSDocument = call.receiveEbmsDokument()
         } catch (ex: MimeValidationException) {
-            logger().error(
+            log.error(
                 "Mime validation has failed: ${ex.message} Message-Id ${call.request.header(SMTPHeaders.MESSAGE_ID)}",
                 ex
             )
             call.respond(HttpStatusCode.InternalServerError, ex.parseAsSoapFault())
             return@post
         } catch (ex: Exception) {
-            logger().error(
+            log.error(
                 "Unable to transform request into EbmsDokument: ${ex.message} Message-Id ${
                 call.request.header(
                     SMTPHeaders.MESSAGE_ID
