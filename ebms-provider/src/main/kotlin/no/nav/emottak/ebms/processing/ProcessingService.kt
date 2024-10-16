@@ -6,7 +6,7 @@ import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import no.nav.emottak.ebms.PayloadProcessingClient
-import no.nav.emottak.ebms.log
+import no.nav.emottak.ebms.logger
 import no.nav.emottak.ebms.model.Acknowledgment
 import no.nav.emottak.ebms.model.EbmsFail
 import no.nav.emottak.ebms.model.EbmsMessage
@@ -42,7 +42,7 @@ class ProcessingService(private val httpClient: PayloadProcessingClient) {
                 direction
             )
         } catch (clientRequestException: ClientRequestException) {
-            log.error(
+            logger().error(
                 payloadMessage.marker(),
                 "Processing failed: ${clientRequestException.message}",
                 clientRequestException
