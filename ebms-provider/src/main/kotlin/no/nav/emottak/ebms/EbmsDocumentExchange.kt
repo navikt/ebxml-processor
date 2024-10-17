@@ -18,8 +18,6 @@ import io.ktor.server.request.receive
 import io.ktor.server.request.receiveMultipart
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
-import java.io.ByteArrayInputStream
-import java.nio.charset.StandardCharsets
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import no.nav.emottak.constants.SMTPHeaders
@@ -34,6 +32,8 @@ import no.nav.emottak.ebms.xml.asString
 import no.nav.emottak.ebms.xml.getDocumentBuilder
 import no.nav.emottak.message.model.EbmsAttachment
 import no.nav.emottak.message.util.createUniqueMimeMessageId
+import java.io.ByteArrayInputStream
+import java.nio.charset.StandardCharsets
 import java.util.Base64
 import java.util.UUID
 
