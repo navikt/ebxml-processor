@@ -1,8 +1,7 @@
-package no.nav.emottak.ebms.model
+package no.nav.emottak.message.model
 
-import no.nav.emottak.constants.EbXMLConstants
-import no.nav.emottak.message.model.Addressing
-import no.nav.emottak.message.model.EbmsAttachment
+
+import no.nav.emottak.message.ebxml.EbXMLConstants
 import org.w3c.dom.Document
 import java.util.UUID
 

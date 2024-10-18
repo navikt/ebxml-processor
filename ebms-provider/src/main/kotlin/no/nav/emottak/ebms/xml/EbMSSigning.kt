@@ -5,9 +5,9 @@ import no.nav.emottak.crypto.FileKeyStoreConfig
 import no.nav.emottak.crypto.KeyStore
 import no.nav.emottak.crypto.VaultKeyStoreConfig
 import no.nav.emottak.crypto.parseVaultJsonObject
-import no.nav.emottak.ebms.model.EbMSDocument
 import no.nav.emottak.ebms.validation.CID_PREFIX
 import no.nav.emottak.ebms.validation.EbMSAttachmentResolver
+import no.nav.emottak.message.model.EbMSDocument
 import no.nav.emottak.message.model.EbmsAttachment
 import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.util.createX509Certificate

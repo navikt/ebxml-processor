@@ -18,19 +18,19 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockkStatic
 import no.nav.emottak.constants.SMTPHeaders
-import no.nav.emottak.ebms.model.EbMSDocument
-import no.nav.emottak.ebms.model.PayloadMessage
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.DokumentValidator
 import no.nav.emottak.ebms.validation.MimeHeaders
 import no.nav.emottak.message.model.Addressing
 import no.nav.emottak.message.model.Direction
+import no.nav.emottak.message.model.EbMSDocument
 import no.nav.emottak.message.model.EbmsProcessing
 import no.nav.emottak.message.model.ErrorCode
 import no.nav.emottak.message.model.Feil
 import no.nav.emottak.message.model.Party
 import no.nav.emottak.message.model.PartyId
+import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.model.PayloadProcessing
 import no.nav.emottak.message.model.SendInResponse
 import no.nav.emottak.message.model.SignatureDetails
@@ -40,7 +40,7 @@ import no.nav.emottak.util.getEnvVar
 import org.apache.xml.security.algorithms.MessageDigestAlgorithm
 import org.apache.xml.security.signature.XMLSignature
 import org.junit.jupiter.api.Test
-import java.util.*
+import java.util.UUID
 
 private const val SYNC_PATH = "/ebms/sync"
 

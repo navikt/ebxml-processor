@@ -3,7 +3,7 @@ package no.nav.emottak.ebms.util
 import net.logstash.logback.marker.LogstashMarker
 import net.logstash.logback.marker.Markers
 import no.nav.emottak.constants.LogIndex
-import no.nav.emottak.ebms.model.EbmsMessage
+import no.nav.emottak.message.model.EbmsMessage
 
 fun EbmsMessage.marker(loggableHeaderPairs: Map<String, String> = emptyMap()): LogstashMarker = Markers.appendEntries(
     mapOf(

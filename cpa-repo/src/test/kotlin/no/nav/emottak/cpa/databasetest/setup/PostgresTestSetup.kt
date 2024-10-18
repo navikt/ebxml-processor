@@ -1,12 +1,12 @@
 package no.nav.emottak.cpa.databasetest.setup
 
 import com.zaxxer.hikari.HikariConfig
-import no.nav.emottak.constants.PartyTypeEnum
 import no.nav.emottak.cpa.getPartnerPartyIdByType
 import no.nav.emottak.cpa.persistence.CPA
 import no.nav.emottak.cpa.persistence.CPA_DB_NAME
 import no.nav.emottak.cpa.persistence.Database
 import no.nav.emottak.cpa.xmlMarshaller
+import no.nav.emottak.message.ebxml.PartyTypeEnum
 import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.sql.deleteAll
 import org.jetbrains.exposed.sql.insert

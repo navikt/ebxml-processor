@@ -1,10 +1,7 @@
-package no.nav.emottak.ebms.model
+package no.nav.emottak.message.model
 
-import no.nav.emottak.ebms.xml.getDocumentBuilder
-import no.nav.emottak.ebms.xml.marshal
-import no.nav.emottak.message.model.Addressing
-import no.nav.emottak.message.model.EbmsAttachment
-import no.nav.emottak.message.model.Feil
+import no.nav.emottak.message.xml.getDocumentBuilder
+import no.nav.emottak.message.xml.marshal
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Acknowledgment
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.From
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Manifest

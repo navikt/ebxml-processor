@@ -3,8 +3,8 @@
  */
 package no.nav.emottak.ebms
 
-import no.nav.emottak.ebms.xml.marshal
-import no.nav.emottak.ebms.xml.unmarshal
+import no.nav.emottak.message.xml.marshal
+import no.nav.emottak.message.xml.unmarshal
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
