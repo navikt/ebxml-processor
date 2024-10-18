@@ -1,12 +1,10 @@
 package no.nav.emottak.ebms.model
 
 import no.nav.emottak.constants.EbXMLConstants
-import no.nav.emottak.ebms.validation.SignaturValidator
 import no.nav.emottak.message.model.Addressing
 import no.nav.emottak.message.model.EbmsAttachment
-import no.nav.emottak.message.model.SignatureDetails
 import org.w3c.dom.Document
-import java.util.*
+import java.util.UUID
 
 data class PayloadMessage(
     override val requestId: String,
@@ -19,11 +17,6 @@ data class PayloadMessage(
     override val refToMessageId: String? = null
 
 ) : EbmsMessage() {
-
-    override fun sjekkSignature(signatureDetails: SignatureDetails) {
-        SignaturValidator.validate(signatureDetails, this.dokument!!, listOf(payload!!))
-        log.info("Signatur OK")
-    }
 
     override fun toEbmsDokument(): EbMSDocument {
         return createEbmsDocument(createMessageHeader(), this.payload)
