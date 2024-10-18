@@ -75,3 +75,4 @@ jobs:
           CLUSTER: "dev-fss"
           RESOURCE: ".nais/${{ env.NAIS_MANIFEST }}"
           IMAGE: ${{env.IMAGE_NAME}}
+          TELEMETRY: ${{ steps.docker-build-push.outputs.telemetry }}

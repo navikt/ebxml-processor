@@ -96,3 +96,4 @@ jobs:
           CLUSTER: "dev-fss"
           RESOURCE: ".nais/ebms-payload-dev.yaml"
           IMAGE: ${{env.IMAGE_PAYLOAD}}
+          TELEMETRY: ${{ steps.docker-build-push.outputs.telemetry }}

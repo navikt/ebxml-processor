@@ -64,6 +64,7 @@ jobs:
         CLUSTER: "prod-fss"
         RESOURCE: ".nais/ebms-provider-prod.yaml"
         IMAGE: ${{env.IMAGE_EBMS}}
+        TELEMETRY: ${{ steps.docker-build-push.outputs.telemetry }}
   deploy-cpa-repo:
     name: "Deploy cpa-repo to prod"
     needs: "build"
@@ -77,6 +78,7 @@ jobs:
           CLUSTER: "prod-fss"
           RESOURCE: ".nais/cpa-repo-prod.yaml"
           IMAGE: ${{env.IMAGE_CPA}}
+          TELEMETRY: ${{ steps.docker-build-push.outputs.telemetry }}
   deploy-ebms-payload:
     name: "Deploy ebms-payload to prod"
     needs: "build"
@@ -90,3 +92,4 @@ jobs:
           CLUSTER: "prod-fss"
           RESOURCE: ".nais/ebms-payload-prod.yaml"
           IMAGE: ${{env.IMAGE_PAYLOAD}}
+          TELEMETRY: ${{ steps.docker-build-push.outputs.telemetry }}

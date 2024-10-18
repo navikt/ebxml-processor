@@ -23,3 +23,4 @@ jobs:
           CLUSTER: dev-gcp
           VAR: kafka-pool=nav-dev
           RESOURCE: ${{ env.TOPIC_FILE }}
+          TELEMETRY: ${{ steps.docker-build-push.outputs.telemetry }}
