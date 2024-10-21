@@ -1,4 +1,4 @@
-package no.nav.emottak.ebms.xml
+package no.nav.emottak.message.xml
 
 import org.w3c.dom.Document
 import org.w3c.dom.Node

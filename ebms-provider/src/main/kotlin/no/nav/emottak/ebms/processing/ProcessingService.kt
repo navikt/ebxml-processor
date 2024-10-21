@@ -6,14 +6,15 @@ import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import no.nav.emottak.ebms.PayloadProcessingClient
-import no.nav.emottak.ebms.log
-import no.nav.emottak.ebms.model.Acknowledgment
-import no.nav.emottak.ebms.model.EbmsFail
-import no.nav.emottak.ebms.model.EbmsMessage
-import no.nav.emottak.ebms.model.PayloadMessage
+import no.nav.emottak.ebms.logger
 import no.nav.emottak.ebms.util.marker
 import no.nav.emottak.melding.feil.EbmsException
+import no.nav.emottak.message.model.Acknowledgment
 import no.nav.emottak.message.model.Direction
+import no.nav.emottak.message.model.EbmsFail
+import no.nav.emottak.message.model.EbmsMessage
+import no.nav.emottak.message.model.Payload
+import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.model.PayloadProcessing
 import no.nav.emottak.message.model.PayloadRequest
 import no.nav.emottak.message.model.PayloadResponse
@@ -42,7 +43,7 @@ class ProcessingService(private val httpClient: PayloadProcessingClient) {
                 direction
             )
         } catch (clientRequestException: ClientRequestException) {
-            log.error(
+            logger().error(
                 payloadMessage.marker(),
                 "Processing failed: ${clientRequestException.message}",
                 clientRequestException
@@ -50,7 +51,7 @@ class ProcessingService(private val httpClient: PayloadProcessingClient) {
             when (clientRequestException.response.status) {
                 HttpStatusCode.BadRequest -> {
                     return Pair(
-                        payloadMessage.createNegativApprec(
+                        payloadMessage.convertToErrorActionMessage(
                             clientRequestException.retrieveReturnableApprecResponse(direction).processedPayload!!,
                             payloadProcessing.processConfig!!.errorAction!!
                         ),
@@ -114,3 +115,13 @@ class ProcessingService(private val httpClient: PayloadProcessingClient) {
 private fun PayloadProcessing.hasActionableProcessingSteps(): Boolean =
     this.processConfig != null &&
         (this.processConfig!!.signering || this.processConfig!!.kryptering || this.processConfig!!.komprimering)
+
+private fun PayloadMessage.convertToErrorActionMessage(payload: Payload, errorAction: String): PayloadMessage =
+    this.copy(
+        payload = payload,
+        addressing = this.addressing.copy(
+            action = errorAction,
+            to = this.addressing.from,
+            from = this.addressing.to
+        )
+    )

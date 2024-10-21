@@ -57,6 +57,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: "Build and push ${{ env.MODULE_NAME }} docker image"
+        id: docker-build-push
         run: | 
           docker build --tag ${{ env.IMAGE_NAME }} -f Dockerfile ${{ env.MODULE_NAME }} --pull 
           docker push ${{ env.IMAGE_NAME }}
@@ -75,3 +76,4 @@ jobs:
           CLUSTER: "dev-fss"
           RESOURCE: ".nais/${{ env.NAIS_MANIFEST }}"
           IMAGE: ${{env.IMAGE_NAME}}
+          TELEMETRY: ${{ steps.docker-build-push.outputs.telemetry }}

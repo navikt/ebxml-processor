@@ -1,10 +1,10 @@
 package no.nav.emottak.cpa.validation
 
-import no.nav.emottak.constants.EbXMLConstants.ACKNOWLEDGMENT_ACTION
-import no.nav.emottak.constants.EbXMLConstants.EBMS_SERVICE_URI
-import no.nav.emottak.constants.EbXMLConstants.MESSAGE_ERROR_ACTION
 import no.nav.emottak.cpa.feil.CpaValidationException
 import no.nav.emottak.cpa.getPartyInfoByTypeAndID
+import no.nav.emottak.message.ebxml.EbXMLConstants.ACKNOWLEDGMENT_ACTION
+import no.nav.emottak.message.ebxml.EbXMLConstants.EBMS_SERVICE_URI
+import no.nav.emottak.message.ebxml.EbXMLConstants.MESSAGE_ERROR_ACTION
 import no.nav.emottak.message.model.Addressing
 import no.nav.emottak.message.model.ValidationRequest
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement

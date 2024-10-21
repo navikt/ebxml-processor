@@ -3,8 +3,8 @@ package no.nav.emottak.ebms.sendin
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import no.nav.emottak.ebms.SendInClient
-import no.nav.emottak.ebms.model.PayloadMessage
 import no.nav.emottak.message.model.EbmsProcessing
+import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.model.SendInRequest
 import no.nav.emottak.message.model.SendInResponse
 

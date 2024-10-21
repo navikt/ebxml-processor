@@ -16,7 +16,6 @@ import io.ktor.server.routing.post
 import io.micrometer.prometheus.PrometheusMeterRegistry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import no.nav.emottak.constants.PartyTypeEnum
 import no.nav.emottak.cpa.auth.AZURE_AD_AUTH
 import no.nav.emottak.cpa.feil.CpaValidationException
 import no.nav.emottak.cpa.feil.MultiplePartnerException
@@ -27,6 +26,7 @@ import no.nav.emottak.cpa.validation.MessageDirection
 import no.nav.emottak.cpa.validation.partyInfoHasRoleServiceActionCombo
 import no.nav.emottak.cpa.validation.validate
 import no.nav.emottak.melding.feil.EbmsException
+import no.nav.emottak.message.ebxml.PartyTypeEnum
 import no.nav.emottak.message.model.EbmsProcessing
 import no.nav.emottak.message.model.ErrorCode
 import no.nav.emottak.message.model.Feil

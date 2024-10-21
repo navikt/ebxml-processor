@@ -14,11 +14,7 @@ import io.ktor.server.routing.post
 import io.micrometer.prometheus.PrometheusMeterRegistry
 import kotlinx.serialization.Serializable
 import no.nav.emottak.constants.SMTPHeaders
-import no.nav.emottak.ebms.ebxml.receiveEbmsDokument
-import no.nav.emottak.ebms.ebxml.respondEbmsDokument
-import no.nav.emottak.ebms.model.EbMSDocument
 import no.nav.emottak.ebms.model.EbmsMessage
-import no.nav.emottak.ebms.model.PayloadMessage
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
@@ -29,7 +25,9 @@ import no.nav.emottak.ebms.validation.parseAsSoapFault
 import no.nav.emottak.ebms.validation.validateMime
 import no.nav.emottak.melding.feil.EbmsException
 import no.nav.emottak.message.model.Direction
+import no.nav.emottak.message.model.EbMSDocument
 import no.nav.emottak.message.model.Payload
+import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.model.PayloadProcessing
 import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.util.marker
@@ -158,7 +156,7 @@ fun Route.postEbmsSync(
         ebMSDocument = call.receiveEbmsDokument()
         log.info(ebMSDocument.messageHeader().marker(loggableHeaders), "Melding mottatt")
     } catch (ex: MimeValidationException) {
-        log.error(
+        logger().error(
             call.request.headers.marker(),
             "Mime validation has failed: ${ex.message} Message-Id ${call.request.header(SMTPHeaders.MESSAGE_ID)}",
             ex
@@ -166,7 +164,7 @@ fun Route.postEbmsSync(
         call.respond(HttpStatusCode.InternalServerError, ex.parseAsSoapFault())
         return@post
     } catch (ex: Exception) {
-        log.error(
+        logger().error(
             call.request.headers.marker(),
             "Unable to transform request into EbmsDokument: ${ex.message} " +
                 "Message-Id ${call.request.header(SMTPHeaders.MESSAGE_ID)}",
@@ -249,14 +247,14 @@ fun Route.postEbmsAsync(validator: DokumentValidator, processingService: Process
             call.request.validateMime()
             ebMSDocument = call.receiveEbmsDokument()
         } catch (ex: MimeValidationException) {
-            log.error(
+            logger().error(
                 "Mime validation has failed: ${ex.message} Message-Id ${call.request.header(SMTPHeaders.MESSAGE_ID)}",
                 ex
             )
             call.respond(HttpStatusCode.InternalServerError, ex.parseAsSoapFault())
             return@post
         } catch (ex: Exception) {
-            log.error(
+            logger().error(
                 "Unable to transform request into EbmsDokument: ${ex.message} Message-Id ${
                 call.request.header(
                     SMTPHeaders.MESSAGE_ID

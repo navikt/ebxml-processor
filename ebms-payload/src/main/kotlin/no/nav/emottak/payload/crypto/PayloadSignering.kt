@@ -4,7 +4,10 @@ import no.nav.emottak.crypto.FileKeyStoreConfig
 import no.nav.emottak.crypto.KeyStore
 import no.nav.emottak.crypto.VaultKeyStoreConfig
 import no.nav.emottak.crypto.parseVaultJsonObject
+import no.nav.emottak.message.model.SignatureDetails
+import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.getEnvVar
+import no.nav.emottak.util.signatur.SignatureException
 import org.w3c.dom.Document
 import java.io.FileReader
 import java.security.Key
@@ -34,7 +37,7 @@ fun payloadSigneringConfig() =
             )
         else ->
             FileKeyStoreConfig(
-                keyStoreFilePath = getEnvVar("KEYSTORE_FILE_SIGN", "xml/signering_keystore.p12"),
+                keyStoreFilePath = getEnvVar("KEYSTORE_FILE_SIGN", "keystore/test_keystore2024.p12"),
                 keyStorePass = FileReader(
                     getEnvVar(
                         "KEYSTORE_PWD_FILE",
@@ -47,15 +50,17 @@ fun payloadSigneringConfig() =
 
 class PayloadSignering(private val keyStore: KeyStore = KeyStore(payloadSigneringConfig())) {
 
-    private val defaultAlias = "test2023"
     private val digestAlgorithm: String = "http://www.w3.org/2001/04/xmlenc#sha256"
     private val canonicalizationMethod: String = "http://www.w3.org/TR/2001/REC-xml-c14n-20010315"
     private val signatureAlgorithm: String = "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"
 
     private val factory = XMLSignatureFactory.getInstance("DOM")
 
-    fun signerXML(document: Document, alias: String = defaultAlias): Document {
-        val signerCertificate: X509Certificate = keyStore.getCertificate(alias)
+    fun signerXML(document: Document, signatureDetails: SignatureDetails): Document {
+        val signerCertificate: X509Certificate = createX509Certificate(signatureDetails.certificate)
+        val alias = keyStore.getCertificateAlias(signerCertificate)
+            ?: throw SignatureException("Fant ikke sertifikat med subject ${signerCertificate.subjectX500Principal.name} i keystore")
+
         val signerKey: Key = keyStore.getKey(alias)
         val keyInfoFactory = factory.keyInfoFactory
         val x509Content: MutableList<Any?> = ArrayList()

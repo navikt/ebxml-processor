@@ -1,14 +1,7 @@
-package no.nav.emottak.ebms.model
+package no.nav.emottak.message.model
 
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
-import no.nav.emottak.ebms.validation.SignaturValidator
-import no.nav.emottak.ebms.xml.getDocumentBuilder
-import no.nav.emottak.ebms.xml.marshal
-import no.nav.emottak.message.model.Addressing
-import no.nav.emottak.message.model.EbmsAttachment
-import no.nav.emottak.message.model.Feil
-import no.nav.emottak.message.model.SignatureDetails
+import no.nav.emottak.message.xml.getDocumentBuilder
+import no.nav.emottak.message.xml.marshal
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Acknowledgment
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.From
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Manifest
@@ -26,9 +19,9 @@ import org.xmlsoap.schemas.soap.envelope.Envelope
 import org.xmlsoap.schemas.soap.envelope.Header
 import java.io.StringReader
 import java.time.Instant
-import java.util.*
+import java.util.Date
+import java.util.UUID
 
-@Serializable
 abstract class EbmsMessage {
     abstract val requestId: String
     abstract val messageId: String
@@ -36,18 +29,8 @@ abstract class EbmsMessage {
     abstract val cpaId: String
     abstract val addressing: Addressing
     abstract val refToMessageId: String?
-
-    @Transient
     abstract val dokument: Document?
-
-    @Transient
     val mottatt: Instant = Instant.now()
-
-    open fun sjekkSignature(signatureDetails: SignatureDetails) {
-        SignaturValidator.validate(signatureDetails, this.dokument!!, listOf())
-        log.info("Signatur OK")
-    }
-
     open fun toEbmsDokument(): EbMSDocument {
         return createEbmsDocument(createMessageHeader())
     }

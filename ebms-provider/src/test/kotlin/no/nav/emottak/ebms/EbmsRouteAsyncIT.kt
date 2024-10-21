@@ -9,11 +9,11 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockkObject
 import no.nav.emottak.constants.SMTPHeaders
-import no.nav.emottak.ebms.ebxml.acknowledgment
-import no.nav.emottak.ebms.ebxml.messageHeader
 import no.nav.emottak.ebms.validation.MimeHeaders
 import no.nav.emottak.ebms.validation.SignaturValidator
-import no.nav.emottak.ebms.xml.xmlMarshaller
+import no.nav.emottak.message.ebxml.acknowledgment
+import no.nav.emottak.message.ebxml.messageHeader
+import no.nav.emottak.message.xml.xmlMarshaller
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
