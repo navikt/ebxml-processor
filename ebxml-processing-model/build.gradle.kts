@@ -8,6 +8,7 @@ plugins {
     kotlin("jvm")
     kotlin("plugin.serialization")
     id("maven-publish")
+    id("java-library")
 }
 
 tasks {
