@@ -113,7 +113,8 @@ data class ProcessConfig(
 
 @Serializable
 data class EbmsProcessing(
-    val test: String = "123"
+    val test: String = "123",
+    val errorAction:String? = null
 )
 
 @Serializable
