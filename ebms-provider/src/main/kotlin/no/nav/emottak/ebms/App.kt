@@ -26,6 +26,7 @@ import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.DokumentValidator
 import no.nav.emottak.util.getEnvVar
+import no.nav.emottak.util.isProdEnv
 import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.time.Instant
@@ -68,7 +69,10 @@ fun Application.ebmsProviderModule() {
         get("/") {
             call.respondText("Hello, world!")
         }
-
+        if (!isProdEnv()) {
+            packageEbxml(validator,processing)
+            unpackageEbxml(validator,processing)
+        }
         registerHealthEndpoints(appMicrometerRegistry)
         navCheckStatus()
         postEbmsAsync(validator, processing)
