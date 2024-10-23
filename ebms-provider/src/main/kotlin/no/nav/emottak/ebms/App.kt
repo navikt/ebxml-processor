@@ -70,8 +70,8 @@ fun Application.ebmsProviderModule() {
             call.respondText("Hello, world!")
         }
         if (!isProdEnv()) {
-            packageEbxml(validator,processing)
-            unpackageEbxml(validator,processing)
+            packageEbxml(validator, processing)
+            unpackageEbxml(validator, processing)
         }
         registerHealthEndpoints(appMicrometerRegistry)
         navCheckStatus()
