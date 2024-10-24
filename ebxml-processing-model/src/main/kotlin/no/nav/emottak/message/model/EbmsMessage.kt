@@ -1,5 +1,7 @@
 package no.nav.emottak.message.model
 
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import no.nav.emottak.message.xml.getDocumentBuilder
 import no.nav.emottak.message.xml.marshal
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Acknowledgment
@@ -22,6 +24,7 @@ import java.time.Instant
 import java.util.Date
 import java.util.UUID
 
+@Serializable
 abstract class EbmsMessage {
     abstract val requestId: String
     abstract val messageId: String
@@ -30,6 +33,7 @@ abstract class EbmsMessage {
     abstract val addressing: Addressing
     abstract val refToMessageId: String?
     abstract val dokument: Document?
+    @Transient
     val mottatt: Instant = Instant.now()
     open fun toEbmsDokument(): EbMSDocument {
         return createEbmsDocument(createMessageHeader())

@@ -1,10 +1,12 @@
 package no.nav.emottak.message.model
 
 
+import kotlinx.serialization.Serializable
 import no.nav.emottak.message.ebxml.EbXMLConstants
 import org.w3c.dom.Document
 import java.util.UUID
 
+@Serializable
 data class PayloadMessage(
     override val requestId: String,
     override val messageId: String,
@@ -12,6 +14,7 @@ data class PayloadMessage(
     override val cpaId: String,
     override val addressing: Addressing,
     val payload: EbmsAttachment,
+    @Transient
     override val dokument: Document? = null,
     override val refToMessageId: String? = null
 
