@@ -10,6 +10,7 @@ import no.nav.emottak.payload.crypto.Dekryptering
 import no.nav.emottak.payload.crypto.Kryptering
 import no.nav.emottak.payload.crypto.PayloadSignering
 import no.nav.emottak.payload.crypto.payloadSigneringConfig
+import no.nav.emottak.payload.juridisklogg.JuridiskLoggService
 import no.nav.emottak.payload.ocspstatus.OcspStatusService
 import no.nav.emottak.payload.ocspstatus.trustStoreConfig
 import no.nav.emottak.payload.util.GZipUtil
@@ -30,7 +31,8 @@ class Processor(
     private val dekryptering: Dekryptering = Dekryptering(),
     private val signering: PayloadSignering = PayloadSignering(),
     private val gZipUtil: GZipUtil = GZipUtil(),
-    private val signatureVerifisering: SignaturVerifisering = SignaturVerifisering()
+    private val signatureVerifisering: SignaturVerifisering = SignaturVerifisering(),
+    private val juridiskLogging: JuridiskLoggService = JuridiskLoggService()
 ) {
 
     fun process(payloadRequest: PayloadRequest): PayloadResponse {
@@ -49,7 +51,16 @@ class Processor(
 
         shouldThrowExceptionForTestPurposes(payloadRequest.payload.bytes)
 
-        return payloadRequest.payload.let {
+        return payloadRequest.payload.also {
+            try {
+                // if (processConfig.juridiskLogg) {
+                log.debug("Sender forespørsel til juridisk logg")
+                juridiskLogging.logge(it, payloadRequest.direction)
+                // }
+            } catch (e: Exception) {
+                log.error("Feil med å lage forespørsel til juridisk logg", e)
+            }
+        }.let {
             when (processConfig.kryptering) {
                 true -> dekryptering.dekrypter(it.bytes, false).also { log.info(payloadRequest.marker(), "Payload dekryptert") }
                 false -> it.bytes
