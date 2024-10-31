@@ -74,6 +74,7 @@ data class Feil(val code: ErrorCode,
 
 @Serializable
 data class ValidationRequest(
+    val direction: Direction,
     val messageId: String,
     val conversationId: String,
     val cpaId: String,

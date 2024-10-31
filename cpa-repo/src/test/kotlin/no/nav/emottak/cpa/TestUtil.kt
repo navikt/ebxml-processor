@@ -1,6 +1,7 @@
 package no.nav.emottak.cpa
 
 import no.nav.emottak.message.model.Addressing
+import no.nav.emottak.message.model.Direction.IN
 import no.nav.emottak.message.model.Header
 import no.nav.emottak.message.model.Party
 import no.nav.emottak.message.model.PartyId
@@ -26,6 +27,7 @@ class TestUtil {
 }
 
 fun createValidValidationRequest() = ValidationRequest(
+    IN,
     messageId = "",
     conversationId = "",
     cpaId = "nav:qass:35065",

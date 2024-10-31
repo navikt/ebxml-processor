@@ -18,6 +18,7 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.client.statement.readBytes
 import io.ktor.http.ContentType
+import io.ktor.http.ContentType.Application.Json
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
@@ -28,6 +29,7 @@ import no.nav.emottak.cpa.auth.AZURE_AD_AUTH
 import no.nav.emottak.cpa.auth.AuthConfig
 import no.nav.emottak.cpa.databasetest.PostgresTest
 import no.nav.emottak.message.model.Addressing
+import no.nav.emottak.message.model.Direction.IN
 import no.nav.emottak.message.model.Party
 import no.nav.emottak.message.model.PartyId
 import no.nav.emottak.message.model.SignatureDetails
@@ -75,7 +77,7 @@ class CPARepoIntegrationTest : PostgresTest() {
 
         val response = httpClient.post("/signing/certificate") {
             setBody(request)
-            contentType(ContentType.Application.Json)
+            contentType(Json)
         }
         val body = response.body<SignatureDetails>()
         assertEquals(HttpStatusCode.OK, response.status)
@@ -92,6 +94,7 @@ class CPARepoIntegrationTest : PostgresTest() {
         }
 
         val validationRequest = ValidationRequest(
+            IN,
             "e17eb03e-9e43-43fb-874c-1fde9a28c308",
             "1234",
             "nav:qass:31162",
@@ -104,7 +107,7 @@ class CPARepoIntegrationTest : PostgresTest() {
         )
         val response = httpClient.post("/cpa/validate/121212") {
             setBody(validationRequest)
-            contentType(ContentType.Application.Json)
+            contentType(Json)
         }
 
         println(String(response.readBytes()))
@@ -119,6 +122,7 @@ class CPARepoIntegrationTest : PostgresTest() {
         }
 
         val validationRequest = ValidationRequest(
+            IN,
             "e17eb03e-9e43-43fb-874c-1fde9a28c308",
             "1234",
             "nav:qass:31162",
@@ -131,7 +135,7 @@ class CPARepoIntegrationTest : PostgresTest() {
         )
         val response = httpClient.post("/cpa/validate/121212") {
             setBody(validationRequest)
-            contentType(ContentType.Application.Json)
+            contentType(Json)
         }
 
         println(String(response.readBytes()))
@@ -310,7 +314,10 @@ class CPARepoIntegrationTest : PostgresTest() {
                 )
             }
             .let { parsedJwt ->
-                BearerTokens(parsedJwt.serialize(), "dummy") // FIXME dumt at den ikke tillater null for refresh token. Tyder på at den ikke bør brukes. Kanskje best å skrive egen handler
+                BearerTokens(
+                    parsedJwt.serialize(),
+                    "dummy"
+                ) // FIXME dumt at den ikke tillater null for refresh token. Tyder på at den ikke bør brukes. Kanskje best å skrive egen handler
             }
     }
 
