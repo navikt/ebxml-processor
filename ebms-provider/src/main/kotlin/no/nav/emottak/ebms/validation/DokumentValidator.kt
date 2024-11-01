@@ -6,6 +6,9 @@ import no.nav.emottak.ebms.CpaRepoClient
 import no.nav.emottak.ebms.model.sjekkSignature
 import no.nav.emottak.ebms.util.marker
 import no.nav.emottak.melding.feil.EbmsException
+import no.nav.emottak.message.model.Direction
+import no.nav.emottak.message.model.Direction.IN
+import no.nav.emottak.message.model.Direction.OUT
 import no.nav.emottak.message.model.EbmsMessage
 import no.nav.emottak.message.model.ErrorCode
 import no.nav.emottak.message.model.Feil
@@ -17,12 +20,17 @@ val log = LoggerFactory.getLogger("no.nav.emottak.ebms.DokumentValidator")
 
 class DokumentValidator(val httpClient: CpaRepoClient) {
 
-    suspend fun validateIn(message: EbmsMessage) = validate(message, true)
-    suspend fun validateOut(message: EbmsMessage) = validate(message, false)
+    suspend fun validateIn(message: EbmsMessage) = validate(IN, message, true)
+    suspend fun validateOut(message: EbmsMessage) = validate(OUT, message, false)
 
-    private suspend fun validate(message: EbmsMessage, sjekSignature: Boolean): ValidationResult {
-        val validationRequest =
-            ValidationRequest(message.messageId, message.conversationId, message.cpaId, message.addressing)
+    private suspend fun validate(direction: Direction, message: EbmsMessage, sjekSignature: Boolean): ValidationResult {
+        val validationRequest = ValidationRequest(
+            direction,
+            message.messageId,
+            message.conversationId,
+            message.cpaId,
+            message.addressing
+        )
         val validationResult = withContext(Dispatchers.IO) {
             httpClient.postValidate(message.requestId, validationRequest)
         }

@@ -27,6 +27,8 @@ import no.nav.emottak.cpa.validation.partyInfoHasRoleServiceActionCombo
 import no.nav.emottak.cpa.validation.validate
 import no.nav.emottak.melding.feil.EbmsException
 import no.nav.emottak.message.ebxml.PartyTypeEnum
+import no.nav.emottak.message.model.Direction.IN
+import no.nav.emottak.message.model.Direction.OUT
 import no.nav.emottak.message.model.EbmsProcessing
 import no.nav.emottak.message.model.ErrorCode
 import no.nav.emottak.message.model.Feil
@@ -181,7 +183,15 @@ fun Route.validateCpa(cpaRepository: CPARepository) = post("/cpa/validate/{$CONT
             ?: throw NotFoundException("Fant ikke CPA (${validateRequest.cpaId})")
         cpa.validate(validateRequest) // Delivery Failure
         val partyInfo = cpa.getPartyInfoByTypeAndID(validateRequest.addressing.from.partyId) // Delivery Failure
-        val encryptionCertificate = partyInfo.getCertificateForEncryption() // Security Failure
+
+        val encryptionCertificate = when (validateRequest.direction) {
+            IN -> partyInfo.getCertificateForEncryption() // Security Failure
+            OUT ->
+                cpa
+                    .getPartyInfoByTypeAndID(validateRequest.addressing.to.partyId)
+                    .getCertificateForEncryption()
+        }
+
         val signingCertificate = partyInfo.getCertificateForSignatureValidation(
             validateRequest.addressing.from.role,
             validateRequest.addressing.service,

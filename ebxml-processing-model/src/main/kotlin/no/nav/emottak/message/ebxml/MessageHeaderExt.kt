@@ -43,12 +43,12 @@ fun MessageHeader.addressing() = Addressing(
     this.service.value!!,
     this.action
 )
-fun MessageHeader.toValidationRequest(): ValidationRequest =
-    // TODO valider sertifikat
-    ValidationRequest(
-        this.messageData.messageId,
-        this.conversationId,
-        this.cpaId,
-        // TODO select specific partyID?
-        this.addressing()
-    )
+// fun MessageHeader.toValidationRequest(): ValidationRequest =
+//     // TODO valider sertifikat
+//     ValidationRequest(
+//         this.messageData.messageId,
+//         this.conversationId,
+//         this.cpaId,
+//         // TODO select specific partyID?
+//         this.addressing()
+//     )
