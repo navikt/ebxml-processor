@@ -97,7 +97,7 @@ class Processor(
         return payloadRequest.payload.let {
             when (processConfig.signering) {
                 true -> {
-                    getByteArrayFromDocument(signering.signerXML(createDocument(ByteArrayInputStream(it.bytes))))
+                    getByteArrayFromDocument(signering.signerXML(createDocument(ByteArrayInputStream(it.bytes)), payloadRequest.processing.signingCertificate))
                         .also { log.info(payloadRequest.marker(), "Payload signert") }
                 }
                 false -> it.bytes

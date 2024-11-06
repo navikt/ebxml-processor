@@ -1,4 +1,4 @@
-package no.nav.emottak.constants
+package no.nav.emottak.message.ebxml
 
 object EbXMLConstants {
     const val EBMS_SERVICE_URI = "urn:oasis:names:tc:ebxml-msg:service"

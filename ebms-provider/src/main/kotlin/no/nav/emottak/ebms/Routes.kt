@@ -4,6 +4,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
 import io.ktor.server.request.header
+import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
@@ -13,8 +14,6 @@ import io.ktor.server.routing.post
 import io.micrometer.prometheus.PrometheusMeterRegistry
 import kotlinx.serialization.Serializable
 import no.nav.emottak.constants.SMTPHeaders
-import no.nav.emottak.ebms.model.EbMSDocument
-import no.nav.emottak.ebms.model.PayloadMessage
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
@@ -25,12 +24,122 @@ import no.nav.emottak.ebms.validation.parseAsSoapFault
 import no.nav.emottak.ebms.validation.validateMime
 import no.nav.emottak.melding.feil.EbmsException
 import no.nav.emottak.message.model.Direction
+import no.nav.emottak.message.model.EbMSDocument
+import no.nav.emottak.message.model.EbmsMessage
 import no.nav.emottak.message.model.Payload
+import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.model.PayloadProcessing
 import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.util.marker
 import no.nav.emottak.util.retrieveLoggableHeaderPairs
 import java.util.UUID
+
+data class PackageRequest(
+    val payload: EbmsMessage
+)
+
+fun Route.unpackageEbxml(
+    validator: DokumentValidator,
+    processingService: ProcessingService
+): Route = post("/ebxml/unpack") {
+    val debug: Boolean = call.request.header("debug")?.isNotBlank() ?: false
+    val ebMSDocument: EbMSDocument
+    val loggableHeaders = call.request.headers.retrieveLoggableHeaderPairs()
+    try {
+        call.request.validateMime()
+        ebMSDocument = call.receiveEbmsDokument()
+        log.info(ebMSDocument.messageHeader().marker(loggableHeaders), "Melding mottatt")
+    } catch (ex: MimeValidationException) {
+        log.error(
+            call.request.headers.marker(),
+            "Mime validation has failed: ${ex.message} Message-Id ${call.request.header(SMTPHeaders.MESSAGE_ID)}",
+            ex
+        )
+        call.respond(HttpStatusCode.InternalServerError, ex.parseAsSoapFault())
+        return@post
+    } catch (ex: Exception) {
+        log.error(
+            call.request.headers.marker(),
+            "Unable to transform request into EbmsDokument: ${ex.message} " +
+                "Message-Id ${call.request.header(SMTPHeaders.MESSAGE_ID)}",
+            ex
+        )
+        // @TODO done only for demo fiks!
+        call.respond(
+            HttpStatusCode.InternalServerError,
+            ex.parseAsSoapFault()
+        )
+        return@post
+    }
+
+    val ebmsMessage = ebMSDocument.transform() as PayloadMessage
+    var signingCertificate: SignatureDetails? = null
+    try {
+        validator.validateIn(ebmsMessage)
+            .let { validationResult ->
+                processingService.processSyncIn(ebmsMessage, validationResult.payloadProcessing)
+            }.let {
+                call.respond(it.first)
+            }
+    } catch (ebmsException: EbmsException) {
+        log.error(ebmsMessage.marker(), ebmsException.message, ebmsException)
+        ebmsMessage.createFail(ebmsException.feil).toEbmsDokument().also {
+            signingCertificate?.let { signatureDetails ->
+                it.signer(signatureDetails)
+            }
+            call.respondEbmsDokument(it)
+            return@post
+        }
+    } catch (ex: Exception) {
+        log.error(ebmsMessage.marker(), "Unknown error during message processing: ${ex.message}", ex)
+        call.respond(
+            HttpStatusCode.InternalServerError,
+            ex.parseAsSoapFault()
+        )
+    }
+}
+
+fun Route.packageEbxml(
+    validator: DokumentValidator,
+    processingService: ProcessingService
+): Route = post("/ebxml/pack") {
+    val payloadMessage = call.receive(PayloadMessage::class)
+    var signingCertificate: SignatureDetails? = null
+    try {
+        validator.validateOut(payloadMessage).let {
+            signingCertificate = it.payloadProcessing?.signingCertificate
+            Pair<PayloadMessage, PayloadProcessing?>(payloadMessage, it.payloadProcessing)
+        }.let { messageProcessing ->
+            val processedMessage =
+                processingService.proccessSyncOut(messageProcessing.first, messageProcessing.second)
+            Pair<PayloadMessage, PayloadProcessing?>(processedMessage, messageProcessing.second)
+        }
+            .let {
+                call.respondEbmsDokument(
+                    it.first.toEbmsDokument().also { ebmsDocument ->
+                        ebmsDocument.signer(it.second!!.signingCertificate)
+                    }
+                )
+                log.info(it.first.marker(), "Melding ferdig behandlet og svar returnert")
+                return@post
+            }
+    } catch (ebmsException: EbmsException) {
+        log.error(payloadMessage.marker(), ebmsException.message, ebmsException)
+        payloadMessage.createFail(ebmsException.feil).toEbmsDokument().also {
+            signingCertificate?.let { signatureDetails ->
+                it.signer(signatureDetails)
+            }
+            call.respondEbmsDokument(it)
+            return@post
+        }
+    } catch (ex: Exception) {
+        log.error(payloadMessage.marker(), "Unknown error during message processing: ${ex.message}", ex)
+        call.respond(
+            HttpStatusCode.InternalServerError,
+            ex.parseAsSoapFault()
+        )
+    }
+}
 
 fun Route.postEbmsSync(
     validator: DokumentValidator,

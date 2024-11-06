@@ -74,6 +74,7 @@ data class Feil(val code: ErrorCode,
 
 @Serializable
 data class ValidationRequest(
+    val direction: Direction,
     val messageId: String,
     val conversationId: String,
     val cpaId: String,
@@ -113,7 +114,8 @@ data class ProcessConfig(
 
 @Serializable
 data class EbmsProcessing(
-    val test: String = "123"
+    val test: String = "123",
+    val errorAction:String? = null
 )
 
 @Serializable

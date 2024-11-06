@@ -1,9 +1,9 @@
 package no.nav.emottak.cpa.persistence
 
-import no.nav.emottak.constants.PartyTypeEnum
 import no.nav.emottak.cpa.getPartnerPartyIdByType
 import no.nav.emottak.cpa.log
 import no.nav.emottak.cpa.xmlMarshaller
+import no.nav.emottak.message.ebxml.PartyTypeEnum
 import no.nav.emottak.message.model.ProcessConfig
 import no.nav.emottak.util.isProdEnv
 import org.jetbrains.exposed.sql.SortOrder

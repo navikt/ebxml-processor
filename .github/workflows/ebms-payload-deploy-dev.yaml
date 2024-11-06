@@ -57,6 +57,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: "Build and push ${{ env.MODULE_NAME }} docker image"
+        id: ${{ env.MODULE_NAME }}
         run: | 
           docker build --tag ${{ env.IMAGE_NAME }} -f Dockerfile ${{ env.MODULE_NAME }} --pull 
           docker push ${{ env.IMAGE_NAME }}
@@ -67,7 +68,6 @@ jobs:
     runs-on: "ubuntu-20.04"
     steps:
       - uses: "actions/checkout@v4"
-
       - name: "Deploy to DEV"
         uses: "nais/deploy/actions/deploy@v1"
         env:
@@ -75,3 +75,4 @@ jobs:
           CLUSTER: "dev-fss"
           RESOURCE: ".nais/${{ env.NAIS_MANIFEST }}"
           IMAGE: ${{env.IMAGE_NAME}}
+          TELEMETRY: ${{ steps.ebms-payload.outputs.telemetry }}

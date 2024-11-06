@@ -1,6 +1,5 @@
-package no.nav.emottak.ebms.model
+package no.nav.emottak.message.model
 
-import no.nav.emottak.message.model.Addressing
 import org.w3c.dom.Document
 
 data class Acknowledgment(

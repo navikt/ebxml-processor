@@ -1,15 +1,11 @@
-package no.nav.emottak.ebms.model
+package no.nav.emottak.message.model
 
-import no.nav.emottak.constants.EbXMLConstants
-import no.nav.emottak.ebms.util.marker
-import no.nav.emottak.ebms.xml.xmlMarshaller
-import no.nav.emottak.message.model.Addressing
-import no.nav.emottak.message.model.Feil
-import no.nav.emottak.message.model.asErrorList
+import no.nav.emottak.message.ebxml.EbXMLConstants
+import no.nav.emottak.message.xml.xmlMarshaller
 import org.w3c.dom.Document
 import org.xmlsoap.schemas.soap.envelope.Body
 import org.xmlsoap.schemas.soap.envelope.ObjectFactory
-import java.util.*
+import java.util.UUID
 
 data class EbmsFail(
     override val requestId: String,
@@ -25,7 +21,7 @@ data class EbmsFail(
 
     override fun toEbmsDokument(): EbMSDocument {
         val header = this.createMessageHeader(this.addressing.copy(action = EbXMLConstants.MESSAGE_ERROR_ACTION, service = EbXMLConstants.EBMS_SERVICE_URI))
-        log.warn(this.marker(), "Oppretter ErrorList")
+     //   log.warn(this.marker(), "Oppretter ErrorList")
         return ObjectFactory().createEnvelope()!!.also {
             it.header = header.also {
                 it.any.add(this.feil.asErrorList())
