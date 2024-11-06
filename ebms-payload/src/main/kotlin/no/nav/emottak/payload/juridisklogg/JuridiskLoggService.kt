@@ -12,31 +12,31 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import no.nav.emottak.message.model.Direction
-import no.nav.emottak.message.model.Payload
+import no.nav.emottak.message.model.PayloadRequest
 import no.nav.emottak.payload.log
 import no.nav.emottak.util.getEnvVar
 import java.io.FileInputStream
 
 class JuridiskLoggService() {
     private val juridiskLoggUrl = getEnvVar("APP_JURIDISKLOGG_URI") + "/api/rest/logg"
+    private val juridiskLoggStorageTime = getEnvVar("JURIDISKLOGG_STORAGE_TIME_YEARS").toIntOrNull() ?: 1
     private val userName = lazy { String(FileInputStream("/var/run/secrets/nais.io/vault/serviceuser/username").readAllBytes()) }
     private val userPassword = lazy { String(FileInputStream("/var/run/secrets/nais.io/vault/serviceuser/password").readAllBytes()) }
 
-    // bare for feilsøking
     init {
         log.debug("Juridisk logg URL: $juridiskLoggUrl")
         log.debug("Juridisk logg user: ${userName.value}")
         log.debug("Juridisk logg password length: ${userPassword.value.length}")
     }
 
-    fun logge(payload: Payload, direction: Direction) {
+    fun logge(payloadRequest: PayloadRequest) {
         val httpClient = HttpClient(CIO)
         val request = JuridiskLoggRequest(
-            payload.contentId,
-            if (direction == Direction.IN) "Ekstern bruker" else "NAV",
-            if (direction == Direction.IN) "NAV" else "Ekstern bruker",
-            10,
-            payload.bytes
+            payloadRequest.messageId,
+            if (payloadRequest.direction == Direction.IN) "Ekstern bruker" else "NAV",
+            if (payloadRequest.direction == Direction.IN) "NAV" else "Ekstern bruker",
+            juridiskLoggStorageTime,
+            payloadRequest.payload.bytes
         )
         log.debug("Juridisk logg forespørsel: $request")
 

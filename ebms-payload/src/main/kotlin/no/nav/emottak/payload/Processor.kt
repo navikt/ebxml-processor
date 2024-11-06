@@ -53,10 +53,10 @@ class Processor(
 
         return payloadRequest.payload.also {
             try {
-                // if (processConfig.juridiskLogg) {
-                log.debug("Sender forespørsel til juridisk logg")
-                juridiskLogging.logge(it, payloadRequest.direction)
-                // }
+                if (processConfig.juridiskLogg) {
+                    log.debug("Sender forespørsel til juridisk logg")
+                    juridiskLogging.logge(payloadRequest)
+                }
             } catch (e: Exception) {
                 log.error("Feil med å lage forespørsel til juridisk logg", e)
             }

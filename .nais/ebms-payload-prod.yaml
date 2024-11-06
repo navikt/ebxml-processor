@@ -70,3 +70,5 @@ spec:
       value: truststore_prod.p12
     - name: APP_JURIDISKLOGG_URI
       value: https://app.adeo.no/juridisklogg
+    - name: JURIDISKLOGG_STORAGE_TIME_YEARS
+      value: "10"
