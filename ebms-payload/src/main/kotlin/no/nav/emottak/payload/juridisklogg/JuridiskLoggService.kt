@@ -15,18 +15,17 @@ import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.PayloadRequest
 import no.nav.emottak.payload.log
 import no.nav.emottak.util.getEnvVar
-import java.io.FileInputStream
 
 class JuridiskLoggService() {
-    private val juridiskLoggUrl = getEnvVar("APP_JURIDISKLOGG_URI") + "/api/rest/logg"
-    private val juridiskLoggStorageTime = getEnvVar("JURIDISKLOGG_STORAGE_TIME_YEARS").toIntOrNull() ?: 1
-    private val userName = lazy { String(FileInputStream("/var/run/secrets/nais.io/vault/serviceuser/username").readAllBytes()) }
-    private val userPassword = lazy { String(FileInputStream("/var/run/secrets/nais.io/vault/serviceuser/password").readAllBytes()) }
+    private val juridiskLoggUrl = getEnvVar("APP_JURIDISKLOGG_URI", "https://app-q1.adeo.no/juridisklogg") + "/api/rest/logg"
+    private val juridiskLoggStorageTime = getEnvVar("JURIDISKLOGG_STORAGE_TIME_YEARS", "1").toInt()
+    private val userName = getEnvVar("JURIDESKLOGG_USERNAME", "dummyUsername")
+    private val userPassword = getEnvVar("JURIDESKLOGG_PASSWORD", "dummyPassword")
 
     init {
         log.debug("Juridisk logg URL: $juridiskLoggUrl")
-        log.debug("Juridisk logg user: ${userName.value}")
-        log.debug("Juridisk logg password length: ${userPassword.value.length}")
+        log.debug("Juridisk logg user: $userName")
+        log.debug("Juridisk logg password length: ${userPassword.length}")
     }
 
     fun logge(payloadRequest: PayloadRequest) {
@@ -46,7 +45,7 @@ class JuridiskLoggService() {
                     httpClient.post(juridiskLoggUrl) {
                         setBody(request)
                         contentType(ContentType.Application.Json)
-                        basicAuth(userName.value, userPassword.value)
+                        basicAuth(userName, userPassword)
                     }.body<JuridiskLoggResponse>()
                 } catch (e: Exception) {
                     log.error("Feil med å sende forespørsel til juridisk logg", e)
