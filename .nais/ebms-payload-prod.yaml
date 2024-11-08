@@ -53,6 +53,9 @@ spec:
         - application: ebms-provider
   vault:
     enabled: true
+    paths:
+      - kvPath: serviceuser/data/prod/srv-ebms-payload
+        mountPath: /var/run/secrets/nais.io/vault/serviceuser
   webproxy: true
   env:
     - name: VIRKSOMHETSSERTIFIKAT_PATH
@@ -65,3 +68,7 @@ spec:
       value: credentials.2022
     - name: TRUSTSTORE_PATH
       value: truststore_prod.p12
+    - name: APP_JURIDISKLOGG_URI
+      value: https://app.adeo.no/juridisklogg
+    - name: JURIDISKLOGG_STORAGE_TIME_YEARS
+      value: "10"

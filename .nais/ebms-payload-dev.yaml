@@ -51,6 +51,11 @@ spec:
     inbound:
       rules:
         - application: ebms-provider
+  vault:
+    enabled: true
+    paths:
+      - kvPath: serviceuser/data/dev/srv-ebms-payload
+        mountPath: /var/run/secrets/nais.io/vault/serviceuser
   webproxy: true
   envFrom:
     - secret: ebms-payload-secret
@@ -68,3 +73,7 @@ spec:
       value: DEBUG
     - name: TRUSTSTORE_PATH
       value: truststore_test.p12
+    - name: APP_JURIDISKLOGG_URI
+      value: https://app-q1.adeo.no/juridisklogg
+    - name: JURIDISKLOGG_STORAGE_TIME_YEARS
+      value: "1"
