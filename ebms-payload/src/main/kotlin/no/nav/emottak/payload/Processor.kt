@@ -52,8 +52,6 @@ class Processor(
         shouldThrowExceptionForTestPurposes(payloadRequest.payload.bytes)
 
         return payloadRequest.payload.also {
-            log.debug("Sjekker debug nivaa")
-            log.debug(juridiskLogging.toString())
             try {
                 if (processConfig.juridiskLogg) {
                     log.debug("Sender forespørsel til juridisk logg")
