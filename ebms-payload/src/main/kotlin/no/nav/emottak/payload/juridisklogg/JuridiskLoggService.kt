@@ -15,6 +15,7 @@ import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.PayloadRequest
 import no.nav.emottak.payload.log
 import no.nav.emottak.util.getEnvVar
+import no.nav.emottak.util.marker
 
 class JuridiskLoggService() {
     private val juridiskLoggUrl = getEnvVar("APP_JURIDISKLOGG_URI", "https://app-q1.adeo.no/juridisklogg") + "/api/rest/logg"
@@ -46,7 +47,9 @@ class JuridiskLoggService() {
                         setBody(request)
                         contentType(ContentType.Application.Json)
                         basicAuth(userName, userPassword)
-                    }.body<JuridiskLoggResponse>()
+                    }.body<JuridiskLoggResponse>().also {
+                        log.debug(payloadRequest.marker(), "Juridisk logg respons ID ${it.id}")
+                    }
                 } catch (e: Exception) {
                     log.error("Feil med å sende forespørsel til juridisk logg", e)
                 } finally {
@@ -54,7 +57,6 @@ class JuridiskLoggService() {
                 }
             }
         }
-        log.debug("Juridisk logg respons: $response")
     }
 }
 
