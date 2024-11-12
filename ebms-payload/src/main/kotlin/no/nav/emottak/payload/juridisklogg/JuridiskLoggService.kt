@@ -9,6 +9,7 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import no.nav.emottak.message.model.Direction
@@ -40,7 +41,7 @@ class JuridiskLoggService() {
         )
         log.debug("Juridisk logg forespørsel: $request")
 
-        val response = suspend {
+        val response = runBlocking {
             withContext(Dispatchers.IO) {
                 try {
                     httpClient.post(juridiskLoggUrl) {
