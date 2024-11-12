@@ -54,7 +54,7 @@ spec:
   vault:
     enabled: true
     paths:
-      - kvPath: serviceuser/data/dev/srv-ebms-payload
+      - kvPath: serviceuser/data/dev/srv-ray
         mountPath: /var/run/secrets/nais.io/vault/serviceuser
   webproxy: true
   envFrom:
