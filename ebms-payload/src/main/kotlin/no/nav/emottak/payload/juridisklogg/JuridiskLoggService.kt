@@ -52,7 +52,7 @@ class JuridiskLoggService() {
                         log.debug(payloadRequest.marker(), "Juridisk logg respons ID ${it.id}")
                     }
                 } catch (e: Exception) {
-                    log.error("Feil med å sende forespørsel til juridisk logg", e)
+                    log.error("Feil med å sende forespørsel til juridisk logg: ${e.message}", e)
                 } finally {
                     httpClient.close()
                 }
