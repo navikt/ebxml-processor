@@ -43,7 +43,7 @@ class JuridiskLoggService() {
             if (payloadRequest.direction == Direction.IN) "Ekstern bruker" else "NAV",
             if (payloadRequest.direction == Direction.IN) "NAV" else "Ekstern bruker",
             juridiskLoggStorageTime,
-            payloadRequest.payload.bytes
+            payloadRequest.payload.bytes.toString()
         )
         log.debug("Juridisk logg forespørsel: $request")
 
@@ -75,7 +75,7 @@ data class JuridiskLoggRequest(
     val avsender: String,
     val mottaker: String,
     val antallAarLagres: Int = 10,
-    val meldingsInnhold: ByteArray
+    val meldingsInnhold: String
 )
 
 @Serializable
