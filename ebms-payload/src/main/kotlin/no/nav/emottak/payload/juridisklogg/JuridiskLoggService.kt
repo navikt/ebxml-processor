@@ -54,6 +54,8 @@ class JuridiskLoggService() {
                         setBody(request)
                         contentType(ContentType.Application.Json)
                         basicAuth(userName, userPassword)
+                    }.also {
+                        log.debug(payloadRequest.marker(), "Juridisk logg respons: $it")
                     }.body<JuridiskLoggResponse>().also {
                         log.debug(payloadRequest.marker(), "Juridisk logg respons ID ${it.id}")
                     }
