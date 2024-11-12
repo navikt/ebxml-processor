@@ -3,11 +3,13 @@ package no.nav.emottak.payload.juridisklogg
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.basicAuth
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
@@ -31,7 +33,11 @@ class JuridiskLoggService() {
     }
 
     fun logge(payloadRequest: PayloadRequest) {
-        val httpClient = HttpClient(CIO)
+        val httpClient = HttpClient(CIO) {
+            install(ContentNegotiation) {
+                json()
+            }
+        }
         val request = JuridiskLoggRequest(
             payloadRequest.messageId,
             if (payloadRequest.direction == Direction.IN) "Ekstern bruker" else "NAV",
