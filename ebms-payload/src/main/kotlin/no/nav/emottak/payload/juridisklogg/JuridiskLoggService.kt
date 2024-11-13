@@ -43,7 +43,7 @@ class JuridiskLoggService() {
             if (payloadRequest.direction == Direction.IN) "Ekstern bruker" else "NAV",
             if (payloadRequest.direction == Direction.IN) "NAV" else "Ekstern bruker",
             juridiskLoggStorageTime,
-            payloadRequest.payload.bytes.toString()
+            java.util.Base64.getMimeEncoder().encodeToString(payloadRequest.payload.bytes)
         )
         log.debug("Juridisk logg forespørsel: $request")
 
