@@ -26,12 +26,6 @@ class JuridiskLoggService() {
     private val userName = getEnvVar("JURIDESKLOGG_USERNAME", "dummyUsername")
     private val userPassword = getEnvVar("JURIDESKLOGG_PASSWORD", "dummyPassword")
 
-    init {
-        log.debug("Juridisk logg URL: $juridiskLoggUrl")
-        log.debug("Juridisk logg user: $userName")
-        log.debug("Juridisk logg password length: ${userPassword.length}")
-    }
-
     fun logge(payloadRequest: PayloadRequest) {
         val httpClient = HttpClient(CIO) {
             install(ContentNegotiation) {
@@ -47,7 +41,7 @@ class JuridiskLoggService() {
         )
         log.debug("Juridisk logg forespørsel: $request")
 
-        val response = runBlocking {
+        runBlocking {
             withContext(Dispatchers.IO) {
                 try {
                     httpClient.post(juridiskLoggUrl) {
