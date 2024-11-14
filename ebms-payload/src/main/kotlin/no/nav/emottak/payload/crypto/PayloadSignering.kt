@@ -15,6 +15,7 @@ import java.security.cert.X509Certificate
 import javax.xml.crypto.dsig.Reference
 import javax.xml.crypto.dsig.SignedInfo
 import javax.xml.crypto.dsig.Transform
+import javax.xml.crypto.dsig.XMLSignature
 import javax.xml.crypto.dsig.XMLSignatureFactory
 import javax.xml.crypto.dsig.dom.DOMSignContext
 import javax.xml.crypto.dsig.spec.C14NMethodParameterSpec
@@ -58,21 +59,31 @@ class PayloadSignering(private val keyStore: KeyStore = KeyStore(payloadSignerin
 
     fun signerXML(document: Document, signatureDetails: SignatureDetails): Document {
         val signerCertificate: X509Certificate = createX509Certificate(signatureDetails.certificate)
+        val signingContext = buildSigningContext(signerCertificate, document)
+        val signature = buildXmlSignature(signerCertificate)
+        signature.sign(signingContext)
+        return document
+    }
+
+    private fun buildSigningContext(
+        signerCertificate: X509Certificate,
+        document: Document
+    ): DOMSignContext {
         val alias = keyStore.getCertificateAlias(signerCertificate)
             ?: throw SignatureException("Fant ikke sertifikat med subject ${signerCertificate.subjectX500Principal.name} i keystore")
-
         val signerKey: Key = keyStore.getKey(alias)
+        val signingContext = DOMSignContext(signerKey, document.documentElement)
+        return signingContext
+    }
+
+    private fun buildXmlSignature(signerCertificate: X509Certificate): XMLSignature? {
         val keyInfoFactory = factory.keyInfoFactory
         val x509Content: MutableList<Any?> = ArrayList()
         x509Content.add(signerCertificate)
         val x509data = keyInfoFactory.newX509Data(x509Content)
         val keyInfo = keyInfoFactory.newKeyInfo(listOf(x509data))
-
-        val dsc = DOMSignContext(signerKey, document.documentElement)
-
         val signature = factory.newXMLSignature(createSignedInfo(), keyInfo)
-        signature.sign(dsc)
-        return document
+        return signature
     }
 
     private fun createSignedInfo(): SignedInfo {
