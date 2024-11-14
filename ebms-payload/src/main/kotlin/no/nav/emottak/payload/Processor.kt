@@ -51,7 +51,7 @@ class Processor(
 
         shouldThrowExceptionForTestPurposes(payloadRequest.payload.bytes)
 
-        loggMessageToJurdiskLogg(payloadRequest)
+        loggMessageToJuridiskLogg(payloadRequest)
 
         return payloadRequest.payload.let {
             when (processConfig.kryptering) {
@@ -88,7 +88,7 @@ class Processor(
     private fun processOutgoing(payloadRequest: PayloadRequest): Payload {
         val processConfig = payloadRequest.processing.processConfig ?: throw RuntimeException("Processing configuration not defined for message with Id ${payloadRequest.messageId}")
 
-        loggMessageToJurdiskLogg(payloadRequest)
+        loggMessageToJuridiskLogg(payloadRequest)
 
         return payloadRequest.payload.let {
             when (processConfig.signering) {
@@ -142,7 +142,7 @@ class Processor(
         }
     }
 
-    private fun loggMessageToJurdiskLogg(payloadRequest: PayloadRequest) {
+    private fun loggMessageToJuridiskLogg(payloadRequest: PayloadRequest) {
         try {
             if (payloadRequest.processing.processConfig!!.juridiskLogg) {
                 log.debug("Sender forespørsel til juridisk logg")
