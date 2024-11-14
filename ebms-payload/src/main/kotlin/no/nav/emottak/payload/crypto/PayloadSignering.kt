@@ -76,7 +76,7 @@ class PayloadSignering(private val keyStore: KeyStore = KeyStore(payloadSignerin
         return signingContext
     }
 
-    private fun buildXmlSignature(signerCertificate: X509Certificate): XMLSignature? {
+    private fun buildXmlSignature(signerCertificate: X509Certificate): XMLSignature {
         val keyInfoFactory = factory.keyInfoFactory
         val x509Content: MutableList<Any?> = ArrayList()
         x509Content.add(signerCertificate)
