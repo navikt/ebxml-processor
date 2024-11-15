@@ -35,7 +35,7 @@ class Processor(
     private val juridiskLogging: JuridiskLoggService = JuridiskLoggService()
 ) {
 
-    fun process(payloadRequest: PayloadRequest): PayloadResponse {
+    suspend fun process(payloadRequest: PayloadRequest): PayloadResponse {
         val processedPayload = when (payloadRequest.direction) {
             Direction.IN -> processIncoming(payloadRequest)
             Direction.OUT -> processOutgoing(payloadRequest)
@@ -46,7 +46,7 @@ class Processor(
         )
     }
 
-    private fun processIncoming(payloadRequest: PayloadRequest): Payload {
+    private suspend fun processIncoming(payloadRequest: PayloadRequest): Payload {
         val processConfig = payloadRequest.processing.processConfig ?: throw RuntimeException("Processing configuration not defined for message with Id ${payloadRequest.messageId}")
 
         shouldThrowExceptionForTestPurposes(payloadRequest.payload.bytes)
@@ -85,7 +85,7 @@ class Processor(
         }
     }
 
-    private fun processOutgoing(payloadRequest: PayloadRequest): Payload {
+    private suspend fun processOutgoing(payloadRequest: PayloadRequest): Payload {
         val processConfig = payloadRequest.processing.processConfig ?: throw RuntimeException("Processing configuration not defined for message with Id ${payloadRequest.messageId}")
 
         loggMessageToJuridiskLogg(payloadRequest)
@@ -142,7 +142,7 @@ class Processor(
         }
     }
 
-    private fun loggMessageToJuridiskLogg(payloadRequest: PayloadRequest) {
+    private suspend fun loggMessageToJuridiskLogg(payloadRequest: PayloadRequest) {
         try {
             if (payloadRequest.processing.processConfig!!.juridiskLogg) {
                 log.debug(payloadRequest.marker(), "Sender forespørsel til juridisk logg")
