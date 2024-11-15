@@ -39,7 +39,7 @@ class JuridiskLoggService() {
             juridiskLoggStorageTime,
             java.util.Base64.getEncoder().encodeToString(payloadRequest.payload.bytes)
         )
-        log.debug("Juridisk logg forespørsel: $request")
+        log.debug(payloadRequest.marker(), "Juridisk logg forespørsel: $request")
 
         runBlocking {
             withContext(Dispatchers.IO) {
@@ -54,7 +54,8 @@ class JuridiskLoggService() {
                         log.debug(payloadRequest.marker(), "Juridisk logg respons ID ${it.id}")
                     }
                 } catch (e: Exception) {
-                    log.error("Feil med å sende forespørsel til juridisk logg: ${e.message}", e)
+                    log.error(payloadRequest.marker(), "Feil med å sende forespørsel til juridisk logg: ${e.message}", e)
+                    throw e
                 } finally {
                     httpClient.close()
                 }

@@ -145,11 +145,12 @@ class Processor(
     private fun loggMessageToJuridiskLogg(payloadRequest: PayloadRequest) {
         try {
             if (payloadRequest.processing.processConfig!!.juridiskLogg) {
-                log.debug("Sender forespørsel til juridisk logg")
+                log.debug(payloadRequest.marker(), "Sender forespørsel til juridisk logg")
                 juridiskLogging.logge(payloadRequest)
             }
         } catch (e: Exception) {
-            log.error("Feil med å lage forespørsel til juridisk logg", e)
+            log.error(payloadRequest.marker(), "Feil med å lage forespørsel til juridisk logg", e)
+            throw e
         }
     }
 }
