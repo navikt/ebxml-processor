@@ -51,16 +51,9 @@ class Processor(
 
         shouldThrowExceptionForTestPurposes(payloadRequest.payload.bytes)
 
-        return payloadRequest.payload.also {
-            try {
-                if (processConfig.juridiskLogg) {
-                    log.debug("Sender forespørsel til juridisk logg")
-                    juridiskLogging.logge(payloadRequest)
-                }
-            } catch (e: Exception) {
-                log.error("Feil med å lage forespørsel til juridisk logg", e)
-            }
-        }.let {
+        loggMessageToJuridiskLogg(payloadRequest)
+
+        return payloadRequest.payload.let {
             when (processConfig.kryptering) {
                 true -> dekryptering.dekrypter(it.bytes, false).also { log.info(payloadRequest.marker(), "Payload dekryptert") }
                 false -> it.bytes
@@ -94,6 +87,9 @@ class Processor(
 
     private fun processOutgoing(payloadRequest: PayloadRequest): Payload {
         val processConfig = payloadRequest.processing.processConfig ?: throw RuntimeException("Processing configuration not defined for message with Id ${payloadRequest.messageId}")
+
+        loggMessageToJuridiskLogg(payloadRequest)
+
         return payloadRequest.payload.let {
             when (processConfig.signering) {
                 true -> {
@@ -143,6 +139,18 @@ class Processor(
         if (fnr == "58116541813") {
             log.info("Negative apprect test case aktivert.")
             throw RuntimeException("Fikk rart fnr, kaster exception")
+        }
+    }
+
+    private fun loggMessageToJuridiskLogg(payloadRequest: PayloadRequest) {
+        try {
+            if (payloadRequest.processing.processConfig!!.juridiskLogg) {
+                log.debug(payloadRequest.marker(), "Sender forespørsel til juridisk logg")
+                juridiskLogging.logge(payloadRequest)
+            }
+        } catch (e: Exception) {
+            log.error(payloadRequest.marker(), "Feil med å lage forespørsel til juridisk logg", e)
+            throw e
         }
     }
 }
