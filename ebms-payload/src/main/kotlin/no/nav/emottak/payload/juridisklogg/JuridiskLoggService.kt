@@ -11,7 +11,6 @@ import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import no.nav.emottak.message.model.Direction
@@ -26,7 +25,7 @@ class JuridiskLoggService() {
     private val userName = getEnvVar("JURIDESKLOGG_USERNAME", "dummyUsername")
     private val userPassword = getEnvVar("JURIDESKLOGG_PASSWORD", "dummyPassword")
 
-    fun logge(payloadRequest: PayloadRequest) {
+    suspend fun logge(payloadRequest: PayloadRequest) {
         val httpClient = HttpClient(CIO) {
             install(ContentNegotiation) {
                 json()
@@ -41,24 +40,22 @@ class JuridiskLoggService() {
         )
         log.debug(payloadRequest.marker(), "Juridisk logg forespørsel: $request")
 
-        runBlocking {
-            withContext(Dispatchers.IO) {
-                try {
-                    httpClient.post(juridiskLoggUrl) {
-                        setBody(request)
-                        contentType(ContentType.Application.Json)
-                        basicAuth(userName, userPassword)
-                    }.also {
-                        log.debug(payloadRequest.marker(), "Juridisk logg respons: $it")
-                    }.body<JuridiskLoggResponse>().also {
-                        log.debug(payloadRequest.marker(), "Juridisk logg respons ID ${it.id}")
-                    }
-                } catch (e: Exception) {
-                    log.error(payloadRequest.marker(), "Feil med å sende forespørsel til juridisk logg: ${e.message}", e)
-                    throw e
-                } finally {
-                    httpClient.close()
+        withContext(Dispatchers.IO) {
+            try {
+                httpClient.post(juridiskLoggUrl) {
+                    setBody(request)
+                    contentType(ContentType.Application.Json)
+                    basicAuth(userName, userPassword)
+                }.also {
+                    log.debug(payloadRequest.marker(), "Juridisk logg respons: $it")
+                }.body<JuridiskLoggResponse>().also {
+                    log.debug(payloadRequest.marker(), "Juridisk logg respons ID ${it.id}")
                 }
+            } catch (e: Exception) {
+                log.error(payloadRequest.marker(), "Feil med å sende forespørsel til juridisk logg: ${e.message}", e)
+                throw e
+            } finally {
+                httpClient.close()
             }
         }
     }
