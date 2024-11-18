@@ -5,7 +5,6 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.readBytes
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import no.nav.emottak.crypto.KeyStore
 import no.nav.emottak.payload.log
@@ -154,25 +153,24 @@ class OcspStatusService(
         }
     }
 
-    fun getOCSPStatus(certificate: X509Certificate): SertifikatInfo {
+    suspend fun getOCSPStatus(certificate: X509Certificate): SertifikatInfo {
         return try {
             val certificateIssuer = certificate.issuerX500Principal.name
             // issue av personsertifikaten eller virksomhetsertifikaten (f.ex. Buypass)
             val ocspResponderCertificate = getOcspResponderCertificate(certificateIssuer)
             val request: OCSPReq = createOCSPRequest(certificate, ocspResponderCertificate)
-            runBlocking {
-                postOCSPRequest(certificate.getOCSPUrl(), request.encoded).also {
-                    validateOcspResponse(
-                        it,
-                        request.getExtension(OCSPObjectIdentifiers.id_pkix_ocsp_nonce),
-                        ocspResponderCertificate
-                    )
-                }.let {
-                    it.responseObject as BasicOCSPResp
-                }.let {
-                    val ssn = getSSN(it)
-                    createSertifikatInfoFromOCSPResponse(certificate, it.responses[0], ssn)
-                }
+
+            postOCSPRequest(certificate.getOCSPUrl(), request.encoded).also {
+                validateOcspResponse(
+                    it,
+                    request.getExtension(OCSPObjectIdentifiers.id_pkix_ocsp_nonce),
+                    ocspResponderCertificate
+                )
+            }.let {
+                it.responseObject as BasicOCSPResp
+            }.let {
+                val ssn = getSSN(it)
+                createSertifikatInfoFromOCSPResponse(certificate, it.responses[0], ssn)
             }
         } catch (e: SertifikatError) {
             throw SertifikatError(e.localizedMessage, e)
