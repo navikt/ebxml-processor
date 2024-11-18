@@ -10,6 +10,7 @@ import no.nav.emottak.ebms.logger
 import no.nav.emottak.ebms.util.marker
 import no.nav.emottak.melding.feil.EbmsException
 import no.nav.emottak.message.model.Acknowledgment
+import no.nav.emottak.message.model.Addressing
 import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.EbmsFail
 import no.nav.emottak.message.model.EbmsMessage
@@ -24,7 +25,8 @@ class ProcessingService(private val httpClient: PayloadProcessingClient) {
     private suspend fun processMessage(
         payloadMessage: PayloadMessage,
         payloadProcessing: PayloadProcessing,
-        direction: Direction
+        direction: Direction,
+        addressing: Addressing
     ): Pair<PayloadMessage, Direction> {
         return try {
             val payloadRequest = PayloadRequest(
@@ -32,6 +34,7 @@ class ProcessingService(private val httpClient: PayloadProcessingClient) {
                 messageId = payloadMessage.messageId,
                 conversationId = payloadMessage.conversationId,
                 processing = payloadProcessing,
+                addressing = addressing,
                 payload = payloadMessage.payload
             )
             Pair(
@@ -89,7 +92,7 @@ class ProcessingService(private val httpClient: PayloadProcessingClient) {
     ): Pair<PayloadMessage, Direction> {
         if (payloadProcessing == null) throw Exception("Processing information is missing for ${payloadMessage.messageId}")
         return when (payloadProcessing.hasActionableProcessingSteps()) {
-            true -> processMessage(payloadMessage, payloadProcessing, Direction.IN)
+            true -> processMessage(payloadMessage, payloadProcessing, Direction.IN, payloadMessage.addressing)
             false -> payloadMessage to Direction.IN
         }
     }
@@ -97,7 +100,7 @@ class ProcessingService(private val httpClient: PayloadProcessingClient) {
     suspend fun proccessSyncOut(payloadMessage: PayloadMessage, payloadProcessing: PayloadProcessing?): PayloadMessage {
         if (payloadProcessing == null) throw Exception("Processing information is missing for ${payloadMessage.messageId}")
         return when (payloadProcessing.hasActionableProcessingSteps()) {
-            true -> processMessage(payloadMessage, payloadProcessing, Direction.OUT).first
+            true -> processMessage(payloadMessage, payloadProcessing, Direction.OUT, payloadMessage.addressing).first
             false -> payloadMessage
         }
     }
@@ -107,7 +110,7 @@ class ProcessingService(private val httpClient: PayloadProcessingClient) {
         when (message) {
             is Acknowledgment -> acknowledgment(message)
             is EbmsFail -> fail(message)
-            is PayloadMessage -> processMessage(message, payloadProcessing, Direction.IN)
+            is PayloadMessage -> processMessage(message, payloadProcessing, Direction.IN, message.addressing)
         }
     }
 }

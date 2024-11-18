@@ -12,8 +12,11 @@ import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
+import no.nav.emottak.message.model.Addressing
 import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.ErrorCode
+import no.nav.emottak.message.model.Party
+import no.nav.emottak.message.model.PartyId
 import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadProcessing
 import no.nav.emottak.message.model.PayloadRequest
@@ -124,7 +127,15 @@ private fun payloadRequest(
     messageId = "123",
     conversationId = "321",
     processing = payloadProcessing(kryptering, komprimering, signering, internformat),
-    payload = payload()
+    payload = payload(),
+    addressing = addressing()
+)
+
+private fun addressing() = Addressing(
+    to = Party(listOf(PartyId("HERID", "NAVS-herid")), "NAV"),
+    from = Party(listOf(PartyId("HERID", "SamhandlersHerid")), "EksternSamhandler"),
+    service = "Service",
+    action = "action"
 )
 
 private fun payload() = Payload(
