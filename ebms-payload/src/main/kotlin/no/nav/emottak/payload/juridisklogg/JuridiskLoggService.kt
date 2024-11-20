@@ -32,10 +32,10 @@ class JuridiskLoggService() {
         }
         val avsender: String =
             payloadRequest.addressing.from.partyId
-                .joinToString(separator = " ,") { it.type + ": " + it.value }
+                .joinToString(separator = ", ") { it.type + ": " + it.value }
         val mottaker: String =
             payloadRequest.addressing.to.partyId
-                .joinToString(separator = " ,") { it.type + ": " + it.value }
+                .joinToString(separator = ", ") { it.type + ": " + it.value }
         val request = JuridiskLoggRequest(
             payloadRequest.messageId,
             avsender,
