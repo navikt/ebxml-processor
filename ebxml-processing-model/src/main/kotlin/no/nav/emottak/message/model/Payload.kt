@@ -37,7 +37,8 @@ data class PayloadRequest(
     val messageId: String,
     val conversationId: String,
     val processing: PayloadProcessing,
-    val payload: Payload
+    val payload: Payload,
+    val addressing: Addressing
 )
 
 @Serializable

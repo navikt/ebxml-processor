@@ -13,7 +13,6 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
-import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.PayloadRequest
 import no.nav.emottak.payload.log
 import no.nav.emottak.util.getEnvVar
@@ -31,10 +30,16 @@ class JuridiskLoggService() {
                 json()
             }
         }
+        val avsender: String =
+            payloadRequest.addressing.from.partyId
+                .joinToString(separator = ", ") { it.type + ": " + it.value }
+        val mottaker: String =
+            payloadRequest.addressing.to.partyId
+                .joinToString(separator = ", ") { it.type + ": " + it.value }
         val request = JuridiskLoggRequest(
             payloadRequest.messageId,
-            if (payloadRequest.direction == Direction.IN) "Ekstern bruker" else "NAV",
-            if (payloadRequest.direction == Direction.IN) "NAV" else "Ekstern bruker",
+            avsender,
+            mottaker,
             juridiskLoggStorageTime,
             java.util.Base64.getEncoder().encodeToString(payloadRequest.payload.bytes)
         )
