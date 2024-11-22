@@ -3,6 +3,9 @@ insert into process_config(ROLE,SERVICE,ACTION,KRYPTERING,KOMPRIMERING,SIGNERING
 values ('Behandler',        'HarBorgerFrikort',         'EgenandelForesporsel', false, false, false, TRUE,  TRUE,  TRUE,   false,  false,  'LoggEgenandel', 'Avvisning'),
        ('Frikortregister',  'HarBorgerFrikort',         'Svar',                 false, false, false, TRUE,  false, false,  false,  false,   null,            null       ),
        ('Frikortregister',  'HarBorgerFrikort',         'Avvisning',            false, false, false, TRUE,  false, false,  false,  false,   null,            null       ),
+       ('Behandler',        'HarBorgerFrikortMengde',   'EgenandelForesporsel', TRUE,  false, false, TRUE,  false, TRUE,   false,  false,   'LoggEgenandel', 'Avvisning'),
+       ('Frikortregister',  'HarBorgerFrikortMengde',   'Svar',                 TRUE,  false, false, TRUE,  false, false,  false,  false,   null,           'Svarmelding'),
+       ('Frikortregister',  'HarBorgerFrikortMengde',   'Avvisning',            TRUE,  false, false, TRUE,  false, false,  false,  TRUE,    null,           'Svarmelding'),
        ('Utleverer',        'HarBorgerEgenandelFritak', 'EgenandelForesporsel', false, false, false, TRUE,  TRUE,  TRUE,   false,  false,  'LoggEgenandel', 'Avvisning'),
        ('Frikortregister',  'HarBorgerEgenandelFritak', 'Svar',                 false, false, false, TRUE,  false, false,  false,  false,   null,            null       ),
        ('Frikortregister',  'HarBorgerEgenandelFritak', 'Avvisning',            false, false, false, TRUE,  false, false,  false,  false,   null,            null       ),
@@ -13,9 +16,9 @@ values ('Behandler',        'HarBorgerFrikort',         'EgenandelForesporsel', 
        ('Fastlege',         'PasientlisteForesporsel',  'HentPasientliste',     false, false, TRUE,  TRUE,  TRUE,  TRUE,   TRUE,   false,   null,            'Avvisning'),
        ('Fastlege',         'PasientlisteForesporsel',  'StartAbonnement',      false, false, TRUE,  TRUE,  TRUE,  TRUE,   TRUE,   false,   null,            'Avvisning'),
        ('Fastlege',         'PasientlisteForesporsel',  'StoppAbonnement',      false, false, TRUE,  TRUE,  TRUE,  TRUE,   TRUE,   false,   null,            'Avvisning'),
-       ('Ytelsesutbetaler', 'Inntektsforesporsel',      'InntektInformasjon',   TRUE,  false, TRUE,  false, TRUE,  TRUE,   false,  true,   null,            'Avvisning'),
-       ('Fordringshaver',   'Inntektsforesporsel',      'Foresporsel',          TRUE,  false, TRUE,  false, TRUE,  TRUE,   false,  true,   null,            'Avvisning'),
-       ('Ytelsesutbetaler', 'Inntektsforesporsel',      'Avvisning',            TRUE,  false, false, false, TRUE,  false,  false,  true,   null,            'Avvisning')
+       ('Ytelsesutbetaler', 'Inntektsforesporsel',      'InntektInformasjon',   TRUE,  false, TRUE,  false, TRUE,  TRUE,   false,  TRUE,    null,            'Avvisning'),
+       ('Fordringshaver',   'Inntektsforesporsel',      'Foresporsel',          TRUE,  false, TRUE,  false, TRUE,  TRUE,   false,  TRUE,    null,            'Avvisning'),
+       ('Ytelsesutbetaler', 'Inntektsforesporsel',      'Avvisning',            TRUE,  false, false, false, TRUE,  false,  false,  TRUE,    null,            'Avvisning')
 
 on conflict (ROLE, SERVICE, ACTION) do update set KRYPTERING   = EXCLUDED.KRYPTERING,
                                                   KOMPRIMERING = EXCLUDED.KOMPRIMERING,
