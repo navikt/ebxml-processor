@@ -66,6 +66,7 @@ class JuridiskLoggService() {
 }
 
 private fun choosePartyID(partyIDs: List<PartyId>): String {
+    log.debug("Juridisk logg adressing: ${partyIDs.joinToString(separator = ", ") { it.type + ": " + it.value }}")
     val partyId = partyIDs.firstOrNull { it.type == "orgnummer" }
         ?: partyIDs.firstOrNull { it.type == "herid" }
         ?: partyIDs.first()
