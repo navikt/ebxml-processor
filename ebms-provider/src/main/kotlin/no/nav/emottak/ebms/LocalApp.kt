@@ -9,6 +9,7 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import no.nav.emottak.util.getEnvVar
 import org.apache.commons.lang3.SystemUtils
+import java.io.File
 import java.io.IOException
 import java.util.*
 import java.util.regex.Pattern
@@ -19,13 +20,23 @@ var mountedValues = mapOf<String, String>(
 //    "UR_EKSTERN_SERVICE_USERNAME" to "/var/run/secrets/nais.io/srv-ytelser-rest-proxy/username",
 //    "UR_EKSTERN_SERVICE_PASSWORD" to "/var/run/secrets/nais.io/srv-ytelser-rest-proxy/password"
 )
+var ingresses = mapOf<String, String>(
+    "ebms-provider" to "https://ebms-provider-fss.intern.dev.nav.no",
+    "ebms-payload" to "https://ebms-payload-fss.intern.dev.nav.no",
+    "cpa-repo" to "https://cpa-repo-fss.intern.dev.nav.no",
+    "ebms-send-in" to "https://ebms-send-in.intern.dev.nav.no",
+    "cpa-sync" to "https://cpa-sync.intern.dev.nav.no",
+    "ebms-http" to "https://ebms-http-fss.intern.dev.nav.no",
+    "ebms-sync-router" to "https://ebms-sync-router.dev.intern.nav.no",
+    "ebms-asynch-router-inn" to "https://ebms-asynch-router-inn.intern.dev.nav.no",
+    "ebms-asynch-router-ut" to "https://ebms-asynch-router-ut.intern.dev.nav.no"
+)
 
 fun main() {
     retrieveEnvVariables()
+    setProperties()
 
     System.setProperty("io.ktor.http.content.multipart.skipTempFile", "true")
-
-    setProperties()
 
     if (getEnvVar("NAIS_CLUSTER_NAME", "local") != "prod-fss") {
         DecoroutinatorRuntime.load()
@@ -80,20 +91,64 @@ fun runCommand(command: String): String {
 fun setProperties() {
     // Check which properties are used by a particular service
 
-    System.setProperty(
-        "NAIS_CLUSTER_NAME",
-        envVariables.getOrDefault("NAIS_CLUSTER_NAME", "local")
+    System.setProperty("CPA_REPO_URL", ingresses["cpa-repo"])
+    System.setProperty("SEND_IN_URL", ingresses["ebms-send-in"])
+    System.setProperty("PAYLOAD_PROCESSOR_URL", ingresses["ebms-payload"])
+
+    setPropertyOrDefault("NAIS_CLUSTER_NAME", "local")
+    setPropertyOrDefault(
+        "EBMS_SEND_IN_SCOPE",
+        "api://" + getEnvVar("NAIS_CLUSTER_NAME", "dev-fss") + ".team-emottak.ebms-send-in/.default"
     )
+    setPropertyOrDefault(
+        "EBMS_PAYLOAD_SCOPE",
+        "api://" + getEnvVar("NAIS_CLUSTER_NAME", "dev-fss") + ".team-emottak.ebms-payload/.default"
+    )
+    setPropertyOrDefault("AZURE_OPENID_CONFIG_TOKEN_ENDPOINT", "http://localhost:3344/AZURE_AD/token")
+    setPropertyOrDefault("AZURE_APP_CLIENT_ID", "dummyclient")
+    setPropertyOrDefault("AZURE_APP_CLIENT_SECRET", "dummysecret")
+    setPropertyOrDefault("HTTP_PROXY")
+    setPropertyOrDefault("KEYSTORE_PWD")
+    setPropertyOrDefault("KEYSTORE_PWD_FILE")
+    setPropertyOrDefault("KEYSTORE_TYPE", "PKCS12")
+    setPropertyOrDefault("VIRKSOMHETSSERTIFIKAT_PATH")
+    setPropertyOrDefault("VIRKSOMHETSSERTIFIKAT_SIGNERING")
+    setPropertyOrDefault("VIRKSOMHETSSERTIFIKAT_CREDENTIALS")
+}
+
+fun setPropertyOrDefault(key: String, default: String = "") {
+    if (envVariables.containsKey(key)) {
+        println("Environment variable $key is ${envVariables[key]}")
+        System.setProperty(key, envVariables[key])
+    } else {
+        println("Environment variable $key not found in target environment")
+        if (default != "") {
+            System.setProperty(key, default)
+        }
+    }
 }
 
 fun getLocalKubectlPath(): String {
-    return if (SystemUtils.IS_OS_WINDOWS) {
-        "kubectl"
-    } else if (SystemUtils.IS_OS_LINUX) {
-        "/usr/local/bin/kubectl"
-    } else {
-        throw UnsupportedOperationException(
-            "Unsupported OS: " + System.getProperty("os.name").lowercase(Locale.getDefault())
-        )
+    return when {
+        SystemUtils.IS_OS_WINDOWS -> {
+            "kubectl"
+        }
+        SystemUtils.IS_OS_LINUX -> {
+            "/usr/local/bin/kubectl"
+        }
+        SystemUtils.IS_OS_MAC -> {
+            if (File("/opt/homebrew/bin/kubectl").exists()) {
+                "/opt/homebrew/bin/kubectl"
+            } else if (File("/usr/local/bin/kubectl").exists()) {
+                "/usr/local/bin/kubectl"
+            } else {
+                throw IllegalStateException("kubectl not found on macOS")
+            }
+        }
+        else -> {
+            throw UnsupportedOperationException(
+                "Unsupported OS: " + System.getProperty("os.name").lowercase(Locale.getDefault())
+            )
+        }
     }
 }
