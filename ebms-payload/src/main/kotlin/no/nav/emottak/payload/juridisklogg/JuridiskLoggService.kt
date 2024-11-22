@@ -13,6 +13,7 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
+import no.nav.emottak.message.model.PartyId
 import no.nav.emottak.message.model.PayloadRequest
 import no.nav.emottak.payload.log
 import no.nav.emottak.util.getEnvVar
@@ -30,12 +31,10 @@ class JuridiskLoggService() {
                 json()
             }
         }
-        val avsender: String =
-            payloadRequest.addressing.from.partyId
-                .joinToString(separator = ", ") { it.type + ": " + it.value }
-        val mottaker: String =
-            payloadRequest.addressing.to.partyId
-                .joinToString(separator = ", ") { it.type + ": " + it.value }
+
+        val avsender: String = choosePartyID(payloadRequest.addressing.from.partyId)
+        val mottaker: String = choosePartyID(payloadRequest.addressing.to.partyId)
+
         val request = JuridiskLoggRequest(
             payloadRequest.messageId,
             avsender,
@@ -64,6 +63,14 @@ class JuridiskLoggService() {
             }
         }
     }
+}
+
+private fun choosePartyID(partyIDs: List<PartyId>): String {
+    val partyId = partyIDs.firstOrNull { it.type == "orgnummer" }
+        ?: partyIDs.firstOrNull { it.type == "herid" }
+        ?: partyIDs.first()
+
+    return "${partyId.type}: ${partyId.value}"
 }
 
 @Serializable
