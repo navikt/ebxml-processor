@@ -53,7 +53,7 @@ class JuridiskLoggService() {
                 }.also {
                     log.debug(payloadRequest.marker(), "Juridisk logg respons: $it")
                 }.body<JuridiskLoggResponse>().also {
-                    log.debug(payloadRequest.marker(), "Juridisk logg respons ID ${it.id}")
+                    log.info(payloadRequest.marker(), "Juridisk logg respons ID ${it.id}")
                 }
             } catch (e: Exception) {
                 log.error(payloadRequest.marker(), "Feil med å sende forespørsel til juridisk logg: ${e.message}", e)
