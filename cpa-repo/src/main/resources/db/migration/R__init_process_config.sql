@@ -1,12 +1,12 @@
 insert into process_config(ROLE,SERVICE,ACTION,KRYPTERING,KOMPRIMERING,SIGNERING,INTERNFORMAT,VALIDERING,APPREC,OCSP_CHECK,JURIDISK_LOGG,ADAPTER,ERROR_ACTION)
 /*      Role                Service                     Action                  Krypt  Komp   Sign   IntF   Val    AppR    ocspCheck   juridiskLogg   Adapter          ErrorAction */
-values ('Behandler',        'HarBorgerFrikort',         'EgenandelForesporsel', false, false, false, TRUE,  TRUE,  TRUE,   false,  false,  'LoggEgenandel', 'Avvisning'),
+values ('Behandler',        'HarBorgerFrikort',         'EgenandelForesporsel', false, false, false, TRUE,  TRUE,  TRUE,   false,  false,  'LoggEgenandel',  'Avvisning'),
        ('Frikortregister',  'HarBorgerFrikort',         'Svar',                 false, false, false, TRUE,  false, false,  false,  false,   null,            null       ),
        ('Frikortregister',  'HarBorgerFrikort',         'Avvisning',            false, false, false, TRUE,  false, false,  false,  false,   null,            null       ),
-       ('Behandler',        'HarBorgerFrikortMengde',   'EgenandelForesporsel', TRUE,  false, false, TRUE,  false, TRUE,   false,  false,   'LoggEgenandel', 'Avvisning'),
-       ('Frikortregister',  'HarBorgerFrikortMengde',   'Svar',                 TRUE,  false, false, TRUE,  false, false,  false,  false,   null,           'Svarmelding'),
-       ('Frikortregister',  'HarBorgerFrikortMengde',   'Avvisning',            TRUE,  false, false, TRUE,  false, false,  false,  TRUE,    null,           'Svarmelding'),
-       ('Utleverer',        'HarBorgerEgenandelFritak', 'EgenandelForesporsel', false, false, false, TRUE,  TRUE,  TRUE,   false,  false,  'LoggEgenandel', 'Avvisning'),
+       ('Behandler',        'HarBorgerFrikortMengde',   'EgenandelForesporsel', TRUE,  false, false, TRUE,  false, TRUE,   false,  false,   'LoggEgenandel', 'Avvisning'    ),
+       ('Frikortregister',  'HarBorgerFrikortMengde',   'Svar',                 TRUE,  false, false, TRUE,  false, false,  false,  false,   null,            'Svarmelding'  ),
+       ('Frikortregister',  'HarBorgerFrikortMengde',   'Avvisning',            TRUE,  false, false, TRUE,  false, false,  false,  false,   null,            'Svarmelding'  ),
+       ('Utleverer',        'HarBorgerEgenandelFritak', 'EgenandelForesporsel', false, false, false, TRUE,  TRUE,  TRUE,   false,  false,  'LoggEgenandel',  'Avvisning'    ),
        ('Frikortregister',  'HarBorgerEgenandelFritak', 'Svar',                 false, false, false, TRUE,  false, false,  false,  false,   null,            null       ),
        ('Frikortregister',  'HarBorgerEgenandelFritak', 'Avvisning',            false, false, false, TRUE,  false, false,  false,  false,   null,            null       ),
        ('Fastlegeregister', 'PasientlisteForesporsel',  'AbonnementStatus',     false, false, false, TRUE,  false, false,  false,  false,   null,            null       ),
