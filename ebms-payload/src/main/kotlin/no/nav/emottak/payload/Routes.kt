@@ -26,6 +26,7 @@ fun Route.postPayload() = post("/payload") {
     val request: PayloadRequest = call.receive(PayloadRequest::class)
     runCatching {
         log.info(request.marker(), "Payload ${request.payload.contentId} mottatt for prosessering")
+        log.debug(request.marker(), "Payload mottatt for prosessering med steg: {}", request.processing.processConfig ?: "Ukjent")
         processor.process(request)
     }.onSuccess {
         log.info(request.marker(), "Payload ${request.payload.contentId} prosessert OK")
