@@ -8,6 +8,7 @@ import no.nav.emottak.message.model.ProcessConfig
 import no.nav.emottak.util.isProdEnv
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.deleteAll
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.selectAll
@@ -115,9 +116,9 @@ class CPARepository(val database: Database) {
     fun getProcessConfig(role: String, service: String, action: String): ProcessConfig? {
         return transaction(database.db) {
             ProcessConfigTable.selectAll().where {
-                ProcessConfigTable.role.eq(role)
-                ProcessConfigTable.service.eq(service)
-                ProcessConfigTable.action.eq(action)
+                (ProcessConfigTable.role eq role) and
+                    (ProcessConfigTable.service eq service) and
+                    (ProcessConfigTable.action eq action)
             }.firstOrNull()?.let {
                 ProcessConfig(
                     it[ProcessConfigTable.kryptering],
@@ -132,7 +133,11 @@ class CPARepository(val database: Database) {
                     it[ProcessConfigTable.errorAction]
                 )
             }.also {
-                if (it == null) log.warn("Missing process config for $role, $service, $action")
+                if (it == null) {
+                    log.warn("Missing process config for $role, $service, $action")
+                } else {
+                    log.debug("Found process config for {}, {}, {}: {}", role, service, action, it)
+                }
             }
         }
     }
