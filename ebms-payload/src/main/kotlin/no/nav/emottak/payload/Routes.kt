@@ -18,6 +18,7 @@ import no.nav.emottak.message.model.Feil
 import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadRequest
 import no.nav.emottak.message.model.PayloadResponse
+import no.nav.emottak.payload.crypto.DecryptionException
 import no.nav.emottak.payload.util.marshal
 import no.nav.emottak.payload.util.unmarshal
 import no.nav.emottak.util.marker
@@ -33,10 +34,10 @@ fun Route.postPayload() = post("/payload") {
         call.respond(it)
     }.onFailure { originalError ->
         log.error(request.marker(), "Payload ${request.payload.contentId} prosessert med feil: ${originalError.message}", originalError)
-        val shouldRespondWithNegativeAppRec = request.processing.processConfig?.apprec ?: false
+        val apprecResponse = (request.processing.processConfig?.apprec ?: false) && originalError !is DecryptionException
 
         runCatching {
-            when (shouldRespondWithNegativeAppRec) {
+            when (apprecResponse) {
                 true -> {
                     log.info(request.marker(), "Oppretter negativ AppRec for payload ${request.payload.contentId}")
                     val msgHead = unmarshal(request.payload.bytes, MsgHead::class.java)
@@ -51,7 +52,7 @@ fun Route.postPayload() = post("/payload") {
                 PayloadResponse(
                     processedPayload = it,
                     error = Feil(ErrorCode.UNKNOWN, originalError.localizedMessage, "Error"),
-                    apprec = shouldRespondWithNegativeAppRec
+                    apprec = apprecResponse
                 )
             )
         }.onFailure {
