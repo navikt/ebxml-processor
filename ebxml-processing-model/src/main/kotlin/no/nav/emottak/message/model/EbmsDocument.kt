@@ -59,6 +59,7 @@ data class EbMSDocument(val requestId: String, val dokument: Document, val attac
         val header = envelope.value.header!!
         val messageHeader = header.messageHeader()
 
+        log.debug("Message header: $messageHeader")
         return when (dokumentType()) {
             DokumentType.PAYLOAD -> PayloadMessage(
                 requestId,
