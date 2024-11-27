@@ -40,6 +40,12 @@ fun PayloadRequest.marker(): LogstashMarker = Markers.appendEntries(
     mapOf(
         MESSAGE_ID to this.messageId,
         CONVERSATION_ID to this.conversationId,
+        SERVICE to this.addressing.service,
+        ACTION to this.addressing.action,
+        TO_ROLE to this.addressing.to.role,
+        FROM_ROLE to this.addressing.from.role,
+        TO_PARTY to "${this.addressing.to.partyId.firstOrNull()?.type ?: UKJENT_VERDI}:${this.addressing.to.partyId.firstOrNull()?.value ?: UKJENT_VERDI}",
+        FROM_PARTY to "${this.addressing.from.partyId.firstOrNull()?.type ?: UKJENT_VERDI}:${this.addressing.from.partyId.firstOrNull()?.value ?: UKJENT_VERDI}",
     )
 )
 

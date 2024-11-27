@@ -3,6 +3,9 @@ package no.nav.emottak.cpa.persistence
 import no.nav.emottak.cpa.databasetest.PostgresTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class CPARepositoryTest : PostgresTest() {
 
@@ -26,5 +29,28 @@ class CPARepositoryTest : PostgresTest() {
     fun `CPA db entry bør ha partner HER ID`() {
         val cpaRepository = CPARepository(postgres)
         assertEquals("8141253", cpaRepository.findCpaEntry(CPA_ID)?.herId)
+    }
+
+    @Test
+    fun `Hent process config med gyldig role service action kombo`() {
+        val cpaRepository = CPARepository(postgres)
+        val processConfig = cpaRepository.getProcessConfig(
+            "Behandler",
+            "HarBorgerFrikort",
+            "EgenandelForesporsel"
+        )
+        assertNotNull(processConfig)
+        assertTrue(processConfig.apprec)
+    }
+
+    @Test
+    fun `Hent process config med ugyldig role service action kombo`() {
+        val cpaRepository = CPARepository(postgres)
+        val processConfig = cpaRepository.getProcessConfig(
+            "Utleverer",
+            "HarBorgerFrikort",
+            "EgenandelForesporsel"
+        )
+        assertNull(processConfig)
     }
 }

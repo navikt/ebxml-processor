@@ -1,6 +1,5 @@
 package no.nav.emottak.payload
 
-import no.kith.xmlstds.msghead._2006_05_24.MsgHead
 import no.nav.emottak.crypto.KeyStore
 import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.Payload
@@ -14,16 +13,12 @@ import no.nav.emottak.payload.juridisklogg.JuridiskLoggService
 import no.nav.emottak.payload.ocspstatus.OcspStatusService
 import no.nav.emottak.payload.ocspstatus.trustStoreConfig
 import no.nav.emottak.payload.util.GZipUtil
-import no.nav.emottak.payload.util.unmarshal
 import no.nav.emottak.util.createDocument
 import no.nav.emottak.util.getByteArrayFromDocument
 import no.nav.emottak.util.marker
 import no.nav.emottak.util.retrieveSignatureElement
 import no.nav.emottak.util.signatur.SignaturVerifisering
-import org.w3c.dom.Element
 import java.io.ByteArrayInputStream
-import javax.xml.xpath.XPath
-import javax.xml.xpath.XPathFactory
 
 val processor = Processor()
 class Processor(
@@ -35,7 +30,7 @@ class Processor(
     private val juridiskLogging: JuridiskLoggService = JuridiskLoggService()
 ) {
 
-    fun process(payloadRequest: PayloadRequest): PayloadResponse {
+    suspend fun process(payloadRequest: PayloadRequest): PayloadResponse {
         val processedPayload = when (payloadRequest.direction) {
             Direction.IN -> processIncoming(payloadRequest)
             Direction.OUT -> processOutgoing(payloadRequest)
@@ -46,21 +41,12 @@ class Processor(
         )
     }
 
-    private fun processIncoming(payloadRequest: PayloadRequest): Payload {
+    private suspend fun processIncoming(payloadRequest: PayloadRequest): Payload {
         val processConfig = payloadRequest.processing.processConfig ?: throw RuntimeException("Processing configuration not defined for message with Id ${payloadRequest.messageId}")
 
-        shouldThrowExceptionForTestPurposes(payloadRequest.payload.bytes)
+        loggMessageToJuridiskLogg(payloadRequest)
 
-        return payloadRequest.payload.also {
-            try {
-                if (processConfig.juridiskLogg) {
-                    log.debug("Sender forespørsel til juridisk logg")
-                    juridiskLogging.logge(payloadRequest)
-                }
-            } catch (e: Exception) {
-                log.error("Feil med å lage forespørsel til juridisk logg", e)
-            }
-        }.let {
+        return payloadRequest.payload.let {
             when (processConfig.kryptering) {
                 true -> dekryptering.dekrypter(it.bytes, false).also { log.info(payloadRequest.marker(), "Payload dekryptert") }
                 false -> it.bytes
@@ -80,7 +66,6 @@ class Processor(
             payloadRequest.payload.copy(bytes = it)
         }.let {
             if (processConfig.ocspSjekk) {
-                throw Exception("My test oscp exception")
                 val dom = createDocument(ByteArrayInputStream(it.bytes))
                 val signature = dom.retrieveSignatureElement()
                 val certificateFromSignature = signature.keyInfo.x509Certificate
@@ -92,8 +77,11 @@ class Processor(
         }
     }
 
-    private fun processOutgoing(payloadRequest: PayloadRequest): Payload {
+    private suspend fun processOutgoing(payloadRequest: PayloadRequest): Payload {
         val processConfig = payloadRequest.processing.processConfig ?: throw RuntimeException("Processing configuration not defined for message with Id ${payloadRequest.messageId}")
+
+        loggMessageToJuridiskLogg(payloadRequest)
+
         return payloadRequest.payload.let {
             when (processConfig.signering) {
                 true -> {
@@ -120,29 +108,15 @@ class Processor(
         }
     }
 
-    private fun shouldThrowExceptionForTestPurposes(bytes: ByteArray) {
-        val fnr = try {
-            log.info("Evaluering av kandidat på negative apprec test")
-            val payloadMsgHead = unmarshal(bytes, MsgHead::class.java)
-            val egenandelforesporsel = payloadMsgHead.document.first().refDoc.content.any.first() as Element
-            val xPath: XPath = XPathFactory.newInstance().newXPath()
-            val borgerFnrExpressionV1 =
-                xPath.compile("""/*[local-name() = 'EgenandelForesporsel']/*[local-name() = 'HarBorgerFrikort']/*[local-name() = 'BorgerFnr']/text()""")
-            val borgerFnrExpressionV2 =
-                xPath.compile("""/*[local-name() = 'EgenandelForesporselV2']/*[local-name() = 'HarBorgerFrikort']/*[local-name() = 'BorgerFnr']/text()""")
-
-            log.info("Evaluating for version1: ${borgerFnrExpressionV1.evaluate(egenandelforesporsel.ownerDocument)}")
-            log.info("Evaluating for version2: ${borgerFnrExpressionV2.evaluate(egenandelforesporsel.ownerDocument)}")
-
-            borgerFnrExpressionV1.evaluate(egenandelforesporsel.ownerDocument).takeIf { !it.isNullOrBlank() }
-                ?: borgerFnrExpressionV2.evaluate(egenandelforesporsel.ownerDocument)
+    private suspend fun loggMessageToJuridiskLogg(payloadRequest: PayloadRequest) {
+        try {
+            if (payloadRequest.processing.processConfig!!.juridiskLogg) {
+                log.debug(payloadRequest.marker(), "Sender forespørsel til juridisk logg")
+                juridiskLogging.logge(payloadRequest)
+            }
         } catch (e: Exception) {
-            log.error("Payload processor: Klarer ikke å parse dokumenten via xpath", e)
-            ""
-        }
-        if (fnr == "58116541813") {
-            log.info("Negative apprect test case aktivert.")
-            throw RuntimeException("Fikk rart fnr, kaster exception")
+            log.error(payloadRequest.marker(), "Feil med å lage forespørsel til juridisk logg", e)
+            throw e
         }
     }
 }
