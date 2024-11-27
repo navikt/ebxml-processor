@@ -82,7 +82,7 @@ data class EbMSDocument(val requestId: String, val dokument: Document, val attac
                     messageHeader.messageData.refToMessageId!!,
                     messageHeader.conversationId,
                     messageHeader.cpaId!!,
-                    messageHeader.addressing(),
+                    messageHeader.addressing(isRoleApplicable = false),
                     errorList,
                     dokument
 
@@ -96,7 +96,7 @@ data class EbMSDocument(val requestId: String, val dokument: Document, val attac
                     header.acknowledgment()!!.refToMessageId,
                     messageHeader.conversationId,
                     messageHeader.cpaId!!,
-                    messageHeader.addressing(),
+                    messageHeader.addressing(isRoleApplicable = false),
                     dokument
                 )
             }
