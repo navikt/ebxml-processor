@@ -37,9 +37,13 @@ fun MessageHeader.createResponseHeader(newAction: String?, newService: String?):
     return messageHeader
 }
 
-fun MessageHeader.addressing() = Addressing(
-    Party(this.to.partyId.map { PartyId(it.type!!, it.value!!) }, this.to.role!!),
-    Party(this.from.partyId.map { PartyId(it.type!!, it.value!!) }, this.from.role!!),
+fun MessageHeader.addressing(isRoleApplicable: Boolean = true) = Addressing(
+    Party(
+        this.to.partyId.map { PartyId(it.type!!, it.value!!) },
+        if (isRoleApplicable) this.to.role!! else "Not applicable"),
+    Party(
+        this.from.partyId.map { PartyId(it.type!!, it.value!!) },
+        if (isRoleApplicable) this.to.role!! else "Not applicable"),
     this.service.value!!,
     this.action
 )
