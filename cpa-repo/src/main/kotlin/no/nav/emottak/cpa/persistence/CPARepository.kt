@@ -1,5 +1,6 @@
 package no.nav.emottak.cpa.persistence
 
+import no.nav.emottak.cpa.feil.CpaValidationException
 import no.nav.emottak.cpa.getPartnerPartyIdByType
 import no.nav.emottak.cpa.log
 import no.nav.emottak.cpa.xmlMarshaller
@@ -113,7 +114,7 @@ class CPARepository(val database: Database) {
         }
     }
 
-    fun getProcessConfig(role: String, service: String, action: String): ProcessConfig? {
+    fun getProcessConfig(role: String, service: String, action: String): ProcessConfig {
         return transaction(database.db) {
             ProcessConfigTable.selectAll().where {
                 (ProcessConfigTable.role eq role) and
@@ -131,14 +132,10 @@ class CPARepository(val database: Database) {
                     it[ProcessConfigTable.juridiskLogg],
                     it[ProcessConfigTable.adapter],
                     it[ProcessConfigTable.errorAction]
-                )
-            }.also {
-                if (it == null) {
-                    log.warn("Missing process config for $role, $service, $action")
-                } else {
-                    log.debug("Found process config for {}, {}, {}: {}", role, service, action, it)
+                ).also { config ->
+                    log.debug("Found process config for {}, {}, {}: {}", role, service, action, config)
                 }
-            }
+            } ?: throw CpaValidationException("Unknown processing configuration for $role, $service, $action")
         }
     }
 

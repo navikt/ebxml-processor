@@ -13,6 +13,7 @@ import io.ktor.server.routing.post
 import io.micrometer.prometheus.PrometheusMeterRegistry
 import no.kith.xmlstds.msghead._2006_05_24.MsgHead
 import no.nav.emottak.melding.apprec.createNegativeApprec
+import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.ErrorCode
 import no.nav.emottak.message.model.Feil
 import no.nav.emottak.message.model.Payload
@@ -25,22 +26,32 @@ import no.nav.emottak.util.marker
 
 fun Route.postPayload() = post("/payload") {
     val request: PayloadRequest = call.receive(PayloadRequest::class)
+    log.info(request.marker(), "Payload mottatt for prosessering <${request.payload.contentId}>")
+    log.debug(request.marker(), "Payload mottatt for prosessering med steg: {}", request.processing.processConfig)
+
     runCatching {
-        log.info(request.marker(), "Payload ${request.payload.contentId} mottatt for prosessering")
-        log.debug(request.marker(), "Payload mottatt for prosessering med steg: {}", request.processing.processConfig ?: "Ukjent")
         processor.process(request)
     }.onSuccess {
-        log.info(request.marker(), "Payload ${request.payload.contentId} prosessert OK")
+        log.info(request.marker(), "Payload prosessert OK <${request.payload.contentId}>")
         call.respond(it)
     }.onFailure { originalError ->
-        log.error(request.marker(), "Payload ${request.payload.contentId} prosessert med feil: ${originalError.message}", originalError)
-        val apprecResponse = (request.processing.processConfig?.apprec ?: false) && originalError !is DecryptionException
+        log.error(request.marker(), "Payload prosessert med feil ${originalError.localizedMessage}", originalError)
+        val apprecResponse = request.processing.processConfig.apprec &&
+            originalError !is DecryptionException &&
+            request.direction == Direction.IN
 
         runCatching {
             when (apprecResponse) {
                 true -> {
-                    log.info(request.marker(), "Oppretter negativ AppRec for payload ${request.payload.contentId}")
-                    val msgHead = unmarshal(request.payload.bytes, MsgHead::class.java)
+                    log.info(request.marker(), "Oppretter negativ AppRec for payload <${request.payload.contentId}>")
+                    val msgHead = unmarshal(
+                        if (request.processing.processConfig.kryptering) {
+                            processor.decrypt(request.payload.bytes)
+                        } else {
+                            request.payload.bytes
+                        },
+                        MsgHead::class.java
+                    )
                     val apprec = createNegativeApprec(msgHead, originalError as Exception)
                     Payload(marshal(apprec).toByteArray(), ContentType.Application.Xml.toString())
                 }
@@ -52,7 +63,7 @@ fun Route.postPayload() = post("/payload") {
                 PayloadResponse(
                     processedPayload = it,
                     error = Feil(ErrorCode.UNKNOWN, originalError.localizedMessage, "Error"),
-                    apprec = apprecResponse
+                    apprec = it != null
                 )
             )
         }.onFailure {

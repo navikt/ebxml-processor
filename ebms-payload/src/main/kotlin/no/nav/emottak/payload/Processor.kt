@@ -41,8 +41,10 @@ class Processor(
         )
     }
 
+    fun decrypt(bytes: ByteArray) = dekryptering.dekrypter(bytes, isBase64 = false)
+
     private suspend fun processIncoming(payloadRequest: PayloadRequest): Payload {
-        val processConfig = payloadRequest.processing.processConfig ?: throw RuntimeException("Processing configuration not defined for message with Id ${payloadRequest.messageId}")
+        val processConfig = payloadRequest.processing.processConfig
 
         loggMessageToJuridiskLogg(payloadRequest)
 
@@ -69,8 +71,8 @@ class Processor(
                 val dom = createDocument(ByteArrayInputStream(it.bytes))
                 val signature = dom.retrieveSignatureElement()
                 val certificateFromSignature = signature.keyInfo.x509Certificate
-                val signedOf = OcspStatusService(defaultHttpClient().invoke(), KeyStore(payloadSigneringConfig()), KeyStore(trustStoreConfig())).getOCSPStatus(certificateFromSignature).fnr
-                it.copy(signedOf = signedOf)
+                val signedBy = OcspStatusService(defaultHttpClient().invoke(), KeyStore(payloadSigneringConfig()), KeyStore(trustStoreConfig())).getOCSPStatus(certificateFromSignature).fnr
+                it.copy(signedBy = signedBy)
             } else {
                 it
             }
@@ -78,7 +80,7 @@ class Processor(
     }
 
     private suspend fun processOutgoing(payloadRequest: PayloadRequest): Payload {
-        val processConfig = payloadRequest.processing.processConfig ?: throw RuntimeException("Processing configuration not defined for message with Id ${payloadRequest.messageId}")
+        val processConfig = payloadRequest.processing.processConfig
 
         loggMessageToJuridiskLogg(payloadRequest)
 
@@ -110,7 +112,7 @@ class Processor(
 
     private suspend fun loggMessageToJuridiskLogg(payloadRequest: PayloadRequest) {
         try {
-            if (payloadRequest.processing.processConfig!!.juridiskLogg) {
+            if (payloadRequest.processing.processConfig.juridiskLogg) {
                 log.debug(payloadRequest.marker(), "Sender forespørsel til juridisk logg")
                 juridiskLogging.logge(payloadRequest)
             }
