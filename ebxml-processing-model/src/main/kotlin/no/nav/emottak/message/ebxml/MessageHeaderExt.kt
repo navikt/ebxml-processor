@@ -40,10 +40,10 @@ fun MessageHeader.createResponseHeader(newAction: String?, newService: String?):
 fun MessageHeader.addressing(isRoleApplicable: Boolean = true) = Addressing(
     Party(
         this.to.partyId.map { PartyId(it.type!!, it.value!!) },
-        if (isRoleApplicable) this.to.role!! else "Not applicable"),
+        if (isRoleApplicable) this.to.role else "Not applicable"),
     Party(
         this.from.partyId.map { PartyId(it.type!!, it.value!!) },
-        if (isRoleApplicable) this.to.role!! else "Not applicable"),
+        if (isRoleApplicable) this.from.role!! else "Not applicable"),
     this.service.value!!,
     this.action
 )
