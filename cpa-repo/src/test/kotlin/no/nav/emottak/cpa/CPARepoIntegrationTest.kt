@@ -16,7 +16,6 @@ import io.ktor.client.request.headers
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
-import io.ktor.client.statement.readBytes
 import io.ktor.http.ContentType.Application.Json
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
@@ -39,17 +38,16 @@ import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.util.getEnvVar
 import no.nav.security.mock.oauth2.MockOAuth2Server
 import org.apache.commons.lang3.StringUtils
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import kotlin.test.assertContains
+import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -113,7 +111,6 @@ class CPARepoIntegrationTest : PostgresTest() {
             contentType(Json)
         }
 
-        // println(String(response.readBytes()))
         val validationResult = response.body<ValidationResult>()
         assertNotNull(validationResult)
 
@@ -146,7 +143,6 @@ class CPARepoIntegrationTest : PostgresTest() {
             contentType(Json)
         }
 
-        // println(String(response.readBytes()))
         val validationResult = response.body<ValidationResult>()
         assertNotNull(validationResult)
 
@@ -181,7 +177,6 @@ class CPARepoIntegrationTest : PostgresTest() {
             contentType(Json)
         }
 
-        // println(String(response.readBytes()))
         val validationResult = response.body<ValidationResult>()
         assertNotNull(validationResult)
 

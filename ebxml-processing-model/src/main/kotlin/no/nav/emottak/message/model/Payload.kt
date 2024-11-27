@@ -222,6 +222,6 @@ fun List<org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Error>.asErro
             errorList.id // "May be used for error tracking"
             errorList.highestSeverity = this.sortedBy {
                 it.severity == SeverityType.ERROR }.first().severity
-            errorList.isMustUnderstand = true; // Alltid
+            errorList.isMustUnderstand = true // Alltid
             return errorList
 }
