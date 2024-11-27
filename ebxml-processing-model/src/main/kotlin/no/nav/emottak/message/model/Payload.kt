@@ -86,6 +86,8 @@ data class ValidationRequest(
 data class ValidationResult(
     val ebmsProcessing: EbmsProcessing? = null,
     val payloadProcessing: PayloadProcessing? = null,
+    val signalEmailAddress: String? = null,
+    val receiverEmailAddress: String? = null,
     val error: List<Feil>? = null
 )
 {

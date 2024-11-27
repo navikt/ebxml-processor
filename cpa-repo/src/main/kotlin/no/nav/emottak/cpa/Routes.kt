@@ -41,6 +41,7 @@ import no.nav.emottak.util.getEnvVar
 import no.nav.emottak.util.marker
 import no.nav.security.token.support.v2.TokenValidationContextPrincipal
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
+import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PartyInfo
 import java.util.Date
 
 fun Route.whoAmI(): Route = get("/whoami") {
@@ -182,21 +183,25 @@ fun Route.validateCpa(cpaRepository: CPARepository) = post("/cpa/validate/{$CONT
         val cpa = cpaRepository.findCpa(validateRequest.cpaId)
             ?: throw NotFoundException("Fant ikke CPA (${validateRequest.cpaId})")
         cpa.validate(validateRequest) // Delivery Failure
-        val partyInfo = cpa.getPartyInfoByTypeAndID(validateRequest.addressing.from.partyId) // Delivery Failure
-
+        val fromParty = cpa.getPartyInfoByTypeAndID(validateRequest.addressing.from.partyId) // Delivery Failure
         val encryptionCertificate = when (validateRequest.direction) {
-            IN -> partyInfo.getCertificateForEncryption() // Security Failure
+            IN -> fromParty.getCertificateForEncryption() // Security Failure
             OUT ->
                 cpa
                     .getPartyInfoByTypeAndID(validateRequest.addressing.to.partyId)
                     .getCertificateForEncryption()
         }
 
-        val signingCertificate = partyInfo.getCertificateForSignatureValidation(
+        val signingCertificate = fromParty.getCertificateForSignatureValidation(
             validateRequest.addressing.from.role,
             validateRequest.addressing.service,
             validateRequest.addressing.action
         ) // Security Failure
+
+        val signalEmail = fromParty.getSignalEmailAddress(validateRequest.addressing.action)
+        val toParty = cpa.getPartyInfoByTypeAndID(validateRequest.addressing.to.partyId) // Delivery Failure
+        val receiverEmail = toParty.getReceiveEmailAddress(validateRequest.addressing.to.role, validateRequest.addressing.service, validateRequest.addressing.action)
+
         runCatching {
             createX509Certificate(signingCertificate.certificate).validate()
         }.onFailure {
@@ -215,7 +220,9 @@ fun Route.validateCpa(cpaRepository: CPARepository) = post("/cpa/validate/{$CONT
                         validateRequest.addressing.service,
                         validateRequest.addressing.action
                     )
-                )
+                ),
+                signalEmail,
+                receiverEmail
             )
         )
     } catch (ebmsEx: EbmsException) {

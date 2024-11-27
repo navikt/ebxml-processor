@@ -29,15 +29,19 @@ import no.nav.emottak.cpa.auth.AuthConfig
 import no.nav.emottak.cpa.databasetest.PostgresTest
 import no.nav.emottak.message.model.Addressing
 import no.nav.emottak.message.model.Direction.IN
+import no.nav.emottak.message.model.ErrorCode
 import no.nav.emottak.message.model.Party
 import no.nav.emottak.message.model.PartyId
 import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.message.model.SignatureDetailsRequest
 import no.nav.emottak.message.model.ValidationRequest
+import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.util.getEnvVar
 import no.nav.security.mock.oauth2.MockOAuth2Server
 import org.apache.commons.lang3.StringUtils
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
@@ -109,11 +113,16 @@ class CPARepoIntegrationTest : PostgresTest() {
             contentType(Json)
         }
 
-        println(String(response.readBytes()))
+        // println(String(response.readBytes()))
+        val validationResult = response.body<ValidationResult>()
+        assertNotNull(validationResult)
+
+        assertEquals(validationResult.signalEmailAddress, "mailto://TEST_A1_Haugerud_t1@edi.nhn.no")
+        assertNull(validationResult.receiverEmailAddress) // Channel-protokoll er HTTP
     }
 
     @Test
-    fun `Byt from og to - role service action matcher ikke`() = cpaRepoTestApp {
+    fun `Bytt from og to - role service action matcher ikke`() = cpaRepoTestApp {
         val httpClient = createClient {
             install(ContentNegotiation) {
                 json()
@@ -137,7 +146,47 @@ class CPARepoIntegrationTest : PostgresTest() {
             contentType(Json)
         }
 
-        println(String(response.readBytes()))
+        // println(String(response.readBytes()))
+        val validationResult = response.body<ValidationResult>()
+        assertNotNull(validationResult)
+
+        assertNotNull(validationResult.error)
+        assertEquals(validationResult.error?.size, 1)
+        assertEquals(validationResult.error?.first()?.code, ErrorCode.DELIVERY_FAILURE)
+        assertEquals(validationResult.error?.first()?.descriptionText, "Action EgenandelForesporsel matcher ikke service HarBorgerEgenandelFritak for sending party NAV")
+    }
+
+    @Test
+    fun `Test hente epost`() = cpaRepoTestApp {
+        val httpClient = createClient {
+            install(ContentNegotiation) {
+                json()
+            }
+        }
+
+        val validationRequest = ValidationRequest(
+            IN,
+            "e17eb03e-9e43-43fb-874c-1fde9a28c308",
+            "1234",
+            "nav:qass:31162",
+            Addressing(
+                Party(listOf(PartyId("HER", "79768")), "KontrollUtbetaler"),
+                Party(listOf(PartyId("HER", "8090595")), "Utleverer"),
+                "OppgjorsKontroll",
+                "Oppgjorskrav"
+            )
+        )
+        val response = httpClient.post("/cpa/validate/121212") {
+            setBody(validationRequest)
+            contentType(Json)
+        }
+
+        // println(String(response.readBytes()))
+        val validationResult = response.body<ValidationResult>()
+        assertNotNull(validationResult)
+
+        assertEquals(validationResult.signalEmailAddress, "mailto://TEST_A1_Haugerud_t1@edi.nhn.no")
+        assertEquals(validationResult.receiverEmailAddress, "mailto://mottak-qass@test-es.nav.no")
     }
 
     @Test
