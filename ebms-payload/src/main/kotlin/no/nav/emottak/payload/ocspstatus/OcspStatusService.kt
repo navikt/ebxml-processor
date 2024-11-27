@@ -68,7 +68,7 @@ class OcspStatusService(
     }
 
     private fun createOCSPRequest(
-        certificate: X509Certificate,
+        certificateFromSignature: X509Certificate,
         ocspResponderCertificate: X509Certificate
     ): OCSPReq {
         try {
@@ -77,24 +77,25 @@ class OcspStatusService(
             val providerName = ocspResponderCertificate.subjectX500Principal.name
             val provider = X500Name(providerName)
             val signerAlias = getSignerAlias(providerName)
-            val signerCert = signeringKeyStore.getCertificate(signerAlias)
+            // val signerCert = signeringKeyStore.getCertificate(signerAlias) // TODO NPE
+            val signerCert = certificateFromSignature
             val requestorName = signerCert.subjectX500Principal.name
 
             val digCalcProv = JcaDigestCalculatorProviderBuilder().setProvider(bcProvider).build()
             val id: CertificateID = JcaCertificateID(
                 digCalcProv.get(CertificateID.HASH_SHA1),
                 ocspResponderCertificate,
-                certificate.serialNumber
+                certificateFromSignature.serialNumber
             )
             ocspReqBuilder.addRequest(id)
             val extensionsGenerator = ExtensionsGenerator()
             /*
             Certificates that have an OCSP service locator will be verified against the OCSP responder.
              */
-            getCertificateChain(certificate.issuerX500Principal.name).also {
-                extensionsGenerator.addServiceLocator(certificate, provider, it)
+            getCertificateChain(certificateFromSignature.issuerX500Principal.name).also {
+                extensionsGenerator.addServiceLocator(certificateFromSignature, provider, it)
             }
-            if (!certificate.isVirksomhetssertifikat()) {
+            if (!certificateFromSignature.isVirksomhetssertifikat()) {
                 extensionsGenerator.addSsnExtension()
             }
             extensionsGenerator.addNonceExtension()
@@ -126,8 +127,10 @@ class OcspStatusService(
 
     private fun getOcspResponderCertificate(certificateIssuer: String): X509Certificate {
         trustStore.aliases().toList().forEach { alias ->
+            log.debug("(OCSP) Checking alias:$alias")
             val cert = trustStore.getCertificate(alias) as X509Certificate
             if (cert.subjectX500Principal.name == certificateIssuer) {
+                log.debug("(OCSP) Found certificate. Alias: $alias")
                 return cert
             }
         }
@@ -153,14 +156,14 @@ class OcspStatusService(
         }
     }
 
-    suspend fun getOCSPStatus(certificate: X509Certificate): SertifikatInfo {
+    suspend fun getOCSPStatus(certificateFromSignature: X509Certificate): SertifikatInfo {
         return try {
-            val certificateIssuer = certificate.issuerX500Principal.name
+            val certificateIssuer = certificateFromSignature.issuerX500Principal.name
             // issue av personsertifikaten eller virksomhetsertifikaten (f.ex. Buypass)
             val ocspResponderCertificate = getOcspResponderCertificate(certificateIssuer)
-            val request: OCSPReq = createOCSPRequest(certificate, ocspResponderCertificate)
+            val request: OCSPReq = createOCSPRequest(certificateFromSignature, ocspResponderCertificate)
 
-            postOCSPRequest(certificate.getOCSPUrl(), request.encoded).also {
+            postOCSPRequest(certificateFromSignature.getOCSPUrl(), request.encoded).also {
                 validateOcspResponse(
                     it,
                     request.getExtension(OCSPObjectIdentifiers.id_pkix_ocsp_nonce),
@@ -170,7 +173,7 @@ class OcspStatusService(
                 it.responseObject as BasicOCSPResp
             }.let {
                 val ssn = getSSN(it)
-                createSertifikatInfoFromOCSPResponse(certificate, it.responses[0], ssn)
+                createSertifikatInfoFromOCSPResponse(certificateFromSignature, it.responses[0], ssn)
             }
         } catch (e: SertifikatError) {
             throw SertifikatError(e.localizedMessage, e)

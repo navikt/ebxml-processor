@@ -21,6 +21,7 @@ import no.nav.emottak.util.signatur.SignaturVerifisering
 import java.io.ByteArrayInputStream
 
 val processor = Processor()
+
 class Processor(
     private val kryptering: Kryptering = Kryptering(),
     private val dekryptering: Dekryptering = Dekryptering(),
@@ -42,13 +43,16 @@ class Processor(
     }
 
     private suspend fun processIncoming(payloadRequest: PayloadRequest): Payload {
-        val processConfig = payloadRequest.processing.processConfig ?: throw RuntimeException("Processing configuration not defined for message with Id ${payloadRequest.messageId}")
+        val processConfig = payloadRequest.processing.processConfig
+            ?: throw RuntimeException("Processing configuration not defined for message with Id ${payloadRequest.messageId}")
 
         loggMessageToJuridiskLogg(payloadRequest)
 
         return payloadRequest.payload.let {
             when (processConfig.kryptering) {
-                true -> dekryptering.dekrypter(it.bytes, false).also { log.info(payloadRequest.marker(), "Payload dekryptert") }
+                true -> dekryptering.dekrypter(it.bytes, false)
+                    .also { log.info(payloadRequest.marker(), "Payload dekryptert") }
+
                 false -> it.bytes
             }
         }.let {
@@ -69,7 +73,11 @@ class Processor(
                 val dom = createDocument(ByteArrayInputStream(it.bytes))
                 val signature = dom.retrieveSignatureElement()
                 val certificateFromSignature = signature.keyInfo.x509Certificate
-                val signedOf = OcspStatusService(defaultHttpClient().invoke(), KeyStore(payloadSigneringConfig()), KeyStore(trustStoreConfig())).getOCSPStatus(certificateFromSignature).fnr
+                val signedOf = OcspStatusService(
+                    defaultHttpClient().invoke(),
+                    KeyStore(payloadSigneringConfig()),
+                    KeyStore(trustStoreConfig())
+                ).getOCSPStatus(certificateFromSignature).fnr
                 it.copy(signedOf = signedOf)
             } else {
                 it
@@ -78,16 +86,23 @@ class Processor(
     }
 
     private suspend fun processOutgoing(payloadRequest: PayloadRequest): Payload {
-        val processConfig = payloadRequest.processing.processConfig ?: throw RuntimeException("Processing configuration not defined for message with Id ${payloadRequest.messageId}")
+        val processConfig = payloadRequest.processing.processConfig
+            ?: throw RuntimeException("Processing configuration not defined for message with Id ${payloadRequest.messageId}")
 
         loggMessageToJuridiskLogg(payloadRequest)
 
         return payloadRequest.payload.let {
             when (processConfig.signering) {
                 true -> {
-                    getByteArrayFromDocument(signering.signerXML(createDocument(ByteArrayInputStream(it.bytes)), payloadRequest.processing.signingCertificate))
+                    getByteArrayFromDocument(
+                        signering.signerXML(
+                            createDocument(ByteArrayInputStream(it.bytes)),
+                            payloadRequest.processing.signingCertificate
+                        )
+                    )
                         .also { log.info(payloadRequest.marker(), "Payload signert") }
                 }
+
                 false -> it.bytes
             }
         }.let {
@@ -103,6 +118,7 @@ class Processor(
                         payloadRequest.payload.copy(bytes = it, contentType = "application/pkcs7-mime")
                     }
                 }
+
                 false -> payloadRequest.payload.copy(bytes = it)
             }
         }

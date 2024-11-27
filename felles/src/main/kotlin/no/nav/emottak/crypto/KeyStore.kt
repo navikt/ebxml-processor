@@ -61,7 +61,7 @@ class KeyStore(private val keyStoreConfig: KeyStoreConfig) {
     fun getKeyPair(alias: String) = KeyPair(getCertificate(alias).publicKey, getKey(alias))
 
     fun getCertificate(alias: String): X509Certificate {
-        return keyStore.getCertificate(alias) as X509Certificate
+        return keyStore.getCertificate(alias) as X509Certificate // TODO NPE
     }
 
     fun aliases() : Enumeration<String> {
