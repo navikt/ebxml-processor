@@ -1,10 +1,8 @@
 package no.nav.emottak.ebms
 
-import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorRuntime
 import io.ktor.server.application.Application
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
-import no.nav.emottak.util.getEnvVar
 import org.apache.commons.lang3.SystemUtils
 import java.io.File
 import java.io.IOException
@@ -33,10 +31,6 @@ fun main() {
     prepareEnvironment()
 
     System.setProperty("io.ktor.http.content.multipart.skipTempFile", "true")
-
-    if (getEnvVar("NAIS_CLUSTER_NAME", "local") != "prod-fss") {
-        DecoroutinatorRuntime.load()
-    }
 
     embeddedServer(Netty, port = 8080, module = Application::ebmsProviderModule, configure = {
         this.maxChunkSize = 100000
