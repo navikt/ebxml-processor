@@ -74,9 +74,6 @@ class OcspStatusService(
         try {
             //   log.debug(Markers.appendEntries(createFieldMap(sertifikatData)), "Sjekker sertifikat")
             val ocspReqBuilder = OCSPReqBuilder()
-            val providerName = ocspResponderCertificate.subjectX500Principal.name
-            val provider = X500Name(providerName)
-            val signerAlias = getSignerAlias(providerName)
             // val signerCert = signeringKeyStore.getCertificate(signerAlias) // TODO NPE
             val signerCert = certificateFromSignature
             val requestorName = signerCert.subjectX500Principal.name
@@ -92,6 +89,8 @@ class OcspStatusService(
             /*
             Certificates that have an OCSP service locator will be verified against the OCSP responder.
              */
+            val providerName = ocspResponderCertificate.subjectX500Principal.name
+            val provider = X500Name(providerName)
             getCertificateChain(certificateFromSignature.issuerX500Principal.name).also {
                 extensionsGenerator.addServiceLocator(certificateFromSignature, provider, it)
             }
@@ -103,13 +102,14 @@ class OcspStatusService(
             ocspReqBuilder.setRequestExtensions(extensionsGenerator.generate())
 
             ocspReqBuilder.setRequestorName(GeneralName(GeneralName.directoryName, requestorName))
-            val request: OCSPReq = ocspReqBuilder.build(
+            val signerAlias = getSignerAlias(providerName)
+            return ocspReqBuilder.build(
                 JcaContentSignerBuilder("SHA256WITHRSAENCRYPTION").setProvider(bcProvider)
-                    .build(signeringKeyStore.getKey(signerAlias)),
+                    .build(signeringKeyStore.getKey(signerAlias.also { log.debug("(OCSP) Checking truststore for alias: $signerAlias") })), // TODO NPE
                 signeringKeyStore.getCertificateChain(signerAlias)
-            )
-            log.debug("OCSP Request created")
-            return request
+            ).also {
+                log.debug("OCSP Request created")
+            }
         } catch (e: Exception) {
             log.error("Feil ved opprettelse av OCSP request")
             throw SertifikatError("Feil ved opprettelse av OCSP request", e)
@@ -182,7 +182,11 @@ class OcspStatusService(
         }
     }
 
-    private fun validateOcspResponse(response: OCSPResp, requestNonce: Extension, ocspResponderCertificate: X509Certificate) {
+    private fun validateOcspResponse(
+        response: OCSPResp,
+        requestNonce: Extension,
+        ocspResponderCertificate: X509Certificate
+    ) {
         checkOCSPResponseStatus(response.status)
         val basicOCSPResponse: BasicOCSPResp = getBasicOCSPResp(response)
         verifyNonce(requestNonce, basicOCSPResponse.getExtension(OCSPObjectIdentifiers.id_pkix_ocsp_nonce))
