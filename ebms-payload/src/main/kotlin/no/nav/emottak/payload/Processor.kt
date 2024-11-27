@@ -41,7 +41,21 @@ class Processor(
         )
     }
 
-    fun decrypt(bytes: ByteArray) = dekryptering.dekrypter(bytes, isBase64 = false)
+    fun getDecryptedAndDecompressedBytes(bytes: ByteArray, encrypted: Boolean, compressed: Boolean): ByteArray {
+        return bytes.let {
+            if (encrypted) {
+                dekryptering.dekrypter(bytes, isBase64 = false)
+            } else {
+                it
+            }
+        }.let {
+            if (compressed) {
+                gZipUtil.uncompress(bytes)
+            } else {
+                it
+            }
+        }
+    }
 
     private suspend fun processIncoming(payloadRequest: PayloadRequest): Payload {
         val processConfig = payloadRequest.processing.processConfig

@@ -45,11 +45,11 @@ fun Route.postPayload() = post("/payload") {
                 true -> {
                     log.info(request.marker(), "Oppretter negativ AppRec for payload <${request.payload.contentId}>")
                     val msgHead = unmarshal(
-                        if (request.processing.processConfig.kryptering) {
-                            processor.decrypt(request.payload.bytes)
-                        } else {
-                            request.payload.bytes
-                        },
+                        processor.getDecryptedAndDecompressedBytes(
+                            request.payload.bytes,
+                            request.processing.processConfig.kryptering,
+                            request.processing.processConfig.komprimering
+                        ),
                         MsgHead::class.java
                     )
                     val apprec = createNegativeApprec(msgHead, originalError as Exception)
