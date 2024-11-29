@@ -197,9 +197,9 @@ fun Route.validateCpa(cpaRepository: CPARepository) = post("/cpa/validate/{$CONT
             validateRequest.addressing.action
         ) // Security Failure
 
-        val signalEmail = fromParty.getSignalEmailAddress(validateRequest.addressing.action)
+        val signalEmails = fromParty.getSignalEmailAddress(validateRequest)
         val toParty = cpa.getPartyInfoByTypeAndID(validateRequest.addressing.to.partyId) // Delivery Failure
-        val receiverEmail = toParty.getReceiveEmailAddress(validateRequest.addressing.to.role, validateRequest.addressing.service, validateRequest.addressing.action)
+        val receiverEmails = toParty.getReceiveEmailAddress(validateRequest)
 
         runCatching {
             createX509Certificate(signingCertificate.certificate).validate()
@@ -220,8 +220,8 @@ fun Route.validateCpa(cpaRepository: CPARepository) = post("/cpa/validate/{$CONT
                         validateRequest.addressing.action
                     )
                 ),
-                signalEmail,
-                receiverEmail
+                signalEmails,
+                receiverEmails
             )
         )
     } catch (ebmsEx: EbmsException) {

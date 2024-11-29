@@ -2,6 +2,7 @@ package no.nav.emottak.message.model
 
 import kotlinx.serialization.Serializable
 import no.nav.emottak.message.util.createUniqueMimeMessageId
+import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.EndpointTypeType
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Description
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ErrorList
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.SeverityType
@@ -86,8 +87,8 @@ data class ValidationRequest(
 data class ValidationResult(
     val ebmsProcessing: EbmsProcessing? = null,
     val payloadProcessing: PayloadProcessing? = null,
-    val signalEmailAddress: String? = null,
-    val receiverEmailAddress: String? = null,
+    val signalEmailAddress: List<EmailAddress> = emptyList(),
+    val receiverEmailAddress: List<EmailAddress> = emptyList(),
     val error: List<Feil>? = null
 )
 {
@@ -152,6 +153,12 @@ data class Party(
 data class PartyId(
     val type: String,
     val value: String,
+)
+
+@Serializable
+data class EmailAddress(
+    val emailAddress: String,
+    var type: EndpointTypeType,
 )
 
 

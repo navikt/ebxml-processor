@@ -4,13 +4,14 @@ import no.nav.emottak.cpa.feil.CpaValidationException
 import no.nav.emottak.cpa.feil.SecurityException
 import no.nav.emottak.message.ebxml.EbXMLConstants.EBMS_SERVICE_URI
 import no.nav.emottak.message.ebxml.PartyTypeEnum
+import no.nav.emottak.message.model.EmailAddress
 import no.nav.emottak.message.model.PartyId
 import no.nav.emottak.message.model.SignatureDetails
+import no.nav.emottak.message.model.ValidationRequest
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.Certificate
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.DeliveryChannel
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.DocExchange
-import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.EndpointTypeType
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PartyInfo
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.ProtocolType
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.Transport
@@ -50,20 +51,19 @@ fun PartyInfo.getSendDeliveryChannel(
     }
 }
 
-fun PartyInfo.getReceiveDeliveryChannel(
+fun PartyInfo.getReceiveDeliveryChannels(
     role: String,
     service: String,
     action: String
-): DeliveryChannel {
+): List<DeliveryChannel> {
     return if (EBMS_SERVICE_URI == service) {
-        this.getDefaultDeliveryChannel(action)
+        listOf(this.getDefaultDeliveryChannel(action))
     } else {
         val roles = this.collaborationRole.filter { it.role.name == role && it.serviceBinding.service.value == service }
         val canReceive = roles.flatMap { it.serviceBinding.canReceive.filter { cs -> cs.thisPartyActionBinding.action == action } }
             .also { if (it.size > 1) log.warn("Found more than 1 CanReceive (role='$role', service='$service', action='$action')") }
-        val channel = canReceive.firstOrNull()?.thisPartyActionBinding?.channelId
-            .also { if (it != null && it.size > 1) log.warn("Found more than 1 ChannelId (role='$role', service='$service', action='$action')") }
-        return if (channel != null) channel.first().value as DeliveryChannel else this.getDefaultDeliveryChannel(action)
+        val channels = canReceive.firstOrNull()?.thisPartyActionBinding?.channelId
+        return channels?.map { it.value as DeliveryChannel } ?: emptyList()
     }
 }
 
@@ -74,31 +74,30 @@ private fun PartyInfo.getDefaultDeliveryChannel(
         ?: this.defaultMshChannelId as DeliveryChannel
 }
 
-fun PartyInfo.getReceiveEmailAddress(
-    role: String,
-    service: String,
-    action: String
-): String? {
-    val deliveryChannel = this.getReceiveDeliveryChannel(role, service, action)
-    return getReceiverEmailAddress(deliveryChannel)
+fun PartyInfo.getReceiveEmailAddress(validateRequest: ValidationRequest): List<EmailAddress> {
+    val deliveryChannels = this.getReceiveDeliveryChannels(validateRequest.addressing.to.role, validateRequest.addressing.service, validateRequest.addressing.action)
+    return getReceiverEmailAddress(validateRequest, validateRequest.addressing.to.role, deliveryChannels)
 }
 
-fun PartyInfo.getSignalEmailAddress(
-    action: String
-): String? {
-    val deliveryChannel = this.getDefaultDeliveryChannel(action)
-    return getReceiverEmailAddress(deliveryChannel)
+fun PartyInfo.getSignalEmailAddress(validateRequest: ValidationRequest): List<EmailAddress> {
+    val deliveryChannels = listOf(this.getDefaultDeliveryChannel(validateRequest.addressing.action))
+    return getReceiverEmailAddress(validateRequest, validateRequest.addressing.from.role, deliveryChannels)
 }
 
-private fun getReceiverEmailAddress(deliveryChannel: DeliveryChannel): String? {
-    val transport = deliveryChannel.getTransport() // SecurityException
-    val transportReceiver = transport.transportReceiver
-    if (transportReceiver == null || transportReceiver.transportProtocol.value != "SMTP") return null
-    val endpoints = transportReceiver.endpoint
-        .also { if (it.size > 1) log.warn("Found more than 1 email address (transportId='${transport.transportId}')") }
-    val allPurpose = endpoints.filter { endpoint -> endpoint.type == EndpointTypeType.ALL_PURPOSE }
-    return allPurpose.firstOrNull()?.uri ?: endpoints.firstOrNull()?.uri
-        .also { if (endpoints.size > 0) log.warn("Did not find an allPurpose email address (transportId='${transport.transportId}') - using first() instead (${endpoints[0].type})") }
+private fun getReceiverEmailAddress(req: ValidationRequest, role: String, deliveryChannels: List<DeliveryChannel>): List<EmailAddress> {
+    // TODO: I stedet for å logge ut warning: Hent heller ut alle epostadresser fra alle SMTP-kanaler.
+    val smtpChannel = deliveryChannels.filter {
+        it.getTransport().transportReceiver?.transportProtocol?.value == "SMTP"
+    }.also {
+        if (it.size > 1) {
+            log.warn(
+                "Found more than 1 SMTP Channels (cpaId: '${req.cpaId}', role='$role', service='${req.addressing.service}', action='${req.addressing.action}', transportIds: ${
+                it.map { channel -> "'${(channel.transportId as Transport).transportId}'" }
+                }) - using the first one."
+            )
+        }
+    }.firstOrNull()
+    return smtpChannel?.getTransport()?.transportReceiver?.endpoint?.map { EmailAddress(it.uri, it.type!!) } ?: emptyList()
 }
 
 fun DeliveryChannel.getSigningCertificate(): Certificate {
