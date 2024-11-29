@@ -1,8 +1,10 @@
-package no.nav.emottak.ebms
+package no.nav.emottak.cpa
 
-import io.ktor.server.application.Application
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
+import no.nav.emottak.cpa.persistence.cpaDbConfig
+import no.nav.emottak.cpa.persistence.cpaMigrationConfig
+import no.nav.emottak.cpa.persistence.oracleConfig
 import org.apache.commons.lang3.SystemUtils
 import java.io.File
 import java.io.IOException
@@ -11,11 +13,13 @@ import java.util.regex.Pattern
 
 val kubectlPath: String = getLocalKubectlPath()
 var envVariables: MutableMap<String, String> = mutableMapOf()
-var mountedValues = mapOf<String, String>(
-//    "UR_EKSTERN_SERVICE_USERNAME" to "/var/run/secrets/nais.io/srv-ytelser-rest-proxy/username",
-//    "UR_EKSTERN_SERVICE_PASSWORD" to "/var/run/secrets/nais.io/srv-ytelser-rest-proxy/password"
+var mountedValues = mapOf(
+    "EMOTTAK_USERNAME" to "/secrets/oracle/creds/username",
+    "EMOTTAK_PASSWORD" to "/secrets/oracle/creds/password",
+    "EMOTTAK_JDBC_URL" to "/secrets/oracle/config/jdbc_url",
+    "VAULT_TOKEN" to "/var/run/secrets/nais.io/vault/vault_token"
 )
-var ingresses = mapOf<String, String>(
+var ingresses = mapOf(
     "ebms-provider" to "https://ebms-provider-fss.intern.dev.nav.no",
     "ebms-payload" to "https://ebms-payload-fss.intern.dev.nav.no",
     "cpa-repo" to "https://cpa-repo-fss.intern.dev.nav.no",
@@ -30,11 +34,15 @@ var ingresses = mapOf<String, String>(
 fun main() {
     prepareEnvironment()
 
-    System.setProperty("io.ktor.http.content.multipart.skipTempFile", "true")
-
-    embeddedServer(Netty, port = 8080, module = Application::ebmsProviderModule, configure = {
-        this.maxChunkSize = 100000
-    }).start(wait = true)
+    embeddedServer(
+        Netty,
+        port = 8080,
+        module = cpaApplicationModule(
+            cpaDbConfig.value,
+            cpaMigrationConfig.value,
+            oracleConfig.value
+        )
+    ).start(wait = true)
 }
 
 fun prepareEnvironment() {
@@ -67,7 +75,7 @@ fun retrieveMountedValues() {
 }
 
 fun retrievePodName(): String {
-    val regex = "ebms-provider-[^\\s]*"
+    val regex = "cpa-repo-[^\\s]*"
     val pods: String = runCommand(kubectlPath + " get pods -o custom-columns=:metadata.name")
     val podMatcher = Pattern
         .compile(regex)
@@ -92,9 +100,6 @@ fun setEnvVariables() {
     }
 
     // Custom settings
-    System.setProperty("CPA_REPO_URL", ingresses["cpa-repo"])
-    System.setProperty("SEND_IN_URL", ingresses["ebms-send-in"])
-    System.setProperty("PAYLOAD_PROCESSOR_URL", ingresses["ebms-payload"])
 }
 
 fun getLocalKubectlPath(): String {

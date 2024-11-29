@@ -43,7 +43,7 @@ fun prepareEnvironment() {
 }
 
 fun retrieveEnvVariables() {
-    val podName: String = retrievePodName("ebms-payload-[^\\s]*")
+    val podName: String = retrievePodName()
     val envVariablesString: String =
         runCommand(kubectlPath + " exec -it " + podName + " -- env")
 
@@ -58,14 +58,15 @@ fun retrieveEnvVariables() {
 
 @Throws(IOException::class)
 fun retrieveMountedValues() {
-    val podsName: String = retrievePodName("ebms-payload-[^\\s]*")
-    for ((key, value) in mountedValues.entries) {
-        val verdi: String = runCommand(kubectlPath + " exec " + podsName + " -- cat " + value)
-        envVariables.put(key, verdi)
+    val podsName: String = retrievePodName()
+    for ((key, path) in mountedValues.entries) {
+        val value: String = runCommand(kubectlPath + " exec " + podsName + " -- cat " + path)
+        envVariables.put(key, value)
     }
 }
 
-fun retrievePodName(regex: String): String {
+fun retrievePodName(): String {
+    val regex = "ebms-payload-[^\\s]*"
     val pods: String = runCommand(kubectlPath + " get pods -o custom-columns=:metadata.name")
     val podMatcher = Pattern
         .compile(regex)
