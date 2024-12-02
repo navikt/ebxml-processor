@@ -173,4 +173,23 @@ class MimeValidationTest {
                 }
         }
     }
+
+    @Test
+    fun `Content-Transfer-Encoding validation ignores case`() {
+        val valid = listOf(
+            validSoapMimeHeaders.modify {
+                it[MimeHeaders.CONTENT_TRANSFER_ENCODING] = "base64"
+            },
+            validSoapMimeHeaders.modify {
+                it[MimeHeaders.CONTENT_TRANSFER_ENCODING] = "Base64"
+            },
+            validSoapMimeHeaders.modify {
+                it[MimeHeaders.CONTENT_TRANSFER_ENCODING] = "BASE64"
+            }
+        )
+
+        valid.forEach {
+            PartData.FormItem("body", {}, it).validateMimeSoapEnvelope()
+        }
+    }
 }
