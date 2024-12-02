@@ -76,28 +76,22 @@ private fun PartyInfo.getDefaultDeliveryChannel(
 
 fun PartyInfo.getReceiveEmailAddress(validateRequest: ValidationRequest): List<EmailAddress> {
     val deliveryChannels = this.getReceiveDeliveryChannels(validateRequest.addressing.to.role, validateRequest.addressing.service, validateRequest.addressing.action)
-    return getReceiverEmailAddress(validateRequest, validateRequest.addressing.to.role, deliveryChannels)
+    return getReceiverEmailAddress(deliveryChannels)
 }
 
 fun PartyInfo.getSignalEmailAddress(validateRequest: ValidationRequest): List<EmailAddress> {
     val deliveryChannels = listOf(this.getDefaultDeliveryChannel(validateRequest.addressing.action))
-    return getReceiverEmailAddress(validateRequest, validateRequest.addressing.from.role, deliveryChannels)
+    return getReceiverEmailAddress(deliveryChannels)
 }
 
-private fun getReceiverEmailAddress(req: ValidationRequest, role: String, deliveryChannels: List<DeliveryChannel>): List<EmailAddress> {
-    // TODO: I stedet for å logge ut warning: Hent heller ut alle epostadresser fra alle SMTP-kanaler.
-    val smtpChannel = deliveryChannels.filter {
+private fun getReceiverEmailAddress(deliveryChannels: List<DeliveryChannel>): List<EmailAddress> {
+    return deliveryChannels.filter {
         it.getTransport().transportReceiver?.transportProtocol?.value == "SMTP"
-    }.also {
-        if (it.size > 1) {
-            log.warn(
-                "Found more than 1 SMTP Channels (cpaId: '${req.cpaId}', role='$role', service='${req.addressing.service}', action='${req.addressing.action}', transportIds: ${
-                it.map { channel -> "'${(channel.transportId as Transport).transportId}'" }
-                }) - using the first one."
-            )
-        }
-    }.firstOrNull()
-    return smtpChannel?.getTransport()?.transportReceiver?.endpoint?.map { EmailAddress(it.uri, it.type!!) } ?: emptyList()
+    }.flatMap {
+        it.getTransport().transportReceiver?.endpoint ?: emptyList()
+    }.map {
+        EmailAddress(it.uri, it.type!!)
+    }.distinct()
 }
 
 fun DeliveryChannel.getSigningCertificate(): Certificate {

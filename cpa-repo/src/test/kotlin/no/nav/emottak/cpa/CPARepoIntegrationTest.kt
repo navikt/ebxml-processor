@@ -54,12 +54,12 @@ import kotlin.test.assertTrue
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class CPARepoIntegrationTest : PostgresTest() {
 
-    fun <T> cpaRepoTestApp(testBlock: suspend ApplicationTestBuilder.() -> T) = testApplication {
+    private fun <T> cpaRepoTestApp(testBlock: suspend ApplicationTestBuilder.() -> T) = testApplication {
         application(cpaApplicationModule(postgres.dataSource, postgres.dataSource))
         testBlock()
     }
 
-    val mockOAuth2Server = MockOAuth2Server().also { it.start(port = 3344) }
+    private val mockOAuth2Server = MockOAuth2Server().also { it.start(port = 3344) }
 
     @Test
     fun `Hent sertifikat for signatursjekk`() = cpaRepoTestApp {
@@ -220,39 +220,39 @@ class CPARepoIntegrationTest : PostgresTest() {
         assertContains(
             validationResult.signalEmailAddress,
             EmailAddress("mailto://allPurpose@edi.nhn.no", EndpointTypeType.ALL_PURPOSE),
-            "''signalEmailAddress'' inneholdt IKKE allPurpose-epostadresse"
+            "'signalEmailAddress' inneholdt IKKE allPurpose-epostadresse"
         )
         assertContains(
             validationResult.signalEmailAddress,
             EmailAddress("mailto://error@edi.nhn.no", EndpointTypeType.ERROR),
-            "''signalEmailAddress'' inneholdt IKKE error-epostadresse"
+            "'signalEmailAddress' inneholdt IKKE error-epostadresse"
         )
 
-        assertEquals(4, validationResult.receiverEmailAddress.size)
-        /*assertContains(
+        assertEquals(5, validationResult.receiverEmailAddress.size)
+        assertContains(
             validationResult.receiverEmailAddress,
-            EmailAddress("mailto://allPurpose@test-es.nav.no", EndpointTypeType.ALL_PURPOSE),
-            "''receiverEmailAddress'' inneholdt IKKE allPurpose-epostadresse"
-        )*/
+            EmailAddress("mailto://mottak-qass@test-es.nav.no", EndpointTypeType.ALL_PURPOSE),
+            "'receiverEmailAddress' inneholdt IKKE allPurpose-epostadresse"
+        )
         assertContains(
             validationResult.receiverEmailAddress,
             EmailAddress("mailto://request@test-es.nav.no", EndpointTypeType.REQUEST),
-            "''receiverEmailAddress'' inneholdt IKKE request-epostadresse"
+            "'receiverEmailAddress' inneholdt IKKE request-epostadresse"
         )
         assertContains(
             validationResult.receiverEmailAddress,
             EmailAddress("mailto://response@test-es.nav.no", EndpointTypeType.RESPONSE),
-            "''receiverEmailAddress'' inneholdt IKKE response-epostadresse"
+            "'receiverEmailAddress' inneholdt IKKE response-epostadresse"
         )
         assertContains(
             validationResult.receiverEmailAddress,
             EmailAddress("mailto://error@test-es.nav.no", EndpointTypeType.ERROR),
-            "''receiverEmailAddress'' inneholdt IKKE error-epostadresse"
+            "'receiverEmailAddress' inneholdt IKKE error-epostadresse"
         )
         assertContains(
             validationResult.receiverEmailAddress,
             EmailAddress("mailto://login@test-es.nav.no", EndpointTypeType.LOGIN),
-            "''receiverEmailAddress'' inneholdt IKKE login-epostadresse"
+            "'receiverEmailAddress' inneholdt IKKE login-epostadresse"
         )
     }
 

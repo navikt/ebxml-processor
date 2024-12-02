@@ -294,6 +294,7 @@
             <cppa:TransportReceiver>
                 <cppa:TransportProtocol cppa:version="1.1">SMTP</cppa:TransportProtocol>
                 <cppa:Endpoint cppa:uri="mailto://mottak-qass@test-es.nav.no" cppa:type="allPurpose"/>
+                <cppa:Endpoint cppa:uri="mailto://error@test-es.nav.no" cppa:type="error"/>
             </cppa:TransportReceiver>
         </cppa:Transport>
         <cppa:Transport cppa:transportId="NAV_transportHttp">
