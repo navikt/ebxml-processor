@@ -21,7 +21,6 @@ data class EbmsFail(
 
     override fun toEbmsDokument(): EbMSDocument {
         val header = this.createMessageHeader(this.addressing.copy(action = EbXMLConstants.MESSAGE_ERROR_ACTION, service = EbXMLConstants.EBMS_SERVICE_URI))
-     //   log.warn(this.marker(), "Oppretter ErrorList")
         return ObjectFactory().createEnvelope()!!.also {
             it.header = header.also {
                 it.any.add(this.feil.asErrorList())

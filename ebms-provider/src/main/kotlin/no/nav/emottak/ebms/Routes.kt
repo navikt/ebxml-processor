@@ -226,6 +226,7 @@ fun Route.postEbmsSync(
             signingCertificate?.let { signatureDetails ->
                 it.signer(signatureDetails)
             }
+            log.info(ebmsMessage.marker(), "Created MessageError response")
             call.respondEbmsDokument(it)
             return@post
         }
@@ -282,7 +283,7 @@ fun Route.postEbmsAsync(validator: DokumentValidator, processingService: Process
                     processingService.processAsync(ebmsMessage, it.payloadProcessing)
                 }
             if (ebmsMessage !is PayloadMessage) {
-                log.info(ebMSDocument.messageHeader().marker(), "Successfuly processed Signal Message")
+                log.info(ebMSDocument.messageHeader().marker(), "Successfully processed Signal Message")
                 call.respondText("Processed")
                 return@post
             }
@@ -293,6 +294,7 @@ fun Route.postEbmsAsync(validator: DokumentValidator, processingService: Process
             }
         } catch (ex: EbmsException) {
             ebmsMessage.createFail(ex.feil).toEbmsDokument().also {
+                log.info(ebmsMessage.marker(), "Created MessageError response")
                 call.respondEbmsDokument(it)
                 return@post
             }
