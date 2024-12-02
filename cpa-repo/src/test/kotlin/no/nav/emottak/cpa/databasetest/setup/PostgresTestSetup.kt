@@ -69,7 +69,7 @@ class PostgresTestSetup {
             tables.forEach { it.deleteAll() }
         }
 
-        val cpasToInsert = listOf("nav-qass-35065.xml", "nav-qass-31162.xml")
+        val cpasToInsert = listOf("nav-qass-35065.xml", "nav-qass-31162.xml", "nav-qass-31162_multipleChannels_and_multiple_endpoints.xml")
         transaction(postgres.db) {
             cpasToInsert.forEach { cpaToInsert ->
                 CPA.insert {
