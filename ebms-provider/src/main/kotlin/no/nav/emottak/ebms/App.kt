@@ -22,6 +22,7 @@ import io.micrometer.prometheus.PrometheusConfig
 import io.micrometer.prometheus.PrometheusMeterRegistry
 import net.logstash.logback.marker.Markers
 import no.nav.emottak.constants.SMTPHeaders
+import no.nav.emottak.ebms.kafka.KafkaClient
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.DokumentValidator
@@ -67,6 +68,12 @@ fun Application.ebmsProviderModule() {
 
     routing {
         get("/") {
+            val producer = KafkaClient().createProducer()
+            val topic = "ebxml-acknowledgments"
+
+            producer.send(org.apache.kafka.clients.producer.ProducerRecord(topic, "key", "Hello, Kafka!"))
+            producer.close()
+
             call.respondText("Hello, world!")
         }
         if (!isProdEnv()) {

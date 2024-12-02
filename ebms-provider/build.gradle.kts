@@ -73,6 +73,7 @@ dependencies {
     implementation(libs.ktor.server.auth.jvm)
     implementation(libs.token.validation.ktor.v2)
     implementation(testLibs.postgresql)
+    implementation("org.apache.kafka:kafka-clients:3.9.0")
     testImplementation(testLibs.mock.oauth2.server)
     testImplementation(testLibs.ktor.server.test.host)
     testImplementation(testLibs.junit.jupiter.api)
