@@ -6,6 +6,8 @@ import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import no.nav.emottak.ebms.PayloadProcessingClient
+import no.nav.emottak.ebms.kafka.KafkaClient
+import no.nav.emottak.ebms.log
 import no.nav.emottak.ebms.logger
 import no.nav.emottak.ebms.util.marker
 import no.nav.emottak.melding.feil.EbmsException
@@ -19,8 +21,10 @@ import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.model.PayloadProcessing
 import no.nav.emottak.message.model.PayloadRequest
 import no.nav.emottak.message.model.PayloadResponse
+import no.nav.emottak.util.getEnvVar
+import org.apache.kafka.clients.producer.ProducerRecord
 
-class ProcessingService(private val httpClient: PayloadProcessingClient) {
+class ProcessingService(private val httpClient: PayloadProcessingClient, private val kafkaClient: KafkaClient) {
 
     private suspend fun processMessage(
         payloadMessage: PayloadMessage,
@@ -81,6 +85,17 @@ class ProcessingService(private val httpClient: PayloadProcessingClient) {
     }
 
     private fun acknowledgment(acknowledgment: Acknowledgment) {
+        log.debug("Sending acknowledgment to queue")
+        log.debug("Acknowledgment document: {}", acknowledgment.dokument.toString())
+        acknowledgment.dokument.toString()
+        val kafkaProducer = kafkaClient.createProducer()
+        val topic = getEnvVar("KAFKA_TOPIC_ACKNOWLEDGMENTS", "emottak-acknowledgments")
+        kafkaProducer.send(
+            ProducerRecord(topic, acknowledgment.messageId, acknowledgment.dokument.toString())
+        )
+
+        kafkaProducer.flush()
+        kafkaProducer.close()
     }
 
     private fun fail(fail: EbmsFail) {

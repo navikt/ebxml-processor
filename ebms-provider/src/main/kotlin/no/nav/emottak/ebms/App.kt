@@ -53,7 +53,8 @@ fun Application.ebmsProviderModule() {
     val validator = DokumentValidator(cpaClient)
 
     val processingClient = PayloadProcessingClient(scopedAuthHttpClient(EBMS_PAYLOAD_SCOPE))
-    val processing = ProcessingService(processingClient)
+    val kafkaClient = KafkaClient()
+    val processing = ProcessingService(processingClient, kafkaClient)
 
     val sendInClient = SendInClient(scopedAuthHttpClient(EBMS_SEND_IN_SCOPE))
     val sendInService = SendInService(sendInClient)
@@ -68,12 +69,6 @@ fun Application.ebmsProviderModule() {
 
     routing {
         get("/") {
-            val producer = KafkaClient().createProducer()
-            val topic = "ebxml-acknowledgments"
-
-            producer.send(org.apache.kafka.clients.producer.ProducerRecord(topic, "key", "Hello, Kafka!"))
-            producer.close()
-
             call.respondText("Hello, world!")
         }
         if (!isProdEnv()) {
