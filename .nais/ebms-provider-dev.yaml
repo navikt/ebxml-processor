@@ -63,6 +63,13 @@ spec:
       rules:
         - application: cpa-repo
         - application: ebms-payload
+  envFrom:
+    - secret: ebms-payload-secret
+  filesFrom:
+    - secret: ebms-keystore-signering
+      mountPath: /var/run/secrets/ebms-keystore-signering
+  kafka:
+    pool: {{kafka-pool}}
   env:
     - name: KEYSTORE_FILE
       value: /var/run/secrets/ebms-keystore-signering/signering-key.p12
@@ -70,8 +77,3 @@ spec:
       value: DEBUG
     - name: KAFKA_TOPIC_ACKNOWLEDGMENTS
       value: emottak-acknowledgments
-  envFrom:
-    - secret: ebms-payload-secret
-  filesFrom:
-    - secret: ebms-keystore-signering
-      mountPath: /var/run/secrets/ebms-keystore-signering
