@@ -85,17 +85,20 @@ class ProcessingService(private val httpClient: PayloadProcessingClient, private
     }
 
     private fun acknowledgment(acknowledgment: Acknowledgment) {
-        log.debug("Sending acknowledgment to queue")
-        log.debug("Acknowledgment document: {}", acknowledgment.dokument.toString())
-        acknowledgment.dokument.toString()
-        val kafkaProducer = kafkaClient.createProducer()
-        val topic = getEnvVar("KAFKA_TOPIC_ACKNOWLEDGMENTS", "emottak-acknowledgments")
-        kafkaProducer.send(
-            ProducerRecord(topic, acknowledgment.messageId, acknowledgment.dokument.toString())
-        )
-
-        kafkaProducer.flush()
-        kafkaProducer.close()
+        try {
+            log.debug("Sending acknowledgment to queue")
+            log.debug("Acknowledgment document: {}", acknowledgment.dokument.toString())
+            acknowledgment.dokument.toString()
+            val kafkaProducer = kafkaClient.createProducer()
+            val topic = getEnvVar("KAFKA_TOPIC_ACKNOWLEDGMENTS", "emottak-acknowledgments")
+            kafkaProducer.send(
+                ProducerRecord(topic, acknowledgment.messageId, acknowledgment.toEbmsDokument().toString())
+            )
+            kafkaProducer.flush()
+            kafkaProducer.close()
+        } catch (e: Exception) {
+            log.error("Exception while sending acknowledgment to queue", e)
+        }
     }
 
     private fun fail(fail: EbmsFail) {
