@@ -32,6 +32,7 @@ class KafkaClient {
             put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
             put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")
             put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false")
+            put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "10") // TODO: it is debug setting
         }
         return KafkaConsumer(props)
     }
