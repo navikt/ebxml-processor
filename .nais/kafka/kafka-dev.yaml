@@ -17,6 +17,6 @@ spec:
     retentionHours: 168
     segmentHours: 168
   acl:
-    - access: read,write
+    - access: readwrite
       application: ebms-provider
       team: team-emottak
