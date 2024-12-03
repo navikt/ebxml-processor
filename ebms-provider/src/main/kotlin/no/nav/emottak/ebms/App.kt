@@ -71,6 +71,21 @@ fun Application.ebmsProviderModule() {
         get("/") {
             call.respondText("Hello, world!")
         }
+        get("/kafkatest") {
+            val client = KafkaClient()
+            val consumer = client.createConsumer()
+            val topic = "ebxml-acknowledgments"
+
+            consumer.subscribe(listOf(topic))
+            val records = consumer.poll(Duration.ofMillis(500))
+            log.debug("Kafka test: Messages read - ${records.count()}")
+            if (records.count() > 0) {
+                log.debug("Kafka test: Last message - ${records.toList().last().value()}")
+            }
+            // consumer.commitSync()
+
+            call.respondText("Kafka works!")
+        }
         if (!isProdEnv()) {
             packageEbxml(validator, processing)
             unpackageEbxml(validator, processing)
