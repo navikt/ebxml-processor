@@ -1,5 +1,6 @@
 name: Deploy kafka topics to dev
 on:
+  workflow_dispatch:
   push:
     branches:
       - 'main'
