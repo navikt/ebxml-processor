@@ -99,6 +99,7 @@ class ProcessingService(private val httpClient: PayloadProcessingClient, private
         } catch (e: Exception) {
             log.error("Exception while sending acknowledgment to queue", e)
         }
+        log.debug("Acknowledgment sent to queue")
     }
 
     private fun fail(fail: EbmsFail) {
