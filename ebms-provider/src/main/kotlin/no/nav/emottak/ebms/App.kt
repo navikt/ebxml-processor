@@ -79,13 +79,11 @@ fun Application.ebmsProviderModule() {
                 val topic = "ebxml-acknowledgments"
 
                 consumer.subscribe(listOf(topic))
-                val records = consumer.poll(Duration.ofMillis(500))
+                val records = consumer.poll(Duration.ofMillis(1000))
                 log.debug("Kafka test: Messages read - ${records.count()}")
                 if (records.count() > 0) {
                     log.debug("Kafka test: Last message - ${records.toList().last().value()}")
                 }
-
-                // consumer.commitAsync()
             } catch (e: Exception) {
                 log.error("Kafka test: Exception while reading messages from queue", e)
             }

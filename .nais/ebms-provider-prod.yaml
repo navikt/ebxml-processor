@@ -79,4 +79,4 @@ spec:
     - name: VIRKSOMHETSSERTIFIKAT_CREDENTIALS
       value: credentials.2022
     - name: KAFKA_TOPIC_ACKNOWLEDGMENTS
-      value: emottak-acknowledgments
+      value: ebxml-acknowledgments
