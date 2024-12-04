@@ -72,19 +72,22 @@ fun Application.ebmsProviderModule() {
         }
         get("/kafkatest") {
             log.debug("Kafka test: start")
-            try {
-                val consumer = kafkaClientObject.createConsumer()
-                val topic = "ebxml-acknowledgments"
 
-                consumer.subscribe(listOf(topic))
+            val consumer = kafkaClientObject.createConsumer()
+            val topic = "ebxml-acknowledgments"
+
+            consumer.subscribe(listOf(topic))
+
+            try {
                 val records = consumer.poll(Duration.ofMillis(100))
                 log.debug("Kafka test: Messages read - ${records.count()}")
                 if (records.count() > 0) {
                     log.debug("Kafka test: Last message - ${records.toList().last().value()}")
                 }
-                consumer.close()
             } catch (e: Exception) {
                 log.error("Kafka test: Exception while reading messages from queue", e)
+            } finally {
+                consumer.close()
             }
 
             call.respondText("Kafka works!")
