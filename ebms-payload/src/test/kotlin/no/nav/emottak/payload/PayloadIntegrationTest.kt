@@ -35,6 +35,7 @@ class PayloadIntegrationTest {
     private val mockOAuth2Server = MockOAuth2Server().also { it.start(port = 3344) }
 
     private fun <T> ebmsPayloadTestApp(testBlock: suspend ApplicationTestBuilder.() -> T) = testApplication {
+        setupEnv()
         application(payloadApplicationModule())
         testBlock()
     }
