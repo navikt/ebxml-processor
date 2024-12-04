@@ -106,8 +106,10 @@ private fun createOriginalMessageId(msgInfo: MsgInfo) = objectFactory.createOrig
     it.msgType = createCS(msgInfo.type.v, msgInfo.type.dn)
 }
 
-private fun createCS(v: String): CS = objectFactory.createCS().also { it.v = v }
-private fun createCS(v: String, dn: String): CS = createCS(v).also { it.dn = dn }
+private fun createCS(v: String, dn: String? = null): CS = objectFactory.createCS().apply {
+    this.v = v
+    if (dn != null) this.dn = dn
+}
 
 
 private fun List<Ident>.getPreferredIdent(): Ident =

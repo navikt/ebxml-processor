@@ -1,10 +1,11 @@
 package no.nav.emottak.cpa.persistence
 
 import no.nav.emottak.cpa.databasetest.PostgresTest
+import no.nav.emottak.cpa.feil.CpaValidationException
+import org.junit.jupiter.api.assertThrows
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class CPARepositoryTest : PostgresTest() {
@@ -46,11 +47,12 @@ class CPARepositoryTest : PostgresTest() {
     @Test
     fun `Hent process config med ugyldig role service action kombo`() {
         val cpaRepository = CPARepository(postgres)
-        val processConfig = cpaRepository.getProcessConfig(
-            "Utleverer",
-            "HarBorgerFrikort",
-            "EgenandelForesporsel"
-        )
-        assertNull(processConfig)
+        assertThrows<CpaValidationException> {
+            cpaRepository.getProcessConfig(
+                "Utleverer",
+                "HarBorgerFrikort",
+                "EgenandelForesporsel"
+            )
+        }
     }
 }

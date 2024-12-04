@@ -1,8 +1,12 @@
 package no.nav.emottak.cpa.persistence
 
+import no.nav.emottak.cpa.feil.CpaValidationException
 import no.nav.emottak.cpa.getPartnerPartyIdByType
 import no.nav.emottak.cpa.log
 import no.nav.emottak.cpa.xmlMarshaller
+import no.nav.emottak.message.ebxml.EbXMLConstants.ACKNOWLEDGMENT_ACTION
+import no.nav.emottak.message.ebxml.EbXMLConstants.EBMS_SERVICE_URI
+import no.nav.emottak.message.ebxml.EbXMLConstants.MESSAGE_ERROR_ACTION
 import no.nav.emottak.message.ebxml.PartyTypeEnum
 import no.nav.emottak.message.model.ProcessConfig
 import no.nav.emottak.util.isProdEnv
@@ -113,31 +117,42 @@ class CPARepository(val database: Database) {
         }
     }
 
-    fun getProcessConfig(role: String, service: String, action: String): ProcessConfig? {
-        return transaction(database.db) {
-            ProcessConfigTable.selectAll().where {
-                (ProcessConfigTable.role eq role) and
-                    (ProcessConfigTable.service eq service) and
-                    (ProcessConfigTable.action eq action)
-            }.firstOrNull()?.let {
-                ProcessConfig(
-                    it[ProcessConfigTable.kryptering],
-                    it[ProcessConfigTable.komprimering],
-                    it[ProcessConfigTable.signering],
-                    it[ProcessConfigTable.internformat],
-                    it[ProcessConfigTable.validering],
-                    it[ProcessConfigTable.apprec],
-                    it[ProcessConfigTable.ocspCheck],
-                    it[ProcessConfigTable.juridiskLogg],
-                    it[ProcessConfigTable.adapter],
-                    it[ProcessConfigTable.errorAction]
-                )
-            }.also {
-                if (it == null) {
-                    log.warn("Missing process config for $role, $service, $action")
-                } else {
-                    log.debug("Found process config for {}, {}, {}: {}", role, service, action, it)
-                }
+    fun getProcessConfig(role: String, service: String, action: String): ProcessConfig {
+        return if (service == EBMS_SERVICE_URI && (action == ACKNOWLEDGMENT_ACTION || action == MESSAGE_ERROR_ACTION)) {
+            ProcessConfig(
+                kryptering = false,
+                komprimering = false,
+                signering = false,
+                internformat = false,
+                validering = false,
+                apprec = false,
+                ocspSjekk = false,
+                juridiskLogg = false,
+                adapter = null,
+                errorAction = null
+            )
+        } else {
+            transaction(database.db) {
+                ProcessConfigTable.selectAll().where {
+                    (ProcessConfigTable.role eq role) and
+                        (ProcessConfigTable.service eq service) and
+                        (ProcessConfigTable.action eq action)
+                }.firstOrNull()?.let {
+                    ProcessConfig(
+                        it[ProcessConfigTable.kryptering],
+                        it[ProcessConfigTable.komprimering],
+                        it[ProcessConfigTable.signering],
+                        it[ProcessConfigTable.internformat],
+                        it[ProcessConfigTable.validering],
+                        it[ProcessConfigTable.apprec],
+                        it[ProcessConfigTable.ocspCheck],
+                        it[ProcessConfigTable.juridiskLogg],
+                        it[ProcessConfigTable.adapter],
+                        it[ProcessConfigTable.errorAction]
+                    ).also { config ->
+                        log.debug("Found process config for {}, {}, {}: {}", role, service, action, config)
+                    }
+                } ?: throw CpaValidationException("Unknown processing configuration for $role, $service, $action")
             }
         }
     }
