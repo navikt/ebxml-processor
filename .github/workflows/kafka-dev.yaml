@@ -12,7 +12,7 @@ env:
 
 jobs:
   deploy-to-dev:
-    name: Deploy to dev-gcp
+    name: Deploy to dev-fss
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -21,6 +21,6 @@ jobs:
         uses: nais/deploy/actions/deploy@v1
         env:
           APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
-          CLUSTER: dev-gcp
+          CLUSTER: dev-fss
           VAR: kafka-pool=nav-dev
           RESOURCE: ${{ env.TOPIC_FILE }}
