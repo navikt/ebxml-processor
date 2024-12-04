@@ -22,7 +22,7 @@ import io.micrometer.prometheus.PrometheusConfig
 import io.micrometer.prometheus.PrometheusMeterRegistry
 import net.logstash.logback.marker.Markers
 import no.nav.emottak.constants.SMTPHeaders
-import no.nav.emottak.ebms.kafka.KafkaClient
+import no.nav.emottak.ebms.kafka.kafkaClientObject
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.DokumentValidator
@@ -53,8 +53,7 @@ fun Application.ebmsProviderModule() {
     val validator = DokumentValidator(cpaClient)
 
     val processingClient = PayloadProcessingClient(scopedAuthHttpClient(EBMS_PAYLOAD_SCOPE))
-    val kafkaClient = KafkaClient()
-    val processing = ProcessingService(processingClient, kafkaClient)
+    val processing = ProcessingService(processingClient)
 
     val sendInClient = SendInClient(scopedAuthHttpClient(EBMS_SEND_IN_SCOPE))
     val sendInService = SendInService(sendInClient)
@@ -74,8 +73,7 @@ fun Application.ebmsProviderModule() {
         get("/kafkatest") {
             log.debug("Kafka test: start")
             try {
-                val client = KafkaClient()
-                val consumer = client.createConsumer()
+                val consumer = kafkaClientObject.createConsumer()
                 val topic = "ebxml-acknowledgments"
 
                 consumer.subscribe(listOf(topic))

@@ -6,7 +6,7 @@ import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import no.nav.emottak.ebms.PayloadProcessingClient
-import no.nav.emottak.ebms.kafka.KafkaClient
+import no.nav.emottak.ebms.kafka.kafkaClientObject
 import no.nav.emottak.ebms.log
 import no.nav.emottak.ebms.logger
 import no.nav.emottak.ebms.util.marker
@@ -24,7 +24,7 @@ import no.nav.emottak.message.model.PayloadResponse
 import no.nav.emottak.util.getEnvVar
 import org.apache.kafka.clients.producer.ProducerRecord
 
-class ProcessingService(private val httpClient: PayloadProcessingClient, private val kafkaClient: KafkaClient) {
+class ProcessingService(private val httpClient: PayloadProcessingClient) {
 
     private suspend fun processMessage(
         payloadMessage: PayloadMessage,
@@ -89,7 +89,7 @@ class ProcessingService(private val httpClient: PayloadProcessingClient, private
             log.debug("Sending acknowledgment to queue")
             log.debug("Acknowledgment document: {}", acknowledgment.dokument.toString())
             acknowledgment.dokument.toString()
-            val kafkaProducer = kafkaClient.createProducer()
+            val kafkaProducer = kafkaClientObject.createProducer()
             val topic = getEnvVar("KAFKA_TOPIC_ACKNOWLEDGMENTS", "emottak-acknowledgments")
             kafkaProducer.send(
                 ProducerRecord(topic, acknowledgment.messageId, acknowledgment.toEbmsDokument().toString())

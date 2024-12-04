@@ -10,6 +10,8 @@ import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
 import java.util.*
 
+val kafkaClientObject = KafkaClient()
+
 class KafkaClient {
 
     private val kafkaBrokers = getEnvVar("KAFKA_BROKERS", "http://localhost:9092")
