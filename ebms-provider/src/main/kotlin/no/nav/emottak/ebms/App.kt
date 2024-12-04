@@ -72,6 +72,7 @@ fun Application.ebmsProviderModule() {
             call.respondText("Hello, world!")
         }
         get("/kafkatest") {
+            log.debug("Kafka test: start")
             try {
                 val client = KafkaClient()
                 val consumer = client.createConsumer()
@@ -84,13 +85,14 @@ fun Application.ebmsProviderModule() {
                     log.debug("Kafka test: Last message - ${records.toList().last().value()}")
                 }
 
-                consumer.commitSync()
+                // consumer.commitAsync()
             } catch (e: Exception) {
                 log.error("Kafka test: Exception while reading messages from queue", e)
             }
 
             call.respondText("Kafka works!")
         }
+
         if (!isProdEnv()) {
             packageEbxml(validator, processing)
             unpackageEbxml(validator, processing)
