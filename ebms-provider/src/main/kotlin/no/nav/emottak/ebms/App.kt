@@ -84,9 +84,9 @@ fun Application.ebmsProviderModule() {
                     log.debug("Kafka test: Last message - ${records.toList().last().value()}")
                 }
 
-                // consumer.commitSync()
+                consumer.commitSync()
             } catch (e: Exception) {
-                log.error("Exception while reading messages from queue", e)
+                log.error("Kafka test: Exception while reading messages from queue", e)
             }
 
             call.respondText("Kafka works!")
