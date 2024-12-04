@@ -84,6 +84,7 @@ fun Application.ebmsProviderModule() {
                 if (records.count() > 0) {
                     log.debug("Kafka test: Last message - ${records.toList().last().value()}")
                 }
+                consumer.close()
             } catch (e: Exception) {
                 log.error("Kafka test: Exception while reading messages from queue", e)
             }

@@ -20,6 +20,10 @@ class KafkaClient {
             put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBrokers)
             put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java.name)
             put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java.name)
+            put(ProducerConfig.BUFFER_MEMORY_CONFIG, "16777216")
+            put(ProducerConfig.BATCH_SIZE_CONFIG, "8192")
+            put(ProducerConfig.RETRIES_CONFIG, "3")
+            put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, "30000")
         }
         return KafkaProducer(props)
     }
@@ -27,12 +31,16 @@ class KafkaClient {
     fun createConsumer(): KafkaConsumer<String, String> {
         val props = Properties().apply {
             put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBrokers)
-            put(ConsumerConfig.GROUP_ID_CONFIG, "ebms-provider")
+            put(ConsumerConfig.GROUP_ID_CONFIG, "ebms-provider10")
             put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
             put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
             put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
             // put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false")
-            put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "1") // TODO: it is debug setting
+            put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "10")
+            put(ProducerConfig.BUFFER_MEMORY_CONFIG, "16777216")
+            put(ProducerConfig.BATCH_SIZE_CONFIG, "8192")
+            put(ProducerConfig.RETRIES_CONFIG, "3")
+            put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, "30000")
         }
         return KafkaConsumer(props)
     }
