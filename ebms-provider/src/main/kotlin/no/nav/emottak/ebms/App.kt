@@ -74,7 +74,7 @@ fun Application.ebmsProviderModule() {
             log.debug("Kafka test: start")
 
             val consumer = kafkaClientObject.createConsumer()
-            val topic = "ebxml-acknowledgments"
+            val topic = getEnvVar("KAFKA_TOPIC_ACKNOWLEDGMENTS", "ebxml-acknowledgments")
 
             consumer.subscribe(listOf(topic))
 

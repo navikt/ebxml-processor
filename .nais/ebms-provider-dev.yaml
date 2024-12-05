@@ -76,4 +76,4 @@ spec:
     - name: EMOTTAK_LOGGING_LEVEL
       value: DEBUG
     - name: KAFKA_TOPIC_ACKNOWLEDGMENTS
-      value: ebxml-acknowledgments
+      value: team-emottak.ebxml-acknowledgments
