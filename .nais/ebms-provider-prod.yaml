@@ -67,6 +67,8 @@ spec:
       rules:
         - application: cpa-repo
         - application: ebms-payload
+  kafka:
+    pool: {{kafka-pool}}
   env:
     - name: VIRKSOMHETSSERTIFIKAT_PATH
       value: /secret/virksomhetssertifikat/prod/Arbeids-og-velferdsetaten
@@ -76,3 +78,5 @@ spec:
       value: key.decrypt.p12.b64.2022
     - name: VIRKSOMHETSSERTIFIKAT_CREDENTIALS
       value: credentials.2022
+    - name: KAFKA_TOPIC_ACKNOWLEDGMENTS
+      value: team-emottak.ebxml-acknowledgments

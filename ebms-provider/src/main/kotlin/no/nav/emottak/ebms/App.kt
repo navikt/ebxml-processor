@@ -22,14 +22,18 @@ import io.micrometer.prometheus.PrometheusConfig
 import io.micrometer.prometheus.PrometheusMeterRegistry
 import net.logstash.logback.marker.Markers
 import no.nav.emottak.constants.SMTPHeaders
+import no.nav.emottak.ebms.kafka.kafkaClientObject
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.DokumentValidator
 import no.nav.emottak.util.getEnvVar
 import no.nav.emottak.util.isProdEnv
+import org.apache.kafka.clients.producer.ProducerRecord
 import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import kotlin.time.toKotlinDuration
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.App")
@@ -69,6 +73,54 @@ fun Application.ebmsProviderModule() {
         get("/") {
             call.respondText("Hello, world!")
         }
+        get("/kafkatest_read") {
+            log.debug("Kafka test read: start")
+
+            val consumer = kafkaClientObject.createConsumer()
+            val topic = getEnvVar("KAFKA_TOPIC_ACKNOWLEDGMENTS", "team-emottak.ebxml-acknowledgments")
+
+            consumer.subscribe(listOf(topic))
+
+            try {
+                val records = consumer.poll(Duration.ofMillis(10000)).onEach {
+                    log.debug("Kafka test read: Message read successfully: ${it.value()}")
+                }
+                log.debug("Kafka test read: Messages read - ${records.count()}")
+            } catch (e: Exception) {
+                log.error("Kafka test read: Exception while reading messages from queue", e)
+            } finally {
+                consumer.unsubscribe()
+                consumer.close()
+            }
+            call.respondText("Kafka works!")
+        }
+        get("/kafkatest_write") {
+            log.debug("Kafka test write: start")
+
+            val producer = kafkaClientObject.createProducer()
+            val topic = getEnvVar("KAFKA_TOPIC_ACKNOWLEDGMENTS", "team-emottak.ebxml-acknowledgments")
+
+            try {
+                val currentDateTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss"))
+
+                producer.send(
+                    ProducerRecord(
+                        topic,
+                        "Test message from $currentDateTime key",
+                        "Test message from $currentDateTime value"
+                    )
+                )
+                producer.flush()
+            } catch (e: Exception) {
+                log.error("Kafka test write: Exception while reading messages from queue", e)
+            } finally {
+                producer.close()
+            }
+            log.debug("Kafka test write: done")
+
+            call.respondText("Kafka works!")
+        }
+
         if (!isProdEnv()) {
             packageEbxml(validator, processing)
             unpackageEbxml(validator, processing)

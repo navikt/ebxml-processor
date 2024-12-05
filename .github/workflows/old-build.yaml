@@ -74,6 +74,7 @@ jobs:
         RESOURCE: ".nais/ebms-provider-dev.yaml"
         IMAGE: ${{env.IMAGE_EBMS}}
         TELEMETRY: ${{ steps.docker-build-push-ebms-provider.outputs.telemetry }}
+        VAR: kafka-pool=nav-dev
   deploy-cpa-repo:
     name: "Deploy cpa-repo to dev"
     needs: "build"

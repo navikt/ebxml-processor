@@ -45,7 +45,7 @@ spec:
   resources:
     limits:
       cpu: "1000m"
-      memory: "512Mi"
+      memory: "1024Mi"
     requests:
       cpu: "100m"
       memory: "256Mi"
@@ -63,13 +63,17 @@ spec:
       rules:
         - application: cpa-repo
         - application: ebms-payload
-  env:
-    - name: KEYSTORE_FILE
-      value: /var/run/secrets/ebms-keystore-signering/signering-key.p12
-    - name: EMOTTAK_LOGGING_LEVEL
-      value: DEBUG
   envFrom:
     - secret: ebms-payload-secret
   filesFrom:
     - secret: ebms-keystore-signering
       mountPath: /var/run/secrets/ebms-keystore-signering
+  kafka:
+    pool: {{kafka-pool}}
+  env:
+    - name: KEYSTORE_FILE
+      value: /var/run/secrets/ebms-keystore-signering/signering-key.p12
+    - name: EMOTTAK_LOGGING_LEVEL
+      value: DEBUG
+    - name: KAFKA_TOPIC_ACKNOWLEDGMENTS
+      value: team-emottak.ebxml-acknowledgments
