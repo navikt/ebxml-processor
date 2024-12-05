@@ -15,6 +15,10 @@ val kafkaClientObject = KafkaClient()
 class KafkaClient {
 
     private val kafkaBrokers = getEnvVar("KAFKA_BROKERS", "http://localhost:9092")
+    private val keystoreLocation = getEnvVar("KAFKA_KEYSTORE_PATH", "")
+    private val keystorePassword = getEnvVar("KAFKA_CREDSTORE_PASSWORD", "")
+    private val truststoreLocation = getEnvVar("KAFKA_TRUSTSTORE_PATH", "")
+    private val truststorePassword = getEnvVar("KAFKA_CREDSTORE_PASSWORD", "")
 
     fun createProducer(): KafkaProducer<String, String> {
         log.debug("Kafka brokers: $kafkaBrokers")
@@ -22,6 +26,17 @@ class KafkaClient {
             put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBrokers)
             put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java.name)
             put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java.name)
+
+            // Authentication
+            put("security.protocol", "SSL")
+            put("ssl.keystore.type", "PKCS12")
+            put("ssl.keystore.location", keystoreLocation)
+            put("ssl.keystore.password", keystorePassword)
+            put("ssl.truststore.type", "JKS")
+            put("ssl.truststore.location", truststoreLocation)
+            put("ssl.truststore.password", truststorePassword)
+
+            // Performance
             put(ProducerConfig.BUFFER_MEMORY_CONFIG, "16777216")
             put(ProducerConfig.BATCH_SIZE_CONFIG, "8192")
             put(ProducerConfig.RETRIES_CONFIG, "3")
@@ -38,6 +53,17 @@ class KafkaClient {
             put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
             put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
             // put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false")
+
+            // Authentication
+            put("security.protocol", "SSL")
+            put("ssl.keystore.type", "PKCS12")
+            put("ssl.keystore.location", keystoreLocation)
+            put("ssl.keystore.password", keystorePassword)
+            put("ssl.truststore.type", "JKS")
+            put("ssl.truststore.location", truststoreLocation)
+            put("ssl.truststore.password", truststorePassword)
+
+            // Performance
             put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "10")
             put(ProducerConfig.BUFFER_MEMORY_CONFIG, "16777216")
             put(ProducerConfig.BATCH_SIZE_CONFIG, "8192")
