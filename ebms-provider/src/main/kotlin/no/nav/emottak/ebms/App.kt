@@ -82,7 +82,7 @@ fun Application.ebmsProviderModule() {
             consumer.subscribe(listOf(topic))
 
             try {
-                val records = consumer.poll(Duration.ofMillis(100))
+                val records = consumer.poll(Duration.ofMillis(1000))
                 log.debug("Kafka test read: Messages read - ${records.count()}")
                 if (records.count() > 0) {
                     log.debug("Kafka test read: Last message - ${records.toList().last().value()}")
@@ -117,6 +117,7 @@ fun Application.ebmsProviderModule() {
             } finally {
                 producer.close()
             }
+            log.debug("Kafka test write: done")
 
             call.respondText("Kafka works!")
         }
