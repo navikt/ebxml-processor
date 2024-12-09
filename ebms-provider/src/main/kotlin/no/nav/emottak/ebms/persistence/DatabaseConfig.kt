@@ -3,7 +3,6 @@ package no.nav.emottak.ebms.persistence
 import com.bettercloud.vault.response.LogicalResponse
 import com.zaxxer.hikari.HikariConfig
 import no.nav.emottak.ebms.log
-import no.nav.emottak.util.fromEnv
 import no.nav.emottak.util.getEnvVar
 import no.nav.vault.jdbc.hikaricp.HikariCPVaultUtil
 import no.nav.vault.jdbc.hikaricp.VaultUtil
@@ -12,7 +11,7 @@ const val EBMS_DB_NAME = "emottak-ebms-db"
 
 private val cluster = getEnvVar("NAIS_CLUSTER_NAME")
 
-val cpaDbConfig = lazy {
+val ebmsDbConfig = lazy {
     when (cluster) {
         "dev-fss" -> VaultConfig().configure("user")
         "prod-fss" -> VaultConfig().configure("user")
@@ -20,17 +19,13 @@ val cpaDbConfig = lazy {
         else -> VaultConfig().configure("user")
     }
 }
-val cpaMigrationConfig = lazy {
+val ebmsMigrationConfig = lazy {
     when (cluster) {
         "dev-fss" -> VaultConfig().configure("admin")
         "prod-fss" -> VaultConfig().configure("admin")
         // TODO: Opprette configurasjon for lokal database
-        else -> VaultConfig().configure("user")
+        else -> VaultConfig().configure("admin")
     }
-}
-
-val oracleConfig = lazy {
-    OracleDBConfig().configure()
 }
 
 data class VaultConfig(
@@ -66,19 +61,4 @@ fun VaultConfig.configure(role: String): HikariConfig {
         this@configure.vaultMountPath,
         "$databaseName-$role"
     )
-}
-
-data class OracleDBConfig(
-    val username: String = "EMOTTAK_USERNAME".fromEnv(),
-    val password: String = "EMOTTAK_PASSWORD".fromEnv(),
-    val url: String = "EMOTTAK_JDBC_URL".fromEnv()
-)
-
-fun OracleDBConfig.configure(): HikariConfig {
-    return HikariConfig().apply {
-        jdbcUrl = this@configure.url
-        username = this@configure.username
-        password = this@configure.password
-        driverClassName = "oracle.jdbc.OracleDriver"
-    }
 }

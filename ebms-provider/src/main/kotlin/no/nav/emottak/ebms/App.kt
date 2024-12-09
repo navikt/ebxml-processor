@@ -22,6 +22,9 @@ import io.micrometer.prometheus.PrometheusConfig
 import io.micrometer.prometheus.PrometheusMeterRegistry
 import net.logstash.logback.marker.Markers
 import no.nav.emottak.constants.SMTPHeaders
+import no.nav.emottak.ebms.persistence.Database
+import no.nav.emottak.ebms.persistence.ebmsDbConfig
+import no.nav.emottak.ebms.persistence.ebmsMigrationConfig
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.DokumentValidator
@@ -48,6 +51,9 @@ fun main() {
 }
 
 fun Application.ebmsProviderModule() {
+    val database = Database(ebmsDbConfig.value)
+    database.migrate(ebmsMigrationConfig.value)
+
     val cpaClient = CpaRepoClient(defaultHttpClient())
     val validator = DokumentValidator(cpaClient)
 
