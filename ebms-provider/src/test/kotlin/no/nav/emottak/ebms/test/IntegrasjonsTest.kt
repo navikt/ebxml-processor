@@ -18,6 +18,7 @@ import no.nav.emottak.cpa.cpaApplicationModule
 import no.nav.emottak.cpa.persistence.Database
 import no.nav.emottak.ebms.cpaPostgres
 import no.nav.emottak.ebms.defaultHttpClient
+import no.nav.emottak.ebms.ebmsPostgres
 import no.nav.emottak.ebms.ebmsProviderModule
 import no.nav.emottak.ebms.testConfiguration
 import no.nav.emottak.ebms.validation.MimeHeaders
@@ -40,10 +41,12 @@ open class EndToEndTest {
 
         // TODO Start mailserver og payload processor
         val cpaDbContainer: PostgreSQLContainer<Nothing>
+        val ebmsDBContainer: PostgreSQLContainer<Nothing>
         lateinit var ebmsProviderServer: ApplicationEngine
         lateinit var cpaRepoServer: ApplicationEngine
         init {
             cpaDbContainer = cpaPostgres()
+            ebmsDBContainer = ebmsPostgres()
         }
 
         @JvmStatic
