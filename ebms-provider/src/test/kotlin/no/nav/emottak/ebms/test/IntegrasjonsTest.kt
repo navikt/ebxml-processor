@@ -40,21 +40,33 @@ open class EndToEndTest {
         val cpaRepoUrl = "http://localhost:$portnoCpaRepo"
 
         // TODO Start mailserver og payload processor
-        val cpaDbContainer: PostgreSQLContainer<Nothing>
-        val ebmsDBContainer: PostgreSQLContainer<Nothing>
+        val cpaRepoDbContainer: PostgreSQLContainer<Nothing>
+        val ebmsProviderDbContainer: PostgreSQLContainer<Nothing>
+        lateinit var ebmsProviderDb: Database
         lateinit var ebmsProviderServer: ApplicationEngine
         lateinit var cpaRepoServer: ApplicationEngine
         init {
-            cpaDbContainer = cpaPostgres()
-            ebmsDBContainer = ebmsPostgres()
+            cpaRepoDbContainer = cpaPostgres()
+            ebmsProviderDbContainer = ebmsPostgres()
         }
 
         @JvmStatic
         @BeforeAll
         fun setup() {
             System.setProperty("CPA_REPO_URL", cpaRepoUrl)
-            cpaDbContainer.start()
-            val db = Database(cpaDbContainer.testConfiguration())
+            cpaRepoDbContainer.start()
+            val cpaRepoDb = Database(cpaRepoDbContainer.testConfiguration())
+                .also {
+                    Flyway.configure()
+                        .dataSource(it.dataSource)
+                        .failOnMissingLocations(true)
+                        .cleanDisabled(false)
+                        .load()
+                        .also(Flyway::clean)
+                        .migrate()
+                }
+            ebmsProviderDbContainer.start()
+            ebmsProviderDb = Database(ebmsProviderDbContainer.testConfiguration())
                 .also {
                     Flyway.configure()
                         .dataSource(it.dataSource)
@@ -67,11 +79,15 @@ open class EndToEndTest {
             cpaRepoServer = embeddedServer(
                 Netty,
                 port = portnoCpaRepo,
-                module = cpaApplicationModule(db.dataSource, db.dataSource)
+                module = cpaApplicationModule(cpaRepoDb.dataSource, cpaRepoDb.dataSource)
             ).also {
                 it.start()
             }
-            ebmsProviderServer = embeddedServer(Netty, port = portnoEbmsProvider, module = { ebmsProviderModule() }).also {
+            ebmsProviderServer = embeddedServer(
+                Netty,
+                port = portnoEbmsProvider,
+                module = { ebmsProviderModule(ebmsProviderDb.dataSource, ebmsProviderDb.dataSource) }
+            ).also {
                 it.start()
             }
         }
@@ -95,7 +111,7 @@ class IntegrasjonsTest : EndToEndTest() {
 
     @Test
     fun basicEndpointTest() = testApplication {
-        application { ebmsProviderModule() }
+        application { ebmsProviderModule(ebmsProviderDb.dataSource, ebmsProviderDb.dataSource) }
         val response = client.get("/")
         Assertions.assertEquals(HttpStatusCode.OK, response.status)
         Assertions.assertEquals("Hello, world!", response.bodyAsText())

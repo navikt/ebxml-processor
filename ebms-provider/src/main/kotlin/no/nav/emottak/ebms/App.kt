@@ -3,6 +3,7 @@
  */
 package no.nav.emottak.ebms
 
+import com.zaxxer.hikari.HikariConfig
 import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorRuntime
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
@@ -45,14 +46,22 @@ fun main() {
     if (getEnvVar("NAIS_CLUSTER_NAME", "local") != "prod-fss") {
         DecoroutinatorRuntime.load()
     }
-    embeddedServer(Netty, port = 8080, module = Application::ebmsProviderModule, configure = {
-        this.maxChunkSize = 100000
-    }).start(wait = true)
+    embeddedServer(
+        Netty,
+        port = 8080,
+        module = { ebmsProviderModule(ebmsDbConfig.value, ebmsMigrationConfig.value) },
+        configure = {
+            this.maxChunkSize = 100000
+        }
+    ).start(wait = true)
 }
 
-fun Application.ebmsProviderModule() {
-    val database = Database(ebmsDbConfig.value)
-    database.migrate(ebmsMigrationConfig.value)
+fun Application.ebmsProviderModule(
+    dbConfig: HikariConfig,
+    migrationConfig: HikariConfig
+) {
+    val database = Database(dbConfig)
+    database.migrate(migrationConfig)
 
     val cpaClient = CpaRepoClient(defaultHttpClient())
     val validator = DokumentValidator(cpaClient)
