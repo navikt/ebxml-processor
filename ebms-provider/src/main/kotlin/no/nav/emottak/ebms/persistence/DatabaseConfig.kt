@@ -42,8 +42,9 @@ fun VaultConfig.configure(role: String): HikariConfig {
     val hikariConfig = HikariConfig().apply {
         jdbcUrl = this@configure.jdbcUrl + databaseName
         driverClassName = "org.postgresql.Driver"
+        this.maximumPoolSize = 4
         if (role == "admin") {
-            this.maximumPoolSize = 2
+            this.maximumPoolSize = 1
             val vault = VaultUtil.getInstance().client
             val path: String = this@configure.vaultMountPath + "/creds/$databaseName-$role"
             log.info("Fetching database credentials for role admin")
