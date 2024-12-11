@@ -19,7 +19,9 @@ class Database(
             .initSql("SET ROLE \"$EBMS_DB_NAME-admin\"")
             .locations("filesystem:src/main/resources/db/migrations")
             .lockRetryCount(50)
+            .cleanDisabled(false) // TODO: Remove before merging.
             .load()
+            .also(Flyway::clean) // TODO: Remove before merging. So unfortunate, if you are seeing this in main.
             .migrate()
     }
 }
