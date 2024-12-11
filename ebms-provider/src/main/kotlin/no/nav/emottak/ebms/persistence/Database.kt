@@ -17,6 +17,7 @@ class Database(
         Flyway.configure()
             .dataSource(migrationConfig.jdbcUrl, migrationConfig.username, migrationConfig.password)
             .initSql("SET ROLE \"$EBMS_DB_NAME-admin\"")
+            .locations("filesystem:src/main/resources/db/migrations")
             .lockRetryCount(50)
             .load()
             .migrate()

@@ -70,6 +70,7 @@ open class EndToEndTest {
                 .also {
                     Flyway.configure()
                         .dataSource(it.dataSource)
+                        .locations("filesystem:src/main/resources/db/migrations")
                         .failOnMissingLocations(true)
                         .cleanDisabled(false)
                         .load()

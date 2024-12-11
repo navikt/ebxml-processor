@@ -20,7 +20,7 @@ fun ebmsPostgres(): PostgreSQLContainer<Nothing> =
     PostgreSQLContainer<Nothing>("postgres:14").apply {
         withUsername("$EBMS_DB_NAME-admin")
         withReuse(true)
-        withLabel("app-navn", "cpa-repo")
+        withLabel("app-navn", "ebms-provider")
         start()
         println(
             "Databasen er startet opp, portnummer: $firstMappedPort, jdbcUrl: jdbc:postgresql://localhost:$firstMappedPort/test, credentials: test og test"
