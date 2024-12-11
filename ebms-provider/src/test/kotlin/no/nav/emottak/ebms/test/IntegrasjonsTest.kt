@@ -18,6 +18,7 @@ import no.nav.emottak.cpa.cpaApplicationModule
 import no.nav.emottak.cpa.persistence.Database
 import no.nav.emottak.ebms.cpaPostgres
 import no.nav.emottak.ebms.defaultHttpClient
+import no.nav.emottak.ebms.ebmsPostgres
 import no.nav.emottak.ebms.ebmsProviderModule
 import no.nav.emottak.ebms.testConfiguration
 import no.nav.emottak.ebms.validation.MimeHeaders
@@ -39,19 +40,22 @@ open class EndToEndTest {
         val cpaRepoUrl = "http://localhost:$portnoCpaRepo"
 
         // TODO Start mailserver og payload processor
-        val cpaDbContainer: PostgreSQLContainer<Nothing>
+        val cpaRepoDbContainer: PostgreSQLContainer<Nothing>
+        val ebmsProviderDbContainer: PostgreSQLContainer<Nothing>
+        lateinit var ebmsProviderDb: Database
         lateinit var ebmsProviderServer: ApplicationEngine
         lateinit var cpaRepoServer: ApplicationEngine
         init {
-            cpaDbContainer = cpaPostgres()
+            cpaRepoDbContainer = cpaPostgres()
+            ebmsProviderDbContainer = ebmsPostgres()
         }
 
         @JvmStatic
         @BeforeAll
         fun setup() {
             System.setProperty("CPA_REPO_URL", cpaRepoUrl)
-            cpaDbContainer.start()
-            val db = Database(cpaDbContainer.testConfiguration())
+            cpaRepoDbContainer.start()
+            val cpaRepoDb = Database(cpaRepoDbContainer.testConfiguration())
                 .also {
                     Flyway.configure()
                         .dataSource(it.dataSource)
@@ -61,14 +65,30 @@ open class EndToEndTest {
                         .also(Flyway::clean)
                         .migrate()
                 }
+            ebmsProviderDbContainer.start()
+            ebmsProviderDb = Database(ebmsProviderDbContainer.testConfiguration())
+                .also {
+                    Flyway.configure()
+                        .dataSource(it.dataSource)
+                        .locations("filesystem:src/main/resources/db/migrations")
+                        .failOnMissingLocations(true)
+                        .cleanDisabled(false)
+                        .load()
+                        .also(Flyway::clean)
+                        .migrate()
+                }
             cpaRepoServer = embeddedServer(
                 Netty,
                 port = portnoCpaRepo,
-                module = cpaApplicationModule(db.dataSource, db.dataSource)
+                module = cpaApplicationModule(cpaRepoDb.dataSource, cpaRepoDb.dataSource)
             ).also {
                 it.start()
             }
-            ebmsProviderServer = embeddedServer(Netty, port = portnoEbmsProvider, module = { ebmsProviderModule() }).also {
+            ebmsProviderServer = embeddedServer(
+                Netty,
+                port = portnoEbmsProvider,
+                module = { ebmsProviderModule(ebmsProviderDb.dataSource, ebmsProviderDb.dataSource) }
+            ).also {
                 it.start()
             }
         }
@@ -92,7 +112,7 @@ class IntegrasjonsTest : EndToEndTest() {
 
     @Test
     fun basicEndpointTest() = testApplication {
-        application { ebmsProviderModule() }
+        application { ebmsProviderModule(ebmsProviderDb.dataSource, ebmsProviderDb.dataSource) }
         val response = client.get("/")
         Assertions.assertEquals(HttpStatusCode.OK, response.status)
         Assertions.assertEquals("Hello, world!", response.bodyAsText())

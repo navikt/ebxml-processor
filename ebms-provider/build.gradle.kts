@@ -73,6 +73,7 @@ dependencies {
     implementation(libs.ktor.server.auth.jvm)
     implementation(libs.token.validation.ktor.v2)
     implementation(testLibs.postgresql)
+    implementation("no.nav:vault-jdbc:1.3.10")
     testImplementation(testLibs.mock.oauth2.server)
     testImplementation(testLibs.ktor.server.test.host)
     testImplementation(testLibs.junit.jupiter.api)
