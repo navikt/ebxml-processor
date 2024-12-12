@@ -23,7 +23,6 @@ import no.nav.emottak.ebms.ebmsProviderModule
 import no.nav.emottak.ebms.testConfiguration
 import no.nav.emottak.ebms.validation.MimeHeaders
 import no.nav.security.mock.oauth2.MockOAuth2Server
-import org.flywaydb.core.Flyway
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeAll
@@ -56,27 +55,10 @@ open class EndToEndTest {
             System.setProperty("CPA_REPO_URL", cpaRepoUrl)
             cpaRepoDbContainer.start()
             val cpaRepoDb = Database(cpaRepoDbContainer.testConfiguration())
-                .also {
-                    Flyway.configure()
-                        .dataSource(it.dataSource)
-                        .failOnMissingLocations(true)
-                        .cleanDisabled(false)
-                        .load()
-                        .also(Flyway::clean)
-                        .migrate()
-                }
+
             ebmsProviderDbContainer.start()
             ebmsProviderDb = Database(ebmsProviderDbContainer.testConfiguration())
-                .also {
-                    Flyway.configure()
-                        .dataSource(it.dataSource)
-                        .locations("filesystem:src/main/resources/db/migrations")
-                        .failOnMissingLocations(true)
-                        .cleanDisabled(false)
-                        .load()
-                        .also(Flyway::clean)
-                        .migrate()
-                }
+
             cpaRepoServer = embeddedServer(
                 Netty,
                 port = portnoCpaRepo,
