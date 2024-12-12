@@ -10,6 +10,5 @@ CREATE TABLE ebms_message
     to_role             VARCHAR(256)        NULL,
     service             VARCHAR(256)        NOT NULL,
     action              VARCHAR(256)        NOT NULL,
-    content             TEXT                NULL,
-    PRIMARY KEY (message_id)
+    PRIMARY KEY (message_id, cpa_id)
 );
