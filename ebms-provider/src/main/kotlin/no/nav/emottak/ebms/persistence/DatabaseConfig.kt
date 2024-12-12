@@ -11,22 +11,9 @@ const val EBMS_DB_NAME = "emottak-ebms-db"
 
 private val cluster = getEnvVar("NAIS_CLUSTER_NAME")
 
-val ebmsDbConfig = lazy {
-    when (cluster) {
-        "dev-fss" -> VaultConfig().configure("user")
-        "prod-fss" -> VaultConfig().configure("user")
-        // TODO: Opprette configurasjon for lokal database
-        else -> VaultConfig().configure("user")
-    }
-}
-val ebmsMigrationConfig = lazy {
-    when (cluster) {
-        "dev-fss" -> VaultConfig().configure("admin")
-        "prod-fss" -> VaultConfig().configure("admin")
-        // TODO: Opprette configurasjon for lokal database
-        else -> VaultConfig().configure("admin")
-    }
-}
+val ebmsDbConfig = lazy { VaultConfig().configure("user") } // TODO: Opprette configurasjon for lokal database
+
+val ebmsMigrationConfig = lazy { VaultConfig().configure("admin") }
 
 data class VaultConfig(
     val databaseName: String = EBMS_DB_NAME,
