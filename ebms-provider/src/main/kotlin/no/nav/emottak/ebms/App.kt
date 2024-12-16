@@ -73,27 +73,6 @@ fun Application.ebmsProviderModule() {
         get("/") {
             call.respondText("Hello, world!")
         }
-        get("/kafkatest_read") {
-            log.debug("Kafka test read: start")
-
-            val consumer = kafkaClientObject.createConsumer()
-            val topic = getEnvVar("KAFKA_TOPIC_ACKNOWLEDGMENTS", "team-emottak.smtp.out.ebxml.signal")
-
-            consumer.subscribe(listOf(topic))
-
-            try {
-                val records = consumer.poll(Duration.ofMillis(10000)).onEach {
-                    log.debug("Kafka test read: Message read successfully: ${it.value()}")
-                }
-                log.debug("Kafka test read: Messages read - ${records.count()}")
-            } catch (e: Exception) {
-                log.error("Kafka test read: Exception while reading messages from queue", e)
-            } finally {
-                consumer.unsubscribe()
-                consumer.close()
-            }
-            call.respondText("Kafka works!")
-        }
         get("/kafkatest_write") {
             log.debug("Kafka test write: start")
 
