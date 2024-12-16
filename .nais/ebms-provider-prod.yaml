@@ -79,4 +79,4 @@ spec:
     - name: VIRKSOMHETSSERTIFIKAT_CREDENTIALS
       value: credentials.2022
     - name: KAFKA_TOPIC_ACKNOWLEDGMENTS
-      value: team-emottak.ebxml-acknowledgments
+      value: team-emottak.smtp.out.ebxml.signal

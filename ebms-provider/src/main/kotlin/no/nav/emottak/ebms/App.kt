@@ -77,7 +77,7 @@ fun Application.ebmsProviderModule() {
             log.debug("Kafka test read: start")
 
             val consumer = kafkaClientObject.createConsumer()
-            val topic = getEnvVar("KAFKA_TOPIC_ACKNOWLEDGMENTS", "team-emottak.ebxml-acknowledgments")
+            val topic = getEnvVar("KAFKA_TOPIC_ACKNOWLEDGMENTS", "team-emottak.smtp.out.ebxml.signal")
 
             consumer.subscribe(listOf(topic))
 
@@ -98,7 +98,7 @@ fun Application.ebmsProviderModule() {
             log.debug("Kafka test write: start")
 
             val producer = kafkaClientObject.createProducer()
-            val topic = getEnvVar("KAFKA_TOPIC_ACKNOWLEDGMENTS", "team-emottak.ebxml-acknowledgments")
+            val topic = getEnvVar("KAFKA_TOPIC_ACKNOWLEDGMENTS", "team-emottak.smtp.out.ebxml.signal")
 
             try {
                 val currentDateTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss"))

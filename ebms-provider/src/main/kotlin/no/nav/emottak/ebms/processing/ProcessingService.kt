@@ -90,7 +90,7 @@ class ProcessingService(private val httpClient: PayloadProcessingClient) {
             log.debug("Kafka test: Acknowledgment document: {}", acknowledgment.dokument.toString())
             acknowledgment.dokument.toString()
             val kafkaProducer = kafkaClientObject.createProducer()
-            val topic = getEnvVar("KAFKA_TOPIC_ACKNOWLEDGMENTS", "team-emottak.ebxml-acknowledgments")
+            val topic = getEnvVar("KAFKA_TOPIC_ACKNOWLEDGMENTS", "team-emottak.smtp.out.ebxml.signal")
             log.debug("Kafka test: Acknowledgment topic: {}", topic)
             kafkaProducer.send(
                 ProducerRecord(topic, acknowledgment.messageId, acknowledgment.toEbmsDokument().toString())

@@ -3,7 +3,7 @@ kind: Topic
 metadata:
   labels:
     team: team-emottak
-  name: ebxml-acknowledgments
+  name: smtp.out.ebxml.signal
   namespace: team-emottak
 spec:
   pool: {{kafka-pool}}
