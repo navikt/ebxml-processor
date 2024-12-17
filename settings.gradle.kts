@@ -18,6 +18,10 @@ dependencyResolutionManagement {
             version("eclipse-angus", "2.0.2")
             version("jsch", "0.2.16")
             version("cxf", "3.5.5")
+            version("arrow", "1.2.4")
+            version("suspendapp", "0.4.0")
+            version("kotlin-kafka", "0.4.0")
+            version("hoplite", "2.8.2")
 
             library("bcpkix-jdk18on", "org.bouncycastle", "bcpkix-jdk18on").versionRef("bouncycastle")
             library("bcprov-jdk18on", "org.bouncycastle", "bcprov-jdk18on").versionRef("bouncycastle")
@@ -48,6 +52,17 @@ dependencyResolutionManagement {
 
             library("logback-classic", "ch.qos.logback:logback-classic:1.4.11")
             library("logback-logstash", "net.logstash.logback:logstash-logback-encoder:7.4")
+
+            library("hoplite-core", "com.sksamuel.hoplite", "hoplite-core").versionRef("hoplite")
+            library("hoplite-hocon", "com.sksamuel.hoplite", "hoplite-hocon").versionRef("hoplite")
+
+            library("arrow-core", "io.arrow-kt", "arrow-core").versionRef("arrow")
+            library("arrow-fx-coroutines", "io.arrow-kt", "arrow-fx-coroutines").versionRef("arrow")
+            library("arrow-resilience", "io.arrow-kt", "arrow-resilience").versionRef("arrow")
+            library("arrow-suspendapp", "io.arrow-kt", "suspendapp").versionRef("suspendapp")
+            library("arrow-suspendapp-ktor", "io.arrow-kt", "suspendapp-ktor").versionRef("suspendapp")
+
+            library("kotlin-kafka", "io.github.nomisrev", "kotlin-kafka").versionRef("kotlin-kafka")
 
             library("hikari", "com.zaxxer:HikariCP:5.0.1")
             library("labai-jsr305x-annotations", "com.github.labai:labai-jsr305x-annotations:0.0.2")
