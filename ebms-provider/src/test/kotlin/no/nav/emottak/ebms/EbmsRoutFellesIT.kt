@@ -16,6 +16,7 @@ import io.mockk.coVerify
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.runs
+import no.nav.emottak.ebms.kafka.KafkaTestContainer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.DokumentValidator
@@ -33,7 +34,9 @@ import no.nav.emottak.util.decodeBase64
 import no.nav.emottak.util.getEnvVar
 import org.apache.xml.security.algorithms.MessageDigestAlgorithm
 import org.apache.xml.security.signature.XMLSignature
+import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ErrorList
 import org.xmlsoap.schemas.soap.envelope.Envelope
@@ -116,6 +119,24 @@ abstract class EbmsRoutFellesIT(val endpoint: String) {
         client.post("/ebms/async", multipart.asHttpRequest())
         coVerify(exactly = 1) {
             processingService.processAsync(any(), any())
+        }
+    }
+
+    companion object {
+        @JvmStatic
+        @BeforeAll
+        fun setup() {
+            KafkaTestContainer.start()
+            System.setProperty("KAFKA_BROKERS", KafkaTestContainer.bootstrapServers)
+
+            val topicName = getEnvVar("KAFKA_TOPIC_ACKNOWLEDGMENTS", "team-emottak.smtp.out.ebxml.signal")
+            KafkaTestContainer.createTopic(topicName)
+        }
+
+        @JvmStatic
+        @AfterAll
+        fun tearDown() {
+            KafkaTestContainer.stop()
         }
     }
 }

@@ -22,7 +22,7 @@ import io.micrometer.prometheus.PrometheusConfig
 import io.micrometer.prometheus.PrometheusMeterRegistry
 import net.logstash.logback.marker.Markers
 import no.nav.emottak.constants.SMTPHeaders
-import no.nav.emottak.ebms.kafka.kafkaClientObject
+import no.nav.emottak.ebms.kafka.KafkaClient
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.DokumentValidator
@@ -76,7 +76,7 @@ fun Application.ebmsProviderModule() {
         get("/kafkatest_write") {
             log.debug("Kafka test write: start")
 
-            val producer = kafkaClientObject.createProducer()
+            val producer = KafkaClient().createProducer()
             val topic = getEnvVar("KAFKA_TOPIC_ACKNOWLEDGMENTS", "team-emottak.smtp.out.ebxml.signal")
 
             try {

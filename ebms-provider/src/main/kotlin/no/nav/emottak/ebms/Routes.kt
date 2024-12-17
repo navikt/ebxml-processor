@@ -14,7 +14,7 @@ import io.ktor.server.routing.post
 import io.micrometer.prometheus.PrometheusMeterRegistry
 import kotlinx.serialization.Serializable
 import no.nav.emottak.constants.SMTPHeaders
-import no.nav.emottak.ebms.kafka.kafkaClientObject
+import no.nav.emottak.ebms.kafka.KafkaClient
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
@@ -296,7 +296,7 @@ fun Route.postEbmsAsync(validator: DokumentValidator, processingService: Process
                     log.debug("Kafka test: Sending acknowledgment to queue")
                     log.debug("Kafka test: Acknowledgment document: {}", it.dokument.toString())
 
-                    val kafkaProducer = kafkaClientObject.createProducer()
+                    val kafkaProducer = KafkaClient().createProducer()
                     val topic = getEnvVar("KAFKA_TOPIC_ACKNOWLEDGMENTS", "team-emottak.smtp.out.ebxml.signal")
                     log.debug("Kafka test: Acknowledgment topic: {}", topic)
                     kafkaProducer.send(

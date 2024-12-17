@@ -10,8 +10,6 @@ import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
 import java.util.*
 
-val kafkaClientObject = KafkaClient()
-
 class KafkaClient {
 
     val cluster = getEnvVar("NAIS_CLUSTER_NAME", "local")
