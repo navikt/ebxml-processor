@@ -1,6 +1,5 @@
 package no.nav.emottak.payload
 
-import no.nav.emottak.crypto.KeyStore
 import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadRequest
@@ -8,10 +7,8 @@ import no.nav.emottak.message.model.PayloadResponse
 import no.nav.emottak.payload.crypto.Dekryptering
 import no.nav.emottak.payload.crypto.Kryptering
 import no.nav.emottak.payload.crypto.PayloadSignering
-import no.nav.emottak.payload.crypto.payloadSigneringConfig
 import no.nav.emottak.payload.juridisklogg.JuridiskLoggService
 import no.nav.emottak.payload.ocspstatus.OcspStatusService
-import no.nav.emottak.payload.ocspstatus.trustStoreConfig
 import no.nav.emottak.payload.util.GZipUtil
 import no.nav.emottak.util.createDocument
 import no.nav.emottak.util.getByteArrayFromDocument
@@ -27,7 +24,10 @@ class Processor(
     private val signering: PayloadSignering = PayloadSignering(),
     private val gZipUtil: GZipUtil = GZipUtil(),
     private val signatureVerifisering: SignaturVerifisering = SignaturVerifisering(),
-    private val juridiskLogging: JuridiskLoggService = JuridiskLoggService()
+    private val juridiskLogging: JuridiskLoggService = JuridiskLoggService(),
+    private val ocspStatusService: OcspStatusService = OcspStatusService(
+        httpClient = defaultHttpClient().invoke()
+    )
 ) {
 
     suspend fun process(payloadRequest: PayloadRequest): PayloadResponse {
@@ -69,7 +69,7 @@ class Processor(
                 val dom = createDocument(ByteArrayInputStream(it.bytes))
                 val signature = dom.retrieveSignatureElement()
                 val certificateFromSignature = signature.keyInfo.x509Certificate
-                val signedOf = OcspStatusService(defaultHttpClient().invoke(), KeyStore(payloadSigneringConfig()), KeyStore(trustStoreConfig())).getOCSPStatus(certificateFromSignature).fnr
+                val signedOf = ocspStatusService.getOCSPStatus(certificateFromSignature).fnr
                 it.copy(signedOf = signedOf)
             } else {
                 it
