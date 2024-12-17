@@ -14,6 +14,7 @@ import io.ktor.server.routing.post
 import io.micrometer.prometheus.PrometheusMeterRegistry
 import kotlinx.serialization.Serializable
 import no.nav.emottak.constants.SMTPHeaders
+import no.nav.emottak.ebms.kafka.kafkaClientObject
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
@@ -30,8 +31,10 @@ import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.model.PayloadProcessing
 import no.nav.emottak.message.model.SignatureDetails
+import no.nav.emottak.util.getEnvVar
 import no.nav.emottak.util.marker
 import no.nav.emottak.util.retrieveLoggableHeaderPairs
+import org.apache.kafka.clients.producer.ProducerRecord
 import java.util.UUID
 
 data class PackageRequest(
@@ -288,8 +291,25 @@ fun Route.postEbmsAsync(validator: DokumentValidator, processingService: Process
                 return@post
             }
             log.info(ebMSDocument.messageHeader().marker(), "Payload Processed, Generating Acknowledgement...")
-            ebmsMessage.createAcknowledgment().toEbmsDokument().also {
-                call.respondEbmsDokument(it)
+            ebmsMessage.createAcknowledgment().also {
+                try {
+                    log.debug("Kafka test: Sending acknowledgment to queue")
+                    log.debug("Kafka test: Acknowledgment document: {}", it.dokument.toString())
+
+                    val kafkaProducer = kafkaClientObject.createProducer()
+                    val topic = getEnvVar("KAFKA_TOPIC_ACKNOWLEDGMENTS", "team-emottak.smtp.out.ebxml.signal")
+                    log.debug("Kafka test: Acknowledgment topic: {}", topic)
+                    kafkaProducer.send(
+                        ProducerRecord(topic, it.messageId, it.toEbmsDokument().toString())
+                    )
+                    kafkaProducer.flush()
+                    kafkaProducer.close()
+                } catch (e: Exception) {
+                    log.error("Kafka test: Exception while sending acknowledgment to queue", e)
+                }
+                log.debug("Kafka test: Acknowledgment sent to queue")
+
+                call.respondEbmsDokument(it.toEbmsDokument())
                 return@post
             }
         } catch (ex: EbmsException) {

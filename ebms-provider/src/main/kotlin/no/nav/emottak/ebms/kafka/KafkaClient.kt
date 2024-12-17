@@ -14,6 +14,8 @@ val kafkaClientObject = KafkaClient()
 
 class KafkaClient {
 
+    val cluster = getEnvVar("NAIS_CLUSTER_NAME", "local")
+
     private val kafkaBrokers = getEnvVar("KAFKA_BROKERS", "http://localhost:9092")
     private val keystoreLocation = getEnvVar("KAFKA_KEYSTORE_PATH", "")
     private val keystorePassword = getEnvVar("KAFKA_CREDSTORE_PASSWORD", "")
@@ -28,13 +30,15 @@ class KafkaClient {
             put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java.name)
 
             // Authentication
-            put("security.protocol", "SSL")
-            put("ssl.keystore.type", "PKCS12")
-            put("ssl.keystore.location", keystoreLocation)
-            put("ssl.keystore.password", keystorePassword)
-            put("ssl.truststore.type", "JKS")
-            put("ssl.truststore.location", truststoreLocation)
-            put("ssl.truststore.password", truststorePassword)
+            if (cluster in setOf("dev-fss", "prod-fss")) {
+                put("security.protocol", "SSL")
+                put("ssl.keystore.type", "PKCS12")
+                put("ssl.keystore.location", keystoreLocation)
+                put("ssl.keystore.password", keystorePassword)
+                put("ssl.truststore.type", "JKS")
+                put("ssl.truststore.location", truststoreLocation)
+                put("ssl.truststore.password", truststorePassword)
+            }
 
             // Performance
             put(ProducerConfig.BUFFER_MEMORY_CONFIG, "16777216")
@@ -55,13 +59,15 @@ class KafkaClient {
             // put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false")
 
             // Authentication
-            put("security.protocol", "SSL")
-            put("ssl.keystore.type", "PKCS12")
-            put("ssl.keystore.location", keystoreLocation)
-            put("ssl.keystore.password", keystorePassword)
-            put("ssl.truststore.type", "JKS")
-            put("ssl.truststore.location", truststoreLocation)
-            put("ssl.truststore.password", truststorePassword)
+            if (cluster in setOf("dev-fss", "prod-fss")) {
+                put("security.protocol", "SSL")
+                put("ssl.keystore.type", "PKCS12")
+                put("ssl.keystore.location", keystoreLocation)
+                put("ssl.keystore.password", keystorePassword)
+                put("ssl.truststore.type", "JKS")
+                put("ssl.truststore.location", truststoreLocation)
+                put("ssl.truststore.password", truststorePassword)
+            }
 
             // Performance
             put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "10")
