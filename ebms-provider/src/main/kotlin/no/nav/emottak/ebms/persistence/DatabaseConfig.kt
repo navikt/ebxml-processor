@@ -1,24 +1,52 @@
 package no.nav.emottak.ebms.persistence
 
+import com.bettercloud.vault.response.LogicalResponse
 import com.zaxxer.hikari.HikariConfig
-import no.nav.emottak.util.fromEnv
+import no.nav.emottak.ebms.log
+import no.nav.emottak.util.getEnvVar
+import no.nav.vault.jdbc.hikaricp.HikariCPVaultUtil
+import no.nav.vault.jdbc.hikaricp.VaultUtil
 
-private const val prefix = "NAIS_DATABASE_CPA_REPO_CPA_REPO_DB"
+const val EBMS_DB_NAME = "emottak-ebms-db"
 
-data class DatabaseConfig(
-    val host: String = "${prefix}_HOST".fromEnv(),
-    val port: String = "${prefix}_PORT".fromEnv(),
-    val name: String = "${prefix}_DATABASE".fromEnv(),
-    val username: String = "${prefix}_USERNAME".fromEnv(),
-    val password: String = "${prefix}_PASSWORD".fromEnv(),
-    val url: String = "jdbc:postgresql://%s:%s/%s".format(host, port, name)
+private val cluster = getEnvVar("NAIS_CLUSTER_NAME")
+
+val ebmsDbConfig = lazy { VaultConfig().configure("user") } // TODO: Opprette configurasjon for lokal database
+
+val ebmsMigrationConfig = lazy { VaultConfig().configure("admin") }
+
+data class VaultConfig(
+    val databaseName: String = EBMS_DB_NAME,
+    val jdbcUrl: String = getEnvVar("VAULT_JDBC_URL", "jdbc:postgresql://b27dbvl033.preprod.local:5432/").also {
+        log.info("vault jdbc url set til: $it")
+    },
+    val vaultMountPath: String = ("postgresql/prod-fss".takeIf { getEnvVar("NAIS_CLUSTER_NAME", "local") == "prod-fss" } ?: "postgresql/preprod-fss").also {
+        log.info("vaultMountPath satt til $it")
+    }
 )
 
-fun mapHikariConfig(databaseConfig: DatabaseConfig): HikariConfig {
-    return HikariConfig().apply {
-        jdbcUrl = databaseConfig.url
-        username = databaseConfig.username
-        password = databaseConfig.password
-        maximumPoolSize = 5
+fun VaultConfig.configure(role: String): HikariConfig {
+    val hikariConfig = HikariConfig().apply {
+        jdbcUrl = this@configure.jdbcUrl + databaseName
+        driverClassName = "org.postgresql.Driver"
+        this.maximumPoolSize = 4
+        if (role == "admin") {
+            this.maximumPoolSize = 1
+            val vault = VaultUtil.getInstance().client
+            val path: String = this@configure.vaultMountPath + "/creds/$databaseName-$role"
+            log.info("Fetching database credentials for role admin")
+            val response: LogicalResponse = vault.logical().read(path)
+            this.username = response.data["username"]
+            this.password = response.data["password"]
+        }
     }
+
+    if (role == "admin") {
+        return hikariConfig
+    }
+    return HikariCPVaultUtil.createHikariDataSourceWithVaultIntegration(
+        hikariConfig,
+        this@configure.vaultMountPath,
+        "$databaseName-$role"
+    )
 }

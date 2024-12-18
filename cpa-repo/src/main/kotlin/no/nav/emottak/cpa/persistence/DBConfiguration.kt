@@ -10,7 +10,7 @@ import no.nav.vault.jdbc.hikaricp.VaultUtil
 
 const val CPA_DB_NAME = "emottak-cpa-repo-db"
 
-private val cluster = System.getenv("NAIS_CLUSTER_NAME")
+private val cluster = getEnvVar("NAIS_CLUSTER_NAME")
 
 val cpaDbConfig = lazy {
     when (cluster) {
