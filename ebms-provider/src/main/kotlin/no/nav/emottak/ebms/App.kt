@@ -9,6 +9,9 @@ import arrow.core.raise.result
 import arrow.fx.coroutines.resourceScope
 import arrow.resilience.Schedule
 import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorRuntime
+import io.github.nomisRev.kafka.receiver.AutoOffsetReset
+import io.github.nomisRev.kafka.receiver.KafkaReceiver
+import io.github.nomisRev.kafka.receiver.ReceiverSettings
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.call
@@ -28,12 +31,15 @@ import kotlinx.coroutines.awaitCancellation
 import net.logstash.logback.marker.Markers
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.configuration.config
+import no.nav.emottak.ebms.configuration.toProperties
 import no.nav.emottak.ebms.consumer.SignalReceiver
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.DokumentValidator
 import no.nav.emottak.util.getEnvVar
 import no.nav.emottak.util.isProdEnv
+import org.apache.kafka.common.serialization.ByteArrayDeserializer
+import org.apache.kafka.common.serialization.StringDeserializer
 import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.time.Instant
@@ -59,7 +65,18 @@ fun main() = SuspendApp {
 
             if (getEnvVar("ASYNC_RECEIVER", "true").toBoolean()) {
                 log.debug("Starting signal message receiver")
-                val signalReceiver = SignalReceiver(config.kafka)
+                val kafkaConfig = config.kafka
+                val receiverSettings: ReceiverSettings<String, ByteArray> =
+                    ReceiverSettings(
+                        bootstrapServers = kafkaConfig.bootstrapServers,
+                        keyDeserializer = StringDeserializer(),
+                        valueDeserializer = ByteArrayDeserializer(),
+                        groupId = kafkaConfig.groupId,
+                        autoOffsetReset = AutoOffsetReset.Earliest, // TODO set this to something else
+                        properties = kafkaConfig.toProperties()
+                    )
+                val kafkaReceiver = KafkaReceiver(receiverSettings)
+                val signalReceiver = SignalReceiver(kafkaReceiver, kafkaConfig.incomingSignalTopic)
                 scheduleSignalReceiver(signalReceiver)
             }
 
