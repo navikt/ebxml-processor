@@ -19,14 +19,12 @@ class Database(
             .dataSource(migrationConfig.jdbcUrl, migrationConfig.username, migrationConfig.password)
             .initSql("SET ROLE \"$EBMS_DB_NAME-admin\"")
             .lockRetryCount(50)
-            .cleanDisabled(false) // TODO: Remove before merging.
             .also {
                 if (getEnvVar("NAIS_CLUSTER_NAME", "local") == "local") {
                     it.locations("filesystem:src/main/resources/db/migrations")
                 }
             }
             .load()
-            .also(Flyway::clean) // TODO: Remove before merging. So unfortunate, if you are seeing this in main.
             .migrate()
     }
 }
