@@ -25,9 +25,11 @@ import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import io.ktor.util.logging.KtorSimpleLogger
+import io.ktor.utils.io.CancellationException
 import io.micrometer.prometheus.PrometheusConfig
 import io.micrometer.prometheus.PrometheusMeterRegistry
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.launch
 import net.logstash.logback.marker.Markers
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.configuration.config
@@ -77,15 +79,23 @@ fun main() = SuspendApp {
                     )
                 val kafkaReceiver = KafkaReceiver(receiverSettings)
                 val signalReceiver = SignalReceiver(kafkaReceiver, kafkaConfig.incomingSignalTopic)
-                scheduleSignalReceiver(signalReceiver)
+                launch {
+                    scheduleSignalReceiver(signalReceiver)
+                }
             }
 
             awaitCancellation()
         }
     }
+        .onFailure { error ->
+            when (error) {
+                is CancellationException -> {} // expected behaviour - normal shutdown
+                else -> log.error("Unexpected shutdown initiated", error)
+            }
+        }
 }
 
-suspend fun scheduleSignalReceiver(signalReceiver: SignalReceiver, interval: kotlin.time.Duration = 30.seconds) =
+private suspend fun scheduleSignalReceiver(signalReceiver: SignalReceiver, interval: kotlin.time.Duration = 30.seconds) =
     Schedule
         .spaced<Unit>(interval)
         .repeat(signalReceiver::processMessages)
