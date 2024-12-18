@@ -7,6 +7,7 @@ import arrow.continuations.SuspendApp
 import arrow.continuations.ktor.server
 import arrow.core.raise.result
 import arrow.fx.coroutines.resourceScope
+import arrow.resilience.Schedule
 import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorRuntime
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
@@ -36,6 +37,7 @@ import no.nav.emottak.util.isProdEnv
 import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.time.Instant
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.toKotlinDuration
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.App")
@@ -57,13 +59,19 @@ fun main() = SuspendApp {
 
             if (getEnvVar("ASYNC_RECEIVER", "true").toBoolean()) {
                 log.debug("Starting signal message receiver")
-                SignalReceiver(config.kafka).schedule()
+                val signalReceiver = SignalReceiver(config.kafka)
+                scheduleSignalReceiver(signalReceiver)
             }
 
             awaitCancellation()
         }
     }
 }
+
+suspend fun scheduleSignalReceiver(signalReceiver: SignalReceiver, interval: kotlin.time.Duration = 30.seconds) =
+    Schedule
+        .spaced<Unit>(interval)
+        .repeat(signalReceiver::processMessages)
 
 fun Application.ebmsProviderModule() {
     val cpaClient = CpaRepoClient(defaultHttpClient())

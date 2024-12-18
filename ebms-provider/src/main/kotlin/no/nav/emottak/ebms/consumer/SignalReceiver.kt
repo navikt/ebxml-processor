@@ -1,6 +1,5 @@
 package no.nav.emottak.ebms.consumer
 
-import arrow.resilience.Schedule
 import io.github.nomisRev.kafka.map
 import io.github.nomisRev.kafka.receiver.AutoOffsetReset
 import io.github.nomisRev.kafka.receiver.KafkaReceiver
@@ -12,8 +11,6 @@ import no.nav.emottak.ebms.configuration.toProperties
 import no.nav.emottak.ebms.log
 import org.apache.kafka.common.serialization.ByteArrayDeserializer
 import org.apache.kafka.common.serialization.StringDeserializer
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.seconds
 
 class SignalReceiver(
     private val kafkaConfig: Kafka
@@ -28,17 +25,14 @@ class SignalReceiver(
             properties = kafkaConfig.toProperties()
         )
 
-    suspend fun schedule(interval: Duration = 30.seconds) =
-        Schedule
-            .spaced<Unit>(interval)
-            .repeat(this::processMessages)
-
-    private suspend fun processMessages() =
+    suspend fun processMessages() {
+        log.debug("Receiving signal messages from ${kafkaConfig.incomingSignalTopic}")
         KafkaReceiver(settings)
             .receive(kafkaConfig.incomingSignalTopic)
             .take(10)
             .map { it.key() to it.value() }
             .collect(::processSignal)
+    }
 
     private fun processSignal(signal: Pair<Reference, Content>) {
         log.info("Got signal with reference <${signal.first.value}> and content: ${String(signal.second.value)}")
