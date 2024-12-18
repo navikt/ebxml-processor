@@ -55,7 +55,8 @@ fun main() = SuspendApp {
                 this.maxChunkSize = 100000
             })
 
-            if (getEnvVar("ASYNC_RECEIVER", "false").toBoolean()) {
+            if (getEnvVar("ASYNC_RECEIVER", "true").toBoolean()) {
+                log.debug("Starting signal message receiver")
                 SignalReceiver(config.kafka).schedule()
             }
 
