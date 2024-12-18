@@ -20,3 +20,6 @@ spec:
     - access: write
       application: ebms-provider
       team: team-emottak
+    - access: read
+      application: emottak-kafka-manager
+      team: team-emottak
