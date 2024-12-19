@@ -2,32 +2,29 @@ package no.nav.emottak.ebms.persistence
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
+import no.nav.emottak.util.getEnvVar
 import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.sql.Database
 
 class Database(
     dbConfig: HikariConfig
 ) {
-    val dataSource by lazy { HikariDataSource(dbConfig) }
-    val db by lazy { Database.connect(dataSource) }
-    private val config = dbConfig
-    fun migrate() {
-        migrationConfig(config)
-            .let(::HikariDataSource)
-            .also {
-                Flyway.configure()
-                    .dataSource(it)
-                    .lockRetryCount(50)
-                    .load()
-                    .migrate()
-            }.close()
+    val dataSource = when (dbConfig) {
+        is HikariDataSource -> dbConfig
+        else -> HikariDataSource(dbConfig)
     }
-
-    private fun migrationConfig(conf: HikariConfig): HikariConfig =
-        HikariConfig().apply {
-            jdbcUrl = conf.jdbcUrl
-            username = conf.username
-            password = conf.password
-            maximumPoolSize = 3
-        }
+    val db = Database.connect(dataSource)
+    fun migrate(migrationConfig: HikariConfig) {
+        Flyway.configure()
+            .dataSource(migrationConfig.jdbcUrl, migrationConfig.username, migrationConfig.password)
+            .initSql("SET ROLE \"$EBMS_DB_NAME-admin\"")
+            .lockRetryCount(50)
+            .also {
+                if (getEnvVar("NAIS_CLUSTER_NAME", "local") == "local") {
+                    it.locations("filesystem:src/main/resources/db/migrations")
+                }
+            }
+            .load()
+            .migrate()
+    }
 }

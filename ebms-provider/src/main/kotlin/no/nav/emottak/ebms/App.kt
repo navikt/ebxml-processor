@@ -7,6 +7,7 @@ import arrow.continuations.SuspendApp
 import arrow.continuations.ktor.server
 import arrow.core.raise.result
 import arrow.fx.coroutines.resourceScope
+import com.zaxxer.hikari.HikariConfig
 import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorRuntime
 import io.github.nomisRev.kafka.receiver.AutoOffsetReset
 import io.github.nomisRev.kafka.receiver.KafkaReceiver
@@ -35,6 +36,9 @@ import net.logstash.logback.marker.Markers
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.configuration.config
 import no.nav.emottak.ebms.configuration.toProperties
+import no.nav.emottak.ebms.persistence.Database
+import no.nav.emottak.ebms.persistence.ebmsDbConfig
+import no.nav.emottak.ebms.persistence.ebmsMigrationConfig
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.processing.SignalProcessor
 import no.nav.emottak.ebms.sendin.SendInService
@@ -62,9 +66,14 @@ fun main() = SuspendApp {
     val config = config()
     result {
         resourceScope {
-            server(Netty, port = 8080, module = Application::ebmsProviderModule, configure = {
-                this.maxChunkSize = 100000
-            })
+            server(
+                Netty,
+                port = 8080,
+                module = { ebmsProviderModule(ebmsDbConfig.value, ebmsMigrationConfig.value) },
+                configure = {
+                    this.maxChunkSize = 100000
+                }
+            )
 
             if (getEnvVar("ASYNC_RECEIVER", "true").toBoolean()) {
                 log.debug("Starting signal message receiver")
@@ -101,7 +110,13 @@ fun main() = SuspendApp {
         }
 }
 
-fun Application.ebmsProviderModule() {
+fun Application.ebmsProviderModule(
+    dbConfig: HikariConfig,
+    migrationConfig: HikariConfig
+) {
+    val database = Database(dbConfig)
+    database.migrate(migrationConfig)
+
     val cpaClient = CpaRepoClient(defaultHttpClient())
     val validator = DokumentValidator(cpaClient)
 

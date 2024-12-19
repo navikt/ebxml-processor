@@ -76,3 +76,7 @@ spec:
       value: key.decrypt.p12.b64.2022
     - name: VIRKSOMHETSSERTIFIKAT_CREDENTIALS
       value: credentials.2022
+    - name: MAX_CONNECTION_POOL_SIZE_FOR_USER
+      value: "4"
+    - name: MAX_CONNECTION_POOL_SIZE_FOR_ADMIN
+      value: "2"
