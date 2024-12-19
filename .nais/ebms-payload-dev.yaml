@@ -77,7 +77,3 @@ spec:
       value: https://app-q1.adeo.no/juridisklogg
     - name: JURIDISKLOGG_STORAGE_TIME_YEARS
       value: "1"
-    - name: MAX_CONNECTION_POOL_SIZE_FOR_USER
-      value: "4"
-    - name: MAX_CONNECTION_POOL_SIZE_FOR_ADMIN
-      value: "1"
