@@ -26,12 +26,15 @@ data class VaultConfig(
 )
 
 fun VaultConfig.configure(role: String): HikariConfig {
+    val maxPoolSizeForUser = getEnvVar("MAX_CONNECTION_POOL_SIZE_FOR_USER", "4").toInt()
+    val maxPoolSizeForAdmin = getEnvVar("MAX_CONNECTION_POOL_SIZE_FOR_ADMIN", "1").toInt()
+
     val hikariConfig = HikariConfig().apply {
         jdbcUrl = this@configure.jdbcUrl + databaseName
         driverClassName = "org.postgresql.Driver"
-        this.maximumPoolSize = 4
+        this.maximumPoolSize = maxPoolSizeForUser
         if (role == "admin") {
-            this.maximumPoolSize = 1
+            this.maximumPoolSize = maxPoolSizeForAdmin
             val vault = VaultUtil.getInstance().client
             val path: String = this@configure.vaultMountPath + "/creds/$databaseName-$role"
             log.info("Fetching database credentials for role admin")
