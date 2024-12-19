@@ -52,4 +52,5 @@ fun Kafka.toProperties() = Properties()
         put(SSL_TRUSTSTORE_TYPE_CONFIG, truststoreType.value)
         put(SSL_TRUSTSTORE_LOCATION_CONFIG, truststoreLocation.value)
         put(SSL_TRUSTSTORE_PASSWORD_CONFIG, truststorePassword.value)
+        put("max.poll.records", 10)
     }
