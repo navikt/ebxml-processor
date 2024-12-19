@@ -28,12 +28,14 @@ import io.ktor.util.logging.KtorSimpleLogger
 import io.ktor.utils.io.CancellationException
 import io.micrometer.prometheus.PrometheusConfig
 import io.micrometer.prometheus.PrometheusMeterRegistry
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import net.logstash.logback.marker.Markers
 import no.nav.emottak.constants.SMTPHeaders
+import no.nav.emottak.ebms.configuration.Kafka
 import no.nav.emottak.ebms.configuration.config
 import no.nav.emottak.ebms.configuration.toProperties
 import no.nav.emottak.ebms.persistence.Database
@@ -75,32 +77,8 @@ fun main() = SuspendApp {
                 }
             )
 
-            if (getEnvVar("ASYNC_RECEIVER", "true").toBoolean()) {
-                log.debug("Starting signal message receiver")
-                val kafkaConfig = config.kafka
-                val receiverSettings: ReceiverSettings<String, ByteArray> =
-                    ReceiverSettings(
-                        bootstrapServers = kafkaConfig.bootstrapServers,
-                        keyDeserializer = StringDeserializer(),
-                        valueDeserializer = ByteArrayDeserializer(),
-                        groupId = kafkaConfig.groupId,
-                        pollTimeout = 30.seconds,
-                        autoOffsetReset = AutoOffsetReset.Earliest, // TODO set this to something else
-                        properties = kafkaConfig.toProperties()
-                    )
-
-                launch(Dispatchers.IO) {
-                    val signalProcessor = SignalProcessor()
-                    KafkaReceiver(receiverSettings)
-                        .receive(kafkaConfig.incomingSignalTopic)
-                        .take(10)
-                        .collect { record ->
-                            signalProcessor.processSignal(record.key(), record.value())
-                            record.offset.acknowledge().also {
-                                log.debug("Acknowledged topic offset ${record.offset()}")
-                            }
-                        }
-                }
+            if (getEnvVar("ASYNC_RECEIVER", "false").toBoolean()) {
+                startSignalReceiver(config.kafka)
             }
 
             awaitCancellation()
@@ -113,6 +91,31 @@ fun main() = SuspendApp {
             }
         }
 }
+
+fun startSignalReceiver(kafka: Kafka) = CoroutineScope(Dispatchers.Default).launch {
+    log.debug("Starting signal message receiver")
+    val receiverSettings: ReceiverSettings<String, ByteArray> =
+        ReceiverSettings(
+            bootstrapServers = kafka.bootstrapServers,
+            keyDeserializer = StringDeserializer(),
+            valueDeserializer = ByteArrayDeserializer(),
+            groupId = kafka.groupId,
+            pollTimeout = 30.seconds,
+            autoOffsetReset = AutoOffsetReset.Earliest, // TODO set this to something else
+            properties = kafka.toProperties()
+        )
+
+    val signalProcessor = SignalProcessor()
+    KafkaReceiver(receiverSettings)
+        .receive(kafka.incomingSignalTopic)
+        .take(10)
+        .collect { record ->
+            signalProcessor.processSignal(record.key(), record.value())
+            record.offset.acknowledge().also {
+                log.debug("Acknowledged topic offset ${record.offset()}")
+            }
+        }
+    }
 
 fun Application.ebmsProviderModule(
     dbConfig: HikariConfig,

@@ -74,6 +74,8 @@ spec:
       value: "4"
     - name: MAX_CONNECTION_POOL_SIZE_FOR_ADMIN
       value: "1"
+    - name: ASYNC_RECEIVER
+      value: "true"
   envFrom:
     - secret: ebms-payload-secret
   filesFrom:

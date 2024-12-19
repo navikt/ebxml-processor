@@ -80,3 +80,5 @@ spec:
       value: "4"
     - name: MAX_CONNECTION_POOL_SIZE_FOR_ADMIN
       value: "2"
+    - name: ASYNC_RECEIVER
+      value: "false"
