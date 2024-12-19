@@ -67,6 +67,8 @@ spec:
       rules:
         - application: cpa-repo
         - application: ebms-payload
+  kafka:
+    pool: {{kafka-pool}}
   env:
     - name: VIRKSOMHETSSERTIFIKAT_PATH
       value: /secret/virksomhetssertifikat/prod/Arbeids-og-velferdsetaten
@@ -80,3 +82,6 @@ spec:
       value: "4"
     - name: MAX_CONNECTION_POOL_SIZE_FOR_ADMIN
       value: "2"
+    - name: KAFKA_TOPIC_ACKNOWLEDGMENTS
+      value: team-emottak.smtp.out.ebxml.signal
+
