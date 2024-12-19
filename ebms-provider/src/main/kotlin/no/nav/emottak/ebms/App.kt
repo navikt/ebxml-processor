@@ -30,7 +30,6 @@ import io.micrometer.prometheus.PrometheusConfig
 import io.micrometer.prometheus.PrometheusMeterRegistry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitCancellation
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import net.logstash.logback.marker.Markers
@@ -95,8 +94,12 @@ fun main() = SuspendApp {
                     KafkaReceiver(receiverSettings)
                         .receive(kafkaConfig.incomingSignalTopic)
                         .take(10)
-                        .map { it.key() to it.value() }
-                        .collect(signalProcessor::processSignal)
+                        .collect { record ->
+                            signalProcessor.processSignal(record.key(), record.value())
+                            record.offset.acknowledge().also {
+                                log.debug("Acknowledged topic offset ${record.offset()}")
+                            }
+                        }
                 }
             }
 
