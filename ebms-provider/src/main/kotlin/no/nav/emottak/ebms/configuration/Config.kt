@@ -2,6 +2,7 @@ package no.nav.emottak.ebms.configuration
 
 import com.sksamuel.hoplite.Masked
 import org.apache.kafka.clients.CommonClientConfigs.SECURITY_PROTOCOL_CONFIG
+import org.apache.kafka.clients.consumer.ConsumerConfig.MAX_POLL_RECORDS_CONFIG
 import org.apache.kafka.common.config.SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG
 import org.apache.kafka.common.config.SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG
 import org.apache.kafka.common.config.SslConfigs.SSL_KEYSTORE_TYPE_CONFIG
@@ -52,5 +53,5 @@ fun Kafka.toProperties() = Properties()
         put(SSL_TRUSTSTORE_TYPE_CONFIG, truststoreType.value)
         put(SSL_TRUSTSTORE_LOCATION_CONFIG, truststoreLocation.value)
         put(SSL_TRUSTSTORE_PASSWORD_CONFIG, truststorePassword.value)
-        put("max.poll.records", 10)
+        put(MAX_POLL_RECORDS_CONFIG, 10)
     }

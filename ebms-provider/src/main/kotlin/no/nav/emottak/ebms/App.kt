@@ -28,6 +28,7 @@ import io.ktor.util.logging.KtorSimpleLogger
 import io.ktor.utils.io.CancellationException
 import io.micrometer.prometheus.PrometheusConfig
 import io.micrometer.prometheus.PrometheusMeterRegistry
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.take
@@ -84,12 +85,12 @@ fun main() = SuspendApp {
                         keyDeserializer = StringDeserializer(),
                         valueDeserializer = ByteArrayDeserializer(),
                         groupId = kafkaConfig.groupId,
-                        pollTimeout = 5.seconds,
+                        pollTimeout = 30.seconds,
                         autoOffsetReset = AutoOffsetReset.Earliest, // TODO set this to something else
                         properties = kafkaConfig.toProperties()
                     )
 
-                launch {
+                launch(Dispatchers.IO) {
                     val signalProcessor = SignalProcessor()
                     KafkaReceiver(receiverSettings)
                         .receive(kafkaConfig.incomingSignalTopic)
