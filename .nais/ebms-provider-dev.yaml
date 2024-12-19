@@ -75,5 +75,9 @@ spec:
       value: /var/run/secrets/ebms-keystore-signering/signering-key.p12
     - name: EMOTTAK_LOGGING_LEVEL
       value: DEBUG
+    - name: MAX_CONNECTION_POOL_SIZE_FOR_USER
+      value: "4"
+    - name: MAX_CONNECTION_POOL_SIZE_FOR_ADMIN
+      value: "1"
     - name: KAFKA_TOPIC_ACKNOWLEDGMENTS
       value: team-emottak.smtp.out.ebxml.signal

@@ -93,3 +93,7 @@ spec:
       value: truststore_test.p12
     - name: EMOTTAK_LOGGING_LEVEL
       value: DEBUG
+    - name: MAX_CONNECTION_POOL_SIZE_FOR_USER
+      value: "4"
+    - name: MAX_CONNECTION_POOL_SIZE_FOR_ADMIN
+      value: "1"
