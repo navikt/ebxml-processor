@@ -82,3 +82,7 @@ spec:
       value: jdbc:postgresql://A01DBVL037.adeo.no:5432/
     - name: TRUSTSTORE_PATH
       value: truststore_prod.p12
+    - name: MAX_CONNECTION_POOL_SIZE_FOR_USER
+      value: "10"
+    - name: MAX_CONNECTION_POOL_SIZE_FOR_ADMIN
+      value: "2"
