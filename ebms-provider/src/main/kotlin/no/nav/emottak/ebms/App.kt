@@ -7,7 +7,6 @@ import arrow.continuations.SuspendApp
 import arrow.continuations.ktor.server
 import arrow.core.raise.result
 import arrow.fx.coroutines.resourceScope
-import arrow.resilience.Schedule
 import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorRuntime
 import io.github.nomisRev.kafka.receiver.AutoOffsetReset
 import io.github.nomisRev.kafka.receiver.KafkaReceiver
@@ -29,13 +28,15 @@ import io.ktor.utils.io.CancellationException
 import io.micrometer.prometheus.PrometheusConfig
 import io.micrometer.prometheus.PrometheusMeterRegistry
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import net.logstash.logback.marker.Markers
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.configuration.config
 import no.nav.emottak.ebms.configuration.toProperties
-import no.nav.emottak.ebms.consumer.SignalReceiver
 import no.nav.emottak.ebms.processing.ProcessingService
+import no.nav.emottak.ebms.processing.SignalProcessor
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.DokumentValidator
 import no.nav.emottak.util.getEnvVar
@@ -74,13 +75,18 @@ fun main() = SuspendApp {
                         keyDeserializer = StringDeserializer(),
                         valueDeserializer = ByteArrayDeserializer(),
                         groupId = kafkaConfig.groupId,
+                        pollTimeout = 5.seconds,
                         autoOffsetReset = AutoOffsetReset.Earliest, // TODO set this to something else
                         properties = kafkaConfig.toProperties()
                     )
-                val kafkaReceiver = KafkaReceiver(receiverSettings)
-                val signalReceiver = SignalReceiver(kafkaReceiver, kafkaConfig.incomingSignalTopic)
+
                 launch {
-                    scheduleSignalReceiver(signalReceiver)
+                    val signalProcessor = SignalProcessor()
+                    KafkaReceiver(receiverSettings)
+                        .receive(kafkaConfig.incomingSignalTopic)
+                        .take(10)
+                        .map { it.key() to it.value() }
+                        .collect(signalProcessor::processSignal)
                 }
             }
 
@@ -94,11 +100,6 @@ fun main() = SuspendApp {
             }
         }
 }
-
-private suspend fun scheduleSignalReceiver(signalReceiver: SignalReceiver, interval: kotlin.time.Duration = 30.seconds) =
-    Schedule
-        .spaced<Unit>(interval)
-        .repeat(signalReceiver::processMessages)
 
 fun Application.ebmsProviderModule() {
     val cpaClient = CpaRepoClient(defaultHttpClient())
