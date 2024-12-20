@@ -28,9 +28,8 @@ import io.ktor.util.logging.KtorSimpleLogger
 import io.ktor.utils.io.CancellationException
 import io.micrometer.prometheus.PrometheusConfig
 import io.micrometer.prometheus.PrometheusMeterRegistry
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import net.logstash.logback.marker.Markers
 import no.nav.emottak.constants.SMTPHeaders
@@ -77,7 +76,9 @@ fun main() = SuspendApp {
             )
 
             if (getEnvVar("ASYNC_RECEIVER", "false").toBoolean()) {
-                startSignalReceiver(config.kafka)
+                launch {
+                    startSignalReceiver(config.kafka)
+                }
             }
 
             awaitCancellation()
@@ -91,7 +92,7 @@ fun main() = SuspendApp {
         }
 }
 
-fun startSignalReceiver(kafka: Kafka) = CoroutineScope(Dispatchers.Default).launch {
+suspend fun startSignalReceiver(kafka: Kafka) {
     log.debug("Starting signal message receiver")
     val receiverSettings: ReceiverSettings<String, ByteArray> =
         ReceiverSettings(
@@ -107,11 +108,13 @@ fun startSignalReceiver(kafka: Kafka) = CoroutineScope(Dispatchers.Default).laun
     val signalProcessor = SignalProcessor()
     KafkaReceiver(receiverSettings)
         .receive(kafka.incomingSignalTopic)
-        .collect { record ->
+        .map { record ->
             signalProcessor.processSignal(record.key(), record.value())
-            record.offset.acknowledge().also {
-                log.debug("Acknowledged topic offset ${record.offset()}")
-            }
+            record
+        }
+        //.flowOn(Dispatchers.IO)
+        .collect {
+            it.offset.acknowledge()
         }
 }
 
