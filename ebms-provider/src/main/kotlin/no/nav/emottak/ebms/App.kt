@@ -10,6 +10,7 @@ import arrow.fx.coroutines.resourceScope
 import com.zaxxer.hikari.HikariConfig
 import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorRuntime
 import io.github.nomisRev.kafka.receiver.AutoOffsetReset
+import io.github.nomisRev.kafka.receiver.CommitStrategy
 import io.github.nomisRev.kafka.receiver.KafkaReceiver
 import io.github.nomisRev.kafka.receiver.ReceiverSettings
 import io.ktor.serialization.kotlinx.json.json
@@ -30,6 +31,7 @@ import io.micrometer.prometheus.PrometheusConfig
 import io.micrometer.prometheus.PrometheusMeterRegistry
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import net.logstash.logback.marker.Markers
 import no.nav.emottak.constants.SMTPHeaders
@@ -101,6 +103,7 @@ suspend fun startSignalReceiver(kafka: Kafka) {
             valueDeserializer = ByteArrayDeserializer(),
             groupId = kafka.groupId,
             pollTimeout = 30.seconds,
+            commitStrategy = CommitStrategy.BySizeOrTime(20, 5.seconds),
             autoOffsetReset = AutoOffsetReset.Earliest, // TODO set this to something else
             properties = kafka.toProperties()
         )
@@ -108,6 +111,7 @@ suspend fun startSignalReceiver(kafka: Kafka) {
     val signalProcessor = SignalProcessor()
     KafkaReceiver(receiverSettings)
         .receive(kafka.incomingSignalTopic)
+        .take(20)
         .map { record ->
             signalProcessor.processSignal(record.key(), record.value())
             record
