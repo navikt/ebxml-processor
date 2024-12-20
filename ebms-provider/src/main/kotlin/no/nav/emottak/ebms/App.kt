@@ -112,7 +112,7 @@ suspend fun startSignalReceiver(kafka: Kafka) {
             signalProcessor.processSignal(record.key(), record.value())
             record
         }
-        //.flowOn(Dispatchers.IO)
+        // .flowOn(Dispatchers.IO)
         .collect {
             it.offset.acknowledge()
         }
