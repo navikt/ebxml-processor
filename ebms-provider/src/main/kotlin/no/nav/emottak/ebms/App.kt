@@ -31,7 +31,6 @@ import io.micrometer.prometheus.PrometheusMeterRegistry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitCancellation
-import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import net.logstash.logback.marker.Markers
 import no.nav.emottak.constants.SMTPHeaders
@@ -108,14 +107,13 @@ fun startSignalReceiver(kafka: Kafka) = CoroutineScope(Dispatchers.Default).laun
     val signalProcessor = SignalProcessor()
     KafkaReceiver(receiverSettings)
         .receive(kafka.incomingSignalTopic)
-        .take(10)
         .collect { record ->
             signalProcessor.processSignal(record.key(), record.value())
             record.offset.acknowledge().also {
                 log.debug("Acknowledged topic offset ${record.offset()}")
             }
         }
-    }
+}
 
 fun Application.ebmsProviderModule(
     dbConfig: HikariConfig,
