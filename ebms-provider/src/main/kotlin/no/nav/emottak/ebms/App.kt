@@ -105,12 +105,7 @@ suspend fun startSignalReceiver(kafka: Kafka) {
             commitStrategy = CommitStrategy.BySizeOrTime(20, 5.seconds),
             autoOffsetReset = AutoOffsetReset.Earliest, // TODO set this to something else
             properties = kafka.toProperties()
-        ).apply {
-            properties["buffer.memory"] = "16777216" // 16 MB
-            properties["batch.size"] = "8192"
-            properties["retries"] = "3"
-            properties["max.poll.records"] = "10"
-        }
+        )
 
     val signalProcessor = SignalProcessor()
     KafkaReceiver(receiverSettings)
