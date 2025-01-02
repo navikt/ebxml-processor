@@ -23,7 +23,6 @@ import io.micrometer.prometheus.PrometheusConfig
 import io.micrometer.prometheus.PrometheusMeterRegistry
 import net.logstash.logback.marker.Markers
 import no.nav.emottak.constants.SMTPHeaders
-import no.nav.emottak.ebms.kafka.KafkaClient
 import no.nav.emottak.ebms.persistence.Database
 import no.nav.emottak.ebms.persistence.ebmsDbConfig
 import no.nav.emottak.ebms.persistence.ebmsMigrationConfig
@@ -32,12 +31,9 @@ import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.DokumentValidator
 import no.nav.emottak.util.getEnvVar
 import no.nav.emottak.util.isProdEnv
-import org.apache.kafka.clients.producer.ProducerRecord
 import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.time.Instant
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 import kotlin.time.toKotlinDuration
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.App")
@@ -88,33 +84,6 @@ fun Application.ebmsProviderModule(
         get("/") {
             call.respondText("Hello, world!")
         }
-        get("/kafkatest_write") {
-            log.debug("Kafka test write: start")
-
-            val producer = KafkaClient().createProducer()
-            val topic = getEnvVar("KAFKA_TOPIC_ACKNOWLEDGMENTS", "team-emottak.smtp.out.ebxml.signal")
-
-            try {
-                val currentDateTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss"))
-
-                producer.send(
-                    ProducerRecord(
-                        topic,
-                        "Test message from $currentDateTime key",
-                        "Test message from $currentDateTime value"
-                    )
-                )
-                producer.flush()
-            } catch (e: Exception) {
-                log.error("Kafka test write: Exception while reading messages from queue", e)
-            } finally {
-                producer.close()
-            }
-            log.debug("Kafka test write: done")
-
-            call.respondText("Kafka works!")
-        }
-
         if (!isProdEnv()) {
             packageEbxml(validator, processing)
             unpackageEbxml(validator, processing)
