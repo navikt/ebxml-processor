@@ -300,7 +300,7 @@ fun Route.postEbmsAsync(validator: DokumentValidator, processingService: Process
                     val topic = getEnvVar("KAFKA_TOPIC_ACKNOWLEDGMENTS", "team-emottak.smtp.out.ebxml.signal")
                     log.debug("Kafka test: Acknowledgment topic: {}", topic)
                     kafkaProducer.send(
-                        ProducerRecord(topic, it.messageId, it.toEbmsDokument().toString())
+                        ProducerRecord(topic, it.messageId, it.toEbmsDokument().dokument.toString())
                     )
                     kafkaProducer.flush()
                     kafkaProducer.close()

@@ -12,7 +12,7 @@ import java.util.*
 
 class KafkaClient {
 
-    val cluster = getEnvVar("NAIS_CLUSTER_NAME", "local")
+    private val cluster = getEnvVar("NAIS_CLUSTER_NAME", "local")
 
     private val kafkaBrokers = getEnvVar("KAFKA_BROKERS", "http://localhost:9092")
     private val keystoreLocation = getEnvVar("KAFKA_KEYSTORE_PATH", "")
@@ -21,59 +21,48 @@ class KafkaClient {
     private val truststorePassword = getEnvVar("KAFKA_CREDSTORE_PASSWORD", "")
 
     fun createProducer(): KafkaProducer<String, String> {
-        log.debug("Kafka brokers: $kafkaBrokers")
-        val props = Properties().apply {
-            put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBrokers)
-            put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java.name)
-            put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java.name)
-
-            // Authentication
-            if (cluster in setOf("dev-fss", "prod-fss")) {
-                put("security.protocol", "SSL")
-                put("ssl.keystore.type", "PKCS12")
-                put("ssl.keystore.location", keystoreLocation)
-                put("ssl.keystore.password", keystorePassword)
-                put("ssl.truststore.type", "JKS")
-                put("ssl.truststore.location", truststoreLocation)
-                put("ssl.truststore.password", truststorePassword)
-            }
-
-            // Performance
-            put(ProducerConfig.BUFFER_MEMORY_CONFIG, "16777216")
-            put(ProducerConfig.BATCH_SIZE_CONFIG, "8192")
-            put(ProducerConfig.RETRIES_CONFIG, "3")
-            put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, "30000")
-        }
-        return KafkaProducer(props)
+        return KafkaProducer(producerProps())
     }
 
     fun createConsumer(): KafkaConsumer<String, String> {
-        val props = Properties().apply {
-            put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBrokers)
-            put(ConsumerConfig.GROUP_ID_CONFIG, "ebms-provider")
-            put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
-            put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
-            put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
-            // put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false")
+        return KafkaConsumer(consumerProps())
+    }
 
-            // Authentication
-            if (cluster in setOf("dev-fss", "prod-fss")) {
-                put("security.protocol", "SSL")
-                put("ssl.keystore.type", "PKCS12")
-                put("ssl.keystore.location", keystoreLocation)
-                put("ssl.keystore.password", keystorePassword)
-                put("ssl.truststore.type", "JKS")
-                put("ssl.truststore.location", truststoreLocation)
-                put("ssl.truststore.password", truststorePassword)
-            }
+    private fun producerProps(): Properties = commonProps().apply {
+        // put producer properties
+        put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java.name)
+        put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java.name)
+    }
 
-            // Performance
-            put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "10")
-            put(ProducerConfig.BUFFER_MEMORY_CONFIG, "16777216")
-            put(ProducerConfig.BATCH_SIZE_CONFIG, "8192")
-            put(ProducerConfig.RETRIES_CONFIG, "3")
-            put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, "30000")
+    private fun consumerProps(): Properties = commonProps().apply {
+        // put consumer properties
+        put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
+        put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
+        put(ConsumerConfig.GROUP_ID_CONFIG, "ebms-provider")
+        put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+
+        // Performance
+        put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "10")
+    }
+
+    private fun commonProps(): Properties = Properties().apply {
+        log.debug("Kafka brokers: $kafkaBrokers")
+        put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBrokers)
+
+        // Performance
+        put(ProducerConfig.BUFFER_MEMORY_CONFIG, "16777216")
+        put(ProducerConfig.BATCH_SIZE_CONFIG, "8192")
+        put(ProducerConfig.RETRIES_CONFIG, "3")
+        put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, "30000")
+
+        if (cluster in setOf("dev-fss", "prod-fss")) {
+            put("security.protocol", "SSL")
+            put("ssl.keystore.type", "PKCS12")
+            put("ssl.keystore.location", keystoreLocation)
+            put("ssl.keystore.password", keystorePassword)
+            put("ssl.truststore.type", "JKS")
+            put("ssl.truststore.location", truststoreLocation)
+            put("ssl.truststore.password", truststorePassword)
         }
-        return KafkaConsumer(props)
     }
 }
