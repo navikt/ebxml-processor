@@ -78,7 +78,7 @@ fun main() = SuspendApp {
             )
 
             if (getEnvVar("ASYNC_RECEIVER", "false").toBoolean()) {
-                launch(Dispatchers.IO.limitedParallelism(1)) {
+                launch(Dispatchers.IO) {
                     startSignalReceiver(config.kafka)
                 }
             }
