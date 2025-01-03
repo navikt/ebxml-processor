@@ -4,7 +4,6 @@ import com.sksamuel.hoplite.Masked
 import org.apache.kafka.clients.CommonClientConfigs.SECURITY_PROTOCOL_CONFIG
 import org.apache.kafka.clients.consumer.ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG
 import org.apache.kafka.clients.consumer.ConsumerConfig.FETCH_MIN_BYTES_CONFIG
-import org.apache.kafka.clients.consumer.ConsumerConfig.GROUP_INSTANCE_ID_CONFIG
 import org.apache.kafka.clients.consumer.ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG
 import org.apache.kafka.clients.consumer.ConsumerConfig.MAX_PARTITION_FETCH_BYTES_CONFIG
 import org.apache.kafka.clients.consumer.ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG
@@ -71,5 +70,5 @@ fun Kafka.toProperties() = Properties()
         put(HEARTBEAT_INTERVAL_MS_CONFIG, "10000")
         put(MAX_POLL_INTERVAL_MS_CONFIG, "300000")
         put(REQUEST_TIMEOUT_MS_CONFIG, "40000")
-        put(GROUP_INSTANCE_ID_CONFIG, "consumer-ebms-provider-1")
+        // put(GROUP_INSTANCE_ID_CONFIG, "1")
     }
