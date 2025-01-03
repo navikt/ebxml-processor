@@ -31,7 +31,8 @@ import io.micrometer.prometheus.PrometheusConfig
 import io.micrometer.prometheus.PrometheusMeterRegistry
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.newSingleThreadContext
+import kotlinx.coroutines.withContext
 import net.logstash.logback.marker.Markers
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.configuration.Kafka
@@ -77,7 +78,7 @@ fun main() = SuspendApp {
             )
 
             if (getEnvVar("ASYNC_RECEIVER", "false").toBoolean()) {
-                launch {
+                withContext(newSingleThreadContext("KafkaConsumerThread")) {
                     startSignalReceiver(config.kafka)
                 }
             }
