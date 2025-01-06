@@ -29,10 +29,8 @@ import io.ktor.util.logging.KtorSimpleLogger
 import io.ktor.utils.io.CancellationException
 import io.micrometer.prometheus.PrometheusConfig
 import io.micrometer.prometheus.PrometheusMeterRegistry
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.launch
 import net.logstash.logback.marker.Markers
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.configuration.Kafka
@@ -76,13 +74,6 @@ fun main() = SuspendApp {
                     this.maxChunkSize = 100000
                 }
             )
-
-            if (getEnvVar("ASYNC_RECEIVER", "false").toBoolean()) {
-                launch(Dispatchers.IO.limitedParallelism(1)) {
-                    startSignalReceiver(config.kafka)
-                }
-            }
-
             awaitCancellation()
         }
     }
@@ -92,6 +83,12 @@ fun main() = SuspendApp {
                 else -> log.error("Unexpected shutdown initiated", error)
             }
         }
+
+    if (getEnvVar("ASYNC_RECEIVER", "false").toBoolean()) {
+//        launch(Dispatchers.IO) {
+        startSignalReceiver(config.kafka)
+//        }
+    }
 }
 
 suspend fun startSignalReceiver(kafka: Kafka) {
