@@ -16,7 +16,6 @@ import io.ktor.client.request.headers
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
-import io.ktor.client.statement.readBytes
 import io.ktor.http.ContentType.Application.Json
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
@@ -29,21 +28,25 @@ import no.nav.emottak.cpa.auth.AuthConfig
 import no.nav.emottak.cpa.databasetest.PostgresTest
 import no.nav.emottak.message.model.Addressing
 import no.nav.emottak.message.model.Direction.IN
+import no.nav.emottak.message.model.EmailAddress
+import no.nav.emottak.message.model.ErrorCode
 import no.nav.emottak.message.model.Party
 import no.nav.emottak.message.model.PartyId
 import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.message.model.SignatureDetailsRequest
 import no.nav.emottak.message.model.ValidationRequest
+import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.util.getEnvVar
 import no.nav.security.mock.oauth2.MockOAuth2Server
 import org.apache.commons.lang3.StringUtils
-import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
+import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.EndpointTypeType
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import kotlin.test.assertContains
+import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -51,12 +54,12 @@ import kotlin.test.assertTrue
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class CPARepoIntegrationTest : PostgresTest() {
 
-    fun <T> cpaRepoTestApp(testBlock: suspend ApplicationTestBuilder.() -> T) = testApplication {
+    private fun <T> cpaRepoTestApp(testBlock: suspend ApplicationTestBuilder.() -> T) = testApplication {
         application(cpaApplicationModule(postgres.dataSource, postgres.dataSource))
         testBlock()
     }
 
-    val mockOAuth2Server = MockOAuth2Server().also { it.start(port = 3344) }
+    private val mockOAuth2Server = MockOAuth2Server().also { it.start(port = 3344) }
 
     @Test
     fun `Hent sertifikat for signatursjekk`() = cpaRepoTestApp {
@@ -109,11 +112,16 @@ class CPARepoIntegrationTest : PostgresTest() {
             contentType(Json)
         }
 
-        println(String(response.readBytes()))
+        val validationResult = response.body<ValidationResult>()
+        assertNotNull(validationResult)
+
+        assertEquals(1, validationResult.signalEmailAddress.size)
+        assertEquals("mailto://TEST_A1_Haugerud_t1@edi.nhn.no", validationResult.signalEmailAddress.first().emailAddress)
+        assertTrue(validationResult.receiverEmailAddress.isEmpty()) // Channel-protokoll er HTTP
     }
 
     @Test
-    fun `Byt from og to - role service action matcher ikke`() = cpaRepoTestApp {
+    fun `Bytt from og to - role service action matcher ikke`() = cpaRepoTestApp {
         val httpClient = createClient {
             install(ContentNegotiation) {
                 json()
@@ -137,7 +145,115 @@ class CPARepoIntegrationTest : PostgresTest() {
             contentType(Json)
         }
 
-        println(String(response.readBytes()))
+        val validationResult = response.body<ValidationResult>()
+        assertNotNull(validationResult)
+
+        assertNotNull(validationResult.error)
+        assertEquals(validationResult.error?.size, 1)
+        assertEquals(validationResult.error?.first()?.code, ErrorCode.DELIVERY_FAILURE)
+        assertEquals(validationResult.error?.first()?.descriptionText, "Action EgenandelForesporsel matcher ikke service HarBorgerEgenandelFritak for sending party NAV")
+    }
+
+    @Test
+    fun `Test hente epost`() = cpaRepoTestApp {
+        val httpClient = createClient {
+            install(ContentNegotiation) {
+                json()
+            }
+        }
+
+        val validationRequest = ValidationRequest(
+            IN,
+            "e17eb03e-9e43-43fb-874c-1fde9a28c308",
+            "1234",
+            "nav:qass:31162",
+            Addressing(
+                Party(listOf(PartyId("HER", "79768")), "KontrollUtbetaler"),
+                Party(listOf(PartyId("HER", "8090595")), "Utleverer"),
+                "OppgjorsKontroll",
+                "Oppgjorskrav"
+            )
+        )
+        val response = httpClient.post("/cpa/validate/121212") {
+            setBody(validationRequest)
+            contentType(Json)
+        }
+
+        val validationResult = response.body<ValidationResult>()
+        assertNotNull(validationResult)
+
+        assertEquals(1, validationResult.signalEmailAddress.size)
+        assertEquals("mailto://TEST_A1_Haugerud_t1@edi.nhn.no", validationResult.signalEmailAddress.first().emailAddress)
+        assertEquals(1, validationResult.receiverEmailAddress.size)
+        assertEquals("mailto://mottak-qass@test-es.nav.no", validationResult.receiverEmailAddress.first().emailAddress)
+    }
+
+    @Test
+    fun `Test hente epost - flere ChannelId'er og flere endpoints (epostadresser)`() = cpaRepoTestApp {
+        val httpClient = createClient {
+            install(ContentNegotiation) {
+                json()
+            }
+        }
+
+        val validationRequest = ValidationRequest(
+            IN,
+            "e17eb03e-9e43-43fb-874c-1fde9a28c308",
+            "1234",
+            "multiple_channels_and_multiple_endpoints",
+            Addressing(
+                Party(listOf(PartyId("HER", "79768")), "KontrollUtbetaler"),
+                Party(listOf(PartyId("HER", "8090595")), "Utleverer"),
+                "OppgjorsKontroll",
+                "Oppgjorskrav"
+            )
+        )
+        val response = httpClient.post("/cpa/validate/121212") {
+            setBody(validationRequest)
+            contentType(Json)
+        }
+
+        val validationResult = response.body<ValidationResult>()
+        assertNotNull(validationResult)
+
+        assertEquals(2, validationResult.signalEmailAddress.size)
+        assertContains(
+            validationResult.signalEmailAddress,
+            EmailAddress("mailto://allPurpose@edi.nhn.no", EndpointTypeType.ALL_PURPOSE),
+            "'signalEmailAddress' inneholdt IKKE allPurpose-epostadresse"
+        )
+        assertContains(
+            validationResult.signalEmailAddress,
+            EmailAddress("mailto://error@edi.nhn.no", EndpointTypeType.ERROR),
+            "'signalEmailAddress' inneholdt IKKE error-epostadresse"
+        )
+
+        assertEquals(5, validationResult.receiverEmailAddress.size)
+        assertContains(
+            validationResult.receiverEmailAddress,
+            EmailAddress("mailto://mottak-qass@test-es.nav.no", EndpointTypeType.ALL_PURPOSE),
+            "'receiverEmailAddress' inneholdt IKKE allPurpose-epostadresse"
+        )
+        assertContains(
+            validationResult.receiverEmailAddress,
+            EmailAddress("mailto://request@test-es.nav.no", EndpointTypeType.REQUEST),
+            "'receiverEmailAddress' inneholdt IKKE request-epostadresse"
+        )
+        assertContains(
+            validationResult.receiverEmailAddress,
+            EmailAddress("mailto://response@test-es.nav.no", EndpointTypeType.RESPONSE),
+            "'receiverEmailAddress' inneholdt IKKE response-epostadresse"
+        )
+        assertContains(
+            validationResult.receiverEmailAddress,
+            EmailAddress("mailto://error@test-es.nav.no", EndpointTypeType.ERROR),
+            "'receiverEmailAddress' inneholdt IKKE error-epostadresse"
+        )
+        assertContains(
+            validationResult.receiverEmailAddress,
+            EmailAddress("mailto://login@test-es.nav.no", EndpointTypeType.LOGIN),
+            "'receiverEmailAddress' inneholdt IKKE login-epostadresse"
+        )
     }
 
     @Test

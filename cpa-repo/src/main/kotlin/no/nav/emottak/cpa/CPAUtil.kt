@@ -4,8 +4,10 @@ import no.nav.emottak.cpa.feil.CpaValidationException
 import no.nav.emottak.cpa.feil.SecurityException
 import no.nav.emottak.message.ebxml.EbXMLConstants.EBMS_SERVICE_URI
 import no.nav.emottak.message.ebxml.PartyTypeEnum
+import no.nav.emottak.message.model.EmailAddress
 import no.nav.emottak.message.model.PartyId
 import no.nav.emottak.message.model.SignatureDetails
+import no.nav.emottak.message.model.ValidationRequest
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.Certificate
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.DeliveryChannel
@@ -17,7 +19,7 @@ import org.w3._2000._09.xmldsig_.X509DataType
 import javax.xml.bind.JAXBElement
 
 fun PartyInfo.getCertificateForEncryption(): ByteArray {
-    // @TODO match role service action. ".first()" er ikke nokk
+    // @TODO match role service action. ".first()" er ikke nok
     val encryptionCert = this.collaborationRole.first().applicationCertificateRef.first().certId as Certificate
     return encryptionCert.getX509Certificate()
 }
@@ -49,11 +51,47 @@ fun PartyInfo.getSendDeliveryChannel(
     }
 }
 
+fun PartyInfo.getReceiveDeliveryChannels(
+    role: String,
+    service: String,
+    action: String
+): List<DeliveryChannel> {
+    return if (EBMS_SERVICE_URI == service) {
+        listOf(this.getDefaultDeliveryChannel(action))
+    } else {
+        val roles = this.collaborationRole.filter { it.role.name == role && it.serviceBinding.service.value == service }
+        val canReceive = roles.flatMap { it.serviceBinding.canReceive.filter { cs -> cs.thisPartyActionBinding.action == action } }
+            .also { if (it.size > 1) log.warn("Found more than 1 CanReceive (role='$role', service='$service', action='$action')") }
+        val channels = canReceive.firstOrNull()?.thisPartyActionBinding?.channelId
+        return channels?.map { it.value as DeliveryChannel } ?: emptyList()
+    }
+}
+
 private fun PartyInfo.getDefaultDeliveryChannel(
     action: String
 ): DeliveryChannel {
     return (this.overrideMshActionBinding.firstOrNull { it.action == action }?.channelId as DeliveryChannel?)
         ?: this.defaultMshChannelId as DeliveryChannel
+}
+
+fun PartyInfo.getReceiveEmailAddress(validateRequest: ValidationRequest): List<EmailAddress> {
+    val deliveryChannels = this.getReceiveDeliveryChannels(validateRequest.addressing.to.role, validateRequest.addressing.service, validateRequest.addressing.action)
+    return getReceiverEmailAddress(deliveryChannels)
+}
+
+fun PartyInfo.getSignalEmailAddress(validateRequest: ValidationRequest): List<EmailAddress> {
+    val deliveryChannels = listOf(this.getDefaultDeliveryChannel(validateRequest.addressing.action))
+    return getReceiverEmailAddress(deliveryChannels)
+}
+
+private fun getReceiverEmailAddress(deliveryChannels: List<DeliveryChannel>): List<EmailAddress> {
+    return deliveryChannels.filter {
+        it.getTransport().transportReceiver?.transportProtocol?.value == "SMTP"
+    }.flatMap {
+        it.getTransport().transportReceiver?.endpoint ?: emptyList()
+    }.map {
+        EmailAddress(it.uri, it.type!!)
+    }.distinct()
 }
 
 fun DeliveryChannel.getSigningCertificate(): Certificate {
@@ -69,14 +107,14 @@ fun DeliveryChannel.getSigningCertificate(): Certificate {
     }
 }
 
+fun DeliveryChannel.getTransport(): Transport = this.transportId as Transport? ?: throw SecurityException("Fant ikke transportkanal")
+
 fun DeliveryChannel.getSenderTransportProtocolType(): ProtocolType {
-    val transport = this.transportId as Transport? ?: throw SecurityException("Fant ikke transportkanal")
-    return transport.transportSender?.transportProtocol ?: throw SecurityException("Fant ikke transportkanal")
+    return this.getTransport().transportSender?.transportProtocol ?: throw SecurityException("Fant ikke transportkanal")
 }
 
 fun DeliveryChannel.getReceiverTransportProtocolType(): ProtocolType {
-    val transport = this.transportId as Transport? ?: throw CpaValidationException("Fant ikke transportkanal")
-    return transport.transportReceiver?.transportProtocol ?: throw CpaValidationException("Fant ikke transportkanal")
+    return this.getTransport().transportReceiver?.transportProtocol ?: throw CpaValidationException("Fant ikke transportkanal")
 }
 
 fun DeliveryChannel.getSignatureAlgorithm(): String {
