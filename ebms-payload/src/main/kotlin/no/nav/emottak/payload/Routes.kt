@@ -19,6 +19,7 @@ import no.nav.emottak.message.model.Feil
 import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadRequest
 import no.nav.emottak.message.model.PayloadResponse
+import no.nav.emottak.message.model.ProcessConfig
 import no.nav.emottak.payload.util.marshal
 import no.nav.emottak.payload.util.unmarshal
 import no.nav.emottak.util.marker
@@ -34,48 +35,8 @@ fun Route.postPayload() = post("/payload") {
             processor.loggMessageToJuridiskLogg(request)
         }
         when (request.direction) {
-            Direction.IN -> {
-                val readablePayload = processor.convertToReadablePayload(request.payload, processConfig.kryptering, processConfig.komprimering).also {
-                    if (processConfig.kryptering) log.info(request.marker(), "Payload dekryptert")
-                    if (processConfig.komprimering) log.info(request.marker(), "Payload dekomprimert")
-                }
-                try {
-                    PayloadResponse(
-                        processedPayload = processor.validateReadablePayload(readablePayload, processConfig.signering, processConfig.ocspSjekk).also {
-                            if (processConfig.signering) log.info(request.marker(), "Payload signatur verifisert")
-                            if (processConfig.ocspSjekk) log.info(request.marker(), "Payload signatur ocsp sjekket")
-                        }
-                    )
-                } catch (e: Exception) {
-                    log.error(request.marker(), "Feil ved validering av payload", e)
-                    val errorPayload: Payload? = runCatching {
-                        when (processConfig.apprec) {
-                            true -> {
-                                log.info(request.marker(), "Oppretter negativ AppRec for payload <${request.payload.contentId}>")
-                                Payload(
-                                    marshal(
-                                        createNegativeApprec(unmarshal(readablePayload.bytes, MsgHead::class.java), e)
-                                    ).toByteArray(),
-                                    ContentType.Application.Xml.toString()
-                                )
-                            }
-                            false -> null
-                        }
-                    }.onFailure {
-                        log.error(request.marker(), "Opprettelse av negativ apprec feilet", it)
-                    }.getOrThrow()
-                    PayloadResponse(
-                        processedPayload = errorPayload,
-                        error = Feil(ErrorCode.UNKNOWN, e.localizedMessage, "Error"),
-                        apprec = errorPayload != null
-                    )
-                }
-            }
-            Direction.OUT -> {
-                PayloadResponse(
-                    processedPayload = processor.processOutgoing(request)
-                )
-            }
+            Direction.IN -> createIncomingPayloadResponse(request, processConfig)
+            Direction.OUT -> createOutgoingPayloadResponse(request)
         }
     }.onSuccess {
         log.info(request.marker(), "Payload prosessert OK <${request.payload.contentId}>")
@@ -90,6 +51,63 @@ fun Route.postPayload() = post("/payload") {
         )
     }
 }
+
+private fun createOutgoingPayloadResponse(request: PayloadRequest) = PayloadResponse(
+    processedPayload = processor.processOutgoing(request)
+)
+
+private suspend fun createIncomingPayloadResponse(
+    request: PayloadRequest,
+    processConfig: ProcessConfig
+): PayloadResponse {
+    val readablePayload =
+        processor.convertToReadablePayload(request.payload, processConfig.kryptering, processConfig.komprimering).also {
+            if (processConfig.kryptering) log.info(request.marker(), "Payload dekryptert")
+            if (processConfig.komprimering) log.info(request.marker(), "Payload dekomprimert")
+        }
+    return try {
+        PayloadResponse(
+            processedPayload = processor.validateReadablePayload(
+                readablePayload,
+                processConfig.signering,
+                processConfig.ocspSjekk
+            ).also {
+                if (processConfig.signering) log.info(request.marker(), "Payload signatur verifisert")
+                if (processConfig.ocspSjekk) log.info(request.marker(), "Payload signatur ocsp sjekket")
+            }
+        )
+    } catch (e: Exception) {
+        log.error(request.marker(), "Feil ved validering av payload", e)
+        val errorPayload: Payload? = createNegativeAppRecOrErrorPayload(processConfig, request, readablePayload, e)
+        PayloadResponse(
+            processedPayload = errorPayload,
+            error = Feil(ErrorCode.UNKNOWN, e.localizedMessage, "Error"),
+            apprec = errorPayload != null
+        )
+    }
+}
+
+private fun createNegativeAppRecOrErrorPayload(
+    processConfig: ProcessConfig,
+    request: PayloadRequest,
+    readablePayload: Payload,
+    e: Exception
+) = runCatching {
+    when (processConfig.apprec) {
+        true -> {
+            log.info(request.marker(), "Oppretter negativ AppRec for payload <${request.payload.contentId}>")
+            Payload(
+                marshal(
+                    createNegativeApprec(unmarshal(readablePayload.bytes, MsgHead::class.java), e)
+                ).toByteArray(),
+                ContentType.Application.Xml.toString()
+            )
+        }
+        false -> null
+    }
+}.onFailure {
+    log.error(request.marker(), "Opprettelse av negativ apprec feilet", it)
+}.getOrThrow()
 
 fun Routing.registerHealthEndpoints(
     collectorRegistry: PrometheusMeterRegistry
