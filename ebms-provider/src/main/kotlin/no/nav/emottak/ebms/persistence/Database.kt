@@ -21,7 +21,7 @@ class Database(
             .lockRetryCount(50)
             .also {
                 if (getEnvVar("NAIS_CLUSTER_NAME", "local") == "local") {
-                    it.locations("filesystem:src/main/resources/db/migrations")
+                    it.locations("filesystem:src/main/resources/db/migration")
                 }
             }
             .load()
