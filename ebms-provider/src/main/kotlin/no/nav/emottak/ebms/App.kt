@@ -9,7 +9,6 @@ import arrow.core.raise.result
 import arrow.fx.coroutines.resourceScope
 import com.zaxxer.hikari.HikariConfig
 import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorRuntime
-import io.github.nomisRev.kafka.receiver.AutoOffsetReset
 import io.github.nomisRev.kafka.receiver.KafkaReceiver
 import io.github.nomisRev.kafka.receiver.ReceiverSettings
 import io.ktor.serialization.kotlinx.json.json
@@ -100,8 +99,7 @@ suspend fun startSignalReceiver(kafka: Kafka) {
             keyDeserializer = StringDeserializer(),
             valueDeserializer = ByteArrayDeserializer(),
             groupId = kafka.groupId,
-            pollTimeout = 30.seconds,
-            autoOffsetReset = AutoOffsetReset.Earliest, // TODO set this to something else
+            pollTimeout = 10.seconds,
             properties = kafka.toProperties()
         )
 
