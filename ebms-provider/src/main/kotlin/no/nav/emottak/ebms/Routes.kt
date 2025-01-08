@@ -15,6 +15,7 @@ import io.micrometer.prometheus.PrometheusMeterRegistry
 import kotlinx.serialization.Serializable
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.model.signer
+import no.nav.emottak.ebms.persistence.EbmsMessageRepository
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.util.marker
@@ -144,7 +145,8 @@ fun Route.packageEbxml(
 fun Route.postEbmsSync(
     validator: DokumentValidator,
     processingService: ProcessingService,
-    sendInService: SendInService
+    sendInService: SendInService,
+    ebmsMessageRepository: EbmsMessageRepository
 ): Route = post("/ebms/sync") {
     log.info("Receiving synchronous request")
 
@@ -179,6 +181,14 @@ fun Route.postEbmsSync(
     }
 
     val ebmsMessage = ebMSDocument.transform() as PayloadMessage
+
+    try {
+        ebmsMessageRepository.saveEbmsMessageDetails(ebmsMessage)
+        log.info(ebMSDocument.messageHeader().marker(loggableHeaders), "Message details saved to database")
+    } catch (ex: Exception) {
+        log.error("Error occurred while saving message details to database", ex)
+    }
+
     var signingCertificate: SignatureDetails? = null
     try {
         validator.validateIn(ebmsMessage)
@@ -239,7 +249,7 @@ fun Route.postEbmsSync(
     }
 }
 
-fun Route.postEbmsAsync(validator: DokumentValidator, processingService: ProcessingService): Route =
+fun Route.postEbmsAsync(validator: DokumentValidator, processingService: ProcessingService, ebmsMessageRepository: EbmsMessageRepository): Route =
     post("/ebms/async") {
         // KRAV 5.5.2.1 validate MIME
         val debug: Boolean = call.request.header("debug")?.isNotBlank() ?: false
@@ -274,8 +284,15 @@ fun Route.postEbmsAsync(validator: DokumentValidator, processingService: Process
         // TODO gjøre dette bedre
         val loggableHeaders = call.request.headers.retrieveLoggableHeaderPairs()
         val ebmsMessage = ebMSDocument.transform()
-
         log.info(ebMSDocument.messageHeader().marker(loggableHeaders), "Melding mottatt")
+
+        try {
+            ebmsMessageRepository.saveEbmsMessageDetails(ebmsMessage)
+            log.info(ebMSDocument.messageHeader().marker(loggableHeaders), "Message details saved to database")
+        } catch (ex: Exception) {
+            log.error("Error occurred while saving message details to database", ex)
+        }
+
         try {
             validator
                 .validateIn(ebmsMessage)
