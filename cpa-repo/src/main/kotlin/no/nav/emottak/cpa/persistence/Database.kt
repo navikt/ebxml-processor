@@ -2,6 +2,7 @@ package no.nav.emottak.cpa.persistence
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
+import no.nav.emottak.util.getEnvVar
 import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.sql.Database
 
@@ -18,6 +19,11 @@ class Database(
             .dataSource(migrationConfig.jdbcUrl, migrationConfig.username, migrationConfig.password)
             .initSql("SET ROLE \"$CPA_DB_NAME-admin\"")
             .lockRetryCount(50)
+            .also {
+                if (getEnvVar("NAIS_CLUSTER_NAME", "local") == "local") {
+                    it.locations("filesystem:src/main/resources/db/migration")
+                }
+            }
             .load()
             .migrate()
     }
