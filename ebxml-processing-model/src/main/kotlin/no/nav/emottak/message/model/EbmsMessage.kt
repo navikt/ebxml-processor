@@ -126,6 +126,21 @@ fun EbmsMessage.createMessageHeader(newAddressing: Addressing = this.addressing,
     }
 }
 
+fun EbmsMessage.toEbmsMessageDetails(): EbmsMessageDetails {
+    return EbmsMessageDetails(
+        cpaId,
+        conversationId,
+        messageId,
+        refToMessageId,
+        EbmsMessageDetails.serializePartyId(addressing.from.partyId),
+        addressing.from.role,
+        EbmsMessageDetails.serializePartyId(addressing.to.partyId),
+        addressing.to.role,
+        addressing.service,
+        addressing.action
+    )
+}
+
 fun createEbmsDocument(ebxmlDokument: Header, payload: EbmsAttachment? = null): EbMSDocument {
     val envelope = Envelope()
     val attachmentUid = UUID.randomUUID().toString()

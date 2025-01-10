@@ -8,6 +8,7 @@ import no.nav.emottak.message.model.Party
 import no.nav.emottak.message.model.PartyId
 import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadMessage
+import no.nav.emottak.message.model.toEbmsMessageDetails
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.jupiter.api.AfterAll
@@ -58,7 +59,7 @@ class EbmsMessageRepositoryTest {
     fun `Message details get saved to database`() {
         val originalMessage = buildTestPayloadMessage("Inntektsforesporsel")
 
-        val savedMessageId = ebmsMessageRepository.saveEbmsMessageDetails(originalMessage)
+        val savedMessageId = ebmsMessageRepository.saveEbmsMessageDetails(originalMessage.toEbmsMessageDetails())
 
         val retrievedMessage = ebmsMessageRepository.getByMessageIdAndCpaId(
             originalMessage.messageId,
@@ -86,7 +87,7 @@ class EbmsMessageRepositoryTest {
     fun `Message details don't get saved if service isn't supported`() {
         val originalMessage = buildTestPayloadMessage("HarBorgerFrikort")
 
-        val savedMessageId = ebmsMessageRepository.saveEbmsMessageDetails(originalMessage)
+        val savedMessageId = ebmsMessageRepository.saveEbmsMessageDetails(originalMessage.toEbmsMessageDetails())
 
         val retrievedMessage = ebmsMessageRepository.getByMessageIdAndCpaId(
             originalMessage.messageId,

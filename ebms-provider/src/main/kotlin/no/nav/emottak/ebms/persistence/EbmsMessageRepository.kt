@@ -10,8 +10,7 @@ import no.nav.emottak.ebms.persistence.EbmsMessageTable.refToMessageId
 import no.nav.emottak.ebms.persistence.EbmsMessageTable.service
 import no.nav.emottak.ebms.persistence.EbmsMessageTable.toPartyId
 import no.nav.emottak.ebms.persistence.EbmsMessageTable.toRole
-import no.nav.emottak.message.model.EbmsMessage
-import no.nav.emottak.message.model.PartyId
+import no.nav.emottak.message.model.EbmsMessageDetails
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -69,32 +68,12 @@ class EbmsMessageRepository(private val database: Database) {
         return ebmsMessageDetails
     }
 
-    fun saveEbmsMessageDetails(message: EbmsMessage): String {
-        if (!unsupportedServices.contains(message.addressing.service)) {
-            val ebmsMessageDetails = EbmsMessageDetails(
-                message.cpaId,
-                message.conversationId,
-                message.messageId,
-                message.refToMessageId,
-                serializePartyId(message.addressing.from.partyId),
-                message.addressing.from.role,
-                serializePartyId(message.addressing.to.partyId),
-                message.addressing.to.role,
-                message.addressing.service,
-                message.addressing.action
-            )
-            return updateOrInsert(ebmsMessageDetails)
+    fun saveEbmsMessageDetails(messageDetails: EbmsMessageDetails): String {
+        return if (!unsupportedServices.contains(messageDetails.service)) {
+            updateOrInsert(messageDetails)
+        } else {
+            ""
         }
-        return ""
-    }
-
-    private fun serializePartyId(partyIDs: List<PartyId>): String {
-        val partyId = partyIDs.firstOrNull { it.type == "orgnummer" }
-            ?: partyIDs.firstOrNull { it.type == "HER" }
-            ?: partyIDs.firstOrNull { it.type == "ENH" }
-            ?: partyIDs.first()
-
-        return "${partyId.type}:${partyId.value}"
     }
 
     fun handleSQLException(exception: SQLException): String {
@@ -105,17 +84,4 @@ class EbmsMessageRepository(private val database: Database) {
             else -> "Unhandled SQL State. Please check the error code and message for more details."
         }
     }
-
-    data class EbmsMessageDetails(
-        val cpaId: String,
-        val conversationId: String,
-        val messageId: String,
-        val refToMessageId: String?,
-        val fromPartyId: String,
-        val fromRole: String?,
-        val toPartyId: String,
-        val toRole: String?,
-        val service: String,
-        val action: String
-    )
 }

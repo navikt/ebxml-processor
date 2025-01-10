@@ -31,6 +31,7 @@ import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.model.PayloadProcessing
 import no.nav.emottak.message.model.SignatureDetails
+import no.nav.emottak.message.model.toEbmsMessageDetails
 import no.nav.emottak.util.marker
 import no.nav.emottak.util.retrieveLoggableHeaderPairs
 import java.sql.SQLException
@@ -343,9 +344,9 @@ fun saveEbmsMessageDetails(
     loggableHeaders: Map<String, String>,
     repository: EbmsMessageRepository
 ) {
-    val ebmsMessage = ebMSDocument.transform()
+    val ebmsMessageDetails = ebMSDocument.transform().toEbmsMessageDetails()
     try {
-        repository.saveEbmsMessageDetails(ebmsMessage)
+        repository.saveEbmsMessageDetails(ebmsMessageDetails)
         log.info(ebMSDocument.messageHeader().marker(loggableHeaders), "Message details saved to database")
     } catch (ex: SQLException) {
         val hint = repository.handleSQLException(ex)
