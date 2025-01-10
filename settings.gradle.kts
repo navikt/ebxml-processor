@@ -20,7 +20,7 @@ dependencyResolutionManagement {
             version("cxf", "3.5.5")
             version("arrow", "1.2.4")
             version("suspendapp", "0.4.0")
-            version("kotlin-kafka", "0.4.0")
+            version("kotlin-kafka", "0.3.1")
             version("hoplite", "2.8.2")
 
             library("bcpkix-jdk18on", "org.bouncycastle", "bcpkix-jdk18on").versionRef("bouncycastle")
