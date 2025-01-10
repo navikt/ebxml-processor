@@ -82,3 +82,5 @@ spec:
       value: "2"
     - name: ASYNC_RECEIVER
       value: "false"
+    - name: VAULT_JDBC_URL
+      value: jdbc:postgresql://A01DBVL037.adeo.no:5432/
