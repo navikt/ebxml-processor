@@ -9,8 +9,6 @@ import arrow.core.raise.result
 import arrow.fx.coroutines.resourceScope
 import com.zaxxer.hikari.HikariConfig
 import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorRuntime
-import io.github.nomisRev.kafka.receiver.KafkaReceiver
-import io.github.nomisRev.kafka.receiver.ReceiverSettings
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.call
@@ -29,29 +27,22 @@ import io.micrometer.prometheus.PrometheusConfig
 import io.micrometer.prometheus.PrometheusMeterRegistry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitCancellation
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import net.logstash.logback.marker.Markers
 import no.nav.emottak.constants.SMTPHeaders
-import no.nav.emottak.ebms.configuration.Kafka
 import no.nav.emottak.ebms.configuration.config
-import no.nav.emottak.ebms.configuration.toProperties
+import no.nav.emottak.ebms.messaging.startSignalReceiver
 import no.nav.emottak.ebms.persistence.Database
 import no.nav.emottak.ebms.persistence.ebmsDbConfig
 import no.nav.emottak.ebms.persistence.ebmsMigrationConfig
 import no.nav.emottak.ebms.processing.ProcessingService
-import no.nav.emottak.ebms.processing.SignalProcessor
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.DokumentValidator
 import no.nav.emottak.util.getEnvVar
 import no.nav.emottak.util.isProdEnv
-import org.apache.kafka.common.serialization.ByteArrayDeserializer
-import org.apache.kafka.common.serialization.StringDeserializer
 import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.time.Instant
-import kotlin.time.Duration.Companion.seconds
 import kotlin.time.toKotlinDuration
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.App")
@@ -89,27 +80,6 @@ fun main() = SuspendApp {
                 else -> log.error("Unexpected shutdown initiated", error)
             }
         }
-}
-
-suspend fun startSignalReceiver(kafka: Kafka) {
-    log.debug("Starting signal message receiver")
-    val receiverSettings: ReceiverSettings<String, ByteArray> =
-        ReceiverSettings(
-            bootstrapServers = kafka.bootstrapServers,
-            keyDeserializer = StringDeserializer(),
-            valueDeserializer = ByteArrayDeserializer(),
-            groupId = kafka.groupId,
-            pollTimeout = 10.seconds,
-            properties = kafka.toProperties()
-        )
-
-    val signalProcessor = SignalProcessor()
-    KafkaReceiver(receiverSettings)
-        .receive(kafka.incomingSignalTopic)
-        .map { record ->
-            signalProcessor.processSignal(record.key(), record.value())
-            record.offset.acknowledge()
-        }.collect()
 }
 
 fun Application.ebmsProviderModule(
