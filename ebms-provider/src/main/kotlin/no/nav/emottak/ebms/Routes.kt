@@ -33,6 +33,7 @@ import no.nav.emottak.message.model.PayloadProcessing
 import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.util.marker
 import no.nav.emottak.util.retrieveLoggableHeaderPairs
+import java.sql.SQLException
 import java.util.UUID
 
 data class PackageRequest(
@@ -180,15 +181,9 @@ fun Route.postEbmsSync(
         return@post
     }
 
+    saveEbmsMessageDetails(ebMSDocument, loggableHeaders, ebmsMessageRepository)
+
     val ebmsMessage = ebMSDocument.transform() as PayloadMessage
-
-    try {
-        ebmsMessageRepository.saveEbmsMessageDetails(ebmsMessage)
-        log.info(ebMSDocument.messageHeader().marker(loggableHeaders), "Message details saved to database")
-    } catch (ex: Exception) {
-        log.error("Error occurred while saving message details to database", ex)
-    }
-
     var signingCertificate: SignatureDetails? = null
     try {
         validator.validateIn(ebmsMessage)
@@ -286,12 +281,7 @@ fun Route.postEbmsAsync(validator: DokumentValidator, processingService: Process
         val ebmsMessage = ebMSDocument.transform()
         log.info(ebMSDocument.messageHeader().marker(loggableHeaders), "Melding mottatt")
 
-        try {
-            ebmsMessageRepository.saveEbmsMessageDetails(ebmsMessage)
-            log.info(ebMSDocument.messageHeader().marker(loggableHeaders), "Message details saved to database")
-        } catch (ex: Exception) {
-            log.error("Error occurred while saving message details to database", ex)
-        }
+        saveEbmsMessageDetails(ebMSDocument, loggableHeaders, ebmsMessageRepository)
 
         try {
             validator
@@ -345,5 +335,22 @@ fun Routing.navCheckStatus() {
 
     get("/internal/status") {
         call.respond(StatusResponse(status = "OK"))
+    }
+}
+
+fun saveEbmsMessageDetails(
+    ebMSDocument: EbMSDocument,
+    loggableHeaders: Map<String, String>,
+    repository: EbmsMessageRepository
+) {
+    val ebmsMessage = ebMSDocument.transform()
+    try {
+        repository.saveEbmsMessageDetails(ebmsMessage)
+        log.info(ebMSDocument.messageHeader().marker(loggableHeaders), "Message details saved to database")
+    } catch (ex: SQLException) {
+        val hint = repository.handleSQLException(ex)
+        log.error("SQL exception ${ex.sqlState} occurred while saving message details to database: $hint", ex)
+    } catch (ex: Exception) {
+        log.error("Error occurred while saving message details to database", ex)
     }
 }

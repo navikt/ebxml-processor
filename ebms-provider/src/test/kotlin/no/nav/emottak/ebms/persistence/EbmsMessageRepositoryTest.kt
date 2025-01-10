@@ -55,7 +55,7 @@ class EbmsMessageRepositoryTest {
     }
 
     @Test
-    fun `Message details save to database`() {
+    fun `Message details get saved to database`() {
         val originalMessage = buildTestPayloadMessage("Inntektsforesporsel")
 
         val savedMessageId = ebmsMessageRepository.saveEbmsMessageDetails(originalMessage)
@@ -72,16 +72,18 @@ class EbmsMessageRepositoryTest {
         Assertions.assertEquals(originalMessage.cpaId, retrievedMessage?.cpaId)
         Assertions.assertEquals(originalMessage.conversationId, retrievedMessage?.conversationId)
         Assertions.assertEquals(originalMessage.refToMessageId, retrievedMessage?.refToMessageId)
-        Assertions.assertEquals(originalMessage.addressing.from.partyId[0].value, retrievedMessage?.fromPartyId)
         Assertions.assertEquals(originalMessage.addressing.from.role, retrievedMessage?.fromRole)
-        Assertions.assertEquals(originalMessage.addressing.to.partyId[0].value, retrievedMessage?.toPartyId)
         Assertions.assertEquals(originalMessage.addressing.to.role, retrievedMessage?.toRole)
         Assertions.assertEquals(originalMessage.addressing.service, retrievedMessage?.service)
         Assertions.assertEquals(originalMessage.addressing.action, retrievedMessage?.action)
+
+        // PartyID serializing check
+        Assertions.assertEquals("orgnummer:456789", retrievedMessage?.fromPartyId)
+        Assertions.assertEquals("HER:123456", retrievedMessage?.toPartyId)
     }
 
     @Test
-    fun `Message details don't save if service isn't supported`() {
+    fun `Message details don't get saved if service isn't supported`() {
         val originalMessage = buildTestPayloadMessage("HarBorgerFrikort")
 
         val savedMessageId = ebmsMessageRepository.saveEbmsMessageDetails(originalMessage)
@@ -106,7 +108,7 @@ class EbmsMessageRepositoryTest {
                 "Fordringshaver"
             ),
             Party(
-                listOf(PartyId("HER", "456789")),
+                listOf(PartyId("orgnummer", "456789")),
                 "Ytelsesutbetaler"
             ),
             service,
