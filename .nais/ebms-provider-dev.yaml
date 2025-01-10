@@ -76,6 +76,8 @@ spec:
       value: "1"
     - name: ASYNC_RECEIVER
       value: "true"
+    - name: VAULT_JDBC_URL
+      value: jdbc:postgresql://b27dbvl033.preprod.local:5432/
   envFrom:
     - secret: ebms-payload-secret
   filesFrom:
