@@ -53,6 +53,8 @@ spec:
     - "https://ebms-provider-fss.intern.nav.no"
   vault:
     enabled: true
+  kafka:
+    pool: nav-prod
 #  gcp:
 #    sqlInstances:
 #        - type: POSTGRES_15
