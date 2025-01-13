@@ -28,14 +28,12 @@ class Processor(
     private val juridiskLogging: JuridiskLoggService = JuridiskLoggService()
 ) {
 
-    suspend fun loggMessageToJuridiskLogg(payloadRequest: PayloadRequest) {
+    suspend fun loggMessageToJuridiskLogg(payloadRequest: PayloadRequest): String? {
+        log.info(payloadRequest.marker(), "Save message to juridisk logg")
         try {
-            if (payloadRequest.processing.processConfig.juridiskLogg) {
-                log.debug(payloadRequest.marker(), "Sender forespørsel til juridisk logg")
-                juridiskLogging.logge(payloadRequest)
-            }
+            return juridiskLogging.logge(payloadRequest)
         } catch (e: Exception) {
-            log.error(payloadRequest.marker(), "Feil med å lage forespørsel til juridisk logg", e)
+            log.error(payloadRequest.marker(), "Exception occurred while saving message to juridisk logg", e)
             throw e
         }
     }

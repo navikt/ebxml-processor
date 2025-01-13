@@ -25,7 +25,8 @@ class JuridiskLoggService() {
     private val userName = getEnvVar("JURIDESKLOGG_USERNAME", "dummyUsername")
     private val userPassword = getEnvVar("JURIDESKLOGG_PASSWORD", "dummyPassword")
 
-    suspend fun logge(payloadRequest: PayloadRequest) {
+    suspend fun logge(payloadRequest: PayloadRequest): String? {
+        var juridiskLoggRecordId: String? = null
         val httpClient = HttpClient(CIO) {
             install(ContentNegotiation) {
                 json()
@@ -42,7 +43,7 @@ class JuridiskLoggService() {
             juridiskLoggStorageTime,
             java.util.Base64.getEncoder().encodeToString(payloadRequest.payload.bytes)
         )
-        log.debug(payloadRequest.marker(), "Juridisk logg forespørsel: $request")
+        log.debug(payloadRequest.marker(), "Juridisk logg request: $request")
 
         withContext(Dispatchers.IO) {
             try {
@@ -51,17 +52,19 @@ class JuridiskLoggService() {
                     contentType(ContentType.Application.Json)
                     basicAuth(userName, userPassword)
                 }.also {
-                    log.debug(payloadRequest.marker(), "Juridisk logg respons: $it")
+                    log.debug(payloadRequest.marker(), "Juridisk logg response: $it")
                 }.body<JuridiskLoggResponse>().also {
-                    log.info(payloadRequest.marker(), "Juridisk logg respons ID ${it.id}")
+                    juridiskLoggRecordId = it.id
                 }
+                log.info(payloadRequest.marker(), "Message saved to juridisk logg")
             } catch (e: Exception) {
-                log.error(payloadRequest.marker(), "Feil med å sende forespørsel til juridisk logg: ${e.message}", e)
+                log.error(payloadRequest.marker(), "Exception occurred during sending message to juridisk logg: ${e.message}", e)
                 throw e
             } finally {
                 httpClient.close()
             }
         }
+        return juridiskLoggRecordId
     }
 }
 
