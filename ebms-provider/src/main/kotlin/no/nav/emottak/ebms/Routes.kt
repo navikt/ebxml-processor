@@ -347,8 +347,13 @@ fun saveEbmsMessageDetails(
     val ebmsMessageDetails = ebMSDocument.transform().toEbmsMessageDetails()
     val markers = ebMSDocument.messageHeader().marker(loggableHeaders)
     try {
-        repository.saveEbmsMessageDetails(ebmsMessageDetails)
-        log.info(markers, "Message details saved to database")
+        repository.saveEbmsMessageDetails(ebmsMessageDetails).also {
+            if (it == "") {
+                log.info(markers, "Message details has not been saved to database")
+            } else {
+                log.info(markers, "Message details saved to database")
+            }
+        }
     } catch (ex: SQLException) {
         val hint = repository.handleSQLException(ex)
         log.error(markers, "SQL exception ${ex.sqlState} occurred while saving message details to database: $hint", ex)
