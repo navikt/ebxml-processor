@@ -20,8 +20,8 @@ import java.sql.SQLException
 class EbmsMessageRepository(private val database: Database) {
 
     val unsupportedServices = listOf(
-        "HarBorgerFrikort"
-        // "HarBorgerEgenandelFritak"
+        "HarBorgerFrikort",
+        "HarBorgerEgenandelFritak"
     )
 
     private fun updateOrInsert(ebmsMessageDetails: EbmsMessageDetails): String {
