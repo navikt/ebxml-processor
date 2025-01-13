@@ -43,7 +43,6 @@ fun Route.postPayload() = post("/payload") {
         }
     }.onSuccess {
         log.info(request.marker(), "Payload prosessert OK <${request.payload.contentId}>")
-        log.debug(request.marker(), "juridisk logg record ID: $juridiskLoggRecordId")
         it.juridiskLoggRecordId = juridiskLoggRecordId
         call.respond(it)
     }.onFailure { error ->
