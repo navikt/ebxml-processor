@@ -33,6 +33,7 @@ import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.configuration.config
 import no.nav.emottak.ebms.messaging.startSignalReceiver
 import no.nav.emottak.ebms.persistence.Database
+import no.nav.emottak.ebms.persistence.EbmsMessageRepository
 import no.nav.emottak.ebms.persistence.ebmsDbConfig
 import no.nav.emottak.ebms.persistence.ebmsMigrationConfig
 import no.nav.emottak.ebms.processing.ProcessingService
@@ -89,6 +90,8 @@ fun Application.ebmsProviderModule(
     val database = Database(dbConfig)
     database.migrate(migrationConfig)
 
+    val ebmsMessageRepository = EbmsMessageRepository(database)
+
     val cpaClient = CpaRepoClient(defaultHttpClient())
     val validator = DokumentValidator(cpaClient)
 
@@ -116,8 +119,8 @@ fun Application.ebmsProviderModule(
         }
         registerHealthEndpoints(appMicrometerRegistry)
         navCheckStatus()
-        postEbmsAsync(validator, processing)
-        postEbmsSync(validator, processing, sendInService)
+        postEbmsAsync(validator, processing, ebmsMessageRepository)
+        postEbmsSync(validator, processing, sendInService, ebmsMessageRepository)
     }
 }
 
