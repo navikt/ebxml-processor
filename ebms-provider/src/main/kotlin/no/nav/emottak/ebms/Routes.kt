@@ -15,6 +15,7 @@ import io.micrometer.prometheus.PrometheusMeterRegistry
 import kotlinx.serialization.Serializable
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.model.signer
+import no.nav.emottak.ebms.persistence.EbmsMessageRepository
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.util.marker
@@ -30,8 +31,10 @@ import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.model.PayloadProcessing
 import no.nav.emottak.message.model.SignatureDetails
+import no.nav.emottak.message.model.toEbmsMessageDetails
 import no.nav.emottak.util.marker
 import no.nav.emottak.util.retrieveLoggableHeaderPairs
+import java.sql.SQLException
 import java.util.UUID
 
 data class PackageRequest(
@@ -144,7 +147,8 @@ fun Route.packageEbxml(
 fun Route.postEbmsSync(
     validator: DokumentValidator,
     processingService: ProcessingService,
-    sendInService: SendInService
+    sendInService: SendInService,
+    ebmsMessageRepository: EbmsMessageRepository
 ): Route = post("/ebms/sync") {
     log.info("Receiving synchronous request")
 
@@ -177,6 +181,8 @@ fun Route.postEbmsSync(
         )
         return@post
     }
+
+    saveEbmsMessageDetails(ebMSDocument, loggableHeaders, ebmsMessageRepository)
 
     val ebmsMessage = ebMSDocument.transform() as PayloadMessage
     var signingCertificate: SignatureDetails? = null
@@ -239,7 +245,7 @@ fun Route.postEbmsSync(
     }
 }
 
-fun Route.postEbmsAsync(validator: DokumentValidator, processingService: ProcessingService): Route =
+fun Route.postEbmsAsync(validator: DokumentValidator, processingService: ProcessingService, ebmsMessageRepository: EbmsMessageRepository): Route =
     post("/ebms/async") {
         // KRAV 5.5.2.1 validate MIME
         val debug: Boolean = call.request.header("debug")?.isNotBlank() ?: false
@@ -274,8 +280,10 @@ fun Route.postEbmsAsync(validator: DokumentValidator, processingService: Process
         // TODO gjøre dette bedre
         val loggableHeaders = call.request.headers.retrieveLoggableHeaderPairs()
         val ebmsMessage = ebMSDocument.transform()
-
         log.info(ebMSDocument.messageHeader().marker(loggableHeaders), "Melding mottatt")
+
+        saveEbmsMessageDetails(ebMSDocument, loggableHeaders, ebmsMessageRepository)
+
         try {
             validator
                 .validateIn(ebmsMessage)
@@ -328,5 +336,28 @@ fun Routing.navCheckStatus() {
 
     get("/internal/status") {
         call.respond(StatusResponse(status = "OK"))
+    }
+}
+
+fun saveEbmsMessageDetails(
+    ebMSDocument: EbMSDocument,
+    loggableHeaders: Map<String, String>,
+    repository: EbmsMessageRepository
+) {
+    val ebmsMessageDetails = ebMSDocument.transform().toEbmsMessageDetails()
+    val markers = ebMSDocument.messageHeader().marker(loggableHeaders)
+    try {
+        repository.saveEbmsMessageDetails(ebmsMessageDetails).also {
+            if (it == "") {
+                log.info(markers, "Message details has not been saved to database")
+            } else {
+                log.info(markers, "Message details saved to database")
+            }
+        }
+    } catch (ex: SQLException) {
+        val hint = repository.handleSQLException(ex)
+        log.error(markers, "SQL exception ${ex.sqlState} occurred while saving message details to database: $hint", ex)
+    } catch (ex: Exception) {
+        log.error(markers, "Error occurred while saving message details to database", ex)
     }
 }
