@@ -46,7 +46,8 @@ data class PayloadRequest(
 data class PayloadResponse(
     val processedPayload: Payload? = null,
     val error: Feil? = null,
-    val apprec: Boolean = false
+    val apprec: Boolean = false,
+    var juridiskLoggRecordId: String? = null
 )
 
 @Serializable
