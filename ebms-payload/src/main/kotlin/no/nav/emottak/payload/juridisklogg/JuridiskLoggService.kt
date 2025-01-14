@@ -8,6 +8,7 @@ import io.ktor.client.request.basicAuth
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.Dispatchers
@@ -47,16 +48,19 @@ class JuridiskLoggService() {
 
         withContext(Dispatchers.IO) {
             try {
-                httpClient.post(juridiskLoggUrl) {
+                val httpResponse = httpClient.post(juridiskLoggUrl) {
                     setBody(request)
                     contentType(ContentType.Application.Json)
                     basicAuth(userName, userPassword)
-                }.also {
-                    log.debug(payloadRequest.marker(), "Juridisk logg response: $it")
-                }.body<JuridiskLoggResponse>().also {
-                    juridiskLoggRecordId = it.id
                 }
-                log.info(payloadRequest.marker(), "Message saved to juridisk logg")
+                log.debug(payloadRequest.marker(), "Juridisk logg response: $httpResponse")
+
+                if (httpResponse.status == HttpStatusCode.OK) {
+                    juridiskLoggRecordId = httpResponse.body<JuridiskLoggResponse>().id
+                    log.info(payloadRequest.marker(), "Message saved to juridisk logg")
+                } else {
+                    log.info(payloadRequest.marker(), "Failed to save message to juridisk logg: $httpResponse")
+                }
             } catch (e: Exception) {
                 log.error(payloadRequest.marker(), "Exception occurred during sending message to juridisk logg: ${e.message}", e)
                 throw e
