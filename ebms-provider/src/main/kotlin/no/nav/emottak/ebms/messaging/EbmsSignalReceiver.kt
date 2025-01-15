@@ -12,8 +12,8 @@ import org.apache.kafka.common.serialization.ByteArrayDeserializer
 import org.apache.kafka.common.serialization.StringDeserializer
 import kotlin.time.Duration.Companion.seconds
 
-suspend fun startSignalReceiver(kafka: Kafka) {
-    log.info("Starting signal message receiver on topic ${kafka.incomingSignalTopic}")
+suspend fun startSignalReceiver(topic: String, kafka: Kafka) {
+    log.info("Starting signal message receiver on topic $topic")
     val receiverSettings: ReceiverSettings<String, ByteArray> =
         ReceiverSettings(
             bootstrapServers = kafka.bootstrapServers,
@@ -26,7 +26,7 @@ suspend fun startSignalReceiver(kafka: Kafka) {
 
     val signalProcessor = SignalProcessor()
     KafkaReceiver(receiverSettings)
-        .receive(kafka.incomingSignalTopic)
+        .receive(topic)
         .map { record ->
             signalProcessor.processSignal(record.key(), record.value())
             record.offset.acknowledge()

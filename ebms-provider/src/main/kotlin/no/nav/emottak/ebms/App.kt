@@ -57,9 +57,9 @@ fun main() = SuspendApp {
         DecoroutinatorRuntime.load()
     }
     val config = config()
-    if (getEnvVar("ASYNC_RECEIVER", "false").toBoolean()) {
+    if (config.kafkaSignalReceiver.active) {
         launch(Dispatchers.IO) {
-            startSignalReceiver(config.kafka)
+            startSignalReceiver(config.kafkaSignalReceiver.topic, config.kafka)
         }
     }
     result {

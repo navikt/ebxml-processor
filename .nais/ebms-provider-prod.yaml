@@ -82,7 +82,7 @@ spec:
       value: "4"
     - name: MAX_CONNECTION_POOL_SIZE_FOR_ADMIN
       value: "2"
-    - name: ASYNC_RECEIVER
+    - name: SIGNAL_RECEIVER
       value: "false"
     - name: VAULT_JDBC_URL
       value: jdbc:postgresql://A01DBVL037.adeo.no:5432/
