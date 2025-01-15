@@ -1,10 +1,8 @@
 package no.nav.emottak.payload
 
 import no.nav.emottak.crypto.KeyStore
-import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadRequest
-import no.nav.emottak.message.model.PayloadResponse
 import no.nav.emottak.payload.crypto.Dekryptering
 import no.nav.emottak.payload.crypto.Kryptering
 import no.nav.emottak.payload.crypto.PayloadSignering
@@ -21,7 +19,6 @@ import no.nav.emottak.util.signatur.SignaturVerifisering
 import java.io.ByteArrayInputStream
 
 val processor = Processor()
-
 class Processor(
     private val kryptering: Kryptering = Kryptering(),
     private val dekryptering: Dekryptering = Dekryptering(),
@@ -31,67 +28,49 @@ class Processor(
     private val juridiskLogging: JuridiskLoggService = JuridiskLoggService()
 ) {
 
-    suspend fun process(payloadRequest: PayloadRequest): PayloadResponse {
-        val processedPayload = when (payloadRequest.direction) {
-            Direction.IN -> processIncoming(payloadRequest)
-            Direction.OUT -> processOutgoing(payloadRequest)
-            else -> throw RuntimeException("Direction can be either IN or Out")
+    suspend fun loggMessageToJuridiskLogg(payloadRequest: PayloadRequest): String? {
+        log.info(payloadRequest.marker(), "Save message to juridisk logg")
+        try {
+            return juridiskLogging.logge(payloadRequest)
+        } catch (e: Exception) {
+            log.error(payloadRequest.marker(), "Exception occurred while saving message to juridisk logg", e)
+            throw e
         }
-        return PayloadResponse(
-            processedPayload
+    }
+
+    fun convertToReadablePayload(payload: Payload, encrypted: Boolean, compressed: Boolean): Payload {
+        return payload.copy(
+            bytes = payload.bytes.let {
+                when (encrypted) {
+                    true -> dekryptering.dekrypter(it, false)
+                    false -> it
+                }
+            }.let {
+                when (compressed) {
+                    true -> gZipUtil.uncompress(it)
+                    false -> it
+                }
+            }
         )
     }
 
-    private suspend fun processIncoming(payloadRequest: PayloadRequest): Payload {
-        val processConfig = payloadRequest.processing.processConfig
-            ?: throw RuntimeException("Processing configuration not defined for message with Id ${payloadRequest.messageId}")
-
-        loggMessageToJuridiskLogg(payloadRequest)
-
-        return payloadRequest.payload.let {
-            when (processConfig.kryptering) {
-                true -> dekryptering.dekrypter(it.bytes, false)
-                    .also { log.info(payloadRequest.marker(), "Payload dekryptert") }
-
-                false -> it.bytes
-            }
-        }.let {
-            when (processConfig.komprimering) {
-                true -> gZipUtil.uncompress(it).also { log.info(payloadRequest.marker(), "Payload dekomprimert") }
-                false -> it
-            }
-        }.let {
-            if (processConfig.signering) {
-                signatureVerifisering.validate(it)
-                log.info(payloadRequest.marker(), "Payload signatur verifisert")
-            }
-            it
-        }.let {
-            payloadRequest.payload.copy(bytes = it)
-        }.let {
-            if (processConfig.ocspSjekk) {
-                val signedOf =
-                    OcspStatusService(
-                        defaultHttpClient().invoke(),
-                        KeyStore(payloadSigneringConfig()),
-                        KeyStore(trustStoreConfig())
-                    ).getOCSPStatus(
-                        createDocument(ByteArrayInputStream(it.bytes))
-                            .retrieveSignatureElement().keyInfo.x509Certificate
-                    ).fnr
-                it.copy(signedOf = signedOf)
-            } else {
-                it
-            }
+    suspend fun validateReadablePayload(payload: Payload, validateSignature: Boolean, validateOcsp: Boolean): Payload {
+        if (validateSignature) {
+            signatureVerifisering.validate(payload.bytes)
+        }
+        return if (validateOcsp) {
+            val dom = createDocument(ByteArrayInputStream(payload.bytes))
+            val xmlSignature = dom.retrieveSignatureElement()
+            val certificateFromSignature = xmlSignature.keyInfo.x509Certificate
+            val signedBy = OcspStatusService(defaultHttpClient().invoke(), KeyStore(payloadSigneringConfig()), KeyStore(trustStoreConfig())).getOCSPStatus(certificateFromSignature).fnr
+            payload.copy(signedBy = signedBy)
+        } else {
+            payload
         }
     }
 
-    private suspend fun processOutgoing(payloadRequest: PayloadRequest): Payload {
+    fun processOutgoing(payloadRequest: PayloadRequest): Payload {
         val processConfig = payloadRequest.processing.processConfig
-            ?: throw RuntimeException("Processing configuration not defined for message with Id ${payloadRequest.messageId}")
-
-        loggMessageToJuridiskLogg(payloadRequest)
-
         return payloadRequest.payload.let {
             when (processConfig.signering) {
                 true -> {
@@ -103,7 +82,6 @@ class Processor(
                     )
                         .also { log.info(payloadRequest.marker(), "Payload signert") }
                 }
-
                 false -> it.bytes
             }
         }.let {
@@ -119,21 +97,8 @@ class Processor(
                         payloadRequest.payload.copy(bytes = it, contentType = "application/pkcs7-mime")
                     }
                 }
-
                 false -> payloadRequest.payload.copy(bytes = it)
             }
-        }
-    }
-
-    private suspend fun loggMessageToJuridiskLogg(payloadRequest: PayloadRequest) {
-        try {
-            if (payloadRequest.processing.processConfig!!.juridiskLogg) {
-                log.debug(payloadRequest.marker(), "Sender forespørsel til juridisk logg")
-                juridiskLogging.logge(payloadRequest)
-            }
-        } catch (e: Exception) {
-            log.error(payloadRequest.marker(), "Feil med å lage forespørsel til juridisk logg", e)
-            throw e
         }
     }
 }

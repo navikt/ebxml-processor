@@ -46,13 +46,14 @@ data class PayloadRequest(
 data class PayloadResponse(
     val processedPayload: Payload? = null,
     val error: Feil? = null,
-    val apprec: Boolean = false
+    val apprec: Boolean = false,
+    var juridiskLoggRecordId: String? = null
 )
 
 @Serializable
 data class Feil(val code: ErrorCode,
-                val descriptionText:String,
-                val sevirity:String? = null) {
+                val descriptionText: String,
+                val severity: String? = null) {
 
     fun asEbxmlError(location: String? = null):org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Error {
             val error = org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Error()
@@ -62,7 +63,7 @@ data class Feil(val code: ErrorCode,
             description.value = descriptionText
             error.description = description
 
-            error.severity = this.sevirity.takeIf { sevirity!=null}?.let {
+            error.severity = this.severity.takeIf { severity!=null}?.let {
                 SeverityType.fromValue(it) } ?: SeverityType.ERROR
             error.location = location // Content-ID hvis error er i Payload. Hvis ebxml så er det XPath
             error.id = "ERROR_ID" // Element Id
@@ -99,7 +100,7 @@ data class ValidationResult(
 data class PayloadProcessing(
     val signingCertificate: SignatureDetails,
     val encryptionCertificate: ByteArray,
-    val processConfig: ProcessConfig? = null,
+    val processConfig: ProcessConfig,
 )
 
 @Serializable
@@ -163,7 +164,7 @@ data class EmailAddress(
 
 
 @Serializable
-data class Payload(val bytes: ByteArray, val contentType: String, val contentId: String = "att-${createUniqueMimeMessageId()}", val signedOf :String? = null)
+data class Payload(val bytes: ByteArray, val contentType: String, val contentId: String = "att-${createUniqueMimeMessageId()}", val signedBy: String? = null)
 
 typealias EbmsAttachment = Payload
 
@@ -213,7 +214,7 @@ fun List<Feil>.asErrorList(): ErrorList {
     }
 
     return this.map {
-        it.code.createEbxmlError(it.descriptionText,  if (it.sevirity!=null)  SeverityType.fromValue(it.sevirity) else null)
+        it.code.createEbxmlError(it.descriptionText,  if (it.severity!=null)  SeverityType.fromValue(it.severity) else null)
     }.asErrorList()
 }
 

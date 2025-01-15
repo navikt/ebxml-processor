@@ -3,6 +3,7 @@
  */
 package no.nav.emottak.ebms
 
+import com.zaxxer.hikari.HikariConfig
 import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorRuntime
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
@@ -22,6 +23,10 @@ import io.micrometer.prometheus.PrometheusConfig
 import io.micrometer.prometheus.PrometheusMeterRegistry
 import net.logstash.logback.marker.Markers
 import no.nav.emottak.constants.SMTPHeaders
+import no.nav.emottak.ebms.persistence.Database
+import no.nav.emottak.ebms.persistence.EbmsMessageRepository
+import no.nav.emottak.ebms.persistence.ebmsDbConfig
+import no.nav.emottak.ebms.persistence.ebmsMigrationConfig
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.DokumentValidator
@@ -42,12 +47,25 @@ fun main() {
     if (getEnvVar("NAIS_CLUSTER_NAME", "local") != "prod-fss") {
         DecoroutinatorRuntime.load()
     }
-    embeddedServer(Netty, port = 8080, module = Application::ebmsProviderModule, configure = {
-        this.maxChunkSize = 100000
-    }).start(wait = true)
+    embeddedServer(
+        Netty,
+        port = 8080,
+        module = { ebmsProviderModule(ebmsDbConfig.value, ebmsMigrationConfig.value) },
+        configure = {
+            this.maxChunkSize = 100000
+        }
+    ).start(wait = true)
 }
 
-fun Application.ebmsProviderModule() {
+fun Application.ebmsProviderModule(
+    dbConfig: HikariConfig,
+    migrationConfig: HikariConfig
+) {
+    val database = Database(dbConfig)
+    database.migrate(migrationConfig)
+
+    val ebmsMessageRepository = EbmsMessageRepository(database)
+
     val cpaClient = CpaRepoClient(defaultHttpClient())
     val validator = DokumentValidator(cpaClient)
 
@@ -75,8 +93,8 @@ fun Application.ebmsProviderModule() {
         }
         registerHealthEndpoints(appMicrometerRegistry)
         navCheckStatus()
-        postEbmsAsync(validator, processing)
-        postEbmsSync(validator, processing, sendInService)
+        postEbmsAsync(validator, processing, ebmsMessageRepository)
+        postEbmsSync(validator, processing, sendInService, ebmsMessageRepository)
     }
 }
 

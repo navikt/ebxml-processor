@@ -169,7 +169,7 @@ class PayloadIntegrationTest {
         }
         assertEquals(HttpStatusCode.OK, httpResponse.status)
         assertNull(httpResponse.body<PayloadResponse>().error)
-        assertEquals(ssn, httpResponse.body<PayloadResponse>().processedPayload!!.signedOf)
+        assertEquals(ssn, httpResponse.body<PayloadResponse>().processedPayload!!.signedBy)
     }
 
     private fun getToken(audience: String = AuthConfig.getScope()): SignedJWT = mockOAuth2Server.issueToken(
