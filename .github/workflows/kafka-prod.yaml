@@ -1,18 +1,13 @@
-name: Deploy kafka topics to dev
+name: Deploy kafka topics to PROD
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - 'main'
-    paths:
-      - '.nais/kafka/kafka-dev.yaml'
-      - '.github/workflows/kafka-dev.yaml'
+
 env:
-  TOPIC_FILE: .nais/kafka/kafka-dev.yaml
+  TOPIC_FILE: .nais/kafka/kafka-prod.yaml
 
 jobs:
-  deploy-to-dev:
-    name: Deploy to dev-gcp
+  deploy-to-prod:
+    name: Deploy to prod-gcp
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -20,9 +15,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Deploy topics to dev
+      - name: Deploy topics to PROD
         uses: nais/deploy/actions/deploy@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CLUSTER: dev-gcp
+          CLUSTER: prod-gcp
           RESOURCE: ${{ env.TOPIC_FILE }}
