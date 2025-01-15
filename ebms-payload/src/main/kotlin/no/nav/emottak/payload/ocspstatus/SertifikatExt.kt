@@ -14,6 +14,7 @@ import javax.naming.ldap.Rdn
 import javax.security.auth.x500.X500Principal
 
 private val policyIdVirksomhet = listOf(
+    "[2.16.578.1.26.1.0.9.9]", // Nav Test CA
     "[2.16.578.1.26.1.0.3.2]", // buypass.test.policy.id.agency
     "[2.16.578.1.26.1.3.2]", // buypass.prod.policy.id.agency
     "[2.16.578.1.29.13.1.1.0]", // commfides.prod.policy.id.agency
@@ -56,7 +57,7 @@ internal fun X509Certificate.getOrganizationNumber(): String? {
 }
 
 internal fun X509Certificate.isVirksomhetssertifikat(): Boolean {
-    val bytes = this.getExtensionValue(Extension.certificatePolicies.id)
+    val bytes = this.getExtensionValue(Extension.certificatePolicies.id) // TODO lag et sertifikat med extension for å test
     val octetString = ASN1Primitive.fromByteArray(bytes) as ASN1OctetString
     val policies = ASN1Primitive.fromByteArray(octetString.octets) as DLSequence
     return policies.map { policy ->

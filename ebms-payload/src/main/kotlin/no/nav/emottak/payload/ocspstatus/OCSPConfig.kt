@@ -12,13 +12,13 @@ import java.time.LocalDateTime
 var certificateAuthorities: CertificateAuthorities = run {
     val mapper = ObjectMapper(YAMLFactory())
     mapper.registerModules(KotlinModule.Builder().build())
-    val input = ClassLoader.getSystemResourceAsStream("caList-dev.yaml")
+    val input = ClassLoader.getSystemResourceAsStream("caList-dev.yaml") // TODO denne er vel i bruk i prod også?
     mapper.readValue(input, CertificateAuthorities::class.java)
 }
 
 internal fun trustStoreConfig() = FileKeyStoreConfig(
     keyStoreFilePath = getEnvVar("TRUSTSTORE_PATH", resolveDefaultTruststorePath()),
-    keyStorePass = getEnvVar("TRUSTSTORE_PWD", "123456789").toCharArray(),
+    keyStorePass = getEnvVar("TRUSTSTORE_PWD", "changeit").toCharArray(),
     keyStoreType = "PKCS12"
 )
 data class CAHolder(

@@ -58,6 +58,7 @@ dependencies {
     testImplementation(testLibs.junit.jupiter.api)
     testImplementation(testLibs.ktor.server.test.host)
     testImplementation(testLibs.mock.oauth2.server)
+    testImplementation(testLibs.mockk.jvm)
     testRuntimeOnly(testLibs.junit.jupiter.engine)
     implementation(kotlin("stdlib-jdk8"))
 }

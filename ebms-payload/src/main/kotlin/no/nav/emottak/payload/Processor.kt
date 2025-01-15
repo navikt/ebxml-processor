@@ -70,14 +70,15 @@ class Processor(
             payloadRequest.payload.copy(bytes = it)
         }.let {
             if (processConfig.ocspSjekk) {
-                val dom = createDocument(ByteArrayInputStream(it.bytes))
-                val signature = dom.retrieveSignatureElement()
-                val certificateFromSignature = signature.keyInfo.x509Certificate
-                val signedOf = OcspStatusService(
-                    defaultHttpClient().invoke(),
-                    KeyStore(payloadSigneringConfig()),
-                    KeyStore(trustStoreConfig())
-                ).getOCSPStatus(certificateFromSignature).fnr
+                val signedOf =
+                    OcspStatusService(
+                        defaultHttpClient().invoke(),
+                        KeyStore(payloadSigneringConfig()),
+                        KeyStore(trustStoreConfig())
+                    ).getOCSPStatus(
+                        createDocument(ByteArrayInputStream(it.bytes))
+                            .retrieveSignatureElement().keyInfo.x509Certificate
+                    ).fnr
                 it.copy(signedOf = signedOf)
             } else {
                 it

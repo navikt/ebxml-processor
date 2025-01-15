@@ -38,7 +38,7 @@ import java.security.cert.X509Certificate
 fun resolveDefaultTruststorePath(): String? {
     return when (getEnvVar("NAIS_CLUSTER_NAME", "lokaltest")) {
         "dev-fss", "prod-fss" -> null
-        else -> "truststore.p12" // basically lokal test
+        else -> "keystore/test_truststore2024.p12" // basically lokal test
     }
 }
 
@@ -103,9 +103,11 @@ class OcspStatusService(
 
             ocspReqBuilder.setRequestorName(GeneralName(GeneralName.directoryName, requestorName))
             val signerAlias = getSignerAlias(providerName)
-            return ocspReqBuilder.build(
+            return ocspReqBuilder.build( // TODO Feiler her fordi feil signer-alias hentes ut man må hente nav sitt signer alias
                 JcaContentSignerBuilder("SHA256WITHRSAENCRYPTION").setProvider(bcProvider)
-                    .build(signeringKeyStore.getKey(signerAlias.also { log.debug("(OCSP) Checking truststore for alias: $signerAlias") })), // TODO NPE
+                    .build(
+                        signeringKeyStore.getKey(signerAlias.also { log.debug("(OCSP) Checking keystore for alias: $signerAlias") })
+                    ), // TODO NPE
                 signeringKeyStore.getCertificateChain(signerAlias)
             ).also {
                 log.debug("OCSP Request created")
@@ -127,7 +129,7 @@ class OcspStatusService(
 
     private fun getOcspResponderCertificate(certificateIssuer: String): X509Certificate {
         trustStore.aliases().toList().forEach { alias ->
-            log.debug("(OCSP) Checking alias:$alias")
+            log.debug("(OCSP) Checking truststore alias: $alias")
             val cert = trustStore.getCertificate(alias) as X509Certificate
             if (cert.subjectX500Principal.name == certificateIssuer) {
                 log.debug("(OCSP) Found certificate. Alias: $alias")
