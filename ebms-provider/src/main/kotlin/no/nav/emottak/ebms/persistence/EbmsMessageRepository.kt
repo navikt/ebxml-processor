@@ -12,10 +12,10 @@ import no.nav.emottak.ebms.persistence.EbmsMessageTable.toPartyId
 import no.nav.emottak.ebms.persistence.EbmsMessageTable.toRole
 import no.nav.emottak.message.model.EbmsMessageDetails
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.upsert
 import java.sql.SQLException
+import java.util.UUID
 
 class EbmsMessageRepository(private val database: Database) {
 
@@ -24,9 +24,10 @@ class EbmsMessageRepository(private val database: Database) {
         "HarBorgerEgenandelFritak"
     )
 
-    private fun updateOrInsert(ebmsMessageDetails: EbmsMessageDetails): String {
+    private fun updateOrInsert(ebmsMessageDetails: EbmsMessageDetails): UUID {
         transaction(database.db) {
-            EbmsMessageTable.upsert(EbmsMessageTable.messageId, EbmsMessageTable.cpaId) {
+            EbmsMessageTable.upsert(EbmsMessageTable.referenceId) {
+                it[referenceId] = ebmsMessageDetails.referenceId
                 it[cpaId] = ebmsMessageDetails.cpaId
                 it[conversationId] = ebmsMessageDetails.conversationId
                 it[messageId] = ebmsMessageDetails.messageId
@@ -39,19 +40,20 @@ class EbmsMessageRepository(private val database: Database) {
                 it[action] = ebmsMessageDetails.action
             }
         }
-        return ebmsMessageDetails.messageId
+        return ebmsMessageDetails.referenceId
     }
 
-    fun getByMessageIdAndCpaId(messageId: String, cpaId: String): EbmsMessageDetails? {
+    fun getByReferenceId(referenceId: UUID): EbmsMessageDetails? {
         var ebmsMessageDetails: EbmsMessageDetails? = null
 
         transaction(database.db) {
             EbmsMessageTable
                 .select(EbmsMessageTable.columns)
-                .where { (EbmsMessageTable.messageId.eq(messageId)) and (EbmsMessageTable.cpaId.eq(cpaId)) }
+                .where { EbmsMessageTable.referenceId.eq(referenceId) }
                 .firstOrNull()
                 ?.also {
                     ebmsMessageDetails = EbmsMessageDetails(
+                        it[EbmsMessageTable.referenceId],
                         it[EbmsMessageTable.cpaId],
                         it[EbmsMessageTable.conversationId],
                         it[EbmsMessageTable.messageId],
@@ -68,11 +70,11 @@ class EbmsMessageRepository(private val database: Database) {
         return ebmsMessageDetails
     }
 
-    fun saveEbmsMessageDetails(messageDetails: EbmsMessageDetails): String {
+    fun saveEbmsMessageDetails(messageDetails: EbmsMessageDetails): UUID? {
         return if (!unsupportedServices.contains(messageDetails.service)) {
             updateOrInsert(messageDetails)
         } else {
-            ""
+            null
         }
     }
 

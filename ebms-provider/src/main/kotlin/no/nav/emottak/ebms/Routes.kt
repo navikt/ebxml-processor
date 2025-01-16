@@ -348,7 +348,7 @@ fun saveEbmsMessageDetails(
     val markers = ebMSDocument.messageHeader().marker(loggableHeaders)
     try {
         repository.saveEbmsMessageDetails(ebmsMessageDetails).also {
-            if (it == "") {
+            if (it == null) {
                 log.info(markers, "Message details has not been saved to database")
             } else {
                 log.info(markers, "Message details saved to database")

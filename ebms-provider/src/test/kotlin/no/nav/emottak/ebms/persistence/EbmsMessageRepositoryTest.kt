@@ -50,7 +50,7 @@ class EbmsMessageRepositoryTest {
 
         DriverManager.getConnection(jdbcUrl, username, password).use { connection ->
             connection.createStatement().use { statement ->
-                statement.execute("TRUNCATE TABLE ebms_message")
+                statement.execute("DELETE FROM ebms_message_details")
             }
         }
     }
@@ -58,15 +58,13 @@ class EbmsMessageRepositoryTest {
     @Test
     fun `Message details get saved to database`() {
         val originalMessage = buildTestPayloadMessage("Inntektsforesporsel")
+        val originalMessageDetails = originalMessage.toEbmsMessageDetails()
 
-        val savedMessageId = ebmsMessageRepository.saveEbmsMessageDetails(originalMessage.toEbmsMessageDetails())
+        val savedMessageReferenceId = ebmsMessageRepository.saveEbmsMessageDetails(originalMessageDetails)
 
-        val retrievedMessage = ebmsMessageRepository.getByMessageIdAndCpaId(
-            originalMessage.messageId,
-            originalMessage.cpaId
-        )
+        val retrievedMessage = ebmsMessageRepository.getByReferenceId(originalMessageDetails.referenceId)
 
-        Assertions.assertEquals(originalMessage.messageId, savedMessageId)
+        Assertions.assertNotNull(savedMessageReferenceId)
 
         Assertions.assertNotNull(retrievedMessage)
         Assertions.assertEquals(originalMessage.messageId, retrievedMessage?.messageId)
@@ -86,15 +84,13 @@ class EbmsMessageRepositoryTest {
     @Test
     fun `Message details don't get saved if service isn't supported`() {
         val originalMessage = buildTestPayloadMessage("HarBorgerFrikort")
+        val originalMessageDetails = originalMessage.toEbmsMessageDetails()
 
-        val savedMessageId = ebmsMessageRepository.saveEbmsMessageDetails(originalMessage.toEbmsMessageDetails())
+        val savedMessageReferenceId = ebmsMessageRepository.saveEbmsMessageDetails(originalMessageDetails)
 
-        val retrievedMessage = ebmsMessageRepository.getByMessageIdAndCpaId(
-            originalMessage.messageId,
-            originalMessage.cpaId
-        )
+        val retrievedMessage = ebmsMessageRepository.getByReferenceId(originalMessageDetails.referenceId)
 
-        Assertions.assertEquals("", savedMessageId)
+        Assertions.assertNull(savedMessageReferenceId)
         Assertions.assertNull(retrievedMessage)
     }
 
