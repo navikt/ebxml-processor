@@ -1,23 +1,22 @@
 package no.nav.emottak.ebms.persistence
 
-import no.nav.emottak.ebms.persistence.EbmsMessageTable.action
-import no.nav.emottak.ebms.persistence.EbmsMessageTable.conversationId
-import no.nav.emottak.ebms.persistence.EbmsMessageTable.cpaId
-import no.nav.emottak.ebms.persistence.EbmsMessageTable.fromPartyId
-import no.nav.emottak.ebms.persistence.EbmsMessageTable.fromRole
-import no.nav.emottak.ebms.persistence.EbmsMessageTable.messageId
-import no.nav.emottak.ebms.persistence.EbmsMessageTable.refToMessageId
-import no.nav.emottak.ebms.persistence.EbmsMessageTable.service
-import no.nav.emottak.ebms.persistence.EbmsMessageTable.toPartyId
-import no.nav.emottak.ebms.persistence.EbmsMessageTable.toRole
+import no.nav.emottak.ebms.persistence.EbmsMessageDetailsTable.action
+import no.nav.emottak.ebms.persistence.EbmsMessageDetailsTable.conversationId
+import no.nav.emottak.ebms.persistence.EbmsMessageDetailsTable.cpaId
+import no.nav.emottak.ebms.persistence.EbmsMessageDetailsTable.fromPartyId
+import no.nav.emottak.ebms.persistence.EbmsMessageDetailsTable.fromRole
+import no.nav.emottak.ebms.persistence.EbmsMessageDetailsTable.messageId
+import no.nav.emottak.ebms.persistence.EbmsMessageDetailsTable.refToMessageId
+import no.nav.emottak.ebms.persistence.EbmsMessageDetailsTable.service
+import no.nav.emottak.ebms.persistence.EbmsMessageDetailsTable.toPartyId
+import no.nav.emottak.ebms.persistence.EbmsMessageDetailsTable.toRole
 import no.nav.emottak.message.model.EbmsMessageDetails
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.upsert
 import java.sql.SQLException
 import java.util.UUID
 
-class EbmsMessageRepository(private val database: Database) {
+class EbmsMessageDetailsRepository(private val database: Database) {
 
     val unsupportedServices = listOf(
         "HarBorgerFrikort",
@@ -26,7 +25,7 @@ class EbmsMessageRepository(private val database: Database) {
 
     private fun updateOrInsert(ebmsMessageDetails: EbmsMessageDetails): UUID {
         transaction(database.db) {
-            EbmsMessageTable.upsert(EbmsMessageTable.referenceId) {
+            EbmsMessageDetailsTable.upsert(EbmsMessageDetailsTable.referenceId) {
                 it[referenceId] = ebmsMessageDetails.referenceId
                 it[cpaId] = ebmsMessageDetails.cpaId
                 it[conversationId] = ebmsMessageDetails.conversationId
@@ -47,23 +46,23 @@ class EbmsMessageRepository(private val database: Database) {
         var ebmsMessageDetails: EbmsMessageDetails? = null
 
         transaction(database.db) {
-            EbmsMessageTable
-                .select(EbmsMessageTable.columns)
-                .where { EbmsMessageTable.referenceId.eq(referenceId) }
+            EbmsMessageDetailsTable
+                .select(EbmsMessageDetailsTable.columns)
+                .where { EbmsMessageDetailsTable.referenceId.eq(referenceId) }
                 .firstOrNull()
                 ?.also {
                     ebmsMessageDetails = EbmsMessageDetails(
-                        it[EbmsMessageTable.referenceId],
-                        it[EbmsMessageTable.cpaId],
-                        it[EbmsMessageTable.conversationId],
-                        it[EbmsMessageTable.messageId],
-                        it[EbmsMessageTable.refToMessageId],
-                        it[EbmsMessageTable.fromPartyId],
-                        it[EbmsMessageTable.fromRole],
-                        it[EbmsMessageTable.toPartyId],
-                        it[EbmsMessageTable.toRole],
-                        it[EbmsMessageTable.service],
-                        it[EbmsMessageTable.action]
+                        it[EbmsMessageDetailsTable.referenceId],
+                        it[cpaId],
+                        it[conversationId],
+                        it[messageId],
+                        it[refToMessageId],
+                        it[fromPartyId],
+                        it[fromRole],
+                        it[toPartyId],
+                        it[toRole],
+                        it[service],
+                        it[action]
                     )
                 }
         }

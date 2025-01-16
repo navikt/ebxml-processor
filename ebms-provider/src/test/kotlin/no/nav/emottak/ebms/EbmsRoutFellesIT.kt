@@ -16,7 +16,7 @@ import io.mockk.coVerify
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.runs
-import no.nav.emottak.ebms.persistence.EbmsMessageRepository
+import no.nav.emottak.ebms.persistence.EbmsMessageDetailsRepository
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.DokumentValidator
@@ -43,7 +43,7 @@ abstract class EbmsRoutFellesIT(val endpoint: String) {
 
     val validMultipartRequest = validMultipartRequest()
     val processingService = mockk<ProcessingService>()
-    val ebmsMessageRepository = mockk<EbmsMessageRepository>()
+    val ebmsMessageDetailsRepository = mockk<EbmsMessageDetailsRepository>()
     val mockProcessConfig = ProcessConfig(
         true,
         true,
@@ -72,8 +72,8 @@ abstract class EbmsRoutFellesIT(val endpoint: String) {
                 processingService.processAsync(any(), any())
             } just runs
             routing {
-                postEbmsSync(dokumentValidator, processingService, SendInService(sendInClient), ebmsMessageRepository)
-                postEbmsAsync(dokumentValidator, processingService, ebmsMessageRepository)
+                postEbmsSync(dokumentValidator, processingService, SendInService(sendInClient), ebmsMessageDetailsRepository)
+                postEbmsAsync(dokumentValidator, processingService, ebmsMessageDetailsRepository)
             }
         }
         externalServices {

@@ -4,7 +4,7 @@ import org.jetbrains.exposed.sql.Column
 import org.jetbrains.exposed.sql.Table
 import java.util.UUID
 
-object EbmsMessageTable : Table("ebms_message_details") {
+object EbmsMessageDetailsTable : Table("ebms_message_details") {
     val referenceId: Column<UUID> = uuid("reference_id")
     val cpaId: Column<String> = varchar("cpa_id", 256)
     val conversationId: Column<String> = varchar("conversation_id", 256)

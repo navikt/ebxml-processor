@@ -15,7 +15,7 @@ import io.micrometer.prometheus.PrometheusMeterRegistry
 import kotlinx.serialization.Serializable
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.model.signer
-import no.nav.emottak.ebms.persistence.EbmsMessageRepository
+import no.nav.emottak.ebms.persistence.EbmsMessageDetailsRepository
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.util.marker
@@ -148,7 +148,7 @@ fun Route.postEbmsSync(
     validator: DokumentValidator,
     processingService: ProcessingService,
     sendInService: SendInService,
-    ebmsMessageRepository: EbmsMessageRepository
+    ebmsMessageDetailsRepository: EbmsMessageDetailsRepository
 ): Route = post("/ebms/sync") {
     log.info("Receiving synchronous request")
 
@@ -182,7 +182,7 @@ fun Route.postEbmsSync(
         return@post
     }
 
-    saveEbmsMessageDetails(ebMSDocument, loggableHeaders, ebmsMessageRepository)
+    saveEbmsMessageDetails(ebMSDocument, loggableHeaders, ebmsMessageDetailsRepository)
 
     val ebmsMessage = ebMSDocument.transform() as PayloadMessage
     var signingCertificate: SignatureDetails? = null
@@ -245,7 +245,7 @@ fun Route.postEbmsSync(
     }
 }
 
-fun Route.postEbmsAsync(validator: DokumentValidator, processingService: ProcessingService, ebmsMessageRepository: EbmsMessageRepository): Route =
+fun Route.postEbmsAsync(validator: DokumentValidator, processingService: ProcessingService, ebmsMessageDetailsRepository: EbmsMessageDetailsRepository): Route =
     post("/ebms/async") {
         // KRAV 5.5.2.1 validate MIME
         val debug: Boolean = call.request.header("debug")?.isNotBlank() ?: false
@@ -282,7 +282,7 @@ fun Route.postEbmsAsync(validator: DokumentValidator, processingService: Process
         val ebmsMessage = ebMSDocument.transform()
         log.info(ebMSDocument.messageHeader().marker(loggableHeaders), "Melding mottatt")
 
-        saveEbmsMessageDetails(ebMSDocument, loggableHeaders, ebmsMessageRepository)
+        saveEbmsMessageDetails(ebMSDocument, loggableHeaders, ebmsMessageDetailsRepository)
 
         try {
             validator
@@ -342,7 +342,7 @@ fun Routing.navCheckStatus() {
 fun saveEbmsMessageDetails(
     ebMSDocument: EbMSDocument,
     loggableHeaders: Map<String, String>,
-    repository: EbmsMessageRepository
+    repository: EbmsMessageDetailsRepository
 ) {
     val ebmsMessageDetails = ebMSDocument.transform().toEbmsMessageDetails()
     val markers = ebMSDocument.messageHeader().marker(loggableHeaders)

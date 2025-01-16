@@ -1,7 +1,6 @@
 package no.nav.emottak.ebms.persistence
 
 import no.nav.emottak.ebms.ebmsPostgres
-import no.nav.emottak.ebms.test.EndToEndTest.Companion.ebmsProviderDbContainer
 import no.nav.emottak.ebms.testConfiguration
 import no.nav.emottak.message.model.Addressing
 import no.nav.emottak.message.model.Party
@@ -9,8 +8,6 @@ import no.nav.emottak.message.model.PartyId
 import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.model.toEbmsMessageDetails
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions
@@ -19,9 +16,9 @@ import org.junit.jupiter.api.Test
 import org.testcontainers.containers.PostgreSQLContainer
 import java.sql.DriverManager
 
-class EbmsMessageRepositoryTest {
+class EbmsMessageDetailsRepositoryTest {
     companion object {
-        lateinit var ebmsMessageRepository: EbmsMessageRepository
+        lateinit var ebmsMessageDetailsRepository: EbmsMessageDetailsRepository
         lateinit var ebmsProviderDbContainer: PostgreSQLContainer<Nothing>
         lateinit var ebmsProviderDb: Database
 
@@ -32,7 +29,7 @@ class EbmsMessageRepositoryTest {
             ebmsProviderDbContainer.start()
             ebmsProviderDb = Database(ebmsProviderDbContainer.testConfiguration())
             ebmsProviderDb.migrate(ebmsProviderDb.dataSource)
-            ebmsMessageRepository = EbmsMessageRepository(ebmsProviderDb)
+            ebmsMessageDetailsRepository = EbmsMessageDetailsRepository(ebmsProviderDb)
         }
 
         @JvmStatic
@@ -60,9 +57,9 @@ class EbmsMessageRepositoryTest {
         val originalMessage = buildTestPayloadMessage("Inntektsforesporsel")
         val originalMessageDetails = originalMessage.toEbmsMessageDetails()
 
-        val savedMessageReferenceId = ebmsMessageRepository.saveEbmsMessageDetails(originalMessageDetails)
+        val savedMessageReferenceId = ebmsMessageDetailsRepository.saveEbmsMessageDetails(originalMessageDetails)
 
-        val retrievedMessage = ebmsMessageRepository.getByReferenceId(originalMessageDetails.referenceId)
+        val retrievedMessage = ebmsMessageDetailsRepository.getByReferenceId(originalMessageDetails.referenceId)
 
         Assertions.assertNotNull(savedMessageReferenceId)
 
@@ -86,9 +83,9 @@ class EbmsMessageRepositoryTest {
         val originalMessage = buildTestPayloadMessage("HarBorgerFrikort")
         val originalMessageDetails = originalMessage.toEbmsMessageDetails()
 
-        val savedMessageReferenceId = ebmsMessageRepository.saveEbmsMessageDetails(originalMessageDetails)
+        val savedMessageReferenceId = ebmsMessageDetailsRepository.saveEbmsMessageDetails(originalMessageDetails)
 
-        val retrievedMessage = ebmsMessageRepository.getByReferenceId(originalMessageDetails.referenceId)
+        val retrievedMessage = ebmsMessageDetailsRepository.getByReferenceId(originalMessageDetails.referenceId)
 
         Assertions.assertNull(savedMessageReferenceId)
         Assertions.assertNull(retrievedMessage)
