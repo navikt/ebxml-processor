@@ -16,4 +16,6 @@ object EbmsMessageDetailsTable : Table("ebms_message_details") {
     val toRole: Column<String?> = varchar("to_role", 256).nullable()
     val service: Column<String> = varchar("service", 256)
     val action: Column<String> = varchar("action", 256)
+
+    override val primaryKey = PrimaryKey(referenceId)
 }

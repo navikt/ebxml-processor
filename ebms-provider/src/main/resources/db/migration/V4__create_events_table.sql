@@ -1,4 +1,4 @@
-CREATE TABLE event
+CREATE TABLE events
 (
     event_id            UUID 	            DEFAULT gen_random_uuid()	PRIMARY KEY,
     reference_id        UUID        	    NOT NULL                    REFERENCES ebms_message_details (reference_id),
