@@ -1,6 +1,7 @@
 package no.nav.emottak.ebms.persistence
 
 import no.nav.emottak.ebms.ebmsPostgres
+import no.nav.emottak.ebms.persistence.repository.EbmsMessageDetailsRepository
 import no.nav.emottak.ebms.testConfiguration
 import no.nav.emottak.message.model.Addressing
 import no.nav.emottak.message.model.Party

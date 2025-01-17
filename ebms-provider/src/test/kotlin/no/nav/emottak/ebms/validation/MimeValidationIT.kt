@@ -12,7 +12,7 @@ import no.nav.emottak.ebms.CpaRepoClient
 import no.nav.emottak.ebms.asHttpRequest
 import no.nav.emottak.ebms.modify
 import no.nav.emottak.ebms.payload
-import no.nav.emottak.ebms.persistence.EbmsMessageDetailsRepository
+import no.nav.emottak.ebms.persistence.repository.EbmsMessageDetailsRepository
 import no.nav.emottak.ebms.postEbmsAsync
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.validMultipartRequest
