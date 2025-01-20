@@ -8,6 +8,7 @@ import io.ktor.client.request.basicAuth
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.Dispatchers
@@ -25,7 +26,8 @@ class JuridiskLoggService() {
     private val userName = getEnvVar("JURIDESKLOGG_USERNAME", "dummyUsername")
     private val userPassword = getEnvVar("JURIDESKLOGG_PASSWORD", "dummyPassword")
 
-    suspend fun logge(payloadRequest: PayloadRequest) {
+    suspend fun logge(payloadRequest: PayloadRequest): String? {
+        var juridiskLoggRecordId: String? = null
         val httpClient = HttpClient(CIO) {
             install(ContentNegotiation) {
                 json()
@@ -42,26 +44,31 @@ class JuridiskLoggService() {
             juridiskLoggStorageTime,
             java.util.Base64.getEncoder().encodeToString(payloadRequest.payload.bytes)
         )
-        log.debug(payloadRequest.marker(), "Juridisk logg forespørsel: $request")
+        log.debug(payloadRequest.marker(), "Juridisk logg request: $request")
 
         withContext(Dispatchers.IO) {
             try {
-                httpClient.post(juridiskLoggUrl) {
+                val httpResponse = httpClient.post(juridiskLoggUrl) {
                     setBody(request)
                     contentType(ContentType.Application.Json)
                     basicAuth(userName, userPassword)
-                }.also {
-                    log.debug(payloadRequest.marker(), "Juridisk logg respons: $it")
-                }.body<JuridiskLoggResponse>().also {
-                    log.info(payloadRequest.marker(), "Juridisk logg respons ID ${it.id}")
+                }
+                log.debug(payloadRequest.marker(), "Juridisk logg response: $httpResponse")
+
+                if (httpResponse.status == HttpStatusCode.OK) {
+                    juridiskLoggRecordId = httpResponse.body<JuridiskLoggResponse>().id
+                    log.info(payloadRequest.marker(), "Message saved to juridisk logg")
+                } else {
+                    log.info(payloadRequest.marker(), "Failed to save message to juridisk logg: $httpResponse")
                 }
             } catch (e: Exception) {
-                log.error(payloadRequest.marker(), "Feil med å sende forespørsel til juridisk logg: ${e.message}", e)
+                log.error(payloadRequest.marker(), "Exception occurred during sending message to juridisk logg: ${e.message}", e)
                 throw e
             } finally {
                 httpClient.close()
             }
         }
+        return juridiskLoggRecordId
     }
 }
 

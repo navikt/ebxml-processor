@@ -6,7 +6,7 @@ metadata:
   name: smtp.out.ebxml.signal
   namespace: team-emottak
 spec:
-  pool: nav-dev
+  pool: nav-prod
   config:
     cleanupPolicy: delete
     maxMessageBytes: 1048588
@@ -14,7 +14,7 @@ spec:
     partitions: 1
     replication: 3
     retentionBytes: -1
-    retentionHours: 168
+    retentionHours: 4380
     segmentHours: 168
   acl:
     - access: write
@@ -37,7 +37,7 @@ metadata:
   name: smtp.out.ebxml.payload
   namespace: team-emottak
 spec:
-  pool: nav-dev
+  pool: nav-prod
   config:
     cleanupPolicy: delete
     maxMessageBytes: 1048588
@@ -45,7 +45,7 @@ spec:
     partitions: 1
     replication: 3
     retentionBytes: -1
-    retentionHours: 168
+    retentionHours: 4380
     segmentHours: 168
   acl:
     - access: write

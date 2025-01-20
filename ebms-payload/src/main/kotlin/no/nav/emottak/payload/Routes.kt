@@ -29,17 +29,21 @@ fun Route.postPayload() = post("/payload") {
     log.info(request.marker(), "Payload mottatt for prosessering <${request.payload.contentId}>")
     log.debug(request.marker(), "Payload mottatt for prosessering med steg: {}", request.processing.processConfig)
 
+    var juridiskLoggRecordId: String? = null
     runCatching {
         val processConfig = request.processing.processConfig
+
         if (processConfig.juridiskLogg) {
-            processor.loggMessageToJuridiskLogg(request)
+            juridiskLoggRecordId = processor.loggMessageToJuridiskLogg(request)
         }
+
         when (request.direction) {
             Direction.IN -> createIncomingPayloadResponse(request, processConfig)
             Direction.OUT -> createOutgoingPayloadResponse(request)
         }
     }.onSuccess {
         log.info(request.marker(), "Payload prosessert OK <${request.payload.contentId}>")
+        it.juridiskLoggRecordId = juridiskLoggRecordId
         call.respond(it)
     }.onFailure { error ->
         log.error(request.marker(), "Payload prosessert med feil: ${error.localizedMessage}", error)
