@@ -3,6 +3,10 @@
  */
 package no.nav.emottak.ebms
 
+import arrow.continuations.SuspendApp
+import arrow.continuations.ktor.server
+import arrow.core.raise.result
+import arrow.fx.coroutines.resourceScope
 import com.zaxxer.hikari.HikariConfig
 import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorRuntime
 import io.ktor.serialization.kotlinx.json.json
@@ -10,7 +14,6 @@ import io.ktor.server.application.Application
 import io.ktor.server.application.call
 import io.ktor.server.application.createRouteScopedPlugin
 import io.ktor.server.application.install
-import io.ktor.server.engine.embeddedServer
 import io.ktor.server.metrics.micrometer.MicrometerMetrics
 import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
@@ -19,10 +22,16 @@ import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import io.ktor.util.logging.KtorSimpleLogger
+import io.ktor.utils.io.CancellationException
 import io.micrometer.prometheus.PrometheusConfig
 import io.micrometer.prometheus.PrometheusMeterRegistry
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.launch
 import net.logstash.logback.marker.Markers
 import no.nav.emottak.constants.SMTPHeaders
+import no.nav.emottak.ebms.configuration.config
+import no.nav.emottak.ebms.messaging.startSignalReceiver
 import no.nav.emottak.ebms.persistence.Database
 import no.nav.emottak.ebms.persistence.EbmsMessageRepository
 import no.nav.emottak.ebms.persistence.ebmsDbConfig
@@ -40,21 +49,38 @@ import kotlin.time.toKotlinDuration
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.App")
 
 fun logger() = log
-fun main() {
+fun main() = SuspendApp {
     // val database = Database(mapHikariConfig(DatabaseConfig()))
     // database.migrate()
     System.setProperty("io.ktor.http.content.multipart.skipTempFile", "true")
     if (getEnvVar("NAIS_CLUSTER_NAME", "local") != "prod-fss") {
         DecoroutinatorRuntime.load()
     }
-    embeddedServer(
-        Netty,
-        port = 8080,
-        module = { ebmsProviderModule(ebmsDbConfig.value, ebmsMigrationConfig.value) },
-        configure = {
-            this.maxChunkSize = 100000
+    val config = config()
+    if (config.kafkaSignalReceiver.active) {
+        launch(Dispatchers.IO) {
+            startSignalReceiver(config.kafkaSignalReceiver.topic, config.kafka)
         }
-    ).start(wait = true)
+    }
+    result {
+        resourceScope {
+            server(
+                Netty,
+                port = 8080,
+                module = { ebmsProviderModule(ebmsDbConfig.value, ebmsMigrationConfig.value) },
+                configure = {
+                    this.maxChunkSize = 100000
+                }
+            )
+            awaitCancellation()
+        }
+    }
+        .onFailure { error ->
+            when (error) {
+                is CancellationException -> {} // expected behaviour - normal shutdown
+                else -> log.error("Unexpected shutdown initiated", error)
+            }
+        }
 }
 
 fun Application.ebmsProviderModule(
