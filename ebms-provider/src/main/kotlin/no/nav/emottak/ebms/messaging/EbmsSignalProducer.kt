@@ -36,8 +36,6 @@ class EbmsSignalProducer(val topic: String, kafka: Kafka) {
             println("Kafka test: Message sent successfully to topic $topic")
         } catch (e: Exception) {
             println("Kafka test: Failed to send message: ${e.message}")
-        } finally {
-            producer.close()
         }
     }
 }
