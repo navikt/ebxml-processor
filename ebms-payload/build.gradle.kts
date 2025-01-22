@@ -44,6 +44,8 @@ dependencies {
     implementation(libs.ktor.serialization.kotlinx.json)
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.cio)
+    implementation(libs.hoplite.core)
+    implementation(libs.hoplite.hocon)
     implementation(libs.ebxml.protokoll)
     implementation(libs.emottak.payload.xsd)
     implementation(libs.jakarta.xml.bind.api)

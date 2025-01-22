@@ -1,6 +1,6 @@
 package no.nav.emottak.payload
 
-import no.nav.emottak.crypto.KeyStore
+import no.nav.emottak.crypto.KeyStoreManager
 import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadRequest
 import no.nav.emottak.payload.crypto.Dekryptering
@@ -62,7 +62,13 @@ class Processor(
             val dom = createDocument(ByteArrayInputStream(payload.bytes))
             val xmlSignature = dom.retrieveSignatureElement()
             val certificateFromSignature = xmlSignature.keyInfo.x509Certificate
-            val signedBy = OcspStatusService(defaultHttpClient().invoke(), KeyStore(payloadSigneringConfig()), KeyStore(trustStoreConfig())).getOCSPStatus(certificateFromSignature).fnr
+            val signedBy = OcspStatusService(
+                defaultHttpClient().invoke(),
+                KeyStoreManager(
+                    payloadSigneringConfig(),
+                    trustStoreConfig()
+                )
+            ).getOCSPStatus(certificateFromSignature).fnr
             payload.copy(signedBy = signedBy)
         } else {
             payload

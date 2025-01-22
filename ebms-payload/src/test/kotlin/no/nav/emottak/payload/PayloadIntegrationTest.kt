@@ -14,7 +14,8 @@ import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import io.mockk.coEvery
 import io.mockk.mockkConstructor
-import no.nav.emottak.crypto.KeyStore
+import io.mockk.slot
+import no.nav.emottak.crypto.KeyStoreManager
 import no.nav.emottak.message.model.Addressing
 import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.ErrorCode
@@ -30,16 +31,20 @@ import no.nav.emottak.message.xml.asByteArray
 import no.nav.emottak.payload.crypto.PayloadSignering
 import no.nav.emottak.payload.crypto.payloadSigneringConfig
 import no.nav.emottak.payload.ocspstatus.OcspStatusService
-import no.nav.emottak.payload.ocspstatus.createSertifikatInfoFromOCSPResponse
 import no.nav.emottak.payload.ocspstatus.ssnPolicyID
 import no.nav.emottak.util.createDocument
 import no.nav.security.mock.oauth2.MockOAuth2Server
+import org.bouncycastle.asn1.ASN1Encodable
+import org.bouncycastle.asn1.DEROctetString
+import org.bouncycastle.asn1.ocsp.OCSPObjectIdentifiers.id_pkix_ocsp_nonce
 import org.bouncycastle.asn1.x509.Extension
 import org.bouncycastle.asn1.x509.Extensions
 import org.bouncycastle.cert.X509CertificateHolder
 import org.bouncycastle.cert.ocsp.BasicOCSPResp
 import org.bouncycastle.cert.ocsp.CertificateID
 import org.bouncycastle.cert.ocsp.CertificateStatus
+import org.bouncycastle.cert.ocsp.OCSPReq
+import org.bouncycastle.cert.ocsp.OCSPRespBuilder
 import org.bouncycastle.cert.ocsp.jcajce.JcaBasicOCSPRespBuilder
 import org.bouncycastle.cert.ocsp.jcajce.JcaCertificateID
 import org.bouncycastle.jce.provider.BouncyCastleProvider
@@ -143,20 +148,23 @@ class PayloadIntegrationTest {
                 json()
             }
         }
-        val keystore = KeyStore(payloadSigneringConfig())
+        val keystore = KeyStoreManager(payloadSigneringConfig())
         val ssn = "01010112345"
         mockkConstructor(OcspStatusService::class, recordPrivateCalls = true, localToThread = false)
+        val ocspRequestCaptureSlot = slot<ByteArray>()
         coEvery {
-            anyConstructed<OcspStatusService>().getOCSPStatus(any())
-        } returns createSertifikatInfoFromOCSPResponse(
-            keystore.getCertificate("navtest-ca"),
-            createOCSPResp(
-                keystore.getCertificate("navtest-ca"),
-                ssn,
-                keystore.getKey("navtest-ca")
-            ).responses[0],
-            ssn
-        )
+            anyConstructed<OcspStatusService>().postOCSPRequest(any(String::class), capture(ocspRequestCaptureSlot))
+        } coAnswers {
+            OCSPRespBuilder().build(
+                OCSPRespBuilder.SUCCESSFUL,
+                createOCSPResp(
+                    keystore.getCertificate("navtest-ca"),
+                    ssn,
+                    keystore.getKey("navtest-ca"),
+                    OCSPReq(ocspRequestCaptureSlot.captured).getExtension(id_pkix_ocsp_nonce).parsedValue
+                )
+            )
+        }
 
         val requestBody = payloadRequestMedOCSP()
         val httpResponse = httpClient.post("/payload") {
@@ -179,29 +187,35 @@ class PayloadIntegrationTest {
     )
 }
 
-private fun createOCSPResp(responder: X509Certificate, ssn: String, pk: PrivateKey): BasicOCSPResp {
+private fun createOCSPResp(responder: X509Certificate, ssn: String, pk: PrivateKey, asn1encodableNonce: ASN1Encodable): BasicOCSPResp {
     val digCalcProv = JcaDigestCalculatorProviderBuilder().setProvider(BouncyCastleProvider()).build()
     return JcaBasicOCSPRespBuilder(
         responder.issuerX500Principal
-    )
-        .addResponse(
-            JcaCertificateID(
-                digCalcProv.get(
-                    CertificateID.HASH_SHA1
-                    // AlgorithmIdentifier(ASN1ObjectIdentifier(responder.sigAlgOID))
-                ),
-                responder,
-                responder.serialNumber
+    ).addResponse(
+        JcaCertificateID(
+            digCalcProv.get(
+                CertificateID.HASH_SHA1
+                // AlgorithmIdentifier(ASN1ObjectIdentifier(responder.sigAlgOID))
             ),
-            CertificateStatus.GOOD
-        )
+            responder,
+            responder.serialNumber
+        ),
+        CertificateStatus.GOOD
+    )
         .setResponseExtensions(
             Extensions(
-                Extension(
-                    ssnPolicyID,
-                    true,
-                    ssn.toByteArray()
-                )
+                listOf(
+                    Extension(
+                        id_pkix_ocsp_nonce,
+                        false,
+                        DEROctetString(asn1encodableNonce)
+                    ),
+                    Extension(
+                        ssnPolicyID,
+                        true,
+                        ssn.toByteArray()
+                    )
+                ).toTypedArray()
             )
         )
         .build(

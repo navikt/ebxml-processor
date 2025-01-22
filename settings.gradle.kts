@@ -18,6 +18,7 @@ dependencyResolutionManagement {
             version("eclipse-angus", "2.0.2")
             version("jsch", "0.2.16")
             version("cxf", "3.5.5")
+            version("hoplite", "2.8.2")
 
             library("bcpkix-jdk18on", "org.bouncycastle", "bcpkix-jdk18on").versionRef("bouncycastle")
             library("bcprov-jdk18on", "org.bouncycastle", "bcprov-jdk18on").versionRef("bouncycastle")
@@ -44,10 +45,13 @@ dependencyResolutionManagement {
             library("ktor-client-auth", "io.ktor", "ktor-client-auth").versionRef("ktor")
 
             library("ktor-server-metrics-micrometer", "io.ktor", "ktor-server-metrics-micrometer").versionRef("ktor")
-            library("micrometer-registry-prometheus", "io.micrometer:micrometer-registry-prometheus:1.12.4")
+            library("micrometer-registry-prometheus", "io.micrometer:micrometer-registry-prometheus:1.14.2")
 
             library("logback-classic", "ch.qos.logback:logback-classic:1.4.11")
             library("logback-logstash", "net.logstash.logback:logstash-logback-encoder:7.4")
+
+            library("hoplite-core", "com.sksamuel.hoplite", "hoplite-core").versionRef("hoplite")
+            library("hoplite-hocon", "com.sksamuel.hoplite", "hoplite-hocon").versionRef("hoplite")
 
             library("hikari", "com.zaxxer:HikariCP:5.0.1")
             library("labai-jsr305x-annotations", "com.github.labai:labai-jsr305x-annotations:0.0.2")

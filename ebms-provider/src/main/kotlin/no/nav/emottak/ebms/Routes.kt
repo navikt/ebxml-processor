@@ -11,7 +11,7 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.Routing
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
-import io.micrometer.prometheus.PrometheusMeterRegistry
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import kotlinx.serialization.Serializable
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.model.signer

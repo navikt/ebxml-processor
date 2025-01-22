@@ -10,7 +10,7 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.Routing
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
-import io.micrometer.prometheus.PrometheusMeterRegistry
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import no.kith.xmlstds.msghead._2006_05_24.MsgHead
 import no.nav.emottak.melding.apprec.createNegativeApprec
 import no.nav.emottak.message.model.Direction
