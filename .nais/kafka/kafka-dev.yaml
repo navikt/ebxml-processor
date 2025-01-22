@@ -18,7 +18,7 @@ spec:
     segmentHours: 168
   acl:
     - access: write
-      application: ebxml-processor
+      application: ebms-provider
       team: team-emottak
     - access: read
       application: smtp-transport
@@ -49,7 +49,7 @@ spec:
     segmentHours: 168
   acl:
     - access: write
-      application: ebxml-processor
+      application: ebms-provider
       team: team-emottak
     - access: read
       application: smtp-transport
