@@ -1,4 +1,4 @@
-DROP TABLE ebms_message;
+DROP TABLE IF EXISTS ebms_message;
 
 CREATE TABLE ebms_message_details
 (
