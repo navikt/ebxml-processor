@@ -12,7 +12,8 @@ import java.util.Properties
 
 data class Config(
     val kafka: Kafka,
-    val kafkaSignalReceiver: KafkaSignalReceiver
+    val kafkaSignalReceiver: KafkaSignalReceiver,
+    val kafkaSignalProducer: KafkaSignalProducer
 )
 
 @JvmInline
@@ -31,6 +32,11 @@ value class TruststoreType(val value: String)
 value class TruststoreLocation(val value: String)
 
 data class KafkaSignalReceiver(
+    val active: Boolean,
+    val topic: String
+)
+
+data class KafkaSignalProducer(
     val active: Boolean,
     val topic: String
 )

@@ -31,6 +31,7 @@ import kotlinx.coroutines.launch
 import net.logstash.logback.marker.Markers
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.configuration.config
+import no.nav.emottak.ebms.messaging.EbmsSignalProducer
 import no.nav.emottak.ebms.messaging.startSignalReceiver
 import no.nav.emottak.ebms.persistence.Database
 import no.nav.emottak.ebms.persistence.EbmsMessageRepository
@@ -87,10 +88,14 @@ fun Application.ebmsProviderModule(
     dbConfig: HikariConfig,
     migrationConfig: HikariConfig
 ) {
+    val config = config()
+
     val database = Database(dbConfig)
     database.migrate(migrationConfig)
 
     val ebmsMessageRepository = EbmsMessageRepository(database)
+
+    val ebmsSignalProducer = EbmsSignalProducer(config.kafkaSignalProducer.topic, config.kafka)
 
     val cpaClient = CpaRepoClient(defaultHttpClient())
     val validator = DokumentValidator(cpaClient)
@@ -119,7 +124,7 @@ fun Application.ebmsProviderModule(
         }
         registerHealthEndpoints(appMicrometerRegistry)
         navCheckStatus()
-        postEbmsAsync(validator, processing, ebmsMessageRepository)
+        postEbmsAsync(validator, processing, ebmsMessageRepository, ebmsSignalProducer)
         postEbmsSync(validator, processing, sendInService, ebmsMessageRepository)
     }
 }
