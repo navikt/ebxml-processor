@@ -16,6 +16,9 @@ import io.mockk.coVerify
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.runs
+import no.nav.emottak.ebms.configuration.config
+import no.nav.emottak.ebms.kafka.KafkaTestContainer
+import no.nav.emottak.ebms.messaging.EbmsSignalProducer
 import no.nav.emottak.ebms.persistence.repository.EbmsMessageDetailsRepository
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
@@ -34,7 +37,9 @@ import no.nav.emottak.util.decodeBase64
 import no.nav.emottak.util.getEnvVar
 import org.apache.xml.security.algorithms.MessageDigestAlgorithm
 import org.apache.xml.security.signature.XMLSignature
+import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ErrorList
 import org.xmlsoap.schemas.soap.envelope.Envelope
@@ -44,6 +49,7 @@ abstract class EbmsRoutFellesIT(val endpoint: String) {
     val validMultipartRequest = validMultipartRequest()
     val processingService = mockk<ProcessingService>()
     val ebmsMessageDetailsRepository = mockk<EbmsMessageDetailsRepository>()
+    val ebmsSignalProducer = mockk<EbmsSignalProducer>()
     val mockProcessConfig = ProcessConfig(
         true,
         true,
@@ -73,7 +79,7 @@ abstract class EbmsRoutFellesIT(val endpoint: String) {
             } just runs
             routing {
                 postEbmsSync(dokumentValidator, processingService, SendInService(sendInClient), ebmsMessageDetailsRepository)
-                postEbmsAsync(dokumentValidator, processingService, ebmsMessageDetailsRepository)
+                postEbmsAsync(dokumentValidator, processingService, ebmsMessageDetailsRepository, ebmsSignalProducer)
             }
         }
         externalServices {
@@ -118,6 +124,23 @@ abstract class EbmsRoutFellesIT(val endpoint: String) {
         client.post("/ebms/async", multipart.asHttpRequest())
         coVerify(exactly = 1) {
             processingService.processAsync(any(), any())
+        }
+    }
+
+    companion object {
+        @JvmStatic
+        @BeforeAll
+        fun setup() {
+            KafkaTestContainer.start()
+            System.setProperty("KAFKA_BROKERS", KafkaTestContainer.bootstrapServers)
+
+            KafkaTestContainer.createTopic(config().kafkaSignalProducer.topic)
+        }
+
+        @JvmStatic
+        @AfterAll
+        fun tearDown() {
+            KafkaTestContainer.stop()
         }
     }
 }

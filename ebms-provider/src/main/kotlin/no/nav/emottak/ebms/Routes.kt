@@ -14,6 +14,8 @@ import io.ktor.server.routing.post
 import io.micrometer.prometheus.PrometheusMeterRegistry
 import kotlinx.serialization.Serializable
 import no.nav.emottak.constants.SMTPHeaders
+import no.nav.emottak.ebms.configuration.config
+import no.nav.emottak.ebms.messaging.EbmsSignalProducer
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.persistence.repository.EbmsMessageDetailsRepository
 import no.nav.emottak.ebms.processing.ProcessingService
@@ -32,6 +34,7 @@ import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.model.PayloadProcessing
 import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.message.model.toEbmsMessageDetails
+import no.nav.emottak.message.xml.asByteArray
 import no.nav.emottak.util.marker
 import no.nav.emottak.util.retrieveLoggableHeaderPairs
 import java.sql.SQLException
@@ -245,7 +248,12 @@ fun Route.postEbmsSync(
     }
 }
 
-fun Route.postEbmsAsync(validator: DokumentValidator, processingService: ProcessingService, ebmsMessageDetailsRepository: EbmsMessageDetailsRepository): Route =
+fun Route.postEbmsAsync(
+    validator: DokumentValidator,
+    processingService: ProcessingService,
+    ebmsMessageDetailsRepository: EbmsMessageDetailsRepository,
+    ebmsSignalProducer: EbmsSignalProducer
+): Route =
     post("/ebms/async") {
         // KRAV 5.5.2.1 validate MIME
         val debug: Boolean = call.request.header("debug")?.isNotBlank() ?: false
@@ -297,6 +305,14 @@ fun Route.postEbmsAsync(validator: DokumentValidator, processingService: Process
             }
             log.info(ebMSDocument.messageHeader().marker(), "Payload Processed, Generating Acknowledgement...")
             ebmsMessage.createAcknowledgment().toEbmsDokument().also {
+                if (config().kafkaSignalProducer.active) {
+                    try {
+                        log.debug("Kafka test: Sending acknowledgment to queue")
+                        ebmsSignalProducer.send(UUID.randomUUID().toString(), it.dokument.asByteArray())
+                    } catch (e: Exception) {
+                        log.error("Kafka test: Exception while sending acknowledgment to queue", e)
+                    }
+                }
                 call.respondEbmsDokument(it)
                 return@post
             }

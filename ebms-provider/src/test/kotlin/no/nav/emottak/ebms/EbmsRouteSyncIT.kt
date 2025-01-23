@@ -69,7 +69,7 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
             }
             routing {
                 postEbmsSync(dokumentValidator, processingService, SendInService(sendInClient), ebmsMessageDetailsRepository)
-                postEbmsAsync(dokumentValidator, processingService, ebmsMessageDetailsRepository)
+                postEbmsAsync(dokumentValidator, processingService, ebmsMessageDetailsRepository, ebmsSignalProducer)
             }
         }
         externalServices {
