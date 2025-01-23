@@ -34,9 +34,9 @@ import no.nav.emottak.ebms.configuration.config
 import no.nav.emottak.ebms.messaging.EbmsSignalProducer
 import no.nav.emottak.ebms.messaging.startSignalReceiver
 import no.nav.emottak.ebms.persistence.Database
-import no.nav.emottak.ebms.persistence.EbmsMessageRepository
 import no.nav.emottak.ebms.persistence.ebmsDbConfig
 import no.nav.emottak.ebms.persistence.ebmsMigrationConfig
+import no.nav.emottak.ebms.persistence.repository.EbmsMessageDetailsRepository
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.DokumentValidator
@@ -93,7 +93,7 @@ fun Application.ebmsProviderModule(
     val database = Database(dbConfig)
     database.migrate(migrationConfig)
 
-    val ebmsMessageRepository = EbmsMessageRepository(database)
+    val ebmsMessageDetailsRepository = EbmsMessageDetailsRepository(database)
 
     val ebmsSignalProducer = EbmsSignalProducer(config.kafkaSignalProducer.topic, config.kafka)
 
@@ -124,8 +124,8 @@ fun Application.ebmsProviderModule(
         }
         registerHealthEndpoints(appMicrometerRegistry)
         navCheckStatus()
-        postEbmsAsync(validator, processing, ebmsMessageRepository, ebmsSignalProducer)
-        postEbmsSync(validator, processing, sendInService, ebmsMessageRepository)
+        postEbmsAsync(validator, processing, ebmsMessageDetailsRepository, ebmsSignalProducer)
+        postEbmsSync(validator, processing, sendInService, ebmsMessageDetailsRepository)
     }
 }
 

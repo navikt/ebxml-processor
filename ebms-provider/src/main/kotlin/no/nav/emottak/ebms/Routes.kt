@@ -17,7 +17,7 @@ import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.configuration.config
 import no.nav.emottak.ebms.messaging.EbmsSignalProducer
 import no.nav.emottak.ebms.model.signer
-import no.nav.emottak.ebms.persistence.EbmsMessageRepository
+import no.nav.emottak.ebms.persistence.repository.EbmsMessageDetailsRepository
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.util.marker
@@ -151,7 +151,7 @@ fun Route.postEbmsSync(
     validator: DokumentValidator,
     processingService: ProcessingService,
     sendInService: SendInService,
-    ebmsMessageRepository: EbmsMessageRepository
+    ebmsMessageDetailsRepository: EbmsMessageDetailsRepository
 ): Route = post("/ebms/sync") {
     log.info("Receiving synchronous request")
 
@@ -185,7 +185,7 @@ fun Route.postEbmsSync(
         return@post
     }
 
-    saveEbmsMessageDetails(ebMSDocument, loggableHeaders, ebmsMessageRepository)
+    saveEbmsMessageDetails(ebMSDocument, loggableHeaders, ebmsMessageDetailsRepository)
 
     val ebmsMessage = ebMSDocument.transform() as PayloadMessage
     var signingCertificate: SignatureDetails? = null
@@ -251,7 +251,7 @@ fun Route.postEbmsSync(
 fun Route.postEbmsAsync(
     validator: DokumentValidator,
     processingService: ProcessingService,
-    ebmsMessageRepository: EbmsMessageRepository,
+    ebmsMessageDetailsRepository: EbmsMessageDetailsRepository,
     ebmsSignalProducer: EbmsSignalProducer
 ): Route =
     post("/ebms/async") {
@@ -290,7 +290,7 @@ fun Route.postEbmsAsync(
         val ebmsMessage = ebMSDocument.transform()
         log.info(ebMSDocument.messageHeader().marker(loggableHeaders), "Melding mottatt")
 
-        saveEbmsMessageDetails(ebMSDocument, loggableHeaders, ebmsMessageRepository)
+        saveEbmsMessageDetails(ebMSDocument, loggableHeaders, ebmsMessageDetailsRepository)
 
         try {
             validator
@@ -358,13 +358,13 @@ fun Routing.navCheckStatus() {
 fun saveEbmsMessageDetails(
     ebMSDocument: EbMSDocument,
     loggableHeaders: Map<String, String>,
-    repository: EbmsMessageRepository
+    repository: EbmsMessageDetailsRepository
 ) {
     val ebmsMessageDetails = ebMSDocument.transform().toEbmsMessageDetails()
     val markers = ebMSDocument.messageHeader().marker(loggableHeaders)
     try {
         repository.saveEbmsMessageDetails(ebmsMessageDetails).also {
-            if (it == "") {
+            if (it == null) {
                 log.info(markers, "Message details has not been saved to database")
             } else {
                 log.info(markers, "Message details saved to database")
