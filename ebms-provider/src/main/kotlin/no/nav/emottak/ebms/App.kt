@@ -92,7 +92,7 @@ fun main() = SuspendApp {
 }
 
 fun Application.ebmsProviderModule(
-    ebmsMessageRepository: EbmsMessageRepository
+    ebmsMessageDetailsRepository: EbmsMessageDetailsRepository
 ) {
     val config = config()
 

@@ -3,7 +3,7 @@ package no.nav.emottak.ebms.processing
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import no.nav.emottak.ebms.log
-import no.nav.emottak.ebms.persistence.EbmsMessageRepository
+import no.nav.emottak.ebms.persistence.repository.EbmsMessageDetailsRepository
 import no.nav.emottak.ebms.util.marker
 import no.nav.emottak.ebms.validation.DokumentValidator
 import no.nav.emottak.message.model.Acknowledgment
@@ -14,7 +14,7 @@ import no.nav.emottak.message.xml.getDocumentBuilder
 import java.io.ByteArrayInputStream
 
 class SignalProcessor(
-    val ebmsMessageRepository: EbmsMessageRepository,
+    val ebmsMessageDetailsRepository: EbmsMessageDetailsRepository,
     val validator: DokumentValidator
 ) {
 
@@ -29,11 +29,11 @@ class SignalProcessor(
         validator.validateIn(ebxmlSignalMessage)
         when (ebxmlSignalMessage) {
             is Acknowledgment -> {
-                ebmsMessageRepository.saveEbmsMessageDetails(ebxmlSignalMessage.toEbmsMessageDetails())
+                ebmsMessageDetailsRepository.saveEbmsMessageDetails(ebxmlSignalMessage.toEbmsMessageDetails())
                 processAcknowledgment(reference, ebxmlSignalMessage)
             }
             is EbmsFail -> {
-                ebmsMessageRepository.saveEbmsMessageDetails(ebxmlSignalMessage.toEbmsMessageDetails())
+                ebmsMessageDetailsRepository.saveEbmsMessageDetails(ebxmlSignalMessage.toEbmsMessageDetails())
                 processMessageError(reference, ebxmlSignalMessage)
             }
             else -> log.warn(ebxmlSignalMessage.marker(), "Cannot process message as signal message: $reference")
@@ -42,7 +42,11 @@ class SignalProcessor(
 
     private fun processAcknowledgment(reference: String, acknowledgment: Acknowledgment) {
         log.info(acknowledgment.marker(), "Got acknowledgment with reference <$reference>")
-        val referencedMessage = ebmsMessageRepository.getByMessageIdAndCpaId(acknowledgment.refToMessageId, acknowledgment.cpaId)
+        val referencedMessage = ebmsMessageDetailsRepository.getByConversationIdMessageIdAndCpaId(
+            acknowledgment.conversationId,
+            acknowledgment.refToMessageId,
+            acknowledgment.cpaId
+        )
         if (referencedMessage == null) {
             log.warn(acknowledgment.marker(), "Received Acknowledgment for unknown message ${acknowledgment.refToMessageId}")
         } else {
@@ -56,7 +60,11 @@ class SignalProcessor(
         if (messageRef == null) {
             log.warn(ebmsFail.marker(), "Received MessageError without message reference")
         } else {
-            val referencedMessage = ebmsMessageRepository.getByMessageIdAndCpaId(messageRef, ebmsFail.cpaId)
+            val referencedMessage = ebmsMessageDetailsRepository.getByConversationIdMessageIdAndCpaId(
+                ebmsFail.conversationId,
+                messageRef,
+                ebmsFail.cpaId
+            )
             if (referencedMessage == null) {
                 log.warn(ebmsFail.marker(), "Received MessageError for unknown message $messageRef")
             } else {
