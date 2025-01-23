@@ -1,6 +1,9 @@
 package no.nav.emottak.message.model
 
+import java.util.UUID
+
 data class EbmsMessageDetails(
+    val referenceId: UUID,
     val cpaId: String,
     val conversationId: String,
     val messageId: String,
