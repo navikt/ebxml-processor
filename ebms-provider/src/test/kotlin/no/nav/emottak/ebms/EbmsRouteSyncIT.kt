@@ -78,12 +78,12 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
                     json()
                 }
                 routing {
-                    post("cpa/validate/soapId-6ae68a32-8b0e-4de2-baad-f4d841aacce1") {
+                    post("cpa/validate/6ae68a32-8b0e-4de2-baad-f4d841aacce1") {
                         call.respond(ValidationResult(error = listOf(Feil(ErrorCode.SECURITY_FAILURE, "Signature Fail"))))
                     }
                     post("cpa/validate/{contentId}") {
                         val contentId = call.parameters["contentId"]
-                        if (contentId == "contentID-validRequest") {
+                        if (contentId == "e491180e-eea6-41d6-ac5b-d232c9fb115f") {
                             call.respond(
                                 ValidationResult(
                                     EbmsProcessing(),
@@ -238,7 +238,7 @@ ZWZEb2M+CiAgPC9uczpEb2N1bWVudD4KPC9uczpNc2dIZWFkPg=="""
             }
 
             val validSoapMimeHeaders = Headers.build {
-                append(MimeHeaders.CONTENT_ID, "<contentID-validRequest>")
+                append(MimeHeaders.CONTENT_ID, "<e491180e-eea6-41d6-ac5b-d232c9fb115f>")
                 append(MimeHeaders.CONTENT_TRANSFER_ENCODING, "binary")
                 append(MimeHeaders.CONTENT_TYPE, """text/xml; charset="UTF-8""")
             }
