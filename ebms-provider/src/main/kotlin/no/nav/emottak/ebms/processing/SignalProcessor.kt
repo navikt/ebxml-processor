@@ -30,18 +30,18 @@ class SignalProcessor(
         when (ebxmlSignalMessage) {
             is Acknowledgment -> {
                 ebmsMessageDetailsRepository.saveEbmsMessageDetails(ebxmlSignalMessage.toEbmsMessageDetails())
-                processAcknowledgment(reference, ebxmlSignalMessage)
+                processAcknowledgment(ebxmlSignalMessage)
             }
             is EbmsFail -> {
                 ebmsMessageDetailsRepository.saveEbmsMessageDetails(ebxmlSignalMessage.toEbmsMessageDetails())
-                processMessageError(reference, ebxmlSignalMessage)
+                processMessageError(ebxmlSignalMessage)
             }
             else -> log.warn(ebxmlSignalMessage.marker(), "Cannot process message as signal message: $reference")
         }
     }
 
-    private fun processAcknowledgment(reference: String, acknowledgment: Acknowledgment) {
-        log.info(acknowledgment.marker(), "Got acknowledgment with reference <$reference>")
+    private fun processAcknowledgment(acknowledgment: Acknowledgment) {
+        log.info(acknowledgment.marker(), "Got acknowledgment with reference <${acknowledgment.requestId}>")
         val referencedMessage = ebmsMessageDetailsRepository.getByConversationIdMessageIdAndCpaId(
             acknowledgment.conversationId,
             acknowledgment.refToMessageId,
@@ -54,8 +54,8 @@ class SignalProcessor(
         }
     }
 
-    private fun processMessageError(reference: String, ebmsFail: EbmsFail) {
-        log.info(ebmsFail.marker(), "Got MessageError with reference <$reference>")
+    private fun processMessageError(ebmsFail: EbmsFail) {
+        log.info(ebmsFail.marker(), "Got MessageError with reference <${ebmsFail.requestId}>")
         val messageRef = ebmsFail.refToMessageId
         if (messageRef == null) {
             log.warn(ebmsFail.marker(), "Received MessageError without message reference")

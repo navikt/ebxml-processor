@@ -128,8 +128,7 @@ fun EbmsMessage.createMessageHeader(newAddressing: Addressing = this.addressing,
 
 fun EbmsMessage.toEbmsMessageDetails(): EbmsMessageDetails {
     return EbmsMessageDetails(
-        // TODO: Get referenceId from Kafka
-        UUID.randomUUID(),
+        EbmsMessageDetails.convertStringToUUIDOrGenerateNew(requestId),
         cpaId,
         conversationId,
         messageId,
