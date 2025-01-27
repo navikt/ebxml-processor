@@ -189,20 +189,25 @@ fun Route.postEbmsAsync(
             }
             log.info(ebMSDocument.messageHeader().marker(), "Payload Processed, Generating Acknowledgement...")
             ebmsMessage.createAcknowledgment().toEbmsDokument().also {
-                if (config().kafkaSignalProducer.active) {
-                    try {
-                        log.debug("Kafka test: Sending acknowledgment to queue")
-                        ebmsSignalProducer.send(UUID.randomUUID().toString(), it.dokument.asByteArray())
-                    } catch (e: Exception) {
-                        log.error("Kafka test: Exception while sending acknowledgment to queue", e)
-                    }
-                }
+                log.debug("Sending acknowledgement to Kafka")
+                sendToKafka(it, loggableHeaders, ebmsSignalProducer)
+            }.also {
+                log.debug("Saving acknowledgement to database")
+                ebmsMessageDetailsRepository.saveEbmsMessage(ebmsMessage)
+            }.also {
                 call.respondEbmsDokument(it)
                 return@post
             }
         } catch (ex: EbmsException) {
             ebmsMessage.createFail(ex.feil).toEbmsDokument().also {
                 log.info(ebmsMessage.marker(), "Created MessageError response")
+            }.also {
+                log.debug("Sending fail message to Kafka")
+                sendToKafka(it, loggableHeaders, ebmsSignalProducer)
+            }.also {
+                log.debug("Saving fail message to database")
+                ebmsMessageDetailsRepository.saveEbmsMessage(ebmsMessage)
+            }.also {
                 call.respondEbmsDokument(it)
                 return@post
             }
@@ -215,3 +220,19 @@ fun Route.postEbmsAsync(
             return@post
         }
     }
+
+suspend fun sendToKafka(
+    ebMSDocument: EbMSDocument,
+    loggableHeaders: Map<String, String>,
+    producer: EbmsSignalProducer
+) {
+    if (config().kafkaSignalProducer.active) {
+        val markers = ebMSDocument.messageHeader().marker(loggableHeaders)
+        try {
+            log.info(markers, "Sending message to Kafka queue")
+            producer.send(ebMSDocument.requestId, ebMSDocument.dokument.asByteArray())
+        } catch (e: Exception) {
+            log.error(markers, "Exception occurred while sending message to Kafka queue", e)
+        }
+    }
+}

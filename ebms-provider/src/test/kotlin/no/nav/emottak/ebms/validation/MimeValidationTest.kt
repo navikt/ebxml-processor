@@ -77,7 +77,7 @@ class MimeValidationTest {
     @Test
     fun `5-2-2-2 endre rekkefølge på multipart attributene`() {
         valid.modify {
-            it[MimeHeaders.CONTENT_TYPE] = """multipart/related;type="text/xml";start="<soapId-6ae68a32-8b0e-4de2-baad-f4d841aacce1>";boundary="----=_Part_495_-1172936255.1665395092859""""
+            it[MimeHeaders.CONTENT_TYPE] = """multipart/related;type="text/xml";start="<6ae68a32-8b0e-4de2-baad-f4d841aacce1>";boundary="----=_Part_495_-1172936255.1665395092859""""
         }
             .mockApplicationRequest()
             .validateMime()
@@ -86,9 +86,9 @@ class MimeValidationTest {
     @Test
     fun `5-2-2-2 illegal type`() {
         val notValid = listOf(
-            valid.modify { it[MimeHeaders.CONTENT_TYPE] = """multipart/unrelated;type="text/xml";start="<soapId-6ae68a32-8b0e-4de2-baad-f4d841aacce1>";boundary="----=_Part_495_-1172936255.1665395092859"""" },
-            valid.modify { it[MimeHeaders.CONTENT_TYPE] = """multipart/related;type="ascii/xml";start="<soapId-6ae68a32-8b0e-4de2-baad-f4d841aacce1>";boundary="----=_Part_495_-1172936255.1665395092859"""" },
-            valid.modify { it[MimeHeaders.CONTENT_TYPE] = """multipart/related;type="text/xml";start="<soapId-6ae68a32-8b0e-4de2-baad-f4d841aacce1>"""" },
+            valid.modify { it[MimeHeaders.CONTENT_TYPE] = """multipart/unrelated;type="text/xml";start="<6ae68a32-8b0e-4de2-baad-f4d841aacce1>";boundary="----=_Part_495_-1172936255.1665395092859"""" },
+            valid.modify { it[MimeHeaders.CONTENT_TYPE] = """multipart/related;type="ascii/xml";start="<6ae68a32-8b0e-4de2-baad-f4d841aacce1>";boundary="----=_Part_495_-1172936255.1665395092859"""" },
+            valid.modify { it[MimeHeaders.CONTENT_TYPE] = """multipart/related;type="text/xml";start="<6ae68a32-8b0e-4de2-baad-f4d841aacce1>"""" },
             valid.modify { it[MimeHeaders.CONTENT_TYPE] = """multipart/unrelated;type="text/xml";boundary="----=_Part_495_-1172936255.1665395092859"""" },
             valid.modify { it.remove(MimeHeaders.CONTENT_TYPE) }
         )

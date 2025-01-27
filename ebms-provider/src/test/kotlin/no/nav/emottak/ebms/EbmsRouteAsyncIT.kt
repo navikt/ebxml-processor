@@ -26,7 +26,7 @@ class EbmsRouteAsyncIT : EbmsRoutFellesIT("/ebms/async") {
         val multipart = validMultipartRequest.modify(
             validMultipartRequest.parts.first() to validMultipartRequest.parts.first().modify {
                 it.remove(MimeHeaders.CONTENT_ID)
-                it.append(MimeHeaders.CONTENT_ID, "<contentID-validRequest>")
+                it.append(MimeHeaders.CONTENT_ID, "<e491180e-eea6-41d6-ac5b-d232c9fb115f>")
             }
         )
         val response = client.post("/ebms/async", multipart.asHttpRequest())
@@ -41,7 +41,7 @@ class EbmsRouteAsyncIT : EbmsRoutFellesIT("/ebms/async") {
     @Test
     fun `Valid feilsignal should be processed`() = validationTestApp {
         val feilmelding = feilmeldingWithoutSignature.modify {
-            it.append(MimeHeaders.CONTENT_ID, "<contentID-validRequest>")
+            it.append(MimeHeaders.CONTENT_ID, "<e491180e-eea6-41d6-ac5b-d232c9fb115f>")
         }
 
         mockkObject(SignaturValidator.Companion)
@@ -65,7 +65,7 @@ class EbmsRouteAsyncIT : EbmsRoutFellesIT("/ebms/async") {
     @Test
     fun `Valid Acknowledgment should be processed`() = validationTestApp {
         val ack = validAcknowledgment.modify {
-            it[MimeHeaders.CONTENT_ID] = "<contentID-validRequest>"
+            it[MimeHeaders.CONTENT_ID] = "<e491180e-eea6-41d6-ac5b-d232c9fb115f>"
         }
 
         mockkObject(SignaturValidator.Companion)
