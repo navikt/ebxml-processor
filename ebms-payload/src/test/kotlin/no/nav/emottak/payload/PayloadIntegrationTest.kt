@@ -59,9 +59,10 @@ import java.security.cert.X509Certificate
 import java.time.Instant
 import java.util.Date
 
+private val testKeystore = KeyStoreManager(payloadSigneringConfig())
+
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class PayloadIntegrationTest {
-
     private val mockOAuth2Server = MockOAuth2Server().also { it.start(port = 3344) }
 
     private fun <T> ebmsPayloadTestApp(testBlock: suspend ApplicationTestBuilder.() -> T) = testApplication {
@@ -148,7 +149,6 @@ class PayloadIntegrationTest {
                 json()
             }
         }
-        val keystore = KeyStoreManager(payloadSigneringConfig())
         val ssn = "01010112345"
         mockkConstructor(OcspStatusService::class, recordPrivateCalls = true, localToThread = false)
         val ocspRequestCaptureSlot = slot<ByteArray>()
@@ -158,15 +158,18 @@ class PayloadIntegrationTest {
             OCSPRespBuilder().build(
                 OCSPRespBuilder.SUCCESSFUL,
                 createOCSPResp(
-                    keystore.getCertificate("navtest-ca"),
+                    testKeystore.getCertificate("navtest-ca"),
                     ssn,
-                    keystore.getKey("navtest-ca"),
+                    testKeystore.getKey("navtest-ca"),
                     OCSPReq(ocspRequestCaptureSlot.captured).getExtension(id_pkix_ocsp_nonce).parsedValue
                 )
             )
         }
+        // certificate = object {}::class.java.classLoader.getResourceAsStream("keystore/samhandlerRequest_CA-SIGNED.crt")
 
-        val requestBody = payloadRequestMedOCSP()
+        val requestBody = payloadRequestMedOCSP(
+            testKeystore.getCertificate("samhandler-2024").encoded
+        )
         val httpResponse = httpClient.post("/payload") {
             header(
                 "Authorization",
@@ -239,19 +242,18 @@ private fun payloadRequest(
     addressing = addressing()
 )
 
-private fun signatureDetailsWithCertResource() = SignatureDetails( // TODO signatur mangler OCSP extension
-    certificate = object {}::class.java.classLoader.getResourceAsStream("keystore/samhandlerRequest_CA-SIGNED.crt")
-        .readAllBytes(),
+private fun signatureDetailsWithCertResource(certificate: ByteArray) = SignatureDetails(
+    certificate = certificate,
     signatureAlgorithm = "sha256WithRSAEncryption",
     hashFunction = ""
 )
 
-private fun payloadRequestMedOCSP() = PayloadRequest(
+private fun payloadRequestMedOCSP(signedCert: ByteArray) = PayloadRequest(
     direction = Direction.IN,
     messageId = "123",
     conversationId = "321",
     processing = PayloadProcessing(
-        signatureDetailsWithCertResource(),
+        signatureDetailsWithCertResource(signedCert),
         byteArrayOf(),
         ProcessConfig(
             kryptering = false,
@@ -323,9 +325,11 @@ private fun processConfig(
     errorAction = null
 )
 
+private fun getDummyCert() {
+}
+
 private fun signatureDetails() = SignatureDetails(
-    certificate = object {}::class.java.classLoader.getResourceAsStream("keystore/samhandlerRequest_CA-SIGNED.crt")
-        .readAllBytes(),
+    certificate = testKeystore.getCertificate("samhandler-2024").encoded,
     signatureAlgorithm = "sha256WithRSAEncryption",
     hashFunction = ""
 )
