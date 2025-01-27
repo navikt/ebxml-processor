@@ -128,8 +128,7 @@ fun EbmsMessage.createMessageHeader(newAddressing: Addressing = this.addressing,
 
 fun EbmsMessage.toEbmsMessageDetails(): EbmsMessageDetails {
     return EbmsMessageDetails(
-        // TODO: Get referenceId from Kafka
-        UUID.randomUUID(),
+        UUID.fromString(requestId),
         cpaId,
         conversationId,
         messageId,
@@ -143,7 +142,7 @@ fun EbmsMessage.toEbmsMessageDetails(): EbmsMessageDetails {
     )
 }
 
-fun createEbmsDocument(ebxmlDokument: Header, payload: EbmsAttachment? = null): EbMSDocument {
+fun EbmsMessage.createEbmsDocument(ebxmlDokument: Header, payload: EbmsAttachment? = null): EbMSDocument {
     val envelope = Envelope()
     val attachmentUid = UUID.randomUUID().toString()
     envelope.header = ebxmlDokument
@@ -166,7 +165,7 @@ fun createEbmsDocument(ebxmlDokument: Header, payload: EbmsAttachment? = null): 
     val dokument = getDocumentBuilder().parse(InputSource(StringReader(marshal(envelope))))
     val payloads = if (payload != null) listOf(EbmsAttachment(payload.bytes, payload.contentType, payload.contentId)) else listOf()
     return EbMSDocument(
-        UUID.randomUUID().toString(),
+        requestId,
         dokument,
         payloads
     )

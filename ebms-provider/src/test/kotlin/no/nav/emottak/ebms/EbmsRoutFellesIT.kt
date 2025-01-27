@@ -88,10 +88,10 @@ abstract class EbmsRoutFellesIT(val endpoint: String) {
                     json()
                 }
                 routing {
-                    post("cpa/validate/soapId-6ae68a32-8b0e-4de2-baad-f4d841aacce1") {
+                    post("cpa/validate/6ae68a32-8b0e-4de2-baad-f4d841aacce1") {
                         call.respond(ValidationResult(error = listOf(Feil(ErrorCode.SECURITY_FAILURE, "Signature Fail"))))
                     }
-                    post("cpa/validate/contentID-validRequest") {
+                    post("cpa/validate/e491180e-eea6-41d6-ac5b-d232c9fb115f") {
                         call.respond(ValidationResult(payloadProcessing = PayloadProcessing(mockSignatureDetails(), byteArrayOf(), mockProcessConfig)))
                     }
                 }
@@ -118,7 +118,7 @@ abstract class EbmsRoutFellesIT(val endpoint: String) {
         val multipart = validMultipartRequest.modify(
             validMultipartRequest.parts.first() to validMultipartRequest.parts.first().modify {
                 it.remove(MimeHeaders.CONTENT_ID)
-                it.append(MimeHeaders.CONTENT_ID, "<contentID-validRequest>")
+                it.append(MimeHeaders.CONTENT_ID, "<e491180e-eea6-41d6-ac5b-d232c9fb115f>")
             }
         )
         client.post("/ebms/async", multipart.asHttpRequest())

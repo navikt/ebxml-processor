@@ -93,7 +93,7 @@ class EbmsMessageDetailsRepositoryTest {
     }
 
     private fun buildTestPayloadMessage(service: String) = PayloadMessage(
-        "requestId1",
+        "e491180e-eea6-41d6-ac5b-d232c9fb115f",
         "messageId1",
         "conversationId1",
         "cpaId1",
