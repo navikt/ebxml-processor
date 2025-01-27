@@ -16,7 +16,10 @@ import io.mockk.coVerify
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.runs
-import no.nav.emottak.ebms.persistence.EbmsMessageRepository
+import no.nav.emottak.ebms.configuration.config
+import no.nav.emottak.ebms.kafka.KafkaTestContainer
+import no.nav.emottak.ebms.messaging.EbmsSignalProducer
+import no.nav.emottak.ebms.persistence.repository.EbmsMessageDetailsRepository
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.DokumentValidator
@@ -34,7 +37,9 @@ import no.nav.emottak.util.decodeBase64
 import no.nav.emottak.util.getEnvVar
 import org.apache.xml.security.algorithms.MessageDigestAlgorithm
 import org.apache.xml.security.signature.XMLSignature
+import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ErrorList
 import org.xmlsoap.schemas.soap.envelope.Envelope
@@ -43,7 +48,8 @@ abstract class EbmsRoutFellesIT(val endpoint: String) {
 
     val validMultipartRequest = validMultipartRequest()
     val processingService = mockk<ProcessingService>()
-    val ebmsMessageRepository = mockk<EbmsMessageRepository>()
+    val ebmsMessageDetailsRepository = mockk<EbmsMessageDetailsRepository>()
+    val ebmsSignalProducer = mockk<EbmsSignalProducer>()
     val mockProcessConfig = ProcessConfig(
         true,
         true,
@@ -72,8 +78,8 @@ abstract class EbmsRoutFellesIT(val endpoint: String) {
                 processingService.processAsync(any(), any())
             } just runs
             routing {
-                postEbmsSync(dokumentValidator, processingService, SendInService(sendInClient), ebmsMessageRepository)
-                postEbmsAsync(dokumentValidator, processingService, ebmsMessageRepository)
+                postEbmsSync(dokumentValidator, processingService, SendInService(sendInClient), ebmsMessageDetailsRepository)
+                postEbmsAsync(dokumentValidator, processingService, ebmsMessageDetailsRepository, ebmsSignalProducer)
             }
         }
         externalServices {
@@ -82,10 +88,10 @@ abstract class EbmsRoutFellesIT(val endpoint: String) {
                     json()
                 }
                 routing {
-                    post("cpa/validate/soapId-6ae68a32-8b0e-4de2-baad-f4d841aacce1") {
+                    post("cpa/validate/6ae68a32-8b0e-4de2-baad-f4d841aacce1") {
                         call.respond(ValidationResult(error = listOf(Feil(ErrorCode.SECURITY_FAILURE, "Signature Fail"))))
                     }
-                    post("cpa/validate/contentID-validRequest") {
+                    post("cpa/validate/e491180e-eea6-41d6-ac5b-d232c9fb115f") {
                         call.respond(ValidationResult(payloadProcessing = PayloadProcessing(mockSignatureDetails(), byteArrayOf(), mockProcessConfig)))
                     }
                 }
@@ -112,12 +118,29 @@ abstract class EbmsRoutFellesIT(val endpoint: String) {
         val multipart = validMultipartRequest.modify(
             validMultipartRequest.parts.first() to validMultipartRequest.parts.first().modify {
                 it.remove(MimeHeaders.CONTENT_ID)
-                it.append(MimeHeaders.CONTENT_ID, "<contentID-validRequest>")
+                it.append(MimeHeaders.CONTENT_ID, "<e491180e-eea6-41d6-ac5b-d232c9fb115f>")
             }
         )
         client.post("/ebms/async", multipart.asHttpRequest())
         coVerify(exactly = 1) {
             processingService.processAsync(any(), any())
+        }
+    }
+
+    companion object {
+        @JvmStatic
+        @BeforeAll
+        fun setup() {
+            KafkaTestContainer.start()
+            System.setProperty("KAFKA_BROKERS", KafkaTestContainer.bootstrapServers)
+
+            KafkaTestContainer.createTopic(config().kafkaSignalProducer.topic)
+        }
+
+        @JvmStatic
+        @AfterAll
+        fun tearDown() {
+            KafkaTestContainer.stop()
         }
     }
 }

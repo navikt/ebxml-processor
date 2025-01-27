@@ -17,6 +17,7 @@ plugins {
 tasks {
     shadowJar {
         archiveFileName.set("app.jar")
+        isZip64 = true
     }
 }
 
@@ -48,6 +49,11 @@ dependencies {
     implementation("io.ktor:ktor-server-call-logging-jvm:2.3.4")
     implementation("io.ktor:ktor-server-core-jvm:2.3.4")
     testImplementation(project(":cpa-repo"))
+    implementation(libs.arrow.core)
+    implementation(libs.arrow.fx.coroutines)
+    implementation(libs.arrow.resilience)
+    implementation(libs.arrow.suspendapp)
+    implementation(libs.arrow.suspendapp.ktor)
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.netty)
     implementation(libs.ktor.client.core)
@@ -64,6 +70,9 @@ dependencies {
     implementation(libs.bundles.logging)
     implementation(libs.bundles.prometheus)
     implementation(libs.apache.santuario)
+    implementation(libs.kotlin.kafka)
+    implementation(libs.hoplite.core)
+    implementation(libs.hoplite.hocon)
     implementation("com.sun.xml.messaging.saaj:saaj-impl:3.0.2")
     implementation(libs.emottak.payload.xsd)
     // implementation("org.glassfish.jaxb:jaxb-runtime:4.0.3") // TODO: Latest. Krever at protokoll oppdateres
@@ -80,6 +89,7 @@ dependencies {
     testImplementation(testLibs.mockk.jvm)
     testImplementation(testLibs.mockk.dsl.jvm)
     testImplementation(libs.apache.santuario)
+    testImplementation("org.testcontainers:kafka:1.19.0")
     // testImplementation(testLibs.mockk.jvm)
     testRuntimeOnly(testLibs.junit.jupiter.engine)
 }

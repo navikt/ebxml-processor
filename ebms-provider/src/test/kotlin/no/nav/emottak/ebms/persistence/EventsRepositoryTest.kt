@@ -1,16 +1,16 @@
 package no.nav.emottak.ebms.persistence
 
 import no.nav.emottak.ebms.ebmsPostgres
-import no.nav.emottak.ebms.test.EndToEndTest.Companion.ebmsProviderDbContainer
+import no.nav.emottak.ebms.persistence.repository.EbmsMessageDetailsRepository
+import no.nav.emottak.ebms.persistence.repository.EventsRepository
 import no.nav.emottak.ebms.testConfiguration
 import no.nav.emottak.message.model.Addressing
+import no.nav.emottak.message.model.Event
 import no.nav.emottak.message.model.Party
 import no.nav.emottak.message.model.PartyId
 import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.model.toEbmsMessageDetails
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions
@@ -18,10 +18,12 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.testcontainers.containers.PostgreSQLContainer
 import java.sql.DriverManager
+import java.util.*
 
-class EbmsMessageRepositoryTest {
+class EventsRepositoryTest {
     companion object {
-        lateinit var ebmsMessageRepository: EbmsMessageRepository
+        lateinit var eventRepository: EventsRepository
+        lateinit var ebmsMessageDetailsRepository: EbmsMessageDetailsRepository
         lateinit var ebmsProviderDbContainer: PostgreSQLContainer<Nothing>
         lateinit var ebmsProviderDb: Database
 
@@ -32,7 +34,8 @@ class EbmsMessageRepositoryTest {
             ebmsProviderDbContainer.start()
             ebmsProviderDb = Database(ebmsProviderDbContainer.testConfiguration())
             ebmsProviderDb.migrate(ebmsProviderDb.dataSource)
-            ebmsMessageRepository = EbmsMessageRepository(ebmsProviderDb)
+            eventRepository = EventsRepository(ebmsProviderDb)
+            ebmsMessageDetailsRepository = EbmsMessageDetailsRepository(ebmsProviderDb)
         }
 
         @JvmStatic
@@ -50,56 +53,33 @@ class EbmsMessageRepositoryTest {
 
         DriverManager.getConnection(jdbcUrl, username, password).use { connection ->
             connection.createStatement().use { statement ->
-                statement.execute("TRUNCATE TABLE ebms_message")
+                statement.execute("DELETE FROM events")
+                statement.execute("DELETE FROM ebms_message_details")
             }
         }
     }
 
     @Test
-    fun `Message details get saved to database`() {
+    fun `Event get saved to database`() {
         val originalMessage = buildTestPayloadMessage("Inntektsforesporsel")
+        val originalMessageDetails = originalMessage.toEbmsMessageDetails()
+        val originalEvent = buildTestEvent(originalMessageDetails.referenceId)
 
-        val savedMessageId = ebmsMessageRepository.saveEbmsMessageDetails(originalMessage.toEbmsMessageDetails())
+        ebmsMessageDetailsRepository.saveEbmsMessageDetails(originalMessageDetails)
+        val savedEventId = eventRepository.updateOrInsert(originalEvent)
 
-        val retrievedMessage = ebmsMessageRepository.getByMessageIdAndCpaId(
-            originalMessage.messageId,
-            originalMessage.cpaId
-        )
+        val retrievedEvent = eventRepository.getByEventId(savedEventId)
 
-        Assertions.assertEquals(originalMessage.messageId, savedMessageId)
-
-        Assertions.assertNotNull(retrievedMessage)
-        Assertions.assertEquals(originalMessage.messageId, retrievedMessage?.messageId)
-        Assertions.assertEquals(originalMessage.cpaId, retrievedMessage?.cpaId)
-        Assertions.assertEquals(originalMessage.conversationId, retrievedMessage?.conversationId)
-        Assertions.assertEquals(originalMessage.refToMessageId, retrievedMessage?.refToMessageId)
-        Assertions.assertEquals(originalMessage.addressing.from.role, retrievedMessage?.fromRole)
-        Assertions.assertEquals(originalMessage.addressing.to.role, retrievedMessage?.toRole)
-        Assertions.assertEquals(originalMessage.addressing.service, retrievedMessage?.service)
-        Assertions.assertEquals(originalMessage.addressing.action, retrievedMessage?.action)
-
-        // PartyID serializing check
-        Assertions.assertEquals("orgnummer:456789", retrievedMessage?.fromPartyId)
-        Assertions.assertEquals("HER:123456", retrievedMessage?.toPartyId)
-    }
-
-    @Test
-    fun `Message details don't get saved if service isn't supported`() {
-        val originalMessage = buildTestPayloadMessage("HarBorgerFrikort")
-
-        val savedMessageId = ebmsMessageRepository.saveEbmsMessageDetails(originalMessage.toEbmsMessageDetails())
-
-        val retrievedMessage = ebmsMessageRepository.getByMessageIdAndCpaId(
-            originalMessage.messageId,
-            originalMessage.cpaId
-        )
-
-        Assertions.assertEquals("", savedMessageId)
-        Assertions.assertNull(retrievedMessage)
+        Assertions.assertEquals(originalEvent.referenceId, retrievedEvent?.referenceId)
+        Assertions.assertEquals(originalEvent.contentId, retrievedEvent?.contentId)
+        Assertions.assertEquals(originalEvent.messageId, retrievedEvent?.messageId)
+        Assertions.assertEquals(originalEvent.juridiskLoggId, retrievedEvent?.juridiskLoggId)
+        Assertions.assertEquals(originalEvent.eventMessage, retrievedEvent?.eventMessage)
+        Assertions.assertNotNull(retrievedEvent?.createdAt)
     }
 
     private fun buildTestPayloadMessage(service: String) = PayloadMessage(
-        "requestId1",
+        "e491180e-eea6-41d6-ac5b-d232c9fb115f",
         "messageId1",
         "conversationId1",
         "cpaId1",
@@ -122,5 +102,15 @@ class EbmsMessageRepositoryTest {
         ),
         null,
         "refToMessageId1"
+    )
+
+    private fun buildTestEvent(referenceId: UUID) = Event(
+        UUID.randomUUID(),
+        referenceId,
+        "contentId1",
+        "messageId1",
+        "juridiskLoggId1",
+        "Message has been saved to juridisk logg",
+        null
     )
 }

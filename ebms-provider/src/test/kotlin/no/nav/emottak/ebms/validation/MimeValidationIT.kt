@@ -10,9 +10,10 @@ import io.mockk.mockk
 import no.nav.emottak.cpa.decodeBase64Mime
 import no.nav.emottak.ebms.CpaRepoClient
 import no.nav.emottak.ebms.asHttpRequest
+import no.nav.emottak.ebms.messaging.EbmsSignalProducer
 import no.nav.emottak.ebms.modify
 import no.nav.emottak.ebms.payload
-import no.nav.emottak.ebms.persistence.EbmsMessageRepository
+import no.nav.emottak.ebms.persistence.repository.EbmsMessageDetailsRepository
 import no.nav.emottak.ebms.postEbmsAsync
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.validMultipartRequest
@@ -35,14 +36,15 @@ class MimeValidationIT {
 
     val validMultipartRequest = validMultipartRequest()
     val cpaRepoClient = mockk<CpaRepoClient>()
-    val ebmsMessageRepository = mockk<EbmsMessageRepository>()
+    val ebmsMessageDetailsRepository = mockk<EbmsMessageDetailsRepository>()
+    val ebmsSignalProducer = mockk<EbmsSignalProducer>()
 
     fun <T> mimeTestApp(testBlock: suspend ApplicationTestBuilder.() -> T) = testApplication {
         application {
             val dokumentValidator = DokumentValidator(cpaRepoClient)
             val processingService = mockk<ProcessingService>()
             routing {
-                postEbmsAsync(dokumentValidator, processingService, ebmsMessageRepository)
+                postEbmsAsync(dokumentValidator, processingService, ebmsMessageDetailsRepository, ebmsSignalProducer)
             }
         }
         externalServices {

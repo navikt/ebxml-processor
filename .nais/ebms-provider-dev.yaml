@@ -45,7 +45,7 @@ spec:
   resources:
     limits:
       cpu: "1000m"
-      memory: "512Mi"
+      memory: "1024Mi"
     requests:
       cpu: "100m"
       memory: "256Mi"
@@ -53,6 +53,8 @@ spec:
     - "https://ebms-provider-fss.intern.dev.nav.no"
   vault:
     enabled: true
+  kafka:
+    pool: nav-dev
 #  gcp:
 #    sqlInstances:
 #        - type: POSTGRES_15
@@ -72,6 +74,10 @@ spec:
       value: "4"
     - name: MAX_CONNECTION_POOL_SIZE_FOR_ADMIN
       value: "1"
+    - name: SIGNAL_RECEIVER
+      value: "true"
+    - name: SIGNAL_PRODUCER
+      value: "true"
     - name: VAULT_JDBC_URL
       value: jdbc:postgresql://b27dbvl033.preprod.local:5432/
   envFrom:

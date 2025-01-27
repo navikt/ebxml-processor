@@ -14,8 +14,10 @@ import io.ktor.server.routing.post
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import kotlinx.serialization.Serializable
 import no.nav.emottak.constants.SMTPHeaders
+import no.nav.emottak.ebms.configuration.config
+import no.nav.emottak.ebms.messaging.EbmsSignalProducer
 import no.nav.emottak.ebms.model.signer
-import no.nav.emottak.ebms.persistence.EbmsMessageRepository
+import no.nav.emottak.ebms.persistence.repository.EbmsMessageDetailsRepository
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.util.marker
@@ -32,6 +34,7 @@ import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.model.PayloadProcessing
 import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.message.model.toEbmsMessageDetails
+import no.nav.emottak.message.xml.asByteArray
 import no.nav.emottak.util.marker
 import no.nav.emottak.util.retrieveLoggableHeaderPairs
 import java.sql.SQLException
@@ -148,7 +151,7 @@ fun Route.postEbmsSync(
     validator: DokumentValidator,
     processingService: ProcessingService,
     sendInService: SendInService,
-    ebmsMessageRepository: EbmsMessageRepository
+    ebmsMessageDetailsRepository: EbmsMessageDetailsRepository
 ): Route = post("/ebms/sync") {
     log.info("Receiving synchronous request")
 
@@ -182,7 +185,7 @@ fun Route.postEbmsSync(
         return@post
     }
 
-    saveEbmsMessageDetails(ebMSDocument, loggableHeaders, ebmsMessageRepository)
+    saveEbmsMessageDetails(ebMSDocument, loggableHeaders, ebmsMessageDetailsRepository)
 
     val ebmsMessage = ebMSDocument.transform() as PayloadMessage
     var signingCertificate: SignatureDetails? = null
@@ -245,7 +248,12 @@ fun Route.postEbmsSync(
     }
 }
 
-fun Route.postEbmsAsync(validator: DokumentValidator, processingService: ProcessingService, ebmsMessageRepository: EbmsMessageRepository): Route =
+fun Route.postEbmsAsync(
+    validator: DokumentValidator,
+    processingService: ProcessingService,
+    ebmsMessageDetailsRepository: EbmsMessageDetailsRepository,
+    ebmsSignalProducer: EbmsSignalProducer
+): Route =
     post("/ebms/async") {
         // KRAV 5.5.2.1 validate MIME
         val debug: Boolean = call.request.header("debug")?.isNotBlank() ?: false
@@ -282,7 +290,7 @@ fun Route.postEbmsAsync(validator: DokumentValidator, processingService: Process
         val ebmsMessage = ebMSDocument.transform()
         log.info(ebMSDocument.messageHeader().marker(loggableHeaders), "Melding mottatt")
 
-        saveEbmsMessageDetails(ebMSDocument, loggableHeaders, ebmsMessageRepository)
+        saveEbmsMessageDetails(ebMSDocument, loggableHeaders, ebmsMessageDetailsRepository)
 
         try {
             validator
@@ -297,12 +305,25 @@ fun Route.postEbmsAsync(validator: DokumentValidator, processingService: Process
             }
             log.info(ebMSDocument.messageHeader().marker(), "Payload Processed, Generating Acknowledgement...")
             ebmsMessage.createAcknowledgment().toEbmsDokument().also {
+                log.debug("Sending acknowledgement to Kafka")
+                sendToKafka(it, loggableHeaders, ebmsSignalProducer)
+            }.also {
+                log.debug("Saving acknowledgement to database")
+                saveEbmsMessageDetails(it, loggableHeaders, ebmsMessageDetailsRepository)
+            }.also {
                 call.respondEbmsDokument(it)
                 return@post
             }
         } catch (ex: EbmsException) {
             ebmsMessage.createFail(ex.feil).toEbmsDokument().also {
                 log.info(ebmsMessage.marker(), "Created MessageError response")
+            }.also {
+                log.debug("Sending fail message to Kafka")
+                sendToKafka(it, loggableHeaders, ebmsSignalProducer)
+            }.also {
+                log.debug("Saving fail message to database")
+                saveEbmsMessageDetails(it, loggableHeaders, ebmsMessageDetailsRepository)
+            }.also {
                 call.respondEbmsDokument(it)
                 return@post
             }
@@ -339,16 +360,32 @@ fun Routing.navCheckStatus() {
     }
 }
 
+suspend fun sendToKafka(
+    ebMSDocument: EbMSDocument,
+    loggableHeaders: Map<String, String>,
+    producer: EbmsSignalProducer
+) {
+    if (config().kafkaSignalProducer.active) {
+        val markers = ebMSDocument.messageHeader().marker(loggableHeaders)
+        try {
+            log.info(markers, "Sending message to Kafka queue")
+            producer.send(ebMSDocument.requestId, ebMSDocument.dokument.asByteArray())
+        } catch (e: Exception) {
+            log.error(markers, "Exception occurred while sending message to Kafka queue", e)
+        }
+    }
+}
+
 fun saveEbmsMessageDetails(
     ebMSDocument: EbMSDocument,
     loggableHeaders: Map<String, String>,
-    repository: EbmsMessageRepository
+    repository: EbmsMessageDetailsRepository
 ) {
     val ebmsMessageDetails = ebMSDocument.transform().toEbmsMessageDetails()
     val markers = ebMSDocument.messageHeader().marker(loggableHeaders)
     try {
         repository.saveEbmsMessageDetails(ebmsMessageDetails).also {
-            if (it == "") {
+            if (it == null) {
                 log.info(markers, "Message details has not been saved to database")
             } else {
                 log.info(markers, "Message details saved to database")
