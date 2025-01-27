@@ -306,7 +306,7 @@ fun Route.postEbmsAsync(
             log.info(ebMSDocument.messageHeader().marker(), "Payload Processed, Generating Acknowledgement...")
             ebmsMessage.createAcknowledgment().toEbmsDokument().also {
                 log.debug("Sending acknowledgement to Kafka")
-                sendToKafka(it, ebmsSignalProducer)
+                sendToKafka(it, loggableHeaders, ebmsSignalProducer)
             }.also {
                 log.debug("Saving acknowledgement to database")
                 saveEbmsMessageDetails(it, loggableHeaders, ebmsMessageDetailsRepository)
@@ -316,13 +316,14 @@ fun Route.postEbmsAsync(
             }
         } catch (ex: EbmsException) {
             ebmsMessage.createFail(ex.feil).toEbmsDokument().also {
+                log.info(ebmsMessage.marker(), "Created MessageError response")
+            }.also {
                 log.debug("Sending fail message to Kafka")
-                sendToKafka(it, ebmsSignalProducer)
+                sendToKafka(it, loggableHeaders, ebmsSignalProducer)
             }.also {
                 log.debug("Saving fail message to database")
                 saveEbmsMessageDetails(it, loggableHeaders, ebmsMessageDetailsRepository)
             }.also {
-                log.info(ebmsMessage.marker(), "Created MessageError response")
                 call.respondEbmsDokument(it)
                 return@post
             }
@@ -359,13 +360,18 @@ fun Routing.navCheckStatus() {
     }
 }
 
-suspend fun sendToKafka(ebMSDocument: EbMSDocument, producer: EbmsSignalProducer) {
+suspend fun sendToKafka(
+    ebMSDocument: EbMSDocument,
+    loggableHeaders: Map<String, String>,
+    producer: EbmsSignalProducer
+) {
     if (config().kafkaSignalProducer.active) {
+        val markers = ebMSDocument.messageHeader().marker(loggableHeaders)
         try {
-            log.debug("Sending message to Kafka queue")
+            log.info(markers, "Sending message to Kafka queue")
             producer.send(ebMSDocument.requestId, ebMSDocument.dokument.asByteArray())
         } catch (e: Exception) {
-            log.error("Exception occurred while sending message to Kafka queue", e)
+            log.error(markers, "Exception occurred while sending message to Kafka queue", e)
         }
     }
 }
