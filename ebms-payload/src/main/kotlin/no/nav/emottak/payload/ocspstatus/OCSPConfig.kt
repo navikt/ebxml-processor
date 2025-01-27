@@ -6,13 +6,6 @@ import no.nav.emottak.payload.crypto.payloadSigneringConfig
 import no.nav.emottak.util.getEnvVar
 import java.io.FileReader
 
-// var certificateAuthorities: CertificateAuthorities = run {
-//    val mapper = ObjectMapper(YAMLFactory())
-//    mapper.registerModules(KotlinModule.Builder().build())
-//    val input = ClassLoader.getSystemResourceAsStream("caList-dev.yaml")
-//    mapper.readValue(input, CertificateAuthorities::class.java)
-// }
-
 internal fun trustStoreConfig() = FileKeyStoreConfig(
     keyStoreFilePath = getEnvVar("TRUSTSTORE_PATH", resolveDefaultTruststorePath()),
     keyStorePass = getEnvVar("TRUSTSTORE_PWD", "changeit").toCharArray(),
@@ -41,17 +34,3 @@ fun ocspSigneringConfigCommfides() =
     }
 
 fun ocspSigneringConfigBuypass() = payloadSigneringConfig() // TODO split this
-
-// data class CAHolder(
-//    val name: String,
-//    val dn: String,
-//    val crlUrl: String,
-//    val ocspUrl: String,
-//    val ocspSignerAlias: String,
-//    val x500Name: X500Name = X500Name(dn),
-//    var crl: X509CRL?,
-//    var cachedDate: LocalDateTime = LocalDateTime.now()
-// )
-// data class CertificateAuthorities(
-//    val caList: List<CAHolder>
-// )

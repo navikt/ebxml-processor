@@ -163,7 +163,7 @@ class OcspStatusService(
     ) {
         checkOCSPResponseStatus(response.status)
         val basicOCSPResponse: BasicOCSPResp = getBasicOCSPResp(response)
-        verifyNonce(requestNonce, basicOCSPResponse.getExtension(OCSPObjectIdentifiers.id_pkix_ocsp_nonce)) // TODO NPE
+        verifyNonce(requestNonce, basicOCSPResponse.getExtension(OCSPObjectIdentifiers.id_pkix_ocsp_nonce))
         val ocspCertificates = basicOCSPResponse.certs
         verifyOCSPCerts(basicOCSPResponse, ocspCertificates, ocspResponderCertificate)
         if (basicOCSPResponse.responses.size == 1) {
