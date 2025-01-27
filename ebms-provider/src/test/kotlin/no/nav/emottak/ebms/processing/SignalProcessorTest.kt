@@ -36,7 +36,7 @@ class SignalProcessorTest {
             .getResourceAsStream("signaltest/acknowledgment.xml")
 
         runBlocking {
-            signalProcessor.processSignal("123", message!!.readAllBytes())
+            signalProcessor.processSignal(UUID.randomUUID().toString(), message!!.readAllBytes())
         }
     }
 
@@ -47,7 +47,7 @@ class SignalProcessorTest {
 
         val exception = assertThrows<RuntimeException> {
             runBlocking {
-                signalProcessor.processSignal("123", message!!.readAllBytes())
+                signalProcessor.processSignal(UUID.randomUUID().toString(), message!!.readAllBytes())
             }
         }
         assertEquals("Unrecognized dokument type", exception.message)
@@ -60,7 +60,7 @@ class SignalProcessorTest {
 
         assertThrows<UnmarshalException> {
             runBlocking {
-                signalProcessor.processSignal("123", message!!.readAllBytes())
+                signalProcessor.processSignal(UUID.randomUUID().toString(), message!!.readAllBytes())
             }
         }
     }

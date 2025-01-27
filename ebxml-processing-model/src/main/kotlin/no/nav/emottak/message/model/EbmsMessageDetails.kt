@@ -24,11 +24,5 @@ data class EbmsMessageDetails(
 
             return "${partyId.type}:${partyId.value}"
         }
-        fun convertStringToUUIDOrGenerateNew(string: String): UUID =
-            try {
-                UUID.fromString(string)
-            } catch (iae: IllegalArgumentException) {
-                UUID.randomUUID()
-            }
     }
 }
