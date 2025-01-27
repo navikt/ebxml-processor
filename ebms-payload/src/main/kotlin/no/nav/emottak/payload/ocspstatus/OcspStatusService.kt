@@ -71,9 +71,6 @@ class OcspStatusService(
             Certificates that have an OCSP service locator will be verified against the OCSP responder.
              */
             val providerName = ocspResponderCertificate.subjectX500Principal.name
-            config().caList.firstOrNull {
-                it.dn == ocspResponderCertificate.subjectX500Principal.name
-            }
             signingKeyStoreManager.getCertificateChain(certificateFromSignature.issuerX500Principal.name).also {
                 extensionsGenerator.addServiceLocator(certificateFromSignature, X500Name(providerName), it)
             }
