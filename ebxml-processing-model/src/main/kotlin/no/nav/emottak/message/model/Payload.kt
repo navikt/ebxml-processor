@@ -1,6 +1,12 @@
 package no.nav.emottak.message.model
 
+import java.util.*
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import no.nav.emottak.message.util.createUniqueMimeMessageId
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.EndpointTypeType
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Description
@@ -166,6 +172,15 @@ data class EmailAddress(
 @Serializable
 data class Payload(val bytes: ByteArray, val contentType: String, val contentId: String = "att-${createUniqueMimeMessageId()}", val signedBy: String? = null)
 
+@Serializable
+data class AsyncPayload(
+    @Serializable(with = UUIDSerializer::class)
+    val referenceId: UUID,
+    val contentId: String,
+    val contentType: String,
+    val content: ByteArray
+)
+
 typealias EbmsAttachment = Payload
 
 
@@ -232,4 +247,17 @@ fun List<org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Error>.asErro
                 it.severity == SeverityType.ERROR }.first().severity
             errorList.isMustUnderstand = true // Alltid
             return errorList
+}
+
+// Hentet fra: https://stackoverflow.com/questions/65398284/kotlin-serialization-serializer-has-not-been-found-for-type-uuid
+object UUIDSerializer : KSerializer<UUID> {
+    override val descriptor = PrimitiveSerialDescriptor("UUID", PrimitiveKind.STRING)
+
+    override fun deserialize(decoder: Decoder): UUID {
+        return UUID.fromString(decoder.decodeString())
+    }
+
+    override fun serialize(encoder: Encoder, value: UUID) {
+        encoder.encodeString(value.toString())
+    }
 }

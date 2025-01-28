@@ -14,6 +14,8 @@ import io.ktor.server.application.Application
 import io.ktor.server.application.call
 import io.ktor.server.application.createRouteScopedPlugin
 import io.ktor.server.application.install
+import io.ktor.server.auth.Authentication
+import io.ktor.server.auth.authenticate
 import io.ktor.server.metrics.micrometer.MicrometerMetrics
 import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
@@ -42,6 +44,7 @@ import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.DokumentValidator
 import no.nav.emottak.util.getEnvVar
 import no.nav.emottak.util.isProdEnv
+import no.nav.security.token.support.v2.tokenValidationSupport
 import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.time.Instant
@@ -114,6 +117,10 @@ fun Application.ebmsProviderModule(
         json()
     }
 
+    install(Authentication) {
+        tokenValidationSupport(AZURE_AD_AUTH, AuthConfig.getTokenSupportConfig())
+    }
+
     routing {
         get("/") {
             call.respondText("Hello, world!")
@@ -126,6 +133,10 @@ fun Application.ebmsProviderModule(
         navCheckStatus()
         postEbmsAsync(validator, processing, ebmsMessageDetailsRepository, ebmsSignalProducer)
         postEbmsSync(validator, processing, sendInService, ebmsMessageDetailsRepository)
+
+        authenticate(AZURE_AD_AUTH) {
+            getPayloads()
+        }
     }
 }
 
