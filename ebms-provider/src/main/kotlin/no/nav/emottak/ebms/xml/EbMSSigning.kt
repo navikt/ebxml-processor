@@ -2,7 +2,7 @@ package no.nav.emottak.ebms.xml
 
 import jakarta.xml.soap.SOAPConstants
 import no.nav.emottak.crypto.FileKeyStoreConfig
-import no.nav.emottak.crypto.KeyStore
+import no.nav.emottak.crypto.KeyStoreManager
 import no.nav.emottak.crypto.VaultKeyStoreConfig
 import no.nav.emottak.crypto.parseVaultJsonObject
 import no.nav.emottak.ebms.validation.CID_PREFIX
@@ -53,7 +53,7 @@ fun signeringConfig() =
 
 val ebMSSigning = EbMSSigning()
 
-class EbMSSigning(private val keyStore: KeyStore = KeyStore(signeringConfig())) {
+class EbMSSigning(private val keyStore: KeyStoreManager = KeyStoreManager(signeringConfig())) {
 
     private val canonicalizationMethodAlgorithm = Transforms.TRANSFORM_C14N_OMIT_COMMENTS
     private val SOAP_ENVELOPE = SOAPConstants.URI_NS_SOAP_1_1_ENVELOPE

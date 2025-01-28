@@ -5,7 +5,7 @@ import no.nav.emottak.cpa.cert.CRLChecker
 import no.nav.emottak.cpa.cert.CRLRetriever
 import no.nav.emottak.cpa.cert.CertificateValidationException
 import no.nav.emottak.crypto.FileKeyStoreConfig
-import no.nav.emottak.crypto.KeyStore
+import no.nav.emottak.crypto.KeyStoreManager
 import no.nav.emottak.util.getEnvVar
 import no.nav.emottak.util.isSelfSigned
 import org.bouncycastle.asn1.x509.CRLDistPoint
@@ -57,7 +57,7 @@ fun X509Certificate.validate() {
 
 class SertifikatValidering(
     private val crlChecker: CRLChecker,
-    trustStore: KeyStore = KeyStore(trustStoreConfig()),
+    trustStore: KeyStoreManager = KeyStoreManager(trustStoreConfig()),
     private val provider: Provider = BouncyCastleProvider()
 ) {
     private val trustedRootCertificates: Set<X509Certificate> = trustStore.getTrustedRootCerts()

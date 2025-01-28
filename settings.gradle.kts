@@ -48,7 +48,7 @@ dependencyResolutionManagement {
             library("ktor-client-auth", "io.ktor", "ktor-client-auth").versionRef("ktor")
 
             library("ktor-server-metrics-micrometer", "io.ktor", "ktor-server-metrics-micrometer").versionRef("ktor")
-            library("micrometer-registry-prometheus", "io.micrometer:micrometer-registry-prometheus:1.12.4")
+            library("micrometer-registry-prometheus", "io.micrometer:micrometer-registry-prometheus:1.14.2")
 
             library("logback-classic", "ch.qos.logback:logback-classic:1.4.11")
             library("logback-logstash", "net.logstash.logback:logstash-logback-encoder:7.4")

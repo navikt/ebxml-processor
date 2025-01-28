@@ -1,7 +1,7 @@
 package no.nav.emottak.payload.crypto
 
 import no.nav.emottak.crypto.FileKeyStoreConfig
-import no.nav.emottak.crypto.KeyStore
+import no.nav.emottak.crypto.KeyStoreManager
 import no.nav.emottak.crypto.VaultKeyStoreConfig
 import no.nav.emottak.crypto.parseVaultJsonObject
 import no.nav.emottak.message.model.SignatureDetails
@@ -49,7 +49,7 @@ fun payloadSigneringConfig() =
             )
     }
 
-class PayloadSignering(private val keyStore: KeyStore = KeyStore(payloadSigneringConfig())) {
+class PayloadSignering(private val keyStore: KeyStoreManager = KeyStoreManager(payloadSigneringConfig())) {
 
     private val digestAlgorithm: String = "http://www.w3.org/2001/04/xmlenc#sha256"
     private val canonicalizationMethod: String = "http://www.w3.org/TR/2001/REC-xml-c14n-20010315"
