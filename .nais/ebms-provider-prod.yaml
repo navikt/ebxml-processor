@@ -82,9 +82,9 @@ spec:
       value: "4"
     - name: MAX_CONNECTION_POOL_SIZE_FOR_ADMIN
       value: "2"
-    - name: SIGNAL_RECEIVER
+    - name: EBMS_SIGNAL_RECEIVER
       value: "false"
-    - name: SIGNAL_PRODUCER
+    - name: EBMS_SIGNAL_PRODUCER
       value: "false"
     - name: VAULT_JDBC_URL
       value: jdbc:postgresql://A01DBVL037.adeo.no:5432/

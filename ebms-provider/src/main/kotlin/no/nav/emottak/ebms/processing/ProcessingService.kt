@@ -9,10 +9,8 @@ import no.nav.emottak.ebms.PayloadProcessingClient
 import no.nav.emottak.ebms.logger
 import no.nav.emottak.ebms.util.marker
 import no.nav.emottak.melding.feil.EbmsException
-import no.nav.emottak.message.model.Acknowledgment
 import no.nav.emottak.message.model.Addressing
 import no.nav.emottak.message.model.Direction
-import no.nav.emottak.message.model.EbmsFail
 import no.nav.emottak.message.model.EbmsMessage
 import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadMessage
@@ -80,12 +78,6 @@ class ProcessingService(private val httpClient: PayloadProcessingClient) {
         } ?: throw EbmsException("Processing has failed", exception = this@retrieveReturnableApprecResponse)
     }
 
-    private fun acknowledgment(acknowledgment: Acknowledgment) {
-    }
-
-    private fun fail(fail: EbmsFail) {
-    }
-
     suspend fun processSyncIn(
         payloadMessage: PayloadMessage,
         payloadProcessing: PayloadProcessing?
@@ -108,16 +100,16 @@ class ProcessingService(private val httpClient: PayloadProcessingClient) {
     suspend fun processAsync(message: EbmsMessage, payloadProcessing: PayloadProcessing?) {
         if (payloadProcessing == null) throw Exception("Processing information is missing for ${message.messageId}")
         when (message) {
-            is Acknowledgment -> acknowledgment(message)
-            is EbmsFail -> fail(message)
             is PayloadMessage -> processMessage(message, payloadProcessing, Direction.IN, message.addressing)
         }
     }
 }
 
 private fun PayloadProcessing.hasActionableProcessingSteps(): Boolean =
-    this.processConfig != null &&
-        (this.processConfig!!.signering || this.processConfig!!.kryptering || this.processConfig!!.komprimering)
+    this.processConfig.signering ||
+        this.processConfig.kryptering ||
+        this.processConfig.komprimering ||
+        this.processConfig.juridiskLogg
 
 private fun PayloadMessage.convertToErrorActionMessage(payload: Payload, errorAction: String): PayloadMessage =
     this.copy(

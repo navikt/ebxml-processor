@@ -98,6 +98,7 @@ fun EbmsMessage.createMessageHeader(newAddressing: Addressing = this.addressing,
             }.toList()
         )
     }
+    // TODO SyncReply should not be present for SMTP messages
     val syncReply = SyncReply().apply {
         this.actor = "http://schemas.xmlsoap.org/soap/actor/next"
         this.isMustUnderstand = true

@@ -74,9 +74,9 @@ spec:
       value: "4"
     - name: MAX_CONNECTION_POOL_SIZE_FOR_ADMIN
       value: "1"
-    - name: SIGNAL_RECEIVER
+    - name: EBMS_SIGNAL_RECEIVER
       value: "true"
-    - name: SIGNAL_PRODUCER
+    - name: EBMS_SIGNAL_PRODUCER
       value: "true"
     - name: VAULT_JDBC_URL
       value: jdbc:postgresql://b27dbvl033.preprod.local:5432/
