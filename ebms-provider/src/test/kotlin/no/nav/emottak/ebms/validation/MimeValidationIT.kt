@@ -14,8 +14,9 @@ import no.nav.emottak.ebms.messaging.EbmsSignalProducer
 import no.nav.emottak.ebms.modify
 import no.nav.emottak.ebms.payload
 import no.nav.emottak.ebms.persistence.repository.EbmsMessageDetailsRepository
-import no.nav.emottak.ebms.postEbmsAsync
+import no.nav.emottak.ebms.postEbmsSync
 import no.nav.emottak.ebms.processing.ProcessingService
+import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validMultipartRequest
 import no.nav.emottak.message.ebxml.errorList
 import no.nav.emottak.message.ebxml.messageHeader
@@ -43,8 +44,9 @@ class MimeValidationIT {
         application {
             val dokumentValidator = DokumentValidator(cpaRepoClient)
             val processingService = mockk<ProcessingService>()
+            val sendInService = mockk<SendInService>()
             routing {
-                postEbmsAsync(dokumentValidator, processingService, ebmsMessageDetailsRepository, ebmsSignalProducer)
+                postEbmsSync(dokumentValidator, processingService, sendInService, ebmsMessageDetailsRepository)
             }
         }
         externalServices {
@@ -59,7 +61,7 @@ class MimeValidationIT {
                 it.remove(MimeHeaders.CONTENT_TRANSFER_ENCODING)
             }
         )
-        val response = client.post("/ebms/async", wrongHeader.asHttpRequest())
+        val response = client.post("/ebms/sync", wrongHeader.asHttpRequest())
         val responseText = response.bodyAsText()
         println(responseText.decodeBase64Mime())
         val envelope = xmlMarshaller.unmarshal(response.bodyAsText(), Envelope::class.java)
@@ -77,11 +79,11 @@ class MimeValidationIT {
     fun `Sending unparsable xml as dokument should Soap Fault`() = mimeTestApp {
         val illegalContent = validMultipartRequest.modify(validMultipartRequest.parts.first() to validMultipartRequest.parts.first().payload("Illegal payload"))
 
-        val response = client.post("/ebms/async", illegalContent.asHttpRequest())
+        val response = client.post("/ebms/sync", illegalContent.asHttpRequest())
         val envelope = xmlMarshaller.unmarshal(response.bodyAsText(), Envelope::class.java)
         with(envelope.assertFaultAndGet()) {
             assertEquals(
-                "Unable to transform request into EbmsDokument: Invalid byte 1 of 1-byte UTF-8 sequence.",
+                "Invalid byte 1 of 1-byte UTF-8 sequence.",
                 this.faultstring
             )
             assertEquals("Server", this.faultcode.localPart)
@@ -95,7 +97,7 @@ class MimeValidationIT {
             cpaRepoClient.postValidate(any(), any())
         } returns validationResult
 
-        val response = client.post("/ebms/async", validMultipartRequest.asHttpRequest())
+        val response = client.post("/ebms/sync", validMultipartRequest.asHttpRequest())
         val envelope = xmlMarshaller.unmarshal(response.bodyAsText(), Envelope::class.java)
         with(envelope.assertErrorAndGet().error.first()) {
             assertEquals("Signature Fail", this.description?.value)
@@ -110,7 +112,7 @@ class MimeValidationIT {
             cpaRepoClient.postValidate(any(), any())
         } returns validationResult
 
-        val response = client.post("/ebms/async", validMultipartRequest.asHttpRequest())
+        val response = client.post("/ebms/sync", validMultipartRequest.asHttpRequest())
         val envelope = xmlMarshaller.unmarshal(response.bodyAsText(), Envelope::class.java)
         with(envelope.assertErrorAndGet().error.first()) {
             assertEquals("Signature Fail", this.description?.value)
