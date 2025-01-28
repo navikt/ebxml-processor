@@ -89,12 +89,6 @@ open class EndToEndTest {
     }
 }
 
-class IntegrasjonsTest2 : EndToEndTest() {
-    @Test
-    fun testMe() {
-        println("Tested")
-    }
-}
 class IntegrasjonsTest : EndToEndTest() {
 
     @Test
@@ -102,7 +96,7 @@ class IntegrasjonsTest : EndToEndTest() {
         application { ebmsProviderModule(ebmsMessageDetailsRepository) }
         val response = client.get("/")
         Assertions.assertEquals(HttpStatusCode.OK, response.status)
-        Assertions.assertEquals("Hello, world!", response.bodyAsText())
+        Assertions.assertEquals("{\"status\":\"Hello\"}", response.bodyAsText())
     }
 
     @Test
@@ -111,7 +105,7 @@ class IntegrasjonsTest : EndToEndTest() {
         clearAllMocks()
         val httpClient = defaultHttpClient().invoke()
         runBlocking {
-            val post = httpClient.post("$ebmsProviderUrl/ebms/async") {
+            val post = httpClient.post("$ebmsProviderUrl/ebms/sync") {
                 mockMultipartRequest()
                 // TODO send en melding som ikke feiler CPA-ID validation
             }
@@ -123,7 +117,7 @@ class IntegrasjonsTest : EndToEndTest() {
     fun testDevFssEndpoint() {
         runBlocking {
             defaultHttpClient()
-                .invoke().post("https://ebms-provider.intern.dev.nav.no/ebms/async") {
+                .invoke().post("https://ebms-provider.intern.dev.nav.no/ebms/sync") {
                     mockMultipartRequest()
                 }
         }
