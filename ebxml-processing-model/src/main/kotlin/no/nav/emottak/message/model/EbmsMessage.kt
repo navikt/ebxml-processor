@@ -128,7 +128,7 @@ fun EbmsMessage.createMessageHeader(newAddressing: Addressing = this.addressing,
 
 fun EbmsMessage.toEbmsMessageDetails(): EbmsMessageDetails {
     return EbmsMessageDetails(
-        UUID.fromString(requestId),
+        EbmsMessageDetails.convertStringToUUIDOrGenerateNew(this.requestId),
         cpaId,
         conversationId,
         messageId,
