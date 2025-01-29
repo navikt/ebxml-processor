@@ -51,7 +51,10 @@ class PayloadMessageProcessor(
     }
 
     private fun retrievePayloads(reference: String): List<Payload> {
-        TODO("Not yet implemented")
+        // TODO get actual payloads from smtp-transport with reference
+        return listOf(
+            Payload(byteArrayOf(), "application/xml", "contentId")
+        )
     }
 
     private suspend fun processPayloadMessage(ebmsPayloadMessage: PayloadMessage) {
