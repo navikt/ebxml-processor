@@ -228,7 +228,7 @@ fun Route.postEbmsAsync(
 
 fun Route.getPayloads(): Route = get("/payload/{$REFERENCE_ID}") {
     var referenceIdParameter: String? = null
-    var referenceId: UUID? = null
+    val referenceId: UUID?
     // Validation
     try {
         referenceIdParameter = call.parameters[REFERENCE_ID]
@@ -273,8 +273,8 @@ fun Route.getPayloads(): Route = get("/payload/{$REFERENCE_ID}") {
             HttpStatusCode.InternalServerError,
             ex.getErrorMessage()
         )
-        return@get
     }
+    return@get
 }
 
 suspend fun sendToKafka(
