@@ -78,6 +78,8 @@ spec:
       value: "true"
     - name: EBMS_SIGNAL_PRODUCER
       value: "true"
+    - name: EBMS_PAYLOAD_RECEIVER
+      value: "true"
     - name: VAULT_JDBC_URL
       value: jdbc:postgresql://b27dbvl033.preprod.local:5432/
   envFrom:

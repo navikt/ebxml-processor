@@ -86,5 +86,7 @@ spec:
       value: "false"
     - name: EBMS_SIGNAL_PRODUCER
       value: "false"
+    - name: EBMS_PAYLOAD_RECEIVER
+      value: "false"
     - name: VAULT_JDBC_URL
       value: jdbc:postgresql://A01DBVL037.adeo.no:5432/
