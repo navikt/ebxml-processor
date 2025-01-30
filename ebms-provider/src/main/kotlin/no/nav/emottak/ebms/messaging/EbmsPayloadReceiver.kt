@@ -1,5 +1,6 @@
 package no.nav.emottak.ebms.messaging
 
+import io.github.nomisRev.kafka.AutoOffsetReset
 import io.github.nomisRev.kafka.receiver.KafkaReceiver
 import io.github.nomisRev.kafka.receiver.ReceiverSettings
 import kotlinx.coroutines.flow.collect
@@ -20,6 +21,7 @@ suspend fun startPayloadReceiver(topic: String, kafka: Kafka, payloadMessageProc
             keyDeserializer = StringDeserializer(),
             valueDeserializer = ByteArrayDeserializer(),
             groupId = kafka.groupId,
+            autoOffsetReset = AutoOffsetReset.Latest,
             pollTimeout = 10.seconds,
             properties = kafka.toProperties()
         )
