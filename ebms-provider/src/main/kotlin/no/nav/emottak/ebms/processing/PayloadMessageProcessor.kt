@@ -7,6 +7,7 @@ import no.nav.emottak.ebms.log
 import no.nav.emottak.ebms.messaging.EbmsSignalProducer
 import no.nav.emottak.ebms.model.saveEbmsMessage
 import no.nav.emottak.ebms.model.saveEvent
+import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.persistence.repository.EbmsMessageDetailsRepository
 import no.nav.emottak.ebms.persistence.repository.EventsRepository
 import no.nav.emottak.ebms.util.marker
@@ -60,12 +61,10 @@ class PayloadMessageProcessor(
     private suspend fun processPayloadMessage(ebmsPayloadMessage: PayloadMessage) {
         ebmsPayloadMessage.saveEvent("Message received", eventsRepository)
 
-        var signalResponderEmails = emptyList<EmailAddress>()
         try {
             validator
                 .validateIn(ebmsPayloadMessage)
                 .also {
-                    signalResponderEmails = it.signalEmailAddress
                     processingService.processAsync(ebmsPayloadMessage, it.payloadProcessing)
                     // TODO store events from processing (juridisklog ++)
                     // TODO send to fagsystem
@@ -73,23 +72,23 @@ class PayloadMessageProcessor(
             ebmsPayloadMessage
                 .createAcknowledgment()
                 .also {
+                    val validationResult = validator.validateOut(it)
                     ebmsMessageDetailsRepository.saveEbmsMessage(it)
-                }
-                .toEbmsDokument()
-                .also {
-                    // TODO sign acknowledgment
-                    sendResponseToTopic(it, signalResponderEmails)
+                    sendResponseToTopic(
+                        it.toEbmsDokument().signer(validationResult.payloadProcessing!!.signingCertificate),
+                        validationResult.receiverEmailAddress
+                    )
                 }
         } catch (ebmsException: EbmsException) {
             ebmsPayloadMessage
                 .createFail(ebmsException.feil)
                 .also {
+                    val validationResult = validator.validateOut(it)
                     ebmsMessageDetailsRepository.saveEbmsMessage(it)
-                }
-                .toEbmsDokument()
-                .also {
-                    // TODO sign MessageError
-                    sendResponseToTopic(it, signalResponderEmails)
+                    sendResponseToTopic(
+                        it.toEbmsDokument().signer(validationResult.payloadProcessing!!.signingCertificate),
+                        validationResult.receiverEmailAddress
+                    )
                 }
         } catch (ex: Exception) {
             log.error(ebmsPayloadMessage.marker(), "Unknown error during message processing: ${ex.message}", ex)
