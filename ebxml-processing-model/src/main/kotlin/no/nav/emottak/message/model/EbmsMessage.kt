@@ -1,5 +1,6 @@
 package no.nav.emottak.message.model
 
+import no.nav.emottak.message.ebxml.EbXMLConstants
 import no.nav.emottak.message.xml.getDocumentBuilder
 import no.nav.emottak.message.xml.marshal
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Acknowledgment
@@ -37,12 +38,15 @@ abstract class EbmsMessage {
 
     open fun createFail(errorList: List<Feil>): EbmsFail {
         return EbmsFail(
-            requestId,
+            UUID.randomUUID().toString(),
             UUID.randomUUID().toString(),
             this.messageId,
             this.conversationId,
             this.cpaId,
-            this.addressing.copy(to = addressing.from.copy(), from = addressing.to.copy()),
+            this.addressing.replyTo(
+                service = EbXMLConstants.EBMS_SERVICE_URI,
+                action = EbXMLConstants.MESSAGE_ERROR_ACTION
+            ),
             errorList
         )
     }
