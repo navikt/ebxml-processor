@@ -13,7 +13,8 @@ import java.util.Properties
 data class Config(
     val kafka: Kafka,
     val kafkaSignalReceiver: KafkaSignalReceiver,
-    val kafkaSignalProducer: KafkaSignalProducer
+    val kafkaSignalProducer: KafkaSignalProducer,
+    val kafkaPayloadReceiver: KafkaPayloadReceiver
 )
 
 @JvmInline
@@ -37,6 +38,11 @@ data class KafkaSignalReceiver(
 )
 
 data class KafkaSignalProducer(
+    val active: Boolean,
+    val topic: String
+)
+
+data class KafkaPayloadReceiver(
     val active: Boolean,
     val topic: String
 )

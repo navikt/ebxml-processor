@@ -79,7 +79,6 @@ abstract class EbmsRoutFellesIT(val endpoint: String) {
             } just runs
             routing {
                 postEbmsSync(dokumentValidator, processingService, SendInService(sendInClient), ebmsMessageDetailsRepository)
-                postEbmsAsync(dokumentValidator, processingService, ebmsMessageDetailsRepository, ebmsSignalProducer)
             }
         }
         externalServices {
@@ -102,7 +101,7 @@ abstract class EbmsRoutFellesIT(val endpoint: String) {
 
     @Test
     fun `Feil på signature should answer with Feil Signal`() = validationTestApp {
-        val response = client.post("/ebms/async", validMultipartRequest.asHttpRequest())
+        val response = client.post("/ebms/sync", validMultipartRequest.asHttpRequest())
         val envelope = xmlMarshaller.unmarshal(response.bodyAsText(), Envelope::class.java)
         with(envelope.assertErrorAndGet().error.first()) {
             Assertions.assertEquals("Signature Fail", this.description.value)
@@ -121,9 +120,9 @@ abstract class EbmsRoutFellesIT(val endpoint: String) {
                 it.append(MimeHeaders.CONTENT_ID, "<e491180e-eea6-41d6-ac5b-d232c9fb115f>")
             }
         )
-        client.post("/ebms/async", multipart.asHttpRequest())
+        client.post("/ebms/sync", multipart.asHttpRequest())
         coVerify(exactly = 1) {
-            processingService.processAsync(any(), any())
+            processingService.processSyncIn(any(), any())
         }
     }
 

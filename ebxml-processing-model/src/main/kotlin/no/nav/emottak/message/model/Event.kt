@@ -6,9 +6,9 @@ import java.util.UUID
 data class Event(
     val eventId: UUID,
     val referenceId: UUID,
-    val contentId: String?,
+    val contentId: String? = null,
     val messageId: String,
-    val juridiskLoggId: String?,
+    val juridiskLoggId: String? = null,
     val eventMessage: String,
-    val createdAt: Instant?
+    val createdAt: Instant? = null
 )

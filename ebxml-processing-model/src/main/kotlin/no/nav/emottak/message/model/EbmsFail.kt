@@ -5,7 +5,6 @@ import no.nav.emottak.message.xml.xmlMarshaller
 import org.w3c.dom.Document
 import org.xmlsoap.schemas.soap.envelope.Body
 import org.xmlsoap.schemas.soap.envelope.ObjectFactory
-import java.util.UUID
 
 data class EbmsFail(
     override val requestId: String,
@@ -29,9 +28,7 @@ data class EbmsFail(
         }.let {
             xmlMarshaller.marshal(it)
         }.let {
-            // @TODO   val signatureDetails = runBlocking {  getPublicSigningDetails(this@EbMSMessageError.messageHeader) }
-            EbMSDocument(UUID.randomUUID().toString(), it, emptyList())
-            // @TODO      .signer(signatureDetails)
+            EbMSDocument(requestId, it, emptyList())
         }
     }
 }
