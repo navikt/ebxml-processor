@@ -65,6 +65,7 @@ spec:
       rules:
         - application: statuspoll
           namespace: navdig
+        - application: smtp-transport
     outbound:
       rules:
         - application: cpa-repo

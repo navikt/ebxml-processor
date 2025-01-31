@@ -10,6 +10,7 @@ import arrow.fx.coroutines.resourceScope
 import com.zaxxer.hikari.HikariConfig
 import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorRuntime
 import io.ktor.server.application.Application
+import io.ktor.server.auth.authenticate
 import io.ktor.server.netty.Netty
 import io.ktor.server.routing.routing
 import io.ktor.utils.io.CancellationException
@@ -95,6 +96,7 @@ fun Application.ebmsProviderModule(
     installMicrometerRegistry(appMicrometerRegistry)
     installRequestTimerPlugin()
     installContentNegotiation()
+    installAuthentication()
 
     routing {
         registerRootEndpoint()
@@ -104,5 +106,9 @@ fun Application.ebmsProviderModule(
 
         postEbmsAsync(validator, processing, ebmsMessageDetailsRepository, ebmsSignalProducer)
         postEbmsSync(validator, processing, sendInService, ebmsMessageDetailsRepository)
+
+        authenticate(AZURE_AD_AUTH) {
+            getPayloads()
+        }
     }
 }
