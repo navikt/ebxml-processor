@@ -226,7 +226,7 @@ fun Route.postEbmsAsync(
         }
     }
 
-fun Route.getPayloads(): Route = get("/payload/{$REFERENCE_ID}") {
+fun Route.getPayloads(): Route = get("/api/payloads/{$REFERENCE_ID}") {
     var referenceIdParameter: String? = null
     val referenceId: UUID?
     // Validation

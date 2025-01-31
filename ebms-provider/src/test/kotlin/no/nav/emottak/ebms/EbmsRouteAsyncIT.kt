@@ -102,7 +102,7 @@ class EbmsRouteAsyncIT : EbmsRoutFellesIT("/ebms/async") {
                 json()
             }
         }
-        val httpResponse: HttpResponse = httpClient.get("/payload/$validReferenceId") {
+        val httpResponse: HttpResponse = httpClient.get("/api/payloads/$validReferenceId") {
             headers {
                 append("Authorization", "Bearer $validAuthToken")
             }
@@ -123,7 +123,7 @@ class EbmsRouteAsyncIT : EbmsRoutFellesIT("/ebms/async") {
                 json()
             }
         }
-        val httpResponse: HttpResponse = httpClient.get("/payload/$invalidReferenceId") {
+        val httpResponse: HttpResponse = httpClient.get("/api/payloads/$invalidReferenceId") {
             headers {
                 append("Authorization", "Bearer $validAuthToken")
             }
@@ -142,7 +142,7 @@ class EbmsRouteAsyncIT : EbmsRoutFellesIT("/ebms/async") {
                 json()
             }
         }
-        val httpResponse: HttpResponse = httpClient.get("/payload/$validReferenceId") {
+        val httpResponse: HttpResponse = httpClient.get("/api/payloads/$validReferenceId") {
             headers {
                 append("Authorization", "Bearer $invalidAuthToken")
             }
