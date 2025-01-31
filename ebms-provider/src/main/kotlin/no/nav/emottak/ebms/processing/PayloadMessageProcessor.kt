@@ -31,10 +31,14 @@ class PayloadMessageProcessor(
 ) {
 
     suspend fun process(reference: String, content: ByteArray) {
-        val ebmsPayloadMessage = createEbmsDocument(reference, content)
-        log.info(ebmsPayloadMessage.marker(), "Got payload message with reference <$reference>")
-        ebmsMessageDetailsRepository.saveEbmsMessage(ebmsPayloadMessage) // TODO Duplicate check
-        processPayloadMessage(ebmsPayloadMessage)
+        try {
+            val ebmsPayloadMessage = createEbmsDocument(reference, content)
+            log.info(ebmsPayloadMessage.marker(), "Got payload message with reference <$reference>")
+            ebmsMessageDetailsRepository.saveEbmsMessage(ebmsPayloadMessage) // TODO Duplicate check
+            processPayloadMessage(ebmsPayloadMessage)
+        } catch (e: Exception) {
+            log.error("Message failed for reference $reference", e)
+        }
     }
 
     private suspend fun createEbmsDocument(
