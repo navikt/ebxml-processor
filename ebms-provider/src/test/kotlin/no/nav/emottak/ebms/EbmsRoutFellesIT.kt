@@ -1,10 +1,13 @@
 package no.nav.emottak.ebms
 
+import com.nimbusds.jwt.SignedJWT
 import io.ktor.client.request.post
 import io.ktor.client.statement.bodyAsText
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.call
 import io.ktor.server.application.install
+import io.ktor.server.auth.Authentication
+import io.ktor.server.auth.authenticate
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.response.respond
 import io.ktor.server.routing.post
@@ -35,6 +38,8 @@ import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.message.xml.xmlMarshaller
 import no.nav.emottak.util.decodeBase64
 import no.nav.emottak.util.getEnvVar
+import no.nav.security.mock.oauth2.MockOAuth2Server
+import no.nav.security.token.support.v2.tokenValidationSupport
 import org.apache.xml.security.algorithms.MessageDigestAlgorithm
 import org.apache.xml.security.signature.XMLSignature
 import org.junit.jupiter.api.AfterAll
@@ -74,12 +79,23 @@ abstract class EbmsRoutFellesIT(val endpoint: String) {
         application {
             val dokumentValidator = DokumentValidator(cpaRepoClient)
 
+            install(ContentNegotiation) {
+                json()
+            }
+
+            install(Authentication) {
+                tokenValidationSupport(AZURE_AD_AUTH, AuthConfig.getTokenSupportConfig())
+            }
+
             coEvery {
                 processingService.processAsync(any(), any())
             } just runs
             routing {
                 postEbmsSync(dokumentValidator, processingService, SendInService(sendInClient), ebmsMessageDetailsRepository)
                 postEbmsAsync(dokumentValidator, processingService, ebmsMessageDetailsRepository, ebmsSignalProducer)
+                authenticate(AZURE_AD_AUTH) {
+                    getPayloads()
+                }
             }
         }
         externalServices {
@@ -127,20 +143,33 @@ abstract class EbmsRoutFellesIT(val endpoint: String) {
         }
     }
 
+    protected fun getToken(audience: String = AuthConfig.getScope()): SignedJWT = mockOAuth2Server!!.issueToken(
+        issuerId = AZURE_AD_AUTH,
+        audience = audience,
+        subject = "testUser"
+    )
+
     companion object {
+        protected var mockOAuth2Server: MockOAuth2Server? = null
+
         @JvmStatic
         @BeforeAll
         fun setup() {
+            println("=== Kafka Test Container ===")
             KafkaTestContainer.start()
             System.setProperty("KAFKA_BROKERS", KafkaTestContainer.bootstrapServers)
 
             KafkaTestContainer.createTopic(config().kafkaSignalProducer.topic)
+
+            println("=== Initializing MockOAuth2Server ===")
+            mockOAuth2Server = MockOAuth2Server().also { it.start(port = 3344) }
         }
 
         @JvmStatic
         @AfterAll
         fun tearDown() {
             KafkaTestContainer.stop()
+            mockOAuth2Server?.shutdown()
         }
     }
 }
