@@ -82,6 +82,7 @@ class PayloadMessageProcessor(
                         it.toEbmsDokument().signer(validationResult.payloadProcessing!!.signingCertificate),
                         validationResult.receiverEmailAddress
                     )
+                    log.info(it.marker(), "Acknowledgment returned")
                 }
         } catch (ebmsException: EbmsException) {
             ebmsPayloadMessage
@@ -93,6 +94,7 @@ class PayloadMessageProcessor(
                         it.toEbmsDokument().signer(validationResult.payloadProcessing!!.signingCertificate),
                         validationResult.receiverEmailAddress
                     )
+                    log.warn(it.marker(), "MessageError returned")
                 }
         } catch (ex: Exception) {
             log.error(ebmsPayloadMessage.marker(), "Unknown error during message processing: ${ex.message}", ex)
