@@ -10,8 +10,11 @@ import arrow.fx.coroutines.resourceScope
 import com.zaxxer.hikari.HikariConfig
 import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorRuntime
 import io.ktor.server.application.Application
+import io.ktor.server.application.call
 import io.ktor.server.auth.authenticate
 import io.ktor.server.netty.Netty
+import io.ktor.server.response.respondText
+import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import io.ktor.utils.io.CancellationException
 import io.micrometer.prometheus.PrometheusConfig
@@ -91,6 +94,8 @@ fun Application.ebmsProviderModule(
     val sendInClient = SendInClient(scopedAuthHttpClient(EBMS_SEND_IN_SCOPE))
     val sendInService = SendInService(sendInClient)
 
+    val smtpTransportClient = SmtpTransportClient(scopedAuthHttpClient(SMTP_TRANSPORT_SCOPE))
+
     val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
 
     installMicrometerRegistry(appMicrometerRegistry)
@@ -109,6 +114,24 @@ fun Application.ebmsProviderModule(
 
         authenticate(AZURE_AD_AUTH) {
             getPayloads()
+        }
+
+        get("/test_async_payload/{referenceId}") {
+            log.debug("Async payload test: start")
+
+            try {
+                val referenceIdParameter = call.parameters["referenceId"]
+                log.debug("Async payload test: referenceId: $referenceIdParameter")
+
+                val asyncPayload = smtpTransportClient.getPayload(referenceIdParameter!!)
+                log.debug("Async payload test: Payload retrieved: {}", asyncPayload)
+                log.debug("Async payload test: contentId retrieved: {}", asyncPayload.contentId)
+            } catch (e: Exception) {
+                log.error("Async payload test: Exception while requesting payload from smtp-transport", e)
+            }
+            log.debug("Async payload test: done")
+
+            call.respondText("It works!")
         }
     }
 }
