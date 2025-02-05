@@ -15,7 +15,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.slf4j.LoggerFactory
 
 
-internal val log = LoggerFactory.getLogger("no.nav.emottak.crypto.KeyStore")
+internal val log = LoggerFactory.getLogger(KeyStoreManager::class.java)
 
 interface KeyStoreConfig {
     val keyStoreFile: InputStream
