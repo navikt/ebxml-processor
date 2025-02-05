@@ -31,8 +31,10 @@ import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.message.xml.asByteArray
 import no.nav.emottak.util.marker
 import no.nav.emottak.util.retrieveLoggableHeaderPairs
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalUuidApi::class)
 fun Route.postEbmsSync(
     validator: DokumentValidator,
     processingService: ProcessingService,
@@ -83,8 +85,8 @@ fun Route.postEbmsSync(
                     Direction.IN -> {
                         sendInService.sendIn(processedMessage.first).let {
                             PayloadMessage(
-                                requestId = UUID.randomUUID().toString(),
-                                messageId = UUID.randomUUID().toString(),
+                                requestId = Uuid.random().toString(),
+                                messageId = Uuid.random().toString(),
                                 conversationId = it.conversationId,
                                 cpaId = ebmsMessage.cpaId,
                                 addressing = it.addressing,
