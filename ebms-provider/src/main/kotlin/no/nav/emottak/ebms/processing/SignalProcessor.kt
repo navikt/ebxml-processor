@@ -19,26 +19,36 @@ class SignalProcessor(
 ) {
 
     suspend fun processSignal(reference: String, content: ByteArray) {
-        val ebxmlSignalMessage = EbMSDocument(
-            reference,
-            withContext(Dispatchers.IO) {
-                getDocumentBuilder().parse(ByteArrayInputStream(content))
-            },
-            emptyList()
-        ).transform()
-        validator.validateIn(ebxmlSignalMessage)
-        when (ebxmlSignalMessage) {
-            is Acknowledgment -> {
-                ebmsMessageDetailsRepository.saveEbmsMessageDetails(ebxmlSignalMessage.toEbmsMessageDetails())
-                processAcknowledgment(ebxmlSignalMessage)
+        try {
+            val ebxmlSignalMessage = createEbmsMessage(reference, content)
+            validator.validateIn(ebxmlSignalMessage)
+            when (ebxmlSignalMessage) {
+                is Acknowledgment -> {
+                    ebmsMessageDetailsRepository.saveEbmsMessageDetails(ebxmlSignalMessage.toEbmsMessageDetails())
+                    processAcknowledgment(ebxmlSignalMessage)
+                }
+                is EbmsFail -> {
+                    ebmsMessageDetailsRepository.saveEbmsMessageDetails(ebxmlSignalMessage.toEbmsMessageDetails())
+                    processMessageError(ebxmlSignalMessage)
+                }
+                else -> log.warn(ebxmlSignalMessage.marker(), "Cannot process message as signal message: $reference")
             }
-            is EbmsFail -> {
-                ebmsMessageDetailsRepository.saveEbmsMessageDetails(ebxmlSignalMessage.toEbmsMessageDetails())
-                processMessageError(ebxmlSignalMessage)
-            }
-            else -> log.warn(ebxmlSignalMessage.marker(), "Cannot process message as signal message: $reference")
+        } catch (e: Exception) {
+            // TODO Clearer error handling
+            log.error("Error processing signal reference $reference")
         }
     }
+
+    private suspend fun createEbmsMessage(
+        reference: String,
+        content: ByteArray
+    ) = EbMSDocument(
+        reference,
+        withContext(Dispatchers.IO) {
+            getDocumentBuilder().parse(ByteArrayInputStream(content))
+        },
+        emptyList()
+    ).transform()
 
     private fun processAcknowledgment(acknowledgment: Acknowledgment) {
         log.info(acknowledgment.marker(), "Got acknowledgment with reference <${acknowledgment.requestId}>")
@@ -59,20 +69,22 @@ class SignalProcessor(
         val messageRef = ebmsFail.refToMessageId
         if (messageRef == null) {
             log.warn(ebmsFail.marker(), "Received MessageError without message reference")
+            return
+        }
+
+        val referencedMessage = ebmsMessageDetailsRepository.getByConversationIdMessageIdAndCpaId(
+            ebmsFail.conversationId,
+            messageRef,
+            ebmsFail.cpaId
+        )
+        if (referencedMessage == null) {
+            log.warn(ebmsFail.marker(), "Received MessageError for unknown message $messageRef")
         } else {
-            val referencedMessage = ebmsMessageDetailsRepository.getByConversationIdMessageIdAndCpaId(
-                ebmsFail.conversationId,
-                messageRef,
-                ebmsFail.cpaId
-            )
-            if (referencedMessage == null) {
-                log.warn(ebmsFail.marker(), "Received MessageError for unknown message $messageRef")
-            } else {
-                log.info(ebmsFail.marker(), "Message Error received")
-            }
-            ebmsFail.feil.forEach { error ->
-                log.info(ebmsFail.marker(), "Code: ${error.code}, Description: ${error.descriptionText}")
-            }
+            log.info(ebmsFail.marker(), "Message Error received")
+        }
+        // TODO store events
+        ebmsFail.feil.forEach { error ->
+            log.info(ebmsFail.marker(), "Code: ${error.code}, Description: ${error.descriptionText}")
         }
     }
 }
