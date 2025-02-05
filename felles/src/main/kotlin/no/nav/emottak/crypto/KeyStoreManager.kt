@@ -28,7 +28,6 @@ class KeyStoreManager(private vararg val keyStoreConfig: KeyStoreConfig) {
     init {
         Security.addProvider(BouncyCastleProvider())
         keyStores = keyStoreResolver()
-
     }
 
     private fun keyStoreResolver(): List<Pair<KeyStore, KeyStoreConfig>> {
@@ -36,7 +35,11 @@ class KeyStoreManager(private vararg val keyStoreConfig: KeyStoreConfig) {
             Pair<KeyStore, KeyStoreConfig>(
                 KeyStore.getInstance(config.keyStoreType)
                     .apply {
-                        load(config.keyStoreFile, config.keyStorePass)
+                        try {
+                            load(config.keyStoreFile, config.keyStorePass)
+                        } catch (e: Exception) {
+                            log.error("Failed to load keystore: ${config.javaClass.name}", e)
+                        }
                     }, config
             )
         }.toList()
