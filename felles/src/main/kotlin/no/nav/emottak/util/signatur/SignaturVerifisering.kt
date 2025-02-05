@@ -1,12 +1,17 @@
 package no.nav.emottak.util.signatur
 
+import java.io.ByteArrayInputStream
+import java.util.Base64
 import no.nav.emottak.util.createDocument
 import no.nav.emottak.util.retrieveSignatureElement
 import org.apache.xml.security.signature.MissingResourceFailureException
-import java.io.ByteArrayInputStream
+import org.slf4j.LoggerFactory
 
 
 class SignaturVerifisering {
+
+    private val log = LoggerFactory.getLogger(SignaturVerifisering::class.java)
+
     init {
         org.apache.xml.security.Init.init()
     }
@@ -14,7 +19,21 @@ class SignaturVerifisering {
     @Throws(SignatureException::class)
     fun validate(document: ByteArray) {
         //TODO Sjekk isNonRepudiation?
-        val dom = createDocument(ByteArrayInputStream(document))
+
+        try {
+            val base64 = Base64.getEncoder().encodeToString(document)
+            log.debug("Document Base64: {}", base64)
+        } catch (ignore: Exception) {
+        }
+
+        val dom = try {
+            log.debug("Attempting to parse document into DOM")
+            createDocument(ByteArrayInputStream(document))
+        } catch (ex: Exception) {
+            log.error("Error while parsing document into DOM", ex)
+            throw SignatureException("Error while parsing document", ex)
+        }
+
         val signature = dom.retrieveSignatureElement()
         val certificateFromSignature = signature.keyInfo.x509Certificate
 
