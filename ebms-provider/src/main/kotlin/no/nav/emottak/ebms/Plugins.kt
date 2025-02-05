@@ -8,7 +8,7 @@ import io.ktor.server.metrics.micrometer.MicrometerMetrics
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.request.uri
 import io.ktor.util.logging.KtorSimpleLogger
-import io.micrometer.prometheus.PrometheusMeterRegistry
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import net.logstash.logback.marker.Markers
 import no.nav.emottak.constants.SMTPHeaders
 import java.time.Duration
