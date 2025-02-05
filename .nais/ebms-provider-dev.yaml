@@ -65,6 +65,7 @@ spec:
       rules:
         - application: cpa-repo
         - application: ebms-payload
+        - application: smtp-transport
   env:
     - name: KEYSTORE_FILE
       value: /var/run/secrets/ebms-keystore-signering/signering-key.p12

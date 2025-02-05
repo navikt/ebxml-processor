@@ -69,6 +69,7 @@ spec:
       rules:
         - application: cpa-repo
         - application: ebms-payload
+        - application: smtp-transport
   env:
     - name: VIRKSOMHETSSERTIFIKAT_PATH
       value: /secret/virksomhetssertifikat/prod/Arbeids-og-velferdsetaten
