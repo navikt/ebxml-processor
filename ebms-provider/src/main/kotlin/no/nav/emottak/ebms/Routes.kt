@@ -7,7 +7,9 @@ import io.ktor.server.request.header
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
+import io.ktor.server.routing.get
 import io.ktor.server.routing.post
+import io.ktor.utils.io.core.toByteArray
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.configuration.config
 import no.nav.emottak.ebms.messaging.EbmsSignalProducer
@@ -22,6 +24,7 @@ import no.nav.emottak.ebms.validation.MimeValidationException
 import no.nav.emottak.ebms.validation.parseAsSoapFault
 import no.nav.emottak.ebms.validation.validateMime
 import no.nav.emottak.melding.feil.EbmsException
+import no.nav.emottak.message.model.AsyncPayload
 import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.EbMSDocument
 import no.nav.emottak.message.model.Payload
@@ -32,6 +35,8 @@ import no.nav.emottak.message.xml.asByteArray
 import no.nav.emottak.util.marker
 import no.nav.emottak.util.retrieveLoggableHeaderPairs
 import java.util.UUID
+
+private const val REFERENCE_ID = "referenceId"
 
 fun Route.postEbmsSync(
     validator: DokumentValidator,
@@ -221,6 +226,57 @@ fun Route.postEbmsAsync(
         }
     }
 
+fun Route.getPayloads(): Route = get("/api/payloads/{$REFERENCE_ID}") {
+    var referenceIdParameter: String? = null
+    val referenceId: UUID?
+    // Validation
+    try {
+        referenceIdParameter = call.parameters[REFERENCE_ID]
+        referenceId = UUID.fromString(referenceIdParameter)
+    } catch (iae: IllegalArgumentException) {
+        logger().error("Invalid reference ID $referenceIdParameter has been sent", iae)
+        call.respond(
+            HttpStatusCode.BadRequest,
+            iae.getErrorMessage()
+        )
+        return@get
+    } catch (ex: Exception) {
+        logger().error("Exception occurred while validation of async payload request")
+        call.respond(
+            HttpStatusCode.BadRequest,
+            ex.getErrorMessage()
+        )
+        return@get
+    }
+
+    // Sending response
+    try {
+        // TODO: Retrieve real data from database
+        val listOfPayloads = listOf(
+            AsyncPayload(
+                referenceId,
+                "attachment-0fa6e663-010a-4764-85b4-94081119497a@eik.no",
+                "application/pkcs7-mime",
+                "Payload test content 1".toByteArray()
+            ),
+            AsyncPayload(
+                referenceId,
+                "attachment-c53f9027-ffa4-4770-95f4-8ed0463b87c3@eik.no",
+                "application/pkcs7-mime",
+                "Payload test content 2".toByteArray()
+            )
+        )
+        call.respond(HttpStatusCode.OK, listOfPayloads)
+    } catch (ex: Exception) {
+        logger().error("Exception occurred while retrieving Payload")
+        call.respond(
+            HttpStatusCode.InternalServerError,
+            ex.getErrorMessage()
+        )
+    }
+    return@get
+}
+
 suspend fun sendToKafka(
     ebMSDocument: EbMSDocument,
     loggableHeaders: Map<String, String>,
@@ -235,4 +291,8 @@ suspend fun sendToKafka(
             log.error(markers, "Exception occurred while sending message to Kafka queue", e)
         }
     }
+}
+
+fun Exception.getErrorMessage(): String {
+    return localizedMessage ?: cause?.message ?: javaClass.simpleName
 }
