@@ -35,7 +35,7 @@ class SignalProcessor(
             }
         } catch (e: Exception) {
             // TODO Clearer error handling
-            log.error("Error processing signal reference $reference")
+            log.error("Error processing signal reference $reference", e)
         }
     }
 
