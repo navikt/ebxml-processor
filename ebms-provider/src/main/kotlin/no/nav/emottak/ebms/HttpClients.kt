@@ -116,7 +116,6 @@ fun defaultHttpClient(): () -> HttpClient {
     }
 }
 
-const val AZURE_AD_AUTH = "AZURE_AD"
 val LENIENT_JSON_PARSER = Json {
     isLenient = true
 }

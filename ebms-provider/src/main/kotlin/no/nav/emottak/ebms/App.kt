@@ -11,6 +11,7 @@ import com.zaxxer.hikari.HikariConfig
 import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorRuntime
 import io.ktor.server.application.Application
 import io.ktor.server.application.call
+import io.ktor.server.auth.authenticate
 import io.ktor.server.netty.Netty
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
@@ -100,6 +101,7 @@ fun Application.ebmsProviderModule(
     installMicrometerRegistry(appMicrometerRegistry)
     installRequestTimerPlugin()
     installContentNegotiation()
+    installAuthentication()
 
     routing {
         registerRootEndpoint()
@@ -109,6 +111,10 @@ fun Application.ebmsProviderModule(
 
         postEbmsAsync(validator, processing, ebmsMessageDetailsRepository, ebmsSignalProducer)
         postEbmsSync(validator, processing, sendInService, ebmsMessageDetailsRepository)
+
+        authenticate(AZURE_AD_AUTH) {
+            getPayloads()
+        }
 
         get("/test_async_payload/{referenceId}") {
             log.debug("Async payload test: start")
