@@ -10,8 +10,11 @@ import arrow.fx.coroutines.resourceScope
 import com.zaxxer.hikari.HikariConfig
 import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorRuntime
 import io.ktor.server.application.Application
+import io.ktor.server.application.call
 import io.ktor.server.auth.authenticate
 import io.ktor.server.netty.Netty
+import io.ktor.server.response.respondText
+import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import io.ktor.utils.io.CancellationException
 import io.micrometer.prometheus.PrometheusConfig
@@ -30,7 +33,26 @@ import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.DokumentValidator
 import no.nav.emottak.util.getEnvVar
+import org.apache.kafka.clients.CommonClientConfigs.SECURITY_PROTOCOL_CONFIG
+import org.apache.kafka.clients.consumer.ConsumerConfig
+import org.apache.kafka.clients.consumer.ConsumerRecord
+import org.apache.kafka.clients.consumer.KafkaConsumer
+import org.apache.kafka.clients.producer.KafkaProducer
+import org.apache.kafka.clients.producer.ProducerConfig
+import org.apache.kafka.clients.producer.ProducerRecord
+import org.apache.kafka.common.config.SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG
+import org.apache.kafka.common.config.SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG
+import org.apache.kafka.common.config.SslConfigs.SSL_KEYSTORE_TYPE_CONFIG
+import org.apache.kafka.common.config.SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG
+import org.apache.kafka.common.config.SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG
+import org.apache.kafka.common.config.SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG
+import org.apache.kafka.common.serialization.ByteArrayDeserializer
+import org.apache.kafka.common.serialization.ByteArraySerializer
+import org.apache.kafka.common.serialization.StringDeserializer
+import org.apache.kafka.common.serialization.StringSerializer
 import org.slf4j.LoggerFactory
+import java.time.Duration
+import java.util.*
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.App")
 
@@ -110,5 +132,90 @@ fun Application.ebmsProviderModule(
         authenticate(AZURE_AD_AUTH) {
             getPayloads()
         }
+
+        get("/test_populate_topics") {
+            log.debug("Topics population: start")
+            val sourceTopic = "team-emottak.smtp.in.ebxml.payload"
+            val destinationTopic = "team-emottak.smtp.out.ebxml.payload"
+            var response = 0
+            var exception = ""
+
+            try {
+                val consumer = createConsumer()
+                val producer = createProducer()
+                consumer.subscribe(listOf(sourceTopic))
+
+                var i = 0
+                while (i < 3) {
+                    i++
+                    val records = consumer.poll(Duration.ofSeconds(10))
+                    if (records.isEmpty) continue
+
+                    log.debug("Topics population: Received ${records.count()} messages")
+
+                    val messages = mutableListOf<ConsumerRecord<String, ByteArray>>()
+                    for (record in records) {
+                        messages.add(record)
+                        if (messages.size >= 10) break
+                    }
+
+                    messages.forEach { record ->
+                        val producerRecord = ProducerRecord(destinationTopic, record.key(), record.value())
+                        producer.send(producerRecord)
+                        log.debug("Topics population: Forwarded message: ${record.value()}")
+                    }
+
+                    consumer.commitSync()
+                    response += messages.size
+                    if (messages.size >= 10) break
+                }
+
+                consumer.close()
+                producer.close()
+            } catch (e: Exception) {
+                exception = e.toString()
+                log.error("Topics population: Exception while populating topic", e)
+            }
+            log.debug("Topics population: done")
+
+            call.respondText("It works! Response: $response , Exception: $exception")
+        }
     }
+}
+
+fun createConsumer(): KafkaConsumer<String, ByteArray> {
+    val props = Properties().apply {
+        put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, config().kafka.bootstrapServers)
+        put(ConsumerConfig.GROUP_ID_CONFIG, "ktor-group")
+        put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
+        put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer::class.java.name)
+        put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+
+        put(SECURITY_PROTOCOL_CONFIG, config().kafka.securityProtocol.value)
+        put(SSL_KEYSTORE_TYPE_CONFIG, config().kafka.keystoreType.value)
+        put(SSL_KEYSTORE_LOCATION_CONFIG, config().kafka.keystoreLocation.value)
+        put(SSL_KEYSTORE_PASSWORD_CONFIG, config().kafka.keystorePassword.value)
+        put(SSL_TRUSTSTORE_TYPE_CONFIG, config().kafka.truststoreType.value)
+        put(SSL_TRUSTSTORE_LOCATION_CONFIG, config().kafka.truststoreLocation.value)
+        put(SSL_TRUSTSTORE_PASSWORD_CONFIG, config().kafka.truststorePassword.value)
+    }
+    return KafkaConsumer<String, ByteArray>(props)
+}
+
+fun createProducer(): KafkaProducer<String, ByteArray> {
+    val props = Properties().apply {
+        put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, config().kafka.bootstrapServers)
+        put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java.name)
+        put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer::class.java.name)
+        put(ProducerConfig.ACKS_CONFIG, "all")
+
+        put(SECURITY_PROTOCOL_CONFIG, config().kafka.securityProtocol.value)
+        put(SSL_KEYSTORE_TYPE_CONFIG, config().kafka.keystoreType.value)
+        put(SSL_KEYSTORE_LOCATION_CONFIG, config().kafka.keystoreLocation.value)
+        put(SSL_KEYSTORE_PASSWORD_CONFIG, config().kafka.keystorePassword.value)
+        put(SSL_TRUSTSTORE_TYPE_CONFIG, config().kafka.truststoreType.value)
+        put(SSL_TRUSTSTORE_LOCATION_CONFIG, config().kafka.truststoreLocation.value)
+        put(SSL_TRUSTSTORE_PASSWORD_CONFIG, config().kafka.truststorePassword.value)
+    }
+    return KafkaProducer<String, ByteArray>(props)
 }
