@@ -61,7 +61,7 @@ jobs:
       id: "docker-build-push-ebms-payload"
       run: "docker build ebms-payload --pull --tag ${IMAGE_PAYLOAD} -f Dockerfile && docker push ${IMAGE_PAYLOAD}"
   deploy-processor:
-    name: "Deploy ebms provider to dev"
+    name: "Deploy ebms-provider to dev"
     needs: "build"
     runs-on: "ubuntu-20.04"
     steps:
