@@ -26,6 +26,8 @@ import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
 import org.xmlsoap.schemas.soap.envelope.Envelope
 import java.util.*
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 class EbmsRouteAsyncIT : EbmsRoutFellesIT("/ebms/async") {
 
@@ -94,19 +96,20 @@ class EbmsRouteAsyncIT : EbmsRoutFellesIT("/ebms/async") {
         assertEquals(HttpStatusCode.OK, response.status)
     }
 
+    @OptIn(ExperimentalUuidApi::class)
     @Test
     fun `Payload endpoint returns list of payloads`() = validationTestApp {
-        val validReferenceId = UUID.randomUUID()
+        val validReferenceId = Uuid.random()
         val validAuthToken = getToken().serialize()
         val mockedListOfPayloads = listOf(
             AsyncPayload(
-                validReferenceId,
+                validReferenceId.toString(),
                 "attachment-0fa6e663-010a-4764-85b4-94081119497a@eik.no",
                 "application/pkcs7-mime",
                 "Payload test content 1".toByteArray()
             ),
             AsyncPayload(
-                validReferenceId,
+                validReferenceId.toString(),
                 "attachment-c53f9027-ffa4-4770-95f4-8ed0463b87c3@eik.no",
                 "application/pkcs7-mime",
                 "Payload test content 2".toByteArray()
