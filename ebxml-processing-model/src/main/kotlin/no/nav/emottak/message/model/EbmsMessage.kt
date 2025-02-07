@@ -23,6 +23,7 @@ import java.util.Date
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalUuidApi::class)
 abstract class EbmsMessage {
     abstract val requestId: String
     abstract val messageId: String
@@ -36,7 +37,6 @@ abstract class EbmsMessage {
         return createEbmsDocument(createMessageHeader())
     }
 
-    @OptIn(ExperimentalUuidApi::class)
     open fun createFail(errorList: List<Feil>): EbmsFail {
         return EbmsFail(
             requestId,
@@ -129,6 +129,7 @@ fun EbmsMessage.createMessageHeader(newAddressing: Addressing = this.addressing,
     }
 }
 
+@OptIn(ExperimentalUuidApi::class)
 fun EbmsMessage.toEbmsMessageDetails(): EbmsMessageDetails {
     return EbmsMessageDetails(
         EbmsMessageDetails.convertStringToUUIDOrGenerateNew(this.requestId),

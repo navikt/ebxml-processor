@@ -1,10 +1,15 @@
 package no.nav.emottak.ebms
 
+import io.ktor.client.call.body
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.request.get
 import io.ktor.client.request.headers
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
+import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
+import io.ktor.serialization.kotlinx.json.json
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockkObject
@@ -13,6 +18,7 @@ import no.nav.emottak.ebms.validation.MimeHeaders
 import no.nav.emottak.ebms.validation.SignaturValidator
 import no.nav.emottak.message.ebxml.acknowledgment
 import no.nav.emottak.message.ebxml.messageHeader
+import no.nav.emottak.message.model.AsyncPayload
 import no.nav.emottak.message.xml.xmlMarshaller
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -86,9 +92,69 @@ class EbmsRouteAsyncIT : EbmsRoutFellesIT("/ebms/async") {
         assertEquals(HttpStatusCode.OK, response.status)
     }
 
+    @Test
+    fun `Payload endpoint returns list of payloads`() = validationTestApp {
+        val validReferenceId = "df68056e-5cba-4351-9085-c37b925b8ddd"
+        val validAuthToken = getToken().serialize()
+
+        val httpClient = createClient {
+            install(ContentNegotiation) {
+                json()
+            }
+        }
+        val httpResponse: HttpResponse = httpClient.get("/api/payloads/$validReferenceId") {
+            headers {
+                append("Authorization", "Bearer $validAuthToken")
+            }
+        }
+
+        assertEquals(HttpStatusCode.OK, httpResponse.status)
+        val listOfPayloads = httpResponse.body<List<AsyncPayload>>()
+
+        assertNotNull(listOfPayloads)
+    }
+
+    @Test
+    fun `Payload endpoint returns 400 Bad Request with invalid referenceId`() = validationTestApp {
+        val invalidReferenceId = "df68056e"
+        val validAuthToken = getToken().serialize()
+
+        val httpClient = createClient {
+            install(ContentNegotiation) {
+                json()
+            }
+        }
+        val httpResponse: HttpResponse = httpClient.get("/api/payloads/$invalidReferenceId") {
+            headers {
+                append("Authorization", "Bearer $validAuthToken")
+            }
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, httpResponse.status)
+    }
+
+    @Test
+    fun `Payload endpoint returns 401 Unauthorized without authentication`() = validationTestApp {
+        val validReferenceId = "df68056e-5cba-4351-9085-c37b925b8ddd"
+        val invalidAuthToken = "invalid"
+
+        val httpClient = createClient {
+            install(ContentNegotiation) {
+                json()
+            }
+        }
+        val httpResponse: HttpResponse = httpClient.get("/api/payloads/$validReferenceId") {
+            headers {
+                append("Authorization", "Bearer $invalidAuthToken")
+            }
+        }
+
+        assertEquals(HttpStatusCode.Unauthorized, httpResponse.status)
+    }
+
     fun Envelope.assertAcknowledgmen() {
-        assertNotNull(this.header.messageHeader())
-        assertNotNull(this.header.acknowledgment())
+        assertNotNull(this.header!!.messageHeader())
+        assertNotNull(this.header!!.acknowledgment())
     }
 
     val validAcknowledgment = Part(

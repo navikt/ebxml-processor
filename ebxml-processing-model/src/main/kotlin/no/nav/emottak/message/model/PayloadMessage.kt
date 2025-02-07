@@ -1,6 +1,5 @@
 package no.nav.emottak.message.model
 
-
 import no.nav.emottak.message.ebxml.EbXMLConstants
 import org.w3c.dom.Document
 import kotlin.uuid.ExperimentalUuidApi
