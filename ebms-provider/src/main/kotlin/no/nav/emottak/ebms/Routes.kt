@@ -33,10 +33,12 @@ import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.message.xml.asByteArray
 import no.nav.emottak.util.marker
 import no.nav.emottak.util.retrieveLoggableHeaderPairs
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 private const val REFERENCE_ID = "referenceId"
 
+@OptIn(ExperimentalUuidApi::class)
 fun Route.postEbmsSync(
     validator: DokumentValidator,
     processingService: ProcessingService,
@@ -87,8 +89,8 @@ fun Route.postEbmsSync(
                     Direction.IN -> {
                         sendInService.sendIn(processedMessage.first).let {
                             PayloadMessage(
-                                requestId = UUID.randomUUID().toString(),
-                                messageId = UUID.randomUUID().toString(),
+                                requestId = Uuid.random().toString(),
+                                messageId = Uuid.random().toString(),
                                 conversationId = it.conversationId,
                                 cpaId = ebmsMessage.cpaId,
                                 addressing = it.addressing,
@@ -225,15 +227,16 @@ fun Route.postEbmsAsync(
         }
     }
 
+@OptIn(ExperimentalUuidApi::class)
 fun Route.getPayloads(
     payloadRepository: PayloadRepository
 ): Route = get("/api/payloads/{$REFERENCE_ID}") {
     var referenceIdParameter: String? = null
-    val referenceId: UUID?
+    val referenceId: Uuid?
     // Validation
     try {
         referenceIdParameter = call.parameters[REFERENCE_ID]
-        referenceId = UUID.fromString(referenceIdParameter)
+        referenceId = Uuid.parse(referenceIdParameter!!)
     } catch (iae: IllegalArgumentException) {
         logger().error("Invalid reference ID $referenceIdParameter has been sent", iae)
         call.respond(
@@ -255,7 +258,7 @@ fun Route.getPayloads(
         val listOfPayloads = payloadRepository.getByReferenceId(referenceId)
         call.respond(HttpStatusCode.OK, listOfPayloads)
     } catch (ex: Exception) {
-        logger().error("Exception occurred while retrieving Payload")
+        logger().error("Exception occurred while retrieving Payload: ${ex.localizedMessage} (${ex::class.qualifiedName})")
         call.respond(
             HttpStatusCode.InternalServerError,
             ex.getErrorMessage()

@@ -126,6 +126,7 @@ class EbmsRouteAsyncIT : EbmsRoutFellesIT("/ebms/async") {
             }
         }
 
+        assertEquals(HttpStatusCode.OK, httpResponse.status)
         val listOfPayloads = httpResponse.body<List<AsyncPayload>>()
 
         assertNotNull(listOfPayloads)
@@ -171,8 +172,8 @@ class EbmsRouteAsyncIT : EbmsRoutFellesIT("/ebms/async") {
     }
 
     fun Envelope.assertAcknowledgmen() {
-        assertNotNull(this.header.messageHeader())
-        assertNotNull(this.header.acknowledgment())
+        assertNotNull(this.header!!.messageHeader())
+        assertNotNull(this.header!!.acknowledgment())
     }
 
     val validAcknowledgment = Part(

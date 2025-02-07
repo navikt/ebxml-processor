@@ -9,12 +9,14 @@ import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.message.model.log
 import no.nav.emottak.message.model.toEbmsMessageDetails
 import java.sql.SQLException
+import kotlin.uuid.ExperimentalUuidApi
 
 fun EbmsMessage.sjekkSignature(signatureDetails: SignatureDetails) {
     SignaturValidator.validate(signatureDetails, this.dokument!!, if (this is PayloadMessage) listOf(this.payload) else listOf())
     log.info("Signatur OK")
 }
 
+@OptIn(ExperimentalUuidApi::class)
 fun EbmsMessageDetailsRepository.saveEbmsMessage(
     ebmsMessage: EbmsMessage
 ) {

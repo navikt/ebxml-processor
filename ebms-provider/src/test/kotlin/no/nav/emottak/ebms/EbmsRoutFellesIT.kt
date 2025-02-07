@@ -123,7 +123,7 @@ abstract class EbmsRoutFellesIT(val endpoint: String) {
         val response = client.post("/ebms/async", validMultipartRequest.asHttpRequest())
         val envelope = xmlMarshaller.unmarshal(response.bodyAsText(), Envelope::class.java)
         with(envelope.assertErrorAndGet().error.first()) {
-            Assertions.assertEquals("Signature Fail", this.description.value)
+            Assertions.assertEquals("Signature Fail", this.description!!.value)
             Assertions.assertEquals(
                 ErrorCode.SECURITY_FAILURE.value,
                 this.errorCode
@@ -183,7 +183,7 @@ fun mockSignatureDetails(): SignatureDetails =
         hashFunction = MessageDigestAlgorithm.ALGO_ID_DIGEST_SHA256
     )
 fun Envelope.assertErrorAndGet(): ErrorList {
-    Assertions.assertNotNull(this.header.messageHeader())
-    Assertions.assertNotNull(this.header.errorList())
-    return this.header.errorList()!!
+    Assertions.assertNotNull(this.header!!.messageHeader())
+    Assertions.assertNotNull(this.header!!.errorList())
+    return this.header!!.errorList()!!
 }
