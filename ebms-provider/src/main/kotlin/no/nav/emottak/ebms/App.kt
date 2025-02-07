@@ -146,7 +146,7 @@ fun Application.ebmsProviderModule(
                 consumer.subscribe(listOf(sourceTopic))
 
                 var i = 0
-                while (i < 3) {
+                while (i < 5) {
                     i++
                     val records = consumer.poll(Duration.ofSeconds(10))
                     if (records.isEmpty) continue
@@ -156,7 +156,7 @@ fun Application.ebmsProviderModule(
                     val messages = mutableListOf<ConsumerRecord<String, ByteArray>>()
                     for (record in records) {
                         messages.add(record)
-                        if (messages.size >= 10) break
+                        if (messages.size >= 10) continue
                     }
 
                     messages.forEach { record ->
@@ -167,7 +167,7 @@ fun Application.ebmsProviderModule(
 
                     consumer.commitSync()
                     response += messages.size
-                    if (messages.size >= 10) break
+                    if (messages.size >= 10) continue
                 }
 
                 consumer.close()
