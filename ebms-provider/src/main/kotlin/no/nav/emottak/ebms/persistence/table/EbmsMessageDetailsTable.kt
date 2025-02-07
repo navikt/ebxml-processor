@@ -4,6 +4,8 @@ import org.jetbrains.exposed.sql.Column
 import org.jetbrains.exposed.sql.Table
 import java.util.UUID
 
+// Bruk av kotlin.kotlin.Uuid i Column støttes _kanskje_ i kotlin 2.1.20 eller nyere (+ KTOR v3)
+// Se https://youtrack.jetbrains.com/issue/EXPOSED-507
 object EbmsMessageDetailsTable : Table("ebms_message_details") {
     val referenceId: Column<UUID> = uuid("reference_id")
     val cpaId: Column<String> = varchar("cpa_id", 256)

@@ -11,8 +11,10 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.testcontainers.containers.PostgreSQLContainer
 import java.sql.DriverManager
-import java.util.*
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalUuidApi::class)
 class PayloadRepositoryTest {
     companion object {
         lateinit var payloadRepository: PayloadRepository
@@ -51,9 +53,9 @@ class PayloadRepositoryTest {
 
     @Test
     fun `Payload get saved to database`() {
-        val originalReferenceId = UUID.randomUUID()
+        val originalReferenceId = Uuid.random()
         val originalPayload = AsyncPayload(
-            originalReferenceId,
+            originalReferenceId.toString(),
             "contentId1",
             "application/pkcs7-mime",
             "Payload test content 1".toByteArray()
@@ -73,22 +75,22 @@ class PayloadRepositoryTest {
 
     @Test
     fun `Multiple payloads can be found by reference ID`() {
-        val originalReferenceId = UUID.randomUUID()
+        val originalReferenceId = Uuid.random()
         val originalPayload1 = AsyncPayload(
-            originalReferenceId,
+            originalReferenceId.toString(),
             "contentId1",
             "application/pkcs7-mime",
             "Payload test content 1".toByteArray()
         )
         val originalPayload2 = AsyncPayload(
-            originalReferenceId,
+            originalReferenceId.toString(),
             "contentId2",
             "application/pkcs7-mime",
             "Payload test content 2".toByteArray()
         )
         // With different reference ID
         val originalPayload3 = AsyncPayload(
-            UUID.randomUUID(),
+            Uuid.random().toString(),
             "contentId3",
             "application/pkcs7-mime",
             "Payload test content 3".toByteArray()
@@ -102,6 +104,6 @@ class PayloadRepositoryTest {
 
         Assertions.assertNotNull(retrievedPayloads)
         Assertions.assertEquals(2, retrievedPayloads.size)
-        Assertions.assertEquals(originalReferenceId, retrievedPayloads[0].referenceId)
+        Assertions.assertEquals(originalReferenceId.toString(), retrievedPayloads[0].referenceId)
     }
 }
