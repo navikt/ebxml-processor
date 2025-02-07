@@ -7,7 +7,7 @@ import java.io.FileReader
 
 internal fun trustStoreConfig() = FileKeyStoreConfig(
     keyStoreFilePath = getEnvVar("TRUSTSTORE_PATH", resolveDefaultTruststorePath()),
-    keyStorePass = getEnvVar("TRUSTSTORE_PWD", "changeit").toCharArray(),
+    keyStorePass = getEnvVar("TRUSTSTORE_PWD", "123456789").toCharArray(),
     keyStoreType = "PKCS12"
 )
 

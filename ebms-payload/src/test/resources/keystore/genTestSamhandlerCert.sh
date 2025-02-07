@@ -1,3 +1,4 @@
+# Dette scriptet kan generere test_keystore og test_truststore. Best å ikke endre keystore/truststore direkte men isteden endre scriptet.
 # Gen CA (representerer f.eks. buypass, comfides etc)
 openssl genrsa -passout pass:1234 -aes256 -out NavTest-RootCA.key 4096
 openssl req -passin pass:1234 -x509 -new -nodes -key NavTest-RootCA.key -sha256 -days 9999 -out NavTest-RootCA.crt -subj '/CN=NavTest Certificate Authority/C=NO/ST=OSLO/L=OSLO/O=NavTest Certificate Authority' -config opensslExtensions.cnf -extensions extensions #-addext "certificatePolicies=2.5.29.32"
@@ -36,33 +37,33 @@ openssl pkcs12 -export -in nav_virksomhet_CA-SIGNED.crt -inkey nav_virksomhet.ke
 
 # import samhandlers p12 til keystore (Slik at testen kan signere test meldinger, representerer ikke virkelighet)
 keytool -importkeystore -noprompt \
-        -deststorepass changeit -destkeypass changeit -destkeystore test_keystore2024.p12 \
+        -deststorepass 123456789 -destkeypass 123456789 -destkeystore test_keystore2024.p12 \
         -srckeystore samhandler.p12 -srcstoretype PKCS12 -srcstorepass 1234 \
         -alias samhandler-2024
 
 # import samhandlers p12 til truststore // todo importcert
 keytool -importkeystore -noprompt \
-        -deststorepass changeit -destkeypass changeit -destkeystore test_truststore2024.p12 \
+        -deststorepass 123456789 -destkeypass 123456789 -destkeystore test_truststore2024.p12 \
         -srckeystore samhandler.p12 -srcstoretype PKCS12 -srcstorepass 1234 \
         -alias samhandler-2024
 
 # import nav_virksomhet p12 til keystore
 keytool -importkeystore -noprompt \
-        -deststorepass changeit -destkeypass changeit -destkeystore test_keystore2024.p12 \
+        -deststorepass 123456789 -destkeypass 123456789 -destkeystore test_keystore2024.p12 \
         -srckeystore nav_virksomhet.p12 -srcstoretype PKCS12 -srcstorepass 1234 \
         -alias nav_virksomhet
 
 ## import navtest-ca til keystore (Fordi vi må kunne signere test meldinger, representerer ikke virkelighet)
-keytool -delete -alias navtest-ca -keystore test_keystore2024.p12 -deststorepass changeit
+keytool -delete -alias navtest-ca -keystore test_keystore2024.p12 -deststorepass 123456789
 echo "Adding RootCA to keystore"
 keytool -importkeystore -noprompt -srckeystore NavTest-RootCA.p12 \
-        -deststorepass changeit -destkeypass changeit -destkeystore test_keystore2024.p12 \
+        -deststorepass 123456789 -destkeypass 123456789 -destkeystore test_keystore2024.p12 \
         -srcstoretype PKCS12 -srcstorepass 1234 \
         -alias navtest-ca
 
 # Add CA til truststore
-keytool -delete -alias navtest-ca -keystore test_truststore2024.p12 -deststorepass changeit
+keytool -delete -alias navtest-ca -keystore test_truststore2024.p12 -deststorepass 123456789
 echo "Adding RootCA to truststore"
 keytool -importcert -noprompt -file NavTest-RootCA.crt \
-        -deststorepass changeit -destkeypass changeit -destkeystore test_truststore2024.p12 \
+        -deststorepass 123456789 -destkeypass 123456789 -destkeystore test_truststore2024.p12 \
         -alias navtest-ca
