@@ -37,10 +37,16 @@ class ProcessingService(private val httpClient: PayloadProcessingClient) {
                 addressing = addressing,
                 payload = payloadMessage.payload
             )
+            val payloadResponse = httpClient.postPayloadRequest(payloadRequest)
+
+            if (payloadResponse.error != null) {
+                throw EbmsException("Payload Processing has failed: ${payloadResponse.error}")
+            }
+
             Pair(
                 payloadMessage.copy(
                     payload = withContext(Dispatchers.IO) {
-                        httpClient.postPayloadRequest(payloadRequest).processedPayload!!
+                        payloadResponse.processedPayload!!
                     }
                 ),
                 direction
