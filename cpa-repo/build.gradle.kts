@@ -71,7 +71,7 @@ dependencies {
     testImplementation("org.testcontainers:oracle-xe:1.19.4")
     testImplementation(kotlin("test"))
 
-    runtimeOnly("org.postgresql:postgresql:42.6.0")
+    runtimeOnly("org.postgresql:postgresql:42.7.3")
 }
 
 application {

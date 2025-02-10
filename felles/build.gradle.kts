@@ -33,6 +33,6 @@ dependencies {
     testImplementation(testLibs.junit.jupiter.api)
     testImplementation(testLibs.junit.jupiter.engine)
 
-    runtimeOnly("org.postgresql:postgresql:42.6.0")
+    runtimeOnly("org.postgresql:postgresql:42.7.3")
 }
 

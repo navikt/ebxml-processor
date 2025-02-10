@@ -15,29 +15,22 @@ plugins {
 // }
 
 tasks {
+    register<Wrapper>("wrapper") {
+        gradleVersion = "8.1.1"
+    }
     shadowJar {
         archiveFileName.set("app.jar")
         isZip64 = true
     }
-}
-
-tasks.register<Wrapper>("wrapper") {
-    gradleVersion = "8.1.1"
-}
-
-tasks.test {
-    useJUnitPlatform()
-}
-
-tasks {
-
+    test {
+        useJUnitPlatform()
+    }
     ktlintFormat {
         this.enabled = true
     }
     ktlintCheck {
         dependsOn("ktlintFormat")
     }
-
     build {
         dependsOn("ktlintCheck")
     }

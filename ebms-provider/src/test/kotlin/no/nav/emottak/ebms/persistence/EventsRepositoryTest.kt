@@ -18,8 +18,10 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.testcontainers.containers.PostgreSQLContainer
 import java.sql.DriverManager
-import java.util.*
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalUuidApi::class)
 class EventsRepositoryTest {
     companion object {
         lateinit var eventRepository: EventsRepository
@@ -104,8 +106,9 @@ class EventsRepositoryTest {
         "refToMessageId1"
     )
 
-    private fun buildTestEvent(referenceId: UUID) = Event(
-        UUID.randomUUID(),
+    @OptIn(ExperimentalUuidApi::class)
+    private fun buildTestEvent(referenceId: Uuid) = Event(
+        Uuid.random(),
         referenceId,
         "contentId1",
         "messageId1",

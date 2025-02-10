@@ -1,8 +1,10 @@
 package no.nav.emottak.message.util
 
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
-fun createUniqueMimeMessageId() = "${UUID.randomUUID()}@$hostName"
+@OptIn(ExperimentalUuidApi::class)
+fun createUniqueMimeMessageId() = "${Uuid.random()}@$hostName"
 
 private val hostName = when (getEnvVar("NAIS_CLUSTER_NAME", "local")) {
     "prod-fss" -> "ebms.nav.no"

@@ -7,6 +7,8 @@ import org.jetbrains.exposed.sql.javatime.timestamp
 import java.time.Instant
 import java.util.UUID
 
+// Bruk av kotlin.kotlin.Uuid i Column støttes _kanskje_ i kotlin 2.1.20 eller nyere (+ KTOR v3)
+// Se https://youtrack.jetbrains.com/issue/EXPOSED-507
 object EventsTable : Table("events") {
     val eventId: Column<UUID> = uuid("event_id")
     val referenceId: Column<UUID> = uuid("reference_id").references(EbmsMessageDetailsTable.referenceId)

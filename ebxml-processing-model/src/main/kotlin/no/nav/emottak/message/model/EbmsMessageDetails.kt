@@ -1,9 +1,11 @@
 package no.nav.emottak.message.model
 
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalUuidApi::class)
 data class EbmsMessageDetails(
-    val referenceId: UUID,
+    val referenceId: Uuid,
     val cpaId: String,
     val conversationId: String,
     val messageId: String,
@@ -24,11 +26,11 @@ data class EbmsMessageDetails(
 
             return "${partyId.type}:${partyId.value}"
         }
-        fun convertStringToUUIDOrGenerateNew(string: String): UUID =
+        fun convertStringToUUIDOrGenerateNew(string: String): Uuid =
             try {
-                UUID.fromString(string)
+                Uuid.parse(string)
             } catch (iae: IllegalArgumentException) {
-                UUID.randomUUID() // TODO vurdere dette
+                Uuid.random() // TODO vurdere dette
             }
     }
 }

@@ -9,14 +9,24 @@ plugins {
     kotlin("plugin.serialization")
     id("maven-publish")
     id("java-library")
+    id("org.jlleitschuh.gradle.ktlint") version "11.6.1"
 }
 
 tasks {
     register<Wrapper>("wrapper") {
-        gradleVersion="8.1.1"
+        gradleVersion = "8.1.1"
     }
     test {
         useJUnitPlatform()
+    }
+    ktlintFormat {
+        this.enabled = true
+    }
+    ktlintCheck {
+        dependsOn("ktlintFormat")
+    }
+    build {
+        dependsOn("ktlintCheck")
     }
 }
 
@@ -45,6 +55,5 @@ dependencies {
     implementation(libs.emottak.payload.xsd)
     implementation(libs.ktor.serialization.kotlinx.json)
     implementation(libs.bundles.logging)
-    runtimeOnly("org.postgresql:postgresql:42.6.0")
+    runtimeOnly("org.postgresql:postgresql:42.7.3")
 }
-

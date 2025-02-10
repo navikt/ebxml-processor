@@ -1,9 +1,9 @@
 package no.nav.emottak.message.model
 
-
 import no.nav.emottak.message.ebxml.EbXMLConstants
 import org.w3c.dom.Document
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 data class PayloadMessage(
     override val requestId: String,
@@ -21,10 +21,11 @@ data class PayloadMessage(
         return createEbmsDocument(createMessageHeader(), this.payload)
     }
 
+    @OptIn(ExperimentalUuidApi::class)
     fun createAcknowledgment(): Acknowledgment {
         return Acknowledgment(
-            UUID.randomUUID().toString(),
-            UUID.randomUUID().toString(),
+            Uuid.random().toString(),
+            Uuid.random().toString(),
             this.messageId,
             this.conversationId,
             this.cpaId,
