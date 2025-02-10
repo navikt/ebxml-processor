@@ -28,8 +28,8 @@ import no.nav.emottak.ebms.persistence.Database
 import no.nav.emottak.ebms.persistence.ebmsDbConfig
 import no.nav.emottak.ebms.persistence.ebmsMigrationConfig
 import no.nav.emottak.ebms.persistence.repository.EbmsMessageDetailsRepository
-import no.nav.emottak.ebms.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.persistence.repository.EventsRepository
+import no.nav.emottak.ebms.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.processing.PayloadMessageProcessor
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.processing.SignalProcessor
@@ -61,7 +61,11 @@ fun main() = SuspendApp {
     val cpaClient = CpaRepoClient(defaultHttpClient())
     val dokumentValidator = DokumentValidator(cpaClient)
 
-    launchSignalReceiver(config)
+    launchSignalReceiver(
+        config,
+        ebmsMessageDetailsRepository,
+        dokumentValidator
+    )
     launchPayloadReceiver(
         config,
         ebmsMessageDetailsRepository,
@@ -121,10 +125,18 @@ private fun CoroutineScope.launchPayloadReceiver(
     }
 }
 
-private fun CoroutineScope.launchSignalReceiver(config: Config) {
+private fun CoroutineScope.launchSignalReceiver(
+    config: Config,
+    ebmsMessageDetailsRepository: EbmsMessageDetailsRepository,
+    dokumentValidator: DokumentValidator
+) {
     if (config.kafkaSignalReceiver.active) {
         launch(Dispatchers.IO) {
-            startSignalReceiver(config.kafkaSignalReceiver.topic, config.kafka)
+            val signalProcessor = SignalProcessor(
+                ebmsMessageDetailsRepository,
+                dokumentValidator
+            )
+            startSignalReceiver(config.kafkaSignalReceiver.topic, config.kafka, signalProcessor)
         }
     }
 }

@@ -25,7 +25,7 @@ fun EbmsMessage.saveEvent(message: String, eventsRepository: EventsRepository) {
     eventsRepository.updateOrInsert(
         Event(
             eventId = Uuid.random(),
-            referenceId = UUID.fromString(this.requestId),
+            referenceId = Uuid.parse(this.requestId),
             messageId = this.messageId,
             eventMessage = message
         )

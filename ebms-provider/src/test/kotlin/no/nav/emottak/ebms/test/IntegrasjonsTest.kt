@@ -22,10 +22,10 @@ import no.nav.emottak.ebms.cpaPostgres
 import no.nav.emottak.ebms.defaultHttpClient
 import no.nav.emottak.ebms.ebmsPostgres
 import no.nav.emottak.ebms.ebmsProviderModule
-import no.nav.emottak.ebms.processing.ProcessingService
-import no.nav.emottak.ebms.scopedAuthHttpClient
 import no.nav.emottak.ebms.persistence.repository.EbmsMessageDetailsRepository
 import no.nav.emottak.ebms.persistence.repository.PayloadRepository
+import no.nav.emottak.ebms.processing.ProcessingService
+import no.nav.emottak.ebms.scopedAuthHttpClient
 import no.nav.emottak.ebms.testConfiguration
 import no.nav.emottak.ebms.validation.DokumentValidator
 import no.nav.emottak.ebms.validation.MimeHeaders
@@ -80,7 +80,6 @@ open class EndToEndTest {
 
             val cpaClient = CpaRepoClient(defaultHttpClient())
             dokumentValidator = DokumentValidator(cpaClient)
-
 
             cpaRepoServer = embeddedServer(
                 Netty,
