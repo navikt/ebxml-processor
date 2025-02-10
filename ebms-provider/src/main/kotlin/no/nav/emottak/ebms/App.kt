@@ -26,6 +26,7 @@ import no.nav.emottak.ebms.persistence.Database
 import no.nav.emottak.ebms.persistence.ebmsDbConfig
 import no.nav.emottak.ebms.persistence.ebmsMigrationConfig
 import no.nav.emottak.ebms.persistence.repository.EbmsMessageDetailsRepository
+import no.nav.emottak.ebms.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.DokumentValidator
@@ -79,6 +80,7 @@ fun Application.ebmsProviderModule(
     database.migrate(migrationConfig)
 
     val ebmsMessageDetailsRepository = EbmsMessageDetailsRepository(database)
+    val payloadRepository = PayloadRepository(database)
 
     val ebmsSignalProducer = EbmsSignalProducer(config.kafkaSignalProducer.topic, config.kafka)
 
@@ -108,7 +110,7 @@ fun Application.ebmsProviderModule(
         postEbmsSync(validator, processing, sendInService, ebmsMessageDetailsRepository)
 
         authenticate(AZURE_AD_AUTH) {
-            getPayloads()
+            getPayloads(payloadRepository)
         }
     }
 }
