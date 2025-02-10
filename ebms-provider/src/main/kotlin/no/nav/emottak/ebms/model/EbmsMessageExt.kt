@@ -11,18 +11,20 @@ import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.message.model.log
 import no.nav.emottak.message.model.toEbmsMessageDetails
 import java.sql.SQLException
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 fun EbmsMessage.sjekkSignature(signatureDetails: SignatureDetails) {
     SignaturValidator.validate(signatureDetails, this.dokument!!, if (this is PayloadMessage) listOf(this.payload) else listOf())
     log.info("Signatur OK")
 }
 
+@OptIn(ExperimentalUuidApi::class)
 fun EbmsMessage.saveEvent(message: String, eventsRepository: EventsRepository) {
     log.info(this.marker(), message)
     eventsRepository.updateOrInsert(
         Event(
-            eventId = UUID.randomUUID(),
+            eventId = Uuid.random(),
             referenceId = UUID.fromString(this.requestId),
             messageId = this.messageId,
             eventMessage = message
@@ -30,6 +32,7 @@ fun EbmsMessage.saveEvent(message: String, eventsRepository: EventsRepository) {
     )
 }
 
+@OptIn(ExperimentalUuidApi::class)
 fun EbmsMessageDetailsRepository.saveEbmsMessage(
     ebmsMessage: EbmsMessage
 ) {

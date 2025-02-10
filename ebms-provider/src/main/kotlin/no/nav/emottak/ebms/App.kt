@@ -9,6 +9,7 @@ import arrow.core.raise.result
 import arrow.fx.coroutines.resourceScope
 import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorRuntime
 import io.ktor.server.application.Application
+import io.ktor.server.auth.authenticate
 import io.ktor.server.netty.Netty
 import io.ktor.server.routing.routing
 import io.ktor.utils.io.CancellationException
@@ -27,9 +28,11 @@ import no.nav.emottak.ebms.persistence.Database
 import no.nav.emottak.ebms.persistence.ebmsDbConfig
 import no.nav.emottak.ebms.persistence.ebmsMigrationConfig
 import no.nav.emottak.ebms.persistence.repository.EbmsMessageDetailsRepository
+import no.nav.emottak.ebms.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.persistence.repository.EventsRepository
 import no.nav.emottak.ebms.processing.PayloadMessageProcessor
 import no.nav.emottak.ebms.processing.ProcessingService
+import no.nav.emottak.ebms.processing.SignalProcessor
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.DokumentValidator
 import no.nav.emottak.util.getEnvVar
@@ -50,6 +53,7 @@ fun main() = SuspendApp {
     val config = config()
     val ebmsMessageDetailsRepository = EbmsMessageDetailsRepository(database)
     val eventsRepository = EventsRepository(database)
+    val payloadRepository = PayloadRepository(database)
     val processingClient = PayloadProcessingClient(scopedAuthHttpClient(EBMS_PAYLOAD_SCOPE))
     val processingService = ProcessingService(processingClient)
     val ebmsSignalProducer = EbmsSignalProducer(config.kafkaSignalProducer.topic, config.kafka)
@@ -76,7 +80,8 @@ fun main() = SuspendApp {
                     ebmsProviderModule(
                         dokumentValidator,
                         processingService,
-                        ebmsMessageDetailsRepository
+                        ebmsMessageDetailsRepository,
+                        payloadRepository
                     )
                 },
                 configure = {
@@ -127,7 +132,8 @@ private fun CoroutineScope.launchSignalReceiver(config: Config) {
 fun Application.ebmsProviderModule(
     validator: DokumentValidator,
     processing: ProcessingService,
-    ebmsMessageDetailsRepository: EbmsMessageDetailsRepository
+    ebmsMessageDetailsRepository: EbmsMessageDetailsRepository,
+    payloadRepository: PayloadRepository
 ) {
     val sendInClient = SendInClient(scopedAuthHttpClient(EBMS_SEND_IN_SCOPE))
     val sendInService = SendInService(sendInClient)
@@ -137,6 +143,7 @@ fun Application.ebmsProviderModule(
     installMicrometerRegistry(appMicrometerRegistry)
     installRequestTimerPlugin()
     installContentNegotiation()
+    installAuthentication()
 
     routing {
         registerRootEndpoint()
@@ -145,5 +152,9 @@ fun Application.ebmsProviderModule(
         registerNavCheckStatus()
 
         postEbmsSync(validator, processing, sendInService, ebmsMessageDetailsRepository)
+
+        authenticate(AZURE_AD_AUTH) {
+            getPayloads(payloadRepository)
+        }
     }
 }

@@ -6,11 +6,13 @@ import io.ktor.server.application.call
 import io.ktor.server.request.header
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
+import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.model.saveEbmsMessage
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.persistence.repository.EbmsMessageDetailsRepository
+import no.nav.emottak.ebms.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.util.marker
@@ -27,8 +29,12 @@ import no.nav.emottak.message.model.PayloadProcessing
 import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.util.marker
 import no.nav.emottak.util.retrieveLoggableHeaderPairs
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
+private const val REFERENCE_ID = "referenceId"
+
+@OptIn(ExperimentalUuidApi::class)
 fun Route.postEbmsSync(
     validator: DokumentValidator,
     processingService: ProcessingService,
@@ -79,8 +85,8 @@ fun Route.postEbmsSync(
                     Direction.IN -> {
                         sendInService.sendIn(processedMessage.first).let {
                             PayloadMessage(
-                                requestId = UUID.randomUUID().toString(),
-                                messageId = UUID.randomUUID().toString(),
+                                requestId = Uuid.random().toString(),
+                                messageId = Uuid.random().toString(),
                                 conversationId = it.conversationId,
                                 cpaId = ebmsMessage.cpaId,
                                 addressing = it.addressing,
@@ -127,4 +133,48 @@ fun Route.postEbmsSync(
             ex.parseAsSoapFault()
         )
     }
+}
+
+@OptIn(ExperimentalUuidApi::class)
+fun Route.getPayloads(
+    payloadRepository: PayloadRepository
+): Route = get("/api/payloads/{$REFERENCE_ID}") {
+    var referenceIdParameter: String? = null
+    val referenceId: Uuid?
+    // Validation
+    try {
+        referenceIdParameter = call.parameters[REFERENCE_ID]
+        referenceId = Uuid.parse(referenceIdParameter!!)
+    } catch (iae: IllegalArgumentException) {
+        logger().error("Invalid reference ID $referenceIdParameter has been sent", iae)
+        call.respond(
+            HttpStatusCode.BadRequest,
+            iae.getErrorMessage()
+        )
+        return@get
+    } catch (ex: Exception) {
+        logger().error("Exception occurred while validation of async payload request")
+        call.respond(
+            HttpStatusCode.BadRequest,
+            ex.getErrorMessage()
+        )
+        return@get
+    }
+
+    // Sending response
+    try {
+        val listOfPayloads = payloadRepository.getByReferenceId(referenceId)
+        call.respond(HttpStatusCode.OK, listOfPayloads)
+    } catch (ex: Exception) {
+        logger().error("Exception occurred while retrieving Payload: ${ex.localizedMessage} (${ex::class.qualifiedName})")
+        call.respond(
+            HttpStatusCode.InternalServerError,
+            ex.getErrorMessage()
+        )
+    }
+    return@get
+}
+
+fun Exception.getErrorMessage(): String {
+    return localizedMessage ?: cause?.message ?: javaClass.simpleName
 }

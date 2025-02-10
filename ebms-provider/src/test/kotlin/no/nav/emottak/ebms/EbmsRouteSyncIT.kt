@@ -40,7 +40,8 @@ import no.nav.emottak.util.getEnvVar
 import org.apache.xml.security.algorithms.MessageDigestAlgorithm
 import org.apache.xml.security.signature.XMLSignature
 import org.junit.jupiter.api.Test
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 private const val SYNC_PATH = "/ebms/sync"
 
@@ -129,6 +130,7 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
         testBlock()
     }
 
+    @OptIn(ExperimentalUuidApi::class)
     @Test
     fun `Valid payload request should trigger processing and validation on way out`() = testSyncApp {
         mockkStatic(EbMSDocument::signer)
@@ -143,9 +145,10 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
         assert(response.status == HttpStatusCode.OK)
         println(String(response.readBytes()))
         println("----=_Part_" + System.currentTimeMillis() + "." + System.nanoTime())
-        println("----=_Part_" + UUID.randomUUID().toString())
+        println("----=_Part_" + Uuid.random().toString())
     }
 
+    @OptIn(ExperimentalUuidApi::class)
     @Test
     fun `Feilmelding fra fagsystemet må propageres til brukeren`() = testSyncApp {
         val soapFault = "<SOAP-ENV:Envelope xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\"><SOAP-ENV:Header/><SOAP-ENV:Body><SOAP-ENV:Fault><faultcode>SOAP-ENV:Server</faultcode><faultstring>Noe gikk galt i fagsystemet</faultstring></SOAP-ENV:Fault></SOAP-ENV:Body></SOAP-ENV:Envelope>"
@@ -176,7 +179,7 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
         assert(response.status == HttpStatusCode.InternalServerError)
         assert(String(response.readBytes()) == soapFault)
         println("----=_Part_" + System.currentTimeMillis() + "." + System.nanoTime())
-        println("----=_Part_" + UUID.randomUUID().toString())
+        println("----=_Part_" + Uuid.random().toString())
     }
 }
 

@@ -21,8 +21,10 @@ import org.xmlsoap.schemas.soap.envelope.Header
 import java.io.StringReader
 import java.time.Instant
 import java.util.Date
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalUuidApi::class)
 abstract class EbmsMessage {
     abstract val requestId: String
     abstract val messageId: String
@@ -38,8 +40,8 @@ abstract class EbmsMessage {
 
     open fun createFail(errorList: List<Feil>): EbmsFail {
         return EbmsFail(
-            UUID.randomUUID().toString(),
-            UUID.randomUUID().toString(),
+            requestId,
+            Uuid.random().toString(),
             this.messageId,
             this.conversationId,
             this.cpaId,
@@ -74,9 +76,10 @@ fun EbmsMessage.createAcknowledgementJaxB(): org.oasis_open.committees.ebxml_msg
     return acknowledgment
 }
 
+@OptIn(ExperimentalUuidApi::class)
 fun EbmsMessage.createMessageHeader(newAddressing: Addressing = this.addressing, withAcknowledgmentElement: Boolean = false): Header {
     val messageData = MessageData().apply {
-        this.messageId = UUID.randomUUID().toString()
+        this.messageId = Uuid.random().toString()
         this.refToMessageId = this@createMessageHeader.refToMessageId
         this.timestamp = Date()
     }
@@ -131,6 +134,7 @@ fun EbmsMessage.createMessageHeader(newAddressing: Addressing = this.addressing,
     }
 }
 
+@OptIn(ExperimentalUuidApi::class)
 fun EbmsMessage.toEbmsMessageDetails(): EbmsMessageDetails {
     return EbmsMessageDetails(
         EbmsMessageDetails.convertStringToUUIDOrGenerateNew(this.requestId),
@@ -147,9 +151,10 @@ fun EbmsMessage.toEbmsMessageDetails(): EbmsMessageDetails {
     )
 }
 
+@OptIn(ExperimentalUuidApi::class)
 fun EbmsMessage.createEbmsDocument(ebxmlDokument: Header, payload: EbmsAttachment? = null): EbMSDocument {
     val envelope = Envelope()
-    val attachmentUid = UUID.randomUUID().toString()
+    val attachmentUid = Uuid.random().toString()
     envelope.header = ebxmlDokument
 
     envelope.body = Body().apply {
