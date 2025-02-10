@@ -9,6 +9,7 @@ import java.security.PrivateKey
 import java.security.Security
 import java.security.cert.X509Certificate
 import java.util.Enumeration
+import javax.security.auth.x500.X500Principal
 import org.bouncycastle.cert.X509CertificateHolder
 import org.bouncycastle.cert.jcajce.JcaX509CertificateHolder
 import org.bouncycastle.jce.provider.BouncyCastleProvider
@@ -25,6 +26,7 @@ interface KeyStoreConfig {
 
 class KeyStoreManager(private vararg val keyStoreConfig: KeyStoreConfig) {
     private val keyStores: List<Pair<KeyStore, KeyStoreConfig>>
+
     init {
         Security.addProvider(BouncyCastleProvider())
         keyStores = keyStoreResolver()
@@ -53,6 +55,15 @@ class KeyStoreManager(private vararg val keyStoreConfig: KeyStoreConfig) {
         )
     }
 
+    fun getKeyForIssuer(issuer: X500Principal): PrivateKey {
+        return getPrivateCertificates().filter {
+            it.value.issuerX500Principal.name == issuer.name
+        }.map {
+            log.debug("Alias found: ${it.key} for issuer ${issuer.name}")
+            getKey(it.key)
+        }.first()
+    }
+
     fun getPrivateCertificates(): Map<String, X509Certificate> {
         val certificates: MutableMap<String, X509Certificate> = HashMap()
         keyStores.forEach { (store) ->
@@ -75,7 +86,8 @@ class KeyStoreManager(private vararg val keyStoreConfig: KeyStoreConfig) {
         return certificates
     }
 
-    fun getCertificateAlias(certificate: X509Certificate) = keyStores.firstNotNullOf { (store) -> store.getCertificateAlias(certificate) }
+    fun getCertificateAlias(certificate: X509Certificate) =
+        keyStores.firstNotNullOf { (store) -> store.getCertificateAlias(certificate) }
 
     fun getKeyPair(alias: String) = KeyPair(getCertificate(alias).publicKey, getKey(alias))
 
@@ -105,6 +117,10 @@ class KeyStoreManager(private vararg val keyStoreConfig: KeyStoreConfig) {
             store.isKeyEntry(alias) && store.getKey(alias, config.keyStorePass) is PrivateKey
         }
     }
+
+//    fun getKey(certificate: X509Certificate) = keyStores.first {
+//        (store) -> store.getKey()
+//    }
 
     fun getKey(alias: String) =
         keyStores.first { (store) -> store.isKeyEntry(alias) }

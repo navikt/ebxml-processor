@@ -43,7 +43,10 @@ class SertifikatError(message: String, cause: Throwable? = null) : RuntimeExcept
 
 class OcspStatusService(
     val httpClient: HttpClient,
-    val signingKeyStoreManager: KeyStoreManager = KeyStoreManager(ocspSigneringConfigCommfides(), ocspSigneringConfigBuypass()),
+    val signingKeyStoreManager: KeyStoreManager = KeyStoreManager(
+        ocspSigneringConfigCommfides(),
+        ocspSigneringConfigBuypass()
+    ),
     private val trustStore: KeyStoreManager = KeyStoreManager(trustStoreConfig())
 ) {
 
@@ -80,13 +83,10 @@ class OcspStatusService(
             extensionsGenerator.addNonceExtension()
             ocspReqBuilder.setRequestExtensions(extensionsGenerator.generate())
             ocspReqBuilder.setRequestorName(GeneralName(GeneralName.directoryName, requestorName))
-            val signerAlias = signingKeyStoreManager.getCertificateAlias(ocspResponderCertificate)
             return ocspReqBuilder.build( // TODO Feiler her fordi feil signer-alias hentes ut man må hente nav sitt signer alias
                 JcaContentSignerBuilder("SHA256WITHRSAENCRYPTION").setProvider(bcProvider)
-                    .build(
-                        signingKeyStoreManager.getKey(signerAlias.also { log.debug("(OCSP) Checking keystore for alias: $signerAlias") })
-                    ),
-                signingKeyStoreManager.getCertificateChain(signerAlias)
+                    .build(signingKeyStoreManager.getKeyForIssuer(ocspResponderCertificate.issuerX500Principal)),
+                signingKeyStoreManager.getCertificateChain(signingKeyStoreManager.getCertificateAlias(ocspResponderCertificate))
             ).also {
                 log.debug("OCSP Request created")
             }
