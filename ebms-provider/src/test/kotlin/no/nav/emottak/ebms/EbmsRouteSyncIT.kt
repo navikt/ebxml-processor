@@ -1,11 +1,10 @@
 package no.nav.emottak.ebms
 
 import io.ktor.client.request.post
-import io.ktor.client.statement.readBytes
+import io.ktor.client.statement.readRawBytes
 import io.ktor.http.Headers
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
-import io.ktor.server.application.call
 import io.ktor.server.application.install
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.response.respond
@@ -144,7 +143,7 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
             processingService.processSyncIn(any(), any())
         }
         assert(response.status == HttpStatusCode.OK)
-        println(String(response.readBytes()))
+        println(String(response.readRawBytes()))
         println("----=_Part_" + System.currentTimeMillis() + "." + System.nanoTime())
         println("----=_Part_" + Uuid.random().toString())
     }
@@ -178,7 +177,7 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
             processingService.processSyncIn(any(), any())
         }
         assert(response.status == HttpStatusCode.InternalServerError)
-        assert(String(response.readBytes()) == soapFault)
+        assert(String(response.readRawBytes()) == soapFault)
         println("----=_Part_" + System.currentTimeMillis() + "." + System.nanoTime())
         println("----=_Part_" + Uuid.random().toString())
     }
