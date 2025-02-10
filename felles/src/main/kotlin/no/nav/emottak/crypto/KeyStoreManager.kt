@@ -60,7 +60,7 @@ class KeyStoreManager(private vararg val keyStoreConfig: KeyStoreConfig) {
         issuer.toString().split(", ")
         return getPrivateCertificates().filter {
                 (alias, privCert) ->
-            issuer.name.split(", ") // "getRdns", litt hacky, fant ikke innebygd funksjonalitet for dette
+            issuer.name.split(", ", ",") // "getRdns", litt hacky, fant ikke innebygd funksjonalitet for dette
                 .any { rdn ->
                     privCert.issuerX500Principal.name.contains(rdn)
                 }
