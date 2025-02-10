@@ -83,6 +83,7 @@ class OcspStatusService(
             extensionsGenerator.addNonceExtension()
             ocspReqBuilder.setRequestExtensions(extensionsGenerator.generate())
             ocspReqBuilder.setRequestorName(GeneralName(GeneralName.directoryName, requestorName))
+
             return ocspReqBuilder.build( // TODO Feiler her fordi feil signer-alias hentes ut man må hente nav sitt signer alias
                 JcaContentSignerBuilder("SHA256WITHRSAENCRYPTION").setProvider(bcProvider)
                     .build(signingKeyStoreManager.getKeyForIssuer(ocspResponderCertificate.issuerX500Principal)),

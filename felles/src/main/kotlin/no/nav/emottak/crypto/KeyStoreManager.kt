@@ -56,10 +56,16 @@ class KeyStoreManager(private vararg val keyStoreConfig: KeyStoreConfig) {
     }
 
     fun getKeyForIssuer(issuer: X500Principal): PrivateKey {
+        log.debug("Checking key for ${issuer.name} ")
+        issuer.toString().split(", ")
         return getPrivateCertificates().filter {
-            it.value.issuerX500Principal.name == issuer.name
+                (alias, privCert) ->
+            issuer.name.split(", ") // "getRdns", litt hacky, fant ikke innebygd funksjonalitet for dette
+                .any { rdn ->
+                    privCert.issuerX500Principal.name.contains(rdn)
+                }
         }.map {
-            log.debug("Alias found: ${it.key} for issuer ${issuer.name}")
+            log.debug("Alias found: ${it.key} for issuer $issuer")
             getKey(it.key)
         }.first()
     }
