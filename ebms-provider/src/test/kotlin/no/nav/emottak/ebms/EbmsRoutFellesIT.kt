@@ -4,7 +4,6 @@ import com.nimbusds.jwt.SignedJWT
 import io.ktor.client.request.post
 import io.ktor.client.statement.bodyAsText
 import io.ktor.serialization.kotlinx.json.json
-import io.ktor.server.application.call
 import io.ktor.server.application.install
 import io.ktor.server.auth.Authentication
 import io.ktor.server.auth.authenticate
@@ -40,7 +39,7 @@ import no.nav.emottak.message.xml.xmlMarshaller
 import no.nav.emottak.util.decodeBase64
 import no.nav.emottak.util.getEnvVar
 import no.nav.security.mock.oauth2.MockOAuth2Server
-import no.nav.security.token.support.v2.tokenValidationSupport
+import no.nav.security.token.support.v3.tokenValidationSupport
 import org.apache.xml.security.algorithms.MessageDigestAlgorithm
 import org.apache.xml.security.signature.XMLSignature
 import org.junit.jupiter.api.AfterAll

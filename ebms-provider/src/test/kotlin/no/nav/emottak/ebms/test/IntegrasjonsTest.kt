@@ -73,14 +73,14 @@ open class EndToEndTest {
                 module = cpaApplicationModule(cpaRepoDb.dataSource, cpaRepoDb.dataSource)
             ).also {
                 it.start()
-            }
+            }.engine
             ebmsProviderServer = embeddedServer(
                 Netty,
                 port = portnoEbmsProvider,
                 module = { ebmsProviderModule(ebmsMessageDetailsRepository, payloadRepository) }
             ).also {
                 it.start()
-            }
+            }.engine
         }
 
         @JvmStatic
