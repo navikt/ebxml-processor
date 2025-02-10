@@ -12,12 +12,14 @@ import no.nav.emottak.message.model.EbmsFail
 import no.nav.emottak.message.model.toEbmsMessageDetails
 import no.nav.emottak.message.xml.getDocumentBuilder
 import java.io.ByteArrayInputStream
+import kotlin.uuid.ExperimentalUuidApi
 
 class SignalProcessor(
     val ebmsMessageDetailsRepository: EbmsMessageDetailsRepository,
     val validator: DokumentValidator
 ) {
 
+    @OptIn(ExperimentalUuidApi::class)
     suspend fun processSignal(reference: String, content: ByteArray) {
         try {
             val ebxmlSignalMessage = createEbmsMessage(reference, content)
