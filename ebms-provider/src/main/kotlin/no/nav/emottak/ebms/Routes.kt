@@ -9,13 +9,13 @@ import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
-import io.ktor.utils.io.core.toByteArray
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.configuration.config
 import no.nav.emottak.ebms.messaging.EbmsSignalProducer
 import no.nav.emottak.ebms.model.saveEbmsMessage
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.persistence.repository.EbmsMessageDetailsRepository
+import no.nav.emottak.ebms.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.util.marker
@@ -24,7 +24,6 @@ import no.nav.emottak.ebms.validation.MimeValidationException
 import no.nav.emottak.ebms.validation.parseAsSoapFault
 import no.nav.emottak.ebms.validation.validateMime
 import no.nav.emottak.melding.feil.EbmsException
-import no.nav.emottak.message.model.AsyncPayload
 import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.EbMSDocument
 import no.nav.emottak.message.model.Payload
@@ -229,7 +228,9 @@ fun Route.postEbmsAsync(
     }
 
 @OptIn(ExperimentalUuidApi::class)
-fun Route.getPayloads(): Route = get("/api/payloads/{$REFERENCE_ID}") {
+fun Route.getPayloads(
+    payloadRepository: PayloadRepository
+): Route = get("/api/payloads/{$REFERENCE_ID}") {
     var referenceIdParameter: String? = null
     val referenceId: Uuid?
     // Validation
@@ -254,21 +255,7 @@ fun Route.getPayloads(): Route = get("/api/payloads/{$REFERENCE_ID}") {
 
     // Sending response
     try {
-        // TODO: Retrieve real data from database
-        val listOfPayloads = listOf(
-            AsyncPayload(
-                referenceId.toString(),
-                "attachment-0fa6e663-010a-4764-85b4-94081119497a@eik.no",
-                "application/pkcs7-mime",
-                "Payload test content 1".toByteArray()
-            ),
-            AsyncPayload(
-                referenceId.toString(),
-                "attachment-c53f9027-ffa4-4770-95f4-8ed0463b87c3@eik.no",
-                "application/pkcs7-mime",
-                "Payload test content 2".toByteArray()
-            )
-        )
+        val listOfPayloads = payloadRepository.getByReferenceId(referenceId)
         call.respond(HttpStatusCode.OK, listOfPayloads)
     } catch (ex: Exception) {
         logger().error("Exception occurred while retrieving Payload: ${ex.localizedMessage} (${ex::class.qualifiedName})")

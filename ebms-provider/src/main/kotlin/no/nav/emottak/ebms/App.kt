@@ -25,6 +25,7 @@ import no.nav.emottak.ebms.persistence.Database
 import no.nav.emottak.ebms.persistence.ebmsDbConfig
 import no.nav.emottak.ebms.persistence.ebmsMigrationConfig
 import no.nav.emottak.ebms.persistence.repository.EbmsMessageDetailsRepository
+import no.nav.emottak.ebms.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.processing.SignalProcessor
 import no.nav.emottak.ebms.sendin.SendInService
@@ -45,6 +46,7 @@ fun main() = SuspendApp {
     database.migrate(ebmsMigrationConfig.value)
 
     val ebmsMessageDetailsRepository = EbmsMessageDetailsRepository(database)
+    val payloadRepository = PayloadRepository(database)
 
     val config = config()
     if (config.kafkaSignalReceiver.active) {
@@ -60,7 +62,7 @@ fun main() = SuspendApp {
             server(
                 Netty,
                 port = 8080,
-                module = { ebmsProviderModule(ebmsMessageDetailsRepository) },
+                module = { ebmsProviderModule(ebmsMessageDetailsRepository, payloadRepository) },
                 configure = {
                     this.maxChunkSize = 100000
                 }
@@ -77,7 +79,8 @@ fun main() = SuspendApp {
 }
 
 fun Application.ebmsProviderModule(
-    ebmsMessageDetailsRepository: EbmsMessageDetailsRepository
+    ebmsMessageDetailsRepository: EbmsMessageDetailsRepository,
+    payloadRepository: PayloadRepository
 ) {
     val config = config()
 
@@ -109,7 +112,7 @@ fun Application.ebmsProviderModule(
         postEbmsSync(validator, processing, sendInService, ebmsMessageDetailsRepository)
 
         authenticate(AZURE_AD_AUTH) {
-            getPayloads()
+            getPayloads(payloadRepository)
         }
     }
 }
