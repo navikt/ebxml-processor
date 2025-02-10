@@ -83,9 +83,9 @@ class SmtpTransportClient(clientProvider: () -> HttpClient) {
         val response = httpClient.get(payloadUri) {
             contentType(ContentType.Application.Json)
         }
-        if (response.status == HttpStatusCode.BadRequest) {
+        if (response.status != HttpStatusCode.OK) {
             val errorMessage = response.bodyAsText()
-            log.debug("Propagerer feilmelding fra smtp-transport brukeren: $errorMessage")
+            log.debug("Failed to get payload from smtp-transport: $errorMessage")
             throw Exception(errorMessage)
         }
         return response.body()

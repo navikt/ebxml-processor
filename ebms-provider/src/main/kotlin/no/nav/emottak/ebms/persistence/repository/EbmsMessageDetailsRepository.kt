@@ -13,6 +13,7 @@ import no.nav.emottak.ebms.persistence.table.EbmsMessageDetailsTable.service
 import no.nav.emottak.ebms.persistence.table.EbmsMessageDetailsTable.toPartyId
 import no.nav.emottak.ebms.persistence.table.EbmsMessageDetailsTable.toRole
 import no.nav.emottak.message.model.EbmsMessageDetails
+import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.upsert
 import java.sql.SQLException
@@ -46,6 +47,37 @@ class EbmsMessageDetailsRepository(private val database: Database) {
             }
         }
         return ebmsMessageDetails.referenceId
+    }
+
+    fun getByConversationIdMessageIdAndCpaId(conversationId: String, messageId: String, cpaId: String): EbmsMessageDetails? {
+        var ebmsMessageDetails: EbmsMessageDetails? = null
+
+        transaction(database.db) {
+            EbmsMessageDetailsTable
+                .select(EbmsMessageDetailsTable.columns)
+                .where {
+                    (EbmsMessageDetailsTable.conversationId eq conversationId) and
+                        (EbmsMessageDetailsTable.messageId eq messageId) and
+                        (EbmsMessageDetailsTable.cpaId eq cpaId)
+                }
+                .firstOrNull()
+                ?.also {
+                    ebmsMessageDetails = EbmsMessageDetails(
+                        it[EbmsMessageDetailsTable.referenceId].toKotlinUuid(),
+                        it[EbmsMessageDetailsTable.cpaId],
+                        it[EbmsMessageDetailsTable.conversationId],
+                        it[EbmsMessageDetailsTable.messageId],
+                        it[refToMessageId],
+                        it[fromPartyId],
+                        it[fromRole],
+                        it[toPartyId],
+                        it[toRole],
+                        it[service],
+                        it[action]
+                    )
+                }
+        }
+        return ebmsMessageDetails
     }
 
     fun getByReferenceId(referenceId: Uuid): EbmsMessageDetails? {

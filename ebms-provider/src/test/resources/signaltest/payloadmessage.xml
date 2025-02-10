@@ -1,0 +1,76 @@
+<SOAP:Envelope xmlns:SOAP="http://schemas.xmlsoap.org/soap/envelope/"
+               xmlns:eb="http://www.oasis-open.org/committees/ebxml-msg/schema/msg-header-2_0.xsd"
+               xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://schemas.xmlsoap.org/soap/envelope/ http://www.oasis-open.org/committees/ebxml-msg/schema/envelope.xsd http://www.oasis-open.org/committees/ebxml-msg/schema/msg-header-2_0.xsd http://www.oasis-open.org/committees/ebxml-msg/schema/msg-header-2_0.xsd">
+    <SOAP:Header>
+        <eb:MessageHeader SOAP:mustUnderstand="1" eb:version="2.0">
+            <eb:From>
+                <eb:PartyId eb:type="HER">123</eb:PartyId>
+                <eb:Role>Behandler</eb:Role>
+            </eb:From>
+            <eb:To>
+                <eb:PartyId eb:type="HER">321</eb:PartyId>
+                <eb:Role>KontrollUtbetaler</eb:Role>
+            </eb:To>
+            <eb:CPAId>nav:qass:35065</eb:CPAId>
+            <eb:ConversationId>be192d3a-34b5-448a-a374-5eab0524c74d</eb:ConversationId>
+            <eb:Service eb:type="string">BehandlerKrav</eb:Service>
+            <eb:Action>OppgjorsMelding</eb:Action>
+            <eb:MessageData>
+                <eb:MessageId>7104acf8-21e9-4ee7-b894-d413a00a8881</eb:MessageId>
+                <eb:Timestamp>2023-08-29T10:56:50.3069479Z</eb:Timestamp>
+            </eb:MessageData>
+        </eb:MessageHeader>
+        <eb:AckRequested SOAP:actor="urn:oasis:names:tc:ebxml-msg:actor:toPartyMSH" SOAP:mustUnderstand="1"
+                         eb:signed="true" eb:version="2.0"></eb:AckRequested>
+        <ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
+            <ds:SignedInfo>
+                <ds:CanonicalizationMethod
+                        Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"></ds:CanonicalizationMethod>
+                <ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"></ds:SignatureMethod>
+                <ds:Reference URI="">
+                    <ds:Transforms>
+                        <ds:Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"></ds:Transform>
+                        <ds:Transform Algorithm="http://www.w3.org/TR/1999/REC-xpath-19991116">
+                            <ds:XPath>
+                                not(ancestor-or-self::node()[@SOAP-ENV:actor="urn:oasis:names:tc:ebxml-msg:actor:nextMSH"]
+                                |
+                                ancestor-or-self::node()[@SOAP-ENV:actor="http://schemas.xmlsoap.org/soap/actor/next"])
+                            </ds:XPath>
+                        </ds:Transform>
+                        <ds:Transform Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"></ds:Transform>
+                    </ds:Transforms>
+                    <ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"></ds:DigestMethod>
+                    <ds:DigestValue>digestValue</ds:DigestValue>
+                </ds:Reference>
+                <ds:Reference URI="cid:ref1">
+                    <ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"></ds:DigestMethod>
+                    <ds:DigestValue>digestValue</ds:DigestValue>
+                </ds:Reference>
+            </ds:SignedInfo>
+            <ds:SignatureValue>
+                signatureValue
+            </ds:SignatureValue>
+            <ds:KeyInfo>
+                <ds:KeyValue>
+                    <ds:RSAKeyValue>
+                        <ds:Modulus>
+                            modulus
+                        </ds:Modulus>
+                        <ds:Exponent>AQAB</ds:Exponent>
+                    </ds:RSAKeyValue>
+                </ds:KeyValue>
+                <ds:X509Data>
+                    <ds:X509Certificate>
+                        certificate
+                    </ds:X509Certificate>
+                </ds:X509Data>
+            </ds:KeyInfo>
+        </ds:Signature>
+    </SOAP:Header>
+    <SOAP:Body>
+        <eb:Manifest eb:version="2.0">
+            <eb:Reference xlink:href="cid:ref1" xlink:type="simple"></eb:Reference>
+        </eb:Manifest>
+    </SOAP:Body>
+</SOAP:Envelope>
