@@ -10,6 +10,7 @@ import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
+import io.ktor.utils.io.core.toByteArray
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockkObject
@@ -24,6 +25,9 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
 import org.xmlsoap.schemas.soap.envelope.Envelope
+import java.util.*
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 class EbmsRouteAsyncIT : EbmsRoutFellesIT("/ebms/async") {
 
@@ -92,10 +96,27 @@ class EbmsRouteAsyncIT : EbmsRoutFellesIT("/ebms/async") {
         assertEquals(HttpStatusCode.OK, response.status)
     }
 
+    @OptIn(ExperimentalUuidApi::class)
     @Test
     fun `Payload endpoint returns list of payloads`() = validationTestApp {
-        val validReferenceId = "df68056e-5cba-4351-9085-c37b925b8ddd"
+        val validReferenceId = Uuid.random()
         val validAuthToken = getToken().serialize()
+        val mockedListOfPayloads = listOf(
+            AsyncPayload(
+                validReferenceId.toString(),
+                "attachment-0fa6e663-010a-4764-85b4-94081119497a@eik.no",
+                "application/pkcs7-mime",
+                "Payload test content 1".toByteArray()
+            ),
+            AsyncPayload(
+                validReferenceId.toString(),
+                "attachment-c53f9027-ffa4-4770-95f4-8ed0463b87c3@eik.no",
+                "application/pkcs7-mime",
+                "Payload test content 2".toByteArray()
+            )
+        )
+
+        every { payloadRepository.getByReferenceId(validReferenceId) } returns mockedListOfPayloads
 
         val httpClient = createClient {
             install(ContentNegotiation) {
@@ -112,6 +133,7 @@ class EbmsRouteAsyncIT : EbmsRoutFellesIT("/ebms/async") {
         val listOfPayloads = httpResponse.body<List<AsyncPayload>>()
 
         assertNotNull(listOfPayloads)
+        assertEquals(2, listOfPayloads.size)
     }
 
     @Test
