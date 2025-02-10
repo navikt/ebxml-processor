@@ -14,7 +14,8 @@ import no.kith.xmlstds.msghead._2006_05_24.MsgInfo
 import no.nav.emottak.util.toXMLGregorianCalendar
 import org.apache.commons.lang3.StringUtils
 import java.time.Instant
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 private val objectFactory = ObjectFactory()
 private const val OID_8221 = "2.16.578.1.12.4.1.1.8221"
@@ -43,9 +44,10 @@ fun createNegativeApprec(msgHead: MsgHead, exception: Exception): AppRec = creat
     it.error.add(createApprecError(AppRecErrorCode.getCode(exception), exception.message))
 }
 
+@OptIn(ExperimentalUuidApi::class)
 private fun createBaseApprec(msgHead: MsgHead): AppRec = objectFactory.createAppRec().also { apprec ->
     apprec.genDate = Instant.now().toXMLGregorianCalendar()
-    apprec.id = UUID.randomUUID().toString()
+    apprec.id = Uuid.random().toString()
     apprec.miGversion = VERSION_1_0
     apprec.msgType = createCS(APPREC,APPLIKASJONSKVITTERING)
     apprec.originalMsgId = createOriginalMessageId(msgHead.msgInfo)

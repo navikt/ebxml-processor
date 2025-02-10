@@ -35,7 +35,8 @@ import no.nav.emottak.message.xml.getDocumentBuilder
 import java.io.ByteArrayInputStream
 import java.nio.charset.StandardCharsets
 import java.util.Base64
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 fun PartData.payload(clearText: Boolean = false): ByteArray {
     return when (this) {
@@ -69,6 +70,7 @@ fun Headers.actuallyUsefulToString(): String {
     return sb.toString()
 }
 
+@OptIn(ExperimentalUuidApi::class)
 @Throws(MimeValidationException::class)
 suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
     log.info("Parsing message with Message-Id: ${request.header(SMTPHeaders.MESSAGE_ID)}")
@@ -97,7 +99,7 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
             }!!.also {
                 it.validateMimeSoapEnvelope()
             }.let {
-                val contentID = it.headers[MimeHeaders.CONTENT_ID]?.convertToValidatedContentID() ?: "GENERERT-${UUID.randomUUID()}"
+                val contentID = it.headers[MimeHeaders.CONTENT_ID]?.convertToValidatedContentID() ?: "GENERERT-${Uuid.random()}"
                 val isBase64 = "base64".equals(it.headers[MimeHeaders.CONTENT_TRANSFER_ENCODING], true)
                 Pair(contentID, it.payload(debugClearText || !isBase64))
             }
