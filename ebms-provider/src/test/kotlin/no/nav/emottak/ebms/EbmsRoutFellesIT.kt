@@ -23,6 +23,7 @@ import no.nav.emottak.ebms.configuration.config
 import no.nav.emottak.ebms.kafka.KafkaTestContainer
 import no.nav.emottak.ebms.messaging.EbmsSignalProducer
 import no.nav.emottak.ebms.persistence.repository.EbmsMessageDetailsRepository
+import no.nav.emottak.ebms.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.DokumentValidator
@@ -54,6 +55,7 @@ abstract class EbmsRoutFellesIT(val endpoint: String) {
     val validMultipartRequest = validMultipartRequest()
     val processingService = mockk<ProcessingService>()
     val ebmsMessageDetailsRepository = mockk<EbmsMessageDetailsRepository>()
+    val payloadRepository = mockk<PayloadRepository>()
     val ebmsSignalProducer = mockk<EbmsSignalProducer>()
     val mockProcessConfig = ProcessConfig(
         true,
@@ -94,7 +96,7 @@ abstract class EbmsRoutFellesIT(val endpoint: String) {
                 postEbmsSync(dokumentValidator, processingService, SendInService(sendInClient), ebmsMessageDetailsRepository)
                 postEbmsAsync(dokumentValidator, processingService, ebmsMessageDetailsRepository, ebmsSignalProducer)
                 authenticate(AZURE_AD_AUTH) {
-                    getPayloads()
+                    getPayloads(payloadRepository)
                 }
             }
         }
