@@ -61,6 +61,8 @@ fun main() = SuspendApp {
     val cpaClient = CpaRepoClient(defaultHttpClient())
     val dokumentValidator = DokumentValidator(cpaClient)
 
+    val smtpTransportClient = SmtpTransportClient(scopedAuthHttpClient(SMTP_TRANSPORT_SCOPE))
+
     launchSignalReceiver(
         config,
         ebmsMessageDetailsRepository,
@@ -72,7 +74,8 @@ fun main() = SuspendApp {
         eventsRepository,
         dokumentValidator,
         processingService,
-        ebmsSignalProducer
+        ebmsSignalProducer,
+        smtpTransportClient
     )
 
     result {
@@ -109,7 +112,8 @@ private fun CoroutineScope.launchPayloadReceiver(
     eventsRepository: EventsRepository,
     dokumentValidator: DokumentValidator,
     processingService: ProcessingService,
-    ebmsSignalProducer: EbmsSignalProducer
+    ebmsSignalProducer: EbmsSignalProducer,
+    smtpTransportClient: SmtpTransportClient
 ) {
     if (config.kafkaPayloadReceiver.active) {
         launch(Dispatchers.IO) {
@@ -118,7 +122,8 @@ private fun CoroutineScope.launchPayloadReceiver(
                 eventsRepository = eventsRepository,
                 validator = dokumentValidator,
                 processingService = processingService,
-                ebmsSignalProducer = ebmsSignalProducer
+                ebmsSignalProducer = ebmsSignalProducer,
+                smtpTransportClient = smtpTransportClient
             )
             startPayloadReceiver(config.kafkaPayloadReceiver.topic, config.kafka, payloadMessageProcessor)
         }

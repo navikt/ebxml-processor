@@ -2,6 +2,7 @@ package no.nav.emottak.ebms.processing
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import no.nav.emottak.ebms.SmtpTransportClient
 import no.nav.emottak.ebms.configuration.config
 import no.nav.emottak.ebms.log
 import no.nav.emottak.ebms.messaging.EbmsSignalProducer
@@ -27,7 +28,8 @@ class PayloadMessageProcessor(
     val eventsRepository: EventsRepository,
     val validator: DokumentValidator,
     val processingService: ProcessingService,
-    val ebmsSignalProducer: EbmsSignalProducer
+    val ebmsSignalProducer: EbmsSignalProducer,
+    val smtpTransportClient: SmtpTransportClient
 ) {
 
     suspend fun process(reference: String, content: ByteArray) {
@@ -55,12 +57,14 @@ class PayloadMessageProcessor(
         return ebmsMessage as PayloadMessage
     }
 
-    private fun retrievePayloads(reference: String): List<Payload> {
-        // TODO get actual payloads from smtp-transport with reference
-        return listOf(
-            Payload(byteArrayOf(), "application/xml", "contentId")
-        )
-    }
+    private suspend fun retrievePayloads(reference: String) =
+        smtpTransportClient.getPayload(reference).map {
+            Payload(
+                bytes = it.content,
+                contentId = it.contentId,
+                contentType = it.contentType
+            )
+        }
 
     private suspend fun processPayloadMessage(ebmsPayloadMessage: PayloadMessage) {
         ebmsPayloadMessage.saveEvent("Message received", eventsRepository)
