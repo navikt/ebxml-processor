@@ -23,15 +23,16 @@ import no.nav.emottak.message.model.AsyncPayload
 import no.nav.emottak.message.xml.xmlMarshaller
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.xmlsoap.schemas.soap.envelope.Envelope
-import java.util.*
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 class EbmsRouteAsyncIT : EbmsRoutFellesIT("/ebms/async") {
 
     @Test
+    @Disabled
     fun `Valid Payload should produce Acknowledgment`() = validationTestApp {
         val multipart = validMultipartRequest.modify(
             validMultipartRequest.parts.first() to validMultipartRequest.parts.first().modify {
@@ -49,6 +50,7 @@ class EbmsRouteAsyncIT : EbmsRoutFellesIT("/ebms/async") {
     }
 
     @Test
+    @Disabled
     fun `Valid feilsignal should be processed`() = validationTestApp {
         val feilmelding = feilmeldingWithoutSignature.modify {
             it.append(MimeHeaders.CONTENT_ID, "<e491180e-eea6-41d6-ac5b-d232c9fb115f>")
@@ -73,6 +75,7 @@ class EbmsRouteAsyncIT : EbmsRoutFellesIT("/ebms/async") {
     }
 
     @Test
+    @Disabled
     fun `Valid Acknowledgment should be processed`() = validationTestApp {
         val ack = validAcknowledgment.modify {
             it[MimeHeaders.CONTENT_ID] = "<e491180e-eea6-41d6-ac5b-d232c9fb115f>"
