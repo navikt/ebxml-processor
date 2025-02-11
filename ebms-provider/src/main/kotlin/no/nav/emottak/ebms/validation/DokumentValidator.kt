@@ -23,7 +23,7 @@ class DokumentValidator(val httpClient: CpaRepoClient) {
     suspend fun validateIn(message: EbmsMessage) = validate(IN, message, true)
     suspend fun validateOut(message: EbmsMessage) = validate(OUT, message, false)
 
-    private suspend fun validate(direction: Direction, message: EbmsMessage, sjekSignature: Boolean): ValidationResult {
+    private suspend fun validate(direction: Direction, message: EbmsMessage, checkSignature: Boolean): ValidationResult {
         val validationRequest = ValidationRequest(
             direction,
             message.messageId,
@@ -36,7 +36,7 @@ class DokumentValidator(val httpClient: CpaRepoClient) {
         }
 
         if (!validationResult.valid()) throw EbmsException(validationResult.error!!)
-        if (sjekSignature) {
+        if (checkSignature) {
             runCatching {
                 message.sjekkSignature(validationResult.payloadProcessing!!.signingCertificate)
             }.onFailure {
