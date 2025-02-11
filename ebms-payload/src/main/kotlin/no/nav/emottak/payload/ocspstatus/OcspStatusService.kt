@@ -45,6 +45,7 @@ fun resolveDefaultTruststorePath(): String? {
 class SertifikatError(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
 
 val ssnPolicyID = ASN1ObjectIdentifier("2.16.578.1.16.3.2")
+
 class OcspStatusService(
     val httpClient: HttpClient,
     val signeringKeyStore: KeyStore,
@@ -77,7 +78,14 @@ class OcspStatusService(
             val providerName = ocspResponderCertificate.subjectX500Principal.name
             val provider = X500Name(providerName)
             val signerAlias = getSignerAlias(providerName)
-            val signerCert = signeringKeyStore.getCertificate(signerAlias)
+            val signerCert: X509Certificate
+            try {
+                signerCert = signeringKeyStore.getCertificate(signerAlias)
+            } catch (e: Exception) {
+                log.error("Fant ikke signering sertifikat for issuer DN: $providerName med alias $signerAlias")
+                throw SertifikatError("Fant ikke signering sertifikat for issuer DN: $providerName med alias $signerAlias")
+            }
+
             val requestorName = signerCert.subjectX500Principal.name
 
             val digCalcProv = JcaDigestCalculatorProviderBuilder().setProvider(bcProvider).build()
@@ -109,6 +117,8 @@ class OcspStatusService(
             )
             log.debug("OCSP Request created")
             return request
+        } catch (e: SertifikatError) {
+            throw e
         } catch (e: Exception) {
             log.error("Feil ved opprettelse av OCSP request")
             throw SertifikatError("Feil ved opprettelse av OCSP request", e)
@@ -179,7 +189,11 @@ class OcspStatusService(
         }
     }
 
-    private fun validateOcspResponse(response: OCSPResp, requestNonce: Extension, ocspResponderCertificate: X509Certificate) {
+    private fun validateOcspResponse(
+        response: OCSPResp,
+        requestNonce: Extension,
+        ocspResponderCertificate: X509Certificate
+    ) {
         checkOCSPResponseStatus(response.status)
         val basicOCSPResponse: BasicOCSPResp = getBasicOCSPResp(response)
         verifyNonce(requestNonce, basicOCSPResponse.getExtension(OCSPObjectIdentifiers.id_pkix_ocsp_nonce))
