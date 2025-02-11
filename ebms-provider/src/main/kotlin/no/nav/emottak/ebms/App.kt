@@ -125,6 +125,11 @@ fun Application.ebmsProviderModule(
             var response: String = ""
             var exception: String = ""
 
+            log.debug("Async payload test: SMTP_TRANSPORT_URL is ${getEnvVar("SMTP_TRANSPORT_URL", "not defined")}")
+            log.debug("Async payload test: PAYLOAD_PROCESSOR_URL is ${getEnvVar("PAYLOAD_PROCESSOR_URL", "not defined")}")
+            log.debug("Async payload test: SEND_IN_URL is ${getEnvVar("SEND_IN_URL", "not defined")}")
+            log.debug("Async payload test: CPA_REPO_URL is ${getEnvVar("CPA_REPO_URL", "not defined")}")
+
             try {
                 val referenceIdParameter = call.parameters["referenceId"]
                 log.debug("Async payload test: referenceId: $referenceIdParameter")
