@@ -82,6 +82,7 @@ class OcspStatusService(
             try {
                 signerCert = signeringKeyStore.getCertificate(signerAlias)
             } catch (e: Exception) {
+                log.error("Fant ikke signering sertifikat for issuer DN: $providerName med alias $signerAlias")
                 throw SertifikatError("Fant ikke signering sertifikat for issuer DN: $providerName med alias $signerAlias")
             }
 
