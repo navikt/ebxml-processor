@@ -8,6 +8,7 @@ import io.ktor.client.plugins.auth.Auth
 import io.ktor.client.plugins.auth.providers.BearerTokens
 import io.ktor.client.plugins.auth.providers.bearer
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.headers
 import io.ktor.client.request.post
@@ -18,6 +19,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
+import no.nav.emottak.message.model.AsyncPayload
 import no.nav.emottak.message.model.PayloadRequest
 import no.nav.emottak.message.model.PayloadResponse
 import no.nav.emottak.message.model.SendInRequest
@@ -44,10 +46,10 @@ class CpaRepoClient(clientProvider: () -> HttpClient) {
 
 class PayloadProcessingClient(clientProvider: () -> HttpClient) {
     private var httpClient = clientProvider.invoke()
-    private val payloadProcessorEndpoint = getEnvVar("PAYLOAD_PROCESSOR_URL", "http://ebms-payload/payload")
+    private val payloadProcessorEndpoint = getEnvVar("PAYLOAD_PROCESSOR_URL", "http://ebms-payload")
 
     suspend fun postPayloadRequest(payloadRequest: PayloadRequest): PayloadResponse {
-        return httpClient.post(payloadProcessorEndpoint) {
+        return httpClient.post("$payloadProcessorEndpoint/payload") {
             setBody(payloadRequest)
             contentType(ContentType.Application.Json)
         }.body()
@@ -56,16 +58,34 @@ class PayloadProcessingClient(clientProvider: () -> HttpClient) {
 
 class SendInClient(clientProvider: () -> HttpClient) {
     private var httpClient = clientProvider.invoke()
-    private val sendInEndpoint = getEnvVar("SEND_IN_URL", "http://ebms-send-in/fagmelding/synkron")
+    private val sendInEndpoint = getEnvVar("SEND_IN_URL", "http://ebms-send-in")
 
     suspend fun postSendIn(sendInRequest: SendInRequest): SendInResponse {
-        val response = httpClient.post(sendInEndpoint) {
+        val response = httpClient.post("$sendInEndpoint/fagmelding/synkron") {
             setBody(sendInRequest)
             contentType(ContentType.Application.Json)
         }
         if (response.status == HttpStatusCode.BadRequest) {
             val errorMessage = response.bodyAsText()
             log.debug("Propagerer feilmelding fra fagsystemet til brukeren: $errorMessage")
+            throw Exception(errorMessage)
+        }
+        return response.body()
+    }
+}
+
+class SmtpTransportClient(clientProvider: () -> HttpClient) {
+    private var httpClient = clientProvider.invoke()
+    private val smtpTransportEndpoint = getEnvVar("SMTP_TRANSPORT_URL", "http://smtp-transport")
+
+    suspend fun getPayload(referenceId: String): List<AsyncPayload> {
+        val payloadUri = "$smtpTransportEndpoint/api/payloads/$referenceId"
+        val response = httpClient.get(payloadUri) {
+            contentType(ContentType.Application.Json)
+        }
+        if (response.status != HttpStatusCode.OK) {
+            val errorMessage = response.bodyAsText()
+            log.debug("Failed to get payload from smtp-transport: $errorMessage")
             throw Exception(errorMessage)
         }
         return response.body()
@@ -79,6 +99,10 @@ val EBMS_SEND_IN_SCOPE = getEnvVar(
 val EBMS_PAYLOAD_SCOPE = getEnvVar(
     "EBMS_PAYLOAD_SCOPE",
     "api://" + getEnvVar("NAIS_CLUSTER_NAME", "dev-fss") + ".team-emottak.ebms-payload/.default"
+)
+val SMTP_TRANSPORT_SCOPE = getEnvVar(
+    "SMTP_TRANSPORT_SCOPE",
+    "api://" + getEnvVar("NAIS_CLUSTER_NAME", "dev-fss") + ".team-emottak.smtp-transport/.default"
 )
 
 fun defaultHttpClient(): () -> HttpClient {
