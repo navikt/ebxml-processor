@@ -132,7 +132,7 @@ class OcspStatusService(
             val request: OCSPReq = createOCSPRequest(certificate, ocspResponderCertificate)
 
             val ocspUrl = config().caList.firstOrNull {
-                it.dn == ocspResponderCertificate.subjectX500Principal.name
+                X500Name(it.dn) == X500Name(ocspResponderCertificate.subjectX500Principal.name)
             }?.ocspUrl ?: throw SertifikatError("${ocspResponderCertificate.subjectX500Principal.name} not found in CA-list config.")
 
             postOCSPRequest(ocspUrl, request.encoded).also {
