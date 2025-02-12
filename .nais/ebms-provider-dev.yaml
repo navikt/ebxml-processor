@@ -65,6 +65,7 @@ spec:
       rules:
         - application: cpa-repo
         - application: ebms-payload
+        - application: smtp-transport
     inbound:
       rules:
         - application: smtp-transport
@@ -83,6 +84,14 @@ spec:
       value: "true"
     - name: VAULT_JDBC_URL
       value: jdbc:postgresql://b27dbvl033.preprod.local:5432/
+    - name: CPA_REPO_URL
+      value: http://cpa-repo.team-emottak.svc.nais.local
+    - name: PAYLOAD_PROCESSOR_URL
+      value: http://ebms-payload
+    - name: SEND_IN_URL
+      value: http://ebms-send-in
+    - name: SMTP_TRANSPORT_URL
+      value: http://smtp-transport
   envFrom:
     - secret: ebms-payload-secret
   filesFrom:
