@@ -62,11 +62,9 @@ fun main() = SuspendApp {
             server(
                 Netty,
                 port = 8080,
-                module = { ebmsProviderModule(ebmsMessageDetailsRepository, payloadRepository) },
-                configure = {
-                    this.maxChunkSize = 100000
-                }
+                module = { ebmsProviderModule(ebmsMessageDetailsRepository, payloadRepository) }
             )
+                .also { it.engineConfig.maxChunkSize = 100000 }
             awaitCancellation()
         }
     }

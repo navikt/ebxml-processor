@@ -13,13 +13,14 @@ dependencyResolutionManagement {
         create("libs") {
             version("bouncycastle", "1.76")
             version("exposed", "0.47.0")
-            version("ktor", "2.3.8")
+            version("ktor", "3.0.3")
+            version("token-validation-ktor", "5.0.15")
             version("jakarta-mail", "2.1.2")
             version("eclipse-angus", "2.0.2")
             version("jsch", "0.2.16")
             version("cxf", "3.5.5")
             version("arrow", "1.2.4")
-            version("suspendapp", "0.4.0")
+            version("suspendapp", "0.5.0")
             version("kotlin-kafka", "0.3.1")
             version("hoplite", "2.8.2")
 
@@ -38,6 +39,7 @@ dependencyResolutionManagement {
             library("jsch", "com.github.mwiede", "jsch").versionRef("jsch")
 
             library("ktor-server-core", "io.ktor", "ktor-server-core").versionRef("ktor")
+            library("ktor-server-core-jvm", "io.ktor", "ktor-server-core-jvm").versionRef("ktor")
             library("ktor-server-netty", "io.ktor", "ktor-server-netty").versionRef("ktor")
             library("ktor-server-call-logging-jvm", "io.ktor", "ktor-server-call-logging-jvm").versionRef("ktor")
             library("ktor-server-content-negotiation", "io.ktor", "ktor-server-content-negotiation").versionRef("ktor")
@@ -45,7 +47,9 @@ dependencyResolutionManagement {
             library("ktor-serialization-kotlinx-json", "io.ktor", "ktor-serialization-kotlinx-json").versionRef("ktor")
             library("ktor-client-core", "io.ktor", "ktor-client-core").versionRef("ktor")
             library("ktor-client-cio", "io.ktor", "ktor-client-cio").versionRef("ktor")
+            library("ktor-client-cio-jvm", "io.ktor", "ktor-client-cio-jvm").versionRef("ktor")
             library("ktor-client-auth", "io.ktor", "ktor-client-auth").versionRef("ktor")
+            library("ktor-server-auth-jvm", "io.ktor", "ktor-server-auth-jvm").versionRef("ktor")
 
             library("ktor-server-metrics-micrometer", "io.ktor", "ktor-server-metrics-micrometer").versionRef("ktor")
             library("micrometer-registry-prometheus", "io.micrometer:micrometer-registry-prometheus:1.12.4")
@@ -64,14 +68,13 @@ dependencyResolutionManagement {
 
             library("kotlin-kafka", "io.github.nomisrev", "kotlin-kafka").versionRef("kotlin-kafka")
 
+            library("ebxml-protokoll", "no.nav.emottak:ebxml-protokoll:0.0.6")
+            library("emottak-payload-xsd", "no.nav.emottak:emottak-payload-xsd:0.0.6")
             library("hikari", "com.zaxxer:HikariCP:5.0.1")
             library("labai-jsr305x-annotations", "com.github.labai:labai-jsr305x-annotations:0.0.2")
             library("jakarta.xml.bind-api", "jakarta.xml.bind:jakarta.xml.bind-api:4.0.0")
-            library("ebxml-protokoll", "no.nav.emottak:ebxml-protokoll:0.0.6")
-            library("ktor-server-auth-jvm", "io.ktor:ktor-server-auth-jvm:2.3.8")
-            library("token-validation-ktor-v2", "no.nav.security:token-validation-ktor-v2:4.1.4")
+            library("token-validation-ktor-v3", "no.nav.security", "token-validation-ktor-v3").versionRef("token-validation-ktor")
             library("flyway-core", "org.flywaydb:flyway-core:9.16.3")
-            library("emottak-payload-xsd", "no.nav.emottak:emottak-payload-xsd:0.0.5")
             library("jaxb-runtime", "org.glassfish.jaxb:jaxb-runtime:2.4.0-b180830.0438")
             library("cxf-rt-frontend-jaxws", "org.apache.cxf", "cxf-rt-frontend-jaxws").versionRef("cxf")
             library("cxf-rt-transports-http", "org.apache.cxf", "cxf-rt-transports-http").versionRef("cxf")
@@ -97,8 +100,8 @@ dependencyResolutionManagement {
             version("mockk", "1.13.10")
             version("testPostgres", "1.18.0")
             version("xmlunit", "2.9.1")
-            version("ktor-server-test", "2.3.4")
-            version("kotest", "5.8.0")
+            version("ktor-server-test", "3.0.3")
+            version("kotest", "5.9.1")
 
             library("ktor-server-test-host", "io.ktor", "ktor-server-test-host").versionRef("ktor-server-test")
             library("junit-jupiter-api", "org.junit.jupiter", "junit-jupiter-api").versionRef("junit")
