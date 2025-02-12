@@ -1,11 +1,10 @@
 package no.nav.emottak.ebms
 
 import io.ktor.client.request.post
-import io.ktor.client.statement.readBytes
+import io.ktor.client.statement.readRawBytes
 import io.ktor.http.Headers
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
-import io.ktor.server.application.call
 import io.ktor.server.application.install
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.response.respond
@@ -40,7 +39,8 @@ import no.nav.emottak.util.getEnvVar
 import org.apache.xml.security.algorithms.MessageDigestAlgorithm
 import org.apache.xml.security.signature.XMLSignature
 import org.junit.jupiter.api.Test
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 private const val SYNC_PATH = "/ebms/sync"
 
@@ -130,6 +130,7 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
         testBlock()
     }
 
+    @OptIn(ExperimentalUuidApi::class)
     @Test
     fun `Valid payload request should trigger processing and validation on way out`() = testSyncApp {
         mockkStatic(EbMSDocument::signer)
@@ -142,11 +143,12 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
             processingService.processSyncIn(any(), any())
         }
         assert(response.status == HttpStatusCode.OK)
-        println(String(response.readBytes()))
+        println(String(response.readRawBytes()))
         println("----=_Part_" + System.currentTimeMillis() + "." + System.nanoTime())
-        println("----=_Part_" + UUID.randomUUID().toString())
+        println("----=_Part_" + Uuid.random().toString())
     }
 
+    @OptIn(ExperimentalUuidApi::class)
     @Test
     fun `Feilmelding fra fagsystemet må propageres til brukeren`() = testSyncApp {
         val soapFault = "<SOAP-ENV:Envelope xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\"><SOAP-ENV:Header/><SOAP-ENV:Body><SOAP-ENV:Fault><faultcode>SOAP-ENV:Server</faultcode><faultstring>Noe gikk galt i fagsystemet</faultstring></SOAP-ENV:Fault></SOAP-ENV:Body></SOAP-ENV:Envelope>"
@@ -175,9 +177,9 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
             processingService.processSyncIn(any(), any())
         }
         assert(response.status == HttpStatusCode.InternalServerError)
-        assert(String(response.readBytes()) == soapFault)
+        assert(String(response.readRawBytes()) == soapFault)
         println("----=_Part_" + System.currentTimeMillis() + "." + System.nanoTime())
-        println("----=_Part_" + UUID.randomUUID().toString())
+        println("----=_Part_" + Uuid.random().toString())
     }
 }
 

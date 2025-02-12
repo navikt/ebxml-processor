@@ -1,8 +1,8 @@
 package no.nav.emottak.ebms
 
 import no.nav.emottak.util.getEnvVar
-import no.nav.security.token.support.v2.IssuerConfig
-import no.nav.security.token.support.v2.TokenSupportConfig
+import no.nav.security.token.support.v3.IssuerConfig
+import no.nav.security.token.support.v3.TokenSupportConfig
 
 const val AZURE_AD_AUTH = "AZURE_AD"
 

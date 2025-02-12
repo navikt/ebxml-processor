@@ -1,7 +1,6 @@
 package no.nav.emottak.cpa
 
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.call
 import io.ktor.server.auth.authentication
 import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.plugins.NotFoundException
@@ -39,7 +38,7 @@ import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.getEnvVar
 import no.nav.emottak.util.marker
-import no.nav.security.token.support.v2.TokenValidationContextPrincipal
+import no.nav.security.token.support.v3.TokenValidationContextPrincipal
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 import java.util.Date
 

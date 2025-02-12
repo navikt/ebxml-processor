@@ -10,34 +10,23 @@ plugins {
     id("org.jlleitschuh.gradle.ktlint") version "11.6.1"
 }
 
-// kotlin {
-//    compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
-// }
-
 tasks {
+    register<Wrapper>("wrapper") {
+        gradleVersion = "8.1.1"
+    }
     shadowJar {
         archiveFileName.set("app.jar")
         isZip64 = true
     }
-}
-
-tasks.register<Wrapper>("wrapper") {
-    gradleVersion = "8.1.1"
-}
-
-tasks.test {
-    useJUnitPlatform()
-}
-
-tasks {
-
+    test {
+        useJUnitPlatform()
+    }
     ktlintFormat {
         this.enabled = true
     }
     ktlintCheck {
         dependsOn("ktlintFormat")
     }
-
     build {
         dependsOn("ktlintCheck")
     }
@@ -46,21 +35,23 @@ tasks {
 dependencies {
     implementation(project(":felles"))
     implementation(project(":ebxml-processing-model"))
-    implementation("io.ktor:ktor-server-call-logging-jvm:2.3.4")
-    implementation("io.ktor:ktor-server-core-jvm:2.3.4")
-    testImplementation(project(":cpa-repo"))
     implementation(libs.arrow.core)
     implementation(libs.arrow.fx.coroutines)
     implementation(libs.arrow.resilience)
     implementation(libs.arrow.suspendapp)
     implementation(libs.arrow.suspendapp.ktor)
+    implementation(libs.ktor.server.call.logging.jvm)
     implementation(libs.ktor.server.core)
+    implementation(libs.ktor.server.core.jvm)
     implementation(libs.ktor.server.netty)
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.cio)
+    implementation(libs.ktor.client.cio.jvm)
     implementation(libs.ktor.server.content.negotiation)
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.ktor.serialization.kotlinx.json)
+    implementation(libs.ktor.client.auth)
+    implementation(libs.ktor.server.auth.jvm)
     implementation(libs.labai.jsr305x.annotations)
     implementation(libs.jakarta.xml.bind.api)
     implementation(libs.jaxb.runtime)
@@ -77,12 +68,11 @@ dependencies {
     implementation(libs.emottak.payload.xsd)
     // implementation("org.glassfish.jaxb:jaxb-runtime:4.0.3") // TODO: Latest. Krever at protokoll oppdateres
     implementation(libs.ebxml.protokoll)
-    implementation(libs.ktor.client.auth)
-    implementation("io.ktor:ktor-client-cio-jvm:2.3.4")
-    implementation(libs.ktor.server.auth.jvm)
-    implementation(libs.token.validation.ktor.v2)
+    implementation(libs.token.validation.ktor.v3)
     implementation(testLibs.postgresql)
     implementation("no.nav:vault-jdbc:1.3.10")
+
+    testImplementation(project(":cpa-repo"))
     testImplementation(testLibs.mock.oauth2.server)
     testImplementation(testLibs.ktor.server.test.host)
     testImplementation(testLibs.junit.jupiter.api)
@@ -90,15 +80,9 @@ dependencies {
     testImplementation(testLibs.mockk.dsl.jvm)
     testImplementation(libs.apache.santuario)
     testImplementation("org.testcontainers:kafka:1.19.0")
-    // testImplementation(testLibs.mockk.jvm)
     testRuntimeOnly(testLibs.junit.jupiter.engine)
 }
 
 application {
     mainClass.set("no.nav.emottak.ebms.AppKt")
 }
-/*
-ktlint {
-    ignoreFailures.set(false)
-}
- */

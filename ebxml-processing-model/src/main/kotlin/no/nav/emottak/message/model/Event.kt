@@ -1,11 +1,13 @@
 package no.nav.emottak.message.model
 
 import java.time.Instant
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalUuidApi::class)
 data class Event(
-    val eventId: UUID,
-    val referenceId: UUID,
+    val eventId: Uuid,
+    val referenceId: Uuid,
     val contentId: String?,
     val messageId: String,
     val juridiskLoggId: String?,

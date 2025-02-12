@@ -13,11 +13,16 @@ import no.nav.emottak.ebms.persistence.table.EbmsMessageDetailsTable.service
 import no.nav.emottak.ebms.persistence.table.EbmsMessageDetailsTable.toPartyId
 import no.nav.emottak.ebms.persistence.table.EbmsMessageDetailsTable.toRole
 import no.nav.emottak.message.model.EbmsMessageDetails
+import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.upsert
 import java.sql.SQLException
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
+import kotlin.uuid.toJavaUuid
+import kotlin.uuid.toKotlinUuid
 
+@OptIn(ExperimentalUuidApi::class)
 class EbmsMessageDetailsRepository(private val database: Database) {
 
     val unsupportedServices = listOf(
@@ -25,10 +30,10 @@ class EbmsMessageDetailsRepository(private val database: Database) {
         "HarBorgerEgenandelFritak"
     )
 
-    private fun updateOrInsert(ebmsMessageDetails: EbmsMessageDetails): UUID {
+    private fun updateOrInsert(ebmsMessageDetails: EbmsMessageDetails): Uuid {
         transaction(database.db) {
             EbmsMessageDetailsTable.upsert(EbmsMessageDetailsTable.referenceId) {
-                it[referenceId] = ebmsMessageDetails.referenceId
+                it[referenceId] = ebmsMessageDetails.referenceId.toJavaUuid()
                 it[cpaId] = ebmsMessageDetails.cpaId
                 it[conversationId] = ebmsMessageDetails.conversationId
                 it[messageId] = ebmsMessageDetails.messageId
@@ -44,17 +49,48 @@ class EbmsMessageDetailsRepository(private val database: Database) {
         return ebmsMessageDetails.referenceId
     }
 
-    fun getByReferenceId(referenceId: UUID): EbmsMessageDetails? {
+    fun getByConversationIdMessageIdAndCpaId(conversationId: String, messageId: String, cpaId: String): EbmsMessageDetails? {
         var ebmsMessageDetails: EbmsMessageDetails? = null
 
         transaction(database.db) {
             EbmsMessageDetailsTable
                 .select(EbmsMessageDetailsTable.columns)
-                .where { EbmsMessageDetailsTable.referenceId.eq(referenceId) }
+                .where {
+                    (EbmsMessageDetailsTable.conversationId eq conversationId) and
+                        (EbmsMessageDetailsTable.messageId eq messageId) and
+                        (EbmsMessageDetailsTable.cpaId eq cpaId)
+                }
                 .firstOrNull()
                 ?.also {
                     ebmsMessageDetails = EbmsMessageDetails(
-                        it[EbmsMessageDetailsTable.referenceId],
+                        it[EbmsMessageDetailsTable.referenceId].toKotlinUuid(),
+                        it[EbmsMessageDetailsTable.cpaId],
+                        it[EbmsMessageDetailsTable.conversationId],
+                        it[EbmsMessageDetailsTable.messageId],
+                        it[refToMessageId],
+                        it[fromPartyId],
+                        it[fromRole],
+                        it[toPartyId],
+                        it[toRole],
+                        it[service],
+                        it[action]
+                    )
+                }
+        }
+        return ebmsMessageDetails
+    }
+
+    fun getByReferenceId(referenceId: Uuid): EbmsMessageDetails? {
+        var ebmsMessageDetails: EbmsMessageDetails? = null
+
+        transaction(database.db) {
+            EbmsMessageDetailsTable
+                .select(EbmsMessageDetailsTable.columns)
+                .where { EbmsMessageDetailsTable.referenceId.eq(referenceId.toJavaUuid()) }
+                .firstOrNull()
+                ?.also {
+                    ebmsMessageDetails = EbmsMessageDetails(
+                        it[EbmsMessageDetailsTable.referenceId].toKotlinUuid(),
                         it[cpaId],
                         it[conversationId],
                         it[messageId],
@@ -71,7 +107,7 @@ class EbmsMessageDetailsRepository(private val database: Database) {
         return ebmsMessageDetails
     }
 
-    fun saveEbmsMessageDetails(messageDetails: EbmsMessageDetails): UUID? {
+    fun saveEbmsMessageDetails(messageDetails: EbmsMessageDetails): Uuid? {
         return if (!unsupportedServices.contains(messageDetails.service)) {
             updateOrInsert(messageDetails)
         } else {

@@ -12,7 +12,7 @@ import io.ktor.util.logging.KtorSimpleLogger
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import net.logstash.logback.marker.Markers
 import no.nav.emottak.constants.SMTPHeaders
-import no.nav.security.token.support.v2.tokenValidationSupport
+import no.nav.security.token.support.v3.tokenValidationSupport
 import java.time.Duration
 import java.time.Instant
 import kotlin.time.toKotlinDuration
