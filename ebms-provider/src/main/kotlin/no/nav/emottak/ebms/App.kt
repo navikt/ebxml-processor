@@ -63,23 +63,23 @@ fun main() = SuspendApp {
 
     val smtpTransportClient = SmtpTransportClient(scopedAuthHttpClient(SMTP_TRANSPORT_SCOPE))
 
-    launchSignalReceiver(
-        config,
-        ebmsMessageDetailsRepository,
-        dokumentValidator
-    )
-    launchPayloadReceiver(
-        config,
-        ebmsMessageDetailsRepository,
-        eventsRepository,
-        dokumentValidator,
-        processingService,
-        ebmsSignalProducer,
-        smtpTransportClient
-    )
-
     result {
         resourceScope {
+            launchSignalReceiver(
+                config,
+                ebmsMessageDetailsRepository,
+                dokumentValidator
+            )
+            launchPayloadReceiver(
+                config,
+                ebmsMessageDetailsRepository,
+                eventsRepository,
+                dokumentValidator,
+                processingService,
+                ebmsSignalProducer,
+                smtpTransportClient
+            )
+
             server(
                 Netty,
                 port = 8080,
@@ -95,6 +95,7 @@ fun main() = SuspendApp {
                     this.maxChunkSize = 100000
                 }
             )
+
             awaitCancellation()
         }
     }
