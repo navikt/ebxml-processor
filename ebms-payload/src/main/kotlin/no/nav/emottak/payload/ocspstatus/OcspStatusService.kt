@@ -133,7 +133,7 @@ class OcspStatusService(
 
             val ocspUrl = config().caList.firstOrNull {
                 it.dn == ocspResponderCertificate.subjectX500Principal.name
-            }!!.ocspUrl
+            }?.ocspUrl ?: throw SertifikatError("${ocspResponderCertificate.subjectX500Principal.name} not found in CA-list config.")
 
             postOCSPRequest(ocspUrl, request.encoded).also {
                 validateOcspResponse(
@@ -148,9 +148,9 @@ class OcspStatusService(
                 createSertifikatInfoFromOCSPResponse(certificate, it.responses[0], ssn)
             }
         } catch (e: SertifikatError) {
-            throw SertifikatError(e.localizedMessage, e)
+            throw SertifikatError(e.message ?: "Sertifikatsjekk feilet", e)
         } catch (e: Exception) {
-            throw SertifikatError(e.localizedMessage, e)
+            throw SertifikatError(e.message ?: "Sertifikatsjekk feilet", e)
         }
     }
 
