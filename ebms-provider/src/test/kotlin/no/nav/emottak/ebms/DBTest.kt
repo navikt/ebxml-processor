@@ -12,7 +12,7 @@ fun cpaPostgres(): PostgreSQLContainer<Nothing> =
         withLabel("app-navn", "cpa-repo")
         start()
         println(
-            "Databasen er startet opp, portnummer: $firstMappedPort, jdbcUrl: jdbc:postgresql://localhost:$firstMappedPort/test, credentials: test og test"
+            "CPA-databasen er startet opp, portnummer: $firstMappedPort, jdbcUrl: jdbc:postgresql://localhost:$firstMappedPort/test, credentials: test og test"
         )
     }
 
@@ -23,7 +23,7 @@ fun ebmsPostgres(): PostgreSQLContainer<Nothing> =
         withLabel("app-navn", "ebms-provider")
         start()
         println(
-            "Databasen er startet opp, portnummer: $firstMappedPort, jdbcUrl: jdbc:postgresql://localhost:$firstMappedPort/test, credentials: test og test"
+            "EBMS-databasen er startet opp, portnummer: $firstMappedPort, jdbcUrl: jdbc:postgresql://localhost:$firstMappedPort/test, credentials: test og test"
         )
     }
 

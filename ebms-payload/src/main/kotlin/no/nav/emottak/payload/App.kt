@@ -16,7 +16,7 @@ import io.ktor.server.routing.routing
 import io.micrometer.prometheus.PrometheusConfig
 import io.micrometer.prometheus.PrometheusMeterRegistry
 import no.nav.emottak.util.getEnvVar
-import no.nav.security.token.support.v2.tokenValidationSupport
+import no.nav.security.token.support.v3.tokenValidationSupport
 import org.slf4j.LoggerFactory
 import java.net.InetSocketAddress
 import java.net.Proxy

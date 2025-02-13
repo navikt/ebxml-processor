@@ -39,7 +39,7 @@ dependencies {
     implementation(libs.ktor.server.call.logging.jvm)
     implementation(libs.ktor.server.content.negotiation)
     implementation(libs.ktor.server.auth.jvm)
-    implementation(libs.token.validation.ktor.v2)
+    implementation(libs.token.validation.ktor.v3)
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.ktor.serialization.kotlinx.json)
     implementation(libs.ktor.client.core)

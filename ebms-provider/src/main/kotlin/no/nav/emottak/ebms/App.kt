@@ -90,11 +90,8 @@ fun main() = SuspendApp {
                         ebmsMessageDetailsRepository,
                         payloadRepository
                     )
-                },
-                configure = {
-                    this.maxChunkSize = 100000
                 }
-            )
+            ).also { it.engineConfig.maxChunkSize = 100000 }
 
             awaitCancellation()
         }

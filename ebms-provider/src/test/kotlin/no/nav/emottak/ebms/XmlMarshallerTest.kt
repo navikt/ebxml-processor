@@ -30,9 +30,9 @@ class XmlMarshallerTest {
         assertTrue(envelope is Envelope)
         assertTrue(envelope.body is Body)
         assertTrue(envelope.header is Header)
-        assertTrue((envelope.header as Header).any[0] is MessageHeader)
+        assertTrue((envelope.header as Header).any?.get(0) is MessageHeader)
 
-        val xmlString = marshal(ObjectFactory().createEnvelope(envelope))
+        val xmlString = marshal(ObjectFactory().createEnvelope(envelope)!!)
         // print(xmlString);
         SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
             .newSchema(
