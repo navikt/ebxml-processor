@@ -1,4 +1,10 @@
 caList:
+  # NavTest
+  - name: "NavTest Certificate Authority"
+    dn: "O=NavTest Certificate Authority,L=OSLO,ST=OSLO,C=NO,CN=NavTest Certificate Authority"
+    crlUrl: "http://localhost:8080/crl"
+    ocspUrl: "http://localhost:8080/ocsp"
+    ocspSignerAlias: "nav_virksomhet"
   # Buypass prod
   - name: "Buypass Class 3 CA 3"
     dn: "CN=Buypass Class 3 CA 3,O=Buypass AS-983163327,C=NO"
