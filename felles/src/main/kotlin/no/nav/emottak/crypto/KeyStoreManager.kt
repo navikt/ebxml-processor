@@ -10,6 +10,7 @@ import java.security.Security
 import java.security.cert.X509Certificate
 import java.util.Enumeration
 import javax.security.auth.x500.X500Principal
+import org.bouncycastle.asn1.x500.X500Name
 import org.bouncycastle.cert.X509CertificateHolder
 import org.bouncycastle.cert.jcajce.JcaX509CertificateHolder
 import org.bouncycastle.jce.provider.BouncyCastleProvider
@@ -57,12 +58,11 @@ class KeyStoreManager(private vararg val keyStoreConfig: KeyStoreConfig) {
 
     fun getKeyForIssuer(issuer: X500Principal): PrivateKey {
         log.debug("Checking key for ${issuer.name} ")
-        issuer.toString().split(", ")
         return getPrivateCertificates().filter {
                 (alias, privCert) ->
             issuer.name.split(", ", ",") // "getRdns", litt hacky, fant ikke innebygd funksjonalitet for dette
                 .any { rdn ->
-                    privCert.issuerX500Principal.name.contains(rdn)
+                    privCert.issuerX500Principal.name.contains(rdn) // "Loose" matching for key. RDN match for CN not needed
                 }
         }.map {
             log.debug("Alias found: ${it.key} for issuer $issuer")
