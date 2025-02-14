@@ -29,7 +29,7 @@ data class PayloadMessage(
             this.messageId,
             this.conversationId,
             this.cpaId,
-            this.addressing.copy(
+            this.addressing.replyTo(
                 service = EbXMLConstants.EBMS_SERVICE_URI,
                 action = EbXMLConstants.ACKNOWLEDGMENT_ACTION
             )

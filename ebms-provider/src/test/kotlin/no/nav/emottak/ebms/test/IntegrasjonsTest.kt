@@ -15,13 +15,19 @@ import io.mockk.clearAllMocks
 import kotlinx.coroutines.runBlocking
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.cpa.cpaApplicationModule
+import no.nav.emottak.ebms.CpaRepoClient
+import no.nav.emottak.ebms.EBMS_PAYLOAD_SCOPE
+import no.nav.emottak.ebms.PayloadProcessingClient
 import no.nav.emottak.ebms.cpaPostgres
 import no.nav.emottak.ebms.defaultHttpClient
 import no.nav.emottak.ebms.ebmsPostgres
 import no.nav.emottak.ebms.ebmsProviderModule
 import no.nav.emottak.ebms.persistence.repository.EbmsMessageDetailsRepository
 import no.nav.emottak.ebms.persistence.repository.PayloadRepository
+import no.nav.emottak.ebms.processing.ProcessingService
+import no.nav.emottak.ebms.scopedAuthHttpClient
 import no.nav.emottak.ebms.testConfiguration
+import no.nav.emottak.ebms.validation.DokumentValidator
 import no.nav.emottak.ebms.validation.MimeHeaders
 import no.nav.security.mock.oauth2.MockOAuth2Server
 import org.junit.jupiter.api.AfterAll
@@ -49,6 +55,8 @@ open class EndToEndTest {
         lateinit var payloadRepository: PayloadRepository
         lateinit var ebmsProviderServer: ApplicationEngine
         lateinit var cpaRepoServer: ApplicationEngine
+        lateinit var dokumentValidator: DokumentValidator
+        lateinit var processingService: ProcessingService
         init {
             cpaRepoDbContainer = cpaPostgres()
             ebmsProviderDbContainer = ebmsPostgres()
@@ -64,8 +72,14 @@ open class EndToEndTest {
             ebmsProviderDbContainer.start()
             ebmsProviderDb = EbmsDatabase(ebmsProviderDbContainer.testConfiguration())
             ebmsProviderDb.migrate(ebmsProviderDb.dataSource)
+
             ebmsMessageDetailsRepository = EbmsMessageDetailsRepository(ebmsProviderDb)
             payloadRepository = PayloadRepository(ebmsProviderDb)
+            val processingClient = PayloadProcessingClient(scopedAuthHttpClient(EBMS_PAYLOAD_SCOPE))
+            processingService = ProcessingService(processingClient)
+
+            val cpaClient = CpaRepoClient(defaultHttpClient())
+            dokumentValidator = DokumentValidator(cpaClient)
 
             cpaRepoServer = embeddedServer(
                 Netty,
@@ -77,7 +91,7 @@ open class EndToEndTest {
             ebmsProviderServer = embeddedServer(
                 Netty,
                 port = portnoEbmsProvider,
-                module = { ebmsProviderModule(ebmsMessageDetailsRepository, payloadRepository) }
+                module = { ebmsProviderModule(dokumentValidator, processingService, ebmsMessageDetailsRepository, payloadRepository) }
             ).also {
                 it.start()
             }.engine
@@ -96,7 +110,7 @@ class IntegrasjonsTest : EndToEndTest() {
 
     @Test
     fun basicEndpointTest() = testApplication {
-        application { ebmsProviderModule(ebmsMessageDetailsRepository, payloadRepository) }
+        application { ebmsProviderModule(dokumentValidator, processingService, ebmsMessageDetailsRepository, payloadRepository) }
         val response = client.get("/")
         Assertions.assertEquals(HttpStatusCode.OK, response.status)
         Assertions.assertEquals("{\"status\":\"Hello\"}", response.bodyAsText())
