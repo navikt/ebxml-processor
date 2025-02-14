@@ -6,6 +6,7 @@ import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import no.nav.emottak.ebms.PayloadProcessingClient
+import no.nav.emottak.ebms.log
 import no.nav.emottak.ebms.logger
 import no.nav.emottak.ebms.util.marker
 import no.nav.emottak.melding.feil.EbmsException
@@ -35,10 +36,26 @@ class ProcessingService(private val httpClient: PayloadProcessingClient) {
                 addressing = addressing,
                 payload = payloadMessage.payload
             )
+            val payloadResponse = httpClient.postPayloadRequest(payloadRequest)
+
+            if (payloadResponse.error != null) {
+                log.error(
+                    payloadMessage.marker(),
+                    "Payload processing failed (setting errorAction to ${payloadProcessing.processConfig.errorAction}): ${payloadResponse.error!!.descriptionText}"
+                )
+                return Pair(
+                    payloadMessage.convertToErrorActionMessage(
+                        payloadResponse.processedPayload!!,
+                        payloadProcessing.processConfig.errorAction!!
+                    ),
+                    Direction.OUT
+                )
+            }
+
             Pair(
                 payloadMessage.copy(
                     payload = withContext(Dispatchers.IO) {
-                        httpClient.postPayloadRequest(payloadRequest).processedPayload!!
+                        payloadResponse.processedPayload!!
                     }
                 ),
                 direction
@@ -62,6 +79,8 @@ class ProcessingService(private val httpClient: PayloadProcessingClient) {
 
                 else -> throw EbmsException("Processing has failed", exception = clientRequestException)
             }
+        } catch (ebmsException: EbmsException) {
+            throw ebmsException
         } catch (exception: Exception) {
             throw EbmsException("Processing has failed", exception = exception)
         }
