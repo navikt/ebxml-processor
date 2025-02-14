@@ -8,9 +8,9 @@ import kotlin.uuid.Uuid
 data class Event(
     val eventId: Uuid,
     val referenceId: Uuid,
-    val contentId: String?,
+    val contentId: String? = null,
     val messageId: String,
-    val juridiskLoggId: String?,
+    val juridiskLoggId: String? = null,
     val eventMessage: String,
-    val createdAt: Instant?
+    val createdAt: Instant? = null
 )
