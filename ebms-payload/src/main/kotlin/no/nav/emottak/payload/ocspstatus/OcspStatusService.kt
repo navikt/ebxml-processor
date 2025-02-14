@@ -84,7 +84,7 @@ class OcspStatusService(
             ocspReqBuilder.setRequestExtensions(extensionsGenerator.generate())
             ocspReqBuilder.setRequestorName(GeneralName(GeneralName.directoryName, requestorName))
 
-            return ocspReqBuilder.build( // TODO Feiler her fordi feil signer-alias hentes ut man må hente nav sitt signer alias
+            return ocspReqBuilder.build(
                 JcaContentSignerBuilder("SHA256WITHRSAENCRYPTION").setProvider(bcProvider)
                     .build(signingKeyStoreManager.getKeyForIssuer(ocspResponderCertificate.issuerX500Principal)),
                 signingKeyStoreManager.getCertificateChain(signingKeyStoreManager.getCertificateAlias(ocspResponderCertificate))
@@ -134,7 +134,7 @@ class OcspStatusService(
             log.debug("Checking CAlist for: ${ocspResponderCertificate.subjectX500Principal.name}")
             val ocspUrl = config().caList.firstOrNull {
                 log.debug("Checking: " + it.dn)
-                X500Name(it.dn) == X500Name(ocspResponderCertificate.subjectX500Principal.name) // TODO feiler på noe som
+                X500Name(it.dn) == X500Name(ocspResponderCertificate.subjectX500Principal.name)
             }?.ocspUrl ?: throw SertifikatError("${ocspResponderCertificate.subjectX500Principal.name} not found in CA-list config.")
 
             postOCSPRequest(ocspUrl, request.encoded).also {
