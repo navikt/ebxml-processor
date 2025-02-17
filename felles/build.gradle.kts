@@ -20,6 +20,7 @@ dependencies {
     implementation(project(":ebxml-processing-model"))
     implementation(libs.ebxml.protokoll)
     implementation(libs.emottak.payload.xsd)
+    implementation(libs.guava)
     implementation(libs.hikari)
     api("dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-jvm:2.3.8")
     implementation(libs.flyway.core)
