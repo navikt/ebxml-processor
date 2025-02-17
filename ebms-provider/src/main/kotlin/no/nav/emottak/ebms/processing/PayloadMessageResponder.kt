@@ -3,7 +3,9 @@ package no.nav.emottak.ebms.processing
 import io.ktor.http.ContentType
 import no.nav.emottak.ebms.log
 import no.nav.emottak.ebms.messaging.EbmsPayloadProducer
+import no.nav.emottak.ebms.model.saveEbmsMessage
 import no.nav.emottak.ebms.model.signer
+import no.nav.emottak.ebms.persistence.repository.EbmsMessageDetailsRepository
 import no.nav.emottak.ebms.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.util.marker
@@ -20,6 +22,7 @@ class PayloadMessageResponder(
     val validator: DokumentValidator,
     val processingService: ProcessingService,
     val payloadRepository: PayloadRepository,
+    val ebmsMessageDetailsRepository: EbmsMessageDetailsRepository,
     val ebmsPayloadProducer: EbmsPayloadProducer
 ) {
 
@@ -34,7 +37,7 @@ class PayloadMessageResponder(
                     cpaId = payloadMessage.cpaId,
                     addressing = it.addressing,
                     payload = Payload(it.payload, ContentType.Application.Xml.toString()),
-                    refToMessageId = it.messageId
+                    refToMessageId = payloadMessage.messageId
                 )
             }.let { payloadMessageResponse ->
                 Pair(payloadMessageResponse, validator.validateOut(payloadMessageResponse).payloadProcessing)
@@ -43,21 +46,22 @@ class PayloadMessageResponder(
                     processingService.proccessSyncOut(messageProcessing.first, messageProcessing.second)
                 Pair(processedMessage, messageProcessing.second)
             }.let {
-                it.first.toEbmsDokument().also { ebmsDocument ->
-                    ebmsDocument.signer(it.second!!.signingCertificate)
-                }.let {
-                    it.attachments.forEach { payload ->
-                        payloadRepository.updateOrInsert(
-                            AsyncPayload(
-                                referenceId = it.requestId,
-                                contentId = payload.contentId,
-                                contentType = payload.contentType,
-                                content = payload.bytes
+                it.first.also {
+                    ebmsMessageDetailsRepository.saveEbmsMessage(it)
+                }.toEbmsDokument().signer(it.second!!.signingCertificate)
+                    .let {
+                        it.attachments.forEach { payload ->
+                            payloadRepository.updateOrInsert(
+                                AsyncPayload(
+                                    referenceId = it.requestId,
+                                    contentId = payload.contentId,
+                                    contentType = payload.contentType,
+                                    content = payload.bytes
+                                )
                             )
-                        )
+                        }
+                        ebmsPayloadProducer.send(it.requestId, it.dokument.asByteArray())
                     }
-                    ebmsPayloadProducer.send(it.requestId, it.dokument.asByteArray())
-                }
                 log.info(it.first.marker(), "Payload message response returned successfully")
             }
         } catch (e: Exception) {

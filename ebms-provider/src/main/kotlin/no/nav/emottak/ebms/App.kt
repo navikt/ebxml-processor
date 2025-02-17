@@ -73,6 +73,7 @@ fun main() = SuspendApp {
         sendInService = sendInService,
         validator = dokumentValidator,
         processingService = processingService,
+        ebmsMessageDetailsRepository = ebmsMessageDetailsRepository,
         payloadRepository = payloadRepository,
         ebmsPayloadProducer = ebmsPayloadProducer
     )
