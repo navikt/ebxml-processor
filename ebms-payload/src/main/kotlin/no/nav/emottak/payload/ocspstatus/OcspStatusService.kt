@@ -39,7 +39,7 @@ fun resolveDefaultTruststorePath(): String? {
     }
 }
 
-class SertifikatError(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
+open class SertifikatError(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
 
 class OcspStatusService(
     val httpClient: HttpClient,
@@ -147,12 +147,20 @@ class OcspStatusService(
                 it.responseObject as BasicOCSPResp
             }.let {
                 val ssn = getSSN(it)
+                validateFnr(ssn)
                 createSertifikatInfoFromOCSPResponse(certificate, it.responses[0], ssn)
             }
         } catch (e: SertifikatError) {
             throw SertifikatError(e.message ?: "Sertifikatsjekk feilet", e)
         } catch (e: Exception) {
             throw SertifikatError(e.message ?: "Sertifikatsjekk feilet", e)
+        }
+    }
+
+    private fun validateFnr(fnr: String) {
+        if (fnr.isBlank()) {
+            class OCSPValidationFnrBlankError : SertifikatError("OCSP Fnr is blank")
+            throw OCSPValidationFnrBlankError()
         }
     }
 
