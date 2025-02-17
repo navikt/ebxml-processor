@@ -1,5 +1,6 @@
 package no.nav.emottak.payload.ocspstatus
 
+import no.nav.emottak.payload.log
 import org.bouncycastle.asn1.ASN1EncodableVector
 import org.bouncycastle.asn1.ASN1Object
 import org.bouncycastle.asn1.ASN1ObjectIdentifier
@@ -66,7 +67,7 @@ internal fun getSSN(bresp: BasicOCSPResp): String {
 }
 
 private fun getSSN(ssnExtension: Extension?): String {
-    ssnExtension ?: return ""
+    ssnExtension ?: return "".also { log.warn("OCSP FNR-extension is null") }
     try {
         return String(ssnExtension.extnValue.encoded).replace(Regex("\\D"), "")
     } catch (e: IOException) {
