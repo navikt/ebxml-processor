@@ -1,17 +1,16 @@
 package no.nav.emottak
 
-
-class Event (
+class Event(
     val processName: String,
     val eventStatus: Status,
     val description: String = processName,
-    val correlationId: String,
+    val correlationId: String
 ) {
     enum class Status {
         STARTED,
         OK,
-        FAILED,
-        //NOT_COMPLETED,
+        FAILED
+        // NOT_COMPLETED,
     }
 
     override fun toString(): String {
