@@ -5,6 +5,7 @@ import no.nav.emottak.message.xml.xmlMarshaller
 import org.w3c.dom.Document
 import org.xmlsoap.schemas.soap.envelope.Body
 import org.xmlsoap.schemas.soap.envelope.ObjectFactory
+import java.time.Instant
 
 data class EbmsFail(
     override val requestId: String,
@@ -14,7 +15,8 @@ data class EbmsFail(
     override val cpaId: String,
     override val addressing: Addressing,
     val feil: List<Feil>,
-    override val dokument: Document? = null
+    override val dokument: Document? = null,
+    override val sentAt: Instant? = null
 
 ) : EbmsMessage() {
 

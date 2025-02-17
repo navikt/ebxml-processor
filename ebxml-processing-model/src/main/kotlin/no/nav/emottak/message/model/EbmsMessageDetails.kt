@@ -1,5 +1,6 @@
 package no.nav.emottak.message.model
 
+import java.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -15,7 +16,9 @@ data class EbmsMessageDetails(
     val toPartyId: String,
     val toRole: String?,
     val service: String,
-    val action: String
+    val action: String,
+    val sentAt: Instant? = null,
+    val createdAt: Instant? = null
 ) {
     companion object {
         fun serializePartyId(partyIDs: List<PartyId>): String {

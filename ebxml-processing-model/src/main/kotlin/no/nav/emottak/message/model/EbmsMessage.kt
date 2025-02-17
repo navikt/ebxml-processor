@@ -33,6 +33,7 @@ abstract class EbmsMessage {
     abstract val addressing: Addressing
     abstract val refToMessageId: String?
     abstract val dokument: Document?
+    abstract val sentAt: Instant?
     val mottatt: Instant = Instant.now()
     open fun toEbmsDokument(): EbMSDocument {
         return createEbmsDocument(createMessageHeader())
@@ -147,7 +148,8 @@ fun EbmsMessage.toEbmsMessageDetails(): EbmsMessageDetails {
         EbmsMessageDetails.serializePartyId(addressing.to.partyId),
         addressing.to.role,
         addressing.service,
-        addressing.action
+        addressing.action,
+        sentAt
     )
 }
 
