@@ -13,11 +13,8 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
-import io.mockk.coEvery
 import io.mockk.coVerify
-import io.mockk.just
 import io.mockk.mockk
-import io.mockk.runs
 import no.nav.emottak.ebms.configuration.config
 import no.nav.emottak.ebms.kafka.KafkaTestContainer
 import no.nav.emottak.ebms.messaging.EbmsSignalProducer
@@ -88,9 +85,6 @@ abstract class EbmsRoutFellesIT(val endpoint: String) {
                 tokenValidationSupport(AZURE_AD_AUTH, AuthConfig.getTokenSupportConfig())
             }
 
-            coEvery {
-                processingService.processAsync(any(), any())
-            } just runs
             routing {
                 postEbmsSync(dokumentValidator, processingService, SendInService(sendInClient), ebmsMessageDetailsRepository)
                 authenticate(AZURE_AD_AUTH) {

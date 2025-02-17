@@ -11,7 +11,6 @@ import no.nav.emottak.ebms.util.marker
 import no.nav.emottak.melding.feil.EbmsException
 import no.nav.emottak.message.model.Addressing
 import no.nav.emottak.message.model.Direction
-import no.nav.emottak.message.model.EbmsMessage
 import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.model.PayloadProcessing
@@ -97,11 +96,9 @@ class ProcessingService(private val httpClient: PayloadProcessingClient) {
         }
     }
 
-    suspend fun processAsync(message: EbmsMessage, payloadProcessing: PayloadProcessing?) {
-        if (payloadProcessing == null) throw Exception("Processing information is missing for ${message.messageId}")
-        when (message) {
-            is PayloadMessage -> processMessage(message, payloadProcessing, Direction.IN, message.addressing)
-        }
+    suspend fun processAsync(payloadMessage: PayloadMessage, payloadProcessing: PayloadProcessing?): PayloadMessage {
+        if (payloadProcessing == null) throw Exception("Processing information is missing for ${payloadMessage.messageId}")
+        return processMessage(payloadMessage, payloadProcessing, Direction.IN, payloadMessage.addressing).first
     }
 }
 

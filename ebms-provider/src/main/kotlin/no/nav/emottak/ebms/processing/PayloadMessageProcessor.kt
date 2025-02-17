@@ -29,7 +29,8 @@ class PayloadMessageProcessor(
     val validator: DokumentValidator,
     val processingService: ProcessingService,
     val ebmsSignalProducer: EbmsSignalProducer,
-    val smtpTransportClient: SmtpTransportClient
+    val smtpTransportClient: SmtpTransportClient,
+    val payloadMessageResponder: PayloadMessageResponder
 ) {
 
     suspend fun process(reference: String, content: ByteArray) {
@@ -72,10 +73,20 @@ class PayloadMessageProcessor(
         try {
             validator
                 .validateIn(ebmsPayloadMessage)
-                .also {
+                .let {
                     processingService.processAsync(ebmsPayloadMessage, it.payloadProcessing)
                     // TODO store events from processing (juridisklog ++)
-                    // TODO send to fagsystem
+                }.let {
+                    // TODO do this asynchronously
+                    when (val service = it.addressing.service) {
+                        "HarBorgerFrikortMengde" -> {
+                            log.debug(it.marker(), "Starting SendIn for $service")
+                            payloadMessageResponder.respond(it)
+                        }
+                        else -> {
+                            log.debug(it.marker(), "Skipping SendIn for $service")
+                        }
+                    }
                 }
             ebmsPayloadMessage
                 .createAcknowledgment()
