@@ -10,7 +10,5 @@ class SignaturVerifiseringTest {
         val inputStream = SignaturVerifiseringTest::class.java.classLoader
             .getResourceAsStream("payload.xml")
         validator.validate(inputStream.readAllBytes())
-
     }
-
 }

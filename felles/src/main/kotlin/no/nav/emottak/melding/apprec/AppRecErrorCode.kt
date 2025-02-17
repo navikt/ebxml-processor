@@ -17,7 +17,7 @@ enum class AppRecErrorCode(val description: String) {
     S03("Tilbaketrukket sertifikat"),
     S99("Annen feil på signatur eller sertifikat");
 
-    companion object{
+    companion object {
         fun getCode(exception: Exception): AppRecErrorCode =
             when (exception) {
                 is SignatureException -> S01
