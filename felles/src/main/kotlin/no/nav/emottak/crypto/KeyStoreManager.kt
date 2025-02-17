@@ -13,6 +13,7 @@ import java.security.PrivateKey
 import java.security.Security
 import java.security.cert.X509Certificate
 import java.util.Enumeration
+import java.util.function.Predicate.not
 import javax.security.auth.x500.X500Principal
 
 internal val log = LoggerFactory.getLogger(KeyStoreManager::class.java)
@@ -57,9 +58,12 @@ class KeyStoreManager(private vararg val keyStoreConfig: KeyStoreConfig) {
 
     fun getKeyForIssuer(issuer: X500Principal): PrivateKey {
         log.debug("Checking key for ${issuer.name} ")
-        return getPrivateCertificates().filter {
-                (alias, privCert) ->
+        return getPrivateCertificates().filter { (alias, privCert) ->
             issuer.name.split(", ", ",") // "getRdns", litt hacky, fant ikke innebygd funksjonalitet for dette
+                .filter { rdn ->
+                    !listOf("C=", "L=", "ST=")
+                        .any { rdnToIgnore -> rdn.contains(rdnToIgnore, false) }
+                }
                 .any { rdn ->
                     privCert.issuerX500Principal.name.contains(rdn) // "Loose" matching for key. RDN match for CN not needed
                 }
