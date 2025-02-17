@@ -82,11 +82,12 @@ class OcspStatusService(
             }
             extensionsGenerator.addNonceExtension()
             ocspReqBuilder.setRequestExtensions(extensionsGenerator.generate())
-            ocspReqBuilder.setRequestorName(GeneralName(GeneralName.directoryName, requestorName))
+            val requestorSignDetails = signingKeyStoreManager.getKeyForIssuer(ocspResponderCertificate.issuerX500Principal)
+            ocspReqBuilder.setRequestorName(GeneralName(GeneralName.directoryName, requestorSignDetails.second.subjectX500Principal.name))
 
             return ocspReqBuilder.build(
                 JcaContentSignerBuilder("SHA256WITHRSAENCRYPTION").setProvider(bcProvider)
-                    .build(signingKeyStoreManager.getKeyForIssuer(ocspResponderCertificate.issuerX500Principal)),
+                    .build(requestorSignDetails.first),
                 signingKeyStoreManager.getCertificateChain(signingKeyStoreManager.getCertificateAlias(ocspResponderCertificate))
             ).also {
                 log.debug("OCSP Request created")
