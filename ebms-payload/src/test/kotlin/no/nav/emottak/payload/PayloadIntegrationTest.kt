@@ -12,6 +12,10 @@ import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
+import io.mockk.coEvery
+import io.mockk.mockkConstructor
+import io.mockk.slot
+import no.nav.emottak.crypto.KeyStoreManager
 import no.nav.emottak.message.model.Addressing
 import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.ErrorCode
@@ -23,18 +27,46 @@ import no.nav.emottak.message.model.PayloadRequest
 import no.nav.emottak.message.model.PayloadResponse
 import no.nav.emottak.message.model.ProcessConfig
 import no.nav.emottak.message.model.SignatureDetails
+import no.nav.emottak.message.xml.asByteArray
+import no.nav.emottak.payload.crypto.PayloadSignering
+import no.nav.emottak.payload.crypto.payloadSigneringConfig
+import no.nav.emottak.payload.ocspstatus.OcspStatusService
+import no.nav.emottak.payload.ocspstatus.ssnPolicyID
+import no.nav.emottak.util.createDocument
 import no.nav.security.mock.oauth2.MockOAuth2Server
+import org.bouncycastle.asn1.ASN1Encodable
+import org.bouncycastle.asn1.DEROctetString
+import org.bouncycastle.asn1.ocsp.OCSPObjectIdentifiers.id_pkix_ocsp_nonce
+import org.bouncycastle.asn1.x509.Extension
+import org.bouncycastle.asn1.x509.Extensions
+import org.bouncycastle.cert.X509CertificateHolder
+import org.bouncycastle.cert.ocsp.BasicOCSPResp
+import org.bouncycastle.cert.ocsp.CertificateID
+import org.bouncycastle.cert.ocsp.CertificateStatus
+import org.bouncycastle.cert.ocsp.OCSPReq
+import org.bouncycastle.cert.ocsp.OCSPRespBuilder
+import org.bouncycastle.cert.ocsp.jcajce.JcaBasicOCSPRespBuilder
+import org.bouncycastle.cert.ocsp.jcajce.JcaCertificateID
+import org.bouncycastle.jce.provider.BouncyCastleProvider
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder
+import org.bouncycastle.operator.jcajce.JcaDigestCalculatorProviderBuilder
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import java.security.PrivateKey
+import java.security.cert.X509Certificate
+import java.time.Instant
+import java.util.Date
+
+private val testKeystore = KeyStoreManager(payloadSigneringConfig())
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class PayloadIntegrationTest {
-
     private val mockOAuth2Server = MockOAuth2Server().also { it.start(port = 3344) }
 
     private fun <T> ebmsPayloadTestApp(testBlock: suspend ApplicationTestBuilder.() -> T) = testApplication {
+        setupEnv()
         application(payloadApplicationModule())
         testBlock()
     }
@@ -110,11 +142,90 @@ class PayloadIntegrationTest {
         assertEquals("Feil ved dekryptering", httpResponse.body<PayloadResponse>().error!!.descriptionText)
     }
 
+    @Test
+    fun `Payload endepunkt med OCSP`() = ebmsPayloadTestApp {
+        val httpClient = createClient {
+            install(ContentNegotiation) {
+                json()
+            }
+        }
+        val ssn = "01010112345"
+        mockkConstructor(OcspStatusService::class, recordPrivateCalls = true, localToThread = false)
+        val ocspRequestCaptureSlot = slot<ByteArray>()
+        coEvery {
+            anyConstructed<OcspStatusService>().postOCSPRequest(any(String::class), capture(ocspRequestCaptureSlot))
+        } coAnswers {
+            OCSPRespBuilder().build(
+                OCSPRespBuilder.SUCCESSFUL,
+                createOCSPResp(
+                    testKeystore.getCertificate("navtest-ca"),
+                    ssn,
+                    testKeystore.getKey("navtest-ca"),
+                    OCSPReq(ocspRequestCaptureSlot.captured).getExtension(id_pkix_ocsp_nonce).parsedValue
+                )
+            )
+        }
+        // certificate = object {}::class.java.classLoader.getResourceAsStream("keystore/samhandlerRequest_CA-SIGNED.crt")
+
+        val requestBody = payloadRequestMedOCSP(
+            testKeystore.getCertificate("samhandler-2024").encoded
+        )
+        val httpResponse = httpClient.post("/payload") {
+            header(
+                "Authorization",
+                "Bearer ${getToken().serialize()}"
+            )
+            setBody(requestBody)
+            contentType(ContentType.Application.Json)
+        }
+        assertEquals(HttpStatusCode.OK, httpResponse.status)
+        assertNull(httpResponse.body<PayloadResponse>().error)
+        assertEquals(ssn, httpResponse.body<PayloadResponse>().processedPayload!!.signedBy)
+    }
+
     private fun getToken(audience: String = AuthConfig.getScope()): SignedJWT = mockOAuth2Server.issueToken(
         issuerId = AZURE_AD_AUTH,
         audience = audience,
         subject = "testUser"
     )
+}
+
+private fun createOCSPResp(responder: X509Certificate, ssn: String, pk: PrivateKey, asn1encodableNonce: ASN1Encodable): BasicOCSPResp {
+    val digCalcProv = JcaDigestCalculatorProviderBuilder().setProvider(BouncyCastleProvider()).build()
+    return JcaBasicOCSPRespBuilder(
+        responder.issuerX500Principal
+    ).addResponse(
+        JcaCertificateID(
+            digCalcProv.get(
+                CertificateID.HASH_SHA1
+                // AlgorithmIdentifier(ASN1ObjectIdentifier(responder.sigAlgOID))
+            ),
+            responder,
+            responder.serialNumber
+        ),
+        CertificateStatus.GOOD
+    )
+        .setResponseExtensions(
+            Extensions(
+                listOf(
+                    Extension(
+                        id_pkix_ocsp_nonce,
+                        false,
+                        DEROctetString(asn1encodableNonce)
+                    ),
+                    Extension(
+                        ssnPolicyID,
+                        true,
+                        ssn.toByteArray()
+                    )
+                ).toTypedArray()
+            )
+        )
+        .build(
+            JcaContentSignerBuilder(responder.sigAlgName).build(pk),
+            arrayOf(X509CertificateHolder(responder.encoded)),
+            Date.from(Instant.now())
+        )
 }
 
 private fun payloadRequest(
@@ -127,7 +238,37 @@ private fun payloadRequest(
     messageId = "123",
     conversationId = "321",
     processing = payloadProcessing(kryptering, komprimering, signering, internformat),
-    payload = payload(),
+    payload = emptyPayload(),
+    addressing = addressing()
+)
+
+private fun signatureDetailsWithCertResource(certificate: ByteArray) = SignatureDetails(
+    certificate = certificate,
+    signatureAlgorithm = "sha256WithRSAEncryption",
+    hashFunction = ""
+)
+
+private fun payloadRequestMedOCSP(signedCert: ByteArray) = PayloadRequest(
+    direction = Direction.IN,
+    messageId = "123",
+    conversationId = "321",
+    processing = PayloadProcessing(
+        signatureDetailsWithCertResource(signedCert),
+        byteArrayOf(),
+        ProcessConfig(
+            kryptering = false,
+            komprimering = false,
+            signering = true,
+            internformat = false,
+            validering = false,
+            apprec = false,
+            ocspSjekk = true,
+            juridiskLogg = false,
+            adapter = null,
+            errorAction = null
+        )
+    ),
+    payload = dummyPayload(),
     addressing = addressing()
 )
 
@@ -138,9 +279,21 @@ private fun addressing() = Addressing(
     action = "action"
 )
 
-private fun payload() = Payload(
+private fun emptyPayload() = Payload(
     bytes = byteArrayOf(),
     contentType = "application/xml"
+)
+
+private fun dummyPayload() = Payload(
+    bytes =
+    PayloadSignering().signerXML(
+        createDocument(
+            object {}::class.java.classLoader.getResource("xml/egenandelforesporsel.xml")!!.openStream()
+        ),
+        signatureDetails()
+    ).asByteArray(),
+
+    contentType = ""
 )
 
 private fun payloadProcessing(
@@ -149,7 +302,7 @@ private fun payloadProcessing(
     signering: Boolean,
     internformat: Boolean
 ) = PayloadProcessing(
-    signingCertificate = signatureDetails(),
+    signingCertificate = emptySignatureDetails(),
     encryptionCertificate = byteArrayOf(),
     processConfig = processConfig(kryptering, komprimering, signering, internformat)
 )
@@ -172,7 +325,16 @@ private fun processConfig(
     errorAction = null
 )
 
+private fun getDummyCert() {
+}
+
 private fun signatureDetails() = SignatureDetails(
+    certificate = testKeystore.getCertificate("samhandler-2024").encoded,
+    signatureAlgorithm = "sha256WithRSAEncryption",
+    hashFunction = ""
+)
+
+private fun emptySignatureDetails() = SignatureDetails(
     certificate = byteArrayOf(),
     signatureAlgorithm = "",
     hashFunction = ""

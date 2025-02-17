@@ -1,7 +1,7 @@
 package no.nav.emottak.payload.crypto
 
 import no.nav.emottak.crypto.FileKeyStoreConfig
-import no.nav.emottak.crypto.KeyStore
+import no.nav.emottak.crypto.KeyStoreManager
 import no.nav.emottak.crypto.VaultKeyStoreConfig
 import no.nav.emottak.crypto.parseVaultJsonObject
 import no.nav.emottak.util.decodeBase64
@@ -52,7 +52,7 @@ private fun dekrypteringConfig() =
  *
  * 5.15.1 Dekryptering av vedlegg
  */
-class Dekryptering(private val keyStore: KeyStore = KeyStore(dekrypteringConfig())) {
+class Dekryptering(private val keyStore: KeyStoreManager = KeyStoreManager(dekrypteringConfig())) {
 
     init {
         val provider = BouncyCastleProvider()

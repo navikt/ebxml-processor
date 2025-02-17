@@ -13,8 +13,8 @@ import io.ktor.server.auth.authenticate
 import io.ktor.server.netty.Netty
 import io.ktor.server.routing.routing
 import io.ktor.utils.io.CancellationException
-import io.micrometer.prometheus.PrometheusConfig
-import io.micrometer.prometheus.PrometheusMeterRegistry
+import io.micrometer.prometheusmetrics.PrometheusConfig
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitCancellation

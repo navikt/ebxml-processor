@@ -44,6 +44,8 @@ dependencies {
     implementation(libs.ktor.serialization.kotlinx.json)
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.cio)
+    implementation(libs.hoplite.core)
+    implementation(libs.hoplite.hocon)
     implementation(libs.ebxml.protokoll)
     implementation(libs.emottak.payload.xsd)
     implementation(libs.jakarta.xml.bind.api)
@@ -58,6 +60,7 @@ dependencies {
     testImplementation(testLibs.junit.jupiter.api)
     testImplementation(testLibs.ktor.server.test.host)
     testImplementation(testLibs.mock.oauth2.server)
+    testImplementation(testLibs.mockk.jvm)
     testRuntimeOnly(testLibs.junit.jupiter.engine)
     implementation(kotlin("stdlib-jdk8"))
 }
