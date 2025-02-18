@@ -68,7 +68,8 @@ data class EbMSDocument(val requestId: String, val dokument: Document, val attac
                 messageHeader.addressing(),
                 attachments.first(),
                 dokument,
-                messageHeader.messageData.refToMessageId
+                messageHeader.messageData.refToMessageId,
+                messageHeader.messageData.timestamp.toInstant()
             )
 
             DokumentType.FAIL -> {
@@ -83,8 +84,8 @@ data class EbMSDocument(val requestId: String, val dokument: Document, val attac
                     messageHeader.cpaId!!,
                     messageHeader.addressing(isRoleApplicable = false),
                     errorList,
-                    dokument
-
+                    dokument,
+                    messageHeader.messageData.timestamp.toInstant()
                 )
             }
 
@@ -96,7 +97,8 @@ data class EbMSDocument(val requestId: String, val dokument: Document, val attac
                     messageHeader.conversationId,
                     messageHeader.cpaId!!,
                     messageHeader.addressing(isRoleApplicable = false),
-                    dokument
+                    dokument,
+                    messageHeader.messageData.timestamp.toInstant()
                 )
             }
 

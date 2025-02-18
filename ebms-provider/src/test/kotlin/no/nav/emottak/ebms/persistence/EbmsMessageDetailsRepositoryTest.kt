@@ -16,6 +16,7 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.testcontainers.containers.PostgreSQLContainer
 import java.sql.DriverManager
+import java.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
 
 @OptIn(ExperimentalUuidApi::class)
@@ -75,6 +76,7 @@ class EbmsMessageDetailsRepositoryTest {
         Assertions.assertEquals(originalMessage.addressing.to.role, retrievedMessage?.toRole)
         Assertions.assertEquals(originalMessage.addressing.service, retrievedMessage?.service)
         Assertions.assertEquals(originalMessage.addressing.action, retrievedMessage?.action)
+        Assertions.assertEquals(originalMessage.sentAt?.toEpochMilli(), retrievedMessage?.sentAt?.toEpochMilli())
 
         // PartyID serializing check
         Assertions.assertEquals("orgnummer:456789", retrievedMessage?.fromPartyId)
@@ -117,6 +119,7 @@ class EbmsMessageDetailsRepositoryTest {
             "contentId1"
         ),
         null,
-        "refToMessageId1"
+        "refToMessageId1",
+        Instant.now()
     )
 }
