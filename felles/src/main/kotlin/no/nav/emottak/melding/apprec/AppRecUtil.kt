@@ -49,7 +49,7 @@ private fun createBaseApprec(msgHead: MsgHead): AppRec = objectFactory.createApp
     apprec.genDate = Instant.now().toXMLGregorianCalendar()
     apprec.id = Uuid.random().toString()
     apprec.miGversion = VERSION_1_0
-    apprec.msgType = createCS(APPREC,APPLIKASJONSKVITTERING)
+    apprec.msgType = createCS(APPREC, APPLIKASJONSKVITTERING)
     apprec.originalMsgId = createOriginalMessageId(msgHead.msgInfo)
     apprec.receiver = createReceiver(msgHead.msgInfo)
     apprec.sender = createSender()
@@ -87,11 +87,14 @@ private fun createHCPerson(healthcareProfessional: HealthcareProfessional): HCPe
         it.id = ident.id
         it.typeId = createCS(ident.typeId.v)
         it.name = StringUtils.normalizeSpace(
-            StringUtils.join(listOf(
-                healthcareProfessional.givenName,
-                healthcareProfessional.middleName,
-                healthcareProfessional.familyName
-            ), ' ')
+            StringUtils.join(
+                listOf(
+                    healthcareProfessional.givenName,
+                    healthcareProfessional.middleName,
+                    healthcareProfessional.familyName
+                ),
+                ' '
+            )
         )
     }
 
@@ -112,7 +115,6 @@ private fun createCS(v: String, dn: String? = null): CS = objectFactory.createCS
     this.v = v
     if (dn != null) this.dn = dn
 }
-
 
 private fun List<Ident>.getPreferredIdent(): Ident =
     this.firstOrNull { it.typeId.v == OrgUnit.ENH.name }

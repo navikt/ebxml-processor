@@ -69,7 +69,7 @@ dependencyResolutionManagement {
             library("kotlin-kafka", "io.github.nomisrev", "kotlin-kafka").versionRef("kotlin-kafka")
 
             library("ebxml-protokoll", "no.nav.emottak:ebxml-protokoll:0.0.6")
-            library("emottak-payload-xsd", "no.nav.emottak:emottak-payload-xsd:0.0.6")
+            library("emottak-payload-xsd", "no.nav.emottak:emottak-payload-xsd:0.0.8")
             library("hikari", "com.zaxxer:HikariCP:5.0.1")
             library("labai-jsr305x-annotations", "com.github.labai:labai-jsr305x-annotations:0.0.2")
             library("jakarta.xml.bind-api", "jakarta.xml.bind:jakarta.xml.bind-api:4.0.0")
@@ -82,6 +82,7 @@ dependencyResolutionManagement {
             library("cxf-rt-features-logging", "org.apache.cxf", "cxf-rt-features-logging").versionRef("cxf")
             library("jakarta.xml.ws-api", "jakarta.xml.ws:jakarta.xml.ws-api:2.3.3")
             library("ojdbc8", "com.oracle.ojdbc:ojdbc8:19.3.0.0")
+            library("guava", "com.google.guava:guava:33.4.0-jre")
 
             library("jakarta-mail-api", "jakarta.mail", "jakarta.mail-api").versionRef("jakarta-mail")
             library("eclipse-angus", "org.eclipse.angus", "jakarta.mail").versionRef("eclipse-angus")

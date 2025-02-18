@@ -32,7 +32,7 @@ fun Header.marker(): LogstashMarker = Markers.appendEntries(
         TO_ROLE to this.to.role,
         FROM_ROLE to this.from.role,
         TO_PARTY to "${this.to.partyId.firstOrNull()?.type ?: UKJENT_VERDI}:${this.to.partyId.firstOrNull()?.value ?: UKJENT_VERDI}",
-        FROM_PARTY to "${this.from.partyId.firstOrNull()?.type ?: UKJENT_VERDI}:${this.from.partyId.firstOrNull()?.value ?: UKJENT_VERDI}",
+        FROM_PARTY to "${this.from.partyId.firstOrNull()?.type ?: UKJENT_VERDI}:${this.from.partyId.firstOrNull()?.value ?: UKJENT_VERDI}"
     )
 )
 
@@ -45,14 +45,14 @@ fun PayloadRequest.marker(): LogstashMarker = Markers.appendEntries(
         TO_ROLE to this.addressing.to.role,
         FROM_ROLE to this.addressing.from.role,
         TO_PARTY to "${this.addressing.to.partyId.firstOrNull()?.type ?: UKJENT_VERDI}:${this.addressing.to.partyId.firstOrNull()?.value ?: UKJENT_VERDI}",
-        FROM_PARTY to "${this.addressing.from.partyId.firstOrNull()?.type ?: UKJENT_VERDI}:${this.addressing.from.partyId.firstOrNull()?.value ?: UKJENT_VERDI}",
+        FROM_PARTY to "${this.addressing.from.partyId.firstOrNull()?.type ?: UKJENT_VERDI}:${this.addressing.from.partyId.firstOrNull()?.value ?: UKJENT_VERDI}"
     )
 )
 
 fun SendInRequest.marker(): LogstashMarker = Markers.appendEntries(
     mapOf(
         MESSAGE_ID to this.messageId,
-        CONVERSATION_ID to this.conversationId,
+        CONVERSATION_ID to this.conversationId
     )
 )
 
@@ -66,7 +66,7 @@ fun ValidationRequest.marker(): LogstashMarker = Markers.appendEntries(
         TO_ROLE to this.addressing.to.role,
         FROM_ROLE to this.addressing.from.role,
         TO_PARTY to "${this.addressing.to.partyId.firstOrNull()?.type ?: UKJENT_VERDI}:${this.addressing.to.partyId.firstOrNull()?.value ?: UKJENT_VERDI}",
-        FROM_PARTY to "${this.addressing.from.partyId.firstOrNull()?.type ?: UKJENT_VERDI}:${this.addressing.from.partyId.firstOrNull()?.value ?: UKJENT_VERDI}",
+        FROM_PARTY to "${this.addressing.from.partyId.firstOrNull()?.type ?: UKJENT_VERDI}:${this.addressing.from.partyId.firstOrNull()?.value ?: UKJENT_VERDI}"
     )
 )
 
@@ -83,7 +83,6 @@ fun MessageHeader.marker(loggableHeaderPairs: Map<String, String> = mapOf()): Lo
         FROM_PARTY to "${this.from.partyId.firstOrNull()?.type}:${this.from.partyId.firstOrNull()?.value}"
     ) + loggableHeaderPairs
 )
-
 
 fun Headers.marker(): LogstashMarker = Markers.appendEntries(
     this.retrieveLoggableHeaderPairs()
