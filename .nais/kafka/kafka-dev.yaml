@@ -57,3 +57,64 @@ spec:
     - access: read
       application: emottak-kafka-manager
       team: team-emottak
+
+---
+
+apiVersion: kafka.nais.io/v1
+kind: Topic
+metadata:
+  labels:
+    team: team-emottak
+  name: common.topic.for.development
+  namespace: team-emottak
+spec:
+  pool: nav-dev
+  config:
+    cleanupPolicy: delete
+    maxMessageBytes: 1048588
+    minimumInSyncReplicas: 2
+    partitions: 1
+    replication: 3
+    retentionBytes: -1
+    retentionHours: 72
+    segmentHours: 72
+  acl:
+    - access: readwrite
+      application: ebms-provider
+      team: team-emottak
+    - access: readwrite
+      application: ebms-payload
+      team: team-emottak
+    - access: readwrite
+      application: cpa-repo
+      team: team-emottak
+    - access: readwrite
+      application: smtp-transport
+      team: team-emottak
+    - access: readwrite
+      application: ebms-send-in
+      team: team-emottak
+    - access: readwrite
+      application: cpa-sync
+      team: team-emottak
+    - access: readwrite
+      application: ebms-http
+      team: team-emottak
+    - access: readwrite
+      application: ebms-asynch-router-ut
+      team: team-emottak
+    - access: readwrite
+      application: ebms-asynch-router-inn
+      team: team-emottak
+    - access: readwrite
+      application: ebms-sync-router
+      team: team-emottak
+    - access: readwrite
+      application: emottak-test-client-backend
+      team: team-emottak
+    - access: readwrite
+      application: emottak-monitor
+      team: team-emottak
+    - access: read
+      application: emottak-kafka-manager
+      team: team-emottak
