@@ -139,6 +139,29 @@ class EbmsRouteAsyncIT : EbmsRoutFellesIT("/ebms/async") {
         assertEquals(2, listOfPayloads.size)
     }
 
+    @OptIn(ExperimentalUuidApi::class)
+    @Test
+    fun `Payload endpoint returns 404 Not Found when no payload is found`() = validationTestApp {
+        val validReferenceId = Uuid.random()
+        val validAuthToken = getToken().serialize()
+
+        // As if no payload found for this reference ID
+        every { payloadRepository.getByReferenceId(validReferenceId) } returns listOf()
+
+        val httpClient = createClient {
+            install(ContentNegotiation) {
+                json()
+            }
+        }
+        val httpResponse: HttpResponse = httpClient.get("/api/payloads/$validReferenceId") {
+            headers {
+                append("Authorization", "Bearer $validAuthToken")
+            }
+        }
+
+        assertEquals(HttpStatusCode.NotFound, httpResponse.status)
+    }
+
     @Test
     fun `Payload endpoint returns 400 Bad Request with invalid referenceId`() = validationTestApp {
         val invalidReferenceId = "df68056e"
