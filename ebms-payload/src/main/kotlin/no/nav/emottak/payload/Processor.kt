@@ -9,7 +9,6 @@ import no.nav.emottak.payload.crypto.PayloadSignering
 import no.nav.emottak.payload.crypto.payloadSigneringConfig
 import no.nav.emottak.payload.juridisklogg.JuridiskLoggService
 import no.nav.emottak.payload.ocspstatus.OcspStatusService
-import no.nav.emottak.payload.ocspstatus.trustStoreConfig
 import no.nav.emottak.payload.util.GZipUtil
 import no.nav.emottak.util.createDocument
 import no.nav.emottak.util.getByteArrayFromDocument
@@ -27,6 +26,13 @@ class Processor(
     private val signatureVerifisering: SignaturVerifisering = SignaturVerifisering(),
     private val juridiskLogging: JuridiskLoggService = JuridiskLoggService()
 ) {
+
+    private val ocspStatusService = OcspStatusService(
+        defaultHttpClient().invoke(),
+        KeyStoreManager(
+            payloadSigneringConfig() // TODO add commfides config
+        )
+    )
 
     suspend fun loggMessageToJuridiskLogg(payloadRequest: PayloadRequest): String? {
         log.info(payloadRequest.marker(), "Save message to juridisk logg")
@@ -62,13 +68,7 @@ class Processor(
             val dom = createDocument(ByteArrayInputStream(payload.bytes))
             val xmlSignature = dom.retrieveSignatureElement()
             val certificateFromSignature = xmlSignature.keyInfo.x509Certificate
-            val signedBy = OcspStatusService(
-                defaultHttpClient().invoke(),
-                KeyStoreManager(
-                    payloadSigneringConfig(),
-                    trustStoreConfig()
-                )
-            ).getOCSPStatus(certificateFromSignature).fnr
+            val signedBy = ocspStatusService.getOCSPStatus(certificateFromSignature).fnr
             payload.copy(signedBy = signedBy)
         } else {
             payload
