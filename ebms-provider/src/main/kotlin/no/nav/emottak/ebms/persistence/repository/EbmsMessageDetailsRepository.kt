@@ -5,10 +5,12 @@ import no.nav.emottak.ebms.persistence.table.EbmsMessageDetailsTable
 import no.nav.emottak.ebms.persistence.table.EbmsMessageDetailsTable.action
 import no.nav.emottak.ebms.persistence.table.EbmsMessageDetailsTable.conversationId
 import no.nav.emottak.ebms.persistence.table.EbmsMessageDetailsTable.cpaId
+import no.nav.emottak.ebms.persistence.table.EbmsMessageDetailsTable.createdAt
 import no.nav.emottak.ebms.persistence.table.EbmsMessageDetailsTable.fromPartyId
 import no.nav.emottak.ebms.persistence.table.EbmsMessageDetailsTable.fromRole
 import no.nav.emottak.ebms.persistence.table.EbmsMessageDetailsTable.messageId
 import no.nav.emottak.ebms.persistence.table.EbmsMessageDetailsTable.refToMessageId
+import no.nav.emottak.ebms.persistence.table.EbmsMessageDetailsTable.sentAt
 import no.nav.emottak.ebms.persistence.table.EbmsMessageDetailsTable.service
 import no.nav.emottak.ebms.persistence.table.EbmsMessageDetailsTable.toPartyId
 import no.nav.emottak.ebms.persistence.table.EbmsMessageDetailsTable.toRole
@@ -44,6 +46,7 @@ class EbmsMessageDetailsRepository(private val database: Database) {
                 it[toRole] = ebmsMessageDetails.toRole
                 it[service] = ebmsMessageDetails.service
                 it[action] = ebmsMessageDetails.action
+                it[sentAt] = ebmsMessageDetails.sentAt
             }
         }
         return ebmsMessageDetails.referenceId
@@ -73,7 +76,9 @@ class EbmsMessageDetailsRepository(private val database: Database) {
                         it[toPartyId],
                         it[toRole],
                         it[service],
-                        it[action]
+                        it[action],
+                        it[sentAt],
+                        it[createdAt]
                     )
                 }
         }
@@ -100,7 +105,9 @@ class EbmsMessageDetailsRepository(private val database: Database) {
                         it[toPartyId],
                         it[toRole],
                         it[service],
-                        it[action]
+                        it[action],
+                        it[sentAt],
+                        it[createdAt]
                     )
                 }
         }

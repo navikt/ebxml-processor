@@ -13,7 +13,6 @@ import java.nio.file.Paths
 import java.util.Timer
 import java.util.TimerTask
 
-
 class VaultUtil private constructor() {
     private val client: Vault
     private val timer: Timer = Timer("VaultScheduler", true)

@@ -1,6 +1,7 @@
 package no.nav.emottak.message.model
 
 import org.w3c.dom.Document
+import java.time.Instant
 
 data class Acknowledgment(
     override val requestId: String,
@@ -9,7 +10,8 @@ data class Acknowledgment(
     override val conversationId: String,
     override val cpaId: String,
     override val addressing: Addressing,
-    override val dokument: Document? = null
+    override val dokument: Document? = null,
+    override val sentAt: Instant? = null
 ) : EbmsMessage() {
 
     override fun toEbmsDokument(): EbMSDocument {

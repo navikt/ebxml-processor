@@ -23,7 +23,6 @@ fun validateAlgorithms(
     }
 }
 
-
 private val signatureAlgorithmList =
     listOf(
         SignatureMethod.RSA_SHA1,

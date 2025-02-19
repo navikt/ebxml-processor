@@ -14,7 +14,7 @@ import javax.xml.crypto.dsig.SignatureMethod
 import javax.xml.crypto.dsig.keyinfo.KeyInfo
 import javax.xml.crypto.dsig.keyinfo.X509Data
 
-class KeyValueKeySelector: KeySelector() {
+class KeyValueKeySelector : KeySelector() {
 
     override fun select(
         keyInfo: KeyInfo,
@@ -35,8 +35,6 @@ class KeyValueKeySelector: KeySelector() {
                     return SimpleKeySelectorResult(publicKey)
                 }
             }
-
-
         }
         throw KeySelectorException("No KeyValue element found!")
     }
@@ -47,13 +45,13 @@ class KeyValueKeySelector: KeySelector() {
         }
 
         private fun isValidDSA(algURI: String, algName: String): Boolean {
-            return "DSA".equals(algName, ignoreCase = true)
-                    && (SignatureMethod.DSA_SHA1.equals(algURI, ignoreCase = true) || SignatureMethod.DSA_SHA256.equals(algURI, ignoreCase = true))
+            return "DSA".equals(algName, ignoreCase = true) &&
+                (SignatureMethod.DSA_SHA1.equals(algURI, ignoreCase = true) || SignatureMethod.DSA_SHA256.equals(algURI, ignoreCase = true))
         }
 
         private fun isValidRSA(algURI: String, algName: String): Boolean {
-            return "RSA".equals(algName, ignoreCase = true)
-                    && (SignatureMethod.RSA_SHA1.equals(algURI, ignoreCase = true) || SignatureMethod.RSA_SHA256.equals(algURI, ignoreCase = true))
+            return "RSA".equals(algName, ignoreCase = true) &&
+                (SignatureMethod.RSA_SHA1.equals(algURI, ignoreCase = true) || SignatureMethod.RSA_SHA256.equals(algURI, ignoreCase = true))
         }
     }
 }
