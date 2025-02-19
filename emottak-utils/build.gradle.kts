@@ -16,7 +16,7 @@ publishing {
         create<MavenPublication>("mavenJava") {
             groupId = "no.nav.emottak"
             artifactId = "emottak-utils"
-            version = "0.0.1"
+            version = "0.0.2"
             from(components["java"])
         }
     }
