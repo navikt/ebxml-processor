@@ -1,4 +1,4 @@
-package org.example.no.nav.emottak.utils
+package no.nav.emottak.utils
 
 import java.io.FileInputStream
 
