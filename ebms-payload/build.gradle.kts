@@ -35,6 +35,7 @@ dependencies {
     implementation(project(":felles"))
     implementation(project(":ebxml-processing-model"))
     implementation(libs.ktor.server.core)
+    implementation(libs.apache.santuario)
     implementation(libs.ktor.server.netty)
     implementation(libs.ktor.server.call.logging.jvm)
     implementation(libs.ktor.server.content.negotiation)

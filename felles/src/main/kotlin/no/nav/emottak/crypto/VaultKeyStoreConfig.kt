@@ -13,7 +13,7 @@ class VaultKeyStoreConfig(
     keyStoreVaultPath: String,
     keyStoreFileResource: String,
     keyStorePassResource: String
-): KeyStoreConfig {
+) : KeyStoreConfig {
     override val keyStoreFile: InputStream = getDecodedVaultKeyStoreFile(keyStoreVaultPath, keyStoreFileResource)
     override val keyStorePass: CharArray = VaultUtil.readVaultPathResource(keyStoreVaultPath, keyStorePassResource).parseVaultJsonObject("password").toCharArray()
     override val keyStoreType: String = VaultUtil.readVaultPathResource(keyStoreVaultPath, keyStorePassResource).parseVaultJsonObject("type")

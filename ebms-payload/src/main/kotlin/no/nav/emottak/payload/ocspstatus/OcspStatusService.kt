@@ -39,7 +39,7 @@ fun resolveDefaultTruststorePath(): String? {
     }
 }
 
-class SertifikatError(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
+open class SertifikatError(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
 
 class OcspStatusService(
     val httpClient: HttpClient,
@@ -82,11 +82,12 @@ class OcspStatusService(
             }
             extensionsGenerator.addNonceExtension()
             ocspReqBuilder.setRequestExtensions(extensionsGenerator.generate())
-            ocspReqBuilder.setRequestorName(GeneralName(GeneralName.directoryName, requestorName))
+            val requestorSignDetails = signingKeyStoreManager.getKeyForIssuer(ocspResponderCertificate.issuerX500Principal)
+            ocspReqBuilder.setRequestorName(GeneralName(GeneralName.directoryName, requestorSignDetails.second.subjectX500Principal.name))
 
             return ocspReqBuilder.build(
                 JcaContentSignerBuilder("SHA256WITHRSAENCRYPTION").setProvider(bcProvider)
-                    .build(signingKeyStoreManager.getKeyForIssuer(ocspResponderCertificate.issuerX500Principal)),
+                    .build(requestorSignDetails.first),
                 signingKeyStoreManager.getCertificateChain(signingKeyStoreManager.getCertificateAlias(ocspResponderCertificate))
             ).also {
                 log.debug("OCSP Request created")
@@ -147,12 +148,20 @@ class OcspStatusService(
                 it.responseObject as BasicOCSPResp
             }.let {
                 val ssn = getSSN(it)
+                validateFnr(ssn)
                 createSertifikatInfoFromOCSPResponse(certificate, it.responses[0], ssn)
             }
         } catch (e: SertifikatError) {
             throw SertifikatError(e.message ?: "Sertifikatsjekk feilet", e)
         } catch (e: Exception) {
             throw SertifikatError(e.message ?: "Sertifikatsjekk feilet", e)
+        }
+    }
+
+    private fun validateFnr(fnr: String) {
+        if (fnr.isBlank()) {
+            class OCSPValidationFnrBlankError : SertifikatError("OCSP Fnr is blank")
+            throw OCSPValidationFnrBlankError()
         }
     }
 

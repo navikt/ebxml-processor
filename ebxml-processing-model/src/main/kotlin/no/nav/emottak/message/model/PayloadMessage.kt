@@ -2,6 +2,7 @@ package no.nav.emottak.message.model
 
 import no.nav.emottak.message.ebxml.EbXMLConstants
 import org.w3c.dom.Document
+import java.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -13,7 +14,8 @@ data class PayloadMessage(
     override val addressing: Addressing,
     val payload: EbmsAttachment,
     override val dokument: Document? = null,
-    override val refToMessageId: String? = null
+    override val refToMessageId: String? = null,
+    override val sentAt: Instant? = null
 
 ) : EbmsMessage() {
 

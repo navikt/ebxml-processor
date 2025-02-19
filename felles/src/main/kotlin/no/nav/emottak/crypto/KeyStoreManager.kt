@@ -2,6 +2,10 @@ package no.nav.emottak.crypto
 
 import com.google.common.collect.Iterators
 import com.google.common.collect.Iterators.asEnumeration
+import org.bouncycastle.cert.X509CertificateHolder
+import org.bouncycastle.cert.jcajce.JcaX509CertificateHolder
+import org.bouncycastle.jce.provider.BouncyCastleProvider
+import org.slf4j.LoggerFactory
 import java.io.InputStream
 import java.security.KeyPair
 import java.security.KeyStore
@@ -9,13 +13,8 @@ import java.security.PrivateKey
 import java.security.Security
 import java.security.cert.X509Certificate
 import java.util.Enumeration
+import java.util.function.Predicate.not
 import javax.security.auth.x500.X500Principal
-import org.bouncycastle.asn1.x500.X500Name
-import org.bouncycastle.cert.X509CertificateHolder
-import org.bouncycastle.cert.jcajce.JcaX509CertificateHolder
-import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.slf4j.LoggerFactory
-
 
 internal val log = LoggerFactory.getLogger(KeyStoreManager::class.java)
 
@@ -43,7 +42,8 @@ class KeyStoreManager(private vararg val keyStoreConfig: KeyStoreConfig) {
                         } catch (e: Exception) {
                             log.error("Failed to load keystore: ${config.javaClass.name}", e)
                         }
-                    }, config
+                    },
+                config
             )
         }.toList()
     }
@@ -56,17 +56,20 @@ class KeyStoreManager(private vararg val keyStoreConfig: KeyStoreConfig) {
         )
     }
 
-    fun getKeyForIssuer(issuer: X500Principal): PrivateKey {
+    fun getKeyForIssuer(issuer: X500Principal): Pair<PrivateKey, X509Certificate> {
         log.debug("Checking key for ${issuer.name} ")
-        return getPrivateCertificates().filter {
-                (alias, privCert) ->
+        return getPrivateCertificates().filter { (alias, privCert) ->
             issuer.name.split(", ", ",") // "getRdns", litt hacky, fant ikke innebygd funksjonalitet for dette
+                .filter { rdn ->
+                    !listOf("C=", "L=", "ST=")
+                        .any { rdnToIgnore -> rdn.contains(rdnToIgnore, false) }
+                }
                 .any { rdn ->
                     privCert.issuerX500Principal.name.contains(rdn) // "Loose" matching for key. RDN match for CN not needed
                 }
         }.map {
             log.debug("Alias found: ${it.key} for issuer $issuer")
-            getKey(it.key)
+            Pair(getKey(it.key), it.value)
         }.first()
     }
 
@@ -131,5 +134,4 @@ class KeyStoreManager(private vararg val keyStoreConfig: KeyStoreConfig) {
     fun getKey(alias: String) =
         keyStores.first { (store) -> store.isKeyEntry(alias) }
             .let { (store, config) -> store.getKey(alias, config.keyStorePass) } as PrivateKey
-
 }

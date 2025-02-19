@@ -164,7 +164,12 @@ fun Route.getPayloads(
     // Sending response
     try {
         val listOfPayloads = payloadRepository.getByReferenceId(referenceId)
-        call.respond(HttpStatusCode.OK, listOfPayloads)
+
+        if (listOfPayloads.isEmpty()) {
+            call.respond(HttpStatusCode.NotFound, "Payload not found for reference ID $referenceId")
+        } else {
+            call.respond(HttpStatusCode.OK, listOfPayloads)
+        }
     } catch (ex: Exception) {
         logger().error("Exception occurred while retrieving Payload: ${ex.localizedMessage} (${ex::class.qualifiedName})")
         call.respond(
