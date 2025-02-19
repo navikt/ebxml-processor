@@ -2,7 +2,7 @@ package no.nav.emottak.ebms.processing
 
 import io.ktor.http.ContentType
 import no.nav.emottak.ebms.log
-import no.nav.emottak.ebms.messaging.EbmsPayloadProducer
+import no.nav.emottak.ebms.messaging.EbmsMessageProducer
 import no.nav.emottak.ebms.model.saveEbmsMessage
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.persistence.repository.EbmsMessageDetailsRepository
@@ -23,7 +23,7 @@ class PayloadMessageResponder(
     val processingService: ProcessingService,
     val payloadRepository: PayloadRepository,
     val ebmsMessageDetailsRepository: EbmsMessageDetailsRepository,
-    val ebmsPayloadProducer: EbmsPayloadProducer
+    val ebmsPayloadProducer: EbmsMessageProducer
 ) {
 
     @OptIn(ExperimentalUuidApi::class)

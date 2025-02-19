@@ -17,7 +17,7 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import no.nav.emottak.ebms.configuration.config
 import no.nav.emottak.ebms.kafka.KafkaTestContainer
-import no.nav.emottak.ebms.messaging.EbmsSignalProducer
+import no.nav.emottak.ebms.messaging.EbmsMessageProducer
 import no.nav.emottak.ebms.persistence.repository.EbmsMessageDetailsRepository
 import no.nav.emottak.ebms.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.processing.ProcessingService
@@ -52,7 +52,7 @@ abstract class EbmsRoutFellesIT(val endpoint: String) {
     val processingService = mockk<ProcessingService>()
     val ebmsMessageDetailsRepository = mockk<EbmsMessageDetailsRepository>()
     val payloadRepository = mockk<PayloadRepository>()
-    val ebmsSignalProducer = mockk<EbmsSignalProducer>()
+    val ebmsSignalProducer = mockk<EbmsMessageProducer>()
     val mockProcessConfig = ProcessConfig(
         true,
         true,

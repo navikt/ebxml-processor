@@ -1,7 +1,6 @@
 package no.nav.emottak.ebms.messaging
 
 import io.github.nomisRev.kafka.Acks
-import io.github.nomisRev.kafka.KafkaProducer
 import io.github.nomisRev.kafka.ProducerSettings
 import io.github.nomisRev.kafka.kafkaProducer
 import kotlinx.coroutines.flow.Flow
@@ -11,9 +10,11 @@ import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.serialization.ByteArraySerializer
 import org.apache.kafka.common.serialization.StringSerializer
+import org.slf4j.LoggerFactory
 
-class EbmsSignalProducer(val topic: String, kafka: Kafka) {
+class EbmsMessageProducer(private val topic: String, kafka: Kafka) {
     private var producersFlow: Flow<KafkaProducer<String, ByteArray>>
+    private val log = LoggerFactory.getLogger("no.nav.emottak.ebms.messaging")
 
     init {
         val producerSettings = ProducerSettings(
@@ -32,9 +33,9 @@ class EbmsSignalProducer(val topic: String, kafka: Kafka) {
                 val record = ProducerRecord(topic, key, value)
                 producer.send(record).get()
             }
-            println("Kafka test: Message sent successfully to topic $topic")
+            log.info("Message sent successfully to topic $topic")
         } catch (e: Exception) {
-            println("Kafka test: Failed to send message: ${e.message}")
+            log.error("Failed to send message: ${e.message}", e)
         }
     }
 }

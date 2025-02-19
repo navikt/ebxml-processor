@@ -21,8 +21,7 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.launch
 import no.nav.emottak.ebms.configuration.Config
 import no.nav.emottak.ebms.configuration.config
-import no.nav.emottak.ebms.messaging.EbmsPayloadProducer
-import no.nav.emottak.ebms.messaging.EbmsSignalProducer
+import no.nav.emottak.ebms.messaging.EbmsMessageProducer
 import no.nav.emottak.ebms.messaging.startPayloadReceiver
 import no.nav.emottak.ebms.messaging.startSignalReceiver
 import no.nav.emottak.ebms.persistence.Database
@@ -58,8 +57,8 @@ fun main() = SuspendApp {
     val payloadRepository = PayloadRepository(database)
     val processingClient = PayloadProcessingClient(scopedAuthHttpClient(EBMS_PAYLOAD_SCOPE))
     val processingService = ProcessingService(processingClient)
-    val ebmsSignalProducer = EbmsSignalProducer(config.kafkaSignalProducer.topic, config.kafka)
-    val ebmsPayloadProducer = EbmsPayloadProducer(config.kafkaPayloadProducer.topic, config.kafka)
+    val ebmsSignalProducer = EbmsMessageProducer(config.kafkaSignalProducer.topic, config.kafka)
+    val ebmsPayloadProducer = EbmsMessageProducer(config.kafkaPayloadProducer.topic, config.kafka)
 
     val cpaClient = CpaRepoClient(defaultHttpClient())
     val dokumentValidator = DokumentValidator(cpaClient)
@@ -127,7 +126,7 @@ private fun CoroutineScope.launchPayloadReceiver(
     eventsRepository: EventsRepository,
     dokumentValidator: DokumentValidator,
     processingService: ProcessingService,
-    ebmsSignalProducer: EbmsSignalProducer,
+    ebmsSignalProducer: EbmsMessageProducer,
     smtpTransportClient: SmtpTransportClient,
     payloadMessageResponder: PayloadMessageResponder
 ) {

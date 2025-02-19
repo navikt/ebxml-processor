@@ -5,7 +5,7 @@ import kotlinx.coroutines.withContext
 import no.nav.emottak.ebms.SmtpTransportClient
 import no.nav.emottak.ebms.configuration.config
 import no.nav.emottak.ebms.log
-import no.nav.emottak.ebms.messaging.EbmsSignalProducer
+import no.nav.emottak.ebms.messaging.EbmsMessageProducer
 import no.nav.emottak.ebms.model.saveEbmsMessage
 import no.nav.emottak.ebms.model.saveEvent
 import no.nav.emottak.ebms.model.signer
@@ -28,7 +28,7 @@ class PayloadMessageProcessor(
     val eventsRepository: EventsRepository,
     val validator: DokumentValidator,
     val processingService: ProcessingService,
-    val ebmsSignalProducer: EbmsSignalProducer,
+    val ebmsSignalProducer: EbmsMessageProducer,
     val smtpTransportClient: SmtpTransportClient,
     val payloadMessageResponder: PayloadMessageResponder
 ) {
