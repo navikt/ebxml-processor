@@ -5,9 +5,6 @@ plugins {
     id("org.jlleitschuh.gradle.ktlint-idea") version "11.6.1"
 }
 
-group = "no.nav.emottak"
-version = "0.0.1"
-
 tasks {
     ktlintFormat {
         this.enabled = true
@@ -35,7 +32,11 @@ publishing {
 }
 
 dependencies {
+    implementation(libs.ebxml.protokoll)
+    implementation(libs.emottak.payload.xsd)
+    implementation("no.nav.emottak:ebxml-processing-model:2025021825a9b1c43bc343c4487e454338547a5932d8daa1")
     implementation(libs.ktor.client.core)
+    implementation(libs.bundles.logging)
     testImplementation(kotlin("test"))
 }
 
