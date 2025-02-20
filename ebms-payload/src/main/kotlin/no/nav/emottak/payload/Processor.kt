@@ -11,6 +11,7 @@ import no.nav.emottak.payload.juridisklogg.JuridiskLoggService
 import no.nav.emottak.payload.ocspstatus.OcspStatusService
 import no.nav.emottak.payload.util.GZipUtil
 import no.nav.emottak.util.createDocument
+import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.getByteArrayFromDocument
 import no.nav.emottak.util.marker
 import no.nav.emottak.util.retrieveSignatureElement
@@ -98,9 +99,11 @@ class Processor(
         }.let {
             when (processConfig.kryptering) {
                 true -> {
-                    kryptering.krypter(it, payloadRequest.processing.encryptionCertificate).let {
-                        log.info(payloadRequest.marker(), "Payload kryptert")
-                        payloadRequest.payload.copy(bytes = it, contentType = "application/pkcs7-mime")
+                    with(createX509Certificate(payloadRequest.processing.encryptionCertificate)) {
+                        kryptering.krypter(it, this).let { kryptertPayload ->
+                            log.info(payloadRequest.marker(), "Payload kryptert for ${this.subjectX500Principal.name}")
+                            payloadRequest.payload.copy(bytes = kryptertPayload, contentType = "application/pkcs7-mime")
+                        }
                     }
                 }
                 false -> payloadRequest.payload.copy(bytes = it)
