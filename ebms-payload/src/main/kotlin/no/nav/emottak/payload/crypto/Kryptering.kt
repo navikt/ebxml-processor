@@ -1,6 +1,5 @@
 package no.nav.emottak.payload.crypto
 
-import no.nav.emottak.util.createX509Certificate
 import org.bouncycastle.asn1.ASN1ObjectIdentifier
 import org.bouncycastle.cms.CMSAlgorithm
 import org.bouncycastle.cms.CMSEnvelopedDataGenerator
@@ -17,12 +16,11 @@ import java.security.cert.X509Certificate
 
 class Kryptering {
 
-    fun krypter(byteArray: ByteArray, krypteringSertifikat: ByteArray): ByteArray {
+    fun krypter(byteArray: ByteArray, krypteringSertifikat: X509Certificate): ByteArray {
         if (byteArray.isEmpty()) {
             throw EncryptionException("Meldingen er tom.")
         }
-        val sertifikat = createX509Certificate(krypteringSertifikat)
-        return krypterDokument(byteArray, sertifikat)
+        return krypterDokument(byteArray, krypteringSertifikat)
     }
 }
 
