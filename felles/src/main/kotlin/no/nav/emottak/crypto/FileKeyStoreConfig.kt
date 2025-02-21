@@ -1,6 +1,6 @@
 package no.nav.emottak.crypto
 
-import no.nav.emottak.util.getEnvVar
+import no.nav.emottak.utils.getEnvVar
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.FileInputStream
