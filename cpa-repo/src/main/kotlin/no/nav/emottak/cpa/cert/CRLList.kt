@@ -1,6 +1,6 @@
 package no.nav.emottak.cpa.cert
 
-import no.nav.emottak.util.getEnvVar
+import no.nav.emottak.utils.getEnvVar
 
 private val prodCRLLists = mapOf(
     "CN=Buypass Class 3 CA 3,O=Buypass AS-983163327,C=NO" to "http://crl.buypass.no/crl/BPClass3CA3.crl",

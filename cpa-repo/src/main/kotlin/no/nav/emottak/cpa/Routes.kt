@@ -36,8 +36,8 @@ import no.nav.emottak.message.model.SignatureDetailsRequest
 import no.nav.emottak.message.model.ValidationRequest
 import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.util.createX509Certificate
-import no.nav.emottak.util.getEnvVar
-import no.nav.emottak.util.marker
+import no.nav.emottak.utils.getEnvVar
+import no.nav.emottak.utils.marker
 import no.nav.security.token.support.v3.TokenValidationContextPrincipal
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 import java.util.Date

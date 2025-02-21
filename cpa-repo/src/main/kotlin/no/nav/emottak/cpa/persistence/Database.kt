@@ -2,7 +2,7 @@ package no.nav.emottak.cpa.persistence
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
-import no.nav.emottak.util.getEnvVar
+import no.nav.emottak.utils.getEnvVar
 import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.sql.Database
 

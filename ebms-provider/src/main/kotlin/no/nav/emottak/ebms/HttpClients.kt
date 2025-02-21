@@ -26,7 +26,7 @@ import no.nav.emottak.message.model.SendInRequest
 import no.nav.emottak.message.model.SendInResponse
 import no.nav.emottak.message.model.ValidationRequest
 import no.nav.emottak.message.model.ValidationResult
-import no.nav.emottak.util.getEnvVar
+import no.nav.emottak.utils.getEnvVar
 import java.net.InetSocketAddress
 import java.net.Proxy
 import java.net.URI

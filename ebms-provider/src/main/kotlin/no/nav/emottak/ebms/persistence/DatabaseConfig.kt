@@ -3,7 +3,7 @@ package no.nav.emottak.ebms.persistence
 import com.bettercloud.vault.response.LogicalResponse
 import com.zaxxer.hikari.HikariConfig
 import no.nav.emottak.ebms.log
-import no.nav.emottak.util.getEnvVar
+import no.nav.emottak.utils.getEnvVar
 import no.nav.vault.jdbc.hikaricp.HikariCPVaultUtil
 import no.nav.vault.jdbc.hikaricp.VaultUtil
 

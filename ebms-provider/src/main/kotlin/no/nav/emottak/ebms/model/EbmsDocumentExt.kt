@@ -4,8 +4,8 @@ import no.nav.emottak.ebms.xml.ebMSSigning
 import no.nav.emottak.message.model.EbMSDocument
 import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.message.model.log
-import no.nav.emottak.util.marker
 import no.nav.emottak.util.signatur.SignatureException
+import no.nav.emottak.utils.marker
 
 fun EbMSDocument.signer(signatureDetails: SignatureDetails): EbMSDocument {
     try {

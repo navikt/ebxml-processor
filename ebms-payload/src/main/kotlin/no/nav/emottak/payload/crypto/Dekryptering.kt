@@ -5,7 +5,7 @@ import no.nav.emottak.crypto.KeyStoreManager
 import no.nav.emottak.crypto.VaultKeyStoreConfig
 import no.nav.emottak.crypto.parseVaultJsonObject
 import no.nav.emottak.util.decodeBase64
-import no.nav.emottak.util.getEnvVar
+import no.nav.emottak.utils.getEnvVar
 import org.bouncycastle.asn1.x500.X500Name
 import org.bouncycastle.cms.CMSEnvelopedData
 import org.bouncycastle.cms.KeyTransRecipientId

@@ -15,7 +15,7 @@ import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.routing.routing
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
-import no.nav.emottak.util.getEnvVar
+import no.nav.emottak.utils.getEnvVar
 import no.nav.security.token.support.v3.tokenValidationSupport
 import org.slf4j.LoggerFactory
 import java.net.InetSocketAddress
