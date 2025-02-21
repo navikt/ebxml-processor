@@ -14,7 +14,8 @@ data class Config(
     val kafka: Kafka,
     val kafkaSignalReceiver: KafkaSignalReceiver,
     val kafkaSignalProducer: KafkaSignalProducer,
-    val kafkaPayloadReceiver: KafkaPayloadReceiver
+    val kafkaPayloadReceiver: KafkaPayloadReceiver,
+    val kafkaPayloadProducer: KafkaPayloadProducer
 )
 
 @JvmInline
@@ -43,6 +44,11 @@ data class KafkaSignalProducer(
 )
 
 data class KafkaPayloadReceiver(
+    val active: Boolean,
+    val topic: String
+)
+
+data class KafkaPayloadProducer(
     val active: Boolean,
     val topic: String
 )
