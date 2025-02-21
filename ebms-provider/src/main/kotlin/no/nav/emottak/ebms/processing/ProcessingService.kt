@@ -32,7 +32,8 @@ class ProcessingService(private val httpClient: PayloadProcessingClient) {
                 conversationId = payloadMessage.conversationId,
                 processing = payloadProcessing,
                 addressing = addressing,
-                payload = payloadMessage.payload
+                payload = payloadMessage.payload,
+                requestId = payloadMessage.requestId
             )
             Pair(
                 payloadMessage.copy(
