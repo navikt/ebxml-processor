@@ -7,7 +7,6 @@ import no.nav.emottak.ebms.configuration.config
 import no.nav.emottak.ebms.log
 import no.nav.emottak.ebms.messaging.EbmsSignalProducer
 import no.nav.emottak.ebms.model.saveEbmsMessage
-import no.nav.emottak.ebms.model.saveEvent
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.persistence.repository.EbmsMessageDetailsRepository
 import no.nav.emottak.ebms.persistence.repository.EventsRepository
@@ -34,10 +33,9 @@ class PayloadMessageProcessor(
 
     suspend fun process(reference: String, content: ByteArray) {
         try {
-            val ebmsPayloadMessage = createEbmsDocument(reference, content)
-            log.info(ebmsPayloadMessage.marker(), "Got payload message with reference <$reference>")
-            ebmsMessageDetailsRepository.saveEbmsMessage(ebmsPayloadMessage) // TODO Duplicate check
-            processPayloadMessage(ebmsPayloadMessage)
+            with(createEbmsDocument(reference, content)) {
+                processPayloadMessage(reference, this)
+            }
         } catch (e: Exception) {
             log.error("Message failed for reference $reference", e)
         }
@@ -66,45 +64,68 @@ class PayloadMessageProcessor(
             )
         }
 
-    private suspend fun processPayloadMessage(ebmsPayloadMessage: PayloadMessage) {
-        ebmsPayloadMessage.saveEvent("Message received", eventsRepository)
-
+    private suspend fun processPayloadMessage(reference: String, ebmsPayloadMessage: PayloadMessage) {
         try {
-            validator
-                .validateIn(ebmsPayloadMessage)
-                .also {
-                    processingService.processAsync(ebmsPayloadMessage, it.payloadProcessing)
-                    // TODO store events from processing (juridisklog ++)
-                    // TODO send to fagsystem
-                }
-            ebmsPayloadMessage
-                .createAcknowledgment()
-                .also {
-                    val validationResult = validator.validateOut(it)
-                    ebmsMessageDetailsRepository.saveEbmsMessage(it)
-                    sendResponseToTopic(
-                        it.toEbmsDokument().signer(validationResult.payloadProcessing!!.signingCertificate),
-                        validationResult.receiverEmailAddress
-                    )
-                    log.info(it.marker(), "Acknowledgment returned")
-                }
-        } catch (ebmsException: EbmsException) {
-            ebmsPayloadMessage
-                .createFail(ebmsException.feil)
-                .also {
-                    val validationResult = validator.validateOut(it)
-                    ebmsMessageDetailsRepository.saveEbmsMessage(it)
-                    sendResponseToTopic(
-                        it.toEbmsDokument().signer(validationResult.payloadProcessing!!.signingCertificate),
-                        validationResult.receiverEmailAddress
-                    )
-                    log.warn(it.marker(), "MessageError returned")
-                }
+            if (isDuplicateMessage(ebmsPayloadMessage)) {
+                log.info(ebmsPayloadMessage.marker(), "Got duplicate payload message with reference <$reference>")
+            } else {
+                log.info(ebmsPayloadMessage.marker(), "Got payload message with reference <$reference>")
+                ebmsMessageDetailsRepository.saveEbmsMessage(ebmsPayloadMessage)
+                // eventsRepository.saveEvent("Message received", ebmsPayloadMessage)
+                validator
+                    .validateIn(ebmsPayloadMessage)
+                    .also {
+                        processingService.processAsync(ebmsPayloadMessage, it.payloadProcessing)
+                        // TODO store events from processing (juridisklog ++)
+                        // TODO send to fagsystem
+                    }
+            }
+            returnAcknowledgment(ebmsPayloadMessage)
+        } catch (e: EbmsException) {
+            returnMessageError(ebmsPayloadMessage, e)
         } catch (ex: Exception) {
-            log.error(ebmsPayloadMessage.marker(), "Unknown error during message processing: ${ex.message}", ex)
+            log.error(ebmsPayloadMessage.marker(), ex.message ?: "Unknown error", ex)
             // TODO Send to error topic?
             throw ex
         }
+    }
+
+    // TODO More advanced duplicate check
+    private fun isDuplicateMessage(ebmsPayloadMessage: PayloadMessage): Boolean {
+        log.debug(ebmsPayloadMessage.marker(), "Checking for duplicates")
+        return ebmsMessageDetailsRepository.getByConversationIdMessageIdAndCpaId(
+            conversationId = ebmsPayloadMessage.conversationId,
+            messageId = ebmsPayloadMessage.messageId,
+            cpaId = ebmsPayloadMessage.cpaId
+        ) != null
+    }
+
+    private suspend fun returnAcknowledgment(ebmsPayloadMessage: PayloadMessage) {
+        ebmsPayloadMessage
+            .createAcknowledgment()
+            .also {
+                val validationResult = validator.validateOut(it)
+                ebmsMessageDetailsRepository.saveEbmsMessage(it)
+                sendResponseToTopic(
+                    it.toEbmsDokument().signer(validationResult.payloadProcessing!!.signingCertificate),
+                    validationResult.receiverEmailAddress
+                )
+                log.info(it.marker(), "Acknowledgment returned")
+            }
+    }
+
+    private suspend fun returnMessageError(ebmsPayloadMessage: PayloadMessage, ebmsException: EbmsException) {
+        ebmsPayloadMessage
+            .createFail(ebmsException.feil)
+            .also {
+                val validationResult = validator.validateOut(it)
+                ebmsMessageDetailsRepository.saveEbmsMessage(it)
+                sendResponseToTopic(
+                    it.toEbmsDokument().signer(validationResult.payloadProcessing!!.signingCertificate),
+                    validationResult.receiverEmailAddress
+                )
+                log.warn(it.marker(), "MessageError returned")
+            }
     }
 
     private suspend fun sendResponseToTopic(ebMSDocument: EbMSDocument, signalResponderEmails: List<EmailAddress>) {
