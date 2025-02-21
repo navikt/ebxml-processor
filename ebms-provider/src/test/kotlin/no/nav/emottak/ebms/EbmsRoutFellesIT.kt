@@ -37,7 +37,7 @@ import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.message.xml.xmlMarshaller
 import no.nav.emottak.util.decodeBase64
-import no.nav.emottak.util.getEnvVar
+import no.nav.emottak.utils.getEnvVar
 import no.nav.security.mock.oauth2.MockOAuth2Server
 import no.nav.security.token.support.v3.tokenValidationSupport
 import org.apache.xml.security.algorithms.MessageDigestAlgorithm
