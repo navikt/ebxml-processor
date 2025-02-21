@@ -83,7 +83,7 @@ spec:
     - name: EBMS_SIGNAL_PRODUCER
       value: "true"
     - name: EBMS_PAYLOAD_RECEIVER
-      value: "true"
+      value: "false"
     - name: EBMS_PAYLOAD_PRODUCER
       value: "true"
     - name: VAULT_JDBC_URL
