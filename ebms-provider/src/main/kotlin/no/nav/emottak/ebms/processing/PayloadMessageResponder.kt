@@ -29,14 +29,14 @@ class PayloadMessageResponder(
     @OptIn(ExperimentalUuidApi::class)
     suspend fun respond(payloadMessage: PayloadMessage) {
         try {
-            sendInService.sendIn(payloadMessage).let {
+            sendInService.sendIn(payloadMessage).let { sendInResponse ->
                 PayloadMessage(
                     requestId = Uuid.random().toString(),
                     messageId = Uuid.random().toString(),
-                    conversationId = it.conversationId,
+                    conversationId = sendInResponse.conversationId,
                     cpaId = payloadMessage.cpaId,
-                    addressing = it.addressing,
-                    payload = Payload(it.payload, ContentType.Application.Xml.toString()),
+                    addressing = sendInResponse.addressing,
+                    payload = Payload(sendInResponse.payload, ContentType.Application.Xml.toString()),
                     refToMessageId = payloadMessage.messageId
                 )
             }.let { payloadMessageResponse ->
