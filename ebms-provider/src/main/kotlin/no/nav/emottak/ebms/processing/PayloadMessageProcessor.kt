@@ -32,27 +32,27 @@ class PayloadMessageProcessor(
     val payloadMessageResponder: PayloadMessageResponder
 ) {
 
-    suspend fun process(reference: String, content: ByteArray) {
+    suspend fun process(requestId: String, content: ByteArray) {
         try {
-            with(createEbmsDocument(reference, content)) {
-                processPayloadMessage(reference, this)
+            with(createEbmsDocument(requestId, content)) {
+                processPayloadMessage(requestId, this)
             }
         } catch (e: Exception) {
-            log.error("Message failed for reference $reference", e)
+            log.error("Message failed for requestId $requestId", e)
         }
     }
 
     private suspend fun createEbmsDocument(
-        reference: String,
+        requestId: String,
         content: ByteArray
     ): PayloadMessage {
         val ebmsMessage = EbMSDocument(
-            reference,
+            requestId,
             withContext(Dispatchers.IO) {
                 getDocumentBuilder().parse(ByteArrayInputStream(content))
             },
-            retrievePayloads(reference)
-        ).transform().takeIf { it is PayloadMessage } ?: throw RuntimeException("Cannot process message as payload message: $reference")
+            retrievePayloads(requestId)
+        ).transform().takeIf { it is PayloadMessage } ?: throw RuntimeException("Cannot process message as payload message: $requestId")
         return ebmsMessage as PayloadMessage
     }
 
@@ -65,12 +65,12 @@ class PayloadMessageProcessor(
             )
         }
 
-    private suspend fun processPayloadMessage(reference: String, ebmsPayloadMessage: PayloadMessage) {
+    private suspend fun processPayloadMessage(requestId: String, ebmsPayloadMessage: PayloadMessage) {
         try {
             if (isDuplicateMessage(ebmsPayloadMessage)) {
-                log.info(ebmsPayloadMessage.marker(), "Got duplicate payload message with reference <$reference>")
+                log.info(ebmsPayloadMessage.marker(), "Got duplicate payload message with requestId <$requestId>")
             } else {
-                log.info(ebmsPayloadMessage.marker(), "Got payload message with reference <$reference>")
+                log.info(ebmsPayloadMessage.marker(), "Got payload message with requestId <$requestId>")
                 ebmsMessageDetailsRepository.saveEbmsMessage(ebmsPayloadMessage)
                 // eventsRepository.saveEvent("Message received", ebmsPayloadMessage)
                 validator

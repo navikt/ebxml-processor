@@ -6,7 +6,7 @@ import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
 data class EbmsMessageDetails(
-    val referenceId: Uuid,
+    val requestId: Uuid,
     val cpaId: String,
     val conversationId: String,
     val messageId: String,
