@@ -65,14 +65,14 @@ class EventsRepositoryTest {
     fun `Event get saved to database`() {
         val originalMessage = buildTestPayloadMessage("Inntektsforesporsel")
         val originalMessageDetails = originalMessage.toEbmsMessageDetails()
-        val originalEvent = buildTestEvent(originalMessageDetails.referenceId)
+        val originalEvent = buildTestEvent(originalMessageDetails.requestId)
 
         ebmsMessageDetailsRepository.saveEbmsMessageDetails(originalMessageDetails)
         val savedEventId = eventRepository.updateOrInsert(originalEvent)
 
         val retrievedEvent = eventRepository.getByEventId(savedEventId)
 
-        Assertions.assertEquals(originalEvent.referenceId, retrievedEvent?.referenceId)
+        Assertions.assertEquals(originalEvent.requestId, retrievedEvent?.requestId)
         Assertions.assertEquals(originalEvent.contentId, retrievedEvent?.contentId)
         Assertions.assertEquals(originalEvent.messageId, retrievedEvent?.messageId)
         Assertions.assertEquals(originalEvent.juridiskLoggId, retrievedEvent?.juridiskLoggId)
@@ -107,9 +107,9 @@ class EventsRepositoryTest {
     )
 
     @OptIn(ExperimentalUuidApi::class)
-    private fun buildTestEvent(referenceId: Uuid) = Event(
+    private fun buildTestEvent(requestId: Uuid) = Event(
         Uuid.random(),
-        referenceId,
+        requestId,
         "contentId1",
         "messageId1",
         "juridiskLoggId1",

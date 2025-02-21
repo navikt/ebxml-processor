@@ -61,14 +61,15 @@ class EbmsMessageDetailsRepositoryTest {
         val originalMessage = buildTestPayloadMessage("Inntektsforesporsel")
         val originalMessageDetails = originalMessage.toEbmsMessageDetails()
 
-        val savedMessageReferenceId = ebmsMessageDetailsRepository.saveEbmsMessageDetails(originalMessageDetails)
+        val savedMessageRequestId = ebmsMessageDetailsRepository.saveEbmsMessageDetails(originalMessageDetails)
 
-        val retrievedMessage = ebmsMessageDetailsRepository.getByReferenceId(originalMessageDetails.referenceId)
+        val retrievedMessage = ebmsMessageDetailsRepository.getByRequestId(originalMessageDetails.requestId)
 
-        Assertions.assertNotNull(savedMessageReferenceId)
+        Assertions.assertNotNull(savedMessageRequestId)
 
         Assertions.assertNotNull(retrievedMessage)
         Assertions.assertEquals(originalMessage.messageId, retrievedMessage?.messageId)
+        Assertions.assertEquals(originalMessage.requestId, retrievedMessage?.requestId.toString())
         Assertions.assertEquals(originalMessage.cpaId, retrievedMessage?.cpaId)
         Assertions.assertEquals(originalMessage.conversationId, retrievedMessage?.conversationId)
         Assertions.assertEquals(originalMessage.refToMessageId, retrievedMessage?.refToMessageId)
@@ -88,11 +89,11 @@ class EbmsMessageDetailsRepositoryTest {
         val originalMessage = buildTestPayloadMessage("HarBorgerFrikort")
         val originalMessageDetails = originalMessage.toEbmsMessageDetails()
 
-        val savedMessageReferenceId = ebmsMessageDetailsRepository.saveEbmsMessageDetails(originalMessageDetails)
+        val savedMessageRequestId = ebmsMessageDetailsRepository.saveEbmsMessageDetails(originalMessageDetails)
 
-        val retrievedMessage = ebmsMessageDetailsRepository.getByReferenceId(originalMessageDetails.referenceId)
+        val retrievedMessage = ebmsMessageDetailsRepository.getByRequestId(originalMessageDetails.requestId)
 
-        Assertions.assertNull(savedMessageReferenceId)
+        Assertions.assertNull(savedMessageRequestId)
         Assertions.assertNull(retrievedMessage)
     }
 

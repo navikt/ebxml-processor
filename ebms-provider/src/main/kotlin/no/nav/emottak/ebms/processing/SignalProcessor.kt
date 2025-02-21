@@ -20,9 +20,9 @@ class SignalProcessor(
 ) {
 
     @OptIn(ExperimentalUuidApi::class)
-    suspend fun processSignal(reference: String, content: ByteArray) {
+    suspend fun processSignal(requestId: String, content: ByteArray) {
         try {
-            val ebxmlSignalMessage = createEbmsMessage(reference, content)
+            val ebxmlSignalMessage = createEbmsMessage(requestId, content)
             validator.validateIn(ebxmlSignalMessage)
             when (ebxmlSignalMessage) {
                 is Acknowledgment -> {
@@ -33,19 +33,19 @@ class SignalProcessor(
                     ebmsMessageDetailsRepository.saveEbmsMessageDetails(ebxmlSignalMessage.toEbmsMessageDetails())
                     processMessageError(ebxmlSignalMessage)
                 }
-                else -> log.warn(ebxmlSignalMessage.marker(), "Cannot process message as signal message: $reference")
+                else -> log.warn(ebxmlSignalMessage.marker(), "Cannot process message as signal message: $requestId")
             }
         } catch (e: Exception) {
             // TODO Clearer error handling
-            log.error("Error processing signal reference $reference", e)
+            log.error("Error processing signal requestId $requestId", e)
         }
     }
 
     private suspend fun createEbmsMessage(
-        reference: String,
+        requestId: String,
         content: ByteArray
     ) = EbMSDocument(
-        reference,
+        requestId,
         withContext(Dispatchers.IO) {
             getDocumentBuilder().parse(ByteArrayInputStream(content))
         },
@@ -53,7 +53,7 @@ class SignalProcessor(
     ).transform()
 
     private fun processAcknowledgment(acknowledgment: Acknowledgment) {
-        log.info(acknowledgment.marker(), "Got acknowledgment with reference <${acknowledgment.requestId}>")
+        log.info(acknowledgment.marker(), "Got acknowledgment with requestId <${acknowledgment.requestId}>")
         val referencedMessage = ebmsMessageDetailsRepository.getByConversationIdMessageIdAndCpaId(
             acknowledgment.conversationId,
             acknowledgment.refToMessageId,
@@ -67,10 +67,10 @@ class SignalProcessor(
     }
 
     private fun processMessageError(ebmsFail: EbmsFail) {
-        log.info(ebmsFail.marker(), "Got MessageError with reference <${ebmsFail.requestId}>")
+        log.info(ebmsFail.marker(), "Got MessageError with requestId <${ebmsFail.requestId}>")
         val messageRef = ebmsFail.refToMessageId
         if (messageRef == null) {
-            log.warn(ebmsFail.marker(), "Received MessageError without message reference")
+            log.warn(ebmsFail.marker(), "Received MessageError without message requestId")
             return
         }
 

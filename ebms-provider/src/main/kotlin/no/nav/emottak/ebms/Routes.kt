@@ -114,6 +114,7 @@ fun Route.postEbmsSync(
                     }
                 )
                 log.info(it.first.marker(), "Melding ferdig behandlet og svar returnert")
+                // TODO: Event-logging OK
                 return@post
             }
     } catch (ebmsException: EbmsException) {
@@ -123,11 +124,13 @@ fun Route.postEbmsSync(
                 it.signer(signatureDetails)
             }
             log.info(ebmsMessage.marker(), "Created MessageError response")
+            // TODO: Event-logging Feil
             call.respondEbmsDokument(it)
             return@post
         }
     } catch (ex: Exception) {
         log.error(ebmsMessage.marker(), "Unknown error during message processing: ${ex.message}", ex)
+        // TODO: Event-logging Feil
         call.respond(
             HttpStatusCode.InternalServerError,
             ex.parseAsSoapFault()

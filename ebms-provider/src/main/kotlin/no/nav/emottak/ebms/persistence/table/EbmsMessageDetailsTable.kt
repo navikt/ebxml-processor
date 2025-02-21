@@ -1,6 +1,5 @@
 package no.nav.emottak.ebms.persistence.table
 
-import no.nav.emottak.ebms.persistence.table.EventsTable.defaultExpression
 import org.jetbrains.exposed.sql.Column
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.javatime.CurrentTimestamp
@@ -11,7 +10,7 @@ import java.util.UUID
 // Bruk av kotlin.kotlin.Uuid i Column støttes _kanskje_ i kotlin 2.1.20 eller nyere (+ KTOR v3)
 // Se https://youtrack.jetbrains.com/issue/EXPOSED-507
 object EbmsMessageDetailsTable : Table("ebms_message_details") {
-    val referenceId: Column<UUID> = uuid("reference_id")
+    val requestId: Column<UUID> = uuid("request_id")
     val cpaId: Column<String> = varchar("cpa_id", 256)
     val conversationId: Column<String> = varchar("conversation_id", 256)
     val messageId: Column<String> = varchar("message_id", 256)
@@ -25,5 +24,5 @@ object EbmsMessageDetailsTable : Table("ebms_message_details") {
     val sentAt: Column<Instant?> = timestamp("sent_at").nullable()
     val createdAt: Column<Instant> = timestamp("created_at").defaultExpression(CurrentTimestamp())
 
-    override val primaryKey = PrimaryKey(referenceId)
+    override val primaryKey = PrimaryKey(requestId)
 }

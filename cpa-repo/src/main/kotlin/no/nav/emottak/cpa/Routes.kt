@@ -174,8 +174,13 @@ fun Route.postCpa(cpaRepository: CPARepository) = post("/cpa") {
         }
 }
 
+// TODO: Feltet CONTENT_ID burde hete REQUEST_ID?
 fun Route.validateCpa(cpaRepository: CPARepository) = post("/cpa/validate/{$CONTENT_ID}") {
     val validateRequest = call.receive(ValidationRequest::class)
+
+    // TODO: Skal brukes i kall mot Event-logging:
+    // val requestId = call.parameters[CONTENT_ID] ?: throw BadRequestException("Mangler $CONTENT_ID")
+
     try {
         log.info(validateRequest.marker(), "Validerer ebms mot CPA")
         val cpa = cpaRepository.findCpa(validateRequest.cpaId)
@@ -206,6 +211,7 @@ fun Route.validateCpa(cpaRepository: CPARepository) = post("/cpa/validate/{$CONT
             log.error(validateRequest.marker(), "Validation feilet i sertifikat sjekk", it)
             throw it
         }
+        // TODO: Event-logging OK
         call.respond(
             HttpStatusCode.OK,
             ValidationResult(
@@ -224,18 +230,21 @@ fun Route.validateCpa(cpaRepository: CPARepository) = post("/cpa/validate/{$CONT
             )
         )
     } catch (ebmsEx: EbmsException) {
+        // TODO: Event-logging feil?
         log.error(validateRequest.marker(), ebmsEx.message, ebmsEx)
         call.respond(
             HttpStatusCode.OK,
             ValidationResult(error = ebmsEx.feil)
         )
     } catch (ex: NotFoundException) {
+        // TODO: Event-logging feil?
         log.error(validateRequest.marker(), "${ex.message}")
         call.respond(
             HttpStatusCode.OK,
             ValidationResult(error = listOf(Feil(ErrorCode.DELIVERY_FAILURE, "${ex.message}")))
         )
     } catch (ex: Exception) {
+        // TODO: Event-logging feil
         log.error(validateRequest.marker(), ex.message, ex)
         call.respond(
             HttpStatusCode.OK,

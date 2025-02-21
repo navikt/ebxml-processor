@@ -35,6 +35,7 @@ class CpaRepoClient(clientProvider: () -> HttpClient) {
     private var httpClient = clientProvider.invoke()
     private val cpaRepoEndpoint = getEnvVar("CPA_REPO_URL", "http://cpa-repo.team-emottak.svc.nais.local")
 
+    // TODO: Feltet contentId burde hete requestId?
     suspend fun postValidate(contentId: String, validationRequest: ValidationRequest): ValidationResult {
         log.debug("CPA endepunkt: $cpaRepoEndpoint/cpa/validate/$contentId")
         return httpClient.post("$cpaRepoEndpoint/cpa/validate/$contentId") {
