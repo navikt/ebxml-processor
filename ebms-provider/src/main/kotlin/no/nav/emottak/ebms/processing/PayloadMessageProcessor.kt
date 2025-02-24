@@ -5,7 +5,7 @@ import kotlinx.coroutines.withContext
 import no.nav.emottak.ebms.SmtpTransportClient
 import no.nav.emottak.ebms.configuration.config
 import no.nav.emottak.ebms.log
-import no.nav.emottak.ebms.messaging.EbmsSignalProducer
+import no.nav.emottak.ebms.messaging.EbmsMessageProducer
 import no.nav.emottak.ebms.model.saveEbmsMessage
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.persistence.repository.EbmsMessageDetailsRepository
@@ -27,8 +27,9 @@ class PayloadMessageProcessor(
     val eventsRepository: EventsRepository,
     val validator: DokumentValidator,
     val processingService: ProcessingService,
-    val ebmsSignalProducer: EbmsSignalProducer,
-    val smtpTransportClient: SmtpTransportClient
+    val ebmsSignalProducer: EbmsMessageProducer,
+    val smtpTransportClient: SmtpTransportClient,
+    val payloadMessageResponder: PayloadMessageResponder
 ) {
 
     suspend fun process(reference: String, content: ByteArray) {
@@ -74,10 +75,21 @@ class PayloadMessageProcessor(
                 // eventsRepository.saveEvent("Message received", ebmsPayloadMessage)
                 validator
                     .validateIn(ebmsPayloadMessage)
-                    .also {
+                    .let {
                         processingService.processAsync(ebmsPayloadMessage, it.payloadProcessing)
                         // TODO store events from processing (juridisklog ++)
-                        // TODO send to fagsystem
+                    }
+                    .let {
+                        // TODO do this asynchronously
+                        when (val service = it.addressing.service) {
+                            "HarBorgerFrikortMengde" -> {
+                                log.debug(it.marker(), "Starting SendIn for $service")
+                                payloadMessageResponder.respond(it)
+                            }
+                            else -> {
+                                log.debug(it.marker(), "Skipping SendIn for $service")
+                            }
+                        }
                     }
             }
             returnAcknowledgment(ebmsPayloadMessage)

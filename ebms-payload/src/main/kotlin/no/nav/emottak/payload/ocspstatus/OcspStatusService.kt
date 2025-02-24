@@ -3,7 +3,7 @@ package no.nav.emottak.payload.ocspstatus
 import io.ktor.client.HttpClient
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
-import io.ktor.client.statement.readBytes
+import io.ktor.client.statement.readRawBytes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import no.nav.emottak.crypto.KeyStoreManager
@@ -43,10 +43,7 @@ open class SertifikatError(message: String, cause: Throwable? = null) : RuntimeE
 
 class OcspStatusService(
     val httpClient: HttpClient,
-    val signingKeyStoreManager: KeyStoreManager = KeyStoreManager(
-        ocspSigneringConfigCommfides(),
-        ocspSigneringConfigBuypass()
-    ),
+    val signingKeyStoreManager: KeyStoreManager,
     private val trustStore: KeyStoreManager = KeyStoreManager(trustStoreConfig())
 ) {
 
@@ -57,38 +54,33 @@ class OcspStatusService(
         ocspResponderCertificate: X509Certificate
     ): OCSPReq {
         try {
-            //   log.debug(Markers.appendEntries(createFieldMap(sertifikatData)), "Sjekker sertifikat")
-            val ocspReqBuilder = OCSPReqBuilder()
-            val requestorName = certificateFromSignature.subjectX500Principal.name
+            val extensionsGenerator = ExtensionsGenerator().apply {
+                val providerName = ocspResponderCertificate.subjectX500Principal.name
+                signingKeyStoreManager.getCertificateChain(certificateFromSignature.issuerX500Principal.name).also {
+                    addServiceLocator(certificateFromSignature, X500Name(providerName), it)
+                }
+                if (!certificateFromSignature.isVirksomhetssertifikat()) {
+                    addSsnExtension()
+                }
+                addNonceExtension()
+            }
 
-            val digCalcProv = JcaDigestCalculatorProviderBuilder().setProvider(bcProvider).build()
-            ocspReqBuilder.addRequest(
-                JcaCertificateID(
-                    digCalcProv.get(CertificateID.HASH_SHA1),
-                    ocspResponderCertificate,
-                    certificateFromSignature.serialNumber
-                )
-            )
-            val extensionsGenerator = ExtensionsGenerator()
-            /*
-            Certificates that have an OCSP service locator will be verified against the OCSP responder.
-             */
-            val providerName = ocspResponderCertificate.subjectX500Principal.name
-            signingKeyStoreManager.getCertificateChain(certificateFromSignature.issuerX500Principal.name).also {
-                extensionsGenerator.addServiceLocator(certificateFromSignature, X500Name(providerName), it)
-            }
-            if (!certificateFromSignature.isVirksomhetssertifikat()) {
-                extensionsGenerator.addSsnExtension()
-            }
-            extensionsGenerator.addNonceExtension()
-            ocspReqBuilder.setRequestExtensions(extensionsGenerator.generate())
             val requestorSignDetails = signingKeyStoreManager.getKeyForIssuer(ocspResponderCertificate.issuerX500Principal)
-            ocspReqBuilder.setRequestorName(GeneralName(GeneralName.directoryName, requestorSignDetails.second.subjectX500Principal.name))
-
-            return ocspReqBuilder.build(
+            return OCSPReqBuilder().apply {
+                setRequestExtensions(extensionsGenerator.generate())
+                setRequestorName(GeneralName(GeneralName.directoryName, requestorSignDetails.second.subjectX500Principal.name))
+                val digCalcProv = JcaDigestCalculatorProviderBuilder().setProvider(bcProvider).build()
+                addRequest(
+                    JcaCertificateID(
+                        digCalcProv.get(CertificateID.HASH_SHA1),
+                        ocspResponderCertificate,
+                        certificateFromSignature.serialNumber
+                    )
+                )
+            }.build(
                 JcaContentSignerBuilder("SHA256WITHRSAENCRYPTION").setProvider(bcProvider)
                     .build(requestorSignDetails.first),
-                signingKeyStoreManager.getCertificateChain(signingKeyStoreManager.getCertificateAlias(ocspResponderCertificate))
+                signingKeyStoreManager.getCertificateChain(signingKeyStoreManager.getCertificateAlias(requestorSignDetails.second))
             ).also {
                 log.debug("OCSP Request created")
             }
@@ -117,7 +109,7 @@ class OcspStatusService(
                     setBody(encoded)
                 }
             }.let {
-                OCSPResp(it.readBytes())
+                OCSPResp(it.readRawBytes())
             }
         } catch (e: IOException) {
             throw SertifikatError("Feil ved opprettelse av OCSP respons", cause = e)
