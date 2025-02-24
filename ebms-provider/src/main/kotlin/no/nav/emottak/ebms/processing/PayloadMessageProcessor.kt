@@ -19,7 +19,7 @@ import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.xml.asByteArray
 import no.nav.emottak.message.xml.getDocumentBuilder
-import no.nav.emottak.util.marker
+import no.nav.emottak.utils.marker
 import java.io.ByteArrayInputStream
 
 class PayloadMessageProcessor(
