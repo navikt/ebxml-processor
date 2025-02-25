@@ -45,7 +45,7 @@ fun Route.postPayload() = post("/payload") {
         it.juridiskLoggRecordId = juridiskLoggRecordId
 
         if (it.error != null) {
-            log.error(request.marker(), "Payload prosessert med kode ${it.error.code.description} og feil: ${it.error.descriptionText}", it.error)
+            log.error(request.marker(), "Payload prosessert med kode ${it.error!!.code.description} og feil: ${it.error!!.descriptionText}", it.error)
             call.respond(HttpStatusCode.BadRequest, it)
         } else {
             log.info(request.marker(), "Payload prosessert OK <${request.payload.contentId}>")
