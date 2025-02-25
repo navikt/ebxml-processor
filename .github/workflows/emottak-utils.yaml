@@ -1,4 +1,4 @@
-name: "Build emottak-utils library"
+name: "Publish emottak-utils library"
 on:
   workflow_dispatch:
 jobs:
