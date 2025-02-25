@@ -37,7 +37,7 @@ tasks {
 dependencies {
     api(project(":felles"))
     api(project(":ebxml-processing-model"))
-    implementation("no.nav.emottak:emottak-utils:0.0.2")
+    implementation("no.nav.emottak:emottak-utils:0.0.4")
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.netty)
     implementation(libs.ktor.server.content.negotiation)
