@@ -44,7 +44,12 @@ fun Route.postPayload() = post("/payload") {
     }.onSuccess {
         log.info(request.marker(), "Payload prosessert OK <${request.payload.contentId}>")
         it.juridiskLoggRecordId = juridiskLoggRecordId
-        call.respond(it)
+
+        if (it.error != null) {
+            call.respond(HttpStatusCode.BadRequest, it)
+        } else {
+            call.respond(it)
+        }
     }.onFailure { error ->
         log.error(request.marker(), "Payload prosessert med feil: ${error.localizedMessage}", error)
         call.respond(
