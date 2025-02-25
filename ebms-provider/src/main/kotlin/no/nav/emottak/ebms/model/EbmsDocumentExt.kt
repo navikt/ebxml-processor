@@ -13,6 +13,6 @@ fun EbMSDocument.signer(signatureDetails: SignatureDetails): EbMSDocument {
         return this
     } catch (e: Exception) {
         log.error(this.messageHeader().marker(), "Signering av ebms envelope feilet", e)
-       throw SignatureException("Signering av ebms envelope feilet", e)
+        throw SignatureException("Signering av ebms envelope feilet", e)
     }
 }
