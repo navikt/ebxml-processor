@@ -27,7 +27,7 @@ import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.model.PayloadProcessing
 import no.nav.emottak.message.model.SignatureDetails
-import no.nav.emottak.utils.marker
+import no.nav.emottak.util.marker
 import no.nav.emottak.utils.retrieveLoggableHeaderPairs
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid

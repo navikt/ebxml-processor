@@ -32,10 +32,6 @@ publishing {
 }
 
 dependencies {
-    implementation(libs.ebxml.protokoll)
-    implementation("no.nav.emottak:ebxml-processing-model:2025021825a9b1c43bc343c4487e454338547a5932d8daa1")
-    implementation("io.ktor:ktor-http:2.3.4")
-    implementation(libs.bundles.logging)
     testImplementation(kotlin("test"))
 }
 
