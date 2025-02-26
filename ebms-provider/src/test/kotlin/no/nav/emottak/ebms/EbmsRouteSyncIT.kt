@@ -44,6 +44,7 @@ import kotlin.uuid.Uuid
 
 private const val SYNC_PATH = "/ebms/sync"
 
+@OptIn(ExperimentalUuidApi::class)
 class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
 
     fun <T> testSyncApp(testBlock: suspend ApplicationTestBuilder.() -> T) = testApplication {
@@ -119,7 +120,8 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
                                 "e17eb03e-9e43-43fb-874c-1fde9a28c308",
                                 "1234",
                                 Addressing(Party(listOf(PartyId("HER", "79768")), "Frikortregister"), Party(listOf(PartyId("HER", "8090595")), "Utleverer"), "HarBorgerEgenandelFritak", "EgenandelSvar"),
-                                this::class.java.classLoader.getResource("har-borger-egenandrel-fritak/harBorgerEgenandelFritakResponseFagmelding.xml")!!.readBytes()
+                                this::class.java.classLoader.getResource("har-borger-egenandrel-fritak/harBorgerEgenandelFritakResponseFagmelding.xml")!!.readBytes(),
+                                requestId = Uuid.random().toString()
                             )
                         )
                     }

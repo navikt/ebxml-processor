@@ -34,8 +34,8 @@ class EbmsMessageDetailsRepository(private val database: Database) {
 
     private fun updateOrInsert(ebmsMessageDetails: EbmsMessageDetails): Uuid {
         transaction(database.db) {
-            EbmsMessageDetailsTable.upsert(EbmsMessageDetailsTable.referenceId) {
-                it[referenceId] = ebmsMessageDetails.referenceId.toJavaUuid()
+            EbmsMessageDetailsTable.upsert(EbmsMessageDetailsTable.requestId) {
+                it[requestId] = ebmsMessageDetails.requestId.toJavaUuid()
                 it[cpaId] = ebmsMessageDetails.cpaId
                 it[conversationId] = ebmsMessageDetails.conversationId
                 it[messageId] = ebmsMessageDetails.messageId
@@ -49,7 +49,7 @@ class EbmsMessageDetailsRepository(private val database: Database) {
                 it[sentAt] = ebmsMessageDetails.sentAt
             }
         }
-        return ebmsMessageDetails.referenceId
+        return ebmsMessageDetails.requestId
     }
 
     fun getByConversationIdMessageIdAndCpaId(conversationId: String, messageId: String, cpaId: String): EbmsMessageDetails? {
@@ -66,7 +66,7 @@ class EbmsMessageDetailsRepository(private val database: Database) {
                 .firstOrNull()
                 ?.also {
                     ebmsMessageDetails = EbmsMessageDetails(
-                        it[EbmsMessageDetailsTable.referenceId].toKotlinUuid(),
+                        it[EbmsMessageDetailsTable.requestId].toKotlinUuid(),
                         it[EbmsMessageDetailsTable.cpaId],
                         it[EbmsMessageDetailsTable.conversationId],
                         it[EbmsMessageDetailsTable.messageId],
@@ -85,17 +85,17 @@ class EbmsMessageDetailsRepository(private val database: Database) {
         return ebmsMessageDetails
     }
 
-    fun getByReferenceId(referenceId: Uuid): EbmsMessageDetails? {
+    fun getByRequestId(requestId: Uuid): EbmsMessageDetails? {
         var ebmsMessageDetails: EbmsMessageDetails? = null
 
         transaction(database.db) {
             EbmsMessageDetailsTable
                 .select(EbmsMessageDetailsTable.columns)
-                .where { EbmsMessageDetailsTable.referenceId.eq(referenceId.toJavaUuid()) }
+                .where { EbmsMessageDetailsTable.requestId.eq(requestId.toJavaUuid()) }
                 .firstOrNull()
                 ?.also {
                     ebmsMessageDetails = EbmsMessageDetails(
-                        it[EbmsMessageDetailsTable.referenceId].toKotlinUuid(),
+                        it[EbmsMessageDetailsTable.requestId].toKotlinUuid(),
                         it[cpaId],
                         it[conversationId],
                         it[messageId],
