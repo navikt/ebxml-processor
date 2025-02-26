@@ -174,12 +174,11 @@ fun Route.postCpa(cpaRepository: CPARepository) = post("/cpa") {
         }
 }
 
-// TODO: Feltet CONTENT_ID burde hete REQUEST_ID?
-fun Route.validateCpa(cpaRepository: CPARepository) = post("/cpa/validate/{$CONTENT_ID}") {
+fun Route.validateCpa(cpaRepository: CPARepository) = post("/cpa/validate/{$REQUEST_ID}") {
     val validateRequest = call.receive(ValidationRequest::class)
 
     // TODO: Skal brukes i kall mot Event-logging:
-    // val requestId = call.parameters[CONTENT_ID] ?: throw BadRequestException("Mangler $CONTENT_ID")
+    // val requestId = call.parameters[REQUEST_ID] ?: throw BadRequestException("Mangler $REQUEST_ID")
 
     try {
         log.info(validateRequest.marker(), "Validerer ebms mot CPA")
@@ -316,7 +315,7 @@ private const val CPA_ID = "cpaId"
 private const val CPA_IDS = "cpaIds"
 private const val PARTY_TYPE = "partyType"
 private const val PARTY_ID = "partyId"
-private const val CONTENT_ID = "contentId"
+private const val REQUEST_ID = "requestId"
 private const val HER_ID = "herId"
 private const val PARTNER_ID = "partnerId"
 private const val ROLE = "role"
