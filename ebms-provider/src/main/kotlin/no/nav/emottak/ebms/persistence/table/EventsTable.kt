@@ -11,7 +11,7 @@ import java.util.UUID
 // Se https://youtrack.jetbrains.com/issue/EXPOSED-507
 object EventsTable : Table("events") {
     val eventId: Column<UUID> = uuid("event_id")
-    val referenceId: Column<UUID> = uuid("reference_id").references(EbmsMessageDetailsTable.referenceId)
+    val requestId: Column<UUID> = uuid("request_id").references(EbmsMessageDetailsTable.requestId)
     val contentId: Column<String?> = varchar("content_id", 256).nullable()
     val messageId: Column<String> = varchar("message_id", 256)
     val juridiskLoggId: Column<String?> = varchar("juridisk_logg_id", 256).nullable()
