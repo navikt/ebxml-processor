@@ -13,9 +13,9 @@ import no.nav.emottak.payload.util.GZipUtil
 import no.nav.emottak.util.createDocument
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.getByteArrayFromDocument
+import no.nav.emottak.util.marker
 import no.nav.emottak.util.retrieveSignatureElement
 import no.nav.emottak.util.signatur.SignaturVerifisering
-import no.nav.emottak.utils.marker
 import java.io.ByteArrayInputStream
 
 val processor = Processor()

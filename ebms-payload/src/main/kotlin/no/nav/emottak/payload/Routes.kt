@@ -22,7 +22,7 @@ import no.nav.emottak.message.model.PayloadResponse
 import no.nav.emottak.message.model.ProcessConfig
 import no.nav.emottak.payload.util.marshal
 import no.nav.emottak.payload.util.unmarshal
-import no.nav.emottak.utils.marker
+import no.nav.emottak.util.marker
 
 fun Route.postPayload() = post("/payload") {
     val request: PayloadRequest = call.receive(PayloadRequest::class)
