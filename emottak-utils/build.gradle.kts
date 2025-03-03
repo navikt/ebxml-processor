@@ -1,5 +1,6 @@
 plugins {
     kotlin("jvm") version "2.1.10"
+    kotlin("plugin.serialization") apply true
     id("maven-publish")
     id("org.jlleitschuh.gradle.ktlint") version "11.6.1"
     id("org.jlleitschuh.gradle.ktlint-idea") version "11.6.1"
@@ -9,6 +10,9 @@ tasks {
     ktlintFormat {
         this.enabled = true
     }
+    test {
+        useJUnitPlatform()
+    }
 }
 
 publishing {
@@ -16,7 +20,7 @@ publishing {
         create<MavenPublication>("mavenJava") {
             groupId = "no.nav.emottak"
             artifactId = "emottak-utils"
-            version = "0.0.4"
+            version = "0.0.5"
             from(components["java"])
         }
     }
@@ -33,8 +37,5 @@ publishing {
 
 dependencies {
     testImplementation(kotlin("test"))
-}
-
-tasks.test {
-    useJUnitPlatform()
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")
 }

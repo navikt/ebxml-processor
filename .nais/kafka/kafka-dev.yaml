@@ -57,3 +57,43 @@ spec:
     - access: read
       application: emottak-kafka-manager
       team: team-emottak
+
+---
+
+apiVersion: kafka.nais.io/v1
+kind: Topic
+metadata:
+  labels:
+    team: team-emottak
+  name: eventlogging
+  namespace: team-emottak
+spec:
+  pool: nav-dev
+  config:
+    cleanupPolicy: delete
+    maxMessageBytes: 1048588
+    minimumInSyncReplicas: 2
+    partitions: 1
+    replication: 3
+    retentionBytes: -1
+    retentionHours: 168
+    segmentHours: 168
+  acl:
+    - access: write
+      application: ebms-provider
+      team: team-emottak
+    - access: write
+      application: ebms-payload
+      team: team-emottak
+    - access: write
+      application: cpa-repo
+      team: team-emottak
+    - access: write
+      application: ebms-send-in
+      team: team-emottak
+    - access: write
+      application: smtp-transport
+      team: team-emottak
+    - access: read
+      application: emottak-kafka-manager
+      team: team-emottak
