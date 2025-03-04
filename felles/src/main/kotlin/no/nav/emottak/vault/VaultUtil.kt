@@ -6,7 +6,7 @@ import com.bettercloud.vault.VaultConfig
 import com.bettercloud.vault.VaultException
 import com.bettercloud.vault.response.AuthResponse
 import com.bettercloud.vault.response.LookupResponse
-import no.nav.emottak.util.getEnvVar
+import no.nav.emottak.utils.getEnvVar
 import org.slf4j.LoggerFactory
 import java.nio.file.Files
 import java.nio.file.Paths

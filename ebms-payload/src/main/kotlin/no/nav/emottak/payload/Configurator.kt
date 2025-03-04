@@ -5,7 +5,7 @@ import com.sksamuel.hoplite.ExperimentalHoplite
 import com.sksamuel.hoplite.addEnvironmentSource
 import com.sksamuel.hoplite.addResourceSource
 import no.nav.emottak.payload.configuration.Config
-import no.nav.emottak.util.getEnvVar
+import no.nav.emottak.utils.getEnvVar
 
 @OptIn(ExperimentalHoplite::class)
 fun config() = ConfigLoader.builder()

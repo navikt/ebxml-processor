@@ -3,7 +3,7 @@ package no.nav.emottak.cpa
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.HttpRequestRetry
-import no.nav.emottak.util.getEnvVar
+import no.nav.emottak.utils.getEnvVar
 import java.net.InetSocketAddress
 import java.net.Proxy
 import java.net.URL

@@ -16,7 +16,7 @@ publishing {
         create<MavenPublication>("mavenJava") {
             groupId = "no.nav.emottak"
             artifactId = "emottak-utils"
-            version = "0.0.2"
+            version = "0.0.4"
             from(components["java"])
         }
     }
@@ -32,11 +32,6 @@ publishing {
 }
 
 dependencies {
-    implementation(libs.ebxml.protokoll)
-    implementation(libs.emottak.payload.xsd)
-    implementation("no.nav.emottak:ebxml-processing-model:2025021825a9b1c43bc343c4487e454338547a5932d8daa1")
-    implementation(libs.ktor.client.core)
-    implementation(libs.bundles.logging)
     testImplementation(kotlin("test"))
 }
 

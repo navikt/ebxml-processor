@@ -13,14 +13,11 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
-import io.mockk.coEvery
 import io.mockk.coVerify
-import io.mockk.just
 import io.mockk.mockk
-import io.mockk.runs
 import no.nav.emottak.ebms.configuration.config
 import no.nav.emottak.ebms.kafka.KafkaTestContainer
-import no.nav.emottak.ebms.messaging.EbmsSignalProducer
+import no.nav.emottak.ebms.messaging.EbmsMessageProducer
 import no.nav.emottak.ebms.persistence.repository.EbmsMessageDetailsRepository
 import no.nav.emottak.ebms.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.processing.ProcessingService
@@ -37,7 +34,7 @@ import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.message.xml.xmlMarshaller
 import no.nav.emottak.util.decodeBase64
-import no.nav.emottak.util.getEnvVar
+import no.nav.emottak.utils.getEnvVar
 import no.nav.security.mock.oauth2.MockOAuth2Server
 import no.nav.security.token.support.v3.tokenValidationSupport
 import org.apache.xml.security.algorithms.MessageDigestAlgorithm
@@ -55,7 +52,7 @@ abstract class EbmsRoutFellesIT(val endpoint: String) {
     val processingService = mockk<ProcessingService>()
     val ebmsMessageDetailsRepository = mockk<EbmsMessageDetailsRepository>()
     val payloadRepository = mockk<PayloadRepository>()
-    val ebmsSignalProducer = mockk<EbmsSignalProducer>()
+    val ebmsSignalProducer = mockk<EbmsMessageProducer>()
     val mockProcessConfig = ProcessConfig(
         true,
         true,
@@ -88,9 +85,6 @@ abstract class EbmsRoutFellesIT(val endpoint: String) {
                 tokenValidationSupport(AZURE_AD_AUTH, AuthConfig.getTokenSupportConfig())
             }
 
-            coEvery {
-                processingService.processAsync(any(), any())
-            } just runs
             routing {
                 postEbmsSync(dokumentValidator, processingService, SendInService(sendInClient), ebmsMessageDetailsRepository)
                 authenticate(AZURE_AD_AUTH) {

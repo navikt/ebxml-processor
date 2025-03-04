@@ -15,6 +15,7 @@ data class Config(
     val kafkaSignalReceiver: KafkaSignalReceiver,
     val kafkaSignalProducer: KafkaSignalProducer,
     val kafkaPayloadReceiver: KafkaPayloadReceiver,
+    val kafkaPayloadProducer: KafkaPayloadProducer,
     val kafkaErrorQueue: KafkaErrorQueue
 )
 
@@ -49,6 +50,11 @@ data class KafkaPayloadReceiver(
 )
 
 data class KafkaErrorQueue(
+    val active: Boolean,
+    val topic: String
+)
+
+data class KafkaPayloadProducer(
     val active: Boolean,
     val topic: String
 )

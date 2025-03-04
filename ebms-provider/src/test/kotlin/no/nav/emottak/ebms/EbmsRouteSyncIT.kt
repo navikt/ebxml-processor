@@ -35,7 +35,7 @@ import no.nav.emottak.message.model.SendInResponse
 import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.util.decodeBase64
-import no.nav.emottak.util.getEnvVar
+import no.nav.emottak.utils.getEnvVar
 import org.apache.xml.security.algorithms.MessageDigestAlgorithm
 import org.apache.xml.security.signature.XMLSignature
 import org.junit.jupiter.api.Test
@@ -44,6 +44,7 @@ import kotlin.uuid.Uuid
 
 private const val SYNC_PATH = "/ebms/sync"
 
+@OptIn(ExperimentalUuidApi::class)
 class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
 
     fun <T> testSyncApp(testBlock: suspend ApplicationTestBuilder.() -> T) = testApplication {
@@ -119,7 +120,8 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
                                 "e17eb03e-9e43-43fb-874c-1fde9a28c308",
                                 "1234",
                                 Addressing(Party(listOf(PartyId("HER", "79768")), "Frikortregister"), Party(listOf(PartyId("HER", "8090595")), "Utleverer"), "HarBorgerEgenandelFritak", "EgenandelSvar"),
-                                this::class.java.classLoader.getResource("har-borger-egenandrel-fritak/harBorgerEgenandelFritakResponseFagmelding.xml")!!.readBytes()
+                                this::class.java.classLoader.getResource("har-borger-egenandrel-fritak/harBorgerEgenandelFritakResponseFagmelding.xml")!!.readBytes(),
+                                requestId = Uuid.random().toString()
                             )
                         )
                     }

@@ -8,7 +8,7 @@ import no.nav.emottak.ebms.persistence.table.EventsTable.eventId
 import no.nav.emottak.ebms.persistence.table.EventsTable.eventMessage
 import no.nav.emottak.ebms.persistence.table.EventsTable.juridiskLoggId
 import no.nav.emottak.ebms.persistence.table.EventsTable.messageId
-import no.nav.emottak.ebms.persistence.table.EventsTable.referenceId
+import no.nav.emottak.ebms.persistence.table.EventsTable.requestId
 import no.nav.emottak.message.model.Event
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.upsert
@@ -24,7 +24,7 @@ class EventsRepository(private val database: Database) {
         transaction(database.db) {
             EventsTable.upsert(eventId) {
                 it[eventId] = event.eventId.toJavaUuid()
-                it[referenceId] = event.referenceId.toJavaUuid()
+                it[requestId] = event.requestId.toJavaUuid()
                 it[contentId] = event.contentId
                 it[messageId] = event.messageId
                 it[juridiskLoggId] = event.juridiskLoggId
@@ -48,7 +48,7 @@ class EventsRepository(private val database: Database) {
                 ?.also {
                     event = Event(
                         it[EventsTable.eventId].toKotlinUuid(),
-                        it[referenceId].toKotlinUuid(),
+                        it[requestId].toKotlinUuid(),
                         it[contentId],
                         it[messageId],
                         it[juridiskLoggId],

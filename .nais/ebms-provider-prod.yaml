@@ -90,6 +90,8 @@ spec:
       value: "false"
     - name: EBMS_PAYLOAD_RECEIVER
       value: "false"
+    - name: EBMS_PAYLOAD_PRODUCER
+      value: "false"
     - name: VAULT_JDBC_URL
       value: jdbc:postgresql://A01DBVL037.adeo.no:5432/
     - name: CPA_REPO_URL

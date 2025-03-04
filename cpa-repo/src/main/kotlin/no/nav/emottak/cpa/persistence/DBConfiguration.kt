@@ -3,8 +3,8 @@ package no.nav.emottak.cpa.persistence
 import com.bettercloud.vault.response.LogicalResponse
 import com.zaxxer.hikari.HikariConfig
 import no.nav.emottak.cpa.log
-import no.nav.emottak.util.fromEnv
-import no.nav.emottak.util.getEnvVar
+import no.nav.emottak.utils.fromEnv
+import no.nav.emottak.utils.getEnvVar
 import no.nav.vault.jdbc.hikaricp.HikariCPVaultUtil
 import no.nav.vault.jdbc.hikaricp.VaultUtil
 

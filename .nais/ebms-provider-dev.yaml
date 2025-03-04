@@ -84,6 +84,8 @@ spec:
       value: "true"
     - name: EBMS_PAYLOAD_RECEIVER
       value: "true"
+    - name: EBMS_PAYLOAD_PRODUCER
+      value: "true"
     - name: VAULT_JDBC_URL
       value: jdbc:postgresql://b27dbvl033.preprod.local:5432/
     - name: CPA_REPO_URL

@@ -26,7 +26,7 @@ import no.nav.emottak.message.model.SendInRequest
 import no.nav.emottak.message.model.SendInResponse
 import no.nav.emottak.message.model.ValidationRequest
 import no.nav.emottak.message.model.ValidationResult
-import no.nav.emottak.util.getEnvVar
+import no.nav.emottak.utils.getEnvVar
 import java.net.InetSocketAddress
 import java.net.Proxy
 import java.net.URI
@@ -35,9 +35,9 @@ class CpaRepoClient(clientProvider: () -> HttpClient) {
     private var httpClient = clientProvider.invoke()
     private val cpaRepoEndpoint = getEnvVar("CPA_REPO_URL", "http://cpa-repo.team-emottak.svc.nais.local")
 
-    suspend fun postValidate(contentId: String, validationRequest: ValidationRequest): ValidationResult {
-        log.debug("CPA endepunkt: $cpaRepoEndpoint/cpa/validate/$contentId")
-        return httpClient.post("$cpaRepoEndpoint/cpa/validate/$contentId") {
+    suspend fun postValidate(requestId: String, validationRequest: ValidationRequest): ValidationResult {
+        log.debug("CPA endepunkt: $cpaRepoEndpoint/cpa/validate/$requestId")
+        return httpClient.post("$cpaRepoEndpoint/cpa/validate/$requestId") {
             setBody(validationRequest)
             contentType(ContentType.Application.Json)
         }.body()

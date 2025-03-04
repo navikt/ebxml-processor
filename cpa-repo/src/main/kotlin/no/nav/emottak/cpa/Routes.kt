@@ -36,8 +36,8 @@ import no.nav.emottak.message.model.SignatureDetailsRequest
 import no.nav.emottak.message.model.ValidationRequest
 import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.util.createX509Certificate
-import no.nav.emottak.util.getEnvVar
 import no.nav.emottak.util.marker
+import no.nav.emottak.utils.getEnvVar
 import no.nav.security.token.support.v3.TokenValidationContextPrincipal
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 import java.util.Date
@@ -174,8 +174,12 @@ fun Route.postCpa(cpaRepository: CPARepository) = post("/cpa") {
         }
 }
 
-fun Route.validateCpa(cpaRepository: CPARepository) = post("/cpa/validate/{$CONTENT_ID}") {
+fun Route.validateCpa(cpaRepository: CPARepository) = post("/cpa/validate/{$REQUEST_ID}") {
     val validateRequest = call.receive(ValidationRequest::class)
+
+    // TODO: Skal brukes i kall mot Event-logging:
+    // val requestId = call.parameters[REQUEST_ID] ?: throw BadRequestException("Mangler $REQUEST_ID")
+
     try {
         log.info(validateRequest.marker(), "Validerer ebms mot CPA")
         val cpa = cpaRepository.findCpa(validateRequest.cpaId)
@@ -206,6 +210,7 @@ fun Route.validateCpa(cpaRepository: CPARepository) = post("/cpa/validate/{$CONT
             log.error(validateRequest.marker(), "Validation feilet i sertifikat sjekk", it)
             throw it
         }
+        // TODO: Event-logging OK
         call.respond(
             HttpStatusCode.OK,
             ValidationResult(
@@ -224,18 +229,21 @@ fun Route.validateCpa(cpaRepository: CPARepository) = post("/cpa/validate/{$CONT
             )
         )
     } catch (ebmsEx: EbmsException) {
+        // TODO: Event-logging feil?
         log.error(validateRequest.marker(), ebmsEx.message, ebmsEx)
         call.respond(
             HttpStatusCode.OK,
             ValidationResult(error = ebmsEx.feil)
         )
     } catch (ex: NotFoundException) {
+        // TODO: Event-logging feil?
         log.error(validateRequest.marker(), "${ex.message}")
         call.respond(
             HttpStatusCode.OK,
             ValidationResult(error = listOf(Feil(ErrorCode.DELIVERY_FAILURE, "${ex.message}")))
         )
     } catch (ex: Exception) {
+        // TODO: Event-logging feil
         log.error(validateRequest.marker(), ex.message, ex)
         call.respond(
             HttpStatusCode.OK,
@@ -307,7 +315,7 @@ private const val CPA_ID = "cpaId"
 private const val CPA_IDS = "cpaIds"
 private const val PARTY_TYPE = "partyType"
 private const val PARTY_ID = "partyId"
-private const val CONTENT_ID = "contentId"
+private const val REQUEST_ID = "requestId"
 private const val HER_ID = "herId"
 private const val PARTNER_ID = "partnerId"
 private const val ROLE = "role"

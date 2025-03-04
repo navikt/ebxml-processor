@@ -10,7 +10,7 @@ import io.mockk.mockk
 import no.nav.emottak.cpa.decodeBase64Mime
 import no.nav.emottak.ebms.CpaRepoClient
 import no.nav.emottak.ebms.asHttpRequest
-import no.nav.emottak.ebms.messaging.EbmsSignalProducer
+import no.nav.emottak.ebms.messaging.EbmsMessageProducer
 import no.nav.emottak.ebms.modify
 import no.nav.emottak.ebms.payload
 import no.nav.emottak.ebms.persistence.repository.EbmsMessageDetailsRepository
@@ -38,7 +38,7 @@ class MimeValidationIT {
     val validMultipartRequest = validMultipartRequest()
     val cpaRepoClient = mockk<CpaRepoClient>()
     val ebmsMessageDetailsRepository = mockk<EbmsMessageDetailsRepository>()
-    val ebmsSignalProducer = mockk<EbmsSignalProducer>()
+    val ebmsSignalProducer = mockk<EbmsMessageProducer>()
 
     fun <T> mimeTestApp(testBlock: suspend ApplicationTestBuilder.() -> T) = testApplication {
         application {

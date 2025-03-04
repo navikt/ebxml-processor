@@ -18,14 +18,16 @@ import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.cpa.cpaApplicationModule
 import no.nav.emottak.ebms.CpaRepoClient
 import no.nav.emottak.ebms.EBMS_PAYLOAD_SCOPE
+import no.nav.emottak.ebms.EBMS_SEND_IN_SCOPE
 import no.nav.emottak.ebms.PayloadProcessingClient
 import no.nav.emottak.ebms.SMTP_TRANSPORT_SCOPE
+import no.nav.emottak.ebms.SendInClient
 import no.nav.emottak.ebms.SmtpTransportClient
 import no.nav.emottak.ebms.cpaPostgres
 import no.nav.emottak.ebms.defaultHttpClient
 import no.nav.emottak.ebms.ebmsPostgres
 import no.nav.emottak.ebms.ebmsProviderModule
-import no.nav.emottak.ebms.messaging.EbmsSignalProducer
+import no.nav.emottak.ebms.messaging.EbmsMessageProducer
 import no.nav.emottak.ebms.payloadMessageProcessorProvider
 import no.nav.emottak.ebms.persistence.repository.EbmsMessageDetailsRepository
 import no.nav.emottak.ebms.persistence.repository.EventsRepository
@@ -33,6 +35,7 @@ import no.nav.emottak.ebms.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.processing.PayloadMessageProcessor
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.scopedAuthHttpClient
+import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.testConfiguration
 import no.nav.emottak.ebms.validation.DokumentValidator
 import no.nav.emottak.ebms.validation.MimeHeaders
@@ -66,6 +69,7 @@ open class EndToEndTest {
         lateinit var cpaRepoServer: ApplicationEngine
         lateinit var dokumentValidator: DokumentValidator
         lateinit var processingService: ProcessingService
+        lateinit var sendInService: SendInService
         init {
             cpaRepoDbContainer = cpaPostgres()
             ebmsProviderDbContainer = ebmsPostgres()
@@ -92,9 +96,12 @@ open class EndToEndTest {
                 EventsRepository(ebmsProviderDb),
                 dokumentValidator,
                 processingService,
-                mockk<EbmsSignalProducer>(),
+                mockk<EbmsMessageProducer>(),
                 SmtpTransportClient(scopedAuthHttpClient(SMTP_TRANSPORT_SCOPE))
             )
+
+            val sendInClient = SendInClient(scopedAuthHttpClient(EBMS_SEND_IN_SCOPE))
+            sendInService = SendInService(sendInClient)
 
             cpaRepoServer = embeddedServer(
                 Netty,
@@ -106,7 +113,7 @@ open class EndToEndTest {
             ebmsProviderServer = embeddedServer(
                 Netty,
                 port = portnoEbmsProvider,
-                module = { ebmsProviderModule(dokumentValidator, processingService, ebmsMessageDetailsRepository, payloadRepository, payloadMessageProcProvider) }
+                module = { ebmsProviderModule(dokumentValidator, processingService, sendInService, ebmsMessageDetailsRepository, payloadRepository, payloadMessageProcProvider) }
             ).also {
                 it.start()
             }.engine
@@ -125,7 +132,7 @@ class IntegrasjonsTest : EndToEndTest() {
 
     @Test
     fun basicEndpointTest() = testApplication {
-        application { ebmsProviderModule(dokumentValidator, processingService, ebmsMessageDetailsRepository, payloadRepository, payloadMessageProcProvider) }
+        application { ebmsProviderModule(dokumentValidator, processingService, sendInService, ebmsMessageDetailsRepository, payloadRepository, payloadMessageProcProvider) }
         val response = client.get("/")
         Assertions.assertEquals(HttpStatusCode.OK, response.status)
         Assertions.assertEquals("{\"status\":\"Hello\"}", response.bodyAsText())
