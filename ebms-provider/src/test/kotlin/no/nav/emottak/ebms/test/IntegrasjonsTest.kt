@@ -33,6 +33,7 @@ import no.nav.emottak.ebms.persistence.repository.EbmsMessageDetailsRepository
 import no.nav.emottak.ebms.persistence.repository.EventsRepository
 import no.nav.emottak.ebms.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.processing.PayloadMessageProcessor
+import no.nav.emottak.ebms.processing.PayloadMessageResponder
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.scopedAuthHttpClient
 import no.nav.emottak.ebms.sendin.SendInService
@@ -88,20 +89,29 @@ open class EndToEndTest {
             payloadRepository = PayloadRepository(ebmsProviderDb)
             val processingClient = PayloadProcessingClient(scopedAuthHttpClient(EBMS_PAYLOAD_SCOPE))
             processingService = ProcessingService(processingClient)
+            val sendInClient = SendInClient(scopedAuthHttpClient(EBMS_SEND_IN_SCOPE))
+            sendInService = SendInService(sendInClient)
 
+            val ebmsPayloadProducer = mockk<EbmsMessageProducer>()
             val cpaClient = CpaRepoClient(defaultHttpClient())
             dokumentValidator = DokumentValidator(cpaClient)
+            val payloadMessageResponder = PayloadMessageResponder(
+                sendInService = sendInService,
+                validator = dokumentValidator,
+                processingService = processingService,
+                ebmsMessageDetailsRepository = ebmsMessageDetailsRepository,
+                payloadRepository = payloadRepository,
+                ebmsPayloadProducer = ebmsPayloadProducer
+            )
             payloadMessageProcProvider = payloadMessageProcessorProvider(
                 ebmsMessageDetailsRepository,
                 EventsRepository(ebmsProviderDb),
                 dokumentValidator,
                 processingService,
-                mockk<EbmsMessageProducer>(),
-                SmtpTransportClient(scopedAuthHttpClient(SMTP_TRANSPORT_SCOPE))
+                ebmsPayloadProducer,
+                SmtpTransportClient(scopedAuthHttpClient(SMTP_TRANSPORT_SCOPE)),
+                payloadMessageResponder
             )
-
-            val sendInClient = SendInClient(scopedAuthHttpClient(EBMS_SEND_IN_SCOPE))
-            sendInService = SendInService(sendInClient)
 
             cpaRepoServer = embeddedServer(
                 Netty,
