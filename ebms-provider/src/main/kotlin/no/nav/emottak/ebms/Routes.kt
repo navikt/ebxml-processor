@@ -3,7 +3,6 @@ package no.nav.emottak.ebms
 import arrow.fx.coroutines.resourceScope
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.call
 import io.ktor.server.request.header
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
@@ -145,10 +144,12 @@ fun Route.postEbmsSync(
     }
 }
 
+private const val RETRY_LIMIT = "retrycount"
+
 @OptIn(ExperimentalUuidApi::class)
 fun Route.retryErrors(
     payloadMessageProcessorProvider: () -> PayloadMessageProcessor
-): Route = get("/api/retry") {
+): Route = get("/api/retry/{$RETRY_LIMIT}") {
     resourceScope {
         CoroutineScope(Dispatchers.IO).launch {
             if (config().kafkaErrorQueue.active) {

@@ -66,9 +66,14 @@ class FailedMessageKafkaHandler(
         }
     }
 
-    suspend fun receive(payloadMessageProcessor: PayloadMessageProcessor) {
+    suspend fun receive(payloadMessageProcessor: PayloadMessageProcessor, limit: Int = 10) { // TODO limit til offset
         logger.debug("Reading from error queue")
+        var counter = 0
         consumerFlow.map { record ->
+            counter++
+            if (counter > limit) {
+                throw Exception("Error queue limit exceeded: $limit") // TODO fjern dette
+            }
             record.offset.acknowledge()
             record.retryCounter()
             payloadMessageProcessor.process(record)
