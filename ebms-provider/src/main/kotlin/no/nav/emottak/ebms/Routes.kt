@@ -1,5 +1,6 @@
 package no.nav.emottak.ebms
 
+import arrow.fx.coroutines.resourceScope
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
@@ -8,11 +9,17 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import no.nav.emottak.constants.SMTPHeaders
+import no.nav.emottak.ebms.configuration.config
+import no.nav.emottak.ebms.messaging.failedMessageQueue
 import no.nav.emottak.ebms.model.saveEbmsMessage
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.persistence.repository.EbmsMessageDetailsRepository
 import no.nav.emottak.ebms.persistence.repository.PayloadRepository
+import no.nav.emottak.ebms.processing.PayloadMessageProcessor
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.util.marker
@@ -132,6 +139,21 @@ fun Route.postEbmsSync(
             HttpStatusCode.InternalServerError,
             ex.parseAsSoapFault()
         )
+    }
+}
+
+@OptIn(ExperimentalUuidApi::class)
+fun Route.retryErrors(
+    payloadMessageProcessorProvider: () -> PayloadMessageProcessor
+): Route = get("/api/retry") {
+    resourceScope {
+        CoroutineScope(Dispatchers.IO).launch {
+            if (config().kafkaErrorQueue.active) {
+                failedMessageQueue.receive(
+                    payloadMessageProcessorProvider.invoke()
+                )
+            }
+        }
     }
 }
 

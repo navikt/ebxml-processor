@@ -1,11 +1,13 @@
 package no.nav.emottak.ebms.processing
 
+import io.github.nomisRev.kafka.receiver.ReceiverRecord
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import no.nav.emottak.ebms.SmtpTransportClient
 import no.nav.emottak.ebms.configuration.config
 import no.nav.emottak.ebms.log
 import no.nav.emottak.ebms.messaging.EbmsSignalProducer
+import no.nav.emottak.ebms.messaging.failedMessageQueue
 import no.nav.emottak.ebms.model.saveEbmsMessage
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.persistence.repository.EbmsMessageDetailsRepository
@@ -31,13 +33,13 @@ class PayloadMessageProcessor(
     val smtpTransportClient: SmtpTransportClient
 ) {
 
-    suspend fun process(reference: String, content: ByteArray) {
+    suspend fun process(record: ReceiverRecord<String, ByteArray>) {
         try {
-            with(createEbmsDocument(reference, content)) {
-                processPayloadMessage(reference, this)
+            with(createEbmsDocument(record.key(), record.value())) {
+                processPayloadMessage(record.key(), this, record)
             }
         } catch (e: Exception) {
-            log.error("Message failed for reference $reference", e)
+            log.error("Message failed for reference ${record.key()}", e)
         }
     }
 
@@ -64,7 +66,11 @@ class PayloadMessageProcessor(
             )
         }
 
-    private suspend fun processPayloadMessage(reference: String, ebmsPayloadMessage: PayloadMessage) {
+    private suspend fun processPayloadMessage(
+        reference: String,
+        ebmsPayloadMessage: PayloadMessage,
+        record: ReceiverRecord<String, ByteArray>
+    ) {
         try {
             if (isDuplicateMessage(ebmsPayloadMessage)) {
                 log.info(ebmsPayloadMessage.marker(), "Got duplicate payload message with reference <$reference>")
@@ -85,7 +91,7 @@ class PayloadMessageProcessor(
             returnMessageError(ebmsPayloadMessage, e)
         } catch (ex: Exception) {
             log.error(ebmsPayloadMessage.marker(), ex.message ?: "Unknown error", ex)
-            // TODO Send to error topic?
+            failedMessageQueue.send(ebmsPayloadMessage.requestId, ebmsPayloadMessage.toEbmsDokument().dokument.asByteArray(), record)
             throw ex
         }
     }
