@@ -60,13 +60,14 @@ class FailedMessageKafkaHandler(
             producersFlow.collect { producer ->
                 producer.send(ProducerRecord(kafkaErrorQueue.topic, null, key, value, record.headers())).get()
             }
-            println("Kafka test: Message sent successfully to topic ${kafkaErrorQueue.topic}")
+            logger.debug("Kafka test: Message sent successfully to topic ${kafkaErrorQueue.topic}")
         } catch (e: Exception) {
-            println("Kafka test: Failed to send message: ${e.message}")
+            logger.debug("Kafka test: Failed to send message: ${e.message}")
         }
     }
 
     suspend fun receive(payloadMessageProcessor: PayloadMessageProcessor) {
+        logger.debug("Reading from error queue")
         consumerFlow.map { record ->
             record.offset.acknowledge()
             record.retryCounter()
