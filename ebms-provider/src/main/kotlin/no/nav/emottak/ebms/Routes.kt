@@ -165,7 +165,7 @@ fun Route.retryErrors(
 
 private const val KAFKA_OFFSET = "offset"
 
-fun Route.simulateError(): Route = get("/api/forceretry/$KAFKA_OFFSET") {
+fun Route.simulateError(): Route = get("/api/forceretry/{$KAFKA_OFFSET}") {
     resourceScope {
         CoroutineScope(Dispatchers.IO).launch {
             if (config().kafkaErrorQueue.active) {
