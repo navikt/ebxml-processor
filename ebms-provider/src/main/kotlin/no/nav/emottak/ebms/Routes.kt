@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.configuration.config
 import no.nav.emottak.ebms.messaging.failedMessageQueue
+import no.nav.emottak.ebms.messaging.getRecord
 import no.nav.emottak.ebms.model.saveEbmsMessage
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.persistence.repository.EbmsMessageDetailsRepository
@@ -154,8 +155,22 @@ fun Route.retryErrors(
         CoroutineScope(Dispatchers.IO).launch {
             if (config().kafkaErrorQueue.active) {
                 failedMessageQueue.receive(
-                    payloadMessageProcessorProvider.invoke()
+                    payloadMessageProcessorProvider.invoke(),
+                    limit = RETRY_LIMIT.toInt()
                 )
+            }
+        }
+    }
+}
+
+private const val KAFKA_OFFSET = "offset"
+
+fun Route.simulateError(): Route = get("/api/forceretry/$KAFKA_OFFSET") {
+    resourceScope {
+        CoroutineScope(Dispatchers.IO).launch {
+            if (config().kafkaErrorQueue.active) {
+                val record = getRecord(config().kafkaPayloadReceiver.topic, config().kafka, KAFKA_OFFSET.toLong())
+                failedMessageQueue.send(record = record)
             }
         }
     }

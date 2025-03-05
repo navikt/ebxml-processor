@@ -36,9 +36,7 @@ class PayloadMessageProcessor(
 
     suspend fun process(record: ReceiverRecord<String, ByteArray>) {
         try {
-            with(createEbmsDocument(record.key(), record.value())) {
-                processPayloadMessage(this, record)
-            }
+            processPayloadMessage(createEbmsDocument(record.key(), record.value()), record)
         } catch (e: Exception) {
             log.error("Message failed for reference ${record.key()}", e)
         }
@@ -102,7 +100,7 @@ class PayloadMessageProcessor(
             returnMessageError(ebmsPayloadMessage, e)
         } catch (ex: Exception) {
             log.error(ebmsPayloadMessage.marker(), ex.message ?: "Unknown error", ex)
-            failedMessageQueue.send(ebmsPayloadMessage.requestId, ebmsPayloadMessage.toEbmsDokument().dokument.asByteArray(), record)
+            failedMessageQueue.send(record, ebmsPayloadMessage.requestId, ebmsPayloadMessage.toEbmsDokument().dokument.asByteArray())
             throw ex
         }
     }

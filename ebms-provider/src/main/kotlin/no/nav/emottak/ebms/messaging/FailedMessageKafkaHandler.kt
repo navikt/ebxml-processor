@@ -4,6 +4,7 @@ import io.github.nomisRev.kafka.Acks
 import io.github.nomisRev.kafka.ProducerSettings
 import io.github.nomisRev.kafka.kafkaProducer
 import io.github.nomisRev.kafka.receiver.KafkaReceiver
+import io.github.nomisRev.kafka.receiver.Offset
 import io.github.nomisRev.kafka.receiver.ReceiverRecord
 import io.github.nomisRev.kafka.receiver.ReceiverSettings
 import kotlinx.coroutines.flow.Flow
@@ -14,8 +15,10 @@ import no.nav.emottak.ebms.configuration.KafkaErrorQueue
 import no.nav.emottak.ebms.configuration.config
 import no.nav.emottak.ebms.configuration.toProperties
 import no.nav.emottak.ebms.processing.PayloadMessageProcessor
+import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerRecord
+import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.ByteArrayDeserializer
 import org.apache.kafka.common.serialization.ByteArraySerializer
 import org.apache.kafka.common.serialization.StringDeserializer
@@ -23,6 +26,7 @@ import org.apache.kafka.common.serialization.StringSerializer
 import org.joda.time.DateTime
 import org.slf4j.LoggerFactory
 import java.math.BigInteger
+import java.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 val failedMessageQueue: FailedMessageKafkaHandler = FailedMessageKafkaHandler()
@@ -54,7 +58,7 @@ class FailedMessageKafkaHandler(
         )
     ).receive(kafkaErrorQueue.topic)
 
-    suspend fun send(key: String, value: ByteArray, record: ReceiverRecord<String, ByteArray>) {
+    suspend fun send(record: ReceiverRecord<String, ByteArray>, key: String = record.key(), value: ByteArray = record.value()) { // TODO man trenger vel ikke egentlig value og key om man har record?
         record.addHeader(RETRY_AFTER, getNextRetryTime(record)) // TODO add retry logic
         try {
             producersFlow.collect { producer ->
@@ -99,4 +103,36 @@ class FailedMessageKafkaHandler(
 
 fun ReceiverRecord<String, ByteArray>.addHeader(key: String, value: String) {
     this.headers().add(key, value.toByteArray())
+}
+
+fun getRecord(topic: String, kafka: Kafka, fromOffset: Long = 0, requestedRecords: Int = 1): ReceiverRecord<String, ByteArray> {
+    return with(
+        KafkaConsumer<String, ByteArray>(
+            kafka.copy(groupId = "ebms-provider-retry").toProperties()
+        )
+    ) {
+        partitionsFor(topic).map { partition ->
+            TopicPartition(partition.topic(), partition.partition())
+        }.toList().apply {
+            assign(this)
+        }.forEach { tp ->
+            seek(tp, fromOffset)
+        }
+        poll(Duration.ofSeconds(1)) // TODO hent til requestedRecords
+            .records(topic).first()
+    }.let {
+        // TODO dette ser ikke pent ut men biblioteket tvinger det litt
+        class BasicReceiverRecordOffset(
+            override val offset: Long,
+            override val topicPartition: TopicPartition
+        ) : Offset {
+            override suspend fun acknowledge() {
+                return
+            }
+            override suspend fun commit() {
+                return
+            }
+        }
+        ReceiverRecord(it, BasicReceiverRecordOffset(it.offset(), TopicPartition(it.topic(), it.partition())))
+    }
 }

@@ -37,6 +37,7 @@ import no.nav.emottak.ebms.processing.SignalProcessor
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.DokumentValidator
 import no.nav.emottak.utils.getEnvVar
+import no.nav.emottak.utils.isProdEnv
 import org.slf4j.LoggerFactory
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.App")
@@ -200,7 +201,9 @@ fun Application.ebmsProviderModule(
 
         postEbmsSync(validator, processing, sendInService, ebmsMessageDetailsRepository)
         retryErrors(payloadMessageProcessorProvider)
-
+        if (!isProdEnv()) {
+            simulateError()
+        }
         authenticate(AZURE_AD_AUTH) {
             getPayloads(payloadRepository)
         }
