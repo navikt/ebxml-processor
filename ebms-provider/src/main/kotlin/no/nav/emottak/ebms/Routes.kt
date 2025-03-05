@@ -156,7 +156,7 @@ fun Route.retryErrors(
             if (config().kafkaErrorQueue.active) {
                 failedMessageQueue.receive(
                     payloadMessageProcessorProvider.invoke(),
-                    limit = RETRY_LIMIT.toInt()
+                    limit = (call.parameters[RETRY_LIMIT] as String).toInt()
                 )
             }
         }
@@ -169,7 +169,11 @@ fun Route.simulateError(): Route = get("/api/forceretry/{$KAFKA_OFFSET}") {
     resourceScope {
         CoroutineScope(Dispatchers.IO).launch {
             if (config().kafkaErrorQueue.active) {
-                val record = getRecord(config().kafkaPayloadReceiver.topic, config().kafka, KAFKA_OFFSET.toLong())
+                val record = getRecord(
+                    config().kafkaPayloadReceiver.topic,
+                    config().kafka,
+                    (call.parameters[KAFKA_OFFSET] as String).toLong()
+                )
                 failedMessageQueue.send(record = record)
             }
         }
