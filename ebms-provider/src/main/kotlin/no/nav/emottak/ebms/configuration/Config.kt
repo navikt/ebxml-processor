@@ -1,6 +1,7 @@
 package no.nav.emottak.ebms.configuration
 
 import com.sksamuel.hoplite.Masked
+import org.apache.kafka.clients.CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG
 import org.apache.kafka.clients.CommonClientConfigs.SECURITY_PROTOCOL_CONFIG
 import org.apache.kafka.common.config.SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG
 import org.apache.kafka.common.config.SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG
@@ -73,6 +74,7 @@ data class Kafka(
 
 fun Kafka.toProperties() = Properties()
     .apply {
+        put(BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
         put(SECURITY_PROTOCOL_CONFIG, securityProtocol.value)
         put(SSL_KEYSTORE_TYPE_CONFIG, keystoreType.value)
         put(SSL_KEYSTORE_LOCATION_CONFIG, keystoreLocation.value)
