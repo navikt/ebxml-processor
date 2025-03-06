@@ -107,9 +107,15 @@ fun ReceiverRecord<String, ByteArray>.addHeader(key: String, value: String) {
 
 fun getRecord(topic: String, kafka: Kafka, fromOffset: Long = 0, requestedRecords: Int = 1): ReceiverRecord<String, ByteArray> {
     return with(
-        KafkaConsumer<String, ByteArray>(
-            kafka.copy(groupId = "ebms-provider-retry").toProperties()
+        KafkaConsumer(
+            kafka.copy(
+                groupId = "ebms-provider-retry"
+            ).toProperties(),
+            StringDeserializer(),
+            ByteArrayDeserializer()
         )
+        // TODO org.apache.kafka.common.config.ConfigException: Invalid value null for configuration key.deserializer: must be non-null.
+
     ) {
         partitionsFor(topic).map { partition ->
             TopicPartition(partition.topic(), partition.partition())
