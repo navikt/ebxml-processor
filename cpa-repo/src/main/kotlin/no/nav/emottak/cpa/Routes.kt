@@ -93,7 +93,7 @@ fun Route.partnerId(partnerRepository: PartnerRepository, cpaRepository: CPARepo
             }.maxBy {
                 it.key
             }.value
-            partnerRepository.findPartners(sisteOppdatertCpa.cpaid)
+            partnerRepository.findPartnerId(sisteOppdatertCpa.cpaid)
         }.onSuccess {
             log.info("Partner $it funnet for HER ID $herId")
             call.respond(HttpStatusCode.OK, it)
@@ -174,7 +174,7 @@ fun Route.postCpa(cpaRepository: CPARepository) = post("/cpa") {
         }
 }
 
-fun Route.validateCpa(cpaRepository: CPARepository) = post("/cpa/validate/{$REQUEST_ID}") {
+fun Route.validateCpa(cpaRepository: CPARepository, partnerRepository: PartnerRepository) = post("/cpa/validate/{$REQUEST_ID}") {
     val validateRequest = call.receive(ValidationRequest::class)
 
     // TODO: Skal brukes i kall mot Event-logging:
@@ -210,6 +210,9 @@ fun Route.validateCpa(cpaRepository: CPARepository) = post("/cpa/validate/{$REQU
             log.error(validateRequest.marker(), "Validation feilet i sertifikat sjekk", it)
             throw it
         }
+
+        val partnerId = runCatching { partnerRepository.findPartnerId(cpa.cpaid) }.getOrNull()
+
         // TODO: Event-logging OK
         call.respond(
             HttpStatusCode.OK,
@@ -225,7 +228,8 @@ fun Route.validateCpa(cpaRepository: CPARepository) = post("/cpa/validate/{$REQU
                     )
                 ),
                 signalEmails,
-                receiverEmails
+                receiverEmails,
+                partnerId
             )
         )
     } catch (ebmsEx: EbmsException) {

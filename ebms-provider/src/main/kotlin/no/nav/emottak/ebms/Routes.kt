@@ -2,7 +2,6 @@ package no.nav.emottak.ebms
 
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.call
 import io.ktor.server.request.header
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
@@ -79,25 +78,28 @@ fun Route.postEbmsSync(
     try {
         validator.validateIn(ebmsMessage)
             .let { validationResult ->
+                val partnerId: Long? = validationResult.partnerId
+
                 processingService.processSyncIn(ebmsMessage, validationResult.payloadProcessing)
-            }.let { processedMessage ->
-                when (processedMessage.second) {
-                    Direction.IN -> {
-                        sendInService.sendIn(processedMessage.first).let {
-                            PayloadMessage(
-                                requestId = Uuid.random().toString(),
-                                messageId = Uuid.random().toString(),
-                                conversationId = it.conversationId,
-                                cpaId = ebmsMessage.cpaId,
-                                addressing = it.addressing,
-                                payload = Payload(it.payload, ContentType.Application.Xml.toString()),
-                                refToMessageId = it.messageId
-                            )
+                    .let { processedMessage ->
+                        when (processedMessage.second) {
+                            Direction.IN -> {
+                                sendInService.sendIn(processedMessage.first, partnerId).let {
+                                    PayloadMessage(
+                                        requestId = Uuid.random().toString(),
+                                        messageId = Uuid.random().toString(),
+                                        conversationId = it.conversationId,
+                                        cpaId = ebmsMessage.cpaId,
+                                        addressing = it.addressing,
+                                        payload = Payload(it.payload, ContentType.Application.Xml.toString()),
+                                        refToMessageId = it.messageId
+                                    )
+                                }
+                            }
+
+                            else -> processedMessage.first
                         }
                     }
-
-                    else -> processedMessage.first
-                }
             }.let { payloadMessage ->
                 validator.validateOut(payloadMessage).let {
                     signingCertificate = it.payloadProcessing?.signingCertificate
