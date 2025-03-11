@@ -77,8 +77,8 @@ fun cpaApplicationModule(
         routing {
             if (oracleDb != null) {
                 partnerId(PartnerRepository(oracleDb), cpaRepository)
+                validateCpa(cpaRepository, PartnerRepository(oracleDb))
             }
-            validateCpa(cpaRepository)
             getCPA(cpaRepository)
             getTimeStamps(cpaRepository)
             getTimeStampsLatest(cpaRepository)

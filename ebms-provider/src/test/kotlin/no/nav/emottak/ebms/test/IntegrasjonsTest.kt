@@ -91,7 +91,7 @@ open class EndToEndTest {
             cpaRepoServer = embeddedServer(
                 Netty,
                 port = portnoCpaRepo,
-                module = cpaApplicationModule(cpaRepoDb.dataSource, cpaRepoDb.dataSource)
+                module = cpaApplicationModule(cpaRepoDb.dataSource, cpaRepoDb.dataSource, cpaRepoDb.dataSource)
             ).also {
                 it.start()
             }.engine

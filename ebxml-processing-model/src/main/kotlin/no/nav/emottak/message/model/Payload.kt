@@ -17,7 +17,8 @@ data class SendInRequest(
     val cpaId: String,
     val ebmsProcessing: EbmsProcessing,
     val signedOf: String? = null,
-    val requestId: String
+    val requestId: String,
+    val partnerId: Long? = null
 )
 
 @Serializable
@@ -95,6 +96,7 @@ data class ValidationResult(
     val payloadProcessing: PayloadProcessing? = null,
     val signalEmailAddress: List<EmailAddress> = emptyList(),
     val receiverEmailAddress: List<EmailAddress> = emptyList(),
+    val partnerId: Long? = null,
     val error: List<Feil>? = null
 ) {
     fun valid(): Boolean = error == null
