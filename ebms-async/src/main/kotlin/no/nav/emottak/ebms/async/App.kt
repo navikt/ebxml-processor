@@ -8,6 +8,7 @@ import arrow.continuations.ktor.server
 import arrow.core.raise.result
 import arrow.fx.coroutines.resourceScope
 import io.ktor.server.application.Application
+import io.ktor.server.auth.authenticate
 import io.ktor.server.netty.Netty
 import io.ktor.server.routing.routing
 import io.ktor.utils.io.CancellationException
@@ -17,6 +18,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.launch
+import no.nav.emottak.ebms.AZURE_AD_AUTH
 import no.nav.emottak.ebms.CpaRepoClient
 import no.nav.emottak.ebms.EBMS_PAYLOAD_SCOPE
 import no.nav.emottak.ebms.EBMS_SEND_IN_SCOPE
@@ -33,6 +35,7 @@ import no.nav.emottak.ebms.async.processing.PayloadMessageProcessor
 import no.nav.emottak.ebms.async.processing.PayloadMessageResponder
 import no.nav.emottak.ebms.async.processing.SignalProcessor
 import no.nav.emottak.ebms.defaultHttpClient
+import no.nav.emottak.ebms.getPayloads
 import no.nav.emottak.ebms.persistence.Database
 import no.nav.emottak.ebms.persistence.ebmsDbConfig
 import no.nav.emottak.ebms.persistence.ebmsMigrationConfig
@@ -172,8 +175,8 @@ fun Application.ebmsProviderModule(
         registerPrometheusEndpoint(appMicrometerRegistry)
         registerNavCheckStatus()
 
-//        authenticate(AZURE_AD_AUTH) {
-//            getPayloads(payloadRepository)
-//        }
+        authenticate(AZURE_AD_AUTH) {
+            getPayloads(payloadRepository)
+        }
     }
 }
