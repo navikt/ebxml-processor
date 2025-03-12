@@ -51,10 +51,7 @@ data class Secret(val value: String) {
     override fun toString(): String = "****"
 }
 
-// Kopiert fra org.apache.kafka.clients.CommonClientConfigs, for å forhindre unødvendig stor avhengighet:
 const val SECURITY_PROTOCOL_CONFIG = "security.protocol"
-
-// Kopiert fra org.apache.kafka.common.config.SslConfigs, for å forhindre unødvendig stor avhengighet:
 const val SSL_KEYSTORE_TYPE_CONFIG = "ssl.keystore.type"
 const val SSL_KEYSTORE_LOCATION_CONFIG = "ssl.keystore.location"
 const val SSL_KEYSTORE_PASSWORD_CONFIG = "ssl.keystore.password"

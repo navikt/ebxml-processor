@@ -5,6 +5,7 @@ import no.nav.emottak.utils.config.toProperties
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
+import org.apache.kafka.common.serialization.ByteArraySerializer
 import org.apache.kafka.common.serialization.StringSerializer
 
 class KafkaPublisherClient(val topic: String, val config: Kafka) : AutoCloseable {
@@ -35,8 +36,9 @@ class KafkaPublisherClient(val topic: String, val config: Kafka) : AutoCloseable
 
     private fun createPublisher(): KafkaProducer<String, ByteArray> {
         val properties = config.toProperties().apply {
-            put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer())
-            put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer())
+            put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, config.bootstrapServers)
+            put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java.name)
+            put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer::class.java.name)
             put(ProducerConfig.ACKS_CONFIG, "all")
             // Performance
             put(ProducerConfig.BUFFER_MEMORY_CONFIG, "16777216")
