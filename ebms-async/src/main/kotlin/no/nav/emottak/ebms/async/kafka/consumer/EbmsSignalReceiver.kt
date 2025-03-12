@@ -30,6 +30,5 @@ suspend fun startSignalReceiver(topic: String, kafka: Kafka, signalProcessor: Si
         .receive(topic)
         .map { record ->
             signalProcessor.processSignal(record.key(), record.value())
-            record.offset.acknowledge()
         }.collect()
 }
