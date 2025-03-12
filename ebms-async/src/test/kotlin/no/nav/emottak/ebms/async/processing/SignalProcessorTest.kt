@@ -1,4 +1,4 @@
-package no.nav.emottak.ebms.processing
+package no.nav.emottak.ebms.async.processing
 
 import io.mockk.coEvery
 import io.mockk.every

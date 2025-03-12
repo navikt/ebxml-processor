@@ -167,4 +167,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "ebxml-processor"
-include("felles", "ebxml-processing-model", "cpa-repo", "ebms-provider", "ebms-payload", "emottak-utils")
+include("felles", "ebxml-processing-model", "cpa-repo", "ebms-provider", "ebms-payload", "emottak-utils", "ebms-async")

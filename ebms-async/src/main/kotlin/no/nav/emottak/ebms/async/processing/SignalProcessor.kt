@@ -1,8 +1,8 @@
-package no.nav.emottak.ebms.processing
+package no.nav.emottak.ebms.async.processing
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import no.nav.emottak.ebms.log
+import no.nav.emottak.ebms.async.log
 import no.nav.emottak.ebms.persistence.repository.EbmsMessageDetailsRepository
 import no.nav.emottak.ebms.util.marker
 import no.nav.emottak.ebms.validation.DokumentValidator

@@ -1,11 +1,11 @@
-package no.nav.emottak.ebms.messaging
+package no.nav.emottak.ebms.async.kafka.producer
 
 import io.github.nomisRev.kafka.Acks
 import io.github.nomisRev.kafka.ProducerSettings
 import io.github.nomisRev.kafka.kafkaProducer
 import kotlinx.coroutines.flow.Flow
-import no.nav.emottak.ebms.configuration.Kafka
-import no.nav.emottak.ebms.configuration.toProperties
+import no.nav.emottak.ebms.async.configuration.Kafka
+import no.nav.emottak.ebms.async.configuration.toProperties
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.serialization.ByteArraySerializer

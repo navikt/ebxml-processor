@@ -8,9 +8,7 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import no.nav.emottak.constants.SMTPHeaders
-import no.nav.emottak.ebms.model.saveEbmsMessage
 import no.nav.emottak.ebms.model.signer
-import no.nav.emottak.ebms.persistence.repository.EbmsMessageDetailsRepository
 import no.nav.emottak.ebms.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
@@ -37,8 +35,7 @@ private const val REFERENCE_ID = "referenceId"
 fun Route.postEbmsSync(
     validator: DokumentValidator,
     processingService: ProcessingService,
-    sendInService: SendInService,
-    ebmsMessageDetailsRepository: EbmsMessageDetailsRepository
+    sendInService: SendInService
 ): Route = post("/ebms/sync") {
     log.info("Receiving synchronous request")
 
@@ -72,7 +69,6 @@ fun Route.postEbmsSync(
     }
 
     val ebmsMessage = ebMSDocument.transform() as PayloadMessage
-    ebmsMessageDetailsRepository.saveEbmsMessage(ebmsMessage)
 
     var signingCertificate: SignatureDetails? = null
     try {

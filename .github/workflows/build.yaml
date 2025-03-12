@@ -1,5 +1,6 @@
 name: "Build and deploy (via build.yaml)"
 on:
+  workflow_dispatch: 
   push:
     branches:
       - main2
@@ -7,7 +8,7 @@ on:
 jobs:
   build:
     name: "build"
-    runs-on: "ubuntu-20.04"
+    runs-on: "ubuntu-latest"
     permissions:
       packages: write
       repository-projects: write
@@ -71,14 +72,26 @@ jobs:
           image_suffix: cpa-repo
           project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }} # required, but is defined as an organization variable
           identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }} # required, but is defined as an organization secret
+      - name: Docker build and push ebms-async
+        uses: nais/docker-build-push@v0
+        id: docker-push-ebms-async
+        with:
+          team: team-emottak # required
+          tag: ${{ github.sha }}
+          dockerfile: Dockerfile # optional, default Dockerfile
+          docker_context: ebms-async # optional, default .
+          image_suffix: ebms-async
+          project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }} # required, but is defined as an organization variable
+          identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }} # required, but is defined as an organization secret
     outputs:
       providerimage: ${{ steps.docker-push-ebms-provider.outputs.image }}
       payloadimage: ${{ steps.docker-push-ebms-payload.outputs.image }}
       cpaimage: ${{ steps.docker-push-cpa-repo.outputs.image }}
-  deploy-processor:
-    name: "Deploy ebms provider to dev"
+      asyncimage: ${{ steps.docker-push-ebms-async.outputs.image }}
+  deploy-async:
+    name: "Deploy ebms async to dev"
     needs: "build"
-    runs-on: "ubuntu-20.04"
+    runs-on: "ubuntu-latest"
     steps:
       - uses: "actions/checkout@v4"
       - name: "Deploy to DEV"
@@ -86,34 +99,48 @@ jobs:
         env:
           APIKEY: "${{ secrets.NAIS_DEPLOY_APIKEY }}"
           CLUSTER: "dev-fss"
-          RESOURCE: ".nais/ebms-provider-dev.yaml"
-          IMAGE: ${{ needs.build.outputs.providerimage }}
-          TELEMETRY: ${{ steps.docker-push-ebms-provider.outputs.telemetry }}
-  deploy-cpa-repo:
-    name: "Deploy cpa-repo to dev"
-    needs: "build"
-    runs-on: "ubuntu-20.04"
-    steps:
-      - uses: "actions/checkout@v4"
-      - name: "Deploy to DEV"
-        uses: "nais/deploy/actions/deploy@v1"
-        env:
-          APIKEY: "${{ secrets.NAIS_DEPLOY_APIKEY }}"
-          CLUSTER: "dev-fss"
-          RESOURCE: ".nais/cpa-repo-dev.yaml"
-          IMAGE: ${{ needs.build.outputs.cpaimage }}
-          TELEMETRY: ${{ steps.docker-push-cpa-repo.outputs.telemetry }}
-  deploy-ebms-payload:
-    name: "Deploy ebms-payload to dev"
-    needs: "build"
-    runs-on: "ubuntu-20.04"
-    steps:
-      - uses: "actions/checkout@v4"
-      - name: "Deploy to DEV"
-        uses: "nais/deploy/actions/deploy@v1"
-        env:
-          APIKEY: "${{ secrets.NAIS_DEPLOY_APIKEY }}"
-          CLUSTER: "dev-fss"
-          RESOURCE: ".nais/ebms-payload-dev.yaml"
-          IMAGE: ${{ needs.build.outputs.payloadimage }}
-          TELEMETRY: ${{ steps.docker-push-ebms-payload.outputs.telemetry }}
+          RESOURCE: ".nais/ebms-async-dev.yaml"
+          IMAGE: ${{ needs.build.outputs.asyncimage }}
+          TELEMETRY: ${{ steps.docker-push-ebms-async.outputs.telemetry }}
+#  deploy-processor:
+#    name: "Deploy ebms provider to dev"
+#    needs: "build"
+#    runs-on: "ubuntu-latest"
+#    steps:
+#      - uses: "actions/checkout@v4"
+#      - name: "Deploy to DEV"
+#        uses: "nais/deploy/actions/deploy@v1"
+#        env:
+#          APIKEY: "${{ secrets.NAIS_DEPLOY_APIKEY }}"
+#          CLUSTER: "dev-fss"
+#          RESOURCE: ".nais/ebms-provider-dev.yaml"
+#          IMAGE: ${{ needs.build.outputs.providerimage }}
+#          TELEMETRY: ${{ steps.docker-push-ebms-provider.outputs.telemetry }}
+#  deploy-cpa-repo:
+#    name: "Deploy cpa-repo to dev"
+#    needs: "build"
+#    runs-on: "ubuntu-latest"
+#    steps:
+#      - uses: "actions/checkout@v4"
+#      - name: "Deploy to DEV"
+#        uses: "nais/deploy/actions/deploy@v1"
+#        env:
+#          APIKEY: "${{ secrets.NAIS_DEPLOY_APIKEY }}"
+#          CLUSTER: "dev-fss"
+#          RESOURCE: ".nais/cpa-repo-dev.yaml"
+#          IMAGE: ${{ needs.build.outputs.cpaimage }}
+#          TELEMETRY: ${{ steps.docker-push-cpa-repo.outputs.telemetry }}
+#  deploy-ebms-payload:
+#    name: "Deploy ebms-payload to dev"
+#    needs: "build"
+#    runs-on: "ubuntu-latest"
+#    steps:
+#      - uses: "actions/checkout@v4"
+#      - name: "Deploy to DEV"
+#        uses: "nais/deploy/actions/deploy@v1"
+#        env:
+#          APIKEY: "${{ secrets.NAIS_DEPLOY_APIKEY }}"
+#          CLUSTER: "dev-fss"
+#          RESOURCE: ".nais/ebms-payload-dev.yaml"
+#          IMAGE: ${{ needs.build.outputs.payloadimage }}
+#          TELEMETRY: ${{ steps.docker-push-ebms-payload.outputs.telemetry }}
