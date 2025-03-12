@@ -95,7 +95,7 @@ jobs:
     steps:
       - uses: "actions/checkout@v4"
       - name: "Deploy to DEV"
-        uses: "nais/deploy/actions/deploy@v1"
+        uses: "nais/deploy/actions/deploy@v2"
         env:
           APIKEY: "${{ secrets.NAIS_DEPLOY_APIKEY }}"
           CLUSTER: "dev-fss"
@@ -109,7 +109,7 @@ jobs:
     steps:
       - uses: "actions/checkout@v4"
       - name: "Deploy to DEV"
-        uses: "nais/deploy/actions/deploy@v1"
+        uses: "nais/deploy/actions/deploy@v2"
         env:
           APIKEY: "${{ secrets.NAIS_DEPLOY_APIKEY }}"
           CLUSTER: "dev-fss"
