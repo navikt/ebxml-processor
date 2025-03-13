@@ -2,14 +2,12 @@ package no.nav.emottak.ebms.async.persistence
 
 import com.bettercloud.vault.response.LogicalResponse
 import com.zaxxer.hikari.HikariConfig
-import no.nav.emottak.ebms.log
+import no.nav.emottak.ebms.async.log
 import no.nav.emottak.utils.getEnvVar
 import no.nav.vault.jdbc.hikaricp.HikariCPVaultUtil
 import no.nav.vault.jdbc.hikaricp.VaultUtil
 
 const val EBMS_DB_NAME = "emottak-ebms-db"
-
-private val cluster = getEnvVar("NAIS_CLUSTER_NAME")
 
 val ebmsDbConfig = lazy { VaultConfig().configure("user") } // TODO: Opprette configurasjon for lokal database
 
