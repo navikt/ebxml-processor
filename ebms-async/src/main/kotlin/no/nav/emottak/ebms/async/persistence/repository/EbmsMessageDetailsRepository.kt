@@ -1,23 +1,27 @@
-package no.nav.emottak.ebms.persistence.repository
+package no.nav.emottak.ebms.async.persistence.repository
 
-import no.nav.emottak.ebms.persistence.Database
-import no.nav.emottak.ebms.persistence.table.EbmsMessageDetailsTable
-import no.nav.emottak.ebms.persistence.table.EbmsMessageDetailsTable.action
-import no.nav.emottak.ebms.persistence.table.EbmsMessageDetailsTable.conversationId
-import no.nav.emottak.ebms.persistence.table.EbmsMessageDetailsTable.cpaId
-import no.nav.emottak.ebms.persistence.table.EbmsMessageDetailsTable.createdAt
-import no.nav.emottak.ebms.persistence.table.EbmsMessageDetailsTable.fromPartyId
-import no.nav.emottak.ebms.persistence.table.EbmsMessageDetailsTable.fromRole
-import no.nav.emottak.ebms.persistence.table.EbmsMessageDetailsTable.messageId
-import no.nav.emottak.ebms.persistence.table.EbmsMessageDetailsTable.refToMessageId
-import no.nav.emottak.ebms.persistence.table.EbmsMessageDetailsTable.sentAt
-import no.nav.emottak.ebms.persistence.table.EbmsMessageDetailsTable.service
-import no.nav.emottak.ebms.persistence.table.EbmsMessageDetailsTable.toPartyId
-import no.nav.emottak.ebms.persistence.table.EbmsMessageDetailsTable.toRole
+import no.nav.emottak.ebms.async.persistence.Database
+import no.nav.emottak.ebms.async.persistence.table.EbmsMessageDetailsTable
+import no.nav.emottak.ebms.async.persistence.table.EbmsMessageDetailsTable.action
+import no.nav.emottak.ebms.async.persistence.table.EbmsMessageDetailsTable.conversationId
+import no.nav.emottak.ebms.async.persistence.table.EbmsMessageDetailsTable.cpaId
+import no.nav.emottak.ebms.async.persistence.table.EbmsMessageDetailsTable.createdAt
+import no.nav.emottak.ebms.async.persistence.table.EbmsMessageDetailsTable.fromPartyId
+import no.nav.emottak.ebms.async.persistence.table.EbmsMessageDetailsTable.fromRole
+import no.nav.emottak.ebms.async.persistence.table.EbmsMessageDetailsTable.messageId
+import no.nav.emottak.ebms.async.persistence.table.EbmsMessageDetailsTable.refToMessageId
+import no.nav.emottak.ebms.async.persistence.table.EbmsMessageDetailsTable.sentAt
+import no.nav.emottak.ebms.async.persistence.table.EbmsMessageDetailsTable.service
+import no.nav.emottak.ebms.async.persistence.table.EbmsMessageDetailsTable.toPartyId
+import no.nav.emottak.ebms.async.persistence.table.EbmsMessageDetailsTable.toRole
+import no.nav.emottak.ebms.util.marker
+import no.nav.emottak.message.model.EbmsMessage
 import no.nav.emottak.message.model.EbmsMessageDetails
+import no.nav.emottak.message.model.toEbmsMessageDetails
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.upsert
+import org.slf4j.LoggerFactory
 import java.sql.SQLException
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -26,6 +30,8 @@ import kotlin.uuid.toKotlinUuid
 
 @OptIn(ExperimentalUuidApi::class)
 class EbmsMessageDetailsRepository(private val database: Database) {
+
+    private val log = LoggerFactory.getLogger(EbmsMessageDetailsRepository::class.java)
 
     val unsupportedServices = listOf(
         "HarBorgerFrikort",
@@ -119,6 +125,27 @@ class EbmsMessageDetailsRepository(private val database: Database) {
             updateOrInsert(messageDetails)
         } else {
             null
+        }
+    }
+
+    @OptIn(ExperimentalUuidApi::class)
+    fun saveEbmsMessage(
+        ebmsMessage: EbmsMessage
+    ) {
+        val markers = ebmsMessage.marker()
+        try {
+            this.saveEbmsMessageDetails(ebmsMessage.toEbmsMessageDetails()).also {
+                if (it == null) {
+                    log.info(markers, "Message details has not been saved to database")
+                } else {
+                    log.info(markers, "Message details saved to database")
+                }
+            }
+        } catch (ex: SQLException) {
+            val hint = this.handleSQLException(ex)
+            log.error(markers, "SQL exception ${ex.sqlState} occurred while saving message details to database: $hint", ex)
+        } catch (ex: Exception) {
+            log.error(markers, "Error occurred while saving message details to database", ex)
         }
     }
 

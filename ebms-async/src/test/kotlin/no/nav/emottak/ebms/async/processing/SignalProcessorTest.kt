@@ -4,7 +4,7 @@ import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
-import no.nav.emottak.ebms.persistence.repository.EbmsMessageDetailsRepository
+import no.nav.emottak.ebms.async.persistence.repository.EbmsMessageDetailsRepository
 import no.nav.emottak.ebms.validation.DokumentValidator
 import no.nav.emottak.message.model.EbmsMessageDetails
 import no.nav.emottak.message.model.ValidationResult

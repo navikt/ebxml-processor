@@ -1,9 +1,9 @@
-package no.nav.emottak.ebms.persistence.repository
+package no.nav.emottak.ebms.async.persistence.repository
 
-import no.nav.emottak.ebms.persistence.Database
-import no.nav.emottak.ebms.persistence.table.PayloadTable
-import no.nav.emottak.ebms.persistence.table.PayloadTable.contentId
-import no.nav.emottak.ebms.persistence.table.PayloadTable.referenceId
+import no.nav.emottak.ebms.async.persistence.Database
+import no.nav.emottak.ebms.async.persistence.table.PayloadTable
+import no.nav.emottak.ebms.async.persistence.table.PayloadTable.contentId
+import no.nav.emottak.ebms.async.persistence.table.PayloadTable.referenceId
 import no.nav.emottak.message.model.AsyncPayload
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.upsert

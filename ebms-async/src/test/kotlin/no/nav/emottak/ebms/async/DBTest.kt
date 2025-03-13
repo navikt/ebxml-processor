@@ -1,17 +1,17 @@
-package no.nav.emottak.ebms
+package no.nav.emottak.ebms.async
 
 import com.zaxxer.hikari.HikariConfig
-import no.nav.emottak.cpa.persistence.CPA_DB_NAME
+import no.nav.emottak.ebms.async.persistence.EBMS_DB_NAME
 import org.testcontainers.containers.PostgreSQLContainer
 
-fun cpaPostgres(): PostgreSQLContainer<Nothing> =
+fun ebmsPostgres(): PostgreSQLContainer<Nothing> =
     PostgreSQLContainer<Nothing>("postgres:15").apply {
-        withUsername("$CPA_DB_NAME-admin")
+        withUsername("$EBMS_DB_NAME-admin")
         withReuse(true)
-        withLabel("app-navn", "cpa-repo")
+        withLabel("app-navn", "ebms-provider")
         start()
         println(
-            "CPA-databasen er startet opp, portnummer: $firstMappedPort, jdbcUrl: jdbc:postgresql://localhost:$firstMappedPort/test, credentials: test og test"
+            "EBMS-databasen er startet opp, portnummer: $firstMappedPort, jdbcUrl: jdbc:postgresql://localhost:$firstMappedPort/test, credentials: test og test"
         )
     }
 

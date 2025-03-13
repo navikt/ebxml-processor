@@ -16,11 +16,9 @@ import io.ktor.server.testing.testApplication
 import io.ktor.utils.io.core.toByteArray
 import io.mockk.every
 import io.mockk.mockk
-import no.nav.emottak.ebms.AZURE_AD_AUTH
-import no.nav.emottak.ebms.AuthConfig
 import no.nav.emottak.ebms.async.kafka.KafkaTestContainer
+import no.nav.emottak.ebms.async.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.configuration.config
-import no.nav.emottak.ebms.persistence.repository.PayloadRepository
 import no.nav.emottak.message.ebxml.acknowledgment
 import no.nav.emottak.message.ebxml.messageHeader
 import no.nav.emottak.message.model.AsyncPayload

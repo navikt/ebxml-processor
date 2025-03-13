@@ -31,6 +31,8 @@ import java.net.InetSocketAddress
 import java.net.Proxy
 import java.net.URI
 
+const val AZURE_AD_AUTH = "AZURE_AD"
+
 class CpaRepoClient(clientProvider: () -> HttpClient) {
     private var httpClient = clientProvider.invoke()
     private val cpaRepoEndpoint = getEnvVar("CPA_REPO_URL", "http://cpa-repo.team-emottak.svc.nais.local")

@@ -1,4 +1,4 @@
-package no.nav.emottak.ebms.persistence
+package no.nav.emottak.ebms.async.persistence
 
 import com.bettercloud.vault.response.LogicalResponse
 import com.zaxxer.hikari.HikariConfig

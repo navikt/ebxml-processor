@@ -1,4 +1,4 @@
-package no.nav.emottak.ebms
+package no.nav.emottak.ebms.async
 
 import no.nav.emottak.utils.getEnvVar
 import no.nav.security.token.support.v3.IssuerConfig
@@ -6,8 +6,8 @@ import no.nav.security.token.support.v3.TokenSupportConfig
 
 const val AZURE_AD_AUTH = "AZURE_AD"
 
-private const val appName = "ebms-provider"
-private const val appScopeProperty = "EBMS_PROVIDER_SCOPE"
+private const val appName = "ebms-async"
+private const val appScopeProperty = "EBMS_ASYNC_SCOPE"
 
 class AuthConfig {
 

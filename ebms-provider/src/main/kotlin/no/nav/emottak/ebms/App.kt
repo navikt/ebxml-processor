@@ -74,7 +74,6 @@ fun Application.ebmsProviderModule(
     installMicrometerRegistry(appMicrometerRegistry)
     installRequestTimerPlugin()
     installContentNegotiation()
-    installAuthentication()
 
     routing {
         registerRootEndpoint()

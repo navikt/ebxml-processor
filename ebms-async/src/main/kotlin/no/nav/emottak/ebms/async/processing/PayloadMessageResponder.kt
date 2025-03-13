@@ -2,11 +2,10 @@ package no.nav.emottak.ebms.async.processing
 
 import io.ktor.http.ContentType
 import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
+import no.nav.emottak.ebms.async.persistence.repository.EbmsMessageDetailsRepository
+import no.nav.emottak.ebms.async.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.log
-import no.nav.emottak.ebms.model.saveEbmsMessage
 import no.nav.emottak.ebms.model.signer
-import no.nav.emottak.ebms.persistence.repository.EbmsMessageDetailsRepository
-import no.nav.emottak.ebms.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.util.marker

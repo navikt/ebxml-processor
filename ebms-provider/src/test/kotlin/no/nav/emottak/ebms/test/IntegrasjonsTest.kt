@@ -22,7 +22,6 @@ import no.nav.emottak.ebms.PayloadProcessingClient
 import no.nav.emottak.ebms.SendInClient
 import no.nav.emottak.ebms.cpaPostgres
 import no.nav.emottak.ebms.defaultHttpClient
-import no.nav.emottak.ebms.ebmsPostgres
 import no.nav.emottak.ebms.ebmsProviderModule
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.scopedAuthHttpClient
@@ -38,7 +37,6 @@ import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.testcontainers.containers.PostgreSQLContainer
 import no.nav.emottak.cpa.persistence.Database as CpaDatabase
-import no.nav.emottak.ebms.persistence.Database as EbmsDatabase
 
 open class EndToEndTest {
     companion object {
@@ -50,8 +48,6 @@ open class EndToEndTest {
 
         // TODO Start mailserver og payload processor
         val cpaRepoDbContainer: PostgreSQLContainer<Nothing>
-        val ebmsProviderDbContainer: PostgreSQLContainer<Nothing>
-        lateinit var ebmsProviderDb: EbmsDatabase
         lateinit var ebmsProviderServer: ApplicationEngine
         lateinit var cpaRepoServer: ApplicationEngine
         lateinit var dokumentValidator: DokumentValidator
@@ -59,7 +55,6 @@ open class EndToEndTest {
         lateinit var sendInService: SendInService
         init {
             cpaRepoDbContainer = cpaPostgres()
-            ebmsProviderDbContainer = ebmsPostgres()
         }
 
         @JvmStatic
@@ -68,10 +63,6 @@ open class EndToEndTest {
             System.setProperty("CPA_REPO_URL", cpaRepoUrl)
             cpaRepoDbContainer.start()
             val cpaRepoDb = CpaDatabase(cpaRepoDbContainer.testConfiguration())
-
-            ebmsProviderDbContainer.start()
-            ebmsProviderDb = EbmsDatabase(ebmsProviderDbContainer.testConfiguration())
-            ebmsProviderDb.migrate(ebmsProviderDb.dataSource)
 
             val processingClient = PayloadProcessingClient(scopedAuthHttpClient(EBMS_PAYLOAD_SCOPE))
             processingService = ProcessingService(processingClient)

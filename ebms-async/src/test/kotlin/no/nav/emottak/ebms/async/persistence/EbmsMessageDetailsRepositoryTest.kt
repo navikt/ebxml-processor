@@ -1,8 +1,8 @@
-package no.nav.emottak.ebms.persistence
+package no.nav.emottak.ebms.async.persistence
 
-import no.nav.emottak.ebms.ebmsPostgres
-import no.nav.emottak.ebms.persistence.repository.EbmsMessageDetailsRepository
-import no.nav.emottak.ebms.testConfiguration
+import no.nav.emottak.ebms.async.ebmsPostgres
+import no.nav.emottak.ebms.async.persistence.repository.EbmsMessageDetailsRepository
+import no.nav.emottak.ebms.async.testConfiguration
 import no.nav.emottak.message.model.Addressing
 import no.nav.emottak.message.model.Party
 import no.nav.emottak.message.model.PartyId

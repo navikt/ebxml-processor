@@ -1,4 +1,4 @@
-package no.nav.emottak.ebms.persistence
+package no.nav.emottak.ebms.async.persistence
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource

@@ -1,4 +1,4 @@
-package no.nav.emottak.ebms.persistence.table
+package no.nav.emottak.ebms.async.persistence.table
 
 import org.jetbrains.exposed.sql.Column
 import org.jetbrains.exposed.sql.Table

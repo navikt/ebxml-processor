@@ -7,8 +7,6 @@ import io.ktor.server.auth.Authentication
 import io.ktor.server.metrics.micrometer.MicrometerMetrics
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
-import no.nav.emottak.ebms.AZURE_AD_AUTH
-import no.nav.emottak.ebms.AuthConfig
 import no.nav.security.token.support.v3.tokenValidationSupport
 
 internal fun Application.installMicrometerRegistry(appMicrometerRegistry: PrometheusMeterRegistry) {
