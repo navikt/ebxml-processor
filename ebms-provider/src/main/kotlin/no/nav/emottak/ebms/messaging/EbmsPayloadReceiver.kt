@@ -29,7 +29,7 @@ suspend fun startPayloadReceiver(topic: String, kafka: Kafka, payloadMessageProc
     KafkaReceiver(receiverSettings)
         .receive(topic)
         .map { record ->
-            payloadMessageProcessor.process(record.key(), record.value())
+            payloadMessageProcessor.process(record)
             record.offset.acknowledge()
         }.collect()
 }

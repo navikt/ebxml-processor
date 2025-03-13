@@ -1,5 +1,6 @@
 package no.nav.emottak.ebms
 
+import arrow.fx.coroutines.resourceScope
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.header
@@ -7,11 +8,18 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import no.nav.emottak.constants.SMTPHeaders
+import no.nav.emottak.ebms.configuration.config
+import no.nav.emottak.ebms.messaging.failedMessageQueue
+import no.nav.emottak.ebms.messaging.getRecord
 import no.nav.emottak.ebms.model.saveEbmsMessage
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.persistence.repository.EbmsMessageDetailsRepository
 import no.nav.emottak.ebms.persistence.repository.PayloadRepository
+import no.nav.emottak.ebms.processing.PayloadMessageProcessor
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.util.marker
@@ -137,6 +145,41 @@ fun Route.postEbmsSync(
             HttpStatusCode.InternalServerError,
             ex.parseAsSoapFault()
         )
+    }
+}
+
+private const val RETRY_LIMIT = "retrycount"
+
+@OptIn(ExperimentalUuidApi::class)
+fun Route.retryErrors(
+    payloadMessageProcessorProvider: () -> PayloadMessageProcessor
+): Route = get("/api/retry/{$RETRY_LIMIT}") {
+    resourceScope {
+        CoroutineScope(Dispatchers.IO).launch {
+            if (config().kafkaErrorQueue.active) {
+                failedMessageQueue.receive(
+                    payloadMessageProcessorProvider.invoke(),
+                    limit = (call.parameters[RETRY_LIMIT] as String).toInt()
+                )
+            }
+        }
+    }
+}
+
+private const val KAFKA_OFFSET = "offset"
+
+fun Route.simulateError(): Route = get("/api/forceretry/{$KAFKA_OFFSET}") {
+    resourceScope {
+        CoroutineScope(Dispatchers.IO).launch {
+            if (config().kafkaErrorQueue.active) {
+                val record = getRecord(
+                    config().kafkaPayloadReceiver.topic,
+                    config().kafka,
+                    (call.parameters[KAFKA_OFFSET] as String).toLong()
+                )
+                failedMessageQueue.send(record = record)
+            }
+        }
     }
 }
 

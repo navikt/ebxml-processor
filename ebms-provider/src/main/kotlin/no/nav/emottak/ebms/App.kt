@@ -37,6 +37,7 @@ import no.nav.emottak.ebms.processing.SignalProcessor
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.DokumentValidator
 import no.nav.emottak.utils.getEnvVar
+import no.nav.emottak.utils.isProdEnv
 import org.slf4j.LoggerFactory
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.App")
@@ -79,6 +80,16 @@ fun main() = SuspendApp {
 
     result {
         resourceScope {
+            val payloadMessageProcessorProvider =
+                payloadMessageProcessorProvider(
+                    ebmsMessageDetailsRepository,
+                    eventsRepository,
+                    dokumentValidator,
+                    processingService,
+                    ebmsSignalProducer,
+                    smtpTransportClient,
+                    payloadMessageResponder
+                )
             launchSignalReceiver(
                 config,
                 ebmsMessageDetailsRepository,
@@ -86,13 +97,7 @@ fun main() = SuspendApp {
             )
             launchPayloadReceiver(
                 config,
-                ebmsMessageDetailsRepository,
-                eventsRepository,
-                dokumentValidator,
-                processingService,
-                ebmsSignalProducer,
-                smtpTransportClient,
-                payloadMessageResponder
+                payloadMessageProcessorProvider
             )
 
             server(
@@ -104,7 +109,8 @@ fun main() = SuspendApp {
                         processingService,
                         sendInService,
                         ebmsMessageDetailsRepository,
-                        payloadRepository
+                        payloadRepository,
+                        payloadMessageProcessorProvider
                     )
                 }
             ).also { it.engineConfig.maxChunkSize = 100000 }
@@ -120,8 +126,7 @@ fun main() = SuspendApp {
         }
 }
 
-private fun CoroutineScope.launchPayloadReceiver(
-    config: Config,
+fun payloadMessageProcessorProvider(
     ebmsMessageDetailsRepository: EbmsMessageDetailsRepository,
     eventsRepository: EventsRepository,
     dokumentValidator: DokumentValidator,
@@ -129,19 +134,30 @@ private fun CoroutineScope.launchPayloadReceiver(
     ebmsSignalProducer: EbmsMessageProducer,
     smtpTransportClient: SmtpTransportClient,
     payloadMessageResponder: PayloadMessageResponder
+
+): () -> PayloadMessageProcessor = {
+    PayloadMessageProcessor(
+        ebmsMessageDetailsRepository = ebmsMessageDetailsRepository,
+        eventsRepository = eventsRepository,
+        validator = dokumentValidator,
+        processingService = processingService,
+        ebmsSignalProducer = ebmsSignalProducer,
+        smtpTransportClient = smtpTransportClient,
+        payloadMessageResponder
+    )
+}
+
+private fun CoroutineScope.launchPayloadReceiver(
+    config: Config,
+    payloadMessageProcessorProvider: () -> PayloadMessageProcessor
 ) {
     if (config.kafkaPayloadReceiver.active) {
         launch(Dispatchers.IO) {
-            val payloadMessageProcessor = PayloadMessageProcessor(
-                ebmsMessageDetailsRepository = ebmsMessageDetailsRepository,
-                eventsRepository = eventsRepository,
-                validator = dokumentValidator,
-                processingService = processingService,
-                ebmsSignalProducer = ebmsSignalProducer,
-                smtpTransportClient = smtpTransportClient,
-                payloadMessageResponder = payloadMessageResponder
+            startPayloadReceiver(
+                config.kafkaPayloadReceiver.topic,
+                config.kafka,
+                payloadMessageProcessorProvider.invoke()
             )
-            startPayloadReceiver(config.kafkaPayloadReceiver.topic, config.kafka, payloadMessageProcessor)
         }
     }
 }
@@ -167,7 +183,8 @@ fun Application.ebmsProviderModule(
     processing: ProcessingService,
     sendInService: SendInService,
     ebmsMessageDetailsRepository: EbmsMessageDetailsRepository,
-    payloadRepository: PayloadRepository
+    payloadRepository: PayloadRepository,
+    payloadMessageProcessorProvider: () -> PayloadMessageProcessor
 ) {
     val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
 
@@ -183,7 +200,10 @@ fun Application.ebmsProviderModule(
         registerNavCheckStatus()
 
         postEbmsSync(validator, processing, sendInService, ebmsMessageDetailsRepository)
-
+        retryErrors(payloadMessageProcessorProvider)
+        if (!isProdEnv()) {
+            simulateError()
+        }
         authenticate(AZURE_AD_AUTH) {
             getPayloads(payloadRepository)
         }
