@@ -1,4 +1,4 @@
-package no.nav.emottak.ebms.kafka
+package no.nav.emottak.ebms.async.kafka
 
 import org.apache.kafka.clients.admin.AdminClient
 import org.apache.kafka.clients.admin.AdminClientConfig

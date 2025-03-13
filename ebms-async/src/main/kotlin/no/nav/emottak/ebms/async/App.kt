@@ -35,7 +35,6 @@ import no.nav.emottak.ebms.async.processing.PayloadMessageProcessor
 import no.nav.emottak.ebms.async.processing.PayloadMessageResponder
 import no.nav.emottak.ebms.async.processing.SignalProcessor
 import no.nav.emottak.ebms.defaultHttpClient
-import no.nav.emottak.ebms.getPayloads
 import no.nav.emottak.ebms.persistence.Database
 import no.nav.emottak.ebms.persistence.ebmsDbConfig
 import no.nav.emottak.ebms.persistence.ebmsMigrationConfig

@@ -1,12 +1,9 @@
 package no.nav.emottak.ebms
 
-import com.nimbusds.jwt.SignedJWT
 import io.ktor.client.request.post
 import io.ktor.client.statement.bodyAsText
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.install
-import io.ktor.server.auth.Authentication
-import io.ktor.server.auth.authenticate
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.response.respond
 import io.ktor.server.routing.post
@@ -15,10 +12,6 @@ import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import io.mockk.coVerify
 import io.mockk.mockk
-import no.nav.emottak.ebms.configuration.config
-import no.nav.emottak.ebms.kafka.KafkaTestContainer
-import no.nav.emottak.ebms.persistence.repository.EbmsMessageDetailsRepository
-import no.nav.emottak.ebms.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.DokumentValidator
@@ -34,13 +27,9 @@ import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.message.xml.xmlMarshaller
 import no.nav.emottak.util.decodeBase64
 import no.nav.emottak.utils.getEnvVar
-import no.nav.security.mock.oauth2.MockOAuth2Server
-import no.nav.security.token.support.v3.tokenValidationSupport
 import org.apache.xml.security.algorithms.MessageDigestAlgorithm
 import org.apache.xml.security.signature.XMLSignature
-import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions
-import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ErrorList
 import org.xmlsoap.schemas.soap.envelope.Envelope
@@ -49,8 +38,6 @@ abstract class EbmsRoutFellesIT(val endpoint: String) {
 
     val validMultipartRequest = validMultipartRequest()
     val processingService = mockk<ProcessingService>()
-    val ebmsMessageDetailsRepository = mockk<EbmsMessageDetailsRepository>()
-    val payloadRepository = mockk<PayloadRepository>()
     val mockProcessConfig = ProcessConfig(
         true,
         true,
@@ -79,15 +66,8 @@ abstract class EbmsRoutFellesIT(val endpoint: String) {
                 json()
             }
 
-            install(Authentication) {
-                tokenValidationSupport(AZURE_AD_AUTH, AuthConfig.getTokenSupportConfig())
-            }
-
             routing {
                 postEbmsSync(dokumentValidator, processingService, SendInService(sendInClient))
-                authenticate(AZURE_AD_AUTH) {
-                    getPayloads(payloadRepository)
-                }
             }
         }
         externalServices {
@@ -132,36 +112,6 @@ abstract class EbmsRoutFellesIT(val endpoint: String) {
         client.post("/ebms/sync", multipart.asHttpRequest())
         coVerify(exactly = 1) {
             processingService.processSyncIn(any(), any())
-        }
-    }
-
-    protected fun getToken(audience: String = AuthConfig.getScope()): SignedJWT = mockOAuth2Server!!.issueToken(
-        issuerId = AZURE_AD_AUTH,
-        audience = audience,
-        subject = "testUser"
-    )
-
-    companion object {
-        protected var mockOAuth2Server: MockOAuth2Server? = null
-
-        @JvmStatic
-        @BeforeAll
-        fun setup() {
-            println("=== Kafka Test Container ===")
-            KafkaTestContainer.start()
-            System.setProperty("KAFKA_BROKERS", KafkaTestContainer.bootstrapServers)
-
-            KafkaTestContainer.createTopic(config().kafkaSignalProducer.topic)
-
-            println("=== Initializing MockOAuth2Server ===")
-            mockOAuth2Server = MockOAuth2Server().also { it.start(port = 3344) }
-        }
-
-        @JvmStatic
-        @AfterAll
-        fun tearDown() {
-            KafkaTestContainer.stop()
-            mockOAuth2Server?.shutdown()
         }
     }
 }

@@ -36,7 +36,6 @@ class CpaRepoClient(clientProvider: () -> HttpClient) {
     private val cpaRepoEndpoint = getEnvVar("CPA_REPO_URL", "http://cpa-repo.team-emottak.svc.nais.local")
 
     suspend fun postValidate(requestId: String, validationRequest: ValidationRequest): ValidationResult {
-        log.debug("CPA endepunkt: $cpaRepoEndpoint/cpa/validate/$requestId")
         return httpClient.post("$cpaRepoEndpoint/cpa/validate/$requestId") {
             setBody(validationRequest)
             contentType(ContentType.Application.Json)
