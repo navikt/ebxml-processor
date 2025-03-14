@@ -35,7 +35,7 @@ tasks {
 dependencies {
     implementation(project(":felles"))
     implementation(project(":ebxml-processing-model"))
-    implementation("no.nav.emottak:emottak-utils:0.0.6")
+    implementation("no.nav.emottak:emottak-utils:0.0.7")
     implementation(libs.arrow.core)
     implementation(libs.arrow.fx.coroutines)
     implementation(libs.arrow.resilience)
