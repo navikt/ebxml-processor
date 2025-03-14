@@ -57,5 +57,3 @@ spec:
     - access: read
       application: emottak-kafka-manager
       team: team-emottak
-
----
