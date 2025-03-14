@@ -53,7 +53,7 @@ class KafkaPublisherClientTest {
         Assertions.assertEquals("Event 2", lastEvent.eventData)
     }
 
-    // @Test
+    @Test
     fun `Legg 1 melding på Kafka`() {
         kafkaConsumer.subscribe(listOf(TOPIC))
         runBlocking {
@@ -83,6 +83,7 @@ class KafkaPublisherClientTest {
             println("Feilet med å lese fra Kafka-kø: $e")
             return emptyList()
         } finally {
+            kafkaConsumer.commitSync()
             kafkaConsumer.unsubscribe()
         }
     }
@@ -111,13 +112,10 @@ class KafkaPublisherClientTest {
 
         private fun kafkaSettings(bootstrapServers: String) = Kafka(
             bootstrapServers,
-            // securityProtocol = SecurityProtocol("SSL"),
             securityProtocol = SecurityProtocol("PLAINTEXT"),
-            // keystoreType = KeystoreType("PKCS12"),
             keystoreType = KeystoreType(""),
             keystoreLocation = KeystoreLocation(""),
             keystorePassword = Masked(""),
-            // truststoreType = TruststoreType("JKS"),
             truststoreType = TruststoreType(""),
             truststoreLocation = TruststoreLocation(""),
             truststorePassword = Masked(""),
@@ -129,7 +127,6 @@ class KafkaPublisherClientTest {
                 Properties().apply {
                     put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
                     put(ConsumerConfig.GROUP_ID_CONFIG, "ebms-provider")
-                    // put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, true)
                     put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
                     put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer::class.java.name)
                     put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
