@@ -23,6 +23,8 @@ data class EventMessageDetails(
     val toRole: String? = null,
     val service: String,
     val action: String,
+    val refParam: String? = null,
+    val sender: String? = null,
     @Serializable(with = InstantSerializer::class)
     val sentAt: Instant? = null
 ) {
