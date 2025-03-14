@@ -1,8 +1,7 @@
-package no.nav.emottak.utils.kafka
+package no.nav.emottak.ebms.async.kafka
 
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
-import no.nav.emottak.ebms.kafka.KafkaTestContainer
 import no.nav.emottak.utils.config.Kafka
 import no.nav.emottak.utils.config.KeystoreLocation
 import no.nav.emottak.utils.config.KeystoreType
@@ -12,6 +11,7 @@ import no.nav.emottak.utils.config.TruststoreLocation
 import no.nav.emottak.utils.config.TruststoreType
 import no.nav.emottak.utils.events.model.Event
 import no.nav.emottak.utils.events.model.EventType
+import no.nav.emottak.utils.kafka.KafkaPublisherClient
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.consumer.KafkaConsumer
