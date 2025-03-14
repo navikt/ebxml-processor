@@ -13,6 +13,7 @@ plugins {
 tasks {
 
     shadowJar {
+        isZip64 = true
         archiveFileName.set("app.jar")
     }
     test {

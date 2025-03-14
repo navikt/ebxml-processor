@@ -10,9 +10,6 @@ tasks {
     ktlintFormat {
         this.enabled = true
     }
-    test {
-        useJUnitPlatform()
-    }
 }
 
 publishing {
@@ -20,7 +17,7 @@ publishing {
         create<MavenPublication>("mavenJava") {
             groupId = "no.nav.emottak"
             artifactId = "emottak-utils"
-            version = "0.0.6"
+            version = "0.0.7"
             from(components["java"])
         }
     }
