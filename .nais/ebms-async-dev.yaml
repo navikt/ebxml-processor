@@ -60,6 +60,7 @@ spec:
       rules:
         - application: cpa-repo
         - application: ebms-payload
+        - application: ebms-send-in
         - application: smtp-transport
     inbound:
       rules:

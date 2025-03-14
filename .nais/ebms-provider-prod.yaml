@@ -58,12 +58,11 @@ spec:
       rules:
         - application: statuspoll
           namespace: navdig
-        - application: smtp-transport
     outbound:
       rules:
         - application: cpa-repo
         - application: ebms-payload
-        - application: smtp-transport
+        - application: ebms-send-in
   env:
     - name: VIRKSOMHETSSERTIFIKAT_PATH
       value: /secret/virksomhetssertifikat/prod/Arbeids-og-velferdsetaten
@@ -73,12 +72,6 @@ spec:
       value: key.decrypt.p12.b64.2022
     - name: VIRKSOMHETSSERTIFIKAT_CREDENTIALS
       value: credentials.2022
-    - name: MAX_CONNECTION_POOL_SIZE_FOR_USER
-      value: "4"
-    - name: MAX_CONNECTION_POOL_SIZE_FOR_ADMIN
-      value: "2"
-    - name: VAULT_JDBC_URL
-      value: jdbc:postgresql://A01DBVL037.adeo.no:5432/
     - name: CPA_REPO_URL
       value: http://cpa-repo.team-emottak.svc.nais.local
     - name: PAYLOAD_PROCESSOR_URL
