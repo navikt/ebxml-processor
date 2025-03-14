@@ -51,6 +51,7 @@ spec:
     inbound:
       rules:
         - application: ebms-provider
+        - application: ebms-async
   vault:
     enabled: true
     paths:
