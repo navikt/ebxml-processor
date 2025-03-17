@@ -21,7 +21,7 @@ dependencyResolutionManagement {
             version("cxf", "3.5.5")
             version("arrow", "1.2.4")
             version("suspendapp", "0.5.0")
-            version("kotlin-kafka", "0.3.1")
+            version("kotlin-kafka", "0.4.1")
             version("hoplite", "2.8.2")
 
             library("bcpkix-jdk18on", "org.bouncycastle", "bcpkix-jdk18on").versionRef("bouncycastle")
@@ -167,4 +167,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "ebxml-processor"
-include("felles", "ebxml-processing-model", "cpa-repo", "ebms-provider", "ebms-payload", "emottak-utils")
+include("felles", "ebxml-processing-model", "cpa-repo", "ebms-provider", "ebms-payload", "emottak-utils", "ebms-async")

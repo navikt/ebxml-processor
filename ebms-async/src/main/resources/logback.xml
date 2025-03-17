@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<configuration>
+    <appender name="stdout_json" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <provider class="net.logstash.logback.composite.loggingevent.ArgumentsJsonProvider" />
+            <jsonGeneratorDecorator class="net.logstash.logback.mask.MaskingJsonGeneratorDecorator">
+                <valueMask>
+                    <value>\d{11}</value>
+                    <value>\d{6}\s\d{5}</value>
+                    <mask>***********</mask>
+                </valueMask>
+            </jsonGeneratorDecorator>
+        </encoder>
+    </appender>
+
+    <logger name="no.nav" level="INFO"/>
+    <logger name="no.nav.emottak" level="${EMOTTAK_LOGGING_LEVEL:-INFO}"/>
+
+    <root level="INFO">
+        <appender-ref ref="stdout_json"/>
+    </root>
+</configuration>
