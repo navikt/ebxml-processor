@@ -8,7 +8,7 @@ on:
 jobs:
   build:
     name: "build"
-    runs-on: "ubuntu-latest"
+    runs-on: "ubuntu-24.04"
     permissions:
       packages: write
       repository-projects: write
@@ -83,7 +83,7 @@ jobs:
   deploy-async:
     name: "Deploy ebms async to dev"
     needs: "build"
-    runs-on: "ubuntu-latest"
+    runs-on: "ubuntu-24.04"
     permissions:
       contents: read
       id-token: write
@@ -98,7 +98,7 @@ jobs:
   deploy-processor:
     name: "Deploy ebms provider to dev"
     needs: "build"
-    runs-on: "ubuntu-latest"
+    runs-on: "ubuntu-24.04"
     permissions:
       contents: read
       id-token: write
@@ -113,7 +113,7 @@ jobs:
   deploy-cpa-repo:
     name: "Deploy cpa-repo to dev"
     needs: "build"
-    runs-on: "ubuntu-latest"
+    runs-on: "ubuntu-24.04"
     permissions:
       contents: read
       id-token: write
@@ -128,7 +128,7 @@ jobs:
   deploy-ebms-payload:
     name: "Deploy ebms-payload to dev"
     needs: "build"
-    runs-on: "ubuntu-latest"
+    runs-on: "ubuntu-24.04"
     permissions:
       contents: read
       id-token: write
