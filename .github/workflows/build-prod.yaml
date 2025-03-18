@@ -1,10 +1,9 @@
-name: "Build and deploy to dev (via build.yaml)"
+name: "PROD: Build and deploy to prod (via build.yaml)"
 on:
   workflow_dispatch:
-  push:
     branches:
       - main
-      - dev/**
+
 jobs:
   build:
     name: "build"
@@ -66,37 +65,12 @@ jobs:
           dockerfile: Dockerfile # optional, default Dockerfile
           docker_context: cpa-repo # optional, default .
           image_suffix: cpa-repo
-      - name: Docker build and push ebms-async
-        uses: nais/docker-build-push@v0
-        id: docker-push-ebms-async
-        with:
-          team: team-emottak # required
-          tag: ${{ github.sha }}
-          dockerfile: Dockerfile # optional, default Dockerfile
-          docker_context: ebms-async # optional, default .
-          image_suffix: ebms-async
     outputs:
       providerimage: ${{ steps.docker-push-ebms-provider.outputs.image }}
       payloadimage: ${{ steps.docker-push-ebms-payload.outputs.image }}
       cpaimage: ${{ steps.docker-push-cpa-repo.outputs.image }}
-      asyncimage: ${{ steps.docker-push-ebms-async.outputs.image }}
-  deploy-async:
-    name: "Deploy ebms async to dev"
-    needs: "build"
-    runs-on: "ubuntu-24.04"
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - uses: "actions/checkout@v4"
-      - name: "Deploy to DEV"
-        uses: "nais/deploy/actions/deploy@v2"
-        env:
-          CLUSTER: "dev-fss"
-          RESOURCE: ".nais/ebms-async-dev.yaml"
-          IMAGE: ${{ needs.build.outputs.asyncimage }}
   deploy-processor:
-    name: "Deploy ebms provider to dev"
+    name: "Deploy ebms provider to prod"
     needs: "build"
     runs-on: "ubuntu-24.04"
     permissions:
@@ -104,14 +78,14 @@ jobs:
       id-token: write
     steps:
       - uses: "actions/checkout@v4"
-      - name: "Deploy to DEV"
+      - name: "Deploy to PROD"
         uses: "nais/deploy/actions/deploy@v2"
         env:
-          CLUSTER: "dev-fss"
-          RESOURCE: ".nais/ebms-provider-dev.yaml"
+          CLUSTER: "prod-fss"
+          RESOURCE: ".nais/ebms-provider-prod.yaml"
           IMAGE: ${{ needs.build.outputs.providerimage }}
   deploy-cpa-repo:
-    name: "Deploy cpa-repo to dev"
+    name: "Deploy cpa-repo to prod"
     needs: "build"
     runs-on: "ubuntu-24.04"
     permissions:
@@ -119,14 +93,14 @@ jobs:
       id-token: write
     steps:
       - uses: "actions/checkout@v4"
-      - name: "Deploy to DEV"
+      - name: "Deploy to PROD"
         uses: "nais/deploy/actions/deploy@v2"
         env:
-          CLUSTER: "dev-fss"
-          RESOURCE: ".nais/cpa-repo-dev.yaml"
+          CLUSTER: "prod-fss"
+          RESOURCE: ".nais/cpa-repo-prod.yaml"
           IMAGE: ${{ needs.build.outputs.cpaimage }}
   deploy-ebms-payload:
-    name: "Deploy ebms-payload to dev"
+    name: "Deploy ebms-payload to prod"
     needs: "build"
     runs-on: "ubuntu-24.04"
     permissions:
@@ -134,9 +108,9 @@ jobs:
       id-token: write
     steps:
       - uses: "actions/checkout@v4"
-      - name: "Deploy to DEV"
+      - name: "Deploy to PROD"
         uses: "nais/deploy/actions/deploy@v2"
         env:
-          CLUSTER: "dev-fss"
-          RESOURCE: ".nais/ebms-payload-dev.yaml"
+          CLUSTER: "prod-fss"
+          RESOURCE: ".nais/ebms-payload-prod.yaml"
           IMAGE: ${{ needs.build.outputs.payloadimage }}
