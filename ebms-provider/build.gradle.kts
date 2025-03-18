@@ -75,8 +75,6 @@ dependencies {
     testImplementation(testLibs.mockk.dsl.jvm)
     testImplementation(libs.apache.santuario)
     testImplementation(libs.hikari)
-    testImplementation(libs.flyway.core)
-    testImplementation(libs.bundles.exposed)
     testImplementation(testLibs.postgresql)
     testRuntimeOnly(testLibs.junit.jupiter.engine)
 }
