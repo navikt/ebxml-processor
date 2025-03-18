@@ -1,10 +1,10 @@
-name: "Build and deploy (via build.yaml)"
+name: "Build and deploy to dev (via build.yaml)"
 on:
   workflow_dispatch:
   push:
     branches:
-      - main2
-      - dev2/**
+      - main
+      - dev/**
 jobs:
   build:
     name: "build"

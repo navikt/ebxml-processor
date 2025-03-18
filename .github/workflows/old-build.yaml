@@ -3,8 +3,8 @@ on:
   workflow_dispatch:
   push:
     branches:
-    - main
-    - dev/**
+    - main2
+    - dev2/**
 env:
   "IMAGE_EBMS": "ghcr.io/${{ github.repository }}/ebms-provider:${{ github.sha }}"
   "IMAGE_CPA": "ghcr.io/${{ github.repository }}/cpa-repo:${{ github.sha }}"
