@@ -5,7 +5,6 @@ import no.nav.emottak.utils.config.KafkaEventLoggingProducer
 
 data class Config(
     val kafka: Kafka,
-    val kafkaEventLoggingProducer: KafkaEventLoggingProducer,
     val kafkaSignalReceiver: KafkaSignalReceiver,
     val kafkaSignalProducer: KafkaSignalProducer,
     val kafkaPayloadReceiver: KafkaPayloadReceiver,
