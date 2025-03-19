@@ -1,7 +1,6 @@
 package no.nav.emottak.ebms.configuration
 
 import no.nav.emottak.utils.config.Kafka
-import no.nav.emottak.utils.config.KafkaEventLoggingProducer
 
 data class Config(
     val kafka: Kafka,
