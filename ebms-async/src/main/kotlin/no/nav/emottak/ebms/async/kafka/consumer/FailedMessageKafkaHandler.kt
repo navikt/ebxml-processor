@@ -1,4 +1,4 @@
-package no.nav.emottak.ebms.messaging
+package no.nav.emottak.ebms.async.kafka.consumer
 
 import io.github.nomisRev.kafka.Acks
 import io.github.nomisRev.kafka.ProducerSettings
@@ -10,11 +10,11 @@ import io.github.nomisRev.kafka.receiver.ReceiverSettings
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.map
-import no.nav.emottak.ebms.configuration.Kafka
-import no.nav.emottak.ebms.configuration.KafkaErrorQueue
-import no.nav.emottak.ebms.configuration.config
-import no.nav.emottak.ebms.configuration.toProperties
-import no.nav.emottak.ebms.processing.PayloadMessageProcessor
+import no.nav.emottak.ebms.async.configuration.Kafka
+import no.nav.emottak.ebms.async.configuration.KafkaErrorQueue
+import no.nav.emottak.ebms.async.configuration.config
+import no.nav.emottak.ebms.async.configuration.toProperties
+import no.nav.emottak.ebms.async.processing.PayloadMessageProcessor
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.producer.KafkaProducer
@@ -122,10 +122,10 @@ fun getRecord2(topic: String, kafka: Kafka, fromOffset: Long = 0, requestedRecor
 fun getRecord(topic: String, kafka: Kafka, fromOffset: Long = 0, requestedRecords: Int = 1): ReceiverRecord<String, ByteArray>? {
     return with(
         KafkaConsumer(
-//            kafka.copy(
-//                groupId = "ebms-provider-retry"
-//            ).toProperties(),
-            kafka.toProperties(),
+            kafka.copy(
+                groupId = "ebms-provider-retry"
+            ).toProperties(),
+//            kafka.toProperties(),
             StringDeserializer(),
             ByteArrayDeserializer()
         )

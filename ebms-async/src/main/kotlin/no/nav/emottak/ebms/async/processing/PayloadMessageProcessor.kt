@@ -5,10 +5,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import no.nav.emottak.ebms.SmtpTransportClient
 import no.nav.emottak.ebms.async.configuration.config
+import no.nav.emottak.ebms.async.kafka.consumer.failedMessageQueue
 import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
 import no.nav.emottak.ebms.async.log
 import no.nav.emottak.ebms.async.persistence.repository.EbmsMessageDetailsRepository
-import no.nav.emottak.ebms.messaging.failedMessageQueue
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.util.marker
