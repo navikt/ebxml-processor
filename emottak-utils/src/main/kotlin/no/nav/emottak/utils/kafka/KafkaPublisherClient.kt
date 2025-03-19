@@ -16,6 +16,6 @@ class KafkaPublisherClient(
             publishCatching(toProducerRecord(config.topic, value))
         }
 
-    private fun toProducerRecord(topic: String, content: ByteArray) =
+    private fun toProducerRecord(topic: String, content: ByteArray): ProducerRecord<String, ByteArray> =
         ProducerRecord<String, ByteArray>(topic, content)
 }
