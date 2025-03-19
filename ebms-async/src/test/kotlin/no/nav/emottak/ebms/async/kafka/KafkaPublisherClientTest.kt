@@ -1,11 +1,11 @@
 package no.nav.emottak.ebms.async.kafka
 
+import com.sksamuel.hoplite.Masked
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import no.nav.emottak.utils.config.Kafka
 import no.nav.emottak.utils.config.KeystoreLocation
 import no.nav.emottak.utils.config.KeystoreType
-import no.nav.emottak.utils.config.Masked
 import no.nav.emottak.utils.config.SecurityProtocol
 import no.nav.emottak.utils.config.TruststoreLocation
 import no.nav.emottak.utils.config.TruststoreType
@@ -36,13 +36,11 @@ class KafkaPublisherClientTest {
     fun `Legg 2 meldinger på Kafka`() {
         kafkaConsumer.subscribe(listOf(TOPIC))
         runBlocking {
-            kafkaPublisher.send("MSG 1", randomEvent("Event 1").toByteArray())
-            kafkaPublisher.send("MSG 2", randomEvent("Event 2").toByteArray())
+            kafkaPublisher.publishMessage(randomEvent("Event 1").toByteArray())
+            kafkaPublisher.publishMessage(randomEvent("Event 2").toByteArray())
         }
         val msgs: List<ConsumerRecord<String, ByteArray>> = readRecentMessages()
         Assertions.assertEquals(2, msgs.size)
-        Assertions.assertEquals("MSG 1", msgs.first().key())
-        Assertions.assertEquals("MSG 2", msgs.last().key())
 
         val firstEventJson = msgs.first().value().decodeToString()
         val firstEvent = Json.decodeFromString<Event>(firstEventJson)
@@ -57,11 +55,10 @@ class KafkaPublisherClientTest {
     fun `Legg 1 melding på Kafka`() {
         kafkaConsumer.subscribe(listOf(TOPIC))
         runBlocking {
-            kafkaPublisher.send("MSG 3", randomEvent("Ny event 3").toByteArray())
+            kafkaPublisher.publishMessage(randomEvent("Ny event 3").toByteArray())
         }
         val msgs: List<ConsumerRecord<String, ByteArray>> = readRecentMessages()
         Assertions.assertEquals(1, msgs.size)
-        Assertions.assertEquals("MSG 3", msgs.first().key())
 
         val firstEventJson = msgs.first().value().decodeToString()
         val firstEvent = Json.decodeFromString<Event>(firstEventJson)
@@ -99,7 +96,7 @@ class KafkaPublisherClientTest {
             println("=== Kafka Test Container ===")
             KafkaTestContainer.start()
             println("KafkaTestContainer.bootstrapServers: ${KafkaTestContainer.bootstrapServers}")
-            kafkaPublisher = KafkaPublisherClient(TOPIC, kafkaSettings(KafkaTestContainer.bootstrapServers))
+            kafkaPublisher = KafkaPublisherClient(kafkaSettings(KafkaTestContainer.bootstrapServers))
             kafkaConsumer = createConsumer(KafkaTestContainer.bootstrapServers)
         }
 
@@ -119,7 +116,9 @@ class KafkaPublisherClientTest {
             truststoreType = TruststoreType(""),
             truststoreLocation = TruststoreLocation(""),
             truststorePassword = Masked(""),
-            groupId = "ebms-provider"
+            groupId = "ebms-provider",
+            topic = TOPIC,
+            eventLoggingProducerActive = false
         )
 
         private fun createConsumer(bootstrapServers: String): KafkaConsumer<String, ByteArray> {

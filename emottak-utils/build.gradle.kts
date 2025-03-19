@@ -35,5 +35,6 @@ publishing {
 dependencies {
     testImplementation(kotlin("test"))
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")
-    implementation("org.apache.kafka:kafka-clients:3.9.0")
+    implementation("io.github.nomisrev:kotlin-kafka:0.4.1")
+    implementation("com.sksamuel.hoplite:hoplite-core:2.8.2")
 }
