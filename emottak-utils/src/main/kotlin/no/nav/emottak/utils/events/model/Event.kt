@@ -1,7 +1,6 @@
 package no.nav.emottak.utils.events.model
 
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
 import kotlinx.serialization.json.Json
 import no.nav.emottak.utils.InstantSerializer
 import no.nav.emottak.utils.UuidSerializer
@@ -12,8 +11,6 @@ import kotlin.uuid.Uuid
 @OptIn(ExperimentalUuidApi::class)
 @Serializable
 data class Event(
-    @Transient
-    val eventId: Uuid? = null,
     val eventType: EventType,
     @Serializable(with = UuidSerializer::class)
     val requestId: Uuid,
