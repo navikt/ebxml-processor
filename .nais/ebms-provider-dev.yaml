@@ -53,43 +53,17 @@ spec:
     - "https://ebms-provider-fss.intern.dev.nav.no"
   vault:
     enabled: true
-  kafka:
-    pool: nav-dev
-#  gcp:
-#    sqlInstances:
-#        - type: POSTGRES_15
-#          databases:
-#            - name: ebms-db
   accessPolicy:
     outbound:
       rules:
         - application: cpa-repo
         - application: ebms-payload
-        - application: smtp-transport
-    inbound:
-      rules:
-        - application: smtp-transport
+        - application: ebms-send-in
   env:
     - name: KEYSTORE_FILE
       value: /var/run/secrets/ebms-keystore-signering/signering-key.p12
     - name: EMOTTAK_LOGGING_LEVEL
       value: DEBUG
-    - name: MAX_CONNECTION_POOL_SIZE_FOR_USER
-      value: "4"
-    - name: MAX_CONNECTION_POOL_SIZE_FOR_ADMIN
-      value: "1"
-    - name: EBMS_SIGNAL_RECEIVER
-      value: "true"
-    - name: EBMS_SIGNAL_PRODUCER
-      value: "true"
-    - name: EBMS_PAYLOAD_RECEIVER
-      value: "true"
-    - name: EBMS_PAYLOAD_PRODUCER
-      value: "true"
-    - name: EBMS_RETRY_QUEUE
-      value: "true"
-    - name: VAULT_JDBC_URL
-      value: jdbc:postgresql://b27dbvl033.preprod.local:5432/
     - name: CPA_REPO_URL
       value: http://cpa-repo.team-emottak.svc.nais.local
     - name: PAYLOAD_PROCESSOR_URL

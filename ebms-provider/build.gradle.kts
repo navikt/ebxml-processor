@@ -35,7 +35,7 @@ tasks {
 dependencies {
     implementation(project(":felles"))
     implementation(project(":ebxml-processing-model"))
-    implementation("no.nav.emottak:emottak-utils:0.0.4")
+    implementation("no.nav.emottak:emottak-utils:0.0.7")
     implementation(libs.arrow.core)
     implementation(libs.arrow.fx.coroutines)
     implementation(libs.arrow.resilience)
@@ -56,13 +56,9 @@ dependencies {
     implementation(libs.labai.jsr305x.annotations)
     implementation(libs.jakarta.xml.bind.api)
     implementation(libs.jaxb.runtime)
-    implementation(libs.hikari)
-    implementation(libs.flyway.core)
-    implementation(libs.bundles.exposed)
     implementation(libs.bundles.logging)
     implementation(libs.bundles.prometheus)
     implementation(libs.apache.santuario)
-    implementation(libs.kotlin.kafka)
     implementation(libs.hoplite.core)
     implementation(libs.hoplite.hocon)
     implementation("com.sun.xml.messaging.saaj:saaj-impl:3.0.2")
@@ -70,8 +66,6 @@ dependencies {
     // implementation("org.glassfish.jaxb:jaxb-runtime:4.0.3") // TODO: Latest. Krever at protokoll oppdateres
     implementation(libs.ebxml.protokoll)
     implementation(libs.token.validation.ktor.v3)
-    implementation(testLibs.postgresql)
-    implementation("no.nav:vault-jdbc:1.3.10")
 
     testImplementation(project(":cpa-repo"))
     testImplementation(testLibs.mock.oauth2.server)
@@ -80,7 +74,8 @@ dependencies {
     testImplementation(testLibs.mockk.jvm)
     testImplementation(testLibs.mockk.dsl.jvm)
     testImplementation(libs.apache.santuario)
-    testImplementation("org.testcontainers:kafka:1.19.0")
+    testImplementation(libs.hikari)
+    testImplementation(testLibs.postgresql)
     testRuntimeOnly(testLibs.junit.jupiter.engine)
 }
 

@@ -25,7 +25,7 @@ import io.ktor.server.testing.testApplication
 import kotlinx.serialization.json.Json
 import no.nav.emottak.cpa.auth.AZURE_AD_AUTH
 import no.nav.emottak.cpa.auth.AuthConfig
-import no.nav.emottak.cpa.databasetest.PostgresTest
+import no.nav.emottak.cpa.databasetest.PostgresOracleTest
 import no.nav.emottak.message.model.Addressing
 import no.nav.emottak.message.model.Direction.IN
 import no.nav.emottak.message.model.EmailAddress
@@ -52,10 +52,10 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class CPARepoIntegrationTest : PostgresTest() {
+class CPARepoIntegrationTest : PostgresOracleTest() {
 
     private fun <T> cpaRepoTestApp(testBlock: suspend ApplicationTestBuilder.() -> T) = testApplication {
-        application(cpaApplicationModule(postgres.dataSource, postgres.dataSource))
+        application(cpaApplicationModule(postgres.dataSource, postgres.dataSource, oracle.dataSource))
         testBlock()
     }
 

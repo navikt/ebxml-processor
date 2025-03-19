@@ -15,28 +15,22 @@ dependencyResolutionManagement {
             version("exposed", "0.47.0")
             version("ktor", "3.0.3")
             version("token-validation-ktor", "5.0.15")
-            version("jakarta-mail", "2.1.2")
-            version("eclipse-angus", "2.0.2")
-            version("jsch", "0.2.16")
-            version("cxf", "3.5.5")
             version("arrow", "1.2.4")
             version("suspendapp", "0.5.0")
-            version("kotlin-kafka", "0.3.1")
+            version("kotlin-kafka", "0.4.1")
             version("hoplite", "2.8.2")
+            version("logback", "1.5.17")
+            version("logstash", "8.0")
 
             library("bcpkix-jdk18on", "org.bouncycastle", "bcpkix-jdk18on").versionRef("bouncycastle")
             library("bcprov-jdk18on", "org.bouncycastle", "bcprov-jdk18on").versionRef("bouncycastle")
-//            library("bcpkix-jdk18on", "org.bouncycastle", "bcpkix-debug-jdk18on").versionRef("bouncycastle")
-//            library("bcprov-jdk18on", "org.bouncycastle", "bcprov-debug-jdk18on").versionRef("bouncycastle")
-            library("apache-santuario", "org.apache.santuario:xmlsec:3.0.2")
+            library("apache-santuario", "org.apache.santuario:xmlsec:3.0.5")
 
             library("exposed-core", "org.jetbrains.exposed", "exposed-core").versionRef("exposed")
             library("exposed-dao", "org.jetbrains.exposed", "exposed-dao").versionRef("exposed")
             library("exposed-java-time", "org.jetbrains.exposed", "exposed-java-time").versionRef("exposed")
             library("exposed-jdbc", "org.jetbrains.exposed", "exposed-jdbc").versionRef("exposed")
             library("exposed-json", "org.jetbrains.exposed", "exposed-json").versionRef("exposed")
-
-            library("jsch", "com.github.mwiede", "jsch").versionRef("jsch")
 
             library("ktor-server-core", "io.ktor", "ktor-server-core").versionRef("ktor")
             library("ktor-server-core-jvm", "io.ktor", "ktor-server-core-jvm").versionRef("ktor")
@@ -54,8 +48,8 @@ dependencyResolutionManagement {
             library("ktor-server-metrics-micrometer", "io.ktor", "ktor-server-metrics-micrometer").versionRef("ktor")
             library("micrometer-registry-prometheus", "io.micrometer:micrometer-registry-prometheus:1.14.2")
 
-            library("logback-classic", "ch.qos.logback:logback-classic:1.4.11")
-            library("logback-logstash", "net.logstash.logback:logstash-logback-encoder:7.4")
+            library("logback-classic", "ch.qos.logback", "logback-classic").versionRef("logback")
+            library("logback-logstash", "net.logstash.logback", "logstash-logback-encoder").versionRef("logstash")
 
             library("hoplite-core", "com.sksamuel.hoplite", "hoplite-core").versionRef("hoplite")
             library("hoplite-hocon", "com.sksamuel.hoplite", "hoplite-hocon").versionRef("hoplite")
@@ -76,20 +70,11 @@ dependencyResolutionManagement {
             library("token-validation-ktor-v3", "no.nav.security", "token-validation-ktor-v3").versionRef("token-validation-ktor")
             library("flyway-core", "org.flywaydb:flyway-core:9.16.3")
             library("jaxb-runtime", "org.glassfish.jaxb:jaxb-runtime:2.4.0-b180830.0438")
-            library("cxf-rt-frontend-jaxws", "org.apache.cxf", "cxf-rt-frontend-jaxws").versionRef("cxf")
-            library("cxf-rt-transports-http", "org.apache.cxf", "cxf-rt-transports-http").versionRef("cxf")
-            library("cxf-rt-ws-security", "org.apache.cxf", "cxf-rt-ws-security").versionRef("cxf")
-            library("cxf-rt-features-logging", "org.apache.cxf", "cxf-rt-features-logging").versionRef("cxf")
             library("jakarta.xml.ws-api", "jakarta.xml.ws:jakarta.xml.ws-api:2.3.3")
             library("ojdbc8", "com.oracle.ojdbc:ojdbc8:19.3.0.0")
             library("guava", "com.google.guava:guava:33.4.0-jre")
 
-            library("jakarta-mail-api", "jakarta.mail", "jakarta.mail-api").versionRef("jakarta-mail")
-            library("eclipse-angus", "org.eclipse.angus", "jakarta.mail").versionRef("eclipse-angus")
-
             bundle("prometheus", listOf("ktor-server-metrics-micrometer", "micrometer-registry-prometheus"))
-            bundle("cxf", listOf("cxf-rt-frontend-jaxws", "cxf-rt-transports-http", "cxf-rt-ws-security", "cxf-rt-features-logging", "jakarta.xml.ws-api"))
-            bundle("jakarta-mail", listOf("jakarta-mail-api", "eclipse-angus"))
             bundle("bouncycastle", listOf("bcpkix-jdk18on", "bcprov-jdk18on"))
             bundle("exposed", listOf("exposed-core", "exposed-dao", "exposed-java-time", "exposed-jdbc", "exposed-json"))
             bundle("logging", listOf("logback-classic", "logback-logstash"))
@@ -167,4 +152,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "ebxml-processor"
-include("felles", "ebxml-processing-model", "cpa-repo", "ebms-provider", "ebms-payload", "emottak-utils")
+include("felles", "ebxml-processing-model", "cpa-repo", "ebms-provider", "ebms-payload", "emottak-utils", "ebms-async")

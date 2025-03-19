@@ -36,7 +36,7 @@ spec:
     enabled: true
     path: /prometheus
   replicas:
-    min: 1
+    min: 2
     max: 5
     cpuThresholdPercentage: 50
   resources:
@@ -51,6 +51,7 @@ spec:
     inbound:
       rules:
         - application: ebms-provider
+        - application: ebms-async
   vault:
     enabled: true
     paths:

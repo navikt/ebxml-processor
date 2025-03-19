@@ -9,35 +9,16 @@ import arrow.core.raise.result
 import arrow.fx.coroutines.resourceScope
 import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorRuntime
 import io.ktor.server.application.Application
-import io.ktor.server.auth.authenticate
 import io.ktor.server.netty.Netty
 import io.ktor.server.routing.routing
 import io.ktor.utils.io.CancellationException
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitCancellation
-import kotlinx.coroutines.launch
-import no.nav.emottak.ebms.configuration.Config
-import no.nav.emottak.ebms.configuration.config
-import no.nav.emottak.ebms.messaging.EbmsMessageProducer
-import no.nav.emottak.ebms.messaging.startPayloadReceiver
-import no.nav.emottak.ebms.messaging.startSignalReceiver
-import no.nav.emottak.ebms.persistence.Database
-import no.nav.emottak.ebms.persistence.ebmsDbConfig
-import no.nav.emottak.ebms.persistence.ebmsMigrationConfig
-import no.nav.emottak.ebms.persistence.repository.EbmsMessageDetailsRepository
-import no.nav.emottak.ebms.persistence.repository.EventsRepository
-import no.nav.emottak.ebms.persistence.repository.PayloadRepository
-import no.nav.emottak.ebms.processing.PayloadMessageProcessor
-import no.nav.emottak.ebms.processing.PayloadMessageResponder
 import no.nav.emottak.ebms.processing.ProcessingService
-import no.nav.emottak.ebms.processing.SignalProcessor
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.DokumentValidator
 import no.nav.emottak.utils.getEnvVar
-import no.nav.emottak.utils.isProdEnv
 import org.slf4j.LoggerFactory
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.App")
@@ -49,17 +30,8 @@ fun main() = SuspendApp {
         DecoroutinatorRuntime.load()
     }
 
-    val database = Database(ebmsDbConfig.value)
-    database.migrate(ebmsMigrationConfig.value)
-
-    val config = config()
-    val ebmsMessageDetailsRepository = EbmsMessageDetailsRepository(database)
-    val eventsRepository = EventsRepository(database)
-    val payloadRepository = PayloadRepository(database)
     val processingClient = PayloadProcessingClient(scopedAuthHttpClient(EBMS_PAYLOAD_SCOPE))
     val processingService = ProcessingService(processingClient)
-    val ebmsSignalProducer = EbmsMessageProducer(config.kafkaSignalProducer.topic, config.kafka)
-    val ebmsPayloadProducer = EbmsMessageProducer(config.kafkaPayloadProducer.topic, config.kafka)
 
     val cpaClient = CpaRepoClient(defaultHttpClient())
     val dokumentValidator = DokumentValidator(cpaClient)
@@ -67,39 +39,8 @@ fun main() = SuspendApp {
     val sendInClient = SendInClient(scopedAuthHttpClient(EBMS_SEND_IN_SCOPE))
     val sendInService = SendInService(sendInClient)
 
-    val smtpTransportClient = SmtpTransportClient(scopedAuthHttpClient(SMTP_TRANSPORT_SCOPE))
-
-    val payloadMessageResponder = PayloadMessageResponder(
-        sendInService = sendInService,
-        validator = dokumentValidator,
-        processingService = processingService,
-        ebmsMessageDetailsRepository = ebmsMessageDetailsRepository,
-        payloadRepository = payloadRepository,
-        ebmsPayloadProducer = ebmsPayloadProducer
-    )
-
     result {
         resourceScope {
-            val payloadMessageProcessorProvider =
-                payloadMessageProcessorProvider(
-                    ebmsMessageDetailsRepository,
-                    eventsRepository,
-                    dokumentValidator,
-                    processingService,
-                    ebmsSignalProducer,
-                    smtpTransportClient,
-                    payloadMessageResponder
-                )
-            launchSignalReceiver(
-                config,
-                ebmsMessageDetailsRepository,
-                dokumentValidator
-            )
-            launchPayloadReceiver(
-                config,
-                payloadMessageProcessorProvider
-            )
-
             server(
                 Netty,
                 port = 8080,
@@ -107,10 +48,7 @@ fun main() = SuspendApp {
                     ebmsProviderModule(
                         dokumentValidator,
                         processingService,
-                        sendInService,
-                        ebmsMessageDetailsRepository,
-                        payloadRepository,
-                        payloadMessageProcessorProvider
+                        sendInService
                     )
                 }
             ).also { it.engineConfig.maxChunkSize = 100000 }
@@ -126,72 +64,16 @@ fun main() = SuspendApp {
         }
 }
 
-fun payloadMessageProcessorProvider(
-    ebmsMessageDetailsRepository: EbmsMessageDetailsRepository,
-    eventsRepository: EventsRepository,
-    dokumentValidator: DokumentValidator,
-    processingService: ProcessingService,
-    ebmsSignalProducer: EbmsMessageProducer,
-    smtpTransportClient: SmtpTransportClient,
-    payloadMessageResponder: PayloadMessageResponder
-
-): () -> PayloadMessageProcessor = {
-    PayloadMessageProcessor(
-        ebmsMessageDetailsRepository = ebmsMessageDetailsRepository,
-        eventsRepository = eventsRepository,
-        validator = dokumentValidator,
-        processingService = processingService,
-        ebmsSignalProducer = ebmsSignalProducer,
-        smtpTransportClient = smtpTransportClient,
-        payloadMessageResponder
-    )
-}
-
-private fun CoroutineScope.launchPayloadReceiver(
-    config: Config,
-    payloadMessageProcessorProvider: () -> PayloadMessageProcessor
-) {
-    if (config.kafkaPayloadReceiver.active) {
-        launch(Dispatchers.IO) {
-            startPayloadReceiver(
-                config.kafkaPayloadReceiver.topic,
-                config.kafka,
-                payloadMessageProcessorProvider.invoke()
-            )
-        }
-    }
-}
-
-private fun CoroutineScope.launchSignalReceiver(
-    config: Config,
-    ebmsMessageDetailsRepository: EbmsMessageDetailsRepository,
-    dokumentValidator: DokumentValidator
-) {
-    if (config.kafkaSignalReceiver.active) {
-        launch(Dispatchers.IO) {
-            val signalProcessor = SignalProcessor(
-                ebmsMessageDetailsRepository,
-                dokumentValidator
-            )
-            startSignalReceiver(config.kafkaSignalReceiver.topic, config.kafka, signalProcessor)
-        }
-    }
-}
-
 fun Application.ebmsProviderModule(
     validator: DokumentValidator,
     processing: ProcessingService,
-    sendInService: SendInService,
-    ebmsMessageDetailsRepository: EbmsMessageDetailsRepository,
-    payloadRepository: PayloadRepository,
-    payloadMessageProcessorProvider: () -> PayloadMessageProcessor
+    sendInService: SendInService
 ) {
     val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
 
     installMicrometerRegistry(appMicrometerRegistry)
     installRequestTimerPlugin()
     installContentNegotiation()
-    installAuthentication()
 
     routing {
         registerRootEndpoint()
@@ -199,13 +81,6 @@ fun Application.ebmsProviderModule(
         registerPrometheusEndpoint(appMicrometerRegistry)
         registerNavCheckStatus()
 
-        postEbmsSync(validator, processing, sendInService, ebmsMessageDetailsRepository)
-        retryErrors(payloadMessageProcessorProvider)
-        if (!isProdEnv()) {
-            simulateError()
-        }
-        authenticate(AZURE_AD_AUTH) {
-            getPayloads(payloadRepository)
-        }
+        postEbmsSync(validator, processing, sendInService)
     }
 }
