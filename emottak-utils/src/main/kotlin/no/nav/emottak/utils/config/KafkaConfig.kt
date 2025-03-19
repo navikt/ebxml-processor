@@ -1,5 +1,9 @@
 package no.nav.emottak.utils.config
 
+import com.sksamuel.hoplite.Masked
+import io.github.nomisRev.kafka.publisher.PublisherSettings
+import org.apache.kafka.common.serialization.ByteArraySerializer
+import org.apache.kafka.common.serialization.StringSerializer
 import java.util.Properties
 
 data class Kafka(
@@ -11,10 +15,12 @@ data class Kafka(
     val truststoreType: TruststoreType,
     val truststoreLocation: TruststoreLocation,
     val truststorePassword: Masked,
-    val groupId: String
+    val groupId: String,
+    val topic: String,
+    val eventLoggingProducerActive: Boolean
 )
 
-fun Kafka.toProperties() = Properties()
+private fun Kafka.toProperties() = Properties()
     .apply {
         put(SECURITY_PROTOCOL_CONFIG, securityProtocol.value)
         put(SSL_KEYSTORE_TYPE_CONFIG, keystoreType.value)
@@ -25,10 +31,13 @@ fun Kafka.toProperties() = Properties()
         put(SSL_TRUSTSTORE_PASSWORD_CONFIG, truststorePassword.value)
     }
 
-data class KafkaEventLoggingProducer(
-    val active: Boolean,
-    val topic: String
-)
+fun Kafka.toKafkaPublisherSettings(): PublisherSettings<String, ByteArray> =
+    PublisherSettings(
+        bootstrapServers = bootstrapServers,
+        keySerializer = StringSerializer(),
+        valueSerializer = ByteArraySerializer(),
+        properties = toProperties()
+    )
 
 @JvmInline
 value class SecurityProtocol(val value: String)
@@ -44,12 +53,6 @@ value class TruststoreType(val value: String)
 
 @JvmInline
 value class TruststoreLocation(val value: String)
-
-// Kopiert fra hoplite (types.kt), for å forhindre unødvendig stor avhengighet:
-typealias Masked = Secret
-data class Secret(val value: String) {
-    override fun toString(): String = "****"
-}
 
 const val SECURITY_PROTOCOL_CONFIG = "security.protocol"
 const val SSL_KEYSTORE_TYPE_CONFIG = "ssl.keystore.type"
