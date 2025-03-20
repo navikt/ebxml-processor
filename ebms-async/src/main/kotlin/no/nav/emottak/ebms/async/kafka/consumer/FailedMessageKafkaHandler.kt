@@ -66,9 +66,9 @@ class FailedMessageKafkaHandler(
             producersFlow.collect { producer ->
                 producer.send(ProducerRecord(kafkaErrorQueue.topic, null, key, value, record.headers())).get()
             }
-            logger.debug("Kafka test: Message sent successfully to topic ${kafkaErrorQueue.topic}")
+            logger.info("Message sent successfully to topic ${kafkaErrorQueue.topic}")
         } catch (e: Exception) {
-            logger.debug("Kafka test: Failed to send message: ${e.message}")
+            logger.info("Failed to send message to ${kafkaErrorQueue.topic} : ${e.message}")
         }
     }
 
@@ -119,13 +119,16 @@ fun getRecord2(topic: String, kafka: Kafka, fromOffset: Long = 0, requestedRecor
     consumer.partitionsFor(topic)
 }
 
+fun getRetryRecord(fromOffset: Long = 0, requestedRecords: Int = 1): ReceiverRecord<String, ByteArray>? {
+    return getRecord(config().kafkaErrorQueue.topic, config().kafka, fromOffset, requestedRecords)
+}
+
 fun getRecord(topic: String, kafka: Kafka, fromOffset: Long = 0, requestedRecords: Int = 1): ReceiverRecord<String, ByteArray>? {
     return with(
         KafkaConsumer(
-            kafka.copy(
-                groupId = "ebms-provider-retry"
-            ).toProperties(),
-//            kafka.toProperties(),
+            kafka
+                // .copy(groupId = "ebms-provider-retry")
+                .toProperties(),
             StringDeserializer(),
             ByteArrayDeserializer()
         )

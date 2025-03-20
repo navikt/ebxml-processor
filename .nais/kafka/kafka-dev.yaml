@@ -80,7 +80,7 @@ spec:
     segmentHours: 168
   acl:
     - access: readwrite
-      application: ebms-provider
+      application: ebms-async
       team: team-emottak
     - access: read
       application: emottak-kafka-manager

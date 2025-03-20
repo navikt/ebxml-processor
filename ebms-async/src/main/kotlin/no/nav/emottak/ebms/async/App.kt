@@ -232,8 +232,10 @@ fun Route.simulateError(): Route = get("/api/forceretry/{$KAFKA_OFFSET}") {
         CoroutineScope(Dispatchers.IO).launch {
             if (config().kafkaErrorQueue.active) {
                 val record = getRecord(
-                    config().kafkaPayloadReceiver.topic,
-                    config().kafka,
+                    config()
+                        .kafkaPayloadReceiver.topic,
+                    config().kafka
+                        .copy(groupId = "ebms-provider-retry"),
                     (call.parameters[KAFKA_OFFSET] as String).toLong()
                 )
                 failedMessageQueue.send(record = record ?: throw Exception("No Record found. Offset: ${call.parameters[KAFKA_OFFSET]}"))
