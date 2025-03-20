@@ -40,7 +40,14 @@ class FailedMessageKafkaHandler(
     val kafkaErrorQueue: KafkaErrorQueue = config().kafkaErrorQueue,
     kafka: Kafka = config().kafka
 ) {
-    private var producersFlow: Flow<KafkaProducer<String, ByteArray>> = kafkaProducer(
+
+    private var producer = KafkaProducer(
+        kafka.toProperties(),
+        StringSerializer(),
+        ByteArraySerializer()
+    )
+
+    private var producersFlow: Flow<KafkaProducer<String, ByteArray>> = kafkaProducer( // TODO Deprecated
         ProducerSettings(
             bootstrapServers = kafka.bootstrapServers,
             keyDeserializer = StringSerializer(),
@@ -60,12 +67,19 @@ class FailedMessageKafkaHandler(
         )
     ).receive(kafkaErrorQueue.topic)
 
-    suspend fun send(record: ReceiverRecord<String, ByteArray>, key: String = record.key(), value: ByteArray = record.value()) { // TODO man trenger vel ikke egentlig value og key om man har record?
-        record.addHeader(RETRY_AFTER, getNextRetryTime(record)) // TODO add retry logic
+    suspend fun send(record: ReceiverRecord<String, ByteArray>, key: String = record.key(), value: ByteArray = record.value()) {
+        record.addHeader(RETRY_AFTER, getNextRetryTime(record))
         try {
-            producersFlow.collect { producer ->
-                producer.send(ProducerRecord(kafkaErrorQueue.topic, null, key, value, record.headers())).get()
-            }
+            val result = producer.send(ProducerRecord(kafkaErrorQueue.topic, null, key, value, record.headers())).get()
+            logger.info("Wrote to offset:" + result.offset())
+            producer.close()
+//            producersFlow.collect { producer ->
+//                val metadata = producer.send(ProducerRecord(kafkaErrorQueue.topic, null, key, value, record.headers())).get()
+//                logger.info("Offset on metadata: " + metadata.offset())
+//                logger.info("Result " + metadata.partition() + " timestamp " + metadata.timestamp())
+//                producer.commitTransaction()
+//                producer.close()
+//            }
             logger.info("Message sent successfully to topic ${kafkaErrorQueue.topic}")
         } catch (e: Exception) {
             logger.info("Failed to send message to ${kafkaErrorQueue.topic} : ${e.message}")
@@ -107,18 +121,6 @@ fun ReceiverRecord<String, ByteArray>.addHeader(key: String, value: String) {
     this.headers().add(key, value.toByteArray())
 }
 
-fun getRecord2(topic: String, kafka: Kafka, fromOffset: Long = 0, requestedRecords: Int = 1) {
-    val consumer = KafkaConsumer(
-        kafka.copy(
-            groupId = "ebms-provider-retry"
-        ).toProperties(),
-        StringDeserializer(),
-        ByteArrayDeserializer()
-    )
-
-    consumer.partitionsFor(topic)
-}
-
 fun getRetryRecord(fromOffset: Long = 0, requestedRecords: Int = 1): ReceiverRecord<String, ByteArray>? {
     return getRecord(config().kafkaErrorQueue.topic, config().kafka, fromOffset, requestedRecords)
 }
@@ -126,9 +128,7 @@ fun getRetryRecord(fromOffset: Long = 0, requestedRecords: Int = 1): ReceiverRec
 fun getRecord(topic: String, kafka: Kafka, fromOffset: Long = 0, requestedRecords: Int = 1): ReceiverRecord<String, ByteArray>? {
     return with(
         KafkaConsumer(
-            kafka
-                // .copy(groupId = "ebms-provider-retry")
-                .toProperties(),
+            kafka.toProperties(),
             StringDeserializer(),
             ByteArrayDeserializer()
         )

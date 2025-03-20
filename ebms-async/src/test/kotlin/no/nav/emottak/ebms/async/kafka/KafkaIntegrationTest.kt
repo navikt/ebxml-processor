@@ -5,6 +5,7 @@ import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.kafka.consumer.failedMessageQueue
 import no.nav.emottak.ebms.async.kafka.consumer.getRecord
 import no.nav.emottak.ebms.async.kafka.consumer.getRetryRecord
+import org.junit.jupiter.api.Test
 import org.testcontainers.shaded.com.google.common.io.Resources
 import java.util.Properties
 import kotlin.io.path.Path
@@ -29,9 +30,9 @@ class KafkaIntegrationTest {
         return !Path(Resources.getResource("kafka/kafkaenv-local.properties").path).exists()
     }
 
-//    @Test
-//    @Disabled
+    @Test
     fun testGetRecord() {
+        if (noLocalKafkaEnv()) return
         val record = getRecord(
             kafkaConfig.kafkaPayloadReceiver.topic,
             kafkaConfig.kafka
@@ -41,9 +42,9 @@ class KafkaIntegrationTest {
         )
     }
 
-//    @Test
-//    @Disabled
+    @Test
     fun leggTilRetry() {
+        if (noLocalKafkaEnv()) return
         runTest {
             val record = getRecord(
                 fromOffset = 9379942,
