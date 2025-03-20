@@ -9,9 +9,9 @@ import no.nav.emottak.payload.crypto.PayloadSignering
 import no.nav.emottak.payload.crypto.payloadSigneringConfig
 import no.nav.emottak.payload.juridisklogg.JuridiskLoggService
 import no.nav.emottak.payload.ocspstatus.OcspStatusService
-import no.nav.emottak.payload.ocspstatus.trustStoreConfig
 import no.nav.emottak.payload.util.GZipUtil
 import no.nav.emottak.util.createDocument
+import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.getByteArrayFromDocument
 import no.nav.emottak.util.marker
 import no.nav.emottak.util.retrieveSignatureElement
@@ -27,6 +27,13 @@ class Processor(
     private val signatureVerifisering: SignaturVerifisering = SignaturVerifisering(),
     private val juridiskLogging: JuridiskLoggService = JuridiskLoggService()
 ) {
+
+    private val ocspStatusService = OcspStatusService(
+        defaultHttpClient().invoke(),
+        KeyStoreManager(
+            payloadSigneringConfig() // TODO add commfides config
+        )
+    )
 
     suspend fun loggMessageToJuridiskLogg(payloadRequest: PayloadRequest): String? {
         log.info(payloadRequest.marker(), "Save message to juridisk logg")
@@ -62,13 +69,7 @@ class Processor(
             val dom = createDocument(ByteArrayInputStream(payload.bytes))
             val xmlSignature = dom.retrieveSignatureElement()
             val certificateFromSignature = xmlSignature.keyInfo.x509Certificate
-            val signedBy = OcspStatusService(
-                defaultHttpClient().invoke(),
-                KeyStoreManager(
-                    payloadSigneringConfig(),
-                    trustStoreConfig()
-                )
-            ).getOCSPStatus(certificateFromSignature).fnr
+            val signedBy = ocspStatusService.getOCSPStatus(certificateFromSignature).fnr
             payload.copy(signedBy = signedBy)
         } else {
             payload
@@ -98,9 +99,11 @@ class Processor(
         }.let {
             when (processConfig.kryptering) {
                 true -> {
-                    kryptering.krypter(it, payloadRequest.processing.encryptionCertificate).let {
-                        log.info(payloadRequest.marker(), "Payload kryptert")
-                        payloadRequest.payload.copy(bytes = it, contentType = "application/pkcs7-mime")
+                    with(createX509Certificate(payloadRequest.processing.encryptionCertificate)) {
+                        kryptering.krypter(it, this).let { kryptertPayload ->
+                            log.info(payloadRequest.marker(), "Payload kryptert for ${this.subjectX500Principal.name}")
+                            payloadRequest.payload.copy(bytes = kryptertPayload, contentType = "application/pkcs7-mime")
+                        }
                     }
                 }
                 false -> payloadRequest.payload.copy(bytes = it)

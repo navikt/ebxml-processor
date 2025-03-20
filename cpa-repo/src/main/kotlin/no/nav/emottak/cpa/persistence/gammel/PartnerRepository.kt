@@ -8,7 +8,7 @@ import org.jetbrains.exposed.sql.transactions.transaction
 
 class PartnerRepository(val database: Database) {
 
-    fun findPartners(cpaID: String): Long {
+    fun findPartnerId(cpaID: String): Long {
         return transaction(database.db) {
             val partners =
                 PARTNER_CPA.selectAll().where { PARTNER_CPA.cpaId.eq(cpaID) }.toList().map { it[PARTNER_CPA.partnerId] }

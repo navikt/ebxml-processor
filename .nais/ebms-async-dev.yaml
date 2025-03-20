@@ -1,0 +1,99 @@
+apiVersion: "nais.io/v1alpha1"
+kind: "Application"
+metadata:
+  name: "ebms-async"
+  namespace: "team-emottak"
+  labels:
+    "team": "team-emottak"
+spec:
+  azure:
+    application:
+      enabled: true
+  webproxy: true
+  image: {{image}}
+  liveness:
+    path: "/internal/health/liveness"
+    port: 8080
+    initialDelay: 30
+    timeout: 10
+    failureThreshold: 10
+  observability:
+    autoInstrumentation:
+      enabled: true
+      runtime: java
+      destinations:
+        - id: "grafana-lgtm"
+        - id: "elastic-apm"
+    logging:
+      destinations:
+        - id: elastic
+  readiness:
+    path: "/internal/health/readiness"
+    port: 8080
+    initialDelay: 30
+    timeout: 10
+    failureThreshold: 10
+  prometheus:
+    enabled: true
+    path: /prometheus
+  replicas:
+    scalingStrategy:
+      cpu:
+        thresholdPercentage: 30
+    min: 1
+    max: 4
+  resources:
+    limits:
+      cpu: "1000m"
+      memory: "1024Mi"
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+  ingresses:
+    - "https://ebms-async-fss.intern.dev.nav.no"
+  vault:
+    enabled: true
+  kafka:
+    pool: nav-dev
+  accessPolicy:
+    outbound:
+      rules:
+        - application: cpa-repo
+        - application: ebms-payload
+        - application: ebms-send-in
+        - application: smtp-transport
+    inbound:
+      rules:
+        - application: smtp-transport
+  env:
+    - name: KEYSTORE_FILE
+      value: /var/run/secrets/ebms-keystore-signering/signering-key.p12
+    - name: EMOTTAK_LOGGING_LEVEL
+      value: DEBUG
+    - name: MAX_CONNECTION_POOL_SIZE_FOR_USER
+      value: "4"
+    - name: MAX_CONNECTION_POOL_SIZE_FOR_ADMIN
+      value: "1"
+    - name: EBMS_SIGNAL_RECEIVER
+      value: "true"
+    - name: EBMS_SIGNAL_PRODUCER
+      value: "true"
+    - name: EBMS_PAYLOAD_RECEIVER
+      value: "true"
+    - name: EBMS_PAYLOAD_PRODUCER
+      value: "true"
+    - name: VAULT_JDBC_URL
+      value: jdbc:postgresql://b27dbvl033.preprod.local:5432/
+    - name: CPA_REPO_URL
+      value: http://cpa-repo.team-emottak.svc.nais.local
+    - name: PAYLOAD_PROCESSOR_URL
+      value: http://ebms-payload
+    - name: SEND_IN_URL
+      value: http://ebms-send-in
+    - name: SMTP_TRANSPORT_URL
+      value: http://smtp-transport
+  envFrom:
+    - secret: ebms-payload-secret
+  filesFrom:
+    - secret: ebms-keystore-signering
+      mountPath: /var/run/secrets/ebms-keystore-signering

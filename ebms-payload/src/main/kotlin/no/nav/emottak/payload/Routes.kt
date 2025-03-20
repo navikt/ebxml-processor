@@ -26,6 +26,10 @@ import no.nav.emottak.util.marker
 
 fun Route.postPayload() = post("/payload") {
     val request: PayloadRequest = call.receive(PayloadRequest::class)
+
+    // TODO: Skal brukes i kall mot Event-logging:
+    // val requestId = request.requestId
+
     log.info(request.marker(), "Payload mottatt for prosessering <${request.payload.contentId}>")
     log.debug(request.marker(), "Payload mottatt for prosessering med steg: {}", request.processing.processConfig)
 
@@ -42,10 +46,17 @@ fun Route.postPayload() = post("/payload") {
             Direction.OUT -> createOutgoingPayloadResponse(request)
         }
     }.onSuccess {
-        log.info(request.marker(), "Payload prosessert OK <${request.payload.contentId}>")
         it.juridiskLoggRecordId = juridiskLoggRecordId
-        call.respond(it)
+
+        if (it.error != null) {
+            log.error(request.marker(), "Payload prosessert med kode ${it.error!!.code.description} og feil: ${it.error!!.descriptionText}", it.error)
+            call.respond(HttpStatusCode.BadRequest, it)
+        } else {
+            log.info(request.marker(), "Payload prosessert OK <${request.payload.contentId}>")
+            call.respond(it)
+        }
     }.onFailure { error ->
+        // TODO: Event-logging feil
         log.error(request.marker(), "Payload prosessert med feil: ${error.localizedMessage}", error)
         call.respond(
             HttpStatusCode.BadRequest,

@@ -10,7 +10,7 @@ import no.nav.emottak.message.model.SendInResponse
 
 class SendInService(val httpClient: SendInClient) {
 
-    suspend fun sendIn(payloadMessage: PayloadMessage): SendInResponse {
+    suspend fun sendIn(payloadMessage: PayloadMessage, partnerId: Long? = null): SendInResponse {
         val sendInRequest = SendInRequest(
             payloadMessage.messageId,
             payloadMessage.conversationId,
@@ -19,7 +19,9 @@ class SendInService(val httpClient: SendInClient) {
             payloadMessage.addressing,
             payloadMessage.cpaId,
             EbmsProcessing(),
-            payloadMessage.payload.signedBy
+            payloadMessage.payload.signedBy,
+            payloadMessage.requestId,
+            partnerId
         )
         return withContext(Dispatchers.IO) {
             httpClient.postSendIn(sendInRequest)

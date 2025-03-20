@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalUuidApi::class)
+
 package no.nav.emottak.payload
 
 import com.nimbusds.jwt.SignedJWT
@@ -58,6 +60,8 @@ import java.security.PrivateKey
 import java.security.cert.X509Certificate
 import java.time.Instant
 import java.util.Date
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 private val testKeystore = KeyStoreManager(payloadSigneringConfig())
 
@@ -239,7 +243,8 @@ private fun payloadRequest(
     conversationId = "321",
     processing = payloadProcessing(kryptering, komprimering, signering, internformat),
     payload = emptyPayload(),
-    addressing = addressing()
+    addressing = addressing(),
+    requestId = Uuid.random().toString()
 )
 
 private fun signatureDetailsWithCertResource(certificate: ByteArray) = SignatureDetails(
@@ -269,7 +274,8 @@ private fun payloadRequestMedOCSP(signedCert: ByteArray) = PayloadRequest(
         )
     ),
     payload = dummyPayload(),
-    addressing = addressing()
+    addressing = addressing(),
+    requestId = Uuid.random().toString()
 )
 
 private fun addressing() = Addressing(

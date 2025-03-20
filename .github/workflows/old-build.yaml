@@ -1,10 +1,10 @@
-name: "Build and deploy provider, cpa, payload & send-in"
+name: "Build and deploy provider, cpa, payload"
 on:
   workflow_dispatch:
   push:
     branches:
-    - main
-    - dev/**
+    - main2
+    - dev2/**
 env:
   "IMAGE_EBMS": "ghcr.io/${{ github.repository }}/ebms-provider:${{ github.sha }}"
   "IMAGE_CPA": "ghcr.io/${{ github.repository }}/cpa-repo:${{ github.sha }}"
@@ -38,7 +38,7 @@ jobs:
           ORG_GRADLE_PROJECT_githubUser: x-access-token
           ORG_GRADLE_PROJECT_githubPassword: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    - name: Publish artifacts
+    - name: Publish ebxml-processing-model
       run: ./gradlew ebxml-processing-model:publish
       continue-on-error: true
       env:

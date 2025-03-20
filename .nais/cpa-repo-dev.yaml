@@ -62,6 +62,7 @@ spec:
     inbound:
       rules:
         - application: cpa-sync
+        - application: ebms-async
         - application: ebms-provider
         - application: ebms-payload
     outbound:
