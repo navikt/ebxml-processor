@@ -115,6 +115,9 @@ spec:
     - access: readwrite
       application: emottak-monitor
       team: team-emottak
+    - access: readwrite
+      application: emottak-event-manager
+      team: team-emottak
     - access: read
       application: emottak-kafka-manager
       team: team-emottak
