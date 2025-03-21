@@ -7,7 +7,6 @@ import arrow.continuations.SuspendApp
 import arrow.continuations.ktor.server
 import arrow.core.raise.result
 import arrow.fx.coroutines.resourceScope
-import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorRuntime
 import io.ktor.server.application.Application
 import io.ktor.server.netty.Netty
 import io.ktor.server.routing.routing
@@ -18,7 +17,6 @@ import kotlinx.coroutines.awaitCancellation
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.DokumentValidator
-import no.nav.emottak.utils.getEnvVar
 import org.slf4j.LoggerFactory
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.App")
@@ -26,9 +24,6 @@ val log = LoggerFactory.getLogger("no.nav.emottak.ebms.App")
 fun logger() = log
 fun main() = SuspendApp {
     System.setProperty("io.ktor.http.content.multipart.skipTempFile", "true")
-    if (getEnvVar("NAIS_CLUSTER_NAME", "local") != "prod-fss") {
-        DecoroutinatorRuntime.load()
-    }
 
     val processingClient = PayloadProcessingClient(scopedAuthHttpClient(EBMS_PAYLOAD_SCOPE))
     val processingService = ProcessingService(processingClient)
