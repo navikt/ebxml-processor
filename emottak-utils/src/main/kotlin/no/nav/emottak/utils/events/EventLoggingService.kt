@@ -9,9 +9,9 @@ class EventLoggingService(
     private val kafkaPublisherClient: KafkaPublisherClient
 ) {
 
-    private suspend fun logEvent(event: Event): Result<RecordMetadata> =
+    suspend fun logEvent(event: Event): Result<RecordMetadata> =
         kafkaPublisherClient.publishMessage(event.toByteArray())
 
-    private suspend fun logEventMessageDetails(eventMessageDetails: EventMessageDetails): Result<RecordMetadata> =
+    suspend fun logEventMessageDetails(eventMessageDetails: EventMessageDetails): Result<RecordMetadata> =
         kafkaPublisherClient.publishMessage(eventMessageDetails.toByteArray())
 }
