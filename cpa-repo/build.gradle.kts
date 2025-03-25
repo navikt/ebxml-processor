@@ -38,7 +38,6 @@ tasks {
 dependencies {
     api(project(":felles"))
     api(project(":ebxml-processing-model"))
-    implementation("no.nav.emottak:emottak-utils:0.0.7")
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.netty)
     implementation(libs.ktor.server.content.negotiation)
@@ -61,6 +60,7 @@ dependencies {
     implementation(libs.ktor.server.auth.jvm)
     implementation(libs.token.validation.ktor.v3)
     implementation(libs.ktor.client.auth)
+    implementation(libs.emottak.utils)
     testRuntimeOnly(testLibs.junit.jupiter.engine)
     testImplementation(testLibs.mock.oauth2.server)
     testImplementation(testLibs.mockk.jvm)
