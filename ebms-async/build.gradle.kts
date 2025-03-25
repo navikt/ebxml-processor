@@ -32,7 +32,6 @@ dependencies {
     implementation(project(":felles"))
     implementation(project(":ebms-provider"))
     implementation(project(":ebxml-processing-model"))
-    implementation(project(":emottak-utils"))
     implementation(libs.arrow.core)
     implementation(libs.arrow.fx.coroutines)
     implementation(libs.arrow.resilience)
