@@ -34,6 +34,9 @@ publishing {
 
 dependencies {
     testImplementation(kotlin("test"))
+    testImplementation("org.testcontainers:kafka:1.19.0")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.4.0")
+    testImplementation("org.junit.jupiter:junit-jupiter-engine:5.4.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")
     implementation("io.github.nomisrev:kotlin-kafka:0.4.1")
     implementation("com.sksamuel.hoplite:hoplite-core:2.8.2")

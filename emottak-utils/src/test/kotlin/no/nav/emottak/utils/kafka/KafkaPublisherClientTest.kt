@@ -1,4 +1,4 @@
-package no.nav.emottak.ebms.async.kafka
+package no.nav.emottak.utils.kafka
 
 import com.sksamuel.hoplite.Masked
 import kotlinx.coroutines.runBlocking
@@ -11,7 +11,6 @@ import no.nav.emottak.utils.config.TruststoreLocation
 import no.nav.emottak.utils.config.TruststoreType
 import no.nav.emottak.utils.events.model.Event
 import no.nav.emottak.utils.events.model.EventType
-import no.nav.emottak.utils.kafka.KafkaPublisherClient
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.consumer.KafkaConsumer
