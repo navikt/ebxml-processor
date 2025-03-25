@@ -34,7 +34,6 @@ tasks {
 dependencies {
     implementation(project(":felles"))
     implementation(project(":ebxml-processing-model"))
-    implementation("no.nav.emottak:emottak-utils:0.0.7")
     implementation(libs.ktor.server.core)
     implementation(libs.apache.santuario)
     implementation(libs.ktor.server.netty)
@@ -55,6 +54,7 @@ dependencies {
     implementation(libs.bundles.logging)
     implementation(libs.bundles.prometheus)
     implementation(libs.emottak.payload.xsd)
+    implementation(libs.emottak.utils)
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.7.1-2")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.7.1")
     runtimeOnly("net.java.dev.jna:jna:5.12.1")
