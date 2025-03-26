@@ -98,7 +98,7 @@ class PayloadMessageProcessor(
             returnMessageError(ebmsPayloadMessage, e)
         } catch (ex: Exception) {
             log.error(ebmsPayloadMessage.marker(), ex.message ?: "Unknown error", ex)
-            failedMessageQueue.send(record, ebmsPayloadMessage.requestId, ebmsPayloadMessage.toEbmsDokument().dokument.asByteArray())
+            failedMessageQueue.sendToRetry(record, ebmsPayloadMessage.requestId, ebmsPayloadMessage.toEbmsDokument().dokument.asByteArray())
             throw ex
         }
     }

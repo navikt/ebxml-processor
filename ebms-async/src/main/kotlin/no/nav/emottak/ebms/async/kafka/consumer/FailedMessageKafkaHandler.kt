@@ -1,8 +1,8 @@
 package no.nav.emottak.ebms.async.kafka.consumer
 
 import io.github.nomisRev.kafka.Acks
-import io.github.nomisRev.kafka.ProducerSettings
-import io.github.nomisRev.kafka.kafkaProducer
+import io.github.nomisRev.kafka.publisher.KafkaPublisher
+import io.github.nomisRev.kafka.publisher.PublisherSettings
 import io.github.nomisRev.kafka.receiver.KafkaReceiver
 import io.github.nomisRev.kafka.receiver.Offset
 import io.github.nomisRev.kafka.receiver.ReceiverRecord
@@ -16,8 +16,8 @@ import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.configuration.toProperties
 import no.nav.emottak.ebms.async.processing.PayloadMessageProcessor
 import org.apache.kafka.clients.consumer.ConsumerRecord
+import org.apache.kafka.clients.consumer.ConsumerRecords
 import org.apache.kafka.clients.consumer.KafkaConsumer
-import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.ByteArrayDeserializer
@@ -41,22 +41,17 @@ class FailedMessageKafkaHandler(
     kafka: Kafka = config().kafka
 ) {
 
-    private var producer = KafkaProducer(
-        kafka.toProperties(),
-        StringSerializer(),
-        ByteArraySerializer()
-    )
-
-    private var producersFlow: Flow<KafkaProducer<String, ByteArray>> = kafkaProducer( // TODO Deprecated
-        ProducerSettings(
+    val publisher = KafkaPublisher(
+        PublisherSettings(
             bootstrapServers = kafka.bootstrapServers,
-            keyDeserializer = StringSerializer(),
-            valueDeserializer = ByteArraySerializer(),
-            acks = Acks.All,
-            other = kafka.toProperties()
+            keySerializer = StringSerializer(),
+            valueSerializer = ByteArraySerializer(),
+            acknowledgments = Acks.All,
+            properties = kafka.toProperties()
         )
     )
-    private var consumerFlow: Flow<ReceiverRecord<String, ByteArray>> = KafkaReceiver(
+
+    private var errorTopicKafkaReceiver = KafkaReceiver(
         ReceiverSettings(
             bootstrapServers = kafka.bootstrapServers,
             keyDeserializer = StringDeserializer(),
@@ -65,31 +60,35 @@ class FailedMessageKafkaHandler(
             pollTimeout = 10.seconds,
             properties = kafka.toProperties()
         )
-    ).receive(kafkaErrorQueue.topic)
+    )
 
-    suspend fun send(record: ReceiverRecord<String, ByteArray>, key: String = record.key(), value: ByteArray = record.value()) {
+    suspend fun sendToRetry(
+        record: ReceiverRecord<String, ByteArray>,
+        key: String = record.key(),
+        value: ByteArray = record.value()
+    ) {
         record.addHeader(RETRY_AFTER, getNextRetryTime(record))
         try {
-            val result = producer.send(ProducerRecord(kafkaErrorQueue.topic, null, key, value, record.headers())).get()
-            logger.info("Wrote to offset:" + result.offset())
-            producer.close()
-//            producersFlow.collect { producer ->
-//                val metadata = producer.send(ProducerRecord(kafkaErrorQueue.topic, null, key, value, record.headers())).get()
-//                logger.info("Offset on metadata: " + metadata.offset())
-//                logger.info("Result " + metadata.partition() + " timestamp " + metadata.timestamp())
-//                producer.commitTransaction()
-//                producer.close()
-//            }
+            val metadata = publisher.publishScope {
+                publish(ProducerRecord(config().kafkaErrorQueue.topic, null, key, value, record.headers()))
+            }
+            logger.info("Offset on metadata: " + metadata.offset())
+            logger.info("Result " + metadata.partition() + " timestamp " + metadata.timestamp())
             logger.info("Message sent successfully to topic ${kafkaErrorQueue.topic}")
         } catch (e: Exception) {
             logger.info("Failed to send message to ${kafkaErrorQueue.topic} : ${e.message}")
         }
     }
 
-    suspend fun receive(payloadMessageProcessor: PayloadMessageProcessor, limit: Int = 10) { // TODO limit til offset
+    suspend fun consumeRetryQueue(
+        payloadMessageProcessor: PayloadMessageProcessor,
+        limit: Int = 10
+    ) { // TODO limit til offset
+        val consumer: Flow<ReceiverRecord<String, ByteArray>> =
+            errorTopicKafkaReceiver.receive(kafkaErrorQueue.topic)
         logger.debug("Reading from error queue")
         var counter = 0
-        consumerFlow.map { record ->
+        consumer.map { record ->
             counter++
             if (counter > limit) {
                 throw Exception("Error queue limit exceeded: $limit") // TODO fjern dette
@@ -125,33 +124,61 @@ fun getRetryRecord(fromOffset: Long = 0, requestedRecords: Int = 1): ReceiverRec
     return getRecord(config().kafkaErrorQueue.topic, config().kafka, fromOffset, requestedRecords)
 }
 
-fun getRecord(topic: String, kafka: Kafka, fromOffset: Long = 0, requestedRecords: Int = 1): ReceiverRecord<String, ByteArray>? {
-    return with(
-        KafkaConsumer(
-            kafka.toProperties(),
-            StringDeserializer(),
-            ByteArrayDeserializer()
-        )
-    ) {
-        partitionsFor(topic)
+fun getRecord(
+    topic: String,
+    kafka: Kafka,
+    fromOffset: Long = 0,
+    requestedRecords: Int = 1
+): ReceiverRecord<String, ByteArray>? {
+    return getRecords(topic, kafka, fromOffset, requestedRecords).firstOrNull()
+}
+
+fun getRecords(
+    topic: String,
+    kafka: Kafka,
+    fromOffset: Long = 0,
+    requestedRecords: Int = 1
+): List<ReceiverRecord<String, ByteArray>> {
+    KafkaConsumer(
+        kafka.toProperties(),
+        StringDeserializer(),
+        ByteArrayDeserializer()
+    ).use { consumer ->
+        // Seek
+        consumer.partitionsFor(topic)
             .map { partition ->
                 TopicPartition(partition.topic(), partition.partition())
-            }.toList().apply {
-                assign(this)
-                this.forEach { tp ->
-                    val startOffset = beginningOffsets(listOf(tp))
-                        .firstNotNullOf { it.value }.takeIf { it > fromOffset }.also { logger.info("Lowest offset is $it") }
-                        ?: fromOffset
-                    seek(tp, startOffset)
-                }
+            }.toList()
+            .let { partitionList ->
+                consumer.seekFromExactOffset(partitionList, fromOffset)
             }
 
+        // Collect
+        val recordList = ArrayList<ReceiverRecord<String, ByteArray>>()
         for (i in 0..requestedRecords) {
-            val kafkaRecords = poll(Duration.ofSeconds(1))
+            val kafkaRecords: ConsumerRecords<String, ByteArray> = consumer.poll(Duration.ofSeconds(1))
             if (kafkaRecords.isEmpty) break
-            return@with getReceiverRecord(kafkaRecords.records(topic).firstOrNull())
+            kafkaRecords
+                .filterNotNull()
+                .forEach { record ->
+                    recordList.add(getReceiverRecord(record)!!)
+                }
         }
-        return null
+        return recordList
+    }
+}
+
+fun KafkaConsumer<String, ByteArray>.seekFromExactOffset(
+    partitions: List<TopicPartition>,
+    offset: Long
+) {
+    this.assign(partitions)
+    partitions.forEach { tp ->
+        val startOffset = this.beginningOffsets(listOf(tp))
+            .firstNotNullOf { it.value }.takeIf { it > offset }
+            .also { logger.info("Lowest offset is $it on partition ${tp.partition()}") }
+            ?: offset
+        this.seek(tp, startOffset)
     }
 }
 
@@ -165,9 +192,13 @@ fun getReceiverRecord(consumerRecord: ConsumerRecord<String, ByteArray>?): Recei
         override suspend fun acknowledge() {
             throw Exception("Cannot acknowledge read only offset")
         }
+
         override suspend fun commit() {
             throw Exception("Cannot commit read only offset")
         }
     }
-    return ReceiverRecord(consumerRecord, ReadOnlyOffset(consumerRecord.offset(), TopicPartition(consumerRecord.topic(), consumerRecord.partition())))
+    return ReceiverRecord(
+        consumerRecord,
+        ReadOnlyOffset(consumerRecord.offset(), TopicPartition(consumerRecord.topic(), consumerRecord.partition()))
+    )
 }

@@ -7,9 +7,11 @@ import arrow.continuations.SuspendApp
 import arrow.continuations.ktor.server
 import arrow.core.raise.result
 import arrow.fx.coroutines.resourceScope
+import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.auth.authenticate
 import io.ktor.server.netty.Netty
+import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.Routing
 import io.ktor.server.routing.get
@@ -213,33 +215,37 @@ fun Routing.retryErrors(
     payloadMessageProcessorProvider: () -> PayloadMessageProcessor
 ): Route =
     get("/api/retry/{$RETRY_LIMIT}") {
-        resourceScope {
-            CoroutineScope(Dispatchers.IO).launch {
-                if (config().kafkaErrorQueue.active) {
-                    failedMessageQueue.receive(
-                        payloadMessageProcessorProvider.invoke(),
-                        limit = (call.parameters[RETRY_LIMIT] as String).toInt()
-                    )
-                }
-            }
+        if (!config().kafkaErrorQueue.active) {
+            call.respondText(status = HttpStatusCode.ServiceUnavailable, text = "Retry not active.")
+            return@get
         }
+        CoroutineScope(Dispatchers.IO).launch {
+            failedMessageQueue.consumeRetryQueue(
+                payloadMessageProcessorProvider.invoke(),
+                limit = (call.parameters[RETRY_LIMIT])?.toInt() ?: 10
+            )
+        }
+        call.respondText(
+            status = HttpStatusCode.OK,
+            text = "Retry processing started with limit ${call.parameters[RETRY_LIMIT] ?: "default"}"
+        )
     }
 
 const val KAFKA_OFFSET = "offset"
 
 fun Route.simulateError(): Route = get("/api/forceretry/{$KAFKA_OFFSET}") {
-    resourceScope {
-        CoroutineScope(Dispatchers.IO).launch {
-            if (config().kafkaErrorQueue.active) {
-                val record = getRecord(
-                    config()
-                        .kafkaPayloadReceiver.topic,
-                    config().kafka
-                        .copy(groupId = "ebms-provider-retry"),
-                    (call.parameters[KAFKA_OFFSET] as String).toLong()
-                )
-                failedMessageQueue.send(record = record ?: throw Exception("No Record found. Offset: ${call.parameters[KAFKA_OFFSET]}"))
-            }
+    CoroutineScope(Dispatchers.IO).launch() {
+        if (config().kafkaErrorQueue.active) {
+            val record = getRecord(
+                config()
+                    .kafkaPayloadReceiver.topic,
+                config().kafka
+                    .copy(groupId = "ebms-provider-retry"),
+                (call.parameters[KAFKA_OFFSET])?.toLong() ?: 0
+            )
+            failedMessageQueue.sendToRetry(
+                record = record ?: throw Exception("No Record found. Offset: ${call.parameters[KAFKA_OFFSET]}")
+            )
         }
     }
 }
