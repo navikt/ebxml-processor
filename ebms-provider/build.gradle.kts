@@ -35,7 +35,6 @@ tasks {
 dependencies {
     implementation(project(":felles"))
     implementation(project(":ebxml-processing-model"))
-    implementation("no.nav.emottak:emottak-utils:0.0.7")
     implementation(libs.arrow.core)
     implementation(libs.arrow.fx.coroutines)
     implementation(libs.arrow.resilience)
@@ -63,6 +62,7 @@ dependencies {
     implementation(libs.hoplite.hocon)
     implementation("com.sun.xml.messaging.saaj:saaj-impl:3.0.2")
     implementation(libs.emottak.payload.xsd)
+    implementation(libs.emottak.utils)
     // implementation("org.glassfish.jaxb:jaxb-runtime:4.0.3") // TODO: Latest. Krever at protokoll oppdateres
     implementation(libs.ebxml.protokoll)
     implementation(libs.token.validation.ktor.v3)
