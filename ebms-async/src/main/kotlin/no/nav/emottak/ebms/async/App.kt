@@ -55,7 +55,7 @@ import no.nav.emottak.ebms.registerRootEndpoint
 import no.nav.emottak.ebms.scopedAuthHttpClient
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.DokumentValidator
-import no.nav.emottak.utils.isProdEnv
+import no.nav.emottak.message.util.isProdEnv
 import org.slf4j.LoggerFactory
 import kotlin.uuid.ExperimentalUuidApi
 
