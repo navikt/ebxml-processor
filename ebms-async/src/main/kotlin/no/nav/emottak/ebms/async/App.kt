@@ -164,6 +164,11 @@ fun Application.ebmsProviderModule(
 ) {
     val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
 
+    log.info("Logging test: 11cc63e2-97e9-4f24-9127-a12345678901")
+    log.info("Logging test: 11cc63e2-97e9-4f24-9127-123456789012")
+    log.info("Logging test: 11cc63e2-97e9-4f24-9127--12345678901")
+    log.info("Logging test: 11cc63e2-97e9-4f24-9127-ab12345678901")
+
     installMicrometerRegistry(appMicrometerRegistry)
     installContentNegotiation()
     installAuthentication()

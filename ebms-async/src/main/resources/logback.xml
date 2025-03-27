@@ -5,7 +5,7 @@
             <provider class="net.logstash.logback.composite.loggingevent.ArgumentsJsonProvider" />
             <jsonGeneratorDecorator class="net.logstash.logback.mask.MaskingJsonGeneratorDecorator">
                 <valueMask>
-                    <value>\d{11}</value>
+                    <value>(?<!-.|.-)\d{11}</value>
                     <value>\d{6}\s\d{5}</value>
                     <mask>***********</mask>
                 </valueMask>
