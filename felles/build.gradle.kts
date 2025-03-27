@@ -28,7 +28,7 @@ tasks {
 
 dependencies {
     implementation(project(":ebxml-processing-model"))
-    implementation("no.nav.emottak:emottak-utils:0.0.6")
+    implementation("no.nav.emottak:emottak-utils:0.1.0")
     implementation(libs.ebxml.protokoll)
     implementation(libs.emottak.payload.xsd)
     implementation(libs.guava)
