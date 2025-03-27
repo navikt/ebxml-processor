@@ -80,23 +80,34 @@ class FailedMessageKafkaHandler(
         }
     }
 
-    suspend fun consumeRetryQueue(
+    suspend fun consumeRetryQueue( // TODO refine retry logic
         payloadMessageProcessor: PayloadMessageProcessor,
-        limit: Int = 10
-    ) { // TODO limit til offset
+        limit: Int = 10 // TODO default limit to offset
+    ) {
+        // TODO DefaultKafkaReceiver is too constrainted so need own impl for custom logic
         val consumer: Flow<ReceiverRecord<String, ByteArray>> =
             errorTopicKafkaReceiver.receive(kafkaErrorQueue.topic)
+
         logger.debug("Reading from error queue")
         var counter = 0
         consumer.map { record ->
             counter++
             if (counter > limit) {
-                throw Exception("Error queue limit exceeded: $limit") // TODO fjern dette
+                logger.info("Kafka retryQueue Limit reached: $limit")
+                return@map
             }
             record.offset.acknowledge()
             record.retryCounter()
-            payloadMessageProcessor.process(record)
-            record.offset.acknowledge()
+            if (DateTime.parse(
+                    String(record.headers().lastHeader(RETRY_AFTER).value())
+                ).isAfter(DateTime.now())
+            ) {
+                payloadMessageProcessor.process(record)
+            } else {
+                logger.info("${record.key()} is not retryable yet.")
+                failedMessageQueue.sendToRetry(record)
+            }
+            record.offset.commit()
         }.collect()
     }
 

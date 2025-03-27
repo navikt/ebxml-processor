@@ -31,7 +31,6 @@ class PayloadMessageProcessor(
     val smtpTransportClient: SmtpTransportClient,
     val payloadMessageResponder: PayloadMessageResponder
 ) {
-
     suspend fun process(record: ReceiverRecord<String, ByteArray>) {
         try {
             processPayloadMessage(createEbmsDocument(record.key(), record.value()), record)
