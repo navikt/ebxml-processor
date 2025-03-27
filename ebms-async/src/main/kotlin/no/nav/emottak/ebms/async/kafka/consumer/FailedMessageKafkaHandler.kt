@@ -98,10 +98,10 @@ class FailedMessageKafkaHandler(
             }
             record.offset.acknowledge()
             record.retryCounter()
-            if (DateTime.parse(
-                    String(record.headers().lastHeader(RETRY_AFTER).value())
-                ).isAfter(DateTime.now())
-            ) {
+            val retryableAfter = DateTime.parse(
+                String(record.headers().lastHeader(RETRY_AFTER).value())
+            )
+            if (DateTime.now().isAfter(retryableAfter)) {
                 payloadMessageProcessor.process(record)
             } else {
                 logger.info("${record.key()} is not retryable yet.")
