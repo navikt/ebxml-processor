@@ -33,6 +33,7 @@ import kotlin.time.Duration.Companion.seconds
 val failedMessageQueue: FailedMessageKafkaHandler = FailedMessageKafkaHandler()
 const val RETRY_COUNT_HEADER = "retryCount"
 const val RETRY_AFTER = "retryableAfter"
+const val RETRY_REASON = "retryReason"
 
 val logger = LoggerFactory.getLogger(FailedMessageKafkaHandler::class.java)
 
@@ -65,8 +66,12 @@ class FailedMessageKafkaHandler(
     suspend fun sendToRetry(
         record: ReceiverRecord<String, ByteArray>,
         key: String = record.key(),
-        value: ByteArray = record.value()
+        value: ByteArray = record.value(),
+        reason: String? = null
     ) {
+        if (reason != null) {
+            record.addHeader(RETRY_REASON, reason)
+        }
         record.addHeader(RETRY_AFTER, getNextRetryTime(record))
         try {
             val metadata = publisher.publishScope {

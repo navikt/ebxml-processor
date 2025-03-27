@@ -244,7 +244,8 @@ fun Route.simulateError(): Route = get("/api/forceretry/{$KAFKA_OFFSET}") {
                 (call.parameters[KAFKA_OFFSET])?.toLong() ?: 0
             )
             failedMessageQueue.sendToRetry(
-                record = record ?: throw Exception("No Record found. Offset: ${call.parameters[KAFKA_OFFSET]}")
+                record = record ?: throw Exception("No Record found. Offset: ${call.parameters[KAFKA_OFFSET]}"),
+                reason = "Simulated Error"
             )
         }
     }
