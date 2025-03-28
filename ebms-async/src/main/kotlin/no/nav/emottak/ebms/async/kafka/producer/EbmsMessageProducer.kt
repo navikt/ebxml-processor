@@ -1,41 +1,38 @@
 package no.nav.emottak.ebms.async.kafka.producer
 
-import io.github.nomisRev.kafka.Acks
-import io.github.nomisRev.kafka.ProducerSettings
-import io.github.nomisRev.kafka.kafkaProducer
-import kotlinx.coroutines.flow.Flow
+import io.github.nomisRev.kafka.publisher.Acks
+import io.github.nomisRev.kafka.publisher.KafkaPublisher
+import io.github.nomisRev.kafka.publisher.PublisherSettings
 import no.nav.emottak.ebms.async.configuration.Kafka
 import no.nav.emottak.ebms.async.configuration.toProperties
-import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerRecord
+import org.apache.kafka.clients.producer.RecordMetadata
 import org.apache.kafka.common.serialization.ByteArraySerializer
 import org.apache.kafka.common.serialization.StringSerializer
 import org.slf4j.LoggerFactory
 
 class EbmsMessageProducer(private val topic: String, kafka: Kafka) {
-    private var producersFlow: Flow<KafkaProducer<String, ByteArray>>
     private val log = LoggerFactory.getLogger("no.nav.emottak.ebms.messaging")
 
-    init {
-        val producerSettings = ProducerSettings(
+    private val kafkaPublisher = KafkaPublisher(
+        PublisherSettings(
             bootstrapServers = kafka.bootstrapServers,
-            keyDeserializer = StringSerializer(),
-            valueDeserializer = ByteArraySerializer(),
-            acks = Acks.All,
-            other = kafka.toProperties()
+            keySerializer = StringSerializer(),
+            valueSerializer = ByteArraySerializer(),
+            acknowledgments = Acks.All,
+            properties = kafka.toProperties()
         )
-        producersFlow = kafkaProducer(producerSettings)
-    }
+    )
 
-    suspend fun send(key: String, value: ByteArray) {
-        try {
-            producersFlow.collect { producer ->
-                val record = ProducerRecord(topic, key, value)
-                producer.send(record).get()
-            }
-            log.info("Message sent successfully to topic $topic")
-        } catch (e: Exception) {
-            log.error("Failed to send message: ${e.message}", e)
+    suspend fun publishMessage(key: String, value: ByteArray): Result<RecordMetadata> =
+        kafkaPublisher.publishScope {
+            publishCatching(toProducerRecord(topic, key, value))
+        }.onSuccess {
+            log.info("Message sent successfully to topic $topic with key $key")
+        }.onFailure {
+            log.error("Failed to send message to topic $topic with key $key", it)
         }
-    }
+
+    private fun toProducerRecord(topic: String, key: String, content: ByteArray): ProducerRecord<String, ByteArray> =
+        ProducerRecord<String, ByteArray>(topic, key, content)
 }

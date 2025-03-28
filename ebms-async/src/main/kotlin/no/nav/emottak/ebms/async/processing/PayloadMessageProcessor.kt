@@ -143,7 +143,7 @@ class PayloadMessageProcessor(
             val markers = ebMSDocument.messageHeader().marker()
             try {
                 log.info(markers, "Sending message to Kafka queue")
-                ebmsSignalProducer.send(ebMSDocument.requestId, ebMSDocument.dokument.asByteArray())
+                ebmsSignalProducer.publishMessage(ebMSDocument.requestId, ebMSDocument.dokument.asByteArray())
             } catch (e: Exception) {
                 log.error(markers, "Exception occurred while sending message to Kafka queue", e)
             }

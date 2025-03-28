@@ -1,6 +1,6 @@
 package no.nav.emottak.ebms.async.kafka.consumer
 
-import io.github.nomisRev.kafka.AutoOffsetReset
+import io.github.nomisRev.kafka.receiver.AutoOffsetReset
 import io.github.nomisRev.kafka.receiver.KafkaReceiver
 import io.github.nomisRev.kafka.receiver.ReceiverSettings
 import kotlinx.coroutines.flow.collect

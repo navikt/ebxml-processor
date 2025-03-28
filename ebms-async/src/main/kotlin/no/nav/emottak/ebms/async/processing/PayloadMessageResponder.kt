@@ -60,7 +60,7 @@ class PayloadMessageResponder(
                                 )
                             )
                         }
-                        ebmsPayloadProducer.send(it.requestId, it.dokument.asByteArray())
+                        ebmsPayloadProducer.publishMessage(it.requestId, it.dokument.asByteArray())
                     }
                 log.info(it.first.marker(), "Payload message response returned successfully")
             }
