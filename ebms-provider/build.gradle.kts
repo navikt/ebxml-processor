@@ -77,6 +77,7 @@ dependencies {
     testImplementation(libs.hikari)
     testImplementation(testLibs.postgresql)
     testRuntimeOnly(testLibs.junit.jupiter.engine)
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 application {

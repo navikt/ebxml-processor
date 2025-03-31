@@ -13,7 +13,7 @@ dependencyResolutionManagement {
         create("libs") {
             version("bouncycastle", "1.76")
             version("exposed", "0.47.0")
-            version("ktor", "3.1.0")
+            version("ktor", "3.1.2")
             version("token-validation-ktor", "5.0.15")
             version("arrow", "1.2.4")
             version("suspendapp", "0.5.0")
@@ -83,12 +83,12 @@ dependencyResolutionManagement {
         }
 
         create("testLibs") {
-            version("junit", "5.9.2")
+            version("junit", "5.12.1")
             version("hamcrest", "2.2")
             version("mockk", "1.13.10")
             version("testPostgres", "1.18.0")
             version("xmlunit", "2.9.1")
-            version("ktor-server-test", "3.1.0")
+            version("ktor-server-test", "3.1.2")
             version("kotest", "5.9.1")
 
             library("ktor-server-test-host", "io.ktor", "ktor-server-test-host").versionRef("ktor-server-test")

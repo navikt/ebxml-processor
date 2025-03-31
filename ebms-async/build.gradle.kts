@@ -80,6 +80,7 @@ dependencies {
     testImplementation(libs.apache.santuario)
     testImplementation("org.testcontainers:kafka:1.19.0")
     testRuntimeOnly(testLibs.junit.jupiter.engine)
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 application {

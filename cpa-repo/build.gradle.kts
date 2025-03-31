@@ -70,6 +70,7 @@ dependencies {
     testImplementation(libs.ktor.client.content.negotiation)
     testImplementation(testLibs.ktor.server.test.host)
     testRuntimeOnly(libs.ojdbc8)
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testImplementation("org.testcontainers:oracle-xe:1.19.4")
     testImplementation(kotlin("test"))
 
