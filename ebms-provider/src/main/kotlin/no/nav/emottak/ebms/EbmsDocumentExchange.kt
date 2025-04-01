@@ -80,7 +80,7 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
             val allParts = mutableListOf<PartData>().apply {
                 this@receiveEbmsDokument.receiveMultipart().forEachPart {
                     var partDataToAdd = it
-                    if (it is PartData.FileItem) it.streamProvider.invoke()
+                    if (it is PartData.FileItem) it.provider.invoke()
                     if (it is PartData.FormItem) {
                         val boundary = this@receiveEbmsDokument.request.contentType().parameter("boundary")
                         if (it.value.contains("--$boundary--")) {
