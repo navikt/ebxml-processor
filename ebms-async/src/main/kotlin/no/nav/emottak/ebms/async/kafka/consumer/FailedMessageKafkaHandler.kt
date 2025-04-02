@@ -7,13 +7,17 @@ import io.github.nomisRev.kafka.receiver.KafkaReceiver
 import io.github.nomisRev.kafka.receiver.Offset
 import io.github.nomisRev.kafka.receiver.ReceiverRecord
 import io.github.nomisRev.kafka.receiver.ReceiverSettings
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.cancellable
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import no.nav.emottak.ebms.async.configuration.Kafka
 import no.nav.emottak.ebms.async.configuration.KafkaErrorQueue
 import no.nav.emottak.ebms.async.configuration.config
-import no.nav.emottak.ebms.async.configuration.toProperties
 import no.nav.emottak.ebms.async.processing.PayloadMessageProcessor
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.consumer.ConsumerRecords
@@ -26,7 +30,6 @@ import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
 import org.joda.time.DateTime
 import org.slf4j.LoggerFactory
-import java.math.BigInteger
 import java.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
@@ -48,7 +51,7 @@ class FailedMessageKafkaHandler(
             keySerializer = StringSerializer(),
             valueSerializer = ByteArraySerializer(),
             acknowledgments = Acks.All,
-            properties = kafka.toProperties()
+            properties = kafka.properties
         )
     )
 
@@ -59,7 +62,7 @@ class FailedMessageKafkaHandler(
             valueDeserializer = ByteArrayDeserializer(),
             groupId = kafka.groupId,
             pollTimeout = 10.seconds,
-            properties = kafka.toProperties()
+            properties = kafka.properties
         )
     )
 
@@ -95,38 +98,55 @@ class FailedMessageKafkaHandler(
 
         logger.debug("Reading from error queue")
         var counter = 0
-        consumer.map { record ->
-            counter++
-            if (counter > limit) {
-                logger.info("Kafka retryQueue Limit reached: $limit")
-                return@map
+        var lastKey: String? = null
+        CoroutineScope(Dispatchers.IO)
+            .launch {
+                consumer
+                    .cancellable() // NOTE: cancellable() will ensure the flow is terminated before new items are emitted to collect { } if its job is cancelled, though flow builder and all implementations of SharedFlow are cancellable() by default.
+                    .map { record ->
+                        counter++
+                        if (lastKey != null) {
+                            if (lastKey == record.key()) {
+                                logger.info("End of queue reached")
+                                cancel("End of queue reached")
+                            }
+                        }
+                        lastKey = record.key()
+                        if (counter > limit) {
+                            logger.info("Kafka retryQueue Limit reached: $limit")
+                            cancel("Limit reached")
+                            return@map
+                        }
+                        record.offset.acknowledge()
+                        record.retryCounter()
+                        val retryableAfter = DateTime.parse(
+                            String(record.headers().lastHeader(RETRY_AFTER).value())
+                        )
+                        if (DateTime.now().isAfter(retryableAfter)) {
+                            payloadMessageProcessor.process(record)
+                        } else {
+                            logger.info("${record.key()} is not retryable yet.")
+                            failedMessageQueue.sendToRetry(record)
+                        }
+                        record.offset.commit()
+                    }.collect()
             }
-            record.offset.acknowledge()
-            record.retryCounter()
-            val retryableAfter = DateTime.parse(
-                String(record.headers().lastHeader(RETRY_AFTER).value())
-            )
-            if (DateTime.now().isAfter(retryableAfter)) {
-                payloadMessageProcessor.process(record)
-            } else {
-                logger.info("${record.key()} is not retryable yet.")
-                failedMessageQueue.sendToRetry(record)
-            }
-            record.offset.commit()
-        }.collect()
     }
 
     fun getNextRetryTime(record: ReceiverRecord<String, ByteArray>): String {
+        if (record.headers().lastHeader(RETRY_AFTER) == null) {
+            return DateTime.now().toString()
+        }
         return DateTime.now().plusMinutes(5)
             .toString() // TODO create retry strategy
     }
 
-    fun ReceiverRecord<String, ByteArray>.retryCounter(): BigInteger {
-        val lastHeader = headers().lastHeader(RETRY_COUNT_HEADER)?.value() ?: (0).toBigInteger().toByteArray()
-        val retryCounter = BigInteger(lastHeader) + (1).toBigInteger()
+    fun ReceiverRecord<String, ByteArray>.retryCounter(): Int {
+        val lastHeader = headers().lastHeader(RETRY_COUNT_HEADER)?.value() ?: "0".toByteArray()
+        val retryCounter = String(lastHeader).toInt() + (1)
         this.headers().add(
             RETRY_COUNT_HEADER,
-            retryCounter.toByteArray()
+            retryCounter.toString().toByteArray()
         )
         return retryCounter
     }
@@ -156,7 +176,7 @@ fun getRecords(
     requestedRecords: Int = 1
 ): List<ReceiverRecord<String, ByteArray>> {
     KafkaConsumer(
-        kafka.toProperties(),
+        kafka.properties,
         StringDeserializer(),
         ByteArrayDeserializer()
     ).use { consumer ->
@@ -177,7 +197,7 @@ fun getRecords(
             kafkaRecords
                 .filterNotNull()
                 .forEach { record ->
-                    recordList.add(getReceiverRecord(record)!!)
+                    recordList.add(record.asReceiverRecord())
                 }
         }
         return recordList
@@ -198,8 +218,7 @@ fun KafkaConsumer<String, ByteArray>.seekFromExactOffset(
     }
 }
 
-fun getReceiverRecord(consumerRecord: ConsumerRecord<String, ByteArray>?): ReceiverRecord<String, ByteArray>? {
-    if (consumerRecord == null) return null
+fun ConsumerRecord<String, ByteArray>.asReceiverRecord(): ReceiverRecord<String, ByteArray> {
     // Ugly workaround for ReceiverRecord / ConsumerRecord mapping compatibility
     class ReadOnlyOffset(
         override val offset: Long,
@@ -214,7 +233,7 @@ fun getReceiverRecord(consumerRecord: ConsumerRecord<String, ByteArray>?): Recei
         }
     }
     return ReceiverRecord(
-        consumerRecord,
-        ReadOnlyOffset(consumerRecord.offset(), TopicPartition(consumerRecord.topic(), consumerRecord.partition()))
+        this,
+        ReadOnlyOffset(this.offset(), TopicPartition(this.topic(), this.partition()))
     )
 }

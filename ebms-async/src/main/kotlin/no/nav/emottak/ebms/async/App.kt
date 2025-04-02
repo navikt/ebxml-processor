@@ -219,12 +219,10 @@ fun Routing.retryErrors(
             call.respondText(status = HttpStatusCode.ServiceUnavailable, text = "Retry not active.")
             return@get
         }
-        CoroutineScope(Dispatchers.IO).launch {
-            failedMessageQueue.consumeRetryQueue(
-                payloadMessageProcessorProvider.invoke(),
-                limit = (call.parameters[RETRY_LIMIT])?.toInt() ?: 10
-            )
-        }
+        failedMessageQueue.consumeRetryQueue(
+            payloadMessageProcessorProvider.invoke(),
+            limit = (call.parameters[RETRY_LIMIT])?.toInt() ?: 10
+        )
         call.respondText(
             status = HttpStatusCode.OK,
             text = "Retry processing started with limit ${call.parameters[RETRY_LIMIT] ?: "default"}"

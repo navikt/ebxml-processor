@@ -69,7 +69,17 @@ data class Kafka(
     val truststoreType: TruststoreType,
     val truststoreLocation: TruststoreLocation,
     val truststorePassword: Masked,
-    val groupId: String
+    val groupId: String,
+    val properties: Properties = Properties().apply {
+        put(BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
+        put(SECURITY_PROTOCOL_CONFIG, securityProtocol.value)
+        put(SSL_KEYSTORE_TYPE_CONFIG, keystoreType.value)
+        put(SSL_KEYSTORE_LOCATION_CONFIG, keystoreLocation.value)
+        put(SSL_KEYSTORE_PASSWORD_CONFIG, keystorePassword.value)
+        put(SSL_TRUSTSTORE_TYPE_CONFIG, truststoreType.value)
+        put(SSL_TRUSTSTORE_LOCATION_CONFIG, truststoreLocation.value)
+        put(SSL_TRUSTSTORE_PASSWORD_CONFIG, truststorePassword.value)
+    }
 )
 
 fun Kafka.toProperties() = Properties()
