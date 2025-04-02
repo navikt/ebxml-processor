@@ -142,8 +142,10 @@ class FailedMessageKafkaHandler(
     }
 
     fun ReceiverRecord<String, ByteArray>.retryCounter(): Int {
-        val lastHeader = headers().lastHeader(RETRY_COUNT_HEADER)?.value() ?: "0".toByteArray()
-        val retryCounter = String(lastHeader).toInt() + (1)
+        val lastHeader =
+            String((headers().lastHeader(RETRY_COUNT_HEADER)?.value() ?: "0".toByteArray()))
+                .takeIf { it.isNotBlank() } ?: "0"
+        val retryCounter = lastHeader.toInt() + (1)
         this.headers().add(
             RETRY_COUNT_HEADER,
             retryCounter.toString().toByteArray()
