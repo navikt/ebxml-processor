@@ -16,6 +16,7 @@ import no.nav.emottak.util.getByteArrayFromDocument
 import no.nav.emottak.util.marker
 import no.nav.emottak.util.retrieveSignatureElement
 import no.nav.emottak.util.signatur.SignaturVerifisering
+import org.slf4j.Marker
 import java.io.ByteArrayInputStream
 
 val processor = Processor()
@@ -61,15 +62,26 @@ class Processor(
         )
     }
 
-    suspend fun validateReadablePayload(payload: Payload, validateSignature: Boolean, validateOcsp: Boolean): Payload {
+    suspend fun validateReadablePayload(marker: Marker, payload: Payload, validateSignature: Boolean, validateOcsp: Boolean): Payload {
         if (validateSignature) {
+            log.debug(marker, "Validating signature for payload")
+
             signatureVerifisering.validate(payload.bytes)
         }
         return if (validateOcsp) {
+            log.debug(marker, "Validating OCSP for payload: Step 1 create DOM")
             val dom = createDocument(ByteArrayInputStream(payload.bytes))
+
+            log.debug(marker, "Validating OCSP for payload: Step 2 retrieve signature element")
             val xmlSignature = dom.retrieveSignatureElement()
+
+            log.debug(marker, "Validating OCSP for payload: Step 3 get certificate from signature")
             val certificateFromSignature = xmlSignature.keyInfo.x509Certificate
+
+            log.debug(marker, "Validating OCSP for payload: Step 4 fnr from getOCSPStatus")
             val signedBy = ocspStatusService.getOCSPStatus(certificateFromSignature).fnr
+
+            log.debug(marker, "Validating OCSP for payload: Step 5 copy")
             payload.copy(signedBy = signedBy)
         } else {
             payload
