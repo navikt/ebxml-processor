@@ -7,7 +7,7 @@ import org.testcontainers.containers.KafkaContainer
 import org.testcontainers.utility.DockerImageName
 
 object KafkaTestContainer {
-    private val kafkaContainer: KafkaContainer = KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.5.0"))
+    val kafkaContainer: KafkaContainer = KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.5.0"))
 
     val bootstrapServers: String
         get() = kafkaContainer.bootstrapServers
