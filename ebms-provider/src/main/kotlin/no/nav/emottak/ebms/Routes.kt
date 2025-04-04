@@ -1,5 +1,6 @@
 package no.nav.emottak.ebms
 
+import io.ktor.client.request.request
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.header
@@ -7,6 +8,7 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.post
 import no.nav.emottak.constants.SMTPHeaders
+import no.nav.emottak.ebms.configuration.config
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
@@ -24,6 +26,10 @@ import no.nav.emottak.message.model.PayloadProcessing
 import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.util.marker
 import no.nav.emottak.util.retrieveLoggableHeaderPairs
+import no.nav.emottak.utils.kafka.client.EventPublisherClient
+import no.nav.emottak.utils.kafka.model.Event
+import no.nav.emottak.utils.kafka.model.EventType
+import no.nav.emottak.utils.kafka.service.EventLoggingService
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -41,6 +47,8 @@ fun Route.postEbmsSync(
         call.request.validateMime()
         ebMSDocument = call.receiveEbmsDokument()
         log.info(ebMSDocument.messageHeader().marker(loggableHeaders), "Melding mottatt")
+
+        registerEvent(ebMSDocument)
     } catch (ex: MimeValidationException) {
         logger().error(
             call.request.headers.marker(),
@@ -129,5 +137,37 @@ fun Route.postEbmsSync(
             HttpStatusCode.InternalServerError,
             ex.parseAsSoapFault()
         )
+    }
+}
+
+@OptIn(ExperimentalUuidApi::class)
+suspend fun registerEvent(ebMSDocument: EbMSDocument) {
+    log.debug("Event reg. test: Registering event for requestId: ${ebMSDocument.requestId}")
+
+    try {
+        val kafkaPublisherClient = EventPublisherClient(config().kafka)
+        val eventLoggingService = EventLoggingService(kafkaPublisherClient)
+
+        val requestId = try {
+            Uuid.parse(ebMSDocument.requestId)
+        } catch (e: Exception) {
+            Uuid.random()
+        }
+
+        log.debug("Event reg. test: RequestId: $requestId")
+
+        val event = Event(
+            eventType = EventType.MESSAGE_RECEIVED_VIA_HTTP,
+            requestId = requestId,
+            contentId = "",
+            messageId = ebMSDocument.transform().messageId,
+            eventData = "{}"
+        )
+
+        log.debug("Event reg. test: Publishing event: $event")
+        eventLoggingService.logEvent(event)
+        log.debug("Event reg. test: Event published successfully")
+    } catch (e: Exception) {
+        log.error("Event reg. test: Error while registering event: ${e.message}", e)
     }
 }
