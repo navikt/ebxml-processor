@@ -1,6 +1,6 @@
 package no.nav.emottak.ebms.async
 
-import no.nav.emottak.utils.getEnvVar
+import no.nav.emottak.utils.environment.getEnvVar
 import no.nav.security.token.support.v3.IssuerConfig
 import no.nav.security.token.support.v3.TokenSupportConfig
 

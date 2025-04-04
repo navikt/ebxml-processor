@@ -7,7 +7,7 @@ import no.nav.emottak.cpa.cert.CertificateValidationException
 import no.nav.emottak.crypto.FileKeyStoreConfig
 import no.nav.emottak.crypto.KeyStoreManager
 import no.nav.emottak.util.isSelfSigned
-import no.nav.emottak.utils.getEnvVar
+import no.nav.emottak.utils.environment.getEnvVar
 import org.bouncycastle.asn1.x509.CRLDistPoint
 import org.bouncycastle.asn1.x509.Extension
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils

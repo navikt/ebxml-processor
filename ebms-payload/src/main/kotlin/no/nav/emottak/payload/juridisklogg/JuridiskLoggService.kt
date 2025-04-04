@@ -18,7 +18,7 @@ import no.nav.emottak.message.model.PartyId
 import no.nav.emottak.message.model.PayloadRequest
 import no.nav.emottak.payload.log
 import no.nav.emottak.util.marker
-import no.nav.emottak.utils.getEnvVar
+import no.nav.emottak.utils.environment.getEnvVar
 
 class JuridiskLoggService() {
     private val juridiskLoggUrl = getEnvVar("APP_JURIDISKLOGG_URI", "https://app-q1.adeo.no/juridisklogg") + "/api/rest/logg"
