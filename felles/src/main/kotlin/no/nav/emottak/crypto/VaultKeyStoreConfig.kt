@@ -1,9 +1,7 @@
 package no.nav.emottak.crypto
 
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
-import no.nav.emottak.vault.VaultUtil
+import no.nav.emottak.utils.vault.VaultUtil
+import no.nav.emottak.utils.vault.parseVaultJsonObject
 import java.io.InputStream
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
@@ -14,15 +12,12 @@ class VaultKeyStoreConfig(
     keyStoreFileResource: String,
     keyStorePassResource: String
 ) : KeyStoreConfig {
-    override val keyStoreFile: InputStream = getDecodedVaultKeyStoreFile(keyStoreVaultPath, keyStoreFileResource)
-    override val keyStorePass: CharArray = VaultUtil.readVaultPathResource(keyStoreVaultPath, keyStorePassResource).parseVaultJsonObject("password").toCharArray()
-    override val keyStoreType: String = VaultUtil.readVaultPathResource(keyStoreVaultPath, keyStorePassResource).parseVaultJsonObject("type")
+    private val keystoreVaultMap: Map<String, String> = VaultUtil.readVaultPathData(keyStoreVaultPath)
+    override val keyStoreFile: InputStream = keystoreVaultMap.getDecodedVaultKeyStoreFile(keyStoreFileResource)
+    override val keyStorePass: CharArray = keystoreVaultMap[keyStorePassResource]!!.parseVaultJsonObject("password").toCharArray()
+    override val keyStoreType: String = keystoreVaultMap[keyStorePassResource]!!.parseVaultJsonObject("type")
 
     @OptIn(ExperimentalEncodingApi::class)
-    private fun getDecodedVaultKeyStoreFile(keyStoreVaultPath: String, keyStoreFileResource: String): InputStream =
-        VaultUtil.readVaultPathResource(keyStoreVaultPath, keyStoreFileResource).byteInputStream().decodingWith(Base64.Mime)
+    private fun Map<String, String>.getDecodedVaultKeyStoreFile(keyStoreFileResource: String): InputStream =
+        this[keyStoreFileResource]!!.byteInputStream().decodingWith(Base64.Mime)
 }
-
-fun String.parseVaultJsonObject(field: String) = Json.parseToJsonElement(
-    this
-).jsonObject[field]!!.jsonPrimitive.content

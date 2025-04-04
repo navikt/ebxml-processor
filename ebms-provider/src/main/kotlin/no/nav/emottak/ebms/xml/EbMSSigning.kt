@@ -4,7 +4,6 @@ import jakarta.xml.soap.SOAPConstants
 import no.nav.emottak.crypto.FileKeyStoreConfig
 import no.nav.emottak.crypto.KeyStoreManager
 import no.nav.emottak.crypto.VaultKeyStoreConfig
-import no.nav.emottak.crypto.parseVaultJsonObject
 import no.nav.emottak.ebms.validation.CID_PREFIX
 import no.nav.emottak.ebms.validation.EbMSAttachmentResolver
 import no.nav.emottak.message.model.EbMSDocument
@@ -14,6 +13,7 @@ import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.getFirstChildElement
 import no.nav.emottak.util.signatur.SignatureException
 import no.nav.emottak.utils.environment.getEnvVar
+import no.nav.emottak.utils.vault.parseVaultJsonObject
 import org.apache.xml.security.exceptions.XMLSecurityException
 import org.apache.xml.security.signature.XMLSignature
 import org.apache.xml.security.transforms.Transforms

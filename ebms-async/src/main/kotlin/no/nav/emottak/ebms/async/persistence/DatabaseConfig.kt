@@ -4,8 +4,8 @@ import com.bettercloud.vault.response.LogicalResponse
 import com.zaxxer.hikari.HikariConfig
 import no.nav.emottak.ebms.async.log
 import no.nav.emottak.utils.environment.getEnvVar
+import no.nav.emottak.utils.vault.VaultUtil
 import no.nav.vault.jdbc.hikaricp.HikariCPVaultUtil
-import no.nav.vault.jdbc.hikaricp.VaultUtil
 
 const val EBMS_DB_NAME = "emottak-ebms-db"
 
@@ -33,10 +33,9 @@ fun VaultConfig.configure(role: String): HikariConfig {
         this.maximumPoolSize = maxPoolSizeForUser
         if (role == "admin") {
             this.maximumPoolSize = maxPoolSizeForAdmin
-            val vault = VaultUtil.getInstance().client
             val path: String = this@configure.vaultMountPath + "/creds/$databaseName-$role"
             log.info("Fetching database credentials for role admin")
-            val response: LogicalResponse = vault.logical().read(path)
+            val response: LogicalResponse = VaultUtil.getClient().logical().read(path)
             this.username = response.data["username"]
             this.password = response.data["password"]
         }

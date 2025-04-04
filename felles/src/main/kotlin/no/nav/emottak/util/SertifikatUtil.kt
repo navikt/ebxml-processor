@@ -6,8 +6,6 @@ import java.security.cert.CertificateException
 import java.security.cert.CertificateFactory
 import java.security.cert.X509CRL
 import java.security.cert.X509Certificate
-import kotlin.io.encoding.Base64
-import kotlin.io.encoding.ExperimentalEncodingApi
 
 fun isSelfSigned(certificate: X509Certificate) =
     certificate.subjectX500Principal == certificate.issuerX500Principal
@@ -27,5 +25,4 @@ fun createCRLFile(byteArray: ByteArray): X509CRL {
     return factory.generateCRL(ByteArrayInputStream(byteArray)) as X509CRL
 }
 
-@OptIn(ExperimentalEncodingApi::class)
 fun decodeBase64(base64String: ByteArray): ByteArray = java.util.Base64.getMimeDecoder().decode(base64String)
