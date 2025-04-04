@@ -35,7 +35,7 @@ import no.nav.emottak.message.model.SendInResponse
 import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.util.decodeBase64
-import no.nav.emottak.utils.getEnvVar
+import no.nav.emottak.utils.environment.getEnvVar
 import org.apache.xml.security.algorithms.MessageDigestAlgorithm
 import org.apache.xml.security.signature.XMLSignature
 import org.junit.jupiter.api.Test

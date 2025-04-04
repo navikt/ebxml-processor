@@ -9,7 +9,7 @@ import kotlinx.coroutines.withContext
 import no.nav.emottak.crypto.KeyStoreManager
 import no.nav.emottak.payload.config
 import no.nav.emottak.payload.log
-import no.nav.emottak.utils.getEnvVar
+import no.nav.emottak.utils.environment.getEnvVar
 import org.bouncycastle.asn1.ocsp.OCSPObjectIdentifiers
 import org.bouncycastle.asn1.ocsp.OCSPResponseStatus
 import org.bouncycastle.asn1.x500.X500Name

@@ -2,7 +2,7 @@ package no.nav.emottak.payload.ocspstatus
 
 import no.nav.emottak.crypto.FileKeyStoreConfig
 import no.nav.emottak.crypto.parseVaultJsonObject
-import no.nav.emottak.utils.getEnvVar
+import no.nav.emottak.utils.environment.getEnvVar
 import java.io.FileReader
 
 internal fun trustStoreConfig() = FileKeyStoreConfig(
