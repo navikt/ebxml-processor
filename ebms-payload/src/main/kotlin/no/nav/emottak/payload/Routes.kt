@@ -83,6 +83,7 @@ private suspend fun createIncomingPayloadResponse(
     return try {
         PayloadResponse(
             processedPayload = processor.validateReadablePayload(
+                request.marker(),
                 readablePayload,
                 processConfig.signering,
                 processConfig.ocspSjekk
@@ -92,7 +93,7 @@ private suspend fun createIncomingPayloadResponse(
             }
         )
     } catch (e: Exception) {
-        log.error(request.marker(), "Feil ved validering av payload", e)
+        log.error(request.marker(), "Feil ved validering av payload, creating AppRec or Error Payload in response instead", e)
         val errorPayload: Payload? = createNegativeAppRecOrErrorPayload(processConfig, request, readablePayload, e)
         PayloadResponse(
             processedPayload = errorPayload,
