@@ -7,9 +7,14 @@ import arrow.continuations.SuspendApp
 import arrow.continuations.ktor.server
 import arrow.core.raise.result
 import arrow.fx.coroutines.resourceScope
+import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.auth.authenticate
 import io.ktor.server.netty.Netty
+import io.ktor.server.response.respondText
+import io.ktor.server.routing.Route
+import io.ktor.server.routing.Routing
+import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import io.ktor.utils.io.CancellationException
 import io.micrometer.prometheusmetrics.PrometheusConfig
@@ -28,6 +33,8 @@ import no.nav.emottak.ebms.SendInClient
 import no.nav.emottak.ebms.SmtpTransportClient
 import no.nav.emottak.ebms.async.configuration.Config
 import no.nav.emottak.ebms.async.configuration.config
+import no.nav.emottak.ebms.async.kafka.consumer.failedMessageQueue
+import no.nav.emottak.ebms.async.kafka.consumer.getRecord
 import no.nav.emottak.ebms.async.kafka.consumer.startPayloadReceiver
 import no.nav.emottak.ebms.async.kafka.consumer.startSignalReceiver
 import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
@@ -48,7 +55,9 @@ import no.nav.emottak.ebms.registerRootEndpoint
 import no.nav.emottak.ebms.scopedAuthHttpClient
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.DokumentValidator
+import no.nav.emottak.message.util.isProdEnv
 import org.slf4j.LoggerFactory
+import kotlin.uuid.ExperimentalUuidApi
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.async.App")
 
@@ -81,6 +90,15 @@ fun main() = SuspendApp {
         ebmsPayloadProducer = ebmsPayloadProducer
     )
 
+    val payloadMessageProcessorProvider = payloadMessageProcessorProvider(
+        ebmsMessageDetailsRepository = ebmsMessageDetailsRepository,
+        dokumentValidator = dokumentValidator,
+        processingService = processingService,
+        ebmsSignalProducer = ebmsSignalProducer,
+        smtpTransportClient = smtpTransportClient,
+        payloadMessageResponder = payloadMessageResponder
+    )
+
     result {
         resourceScope {
             launchSignalReceiver(
@@ -90,12 +108,7 @@ fun main() = SuspendApp {
             )
             launchPayloadReceiver(
                 config = config,
-                dokumentValidator = dokumentValidator,
-                processingService = processingService,
-                ebmsSignalProducer = ebmsSignalProducer,
-                smtpTransportClient = smtpTransportClient,
-                payloadMessageResponder = payloadMessageResponder,
-                ebmsMessageDetailsRepository = ebmsMessageDetailsRepository
+                payloadMessageProcessorProvider = payloadMessageProcessorProvider
             )
 
             server(
@@ -103,7 +116,8 @@ fun main() = SuspendApp {
                 port = 8080,
                 module = {
                     ebmsProviderModule(
-                        payloadRepository = payloadRepository
+                        payloadRepository = payloadRepository,
+                        payloadProcessorProvider = payloadMessageProcessorProvider
                     )
                 }
             ).also { it.engineConfig.maxChunkSize = 100000 }
@@ -119,26 +133,36 @@ fun main() = SuspendApp {
         }
 }
 
-private fun CoroutineScope.launchPayloadReceiver(
-    config: Config,
+fun payloadMessageProcessorProvider(
+    ebmsMessageDetailsRepository: EbmsMessageDetailsRepository,
     dokumentValidator: DokumentValidator,
     processingService: ProcessingService,
     ebmsSignalProducer: EbmsMessageProducer,
     smtpTransportClient: SmtpTransportClient,
-    payloadMessageResponder: PayloadMessageResponder,
-    ebmsMessageDetailsRepository: EbmsMessageDetailsRepository
+    payloadMessageResponder: PayloadMessageResponder
+
+): () -> PayloadMessageProcessor = {
+    PayloadMessageProcessor(
+        ebmsMessageDetailsRepository = ebmsMessageDetailsRepository,
+        validator = dokumentValidator,
+        processingService = processingService,
+        ebmsSignalProducer = ebmsSignalProducer,
+        smtpTransportClient = smtpTransportClient,
+        payloadMessageResponder
+    )
+}
+
+private fun CoroutineScope.launchPayloadReceiver(
+    config: Config,
+    payloadMessageProcessorProvider: () -> PayloadMessageProcessor
 ) {
     if (config.kafkaPayloadReceiver.active) {
         launch(Dispatchers.IO) {
-            val payloadMessageProcessor = PayloadMessageProcessor(
-                validator = dokumentValidator,
-                processingService = processingService,
-                ebmsSignalProducer = ebmsSignalProducer,
-                smtpTransportClient = smtpTransportClient,
-                ebmsMessageDetailsRepository = ebmsMessageDetailsRepository,
-                payloadMessageResponder = payloadMessageResponder
+            startPayloadReceiver(
+                config.kafkaPayloadReceiver.topic,
+                config.kafka,
+                payloadMessageProcessorProvider.invoke()
             )
-            startPayloadReceiver(config.kafkaPayloadReceiver.topic, config.kafka, payloadMessageProcessor)
         }
     }
 }
@@ -160,7 +184,8 @@ private fun CoroutineScope.launchSignalReceiver(
 }
 
 fun Application.ebmsProviderModule(
-    payloadRepository: PayloadRepository
+    payloadRepository: PayloadRepository,
+    payloadProcessorProvider: () -> PayloadMessageProcessor
 ) {
     val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
 
@@ -173,9 +198,53 @@ fun Application.ebmsProviderModule(
         registerHealthEndpoints()
         registerPrometheusEndpoint(appMicrometerRegistry)
         registerNavCheckStatus()
-
+        if (!isProdEnv()) {
+            simulateError()
+        }
+        retryErrors(payloadProcessorProvider)
         authenticate(AZURE_AD_AUTH) {
             getPayloads(payloadRepository)
+        }
+    }
+}
+
+const val RETRY_LIMIT = "retryLimit"
+
+@OptIn(ExperimentalUuidApi::class)
+fun Routing.retryErrors(
+    payloadMessageProcessorProvider: () -> PayloadMessageProcessor
+): Route =
+    get("/api/retry/{$RETRY_LIMIT}") {
+        if (!config().kafkaErrorQueue.active) {
+            call.respondText(status = HttpStatusCode.ServiceUnavailable, text = "Retry not active.")
+            return@get
+        }
+        failedMessageQueue.consumeRetryQueue(
+            payloadMessageProcessorProvider.invoke(),
+            limit = (call.parameters[RETRY_LIMIT])?.toInt() ?: 10
+        )
+        call.respondText(
+            status = HttpStatusCode.OK,
+            text = "Retry processing started with limit ${call.parameters[RETRY_LIMIT] ?: "default"}"
+        )
+    }
+
+const val KAFKA_OFFSET = "offset"
+
+fun Route.simulateError(): Route = get("/api/forceretry/{$KAFKA_OFFSET}") {
+    CoroutineScope(Dispatchers.IO).launch() {
+        if (config().kafkaErrorQueue.active) {
+            val record = getRecord(
+                config()
+                    .kafkaPayloadReceiver.topic,
+                config().kafka
+                    .copy(groupId = "ebms-provider-retry"),
+                (call.parameters[KAFKA_OFFSET])?.toLong() ?: 0
+            )
+            failedMessageQueue.sendToRetry(
+                record = record ?: throw Exception("No Record found. Offset: ${call.parameters[KAFKA_OFFSET]}"),
+                reason = "Simulated Error"
+            )
         }
     }
 }

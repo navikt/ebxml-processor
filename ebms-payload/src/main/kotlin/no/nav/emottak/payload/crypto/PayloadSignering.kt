@@ -3,11 +3,11 @@ package no.nav.emottak.payload.crypto
 import no.nav.emottak.crypto.FileKeyStoreConfig
 import no.nav.emottak.crypto.KeyStoreManager
 import no.nav.emottak.crypto.VaultKeyStoreConfig
-import no.nav.emottak.crypto.parseVaultJsonObject
 import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.signatur.SignatureException
-import no.nav.emottak.utils.getEnvVar
+import no.nav.emottak.utils.environment.getEnvVar
+import no.nav.emottak.utils.vault.parseVaultJsonObject
 import org.w3c.dom.Document
 import java.io.FileReader
 import java.security.Key

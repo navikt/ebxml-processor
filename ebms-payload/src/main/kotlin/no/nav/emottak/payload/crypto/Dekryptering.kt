@@ -3,9 +3,9 @@ package no.nav.emottak.payload.crypto
 import no.nav.emottak.crypto.FileKeyStoreConfig
 import no.nav.emottak.crypto.KeyStoreManager
 import no.nav.emottak.crypto.VaultKeyStoreConfig
-import no.nav.emottak.crypto.parseVaultJsonObject
 import no.nav.emottak.util.decodeBase64
-import no.nav.emottak.utils.getEnvVar
+import no.nav.emottak.utils.environment.getEnvVar
+import no.nav.emottak.utils.vault.parseVaultJsonObject
 import org.bouncycastle.asn1.x500.X500Name
 import org.bouncycastle.cms.CMSEnvelopedData
 import org.bouncycastle.cms.KeyTransRecipientId

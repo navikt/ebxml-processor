@@ -1,6 +1,6 @@
 package no.nav.emottak.ebms.async.kafka.consumer
 
-import io.github.nomisRev.kafka.AutoOffsetReset
+import io.github.nomisRev.kafka.receiver.AutoOffsetReset
 import io.github.nomisRev.kafka.receiver.KafkaReceiver
 import io.github.nomisRev.kafka.receiver.ReceiverSettings
 import kotlinx.coroutines.flow.collect
@@ -29,7 +29,7 @@ suspend fun startPayloadReceiver(topic: String, kafka: Kafka, payloadMessageProc
     KafkaReceiver(receiverSettings)
         .receive(topic)
         .map { record ->
-            payloadMessageProcessor.process(record.key(), record.value())
+            payloadMessageProcessor.process(record)
             record.offset.acknowledge()
         }.collect()
 }

@@ -1,9 +1,11 @@
 package no.nav.emottak.ebms.async.processing
 
+import io.github.nomisRev.kafka.receiver.ReceiverRecord
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import no.nav.emottak.ebms.SmtpTransportClient
 import no.nav.emottak.ebms.async.configuration.config
+import no.nav.emottak.ebms.async.kafka.consumer.failedMessageQueue
 import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
 import no.nav.emottak.ebms.async.log
 import no.nav.emottak.ebms.async.persistence.repository.EbmsMessageDetailsRepository
@@ -29,14 +31,11 @@ class PayloadMessageProcessor(
     val smtpTransportClient: SmtpTransportClient,
     val payloadMessageResponder: PayloadMessageResponder
 ) {
-
-    suspend fun process(requestId: String, content: ByteArray) {
+    suspend fun process(record: ReceiverRecord<String, ByteArray>) {
         try {
-            with(createEbmsDocument(requestId, content)) {
-                processPayloadMessage(requestId, this)
-            }
+            processPayloadMessage(createEbmsDocument(record.key(), record.value()), record)
         } catch (e: Exception) {
-            log.error("Message failed for requestId $requestId", e)
+            log.error("Message failed for reference ${record.key()}", e)
         }
     }
 
@@ -63,12 +62,15 @@ class PayloadMessageProcessor(
             )
         }
 
-    private suspend fun processPayloadMessage(requestId: String, ebmsPayloadMessage: PayloadMessage) {
+    private suspend fun processPayloadMessage(
+        ebmsPayloadMessage: PayloadMessage,
+        record: ReceiverRecord<String, ByteArray>
+    ) {
         try {
             if (isDuplicateMessage(ebmsPayloadMessage)) {
-                log.info(ebmsPayloadMessage.marker(), "Got duplicate payload message with requestId <$requestId>")
+                log.info(ebmsPayloadMessage.marker(), "Got duplicate payload message with reference <${record.key()}>")
             } else {
-                log.info(ebmsPayloadMessage.marker(), "Got payload message with requestId <$requestId>")
+                log.info(ebmsPayloadMessage.marker(), "Got payload message with reference <${record.key()}>")
                 ebmsMessageDetailsRepository.saveEbmsMessage(ebmsPayloadMessage)
                 // eventsRepository.saveEvent("Message received", ebmsPayloadMessage)
                 validator
@@ -95,7 +97,12 @@ class PayloadMessageProcessor(
             returnMessageError(ebmsPayloadMessage, e)
         } catch (ex: Exception) {
             log.error(ebmsPayloadMessage.marker(), ex.message ?: "Unknown error", ex)
-            // TODO Send to error topic?
+            failedMessageQueue.sendToRetry(
+                record,
+                ebmsPayloadMessage.requestId,
+                ebmsPayloadMessage.toEbmsDokument().dokument.asByteArray(),
+                ex.message ?: "Unknown error"
+            )
             throw ex
         }
     }
@@ -143,7 +150,7 @@ class PayloadMessageProcessor(
             val markers = ebMSDocument.messageHeader().marker()
             try {
                 log.info(markers, "Sending message to Kafka queue")
-                ebmsSignalProducer.send(ebMSDocument.requestId, ebMSDocument.dokument.asByteArray())
+                ebmsSignalProducer.publishMessage(ebMSDocument.requestId, ebMSDocument.dokument.asByteArray())
             } catch (e: Exception) {
                 log.error(markers, "Exception occurred while sending message to Kafka queue", e)
             }

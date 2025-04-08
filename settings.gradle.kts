@@ -21,7 +21,7 @@ dependencyResolutionManagement {
             version("hoplite", "2.8.2")
             version("logback", "1.5.17")
             version("logstash", "8.0")
-            version("emottak-utils", "0.1.0")
+            version("emottak-utils", "0.2.1")
 
             library("bcpkix-jdk18on", "org.bouncycastle", "bcpkix-jdk18on").versionRef("bouncycastle")
             library("bcprov-jdk18on", "org.bouncycastle", "bcprov-jdk18on").versionRef("bouncycastle")
