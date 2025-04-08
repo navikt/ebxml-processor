@@ -79,37 +79,35 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
         ContentType.parse("multipart/related") -> {
             var start = contentType.parameter("start")
             lateinit var ebmsEnvelopeHeaders: Headers
-            lateinit var ebmsEnvelope: Pair<String, ByteArray>
+            var ebmsEnvelope: Pair<String, ByteArray>? = null
             val attachments = mutableListOf<EbmsAttachment>()
             this@receiveEbmsDokument.receiveMultipart().forEachPart { partData ->
-                if (start == null) start = partData.headers[MimeHeaders.CONTENT_ID] ?: throw MimeValidationException("Both boundary start and content-id cannot be null")
+                if (start == null && ebmsEnvelope == null) start = partData.headers[MimeHeaders.CONTENT_ID]
 
-                try {
-                    val isBase64 = "base64".equals(partData.headers[MimeHeaders.CONTENT_TRANSFER_ENCODING], true)
-                    if (partData.headers[MimeHeaders.CONTENT_ID] == start) {
-                        ebmsEnvelopeHeaders = partData.headers
-                        ebmsEnvelope = Pair(
-                            partData.headers[MimeHeaders.CONTENT_ID]?.convertToValidatedContentID() ?: "GENERERT-${Uuid.random()}",
-                            partData.payload(isBase64)
+                val isBase64 = "base64".equals(partData.headers[MimeHeaders.CONTENT_TRANSFER_ENCODING], true)
+                if (partData.headers[MimeHeaders.CONTENT_ID] == start) {
+                    ebmsEnvelopeHeaders = partData.headers
+                    ebmsEnvelope = Pair(
+                        partData.headers[MimeHeaders.CONTENT_ID]?.convertToValidatedContentID() ?: "GENERERT-${Uuid.random()}",
+                        partData.payload(isBase64)
+                    )
+                } else {
+                    attachments.add(
+                        EbmsAttachment(
+                            partData.payload(isBase64),
+                            partData.contentType!!.contentType,
+                            partData.headers[MimeHeaders.CONTENT_ID]!!.convertToValidatedContentID()
                         )
-                    } else {
-                        attachments.add(
-                            EbmsAttachment(
-                                partData.payload(isBase64),
-                                partData.contentType!!.contentType,
-                                partData.headers[MimeHeaders.CONTENT_ID]!!.convertToValidatedContentID()
-                            )
-                        )
-                    }
-                } finally {
-                    partData.dispose.invoke()
+                    )
                 }
+                partData.dispose.invoke()
             }
+            if (ebmsEnvelope == null) throw MimeValidationException("Failed to extract soap envelope from multipartdata")
             ebmsEnvelopeHeaders.validateMimeSoapEnvelope()
             EbMSDocument(
-                ebmsEnvelope.first,
+                ebmsEnvelope!!.first,
                 withContext(Dispatchers.IO) {
-                    getDocumentBuilder().parse(ByteArrayInputStream(ebmsEnvelope.second))
+                    getDocumentBuilder().parse(ByteArrayInputStream(ebmsEnvelope!!.second))
                 },
                 attachments
             )
