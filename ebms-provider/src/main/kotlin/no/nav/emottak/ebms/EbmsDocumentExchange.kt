@@ -10,7 +10,6 @@ import io.ktor.http.HeadersBuilder
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.PartData
 import io.ktor.http.content.forEachPart
-import io.ktor.http.content.streamProvider
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.request.contentType
 import io.ktor.server.request.header
@@ -18,12 +17,14 @@ import io.ktor.server.request.receive
 import io.ktor.server.request.receiveMultipart
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
+import io.ktor.utils.io.ByteChannel
+import io.ktor.utils.io.copyAndClose
+import io.ktor.utils.io.toByteArray
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.validation.MimeHeaders
 import no.nav.emottak.ebms.validation.MimeValidationException
-import no.nav.emottak.ebms.validation.validateMimeAttachment
 import no.nav.emottak.ebms.validation.validateMimeSoapEnvelope
 import no.nav.emottak.message.model.DokumentType
 import no.nav.emottak.message.model.EbMSDocument
@@ -38,11 +39,9 @@ import java.util.Base64
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
-fun PartData.payload(clearText: Boolean = false): ByteArray {
+suspend fun PartData.payload(isBase64: Boolean = true): ByteArray {
     return when (this) {
-        is PartData.FormItem -> if (clearText) {
-            return this.value.toByteArray()
-        } else {
+        is PartData.FormItem -> if (isBase64) {
             try {
                 Base64.getMimeDecoder().decode(this.value.trim())
             } catch (e: IllegalArgumentException) {
@@ -50,13 +49,15 @@ fun PartData.payload(clearText: Boolean = false): ByteArray {
                 log.warn("Last characters in failing string: <${this.value.takeLast(50)}>", e)
                 throw e
             }
+        } else {
+            this.value.toByteArray()
         }
 
         is PartData.FileItem -> {
-            val stream = this.streamProvider.invoke()
-            val bytes = stream.readAllBytes()
-            stream.close()
-            if (clearText) return bytes else Base64.getMimeDecoder().decode(bytes)
+            val byteReadChannel = this.provider()
+            val byteWriteChannel = ByteChannel()
+            byteReadChannel.copyAndClose(byteWriteChannel)
+            if (isBase64) Base64.getMimeDecoder().decode(byteWriteChannel.toByteArray()) else byteWriteChannel.toByteArray()
         }
         else -> byteArrayOf()
     }
@@ -74,61 +75,52 @@ fun Headers.actuallyUsefulToString(): String {
 @Throws(MimeValidationException::class)
 suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
     log.info("Parsing message with Message-Id: ${request.header(SMTPHeaders.MESSAGE_ID)}")
-    val debugClearText = !request.header("cleartext").isNullOrBlank()
     return when (val contentType = this.request.contentType().withoutParameters()) {
         ContentType.parse("multipart/related") -> {
-            val allParts = mutableListOf<PartData>().apply {
-                this@receiveEbmsDokument.receiveMultipart().forEachPart {
-                    var partDataToAdd = it
-                    if (it is PartData.FileItem) it.provider.invoke()
-                    if (it is PartData.FormItem) {
-                        val boundary = this@receiveEbmsDokument.request.contentType().parameter("boundary")
-                        if (it.value.contains("--$boundary--")) {
-                            logger().warn("Encountered KTOR bug, trimming boundary")
-                            partDataToAdd = PartData.FormItem(it.value.substringBefore("--$boundary--").trim(), {}, it.headers)
-                        }
+            var start = contentType.parameter("start")
+            lateinit var ebmsEnvelopeHeaders: Headers
+            lateinit var ebmsEnvelope: Pair<String, ByteArray>
+            val attachments = mutableListOf<EbmsAttachment>()
+            this@receiveEbmsDokument.receiveMultipart().forEachPart { partData ->
+                if (start == null) start = partData.headers[MimeHeaders.CONTENT_ID] ?: throw MimeValidationException("Both boundary start and content-id cannot be null")
+
+                try {
+                    val isBase64 = "base64".equals(partData.headers[MimeHeaders.CONTENT_TRANSFER_ENCODING], true)
+                    if (partData.headers[MimeHeaders.CONTENT_ID] == start) {
+                        ebmsEnvelopeHeaders = partData.headers
+                        ebmsEnvelope = Pair(
+                            partData.headers[MimeHeaders.CONTENT_ID]?.convertToValidatedContentID() ?: "GENERERT-${Uuid.random()}",
+                            partData.payload(isBase64)
+                        )
+                    } else {
+                        attachments.add(
+                            EbmsAttachment(
+                                partData.payload(isBase64),
+                                partData.contentType!!.contentType,
+                                partData.headers[MimeHeaders.CONTENT_ID]!!.convertToValidatedContentID()
+                            )
+                        )
                     }
-                    this.add(partDataToAdd)
-                    partDataToAdd.dispose.invoke()
-                    it.dispose.invoke()
+                } finally {
+                    partData.dispose.invoke()
                 }
             }
-            val start = contentType.parameter("start") ?: allParts.first().headers[MimeHeaders.CONTENT_ID]
-            val dokument = allParts.find {
-                it.headers[MimeHeaders.CONTENT_ID] == start
-            }!!.also {
-                it.validateMimeSoapEnvelope()
-            }.let {
-                val contentID = it.headers[MimeHeaders.CONTENT_ID]?.convertToValidatedContentID() ?: "GENERERT-${Uuid.random()}"
-                val isBase64 = "base64".equals(it.headers[MimeHeaders.CONTENT_TRANSFER_ENCODING], true)
-                Pair(contentID, it.payload(debugClearText || !isBase64))
-            }
-            val attachments =
-                allParts.filter { it.headers[MimeHeaders.CONTENT_ID] != start }
-            attachments.forEach {
-                it.validateMimeAttachment()
-            }
+            ebmsEnvelopeHeaders.validateMimeSoapEnvelope()
             EbMSDocument(
-                dokument.first,
-                getDocumentBuilder().parse(ByteArrayInputStream(dokument.second)),
-                attachments.map {
-                    val isBase64 = "base64".equals(it.headers[MimeHeaders.CONTENT_TRANSFER_ENCODING], true)
-                    EbmsAttachment(
-                        it.payload(debugClearText || !isBase64),
-                        it.contentType!!.contentType,
-                        it.headers[MimeHeaders.CONTENT_ID]!!.convertToValidatedContentID()
-                    )
-                }
+                ebmsEnvelope.first,
+                withContext(Dispatchers.IO) {
+                    getDocumentBuilder().parse(ByteArrayInputStream(ebmsEnvelope.second))
+                },
+                attachments
             )
         }
 
         ContentType.parse("text/xml") -> {
             val dokument = withContext(Dispatchers.IO) {
-                if (debugClearText || "base64" != request.header(MimeHeaders.CONTENT_TRANSFER_ENCODING)?.lowercase()) {
-                    this@receiveEbmsDokument.receive<ByteArray>()
+                if ("base64" == request.header(MimeHeaders.CONTENT_TRANSFER_ENCODING)?.lowercase()) {
+                    Base64.getMimeDecoder().decode(this@receiveEbmsDokument.receive<ByteArray>())
                 } else {
-                    Base64.getMimeDecoder()
-                        .decode(this@receiveEbmsDokument.receive<ByteArray>())
+                    this@receiveEbmsDokument.receive<ByteArray>()
                 }
             }
             EbMSDocument(
@@ -140,8 +132,6 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
 
         else -> {
             throw MimeValidationException("Ukjent request body med Content-Type $contentType")
-            // call.respond(HttpStatusCode.BadRequest, "Ukjent request body med Content-Type $contentType")
-            // return@post
         }
     }
 }

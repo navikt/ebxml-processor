@@ -47,15 +47,18 @@ fun ApplicationRequest.validateContentType() {
     if (contentType.parameter("type") != null && contentType.parameter("type") != "text/xml") throw MimeValidationException("Type of multipart related should be text/xml")
 }
 
-// KRAV 5.5.2.3 Valideringsdokument
 fun PartData.validateMimeSoapEnvelope() {
-    this.contentType?.withoutParameters().takeIf { it == ContentType.parse("text/xml") } ?: throw MimeValidationException("Content type is missing or wrong ")
-    // TODO Kontakt EPJ der Content ID mangler
-//    if (this.headers[MimeHeaders.CONTENT_ID].isNullOrBlank()) {
-//        throw MimeValidationException("Content ID is missing")
-//    }
-    this.headers[MimeHeaders.CONTENT_TRANSFER_ENCODING].takeUnless { it.isNullOrBlank() }?.let {
-        it.takeIf { listOf("8bit", "base64", "binary", "quoted-printable").contains(it.lowercase()) } ?: throw MimeValidationException("Unrecognised Content-Transfer-Encoding: $it")
+    this.contentType
+    this.headers.validateMimeSoapEnvelope()
+}
+
+// KRAV 5.5.2.3 Valideringsdokument
+fun Headers.validateMimeSoapEnvelope() {
+    this[MimeHeaders.CONTENT_TYPE]?.let { ContentType.parse(it) }?.withoutParameters()
+        .takeIf { it == ContentType.parse("text/xml") } ?: throw MimeValidationException("Content type is missing or wrong ")
+    this[MimeHeaders.CONTENT_TRANSFER_ENCODING].takeUnless { it.isNullOrBlank() }?.let {
+        it.takeIf { listOf("8bit", "base64", "binary", "quoted-printable").contains(it.lowercase()) }
+            ?: throw MimeValidationException("Unrecognised Content-Transfer-Encoding: $it")
     } ?: throw MimeValidationException("Mandatory header Content-Transfer-Encoding is undefined")
 }
 
