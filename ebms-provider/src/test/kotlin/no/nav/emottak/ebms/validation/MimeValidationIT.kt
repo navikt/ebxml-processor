@@ -22,6 +22,7 @@ import no.nav.emottak.message.model.ErrorCode
 import no.nav.emottak.message.model.Feil
 import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.message.xml.xmlMarshaller
+import no.nav.emottak.utils.kafka.service.EventLoggingService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -35,6 +36,7 @@ class MimeValidationIT {
 
     val validMultipartRequest = validMultipartRequest()
     val cpaRepoClient = mockk<CpaRepoClient>()
+    val eventLoggingService = mockk<EventLoggingService>()
 
     fun <T> mimeTestApp(testBlock: suspend ApplicationTestBuilder.() -> T) = testApplication {
         application {
@@ -42,7 +44,7 @@ class MimeValidationIT {
             val processingService = mockk<ProcessingService>()
             val sendInService = mockk<SendInService>()
             routing {
-                postEbmsSync(dokumentValidator, processingService, sendInService)
+                postEbmsSync(dokumentValidator, processingService, sendInService, eventLoggingService)
             }
         }
         externalServices {

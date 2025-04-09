@@ -27,6 +27,7 @@ import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.message.xml.xmlMarshaller
 import no.nav.emottak.util.decodeBase64
 import no.nav.emottak.utils.environment.getEnvVar
+import no.nav.emottak.utils.kafka.service.EventLoggingService
 import org.apache.xml.security.algorithms.MessageDigestAlgorithm
 import org.apache.xml.security.signature.XMLSignature
 import org.junit.jupiter.api.Assertions
@@ -38,6 +39,7 @@ abstract class EbmsRoutFellesIT(val endpoint: String) {
 
     val validMultipartRequest = validMultipartRequest()
     val processingService = mockk<ProcessingService>()
+    val eventLoggingService = mockk<EventLoggingService>()
     val mockProcessConfig = ProcessConfig(
         true,
         true,
@@ -67,7 +69,7 @@ abstract class EbmsRoutFellesIT(val endpoint: String) {
             }
 
             routing {
-                postEbmsSync(dokumentValidator, processingService, SendInService(sendInClient))
+                postEbmsSync(dokumentValidator, processingService, SendInService(sendInClient), eventLoggingService)
             }
         }
         externalServices {
