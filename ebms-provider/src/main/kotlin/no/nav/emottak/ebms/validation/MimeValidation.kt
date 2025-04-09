@@ -48,7 +48,6 @@ fun ApplicationRequest.validateContentType() {
 }
 
 fun PartData.validateMimeSoapEnvelope() {
-    this.contentType
     this.headers.validateMimeSoapEnvelope()
 }
 
