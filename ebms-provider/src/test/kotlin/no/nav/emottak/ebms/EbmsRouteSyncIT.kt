@@ -88,7 +88,7 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
                                 ValidationResult(
                                     EbmsProcessing(),
                                     payloadProcessing = PayloadProcessing(
-                                        TestData.HarBorderEgenAndel.validSignatureDetails,
+                                        TestData.HarBorgerEgenandel.validSignatureDetails,
                                         byteArrayOf(),
                                         mockProcessConfig
                                     )
@@ -131,22 +131,34 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
         testBlock()
     }
 
-    @OptIn(ExperimentalUuidApi::class)
     @Test
-    fun `Valid payload request should trigger processing and validation on way out`() = testSyncApp {
+    fun `Valid FormItem payload request should trigger processing and validation on way out`() = testSyncApp {
         mockkStatic(EbMSDocument::signer)
         every {
             any<EbMSDocument>().signer(any())
         } returnsArgument(0)
-        val multipart = TestData.HarBorderEgenAndel.harBorgerEgenanderFritakRequest
+        val multipart = TestData.HarBorgerEgenandel.harBorgerEgenanderFritakRequestWithFormItem
         val response = client.post(SYNC_PATH, multipart.asHttpRequest())
         coVerify(exactly = 1) {
             processingService.processSyncIn(any(), any())
         }
         assert(response.status == HttpStatusCode.OK)
         println(String(response.readRawBytes()))
-        println("----=_Part_" + System.currentTimeMillis() + "." + System.nanoTime())
-        println("----=_Part_" + Uuid.random().toString())
+    }
+
+    @Test
+    fun `Valid FileItem payload request should trigger processing and validation on way out`() = testSyncApp {
+        mockkStatic(EbMSDocument::signer)
+        every {
+            any<EbMSDocument>().signer(any())
+        } returnsArgument(0)
+        val multipart = TestData.HarBorgerEgenandel.harBorgerEgenanderFritakRequestWithFileItem
+        val response = client.post(SYNC_PATH, multipart.asHttpRequest())
+        coVerify(exactly = 1) {
+            processingService.processSyncIn(any(), any())
+        }
+        assert(response.status == HttpStatusCode.OK)
+        println(String(response.readRawBytes()))
     }
 
     @OptIn(ExperimentalUuidApi::class)
@@ -172,7 +184,7 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
                 }
             }
         }
-        val multipart = TestData.HarBorderEgenAndel.harBorgerEgenanderFritakRequest
+        val multipart = TestData.HarBorgerEgenandel.harBorgerEgenanderFritakRequestWithFormItem
         val response = client.post(SYNC_PATH, multipart.asHttpRequest())
         coVerify(exactly = 1) {
             processingService.processSyncIn(any(), any())
@@ -186,7 +198,7 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
 
 internal class TestData {
 
-    class HarBorderEgenAndel {
+    class HarBorgerEgenandel {
         companion object {
             val MULTIPART_CONTENT_TYPE =
                 """multipart/related; boundary="------=_part_c2a3282c_e754_4193_9fb5_e8a469941f97"; type="text/xml"; start="soapId-c1a5d7ed-3850-4a74-ba28-8d73f5355336"""
@@ -246,17 +258,31 @@ ZWZEb2M+CiAgPC9uczpEb2N1bWVudD4KPC9uczpNc2dIZWFkPg=="""
                 append(MimeHeaders.CONTENT_TYPE, """text/xml; charset="UTF-8""")
             }
 
-            val validSoapAttachmentHeaders = Headers.build {
+            val validSoapAttachmentHeadersFormItem = Headers.build {
                 append(MimeHeaders.CONTENT_ID, "<attachmentId-3b407d6f-7efc-4ce9-99a6-868f04329e68>")
                 append(MimeHeaders.CONTENT_TRANSFER_ENCODING, "base64")
                 append(MimeHeaders.CONTENT_TYPE, """application/pkcs7-mime""")
                 append(MimeHeaders.CONTENT_DISPOSITION, "attachment")
             }
-            val harBorgerEgenanderFritakRequest = MultipartRequest(
+
+            val validSoapAttachmentHeadersFileItem = Headers.build {
+                append(MimeHeaders.CONTENT_ID, "<attachmentId-3b407d6f-7efc-4ce9-99a6-868f04329e68>")
+                append(MimeHeaders.CONTENT_TRANSFER_ENCODING, "base64")
+                append(MimeHeaders.CONTENT_TYPE, """application/pkcs7-mime""")
+                append(MimeHeaders.CONTENT_DISPOSITION, "attachment; filename=attachmentId-3b407d6f-7efc-4ce9-99a6-868f04329e68")
+            }
+            val harBorgerEgenanderFritakRequestWithFormItem = MultipartRequest(
                 valid,
                 listOf(
                     Part(validSoapMimeHeaders, EBXML_PAYLOAD),
-                    Part(validSoapAttachmentHeaders, FAGMELDING_PAYLOAD)
+                    Part(validSoapAttachmentHeadersFormItem, FAGMELDING_PAYLOAD)
+                )
+            )
+            val harBorgerEgenanderFritakRequestWithFileItem = MultipartRequest(
+                valid,
+                listOf(
+                    Part(validSoapMimeHeaders, EBXML_PAYLOAD),
+                    Part(validSoapAttachmentHeadersFileItem, FAGMELDING_PAYLOAD)
                 )
             )
 
