@@ -6,8 +6,6 @@ import io.ktor.server.request.header
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.post
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
@@ -26,9 +24,11 @@ import no.nav.emottak.message.model.PayloadProcessing
 import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.util.marker
 import no.nav.emottak.util.retrieveLoggableHeaderPairs
+import no.nav.emottak.utils.common.parseOrGenerateUuid
 import no.nav.emottak.utils.kafka.model.Event
 import no.nav.emottak.utils.kafka.model.EventType
 import no.nav.emottak.utils.kafka.service.EventLoggingService
+import no.nav.emottak.utils.serialization.toEventDataJson
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -136,7 +136,7 @@ fun Route.postEbmsSync(
             eventLoggingService.registerEvent(
                 EventType.ERROR_WHILE_SENDING_MESSAGE_VIA_HTTP,
                 ebMSDocument,
-                mapOf("error_message" to (ebmsException.message ?: "Unknown error"))
+                ebmsException.toEventDataJson()
             )
 
             call.respondEbmsDokument(it)
@@ -148,7 +148,7 @@ fun Route.postEbmsSync(
         eventLoggingService.registerEvent(
             EventType.ERROR_WHILE_SENDING_MESSAGE_VIA_HTTP,
             ebMSDocument,
-            mapOf("error_message" to (ex.message ?: "Unknown error"))
+            ex.toEventDataJson()
         )
 
         call.respond(
@@ -162,16 +162,12 @@ fun Route.postEbmsSync(
 suspend fun EventLoggingService.registerEvent(
     eventType: EventType,
     ebMSDocument: EbMSDocument,
-    eventData: Map<String, String> = emptyMap()
+    eventData: String = ""
 ) {
     log.debug("Event reg. test: Registering event for requestId: ${ebMSDocument.requestId}")
 
     try {
-        val requestId = try {
-            Uuid.parse(ebMSDocument.requestId)
-        } catch (e: Exception) {
-            Uuid.random()
-        }
+        val requestId = ebMSDocument.requestId.parseOrGenerateUuid()
 
         log.debug("Event reg. test: RequestId: $requestId")
 
@@ -180,7 +176,7 @@ suspend fun EventLoggingService.registerEvent(
             requestId = requestId,
             contentId = "",
             messageId = ebMSDocument.transform().messageId,
-            eventData = Json.encodeToString(eventData)
+            eventData = eventData
         )
 
         log.debug("Event reg. test: Publishing event: $event")
