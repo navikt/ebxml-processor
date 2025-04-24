@@ -14,9 +14,12 @@ import io.ktor.utils.io.CancellationException
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import kotlinx.coroutines.awaitCancellation
+import no.nav.emottak.ebms.configuration.config
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.DokumentValidator
+import no.nav.emottak.utils.kafka.client.EventPublisherClient
+import no.nav.emottak.utils.kafka.service.EventLoggingService
 import org.slf4j.LoggerFactory
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.App")
@@ -34,6 +37,9 @@ fun main() = SuspendApp {
     val sendInClient = SendInClient(scopedAuthHttpClient(EBMS_SEND_IN_SCOPE))
     val sendInService = SendInService(sendInClient)
 
+    val kafkaPublisherClient = EventPublisherClient(config().kafka)
+    val eventLoggingService = EventLoggingService(kafkaPublisherClient)
+
     result {
         resourceScope {
             server(
@@ -43,7 +49,8 @@ fun main() = SuspendApp {
                     ebmsProviderModule(
                         dokumentValidator,
                         processingService,
-                        sendInService
+                        sendInService,
+                        eventLoggingService
                     )
                 }
             ).also { it.engineConfig.maxChunkSize = 100000 }
@@ -62,7 +69,8 @@ fun main() = SuspendApp {
 fun Application.ebmsProviderModule(
     validator: DokumentValidator,
     processing: ProcessingService,
-    sendInService: SendInService
+    sendInService: SendInService,
+    eventLoggingService: EventLoggingService
 ) {
     val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
 
@@ -76,6 +84,6 @@ fun Application.ebmsProviderModule(
         registerPrometheusEndpoint(appMicrometerRegistry)
         registerNavCheckStatus()
 
-        postEbmsSync(validator, processing, sendInService)
+        postEbmsSync(validator, processing, sendInService, eventLoggingService)
     }
 }
