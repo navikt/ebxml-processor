@@ -5,6 +5,7 @@ import com.zaxxer.hikari.HikariConfig
 import no.nav.emottak.cpa.log
 import no.nav.emottak.utils.environment.fromEnv
 import no.nav.emottak.utils.environment.getEnvVar
+import no.nav.emottak.utils.vault.VaultUser
 import no.nav.emottak.utils.vault.VaultUtil
 import no.nav.vault.jdbc.hikaricp.HikariCPVaultUtil
 
@@ -74,9 +75,11 @@ fun VaultConfig.configure(role: String): HikariConfig {
 }
 
 data class OracleDBConfig(
-    val username: String = "EMOTTAK_USERNAME".fromEnv(),
-    val password: String = "EMOTTAK_PASSWORD".fromEnv(),
-    val url: String = "EMOTTAK_JDBC_URL".fromEnv()
+    private val vaultUser: VaultUser = VaultUtil.getVaultCredential("ORACLE_CREDENTIAL_VAULT_PATH", "/oracle/data/dev/creds/emottak_q1-nmt3"),
+    private val oracleConfig: LogicalResponse = VaultUtil.getClient().logical().read("ORACLE_CONFIG_VAULT_PATH".fromEnv()),
+    val username: String = vaultUser.username,
+    val password: String = vaultUser.password,
+    val url: String = oracleConfig.data["jdbc_url"].toString()
 )
 
 fun OracleDBConfig.configure(): HikariConfig {

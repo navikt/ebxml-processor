@@ -53,11 +53,6 @@ spec:
     #- "https://cpa-repo.prod-fss-pub.nais.io"
   vault:
     enabled: true
-    paths:
-      - kvPath: /oracle/data/prod/creds/emottak-nmp5
-        mountPath: /secrets/oracle/creds
-      - kvPath: /oracle/data/prod/config/emottak
-        mountPath: /secrets/oracle/config
   webproxy: true
   accessPolicy:
     inbound:
@@ -87,3 +82,7 @@ spec:
       value: "10"
     - name: MAX_CONNECTION_POOL_SIZE_FOR_ADMIN
       value: "2"
+    - name: ORACLE_CREDENTIAL_VAULT_PATH
+      value: /oracle/data/prod/creds/emottak-nmp5
+    - name: ORACLE_CONFIG_VAULT_PATH
+      value: /oracle/data/prod/config/emottak
