@@ -35,7 +35,6 @@ import no.nav.emottak.message.xml.getDocumentBuilder
 import java.io.ByteArrayInputStream
 import java.nio.charset.StandardCharsets
 import java.util.Base64
-import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 fun PartData.payload(clearText: Boolean = false): ByteArray {
@@ -70,7 +69,6 @@ fun Headers.actuallyUsefulToString(): String {
     return sb.toString()
 }
 
-@OptIn(ExperimentalUuidApi::class)
 @Throws(MimeValidationException::class)
 suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
     log.info("Parsing message with Message-Id: ${request.header(SMTPHeaders.MESSAGE_ID)}")
