@@ -43,6 +43,8 @@ fun Route.postEbmsSync(
         call.request.validateMime()
         ebMSDocument = call.receiveEbmsDokument()
         log.info(ebMSDocument.messageHeader().marker(loggableHeaders), "Melding mottatt")
+
+        eventRegistrationService.registerEventMessageDetails(ebMSDocument)
         eventRegistrationService.registerEvent(
             EventType.MESSAGE_RECEIVED_VIA_HTTP,
             ebMSDocument
