@@ -38,7 +38,7 @@ fun main() = SuspendApp {
     val sendInService = SendInService(sendInClient)
 
     val kafkaPublisherClient = EventPublisherClient(config().kafka)
-    val eventLoggingService = EventLoggingService(kafkaPublisherClient)
+    val eventLoggingService = EventLoggingService(config().eventLogging, kafkaPublisherClient)
 
     result {
         resourceScope {
