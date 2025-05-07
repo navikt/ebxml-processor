@@ -13,7 +13,7 @@ interface EventRegistrationService {
     suspend fun registerEvent(
         eventType: EventType,
         ebMSDocument: EbMSDocument,
-        eventData: String = ""
+        eventData: String = "{}"
     )
 
     suspend fun registerEventMessageDetails(ebMSDocument: EbMSDocument)
