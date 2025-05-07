@@ -75,7 +75,7 @@ fun VaultConfig.configure(role: String): HikariConfig {
 }
 
 data class OracleDBConfig(
-    private val vaultUser: VaultUser = VaultUtil.getVaultCredential("ORACLE_CREDENTIAL_VAULT_PATH", "/oracle/data/dev/creds/emottak_q1-nmt3"),
+    private val vaultUser: VaultUser = VaultUtil.getVaultServiceUser("ORACLE_CREDENTIAL_VAULT_PATH", "/oracle/data/dev/creds/emottak_q1-nmt3"),
     val username: String = vaultUser.username,
     val password: String = vaultUser.password,
     val url: String = VaultUtil.readVaultPathResource("ORACLE_CONFIG_VAULT_PATH".fromEnv(), "jdbc_url")
