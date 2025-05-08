@@ -14,6 +14,7 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
+import no.nav.emottak.ebms.util.EventRegistrationServiceFake
 import no.nav.emottak.ebms.validation.DokumentValidator
 import no.nav.emottak.ebms.validation.MimeHeaders
 import no.nav.emottak.message.ebxml.errorList
@@ -27,7 +28,6 @@ import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.message.xml.xmlMarshaller
 import no.nav.emottak.util.decodeBase64
 import no.nav.emottak.utils.environment.getEnvVar
-import no.nav.emottak.utils.kafka.service.EventLoggingService
 import org.apache.xml.security.algorithms.MessageDigestAlgorithm
 import org.apache.xml.security.signature.XMLSignature
 import org.junit.jupiter.api.Assertions
@@ -39,7 +39,7 @@ abstract class EbmsRoutFellesIT(val endpoint: String) {
 
     val validMultipartRequest = validMultipartRequest()
     val processingService = mockk<ProcessingService>()
-    val eventLoggingService = mockk<EventLoggingService>()
+    val eventRegistrationService = EventRegistrationServiceFake()
     val mockProcessConfig = ProcessConfig(
         true,
         true,
@@ -69,7 +69,7 @@ abstract class EbmsRoutFellesIT(val endpoint: String) {
             }
 
             routing {
-                postEbmsSync(dokumentValidator, processingService, SendInService(sendInClient), eventLoggingService)
+                postEbmsSync(dokumentValidator, processingService, SendInService(sendInClient), eventRegistrationService)
             }
         }
         externalServices {

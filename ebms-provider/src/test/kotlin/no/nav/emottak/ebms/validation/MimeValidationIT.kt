@@ -15,6 +15,7 @@ import no.nav.emottak.ebms.payload
 import no.nav.emottak.ebms.postEbmsSync
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
+import no.nav.emottak.ebms.util.EventRegistrationServiceFake
 import no.nav.emottak.ebms.validMultipartRequest
 import no.nav.emottak.message.ebxml.errorList
 import no.nav.emottak.message.ebxml.messageHeader
@@ -22,7 +23,6 @@ import no.nav.emottak.message.model.ErrorCode
 import no.nav.emottak.message.model.Feil
 import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.message.xml.xmlMarshaller
-import no.nav.emottak.utils.kafka.service.EventLoggingService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -36,7 +36,7 @@ class MimeValidationIT {
 
     val validMultipartRequest = validMultipartRequest()
     val cpaRepoClient = mockk<CpaRepoClient>()
-    val eventLoggingService = mockk<EventLoggingService>()
+    val eventRegistrationService = EventRegistrationServiceFake()
 
     fun <T> mimeTestApp(testBlock: suspend ApplicationTestBuilder.() -> T) = testApplication {
         application {
@@ -44,7 +44,7 @@ class MimeValidationIT {
             val processingService = mockk<ProcessingService>()
             val sendInService = mockk<SendInService>()
             routing {
-                postEbmsSync(dokumentValidator, processingService, sendInService, eventLoggingService)
+                postEbmsSync(dokumentValidator, processingService, sendInService, eventRegistrationService)
             }
         }
         externalServices {

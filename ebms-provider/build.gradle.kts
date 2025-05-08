@@ -32,6 +32,12 @@ tasks {
     }
 }
 
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().all {
+    compilerOptions {
+        freeCompilerArgs = listOf("-opt-in=kotlin.uuid.ExperimentalUuidApi")
+    }
+}
+
 dependencies {
     implementation(project(":felles"))
     implementation(project(":ebxml-processing-model"))
