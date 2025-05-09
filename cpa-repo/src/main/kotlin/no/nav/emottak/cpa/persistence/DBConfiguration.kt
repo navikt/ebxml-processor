@@ -8,6 +8,7 @@ import no.nav.emottak.utils.environment.getEnvVar
 import no.nav.emottak.utils.vault.VaultUser
 import no.nav.emottak.utils.vault.VaultUtil
 import no.nav.vault.jdbc.hikaricp.HikariCPVaultUtil
+import java.io.FileInputStream
 
 const val CPA_DB_NAME = "emottak-cpa-repo-db"
 
@@ -57,7 +58,7 @@ fun VaultConfig.configure(role: String): HikariConfig {
         if (role == "admin") {
             this.maximumPoolSize = maxPoolSizeForAdmin
             val path: String = this@configure.vaultMountPath + "/creds/$databaseName-$role"
-            log.info("Fetching database credentials for role admin")
+            log.info("Fetching database credentials for role admin ($path)")
             val response: LogicalResponse = VaultUtil.getClient().logical().read(path)
             this.username = response.data["username"]
             this.password = response.data["password"]
@@ -75,10 +76,10 @@ fun VaultConfig.configure(role: String): HikariConfig {
 }
 
 data class OracleDBConfig(
-    private val vaultUser: VaultUser = VaultUtil.getVaultServiceUser("ORACLE_CREDENTIAL_VAULT_PATH", "/oracle/data/dev/creds/emottak_q1-nmt3"),
+    private val vaultUser: VaultUser = getVaultServiceUser(),
     val username: String = vaultUser.username,
     val password: String = vaultUser.password,
-    val url: String = VaultUtil.readVaultPathResource("ORACLE_CONFIG_VAULT_PATH".fromEnv(), "jdbc_url")
+    val url: String = getVaultJdbcUrl()
 )
 
 fun OracleDBConfig.configure(): HikariConfig {
@@ -104,5 +105,26 @@ fun GcpDBConfig.configure(): HikariConfig {
         jdbcUrl = this@configure.url
         username = this@configure.username
         password = this@configure.password
+    }
+}
+
+private fun getVaultServiceUser() : VaultUser {
+    val localPath = "/secrets/oracle/creds"
+    return try {
+        VaultUser(
+            String(FileInputStream("$localPath/username").readAllBytes()),
+            String(FileInputStream("$localPath/password").readAllBytes())
+        ).also { log.info("Vault credential secret read from local filesystem") }
+    } catch (e: java.io.FileNotFoundException) {
+        VaultUtil.getVaultServiceUser("ORACLE_CREDENTIAL_VAULT_PATH", "/oracle/data/dev/creds/emottak_q1-nmt3")
+    }
+}
+
+private fun getVaultJdbcUrl() : String {
+    val localPath = "/secrets/oracle/config"
+    return try {
+        String(FileInputStream("$localPath/username").readAllBytes()).also { log.info("Vault jdbc_url secret read from local filesystem") }
+    } catch (e: java.io.FileNotFoundException) {
+        VaultUtil.readVaultPathResource("ORACLE_CONFIG_VAULT_PATH".fromEnv(), "jdbc_url")
     }
 }

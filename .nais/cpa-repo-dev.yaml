@@ -52,6 +52,11 @@ spec:
     - "https://cpa-repo.dev-fss-pub.nais.io"
   vault:
     enabled: true
+    paths:
+      - kvPath: /oracle/data/dev/creds/emottak_q1-nmt3
+        mountPath: /secrets/oracle/creds
+      - kvPath: /oracle/data/dev/config/emottak_q1
+        mountPath: /secrets/oracle/config
   webproxy: true
   accessPolicy:
     inbound:
