@@ -108,7 +108,7 @@ fun GcpDBConfig.configure(): HikariConfig {
     }
 }
 
-private fun getVaultServiceUser() : VaultUser {
+private fun getVaultServiceUser(): VaultUser {
     val localPath = "/secrets/oracle/creds"
     return try {
         VaultUser(
@@ -120,7 +120,7 @@ private fun getVaultServiceUser() : VaultUser {
     }
 }
 
-private fun getVaultJdbcUrl() : String {
+private fun getVaultJdbcUrl(): String {
     val localPath = "/secrets/oracle/config"
     return try {
         String(FileInputStream("$localPath/username").readAllBytes()).also { log.info("Vault jdbc_url secret read from local filesystem") }
