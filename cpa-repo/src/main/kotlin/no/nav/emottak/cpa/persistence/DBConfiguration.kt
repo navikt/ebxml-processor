@@ -123,7 +123,7 @@ private fun getVaultServiceUser(): VaultUser {
 private fun getVaultJdbcUrl(): String {
     val localPath = "/secrets/oracle/config"
     return try {
-        String(FileInputStream("$localPath/username").readAllBytes()).also { log.info("Vault jdbc_url secret read from local filesystem") }
+        String(FileInputStream("$localPath/jdbc_url").readAllBytes()).also { log.info("Vault jdbc_url secret read from local filesystem") }
     } catch (e: java.io.FileNotFoundException) {
         VaultUtil.readVaultPathResource("ORACLE_CONFIG_VAULT_PATH".fromEnv(), "jdbc_url")
     }
