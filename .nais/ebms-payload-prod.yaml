@@ -54,9 +54,6 @@ spec:
         - application: ebms-async
   vault:
     enabled: true
-    paths:
-      - kvPath: serviceuser/data/prod/srv-ebms-payload
-        mountPath: /var/run/secrets/nais.io/vault/serviceuser
   webproxy: true
   env:
     - name: VIRKSOMHETSSERTIFIKAT_PATH
@@ -73,3 +70,5 @@ spec:
       value: https://app.adeo.no/juridisklogg
     - name: JURIDISKLOGG_STORAGE_TIME_YEARS
       value: "10"
+    - name: JURIDISKLOGG_SERVICEUSER_VAULT_PATH
+      value: /serviceuser/data/prod/srv-ebms-payload
