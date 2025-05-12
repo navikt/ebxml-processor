@@ -19,12 +19,14 @@ import no.nav.emottak.message.model.PayloadRequest
 import no.nav.emottak.payload.log
 import no.nav.emottak.util.marker
 import no.nav.emottak.utils.environment.getEnvVar
-import no.nav.emottak.utils.vault.VaultUtil
+import no.nav.emottak.utils.environment.getSecret
 
 class JuridiskLoggService() {
     private val juridiskLoggUrl = getEnvVar("APP_JURIDISKLOGG_URI", "https://app-q1.adeo.no/juridisklogg") + "/api/rest/logg"
     private val juridiskLoggStorageTime = getEnvVar("JURIDISKLOGG_STORAGE_TIME_YEARS", "1").toInt()
-    private val vaultUser by lazy { VaultUtil.getVaultServiceUser("JURIDISKLOGG_SERVICEUSER_VAULT_PATH", "/serviceuser/data/dev/srv-ebms-payload") }
+    private val secretPath = getEnvVar("JURIDISKLOGG_SERVICEUSER_SECRET_PATH", "/dummy/path")
+    private val userName = getSecret("$secretPath/username", "dummyUsername")
+    private val userPassword = getSecret("$secretPath/password", "dummyPassword")
 
     suspend fun logge(payloadRequest: PayloadRequest): String? {
         var juridiskLoggRecordId: String? = null
@@ -51,7 +53,7 @@ class JuridiskLoggService() {
                 val httpResponse = httpClient.post(juridiskLoggUrl) {
                     setBody(request)
                     contentType(ContentType.Application.Json)
-                    basicAuth(vaultUser.username, vaultUser.password)
+                    basicAuth(userName, userPassword)
                 }
                 log.debug(payloadRequest.marker(), "Juridisk logg response: {}", httpResponse)
 
