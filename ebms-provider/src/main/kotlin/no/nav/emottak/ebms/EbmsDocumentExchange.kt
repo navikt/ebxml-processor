@@ -32,11 +32,11 @@ import no.nav.emottak.message.util.createUniqueMimeMessageId
 import no.nav.emottak.message.xml.asByteArray
 import no.nav.emottak.message.xml.asString
 import no.nav.emottak.message.xml.getDocumentBuilder
+import no.nav.emottak.utils.common.parseOrGenerateUuid
 import java.io.ByteArrayInputStream
 import java.nio.charset.StandardCharsets
 import java.util.Base64
 import kotlin.uuid.Uuid
-import no.nav.emottak.utils.common.parseOrGenerateUuid
 
 fun PartData.payload(clearText: Boolean = false): ByteArray {
     return when (this) {
