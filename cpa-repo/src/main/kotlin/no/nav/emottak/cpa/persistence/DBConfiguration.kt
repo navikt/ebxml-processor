@@ -5,6 +5,7 @@ import com.zaxxer.hikari.HikariConfig
 import no.nav.emottak.cpa.log
 import no.nav.emottak.utils.environment.fromEnv
 import no.nav.emottak.utils.environment.getEnvVar
+import no.nav.emottak.utils.environment.getSecret
 import no.nav.emottak.utils.vault.VaultUtil
 import no.nav.vault.jdbc.hikaricp.HikariCPVaultUtil
 
@@ -38,10 +39,10 @@ private const val prefix = "NAIS_DATABASE_CPA_REPO_CPA_REPO_DB"
 data class VaultConfig(
     val databaseName: String = CPA_DB_NAME,
     val jdbcUrl: String = getEnvVar("VAULT_JDBC_URL", "jdbc:postgresql://b27dbvl033.preprod.local:5432/").also {
-        log.info("vault jdbc url set til: $it")
+        log.info("vault jdbc url set to: $it")
     },
     val vaultMountPath: String = ("postgresql/prod-fss".takeIf { getEnvVar("NAIS_CLUSTER_NAME", "local") == "prod-fss" } ?: "postgresql/preprod-fss").also {
-        log.info("vaultMountPath satt til $it")
+        log.info("vaultMountPath set to: $it")
     }
 )
 
@@ -56,7 +57,7 @@ fun VaultConfig.configure(role: String): HikariConfig {
         if (role == "admin") {
             this.maximumPoolSize = maxPoolSizeForAdmin
             val path: String = this@configure.vaultMountPath + "/creds/$databaseName-$role"
-            log.info("Fetching database credentials for role admin")
+            log.info("Fetching database credentials for role admin ($path)")
             val response: LogicalResponse = VaultUtil.getClient().logical().read(path)
             this.username = response.data["username"]
             this.password = response.data["password"]
@@ -74,9 +75,11 @@ fun VaultConfig.configure(role: String): HikariConfig {
 }
 
 data class OracleDBConfig(
-    val username: String = "EMOTTAK_USERNAME".fromEnv(),
-    val password: String = "EMOTTAK_PASSWORD".fromEnv(),
-    val url: String = "EMOTTAK_JDBC_URL".fromEnv()
+    private val secretCredentialPath: String = getEnvVar("ORACLE_CREDENTIAL_SECRET_PATH", "/dummy/path"),
+    private val secretConfigPath: String = getEnvVar("ORACLE_CONFIG_SECRET_PATH", "/dummy/path"),
+    val username: String = getSecret("$secretCredentialPath/username", "dummyUser"),
+    val password: String = getSecret("$secretCredentialPath/password", "dummyPassword"),
+    val url: String = getSecret("$secretConfigPath/jdbc_url", "jdbc:postgresql://127.0.0.1:9876/dummy_jdbc_url")
 )
 
 fun OracleDBConfig.configure(): HikariConfig {

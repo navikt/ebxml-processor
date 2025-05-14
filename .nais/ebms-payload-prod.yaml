@@ -73,3 +73,5 @@ spec:
       value: https://app.adeo.no/juridisklogg
     - name: JURIDISKLOGG_STORAGE_TIME_YEARS
       value: "10"
+    - name: JURIDISKLOGG_SERVICEUSER_SECRET_PATH
+      value: /var/run/secrets/nais.io/vault/serviceuser
