@@ -64,7 +64,6 @@ fun Route.postEbmsSync(
                 "Message-Id ${call.request.header(SMTPHeaders.MESSAGE_ID)}",
             ex
         )
-        // @TODO done only for demo fiks!
         call.respond(
             HttpStatusCode.InternalServerError,
             ex.parseAsSoapFault()
