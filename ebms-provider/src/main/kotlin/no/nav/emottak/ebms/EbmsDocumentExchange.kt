@@ -32,6 +32,7 @@ import no.nav.emottak.message.util.createUniqueMimeMessageId
 import no.nav.emottak.message.xml.asByteArray
 import no.nav.emottak.message.xml.asString
 import no.nav.emottak.message.xml.getDocumentBuilder
+import no.nav.emottak.utils.common.parseOrGenerateUuid
 import java.io.ByteArrayInputStream
 import java.nio.charset.StandardCharsets
 import java.util.Base64
@@ -107,7 +108,7 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
                 it.validateMimeAttachment()
             }
             EbMSDocument(
-                dokument.first,
+                dokument.first.parseOrGenerateUuid().toString(),
                 getDocumentBuilder().parse(ByteArrayInputStream(dokument.second)),
                 attachments.map {
                     val isBase64 = "base64".equals(it.headers[MimeHeaders.CONTENT_TRANSFER_ENCODING], true)
@@ -129,8 +130,9 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
                         .decode(this@receiveEbmsDokument.receive<ByteArray>())
                 }
             }
+            val contentId = this.request.headers[MimeHeaders.CONTENT_ID]!!.convertToValidatedContentID()
             EbMSDocument(
-                this.request.headers[MimeHeaders.CONTENT_ID]!!.convertToValidatedContentID(),
+                contentId.parseOrGenerateUuid().toString(),
                 getDocumentBuilder().parse(ByteArrayInputStream(dokument)),
                 emptyList()
             )
