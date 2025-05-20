@@ -1,6 +1,6 @@
 package no.nav.emottak.payload.helseid.util.util
 
-import java.util.*
+import java.util.Objects
 import javax.xml.namespace.NamespaceContext
 
 class DelegatingNamespaceContext(vararg prefixesAndNamespaces: String) : NamespaceContext {
@@ -30,34 +30,6 @@ class DelegatingNamespaceContext(vararg prefixesAndNamespaces: String) : Namespa
         requireNotNull(namespaceURI) { "Namespace URI must not be null" }
         return bindings.filterValues { it == namespaceURI }.keys.iterator()
     }
-
-    fun setBindings(bindings: Map<String, String>) {
-        this.bindings.clear()
-        this.bindings.putAll(bindings)
-        hashcode = calculateHashCode()
-    }
-
-    fun bindDefaultNamespaceUri(namespaceUri: String) {
-        bindNamespaceUri("", namespaceUri)
-    }
-
-    fun bindNamespaceUri(prefix: String, namespaceUri: String) {
-        bindings[prefix] = namespaceUri
-        hashcode = calculateHashCode()
-    }
-
-    fun removeBinding(prefix: String?) {
-        bindings.remove(prefix)
-        hashcode = calculateHashCode()
-    }
-
-    fun clear() {
-        bindings.clear()
-        hashcode = 0
-    }
-
-    val boundPrefixes: Iterator<String>
-        get() = bindings.keys.iterator()
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

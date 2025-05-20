@@ -1,7 +1,5 @@
 package no.nav.emottak.payload.helseid.util.util
 
-import java.io.IOException
-
 private const val PATH_REGEX = ".*[\\\\/]"
 
 data class KeystoreProperties(
@@ -12,15 +10,6 @@ data class KeystoreProperties(
 
     val name: String by lazy {
         path.replace(PATH_REGEX.toRegex(), "")
-    }
-
-    @Suppress("SwallowedException")
-    val absolutePath: String by lazy {
-        try {
-            ResourceUtil.getFileClasspathResource(path).absolutePath
-        } catch (e: IOException) {
-            path
-        }
     }
 
     override fun equals(other: Any?): Boolean {

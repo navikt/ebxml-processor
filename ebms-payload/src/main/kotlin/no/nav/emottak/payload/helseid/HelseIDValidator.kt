@@ -11,10 +11,8 @@ import com.nimbusds.jwt.JWTClaimNames
 import com.nimbusds.jwt.JWTClaimsSet
 import com.nimbusds.jwt.JWTParser
 import com.nimbusds.jwt.SignedJWT
-import no.nav.emottak.payload.helseid.util.lang.DateUtil
 import no.nav.emottak.payload.helseid.util.security.X509Utils
 import no.nav.emottak.payload.helseid.util.util.XPathUtil
-import no.nav.emottak.payload.helseid.util.util.xades.XAdESVerifier
 import no.nav.emottak.utils.environment.getEnvVar
 import org.w3c.dom.Document
 import java.security.cert.X509Certificate
@@ -23,7 +21,6 @@ import java.text.ParseException
 import java.time.ZonedDateTime
 import java.util.Base64
 import java.util.Date
-import javax.xml.namespace.NamespaceContext
 
 interface NinTokenValidator {
 
@@ -33,23 +30,7 @@ interface NinTokenValidator {
      * @param doc the M1 xml document
      * @return helse-id token or null
      */
-    fun getHelseIDTokenNodesFromDocument(
-        doc: Document,
-        namespaceContext: NamespaceContext = XAdESVerifier.Companion.namespaceContext
-    ): String?
-
-    /**
-     * Validates a helse related token
-     * @param b64 the base 64 encoded token or the jwt token
-     * @param timeStamp when the token must be valid
-     * @param certificates a collection of certificates where we will find the one that signed the token
-     * @return the signer certificate
-     */
-    fun validate(
-        b64: String,
-        timeStamp: ZonedDateTime?,
-        certificates: Collection<X509Certificate>
-    ): X509Certificate
+    fun getHelseIDTokenNodesFromDocument(doc: Document): String?
 
     fun getValidatedNin(b64: String, timeStamp: ZonedDateTime, certificates: Collection<X509Certificate>): String?
 
@@ -79,20 +60,9 @@ class HelseIDValidator(
     private val allowedClockSkewInMs: Long = 0
 ) : NinTokenValidator {
 
-    override fun validate(
-        b64: String,
-        timeStamp: ZonedDateTime?,
-        certificates: Collection<X509Certificate>
-    ): X509Certificate {
-        val signedJWT = getSignedJWT(b64)
-        validateHeader(signedJWT)
-        validateClaims(signedJWT, DateUtil.toDate(timeStamp), issuer)
-        val certificate = getSignerCertificate(signedJWT, certificates)
-        verifySignature(signedJWT, certificate)
-        verifySigner(certificate)
-        return certificate
-    }
-
+    // TODO:
+    // Skal vi validere certificate?
+    // Fordi vi har noe validering som feiler i test fordi vi ikke får validert orgno med denne flyten.
     override fun getValidatedNin(
         b64: String,
         timeStamp: ZonedDateTime,
@@ -100,7 +70,7 @@ class HelseIDValidator(
     ): String? {
         val signedJWT = getSignedJWT(b64)
         validateHeader(signedJWT)
-        validateClaims(signedJWT, DateUtil.toDate(timeStamp), issuer)
+        validateClaims(signedJWT, toDate(timeStamp), issuer)
         return getNin(signedJWT)
     }
 
@@ -119,7 +89,7 @@ class HelseIDValidator(
      * @return helse-id token or null
      */
     @Suppress("MaxLineLength")
-    override fun getHelseIDTokenNodesFromDocument(doc: Document, namespaceContext: NamespaceContext): String? {
+    override fun getHelseIDTokenNodesFromDocument(doc: Document): String? {
         val nodes = XPathUtil.getNodesAtPath(
             doc,
             namespaceContext,

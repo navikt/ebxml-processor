@@ -1,4 +1,4 @@
-package no.nav.emottak.payload.helseid
+package no.nav.emottak.payload.helseid.testutils
 
 import com.nimbusds.jose.JOSEException
 import com.nimbusds.jose.JOSEObjectType
@@ -14,20 +14,8 @@ import com.nimbusds.jose.jwk.OctetSequenceKey
 import com.nimbusds.jose.util.Base64URL
 import com.nimbusds.jwt.JWTClaimsSet
 import com.nimbusds.jwt.SignedJWT
-import com.nimbusds.oauth2.sdk.AuthorizationGrant
-import com.nimbusds.oauth2.sdk.ClientCredentialsGrant
-import com.nimbusds.oauth2.sdk.Scope
-import com.nimbusds.oauth2.sdk.TokenRequest
-import com.nimbusds.oauth2.sdk.TokenResponse
-import com.nimbusds.oauth2.sdk.auth.ClientAuthentication
-import com.nimbusds.oauth2.sdk.auth.ClientSecretBasic
-import com.nimbusds.oauth2.sdk.auth.Secret
-import com.nimbusds.oauth2.sdk.id.ClientID
-import no.nav.emottak.payload.helseid.util.security.SecurityUtils
+import no.nav.emottak.payload.helseid.HelseIDValidator
 import no.nav.emottak.payload.helseid.util.security.X509Utils
-import no.nav.emottak.utils.serialization.getErrorMessage
-import org.slf4j.LoggerFactory
-import java.net.URI
 import java.security.KeyStore
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
@@ -37,14 +25,17 @@ import java.util.UUID
 
 class HelseIDCreator(pathToKeystore: String, keystoreType: String = "jks", private val password: CharArray) {
 
+    private val MS_IN_A_DAY = 24 * 60 * 60 * 1000
+    private val EXPIRATION_DAYS = 100L
+
     private val keyStore: KeyStore = SecurityUtils.createKeyStore(pathToKeystore, keystoreType, password)
 
     @Suppress("LongParameterList")
     fun getToken(
         alias: String? = null,
         pid: String,
-        audience: String = HelseIDValidator.SUPPORTED_AUDIENCE.last(),
-        scope: String = HelseIDValidator.SUPPORTED_SCOPES.last(),
+        audience: String = HelseIDValidator.Companion.SUPPORTED_AUDIENCE.last(),
+        scope: String = HelseIDValidator.Companion.SUPPORTED_SCOPES.last(),
         algo: JWSAlgorithm = JWSAlgorithm.RS256,
         type: JOSEObjectType = JOSEObjectType.JWT,
         jwk: JWK? = null
@@ -170,37 +161,6 @@ class HelseIDCreator(pathToKeystore: String, keystoreType: String = "jks", priva
             Base64.getEncoder().encodeToString(md.digest((text + salt).toByteArray()))
         } catch (e: NoSuchAlgorithmException) {
             throw RuntimeException("failed to hash string", e)
-        }
-    }
-
-    companion object {
-        private val LOG = LoggerFactory.getLogger("no.nav.emottak.payload.helseid.HelseIDCreator")
-        private const val MS_IN_A_DAY = 24 * 60 * 60 * 1000
-        private const val EXPIRATION_DAYS = 100L
-
-        @JvmStatic
-        fun main(a: Array<String>) {
-            try {
-                val clientGrant: AuthorizationGrant = ClientCredentialsGrant()
-
-                // The credentials to authenticate the client at the token endpoint
-                val clientID = ClientID("123")
-                val clientSecret = Secret("secret")
-                val clientAuth: ClientAuthentication = ClientSecretBasic(clientID, clientSecret)
-
-                // The request scope for the token (may be optional)
-                val scope = Scope("read", "write")
-
-                // The token endpoint
-                val tokenEndpoint = URI("https://c2id.com/token")
-
-                // Make the token request
-                val request = TokenRequest(tokenEndpoint, clientAuth, clientGrant, scope)
-                val response = TokenResponse.parse(request.toHTTPRequest().send())
-                println(response.toString())
-            } catch (e: Exception) {
-                LOG.error(e.getErrorMessage(), e)
-            }
         }
     }
 }

@@ -7,8 +7,8 @@ import no.nav.emottak.payload.crypto.Dekryptering
 import no.nav.emottak.payload.crypto.Kryptering
 import no.nav.emottak.payload.crypto.PayloadSignering
 import no.nav.emottak.payload.crypto.payloadSigneringConfig
+import no.nav.emottak.payload.helseid.getAllEncapsulatedCertificatesByPrincipal
 import no.nav.emottak.payload.helseid.helseIdValidator
-import no.nav.emottak.payload.helseid.util.util.xades.getAllEncapsulatedCertificatesByPrincipal
 import no.nav.emottak.payload.juridisklogg.JuridiskLoggService
 import no.nav.emottak.payload.ocspstatus.OcspStatusService
 import no.nav.emottak.payload.util.GZipUtil
