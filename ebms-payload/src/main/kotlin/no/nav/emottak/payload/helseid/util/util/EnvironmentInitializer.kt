@@ -39,7 +39,7 @@ object EnvironmentInitializer {
                 .forEach { f ->
                     val prefix = f.name.removePrefix("credential_")
                     credential("${f.path}/username", prefix, "USERNAME")
-                    credential( "${f.path}/password", prefix, "PASSWORD")
+                    credential("${f.path}/password", prefix, "PASSWORD")
                 }
         }
     }
@@ -52,7 +52,7 @@ object EnvironmentInitializer {
     private fun doWithExtension(dirs: String, ext: String, lambda: (dir: File) -> Unit) {
         doWithDirs(dirs) { d ->
             d.walk()
-                .filter { it.extension == ext}
+                .filter { it.extension == ext }
                 .filterNot { isDotDot(it) }
                 .forEach { f -> lambda.invoke(f) }
         }
@@ -77,5 +77,4 @@ object EnvironmentInitializer {
     private const val DEFAULT_DIRECTORIES = "/var/run/secrets/nais.io"
     internal const val DIR_ENV = "ERESEPT_INIT_FILES"
     private const val B64_EXT_LENGTH = 4
-
 }

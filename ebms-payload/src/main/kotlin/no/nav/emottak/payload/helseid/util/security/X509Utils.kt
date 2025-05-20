@@ -22,6 +22,7 @@ import org.bouncycastle.asn1.x509.KeyPurposeId
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils
 import org.bouncycastle.jce.provider.JCEECPublicKey
 import org.bouncycastle.jce.spec.ECParameterSpec
+import org.slf4j.LoggerFactory
 import java.io.ByteArrayInputStream
 import java.io.IOException
 import java.security.GeneralSecurityException
@@ -40,7 +41,6 @@ import java.security.interfaces.RSAPublicKey
 import java.util.Base64
 import java.util.Date
 import javax.security.auth.x500.X500Principal
-import org.slf4j.LoggerFactory
 
 @Suppress("TooManyFunctions")
 object X509Utils {
@@ -49,10 +49,12 @@ object X509Utils {
     private val AIA_METHODS = listOf(ACCESS_IDENTIFIER_OCSP, ACCESS_IDENTIFIER_CRL)
     private const val FAILED_TO_GET_POLICY_ID = "failed to get policy id"
     private const val SHA256 = "SHA-256"
-    private val BC_STYLE_REGEX_MAP = listOf(BCStyle.OU to Regex("^.*- *(\\d{9})\$|^.*-(\\d{9})-.*\$"),
+    private val BC_STYLE_REGEX_MAP = listOf(
+        BCStyle.OU to Regex("^.*- *(\\d{9})\$|^.*-(\\d{9})-.*\$"),
         BCStyle.SERIALNUMBER to Regex("^(\\d{9})\$"),
         BCStyle.ORGANIZATION_IDENTIFIER to Regex(".+-(\\d{9})\$"),
-        BCStyle.O to Regex(".+- *(\\d{9})\$"))
+        BCStyle.O to Regex(".+- *(\\d{9})\$")
+    )
     private val LOG = LoggerFactory.getLogger("no.nav.emottak.payload.helseid.util.security.X509Utils")
     private const val DASHES = "-----"
     const val BEGIN_CERT = "-----BEGIN CERTIFICATE-----\n"
@@ -210,7 +212,6 @@ object X509Utils {
 
     private fun value(rdn: RDN) = IETFUtils.valueToString(rdn.first.value)
 
-
     /**
      * gets the encoded certificate.
      * @param certificate the certificate.
@@ -231,8 +232,8 @@ object X509Utils {
      */
     fun toString(certificate: X509Certificate): String =
         getSubjectDN(certificate) + " issued by " +
-                getIssuerDN(certificate) + " with serial number " +
-                certificate.serialNumber
+            getIssuerDN(certificate) + " with serial number " +
+            certificate.serialNumber
 
     /**
      * Checks if the certificate has a certain certificate policy.
@@ -247,7 +248,7 @@ object X509Utils {
             val certificatePolicies = getCertificatePolicies(certificate)
             // we first try an exact match, then regular expression matching
             return hasACertificatePolicy(certificatePolicies, policies) ||
-                    hasACertificatePolicyMatchingRegularExpression(certificatePolicies, policies)
+                hasACertificatePolicyMatchingRegularExpression(certificatePolicies, policies)
         } catch (e: IOException) {
             LOG.error(FAILED_TO_GET_POLICY_ID, e)
         }
@@ -345,7 +346,8 @@ object X509Utils {
      */
     private fun hasACertificatePolicyMatchingRegularExpression(
         certificatePolicies: Collection<String>,
-        regularExpressions: Collection<String>): Boolean {
+        regularExpressions: Collection<String>
+    ): Boolean {
         val re = regularExpressions.map { Regex(it) }
         return certificatePolicies.any {
             re.any { r -> it.matches(r) }
@@ -399,7 +401,6 @@ object X509Utils {
         .replace("OID.2.5.4.5", "SERIALNUMBER")
         .replace("OID.2.5.4.97", "organizationIdentifier")
 
-
     /**
      * gets principals name
      * @param principal the principal
@@ -410,7 +411,7 @@ object X509Utils {
             return if (principal is X500Principal) {
                 val name = X500Name.getInstance(principal.encoded)
                 val comp1: Comparator<RDN> = compareBy { it.first.type.id }
-                val comp: Comparator<RDN> = comp1.thenComparing( compareBy { it.first.value.toString() })
+                val comp: Comparator<RDN> = comp1.thenComparing(compareBy { it.first.value.toString() })
                 val sortedRdn: Array<out RDN> = name.rdNs.sortedArrayWith(comp)
                 val sortedName = X500Name(sortedRdn)
                 sortedName.toString()
@@ -457,7 +458,7 @@ object X509Utils {
     fun getAuthorityInfoAccessList(certificate: X509Certificate): Collection<String> =
         AIA_METHODS.map { getAuthorityInfoAccessList(certificate, it) }.flatten()
 
-        /**
+    /**
      * gets all the AuthorityInfoAccess from a certificate for a given access method
      * @param certificate the certificate
      * @param method the method
@@ -540,7 +541,7 @@ object X509Utils {
             is JCEECPublicKey -> {
                 val spec: ECParameterSpec = pk.parameters
                 spec.n?.bitLength() ?: // We support the key, but we don't know the key length
-                0
+                    0
             }
             is ECPublicKey -> {
                 val spec: java.security.spec.ECParameterSpec = pk.params
@@ -551,5 +552,4 @@ object X509Utils {
             is DSAPublicKey -> if (pk.params != null) pk.params.p.bitLength() else pk.y.bitLength()
             else -> -1
         }
-
 }

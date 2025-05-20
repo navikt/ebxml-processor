@@ -1,8 +1,5 @@
 package no.nav.emottak.payload
 
-import java.io.ByteArrayInputStream
-import java.security.cert.X509Certificate
-import java.time.ZonedDateTime
 import no.nav.emottak.crypto.KeyStoreManager
 import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadRequest
@@ -23,7 +20,9 @@ import no.nav.emottak.util.retrieveSignatureElement
 import no.nav.emottak.util.signatur.SignaturVerifisering
 import org.slf4j.Marker
 import org.w3c.dom.Document
-
+import java.io.ByteArrayInputStream
+import java.security.cert.X509Certificate
+import java.time.ZonedDateTime
 
 val processor = Processor()
 
@@ -33,7 +32,7 @@ class Processor(
     private val signering: PayloadSignering = PayloadSignering(),
     private val gZipUtil: GZipUtil = GZipUtil(),
     private val signatureVerifisering: SignaturVerifisering = SignaturVerifisering(),
-    private val juridiskLogging: JuridiskLoggService = JuridiskLoggService(),
+    private val juridiskLogging: JuridiskLoggService = JuridiskLoggService()
 ) {
 
     private val ocspStatusService = OcspStatusService(

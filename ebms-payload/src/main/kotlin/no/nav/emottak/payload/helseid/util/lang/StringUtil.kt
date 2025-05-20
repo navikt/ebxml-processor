@@ -62,7 +62,6 @@ object StringUtil {
         try {
             val parser: JsonParser = ObjectMapper().createParser(str)
             while (parser.nextToken() != null) {
-
             }
             true
         } catch (e: JsonParseException) {

@@ -2,6 +2,9 @@ package no.nav.emottak.payload.helseid.util.util
 
 import net.sf.saxon.xpath.XPathFactoryImpl
 import no.nav.emottak.payload.helseid.util.lang.DateDeserializer
+import no.nav.emottak.payload.helseid.util.lang.LocalDateDeserializer
+import no.nav.emottak.payload.helseid.util.lang.LocalDateTimeDeserializer
+import no.nav.emottak.payload.helseid.util.lang.ZonedDateTimeDeserializer
 import org.w3c.dom.Node
 import org.w3c.dom.NodeList
 import java.math.BigDecimal
@@ -18,10 +21,6 @@ import javax.xml.xpath.XPathConstants
 import javax.xml.xpath.XPathExpression
 import javax.xml.xpath.XPathExpressionException
 import javax.xml.xpath.XPathFactory
-import no.nav.emottak.payload.helseid.util.lang.LocalDateDeserializer
-import no.nav.emottak.payload.helseid.util.lang.LocalDateTimeDeserializer
-import no.nav.emottak.payload.helseid.util.lang.ZonedDateTimeDeserializer
-
 
 /**
  * XML XPath stuff.
@@ -83,7 +82,9 @@ object XPathUtil {
         val decimalPoint = v.indexOf('.')
         return if (decimalPoint < 0) {
             big
-        } else big.setScale(v.length - decimalPoint - 1, RoundingMode.HALF_UP)
+        } else {
+            big.setScale(v.length - decimalPoint - 1, RoundingMode.HALF_UP)
+        }
     }
 
     /**
@@ -440,14 +441,22 @@ object XPathUtil {
     fun getOptionalDateAtPath(root: Node, ctx: NamespaceContext?, path: String): Optional<Date> =
         getOptionalSomeDateType(root, ctx, path) { DateDeserializer.deserialize(it) }
 
-    private fun <T> getSomeDateType(root: Node, ctx: NamespaceContext?, path: String,
-                                    deserializer: (String) -> T?): T? {
+    private fun <T> getSomeDateType(
+        root: Node,
+        ctx: NamespaceContext?,
+        path: String,
+        deserializer: (String) -> T?
+    ): T? {
         val n = getAtPath<Node>(root, ctx, path, XPathConstants.NODE)
         return if (n == null) null else deserializer(n.nodeValue)
     }
 
-    private fun <T: Any> getOptionalSomeDateType(root: Node, ctx: NamespaceContext?, path: String,
-                                            deserializer: (String) -> T?): Optional<T> {
+    private fun <T : Any> getOptionalSomeDateType(
+        root: Node,
+        ctx: NamespaceContext?,
+        path: String,
+        deserializer: (String) -> T?
+    ): Optional<T> {
         val n = getAtPath<Node>(root, ctx, path, XPathConstants.NODE)
         return getOptional(n, deserializer)
     }
@@ -461,12 +470,13 @@ object XPathUtil {
      * @param getter A lambda that reads from node found at path and returns an object of type T.
      * @param <T> The type.
      * @return a populated Set or empty Set.
-    </T> */
+     </T> */
     fun <T> getSetOrEmpty(
         node: Node?,
         namespaceContext: NamespaceContext?,
         path: String,
-        getter: (Node) -> T): Set<T> {
+        getter: (Node) -> T
+    ): Set<T> {
         return getSetOrEmpty(node, namespaceContext, path, false, getter)
     }
 
@@ -479,12 +489,13 @@ object XPathUtil {
      * @param getter A lambda that reads from node found at path and returns an object of type T.
      * @param <T> The type.
      * @return a populated Set or empty Set.
-    </T> */
+     </T> */
     fun <T> getSetOrEmpty(
         node: Node?,
         namespaceContext: NamespaceContext?,
         path: String,
-        getter: (Node?, NamespaceContext?) -> T): Set<T> {
+        getter: (Node?, NamespaceContext?) -> T
+    ): Set<T> {
         return getSetOrEmpty(node, namespaceContext, path, false, getter)
     }
 
@@ -496,7 +507,7 @@ object XPathUtil {
      * @param getter A lambda that reads from node found at path and returns an object of type T.
      * @param <T> The type.
      * @return a populated Set.
-    </T> */
+     </T> */
     fun <T> getSet(node: Node?, namespaceContext: NamespaceContext?, path: String, getter: (Node?) -> T): Set<T> {
         return getSetOrEmpty(node, namespaceContext, path, true, getter)
     }
@@ -509,12 +520,13 @@ object XPathUtil {
      * @param getter A lambda that reads from node found at path and returns an object of type T.
      * @param <T> The type.
      * @return a populated Set.
-    </T> */
+     </T> */
     fun <T> getSet(
         node: Node?,
         namespaceContext: NamespaceContext?,
         path: String,
-        getter: (Node?, NamespaceContext?) -> T): Set<T> {
+        getter: (Node?, NamespaceContext?) -> T
+    ): Set<T> {
         return getSetOrEmpty(node, namespaceContext, path, true, getter)
     }
 
@@ -528,13 +540,14 @@ object XPathUtil {
      * @param getter A lambda that reads from node found at path and returns an object of type T.
      * @param <T> The type.
      * @return a populated Set.
-    </T> */
+     </T> */
     fun <T> getSetOrEmpty(
         node: Node?,
         namespaceContext: NamespaceContext?,
         path: String,
         notNull: Boolean,
-        getter: (Node) -> T): Set<T> {
+        getter: (Node) -> T
+    ): Set<T> {
         if (node == null) {
             if (notNull) {
                 throw RuntimeException("node can't be null, it is mandatory")
@@ -554,13 +567,14 @@ object XPathUtil {
      * @param getter A lambda that reads from node found at path and returns an object of type T.
      * @param <T> The type.
      * @return a populated Set.
-    </T> */
+     </T> */
     fun <T> getSetOrEmpty(
         node: Node?,
         namespaceContext: NamespaceContext?,
         path: String,
         notNull: Boolean,
-        getter: (Node?, NamespaceContext?) -> T): Set<T> {
+        getter: (Node?, NamespaceContext?) -> T
+    ): Set<T> {
         if (node == null) {
             if (notNull) {
                 throw RuntimeException("node can't be null, it is mandatory")
@@ -580,7 +594,7 @@ object XPathUtil {
      * @param qName the qName
      * @param <T> The return type.
      * @return The value
-    </T> */
+     </T> */
     @Suppress("UNCHECKED_CAST")
     private fun <T> getAtPath(root: Node, ctx: NamespaceContext?, path: String, qName: QName): T? {
         synchronized(LOCK) {
@@ -601,20 +615,29 @@ object XPathUtil {
      * @param qName the qName
      * @param <T> The return type.
      * @return The optional value.
-    </T> */
+     </T> */
     @Suppress("UNCHECKED_CAST")
-    private fun <T: Any> getOptionalAtPath(root: Node?, ctx: NamespaceContext?,
-                                           path: String, qName: QName): Optional<T> {
+    private fun <T : Any> getOptionalAtPath(
+        root: Node?,
+        ctx: NamespaceContext?,
+        path: String,
+        qName: QName
+    ): Optional<T> {
         synchronized(LOCK) {
             return if (root != null) {
                 try {
                     val expr = getXPathExpression(ctx, path)
-                    if (expr.evaluate(root, XPathConstants.NODE) == null) Optional.empty() else
+                    if (expr.evaluate(root, XPathConstants.NODE) == null) {
+                        Optional.empty()
+                    } else {
                         Optional.of(expr.evaluate(root, qName) as T)
+                    }
                 } catch (e: XPathExpressionException) {
                     throw RuntimeException(INVALID_XPATH_EXPRESSION, e)
                 }
-            } else Optional.empty()
+            } else {
+                Optional.empty()
+            }
         }
     }
 
@@ -626,7 +649,7 @@ object XPathUtil {
      * @param qName the qName
      * @param <T> The return type.
      * @return The value or null.
-    </T> */
+     </T> */
     @Suppress("UNCHECKED_CAST")
     private fun <T> getAtPathOrNull(root: Node?, ctx: NamespaceContext?, path: String, qName: QName): T? =
         synchronized(LOCK) {
@@ -637,9 +660,10 @@ object XPathUtil {
                 } catch (e: XPathExpressionException) {
                     throw RuntimeException(INVALID_XPATH_EXPRESSION, e)
                 }
-            } else null
+            } else {
+                null
+            }
         }
-
 
     private fun getXPathExpression(ctx: NamespaceContext?, path: String): XPathExpression {
         val cache = getCache(ctx)
@@ -664,11 +688,11 @@ object XPathUtil {
         return xpathCache.getOrPut(hashcode) { mutableMapOf() }
     }
 
-    private fun <T: Any> getOptional(n: Node?, deserializer: (String) -> T?): Optional<T> =
+    private fun <T : Any> getOptional(n: Node?, deserializer: (String) -> T?): Optional<T> =
         if (n == null) {
             Optional.empty()
         } else {
-            val v =  deserializer(n.nodeValue)
+            val v = deserializer(n.nodeValue)
             if (v == null) Optional.empty() else Optional.of(v)
         }
 

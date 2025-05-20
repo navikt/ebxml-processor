@@ -5,9 +5,10 @@ import java.io.IOException
 private const val PATH_REGEX = ".*[\\\\/]"
 
 data class KeystoreProperties(
-        var path: String = "",
-        var type: String = "JKS",
-        var password: CharArray = CharArray(0)) {
+    var path: String = "",
+    var type: String = "JKS",
+    var password: CharArray = CharArray(0)
+) {
 
     val name: String by lazy {
         path.replace(PATH_REGEX.toRegex(), "")
@@ -21,7 +22,6 @@ data class KeystoreProperties(
             path
         }
     }
-
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

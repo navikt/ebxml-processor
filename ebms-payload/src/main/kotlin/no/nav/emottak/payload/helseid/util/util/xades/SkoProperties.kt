@@ -1,6 +1,5 @@
 package no.nav.emottak.payload.helseid.util.util.xades
 
-
 data class SkoProperties(
     val certificateListPath: String = "",
     val keystorePath: String = "",

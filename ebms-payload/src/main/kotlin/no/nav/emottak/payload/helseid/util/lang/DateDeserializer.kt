@@ -14,7 +14,8 @@ class DateDeserializer : JsonDeserializer<Date?>() {
 
     companion object {
         @Suppress("ReturnCount")
-        @JvmStatic fun deserialize(txt: String): Date? {
+        @JvmStatic
+        fun deserialize(txt: String): Date? {
             if (txt.isBlank()) {
                 return null
             }
@@ -29,7 +30,9 @@ class DateDeserializer : JsonDeserializer<Date?>() {
         fun deserialize(ms: Long?): Date? {
             return if (ms != null) {
                 Date(ms)
-            } else null
+            } else {
+                null
+            }
         }
 
         fun deserialize(ms: Long): Date {

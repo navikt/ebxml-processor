@@ -3,6 +3,9 @@ package no.nav.emottak.payload.helseid.util.security
 import com.fasterxml.jackson.core.json.JsonReadFeature
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
+import no.nav.emottak.payload.helseid.util.util.EnvironmentInitializer.isDotDot
+import no.nav.emottak.payload.helseid.util.util.KeystoreProperties
+import no.nav.emottak.payload.helseid.util.util.ResourceUtil
 import org.bouncycastle.openssl.PEMEncryptedKeyPair
 import org.bouncycastle.openssl.PEMParser
 import org.bouncycastle.openssl.bc.BcPEMDecryptorProvider
@@ -10,6 +13,7 @@ import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter
 import org.bouncycastle.pkcs.PKCS8EncryptedPrivateKeyInfo
 import org.bouncycastle.pkcs.PKCSException
 import org.bouncycastle.pkcs.jcajce.JcePKCSPBEInputDecryptorProviderBuilder
+import org.slf4j.LoggerFactory
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.FileOutputStream
@@ -23,12 +27,6 @@ import java.security.KeyStoreException
 import java.security.PrivateKey
 import java.security.cert.X509Certificate
 import java.util.Collections
-import no.nav.emottak.payload.helseid.util.util.EnvironmentInitializer
-import no.nav.emottak.payload.helseid.util.util.EnvironmentInitializer.isDotDot
-import no.nav.emottak.payload.helseid.util.util.KeystoreProperties
-import no.nav.emottak.payload.helseid.util.util.ResourceUtil
-import org.slf4j.LoggerFactory
-
 
 @Suppress("TooManyFunctions")
 object SecurityUtils {
@@ -93,8 +91,10 @@ object SecurityUtils {
     }
 
     private fun addCertificate(
-        caek: CertificateAndEncryptedKey, keystore: KeyStore,
-        password: CharArray, rejectInvalid: Boolean
+        caek: CertificateAndEncryptedKey,
+        keystore: KeyStore,
+        password: CharArray,
+        rejectInvalid: Boolean
     ) {
         add(keystore, password, caek.alias, caek.x509Certificate, caek.privateKey)
         validate(keystore, caek.alias, caek.keyUsage, caek.serialNo, rejectInvalid)
@@ -102,15 +102,18 @@ object SecurityUtils {
 
     @Suppress("MaxLineLength")
     private fun validate(
-        keystore: KeyStore, alias: String, keyUsage: KeyUsage,
-        serialNo: BigInteger?, rejectInvalid: Boolean
+        keystore: KeyStore,
+        alias: String,
+        keyUsage: KeyUsage,
+        serialNo: BigInteger?,
+        rejectInvalid: Boolean
     ) {
         val cert = getCertificate(keystore, alias)
         require(X509Utils.hasKeyUsage(cert, keyUsage)) {
             "the private certificate with alias $alias does not have the required keyUsage $keyUsage, but has these: ${
-                X509Utils.getKeyUsage(
-                    cert
-                )
+            X509Utils.getKeyUsage(
+                cert
+            )
             }"
         }
         require(serialNo == null || cert.serialNumber == serialNo) {
@@ -193,8 +196,10 @@ object SecurityUtils {
      * @return The key.
      */
     fun getPrivateKeyWithSerialNumber(
-        keyStore: KeyStore, password: CharArray,
-        serialNumber: String, radix: Int = 10
+        keyStore: KeyStore,
+        password: CharArray,
+        serialNumber: String,
+        radix: Int = 10
     ): PrivateKey =
         getPrivateKey(keyStore, password) { it.serialNumber.toString(radix) == serialNumber }
 
@@ -207,11 +212,12 @@ object SecurityUtils {
      * @return The key.
      */
     fun getPrivateKeyWithThumbprint(
-        keyStore: KeyStore, password: CharArray,
-        thumbprint: String, algorithm: String = SHA256
+        keyStore: KeyStore,
+        password: CharArray,
+        thumbprint: String,
+        algorithm: String = SHA256
     ): PrivateKey =
         getPrivateKey(keyStore, password) { X509Utils.thumbprintBase64Url(it, algorithm) == thumbprint }
-
 
     /**
      * Gets a certificate from the keystore.
@@ -240,7 +246,8 @@ object SecurityUtils {
      */
     fun getAliasWithThumbprint(
         keyStore: KeyStore,
-        thumbprint: String, algorithm: String = SHA256
+        thumbprint: String,
+        algorithm: String = SHA256
     ): String =
         getAlias(keyStore) { X509Utils.thumbprintBase64Url(it, algorithm) == thumbprint }
 
@@ -263,7 +270,8 @@ object SecurityUtils {
      */
     fun getCertificateWithThumbprint(
         keyStore: KeyStore,
-        thumbprint: String, algorithm: String = SHA256
+        thumbprint: String,
+        algorithm: String = SHA256
     ): X509Certificate =
         getCertificate(keyStore) { X509Utils.thumbprintBase64Url(it, algorithm) == thumbprint }
 
@@ -358,8 +366,11 @@ object SecurityUtils {
      * @param certificatePassword The password protecting the key pair.
      */
     fun add(
-        keyStore: KeyStore, keystorePassword: CharArray, alias: String,
-        bytes: ByteArray, certificatePassword: CharArray
+        keyStore: KeyStore,
+        keystorePassword: CharArray,
+        alias: String,
+        bytes: ByteArray,
+        certificatePassword: CharArray
     ) {
         try {
             ByteArrayInputStream(bytes).use { bais ->
@@ -383,8 +394,11 @@ object SecurityUtils {
      * @param privateKey The private key
      */
     fun add(
-        keyStore: KeyStore, keystorePassword: CharArray, alias: String,
-        certificate: X509Certificate, privateKey: PrivateKey
+        keyStore: KeyStore,
+        keystorePassword: CharArray,
+        alias: String,
+        certificate: X509Certificate,
+        privateKey: PrivateKey
     ) {
         try {
             keyStore.setKeyEntry(alias, privateKey, keystorePassword, arrayOf(certificate))
@@ -426,10 +440,11 @@ object SecurityUtils {
                     val fname = f.name
                     val alias = fname.substring(0, fname.lastIndexOf('.'))
                     val certificate = X509Utils.loadCertificate(f.readBytes())
-                    if (rejectInvalid)
+                    if (rejectInvalid) {
                         require(X509Utils.isValid(certificate)) {
                             "the public certificate with alias $alias is invalid, notAfter = ${certificate.notAfter}"
                         }
+                    }
                     LOGGER.info("adding alias $alias to keystore")
                     keyStore.setCertificateEntry(alias, certificate)
                 }
@@ -526,7 +541,8 @@ object SecurityUtils {
         }
 
     private fun getPrivateKey(
-        keyStore: KeyStore, password: CharArray,
+        keyStore: KeyStore,
+        password: CharArray,
         predicate: (X509Certificate) -> Boolean
     ): PrivateKey =
         try {
@@ -540,7 +556,6 @@ object SecurityUtils {
         } catch (e: KeyStoreException) {
             throw SecurityException("Failed to get private key", e)
         }
-
 
     /**
      * gets the alias which is the key entry
@@ -592,8 +607,11 @@ data class CertificateAndEncryptedKey(
     fun createKeyStore(): KeyStore {
         val ks = SecurityUtils.createNewKeystore(path = keystorePath, password = password.toCharArray())
         SecurityUtils.add(
-            keyStore = ks, keystorePassword = password.toCharArray(),
-            alias = alias, certificate = x509Certificate, privateKey = privateKey
+            keyStore = ks,
+            keystorePassword = password.toCharArray(),
+            alias = alias,
+            certificate = x509Certificate,
+            privateKey = privateKey
         )
         return ks
     }
@@ -620,5 +638,4 @@ data class CertificateAndEncryptedKey(
             return converter.getPrivateKey(pki)
         }
     }
-
 }

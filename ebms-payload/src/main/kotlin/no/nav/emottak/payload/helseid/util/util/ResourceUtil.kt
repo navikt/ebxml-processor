@@ -117,9 +117,11 @@ object ResourceUtil {
      */
     @JvmStatic fun getFileClasspathOrOrAbsolutePathResource(path: String): File {
         val p = Paths.get(path)
-        return if (!p.isAbsolute)
+        return if (!p.isAbsolute) {
             getFileClasspathResource(path)
-        else p.toFile()
+        } else {
+            p.toFile()
+        }
     }
 
     /**
@@ -178,7 +180,7 @@ object ResourceUtil {
         try {
             closeable?.close()
         } catch (@Suppress("SwallowedException") _: IOException) {
-            //IGNORE
+            // IGNORE
         }
     }
 
@@ -197,8 +199,13 @@ object ResourceUtil {
         }
 
         private val urlNotNull by lazy {
-            if (exists) url!! else throw FileNotFoundException(
-                "class path resource [$path] cannot be resolved to URL because it does not exist")
+            if (exists) {
+                url!!
+            } else {
+                throw FileNotFoundException(
+                    "class path resource [$path] cannot be resolved to URL because it does not exist"
+                )
+            }
         }
     }
 }

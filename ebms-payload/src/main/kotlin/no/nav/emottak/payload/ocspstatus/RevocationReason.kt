@@ -34,7 +34,5 @@ enum class RevocationReason {
             }
             throw IllegalArgumentException("no RevocationReason for ordinal $i")
         }
-
     }
-
 }

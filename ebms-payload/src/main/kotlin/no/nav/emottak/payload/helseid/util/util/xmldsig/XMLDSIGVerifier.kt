@@ -1,6 +1,5 @@
 package no.nav.emottak.payload.helseid.util.util.xmldsig
 
-import java.security.cert.X509Certificate
 import no.nav.emottak.payload.helseid.util.security.X509Utils.getIssuerDN
 import no.nav.emottak.payload.helseid.util.security.X509Utils.getSubjectDN
 import no.nav.emottak.payload.helseid.util.security.X509Utils.isSelfSigned
@@ -16,6 +15,7 @@ import org.apache.xml.security.utils.Constants
 import org.slf4j.LoggerFactory
 import org.w3c.dom.Document
 import org.w3c.dom.Element
+import java.security.cert.X509Certificate
 
 @Suppress("TooManyFunctions")
 class XMLDSIGVerifier : SignatureVerifier {
@@ -83,7 +83,8 @@ class XMLDSIGVerifier : SignatureVerifier {
      */
     override fun verifyXML(
         doc: Document,
-        minimumSignatureAlgorithm: String?, minimumDigestAlgorithm: String?
+        minimumSignatureAlgorithm: String?,
+        minimumDigestAlgorithm: String?
     ): X509Certificate =
         try {
             val signature = XMLSignature(getSignatureElement(doc), Constants.SignatureSpecNS)
@@ -116,7 +117,8 @@ class XMLDSIGVerifier : SignatureVerifier {
      */
     fun verifyXML(
         element: Element,
-        minimumSignatureAlgorithm: String?, minimumDigestAlgorithm: String?
+        minimumSignatureAlgorithm: String?,
+        minimumDigestAlgorithm: String?
     ): X509Certificate =
         try {
             val signature = XMLSignature(element, Constants.SignatureSpecNS)
@@ -136,7 +138,8 @@ class XMLDSIGVerifier : SignatureVerifier {
     @Suppress("ThrowsCount")
     private fun verify(
         signature: XMLSignature,
-        minimumSignatureAlgorithm: String?, minimumDigestAlgorithm: String?
+        minimumSignatureAlgorithm: String?,
+        minimumDigestAlgorithm: String?
     ): X509Certificate {
         val signers = StringBuilder()
         val ki = getKeyInfo(signature)

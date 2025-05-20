@@ -1,5 +1,9 @@
 package no.nav.emottak.payload.helseid.util.util
 
+import no.nav.emottak.payload.helseid.util.lang.ByteUtil
+import no.nav.emottak.payload.helseid.util.util.XPathUtil.getNodeAtPath
+import no.nav.emottak.payload.helseid.util.util.XPathUtil.getNodesAtPath
+import org.slf4j.LoggerFactory
 import org.w3c.dom.Document
 import org.w3c.dom.Element
 import org.w3c.dom.Node
@@ -19,10 +23,6 @@ import javax.xml.XMLConstants
 import javax.xml.namespace.NamespaceContext
 import javax.xml.parsers.DocumentBuilderFactory
 import javax.xml.parsers.ParserConfigurationException
-import no.nav.emottak.payload.helseid.util.lang.ByteUtil
-import no.nav.emottak.payload.helseid.util.util.XPathUtil.getNodeAtPath
-import no.nav.emottak.payload.helseid.util.util.XPathUtil.getNodesAtPath
-import org.slf4j.LoggerFactory
 
 /**
  * XML stuff.
@@ -183,13 +183,12 @@ object XMLUtil {
         domConfig.setParameter("xml-declaration", !omitXMLDeclaration)
         lsWriter.newLine = "\n"
     }
-
 }
 
 /**
  * Error handler that doesn't write to stderr (like the default ErrorHandler does)
  */
-private class SilentErrorHandler: ErrorHandler {
+private class SilentErrorHandler : ErrorHandler {
     override fun warning(exception: SAXParseException) {
         throw exception
     }
@@ -201,5 +200,4 @@ private class SilentErrorHandler: ErrorHandler {
     override fun fatalError(exception: SAXParseException) {
         throw exception
     }
-
 }

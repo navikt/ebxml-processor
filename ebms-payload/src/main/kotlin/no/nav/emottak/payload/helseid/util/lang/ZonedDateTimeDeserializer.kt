@@ -26,7 +26,8 @@ class ZonedDateTimeDeserializer : JsonDeserializer<ZonedDateTime?>() {
             DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss[[.SSSSSSSSS][.SSSSSSSS][.SSSSSSS][.SSSSSS][.SSSSS][.SSSS][.SSS][.SS][.S]][XXXXX][XXXX]")
 
         @Suppress("MagicNumber", "ReturnCount", "SwallowedException")
-        @JvmStatic fun deserialize(txt: String): ZonedDateTime? {
+        @JvmStatic
+        fun deserialize(txt: String): ZonedDateTime? {
             if (txt.isBlank()) {
                 return null
             }
@@ -36,7 +37,7 @@ class ZonedDateTimeDeserializer : JsonDeserializer<ZonedDateTime?>() {
             }
             when (txt.length) {
                 10 -> return addTimeZone(txt + "T00:00:00")
-                19 ->  return addTimeZone(txt)
+                19 -> return addTimeZone(txt)
                 11, 15, 16 -> txt2 = txt2.substring(0, 10) + "T00:00:00" + txt2.substring(10)
             }
             return try {
@@ -49,13 +50,17 @@ class ZonedDateTimeDeserializer : JsonDeserializer<ZonedDateTime?>() {
         fun deserialize(ms: Long?): ZonedDateTime? {
             return if (ms != null) {
                 deserialize(ms.toLong())
-            } else null
+            } else {
+                null
+            }
         }
 
         fun deserialize(ms: Date?): ZonedDateTime? {
             return if (ms != null) {
                 deserialize(ms.time)
-            } else null
+            } else {
+                null
+            }
         }
 
         private fun addTimeZone(txt: String): ZonedDateTime {

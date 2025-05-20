@@ -24,19 +24,25 @@ class LocalDateTimeDeserializer : JsonDeserializer<LocalDateTime?>() {
             val txt2 = txt.trim()
             return if (StringUtil.isNumeric(txt2)) {
                 fromMillis(txt2)
-            } else localize(txt)
+            } else {
+                localize(txt)
+            }
         }
 
         fun deserialize(ms: Long?): LocalDateTime? {
             return if (ms != null) {
                 deserialize(ms.toLong())
-            } else null
+            } else {
+                null
+            }
         }
 
         fun deserialize(ms: Date?): LocalDateTime? {
             return if (ms != null) {
                 deserialize(ms.time)
-            } else null
+            } else {
+                null
+            }
         }
 
         private fun fromMillis(txt: String): LocalDateTime {

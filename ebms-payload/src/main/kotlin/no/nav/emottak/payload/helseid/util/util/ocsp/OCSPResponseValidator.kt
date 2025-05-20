@@ -1,5 +1,10 @@
 package no.nav.emottak.payload.helseid.util.util.ocsp
 
+import no.nav.emottak.payload.helseid.util.lang.ByteUtil
+import no.nav.emottak.payload.helseid.util.security.SecurityUtils
+import no.nav.emottak.payload.helseid.util.security.X509Utils
+import no.nav.emottak.payload.helseid.util.security.X509Utils.getSubjectDN
+import no.nav.emottak.payload.ocspstatus.RevocationReason
 import org.bouncycastle.asn1.ASN1ObjectIdentifier
 import org.bouncycastle.asn1.x500.X500Name
 import org.bouncycastle.asn1.x500.style.RFC4519Style
@@ -20,6 +25,7 @@ import org.bouncycastle.operator.ContentVerifierProvider
 import org.bouncycastle.operator.OperatorCreationException
 import org.bouncycastle.operator.jcajce.JcaContentVerifierProviderBuilder
 import org.bouncycastle.operator.jcajce.JcaDigestCalculatorProviderBuilder
+import org.slf4j.LoggerFactory
 import java.io.IOException
 import java.math.BigInteger
 import java.security.KeyStore
@@ -29,12 +35,6 @@ import java.security.cert.CertificateEncodingException
 import java.security.cert.CertificateException
 import java.security.cert.X509Certificate
 import java.util.Date
-import no.nav.emottak.payload.helseid.util.lang.ByteUtil
-import no.nav.emottak.payload.helseid.util.security.SecurityUtils
-import no.nav.emottak.payload.helseid.util.security.X509Utils
-import no.nav.emottak.payload.helseid.util.security.X509Utils.getSubjectDN
-import no.nav.emottak.payload.ocspstatus.RevocationReason
-import org.slf4j.LoggerFactory
 
 @Suppress("TooManyFunctions", "MaxLineLength")
 class OCSPResponseValidator(private val keyStore: KeyStore, private val gracePeriod: Long = DEFAULT_GRACE_PERIOD) {
@@ -107,7 +107,8 @@ class OCSPResponseValidator(private val keyStore: KeyStore, private val gracePer
 
     private fun getSsn(
         responses: Collection<String>,
-        serialNumber: BigInteger, caCertificate: X509Certificate
+        serialNumber: BigInteger,
+        caCertificate: X509Certificate
     ): String? {
         for (str in responses) {
             val response = ByteUtil.decodeBase64(str)
@@ -148,8 +149,8 @@ class OCSPResponseValidator(private val keyStore: KeyStore, private val gracePer
         if (signedTime > ocspProduced + gracePeriod) {
             throw RuntimeException(
                 "Could not trust OCSP response to validate certificates. " +
-                        "One or more OCSP responses are dated before signature timestamp. " +
-                        "OCSP produced: " + basicResponse.producedAt + ", timestamp: " + timestamp
+                    "One or more OCSP responses are dated before signature timestamp. " +
+                    "OCSP produced: " + basicResponse.producedAt + ", timestamp: " + timestamp
             )
         }
     }
@@ -181,24 +182,28 @@ class OCSPResponseValidator(private val keyStore: KeyStore, private val gracePer
 
     private fun verifySignature(
         contentVerifierProviderBuilder: JcaContentVerifierProviderBuilder,
-        basicResponse: BasicOCSPResp, certificateHolder: X509CertificateHolder
+        basicResponse: BasicOCSPResp,
+        certificateHolder: X509CertificateHolder
     ) {
         try {
             verifySignature(contentVerifierProviderBuilder.build(certificateHolder), basicResponse)
         } catch (e: OperatorCreationException) {
             throw RuntimeException(
-                "failed to build ContentVerifierProvider for certificate $certificateHolder", e
+                "failed to build ContentVerifierProvider for certificate $certificateHolder",
+                e
             )
         } catch (e: CertificateException) {
             throw RuntimeException(
-                "failed to build ContentVerifierProvider for certificate $certificateHolder", e
+                "failed to build ContentVerifierProvider for certificate $certificateHolder",
+                e
             )
         }
     }
 
     private fun verifySignature(
         contentVerifierProviderBuilder: JcaContentVerifierProviderBuilder,
-        basicResponse: BasicOCSPResp, certificate: X509Certificate
+        basicResponse: BasicOCSPResp,
+        certificate: X509Certificate
     ) {
         try {
             verifySignature(contentVerifierProviderBuilder.build(certificate), basicResponse)
@@ -268,7 +273,8 @@ class OCSPResponseValidator(private val keyStore: KeyStore, private val gracePer
         LOG.debug(
             "validated OCSPResponse for certificate with serial number {} (0x{})",
             { singleResponse.certID.serialNumber },
-            { singleResponse.certID.serialNumber.toString(HEX_RADIX) })
+            { singleResponse.certID.serialNumber.toString(HEX_RADIX) }
+        )
         return singleResponse.certID
     }
 
@@ -288,7 +294,9 @@ class OCSPResponseValidator(private val keyStore: KeyStore, private val gracePer
             } catch (e: IOException) {
                 throw RuntimeException("Failed to extract SSN", e)
             }
-        } else ""
+        } else {
+            ""
+        }
 
     @Suppress("ThrowsCount")
     private fun validateCertificateStatus(singleResponse: SingleResp) {
@@ -336,5 +344,4 @@ class OCSPResponseValidator(private val keyStore: KeyStore, private val gracePer
             throw RuntimeException(FAILED_TO_MATCH, e)
         }
     }
-
 }

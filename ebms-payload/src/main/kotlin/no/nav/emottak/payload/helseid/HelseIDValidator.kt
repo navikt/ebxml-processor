@@ -11,6 +11,12 @@ import com.nimbusds.jwt.JWTClaimNames
 import com.nimbusds.jwt.JWTClaimsSet
 import com.nimbusds.jwt.JWTParser
 import com.nimbusds.jwt.SignedJWT
+import no.nav.emottak.payload.helseid.util.lang.DateUtil
+import no.nav.emottak.payload.helseid.util.security.X509Utils
+import no.nav.emottak.payload.helseid.util.util.XPathUtil
+import no.nav.emottak.payload.helseid.util.util.xades.XAdESVerifier
+import no.nav.emottak.utils.environment.getEnvVar
+import org.w3c.dom.Document
 import java.security.cert.X509Certificate
 import java.security.interfaces.RSAPublicKey
 import java.text.ParseException
@@ -18,12 +24,6 @@ import java.time.ZonedDateTime
 import java.util.Base64
 import java.util.Date
 import javax.xml.namespace.NamespaceContext
-import no.nav.emottak.payload.helseid.util.lang.DateUtil
-import no.nav.emottak.payload.helseid.util.util.XPathUtil
-import no.nav.emottak.payload.helseid.util.security.X509Utils
-import no.nav.emottak.payload.helseid.util.util.xades.XAdESVerifier
-import no.nav.emottak.utils.environment.getEnvVar
-import org.w3c.dom.Document
 
 interface NinTokenValidator {
 
@@ -46,7 +46,8 @@ interface NinTokenValidator {
      * @return the signer certificate
      */
     fun validate(
-        b64: String, timeStamp: ZonedDateTime?,
+        b64: String,
+        timeStamp: ZonedDateTime?,
         certificates: Collection<X509Certificate>
     ): X509Certificate
 
@@ -73,12 +74,14 @@ val helseIdValidator = HelseIDValidator(ISSUER, ORGNR)
 
 @Suppress("TooManyFunctions")
 class HelseIDValidator(
-    private val issuer: String = "", private val issuerOrganizationNumber: String,
+    private val issuer: String = "",
+    private val issuerOrganizationNumber: String,
     private val allowedClockSkewInMs: Long = 0
 ) : NinTokenValidator {
 
     override fun validate(
-        b64: String, timeStamp: ZonedDateTime?,
+        b64: String,
+        timeStamp: ZonedDateTime?,
         certificates: Collection<X509Certificate>
     ): X509Certificate {
         val signedJWT = getSignedJWT(b64)
@@ -118,10 +121,10 @@ class HelseIDValidator(
     @Suppress("MaxLineLength")
     override fun getHelseIDTokenNodesFromDocument(doc: Document, namespaceContext: NamespaceContext): String? {
         val nodes = XPathUtil.getNodesAtPath(
-            doc, namespaceContext,
+            doc,
+            namespaceContext,
             "/mh:MsgHead/mh:Document/mh:RefDoc[mh:MsgType/@V='A'][mh:MimeType/text()='application/jwt']/mh:Content/bas:Base64Container|/mh:MsgHead/mh:Document/mh:RefDoc[mh:MsgType/@V='A'][mh:MimeType/text()='application/json']/mh:Content/bas:Base64Container"
         )
-
 
         if (nodes.isEmpty()) {
             return null
@@ -130,7 +133,6 @@ class HelseIDValidator(
         }
         throw RuntimeException("unable to determine which of the ${nodes.size} attachments that is HelseID-token")
     }
-
 
     private fun getSignerCertificate(signedJWT: SignedJWT, certificates: Collection<X509Certificate>): X509Certificate {
         val hdr = signedJWT.header
@@ -280,17 +282,21 @@ class HelseIDValidator(
     }
 
     private fun getCertificateByThumbprint(
-        thumbprint: String, algorithm: String,
+        thumbprint: String,
+        algorithm: String,
         certificates: Collection<X509Certificate>,
         base64url: Boolean = true
     ): X509Certificate =
         certificates.firstOrNull {
-            thumbprint == if (base64url) X509Utils.thumbprintBase64Url(it, algorithm) else X509Utils.thumbprintHex(
-                it,
-                algorithm
-            )
+            thumbprint == if (base64url) {
+                X509Utils.thumbprintBase64Url(it, algorithm)
+            } else {
+                X509Utils.thumbprintHex(
+                    it,
+                    algorithm
+                )
+            }
         } ?: throw NoSuchElementException(NO_CERTIFICATE_TO_VERIFY_TOKEN)
-
 
     companion object {
         private val SUPPORTED_ALGOS = listOf(
@@ -301,7 +307,8 @@ class HelseIDValidator(
         internal val SUPPORTED_AUDIENCE = listOf("e-helse:reseptformidleren", "hdir:rf-rekvirent")
         internal val SUPPORTED_SCOPES = listOf("e-helse:reseptformidleren/rekvirent", "hdir:rf-rekvirent/rekvirering")
         private val SUPPORTED_JWT_TYPES = listOf(
-            JOSEObjectType.JWT, JOSEObjectType("at+jwt"),
+            JOSEObjectType.JWT,
+            JOSEObjectType("at+jwt"),
             JOSEObjectType("application/at+jwt")
         )
         private const val SECURITY_LEVEL = "4"
@@ -309,4 +316,3 @@ class HelseIDValidator(
         private const val NO_CERTIFICATE_TO_VERIFY_TOKEN = "no certificate to verify token with given"
     }
 }
-

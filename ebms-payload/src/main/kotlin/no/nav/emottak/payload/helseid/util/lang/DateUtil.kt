@@ -33,7 +33,7 @@ object DateUtil {
      * @return midnight of the given date.
      */
     fun midnight(date: Date?): Date =
-        clearTimeFields(Objects.requireNonNullElseGet(date)  { Date() })
+        clearTimeFields(Objects.requireNonNullElseGet(date) { Date() })
 
     /**
      * Checks if date is before today.
@@ -73,8 +73,11 @@ object DateUtil {
      * @return The [Date]
      */
     fun toDate(localDate: LocalDate?): Date =
-        if (localDate == null) Date()
-        else Date.from(localDate.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant())
+        if (localDate == null) {
+            Date()
+        } else {
+            Date.from(localDate.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant())
+        }
 
     /**
      * Converts a [LocalDateTime] to a [Date]
@@ -98,8 +101,11 @@ object DateUtil {
      * @return The [Timestamp] or null
      */
     fun toTimestamp(localDate: LocalDate?): Timestamp =
-        if (localDate == null) Timestamp(midnight().time)
-        else Timestamp.from(localDate.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant())
+        if (localDate == null) {
+            Timestamp(midnight().time)
+        } else {
+            Timestamp.from(localDate.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant())
+        }
 
     /**
      * Converts a [LocalDateTime] to a [Timestamp]
@@ -107,8 +113,11 @@ object DateUtil {
      * @return The [Timestamp] or null
      */
     fun toTimestamp(localDateTime: LocalDateTime?): Timestamp =
-        if (localDateTime == null) Timestamp.valueOf(LocalDateTime.now())
-        else Timestamp.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant())
+        if (localDateTime == null) {
+            Timestamp.valueOf(LocalDateTime.now())
+        } else {
+            Timestamp.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant())
+        }
 
     /**
      * Converts a [ZonedDateTime] to a [Timestamp]
@@ -124,8 +133,11 @@ object DateUtil {
      * @return The [Date]
      */
     fun toNullableDate(localDate: LocalDate?): Date? =
-        if (localDate == null) null
-        else Date.from(localDate.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant())
+        if (localDate == null) {
+            null
+        } else {
+            Date.from(localDate.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant())
+        }
 
     /**
      * Converts a [LocalDateTime] to a [Date]
@@ -149,8 +161,11 @@ object DateUtil {
      * @return The [Timestamp] or null
      */
     fun toNullableTimestamp(localDate: LocalDate?): Timestamp? =
-        if (localDate == null) null
-        else Timestamp.from(localDate.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant())
+        if (localDate == null) {
+            null
+        } else {
+            Timestamp.from(localDate.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant())
+        }
 
     /**
      * Converts a [LocalDateTime] to a [Timestamp]
@@ -233,8 +248,6 @@ object DateUtil {
      */
     fun addWorkingDays(date: LocalDate?, days: Int): LocalDate =
         addWorkingDays(ZonedDateTime.of(date, LocalTime.MIN, ZoneId.systemDefault()), days).toLocalDate()
-
-
 
     /**
      * Adds at a number of working days to the given date. The result is always a working day.
@@ -329,8 +342,10 @@ object DateUtil {
      * @param weekendDays which days are considered the weekend and does not count as working days
      * @return true if working day.
      */
-    fun isWorkingDay(date: Date,
-                     weekendDays: Collection<DayOfWeek> = setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)): Boolean =
+    fun isWorkingDay(
+        date: Date,
+        weekendDays: Collection<DayOfWeek> = setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)
+    ): Boolean =
         isWorkingDay(ZonedDateTimeDeserializer.deserialize(date.time), weekendDays)
 
     /**
@@ -339,8 +354,10 @@ object DateUtil {
      * @param weekendDays which days are considered the weekend and does not count as working days
      * @return true if working day.
      */
-    fun isWorkingDay(date: LocalDate?,
-                     weekendDays: Collection<DayOfWeek> = setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)): Boolean =
+    fun isWorkingDay(
+        date: LocalDate?,
+        weekendDays: Collection<DayOfWeek> = setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)
+    ): Boolean =
         isWorkingDay(ZonedDateTime.of(date, LocalTime.MIN, ZoneId.systemDefault()), weekendDays)
 
     /**
@@ -349,8 +366,10 @@ object DateUtil {
      * @param weekendDays which days are considered the weekend and does not count as working days
      * @return true if working day.
      */
-    fun isWorkingDay(date: LocalDateTime?,
-                     weekendDays: Collection<DayOfWeek> = setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)): Boolean =
+    fun isWorkingDay(
+        date: LocalDateTime?,
+        weekendDays: Collection<DayOfWeek> = setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)
+    ): Boolean =
         isWorkingDay(ZonedDateTime.of(date, ZoneId.systemDefault()), weekendDays)
 
     /**
@@ -360,8 +379,10 @@ object DateUtil {
      * @return true if working day.
      */
     @Suppress("MagicNumber", "ReturnCount")
-    fun isWorkingDay(date: ZonedDateTime,
-                     weekendDays: Collection<DayOfWeek> = setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)): Boolean {
+    fun isWorkingDay(
+        date: ZonedDateTime,
+        weekendDays: Collection<DayOfWeek> = setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)
+    ): Boolean {
         // check if this a weekend
         val dayOfWeek = date.dayOfWeek
         if (weekendDays.contains(dayOfWeek)) {
@@ -398,7 +419,9 @@ object DateUtil {
         // christian ascension
         return if (dayOfYear == easterSundayDayOfYear + 39) {
             false
-        } else dayOfYear != easterSundayDayOfYear + 50
+        } else {
+            dayOfYear != easterSundayDayOfYear + 50
+        }
 
         // pentecost
     }

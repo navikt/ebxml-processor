@@ -14,7 +14,9 @@ interface SignatureVerifier {
      * @param minimumDigestAlgorithm the minimum digest algorithm we support
      * @return The certificate that was used in the signing.
      */
-    fun verifyXML(doc: Document,
-                  minimumSignatureAlgorithm: String? = null,
-                  minimumDigestAlgorithm: String? = null): X509Certificate
+    fun verifyXML(
+        doc: Document,
+        minimumSignatureAlgorithm: String? = null,
+        minimumDigestAlgorithm: String? = null
+    ): X509Certificate
 }

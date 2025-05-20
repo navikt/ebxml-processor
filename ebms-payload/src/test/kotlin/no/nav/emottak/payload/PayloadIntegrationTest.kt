@@ -197,7 +197,6 @@ class PayloadIntegrationTest {
         val nin = "25027600363"
         mockkConstructor(OcspStatusService::class, recordPrivateCalls = true, localToThread = false)
 
-
         val requestBody = payloadRequestMedHelseId(
             testKeystore.getCertificate("samhandler-2024").encoded
         )
@@ -356,12 +355,12 @@ private fun dummyPayload() = Payload(
 
 private fun dummyPayloadForHelseId() = Payload(
     bytes =
-        PayloadSignering().signerXML(
-            createDocument(
-                object {}::class.java.classLoader.getResource("helseid/xml/egenandelforesporsel-helseid-ok.xml")!!.openStream()
-            ),
-            signatureDetails()
-        ).asByteArray(),
+    PayloadSignering().signerXML(
+        createDocument(
+            object {}::class.java.classLoader.getResource("helseid/xml/egenandelforesporsel-helseid-ok.xml")!!.openStream()
+        ),
+        signatureDetails()
+    ).asByteArray(),
 
     contentType = ""
 )

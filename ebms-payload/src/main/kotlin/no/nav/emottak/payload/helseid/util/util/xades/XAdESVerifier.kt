@@ -1,14 +1,5 @@
 package no.nav.emottak.payload.helseid.util.util.xades
 
-import java.math.BigInteger
-import java.security.GeneralSecurityException
-import java.security.KeyStore
-import java.security.Principal
-import java.security.cert.X509Certificate
-import java.time.ZonedDateTime
-import java.util.Date
-import java.util.Locale
-import javax.xml.namespace.NamespaceContext
 import no.nav.emottak.payload.helseid.HelseIDValidator
 import no.nav.emottak.payload.helseid.NinTokenValidator
 import no.nav.emottak.payload.helseid.util.lang.ByteUtil
@@ -28,19 +19,34 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.slf4j.LoggerFactory
 import org.w3c.dom.Document
 import org.w3c.dom.Element
+import java.math.BigInteger
+import java.security.GeneralSecurityException
+import java.security.KeyStore
+import java.security.Principal
+import java.security.cert.X509Certificate
+import java.time.ZonedDateTime
+import java.util.Date
+import java.util.Locale
+import javax.xml.namespace.NamespaceContext
 
 @Suppress("TooManyFunctions", "MaxLineLength")
-class XAdESVerifier(private val skoProperties: SkoProperties, keyStore: KeyStore,
-                    private val xmldsigVerifier: XMLDSIGVerifier? = null,
-                    private val ocspResponseValidator: OCSPResponseValidator? = null):
-    NinTokenValidator by HelseIDValidator(skoProperties.helseIdIssuer,
-        skoProperties.issuerOrganizationNumber, skoProperties.helseIdAllowedClockSkewInMs) {
+class XAdESVerifier(
+    private val skoProperties: SkoProperties,
+    keyStore: KeyStore,
+    private val xmldsigVerifier: XMLDSIGVerifier? = null,
+    private val ocspResponseValidator: OCSPResponseValidator? = null
+) :
+    NinTokenValidator by HelseIDValidator(
+        skoProperties.helseIdIssuer,
+        skoProperties.issuerOrganizationNumber,
+        skoProperties.helseIdAllowedClockSkewInMs
+    ) {
 
     private val trustedCertificateAuthorities: Map<Principal, X509Certificate> =
         SecurityUtils.getAliases(keyStore).associate {
-        val certificate = keyStore.getCertificate(it.trim()) as X509Certificate
-        certificate.subjectX500Principal to certificate
-    }
+            val certificate = keyStore.getCertificate(it.trim()) as X509Certificate
+            certificate.subjectX500Principal to certificate
+        }
 
     private enum class RequiredCertificateType {
         PERSONAL, ENTERPRISE, TIMESTAMP, PERSONAL_OR_ENTERPRISE
@@ -74,10 +80,15 @@ class XAdESVerifier(private val skoProperties: SkoProperties, keyStore: KeyStore
         if (helseIDtoken != null) {
             certificatesUsedInSignatures.add(
                 validateCertificate(
-                    validate(helseIDtoken,
+                    validate(
+                        helseIDtoken,
                         timeStamp = timeStamp,
-                        certificates = certificatesByPrincipal.values),
-                    dateTimeStamp, KeyUsage.NON_REPUDIATION, RequiredCertificateType.ENTERPRISE, "HelseID"
+                        certificates = certificatesByPrincipal.values
+                    ),
+                    dateTimeStamp,
+                    KeyUsage.NON_REPUDIATION,
+                    RequiredCertificateType.ENTERPRISE,
+                    "HelseID"
                 )
             )
 
@@ -85,7 +96,10 @@ class XAdESVerifier(private val skoProperties: SkoProperties, keyStore: KeyStore
             certificatesUsedInSignatures.add(
                 validateCertificate(
                     xmldsigVerifier!!.verifyXML(doc),
-                    dateTimeStamp, KeyUsage.NON_REPUDIATION, RequiredCertificateType.PERSONAL_OR_ENTERPRISE, "Document"
+                    dateTimeStamp,
+                    KeyUsage.NON_REPUDIATION,
+                    RequiredCertificateType.PERSONAL_OR_ENTERPRISE,
+                    "Document"
                 )
             )
         } else {
@@ -93,7 +107,10 @@ class XAdESVerifier(private val skoProperties: SkoProperties, keyStore: KeyStore
             certificatesUsedInSignatures.add(
                 validateCertificate(
                     xmldsigVerifier!!.verifyXML(doc),
-                    dateTimeStamp, KeyUsage.NON_REPUDIATION, RequiredCertificateType.PERSONAL, "Document"
+                    dateTimeStamp,
+                    KeyUsage.NON_REPUDIATION,
+                    RequiredCertificateType.PERSONAL,
+                    "Document"
                 )
             )
         }
@@ -102,7 +119,10 @@ class XAdESVerifier(private val skoProperties: SkoProperties, keyStore: KeyStore
         certificatesUsedInSignatures.add(
             validateCertificate(
                 verifyXMLDSIG(doc, XPATH_SIGNATURE_TIMESTAMP),
-                dateTimeStamp, KeyUsage.DIGITAL_SIGNATURE, RequiredCertificateType.TIMESTAMP, "Timestamp"
+                dateTimeStamp,
+                KeyUsage.DIGITAL_SIGNATURE,
+                RequiredCertificateType.TIMESTAMP,
+                "Timestamp"
             )
         )
 
@@ -110,7 +130,10 @@ class XAdESVerifier(private val skoProperties: SkoProperties, keyStore: KeyStore
         certificatesUsedInSignatures.add(
             validateCertificate(
                 verifyXMLDSIG(doc, XPATH_SIGNATURE_COUNTERSIGNATURE),
-                dateTimeStamp, KeyUsage.NON_REPUDIATION, RequiredCertificateType.ENTERPRISE, "Countersignature"
+                dateTimeStamp,
+                KeyUsage.NON_REPUDIATION,
+                RequiredCertificateType.ENTERPRISE,
+                "Countersignature"
             )
         )
 
@@ -151,9 +174,13 @@ class XAdESVerifier(private val skoProperties: SkoProperties, keyStore: KeyStore
         }
 
     @Suppress("ThrowsCount")
-    private fun validateCertificate(certificate: X509Certificate, timeStamp: Date,
-                                    keyUsage: KeyUsage, requiredCertificateType: RequiredCertificateType,
-                                    debugMsg: String): X509Certificate {
+    private fun validateCertificate(
+        certificate: X509Certificate,
+        timeStamp: Date,
+        keyUsage: KeyUsage,
+        requiredCertificateType: RequiredCertificateType,
+        debugMsg: String
+    ): X509Certificate {
         LOG.debug("{} signed by: {}", { debugMsg }, { X509Utils.toString(certificate) })
         if (!isCertificateIssuedByTrustedIssuer(certificate)) {
             throw RuntimeException(THE_CERTIFICATE + X509Utils.toString(certificate) + " is issued by an untrusted issuer")
@@ -162,7 +189,8 @@ class XAdESVerifier(private val skoProperties: SkoProperties, keyStore: KeyStore
             throw RuntimeException(THE_CERTIFICATE + X509Utils.toString(certificate) + " does not have the required key usage " + keyUsage)
         }
         if (requiredCertificateType == RequiredCertificateType.TIMESTAMP &&
-            !X509Utils.hasExtendedKeyUsage(certificate, KeyPurposeId.id_kp_timeStamping)) {
+            !X509Utils.hasExtendedKeyUsage(certificate, KeyPurposeId.id_kp_timeStamping)
+        ) {
             throw RuntimeException(THE_CERTIFICATE + X509Utils.toString(certificate) + " does not have the required extended key usage ${KeyPurposeId.id_kp_timeStamping}")
         }
         val certificateType = getCertificateType(certificate)
@@ -185,14 +213,19 @@ class XAdESVerifier(private val skoProperties: SkoProperties, keyStore: KeyStore
         return xmldsigVerifier!!.verifyXML((XPathUtil.getNodeAtPath(doc, namespaceContext, xpath) as Element))
     }
 
-    private fun verifyOCSPResponses(doc: Document,
-                                    certificatesUsedInSignatures: MutableSet<X509Certificate>,
-                                    certificatesByPrincipal: Map<Principal, X509Certificate>, timeStamp: Date) {
+    private fun verifyOCSPResponses(
+        doc: Document,
+        certificatesUsedInSignatures: MutableSet<X509Certificate>,
+        certificatesByPrincipal: Map<Principal, X509Certificate>,
+        timeStamp: Date
+    ) {
         if (LOG.isDebugEnabled) {
             certificatesByPrincipal.values.forEach { c: X509Certificate ->
                 LOG.debug(
                     "Certificate with serialnumber {} (0x{}) and subject {} used in signatures",
-                    c.serialNumber, c.serialNumber.toString(HEX_RADIX), c.subjectX500Principal
+                    c.serialNumber,
+                    c.serialNumber.toString(HEX_RADIX),
+                    c.subjectX500Principal
                 )
             }
         }
@@ -212,8 +245,11 @@ class XAdESVerifier(private val skoProperties: SkoProperties, keyStore: KeyStore
             LOG.warn("The following certificates does not have an OCSP response: {}", {
                 certificatesUsedInSignatures.joinToString(separator = ",") { c: X509Certificate ->
                     String.format(
-                        Locale.getDefault(), "certificate with serial number %s (0x%s) and subject %s",
-                        c.serialNumber, c.serialNumber.toString(HEX_RADIX), X509Utils.getSubjectDN(c)
+                        Locale.getDefault(),
+                        "certificate with serial number %s (0x%s) and subject %s",
+                        c.serialNumber,
+                        c.serialNumber.toString(HEX_RADIX),
+                        X509Utils.getSubjectDN(c)
                     )
                 }
             })
@@ -246,34 +282,48 @@ class XAdESVerifier(private val skoProperties: SkoProperties, keyStore: KeyStore
 
     private fun verifyTimeStampReferences(doc: Document, parentSignatureValueId: String) {
         val referencesXpath = XPATH_PROPERTIES_UNSIGNED_SIGNATURE +
-                "/xades:SignatureTimeStamp/xades:XMLTimeStamp/dss:Timestamp/dsig:Signature/dsig:SignedInfo/dsig:Reference"
+            "/xades:SignatureTimeStamp/xades:XMLTimeStamp/dss:Timestamp/dsig:Signature/dsig:SignedInfo/dsig:Reference"
         if ( // check that one timestamp reference has the correct type
-                !XPathUtil.exists(doc, namespaceContext, "$referencesXpath/@Type='$DSS_NS:XMLTimeStampToken'")
-            ||  // and that one reference references the parent signature
-                !XPathUtil.exists(doc, namespaceContext,
-                    "$referencesXpath/attribute::*[translate(local-name(), 'URI','uri') = 'uri']='#$parentSignatureValueId'")) {
+            !XPathUtil.exists(doc, namespaceContext, "$referencesXpath/@Type='$DSS_NS:XMLTimeStampToken'") ||
+            // and that one reference references the parent signature
+            !XPathUtil.exists(
+                doc,
+                namespaceContext,
+                "$referencesXpath/attribute::*[translate(local-name(), 'URI','uri') = 'uri']='#$parentSignatureValueId'"
+            )
+        ) {
             throw RuntimeException("The XMLTimestampToken does not contain the correct signature references")
         }
     }
 
     private fun verifyCounterSignatureReferences(doc: Document, parentSignatureValueId: String) {
         val referencesXpath = XPATH_PROPERTIES_UNSIGNED_SIGNATURE +
-                "/xades:CounterSignature/dsig:Signature/dsig:SignedInfo/dsig:Reference"
+            "/xades:CounterSignature/dsig:Signature/dsig:SignedInfo/dsig:Reference"
 
         // check that counter signature references all have correct type
         // because the type is inconsistent (casing) in the casing we do this in a complicated way
         val cnt = XPathUtil.countAtPath(doc, namespaceContext, "$referencesXpath/@Type") -
-                XPathUtil.countAtPath(doc, namespaceContext,
-                    "$referencesXpath[@Type='http://uri.etsi.org/01903#CounterSignedSignature']") -
-                XPathUtil.countAtPath(doc, namespaceContext,
-                    "$referencesXpath[@Type='http://uri.etsi.org/01903#CountersignedSignature']")
+            XPathUtil.countAtPath(
+                doc,
+                namespaceContext,
+                "$referencesXpath[@Type='http://uri.etsi.org/01903#CounterSignedSignature']"
+            ) -
+            XPathUtil.countAtPath(
+                doc,
+                namespaceContext,
+                "$referencesXpath[@Type='http://uri.etsi.org/01903#CountersignedSignature']"
+            )
         if (cnt > 0) {
             throw RuntimeException("All CounterSignatures residing in the XAdES QualifyingProperties must be of type 'http://uri.etsi.org/01903#CounterSignedSignature'")
         }
 
         // check that one of them references the parent signature
-        if (!XPathUtil.exists(doc, namespaceContext,
-                    "$referencesXpath/attribute::*[translate(local-name(), 'URI','uri') = 'uri']='#$parentSignatureValueId'")) {
+        if (!XPathUtil.exists(
+                doc,
+                namespaceContext,
+                "$referencesXpath/attribute::*[translate(local-name(), 'URI','uri') = 'uri']='#$parentSignatureValueId'"
+            )
+        ) {
             throw RuntimeException("All CounterSignatures residing in the XAdES QualifyingProperties must qualify the original signature and be of type 'http://uri.etsi.org/01903#CounterSignedSignature'")
         }
     }
@@ -285,27 +335,40 @@ class XAdESVerifier(private val skoProperties: SkoProperties, keyStore: KeyStore
      * @param certificatesBySerialNumber The certificates in the XADES signed grouped by serial number.
      * @return the certificate that was verified
      */
-    private fun verifyOneOcspResponse(ocspResponse: String, timeStamp: Date,
-        certificatesBySerialNumber: Map<BigInteger, Collection<X509Certificate>>): X509Certificate? {
+    private fun verifyOneOcspResponse(
+        ocspResponse: String,
+        timeStamp: Date,
+        certificatesBySerialNumber: Map<BigInteger, Collection<X509Certificate>>
+    ): X509Certificate? {
         val certificateID = ocspResponseValidator!!.validate(ByteUtil.decodeBase64(ocspResponse), timeStamp)
         return findMatchingCertificate(certificateID, certificatesBySerialNumber)
     }
 
-    private fun findMatchingCertificate(certificateID: CertificateID,
-        certificatesBySerialNumber: Map<BigInteger, Collection<X509Certificate>>): X509Certificate? {
+    private fun findMatchingCertificate(
+        certificateID: CertificateID,
+        certificatesBySerialNumber: Map<BigInteger, Collection<X509Certificate>>
+    ): X509Certificate? {
         certificatesBySerialNumber[certificateID.serialNumber]?.forEach { certificate ->
             for (caCertificate in trustedCertificateAuthorities.values) {
                 if (certificate.issuerX500Principal == caCertificate.subjectX500Principal && ocspResponseValidator!!.matchesIssuer(
-                        certificateID, caCertificate)) {
-                    LOG.debug("OCSPResponse matched certificate with serialnumber {} and subject {}",
-                        certificate.serialNumber, certificate.subjectX500Principal)
+                        certificateID,
+                        caCertificate
+                    )
+                ) {
+                    LOG.debug(
+                        "OCSPResponse matched certificate with serialnumber {} and subject {}",
+                        certificate.serialNumber,
+                        certificate.subjectX500Principal
+                    )
                     return certificate
                 }
             }
         }
         LOG.debug(
             "We don't have a certificate with serial number {} (0x{}) in the document, ignoring the OCSP response for this certificate",
-            { certificateID.serialNumber }, { certificateID.serialNumber.toString(HEX_RADIX) })
+            { certificateID.serialNumber },
+            { certificateID.serialNumber.toString(HEX_RADIX) }
+        )
         return null
     }
 
@@ -315,9 +378,12 @@ class XAdESVerifier(private val skoProperties: SkoProperties, keyStore: KeyStore
         for (value in values) {
             val certificate = X509Utils.loadCertificate(ByteUtil.decodeBase64(value))
             certificates[certificate.subjectX500Principal] = certificate
-            LOG.debug("certificate with serialnumber {} (0x{}) and subject {} included in document",
-                { certificate.serialNumber }, { certificate.serialNumber.toString(HEX_RADIX) },
-                { certificate.subjectX500Principal })
+            LOG.debug(
+                "certificate with serialnumber {} (0x{}) and subject {} included in document",
+                { certificate.serialNumber },
+                { certificate.serialNumber.toString(HEX_RADIX) },
+                { certificate.subjectX500Principal }
+            )
         }
         return certificates
     }
@@ -339,13 +405,23 @@ class XAdESVerifier(private val skoProperties: SkoProperties, keyStore: KeyStore
     private fun validatePaths(doc: Document) {
         pathMustNotBeNull(doc, "//dsig:Signature", "No signature in message.")
         pathMustNotBeNull(doc, "//xades:QualifyingProperties", "No XAdES signatures found.")
-        if (XPathUtil.getNodeAtPath(doc, namespaceContext,
-                "//dsig:Signature/dsig:Object/xades:QualifyingProperties") == null &&
-            XPathUtil.getNodeAtPath(doc, namespaceContext,
-                "//dsig:Signature[ancestor::xades:QualifyingProperties]") == null) {
+        if (XPathUtil.getNodeAtPath(
+                doc,
+                namespaceContext,
+                "//dsig:Signature/dsig:Object/xades:QualifyingProperties"
+            ) == null &&
+            XPathUtil.getNodeAtPath(
+                    doc,
+                    namespaceContext,
+                    "//dsig:Signature[ancestor::xades:QualifyingProperties]"
+                ) == null
+        ) {
             throw RuntimeException("All signatures in the message must either be an XAdES signature itself or part of another XAdES signature.")
         }
-        pathMustNotBeNull(doc, "$XPATH_PROPERTIES_UNSIGNED_SIGNATURE/*", "No XAdES unsigned signature properties to verify."
+        pathMustNotBeNull(
+            doc,
+            "$XPATH_PROPERTIES_UNSIGNED_SIGNATURE/*",
+            "No XAdES unsigned signature properties to verify."
         )
         pathMustNotBeNull(doc, XPATH_SIGNATURE_TIMESTAMP, NOT_XADES_X_L)
         pathMustNotBeNull(doc, XPATH_SIGNATURE_COUNTERSIGNATURE, NOT_XADES_X_L)
@@ -394,10 +470,8 @@ class XAdESVerifier(private val skoProperties: SkoProperties, keyStore: KeyStore
             "bas", "http://www.kith.no/xmlstds/base64container"
         )
     }
-
 }
 
 enum class CertificateType {
     PERSONAL, ENTERPRISE, CA, UNKNOWN
 }
-

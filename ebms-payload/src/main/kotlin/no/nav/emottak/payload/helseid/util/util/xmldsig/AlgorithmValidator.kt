@@ -27,7 +27,7 @@ class AlgorithmValidator(private val minimumAlgorithms: List<String>) {
         if (index < minIndex) {
             throw RuntimeException(
                 "Signature algorithm ($algorithm) is less than the specified " +
-                        "minimum signature algorithm ($minimum)"
+                    "minimum signature algorithm ($minimum)"
             )
         }
     }

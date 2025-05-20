@@ -23,6 +23,10 @@ import com.nimbusds.oauth2.sdk.auth.ClientAuthentication
 import com.nimbusds.oauth2.sdk.auth.ClientSecretBasic
 import com.nimbusds.oauth2.sdk.auth.Secret
 import com.nimbusds.oauth2.sdk.id.ClientID
+import no.nav.emottak.payload.helseid.util.security.SecurityUtils
+import no.nav.emottak.payload.helseid.util.security.X509Utils
+import no.nav.emottak.utils.serialization.getErrorMessage
+import org.slf4j.LoggerFactory
 import java.net.URI
 import java.security.KeyStore
 import java.security.MessageDigest
@@ -30,10 +34,6 @@ import java.security.NoSuchAlgorithmException
 import java.util.Base64
 import java.util.Date
 import java.util.UUID
-import no.nav.emottak.payload.helseid.util.security.SecurityUtils
-import no.nav.emottak.payload.helseid.util.security.X509Utils
-import no.nav.emottak.utils.serialization.getErrorMessage
-import org.slf4j.LoggerFactory
 
 class HelseIDCreator(pathToKeystore: String, keystoreType: String = "jks", private val password: CharArray) {
 
@@ -41,7 +41,8 @@ class HelseIDCreator(pathToKeystore: String, keystoreType: String = "jks", priva
 
     @Suppress("LongParameterList")
     fun getToken(
-        alias: String? = null, pid: String,
+        alias: String? = null,
+        pid: String,
         audience: String = HelseIDValidator.SUPPORTED_AUDIENCE.last(),
         scope: String = HelseIDValidator.SUPPORTED_SCOPES.last(),
         algo: JWSAlgorithm = JWSAlgorithm.RS256,
@@ -53,9 +54,11 @@ class HelseIDCreator(pathToKeystore: String, keystoreType: String = "jks", priva
 
     @Suppress("LongParameterList")
     private fun getSignedJWT(
-        alias: String? = null, pid: String,
+        alias: String? = null,
+        pid: String,
         audience: String,
-        scope: String, algo: JWSAlgorithm,
+        scope: String,
+        algo: JWSAlgorithm,
         type: JOSEObjectType,
         jwk: JWK?
     ): SignedJWT {
@@ -84,7 +87,8 @@ class HelseIDCreator(pathToKeystore: String, keystoreType: String = "jks", priva
             .claim("helseid://claims/identity/pid", pid)
             .claim("amr", listOf("pwd"))
             .claim(
-                "scope", listOf(
+                "scope",
+                listOf(
                     "openid",
                     "profile",
                     "helseid://scopes/identity/pid",
@@ -199,6 +203,4 @@ class HelseIDCreator(pathToKeystore: String, keystoreType: String = "jks", priva
             }
         }
     }
-
-
 }

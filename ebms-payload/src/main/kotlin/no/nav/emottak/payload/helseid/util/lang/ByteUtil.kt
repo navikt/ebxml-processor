@@ -14,6 +14,7 @@ object ByteUtil {
         'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
         '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '+', '/'
     )
+
     @Suppress("MagicNumber")
     private val fromBase64 = IntArray(256)
     private val decoder = Base64.getDecoder()
@@ -74,7 +75,7 @@ object ByteUtil {
                 builder.append("  |  ")
                 appendPrintablePart(builder, array, rowOffset, asciiWidth, unprintable)
             }
-            builder.append(String.format(Locale.getDefault(),"%n"))
+            builder.append(String.format(Locale.getDefault(), "%n"))
             rowOffset += width
         }
         return builder.toString()
@@ -85,7 +86,8 @@ object ByteUtil {
         array: ByteArray,
         rowOffset: Int,
         asciiWidth: Int,
-        unprintable: Char) {
+        unprintable: Char
+    ) {
         val unprintableStr = String(charArrayOf(unprintable))
         val tmp = String(array, rowOffset, asciiWidth, Charsets.UTF_8)
             .replace(CR_TAB_NL_PATTERN, unprintableStr)
@@ -102,7 +104,7 @@ object ByteUtil {
     fun isPrintable(c: Char): Boolean {
         val block = UnicodeBlock.of(c)
         return !Character.isISOControl(c) && block != null &&
-                block !== UnicodeBlock.SPECIALS && c != KeyEvent.CHAR_UNDEFINED
+            block !== UnicodeBlock.SPECIALS && c != KeyEvent.CHAR_UNDEFINED
     }
 
     /**
@@ -138,7 +140,9 @@ object ByteUtil {
     fun isBase64Encoded(input: ByteArray?): Boolean {
         return if (input != null) {
             isBase64Encoded(String(input))
-        } else false
+        } else {
+            false
+        }
     }
 
     /**
