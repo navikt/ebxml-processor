@@ -187,6 +187,33 @@ class PayloadIntegrationTest {
         assertEquals(ssn, httpResponse.body<PayloadResponse>().processedPayload!!.signedBy)
     }
 
+    @Test
+    fun `Payload endepunkt med HelseID`() = ebmsPayloadTestApp {
+        val httpClient = createClient {
+            install(ContentNegotiation) {
+                json()
+            }
+        }
+        val nin = "25027600363"
+        mockkConstructor(OcspStatusService::class, recordPrivateCalls = true, localToThread = false)
+
+
+        val requestBody = payloadRequestMedHelseId(
+            testKeystore.getCertificate("samhandler-2024").encoded
+        )
+        val httpResponse = httpClient.post("/payload") {
+            header(
+                "Authorization",
+                "Bearer ${getToken().serialize()}"
+            )
+            setBody(requestBody)
+            contentType(ContentType.Application.Json)
+        }
+        assertEquals(HttpStatusCode.OK, httpResponse.status)
+        assertNull(httpResponse.body<PayloadResponse>().error)
+        assertEquals(nin, httpResponse.body<PayloadResponse>().processedPayload!!.signedBy)
+    }
+
     private fun getToken(audience: String = AuthConfig.getScope()): SignedJWT = mockOAuth2Server.issueToken(
         issuerId = AZURE_AD_AUTH,
         audience = audience,
@@ -278,6 +305,31 @@ private fun payloadRequestMedOCSP(signedCert: ByteArray) = PayloadRequest(
     requestId = Uuid.random().toString()
 )
 
+private fun payloadRequestMedHelseId(signedCert: ByteArray) = PayloadRequest(
+    direction = Direction.IN,
+    messageId = "123",
+    conversationId = "321",
+    processing = PayloadProcessing(
+        signatureDetailsWithCertResource(signedCert),
+        byteArrayOf(),
+        ProcessConfig(
+            kryptering = false,
+            komprimering = false,
+            signering = true,
+            internformat = false,
+            validering = false,
+            apprec = false,
+            ocspSjekk = true,
+            juridiskLogg = false,
+            adapter = null,
+            errorAction = null
+        )
+    ),
+    payload = dummyPayloadForHelseId(),
+    addressing = addressing(),
+    requestId = Uuid.random().toString()
+)
+
 private fun addressing() = Addressing(
     to = Party(listOf(PartyId("HERID", "NAVS-herid")), "NAV"),
     from = Party(listOf(PartyId("HERID", "SamhandlersHerid")), "EksternSamhandler"),
@@ -298,6 +350,18 @@ private fun dummyPayload() = Payload(
         ),
         signatureDetails()
     ).asByteArray(),
+
+    contentType = ""
+)
+
+private fun dummyPayloadForHelseId() = Payload(
+    bytes =
+        PayloadSignering().signerXML(
+            createDocument(
+                object {}::class.java.classLoader.getResource("helseid/xml/egenandelforesporsel-helseid-ok.xml")!!.openStream()
+            ),
+            signatureDetails()
+        ).asByteArray(),
 
     contentType = ""
 )

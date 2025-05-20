@@ -1,5 +1,8 @@
 package no.nav.emottak.payload
 
+import java.io.ByteArrayInputStream
+import java.security.cert.X509Certificate
+import java.time.ZonedDateTime
 import no.nav.emottak.crypto.KeyStoreManager
 import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadRequest
@@ -7,6 +10,8 @@ import no.nav.emottak.payload.crypto.Dekryptering
 import no.nav.emottak.payload.crypto.Kryptering
 import no.nav.emottak.payload.crypto.PayloadSignering
 import no.nav.emottak.payload.crypto.payloadSigneringConfig
+import no.nav.emottak.payload.helseid.helseIdValidator
+import no.nav.emottak.payload.helseid.util.util.xades.getAllEncapsulatedCertificatesByPrincipal
 import no.nav.emottak.payload.juridisklogg.JuridiskLoggService
 import no.nav.emottak.payload.ocspstatus.OcspStatusService
 import no.nav.emottak.payload.util.GZipUtil
@@ -17,16 +22,18 @@ import no.nav.emottak.util.marker
 import no.nav.emottak.util.retrieveSignatureElement
 import no.nav.emottak.util.signatur.SignaturVerifisering
 import org.slf4j.Marker
-import java.io.ByteArrayInputStream
+import org.w3c.dom.Document
+
 
 val processor = Processor()
+
 class Processor(
     private val kryptering: Kryptering = Kryptering(),
     private val dekryptering: Dekryptering = Dekryptering(),
     private val signering: PayloadSignering = PayloadSignering(),
     private val gZipUtil: GZipUtil = GZipUtil(),
     private val signatureVerifisering: SignaturVerifisering = SignaturVerifisering(),
-    private val juridiskLogging: JuridiskLoggService = JuridiskLoggService()
+    private val juridiskLogging: JuridiskLoggService = JuridiskLoggService(),
 ) {
 
     private val ocspStatusService = OcspStatusService(
@@ -62,30 +69,66 @@ class Processor(
         )
     }
 
-    suspend fun validateReadablePayload(marker: Marker, payload: Payload, validateSignature: Boolean, validateOcsp: Boolean): Payload {
+    suspend fun validateReadablePayload(
+        marker: Marker,
+        payload: Payload,
+        validateSignature: Boolean,
+        validateOcsp: Boolean
+    ): Payload {
         if (validateSignature) {
             log.debug(marker, "Validating signature for payload")
 
             signatureVerifisering.validate(payload.bytes)
         }
         return if (validateOcsp) {
-            log.debug(marker, "Validating OCSP for payload: Step 1 create DOM")
-            val dom = createDocument(ByteArrayInputStream(payload.bytes))
+            log.debug(marker, "Validating for payload in validateOcsp flow")
+            val domDocument = createDocument(ByteArrayInputStream(payload.bytes))
 
-            log.debug(marker, "Validating OCSP for payload: Step 2 retrieve signature element")
-            val xmlSignature = dom.retrieveSignatureElement()
+            val xmlSignature = domDocument.retrieveSignatureElement()
 
-            log.debug(marker, "Validating OCSP for payload: Step 3 get certificate from signature")
             val certificateFromSignature = xmlSignature.keyInfo.x509Certificate
 
-            log.debug(marker, "Validating OCSP for payload: Step 4 fnr from getOCSPStatus")
-            val signedBy = ocspStatusService.getOCSPStatus(certificateFromSignature).fnr
+            var signedByFnr: String? = getNin(domDocument, certificateFromSignature, marker)
 
-            log.debug(marker, "Validating OCSP for payload: Step 5 copy")
-            payload.copy(signedBy = signedBy)
+            payload.copy(signedBy = signedByFnr)
         } else {
             payload
         }
+    }
+
+    private suspend fun getNin(
+        domDocument: Document,
+        certificateFromSignature: X509Certificate,
+        marker: Marker
+    ): String? {
+        val helseIdToken = helseIdValidator.getHelseIDTokenNodesFromDocument(doc = domDocument)
+        var signedByFnr: String? = if (!helseIdToken.isNullOrBlank()) {
+            log.debug(marker, "Validating HelseID Token for payload")
+            try {
+                val timeStamp = ZonedDateTime.parse(
+                    domDocument.getElementsByTagNameNS("http://www.kith.no/xmlstds/msghead/2006-05-24", "GenDate")
+                        .item(0)?.textContent
+                )
+                val certificatesByPrincipal = getAllEncapsulatedCertificatesByPrincipal(domDocument)
+                helseIdValidator.getValidatedNin(
+                    helseIdToken,
+                    timeStamp = timeStamp,
+                    certificates = certificatesByPrincipal.values
+                ).also { log.debug(marker, "Found NIN '$it' from HelseID") }
+            } catch (e: Exception) {
+                log.error("Failed during helseID check", e)
+                null
+            }
+        } else {
+            null
+        }
+
+        if (signedByFnr == null) {
+            log.debug(marker, "Fallback to validating OCSP for payload: getting fnr")
+            signedByFnr = ocspStatusService.getOCSPStatus(certificateFromSignature).fnr
+        }
+
+        return signedByFnr
     }
 
     fun processOutgoing(payloadRequest: PayloadRequest): Payload {
@@ -101,6 +144,7 @@ class Processor(
                     )
                         .also { log.info(payloadRequest.marker(), "Payload signert") }
                 }
+
                 false -> it.bytes
             }
         }.let {
@@ -118,6 +162,7 @@ class Processor(
                         }
                     }
                 }
+
                 false -> payloadRequest.payload.copy(bytes = it)
             }
         }
