@@ -6,31 +6,29 @@ import com.nimbusds.jwt.JWTClaimNames
 import com.nimbusds.jwt.JWTClaimsSet
 import com.nimbusds.jwt.JWTParser
 import com.nimbusds.jwt.SignedJWT
-import no.nav.emottak.payload.helseid.util.util.XPathUtil
-import no.nav.emottak.payload.helseid.util.util.namespaceContext
-import no.nav.emottak.utils.environment.getEnvVar
-import org.w3c.dom.Document
 import java.text.ParseException
 import java.time.ZonedDateTime
 import java.util.Base64
 import java.util.Date
+import no.nav.emottak.payload.helseid.util.util.XPathUtil
+import no.nav.emottak.payload.helseid.util.util.namespaceContext
+import no.nav.emottak.utils.environment.getEnvVar
+import org.w3c.dom.Document
 
 val ISSUER = getEnvVar("HELSE_ID_ISSUER", "https://helseid-sts.test.nhn.no")
 val helseIdValidator = HelseIDValidator(ISSUER)
 
 @Suppress("TooManyFunctions")
 class HelseIDValidator(
-    private val issuer: String = "",
-    private val allowedClockSkewInMs: Long = 0
+    private val issuer: String = "", private val allowedClockSkewInMs: Long = 0
 ) {
 
     fun getValidatedNin(
-        b64: String,
-        timeStamp: ZonedDateTime
+        b64: String, zonedDateTimestamp: ZonedDateTime
     ): String? {
         val signedJWT = getSignedJWT(b64)
         validateHeader(signedJWT)
-        validateClaims(signedJWT, toDate(timeStamp), issuer)
+        validateClaims(signedJWT, zonedDateTimestamp, issuer)
         return getNin(signedJWT)
     }
 
@@ -39,8 +37,7 @@ class HelseIDValidator(
         return getStringClaim(getClaims(signedJWT), "helseid://claims/identity/pid")
     }
 
-    fun getNin(signedJWT: SignedJWT): String =
-        getStringClaim(getClaims(signedJWT), "helseid://claims/identity/pid")
+    fun getNin(signedJWT: SignedJWT): String = getStringClaim(getClaims(signedJWT), "helseid://claims/identity/pid")
 
     /**
      * Gets the helse-id token from a xml-document which is inside an attachment with MimeType application/jwt
@@ -71,10 +68,11 @@ class HelseIDValidator(
         }
     }
 
-    private fun validateClaims(signedJWT: SignedJWT, timeStamp: Date, issuer: String) {
+    private fun validateClaims(signedJWT: SignedJWT, zonedDateTimestamp: ZonedDateTime, issuer: String) {
         try {
             val claimsSet = signedJWT.jwtClaimsSet
-            validateTimestamp(claimsSet, timeStamp)
+            val dateTimestamp = Date.from(zonedDateTimestamp.toInstant())
+            validateTimestamp(claimsSet, dateTimestamp)
             validateIssuer(claimsSet, issuer)
             validateClaims(claimsSet)
         } catch (e: ParseException) {
@@ -122,26 +120,23 @@ class HelseIDValidator(
         }
     }
 
-    private fun getStringClaim(claimsSet: JWTClaimsSet, claim: String): String =
-        try {
-            claimsSet.getStringClaim(claim)
-        } catch (e: ParseException) {
-            throw RuntimeException("failed to get '$claim' from claims", e)
-        }
+    private fun getStringClaim(claimsSet: JWTClaimsSet, claim: String): String = try {
+        claimsSet.getStringClaim(claim)
+    } catch (e: ParseException) {
+        throw RuntimeException("failed to get '$claim' from claims", e)
+    }
 
-    private fun getStringArrayClaim(claimsSet: JWTClaimsSet, claim: String): Array<String> =
-        try {
-            claimsSet.getStringArrayClaim(claim)
-        } catch (e: ParseException) {
-            throw RuntimeException("failed to get '$claim' from claims", e)
-        }
+    private fun getStringArrayClaim(claimsSet: JWTClaimsSet, claim: String): Array<String> = try {
+        claimsSet.getStringArrayClaim(claim)
+    } catch (e: ParseException) {
+        throw RuntimeException("failed to get '$claim' from claims", e)
+    }
 
-    private fun getClaims(signedJWT: SignedJWT): JWTClaimsSet =
-        try {
-            signedJWT.jwtClaimsSet
-        } catch (e: ParseException) {
-            throw RuntimeException("failed to get claimset", e)
-        }
+    private fun getClaims(signedJWT: SignedJWT): JWTClaimsSet = try {
+        signedJWT.jwtClaimsSet
+    } catch (e: ParseException) {
+        throw RuntimeException("failed to get claimset", e)
+    }
 
     private fun authTime(claimsSet: JWTClaimsSet): Date? {
         return when (val authTimeClaim = claimsSet.getClaim("auth_time")) {
@@ -177,16 +172,20 @@ class HelseIDValidator(
 
     companion object {
         private val SUPPORTED_ALGOS = listOf(
-            JWSAlgorithm.RS256, JWSAlgorithm.RS384, JWSAlgorithm.RS512,
-            JWSAlgorithm.PS256, JWSAlgorithm.PS384, JWSAlgorithm.PS512,
-            JWSAlgorithm.ES256, JWSAlgorithm.ES384, JWSAlgorithm.ES512
+            JWSAlgorithm.RS256,
+            JWSAlgorithm.RS384,
+            JWSAlgorithm.RS512,
+            JWSAlgorithm.PS256,
+            JWSAlgorithm.PS384,
+            JWSAlgorithm.PS512,
+            JWSAlgorithm.ES256,
+            JWSAlgorithm.ES384,
+            JWSAlgorithm.ES512
         )
         internal val SUPPORTED_AUDIENCE = listOf("e-helse:reseptformidleren", "hdir:rf-rekvirent")
         internal val SUPPORTED_SCOPES = listOf("e-helse:reseptformidleren/rekvirent", "hdir:rf-rekvirent/rekvirering")
         private val SUPPORTED_JWT_TYPES = listOf(
-            JOSEObjectType.JWT,
-            JOSEObjectType("at+jwt"),
-            JOSEObjectType("application/at+jwt")
+            JOSEObjectType.JWT, JOSEObjectType("at+jwt"), JOSEObjectType("application/at+jwt")
         )
         private const val SECURITY_LEVEL = "4"
         private const val TIMESTAMP = "Timestamp ("
