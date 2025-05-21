@@ -53,6 +53,8 @@ dependencies {
     implementation(libs.bundles.exposed)
     implementation(libs.bundles.logging)
     implementation(libs.bundles.prometheus)
+    implementation(libs.hoplite.core)
+    implementation(libs.hoplite.hocon)
     implementation(libs.ktor.serialization.kotlinx.json)
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.cio)
