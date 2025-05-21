@@ -27,8 +27,8 @@ object XPathUtil {
      * @return the normalized value or null.
      */
     fun getNormalizedValueAtPathOrNull(root: Node?, ctx: NamespaceContext?, path: String): String? {
-        val s = getAtPathOrNull<String>(root, ctx, path, XPathConstants.STRING)
-        return if (s != null) normalizeSpace(s) else null
+        val text = getAtPathOrNull<String>(root, ctx, path, XPathConstants.STRING)
+        return if (text != null) normalizeSpace(text) else null
     }
 
     /**

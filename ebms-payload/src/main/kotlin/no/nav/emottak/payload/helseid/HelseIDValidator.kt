@@ -6,31 +6,15 @@ import com.nimbusds.jwt.JWTClaimNames
 import com.nimbusds.jwt.JWTClaimsSet
 import com.nimbusds.jwt.JWTParser
 import com.nimbusds.jwt.SignedJWT
-import no.nav.emottak.payload.helseid.util.util.XPathUtil
-import no.nav.emottak.payload.helseid.util.util.namespaceContext
-import no.nav.emottak.utils.environment.getEnvVar
-import org.w3c.dom.Document
 import java.text.ParseException
 import java.time.ZonedDateTime
 import java.util.Base64
 import java.util.Date
+import no.nav.emottak.payload.helseid.util.util.XPathUtil
+import no.nav.emottak.payload.helseid.util.util.namespaceContext
+import no.nav.emottak.utils.environment.getEnvVar
+import org.w3c.dom.Document
 
-interface NinTokenValidator {
-
-    /**
-     * Gets the helse-id token from a xml-document which is inside an attachment with MimeType application/jwt
-     * or application/json
-     * @param doc the M1 xml document
-     * @return helse-id token or null
-     */
-    fun getHelseIDTokenNodesFromDocument(doc: Document): String?
-
-    fun getValidatedNin(b64: String, timeStamp: ZonedDateTime): String?
-
-    fun getNin(b64Token: String): String
-
-    fun getNin(signedJWT: SignedJWT): String
-}
 
 val ISSUER = getEnvVar("HELSE_ID_ISSUER", "https://helseid-sts.test.nhn.no")
 val helseIdValidator = HelseIDValidator(ISSUER)
@@ -39,9 +23,9 @@ val helseIdValidator = HelseIDValidator(ISSUER)
 class HelseIDValidator(
     private val issuer: String = "",
     private val allowedClockSkewInMs: Long = 0
-) : NinTokenValidator {
+) {
 
-    override fun getValidatedNin(
+    fun getValidatedNin(
         b64: String,
         timeStamp: ZonedDateTime
     ): String? {
@@ -51,12 +35,12 @@ class HelseIDValidator(
         return getNin(signedJWT)
     }
 
-    override fun getNin(b64Token: String): String {
+    fun getNin(b64Token: String): String {
         val signedJWT = getSignedJWT(b64Token)
         return getStringClaim(getClaims(signedJWT), "helseid://claims/identity/pid")
     }
 
-    override fun getNin(signedJWT: SignedJWT): String =
+    fun getNin(signedJWT: SignedJWT): String =
         getStringClaim(getClaims(signedJWT), "helseid://claims/identity/pid")
 
     /**
@@ -66,7 +50,7 @@ class HelseIDValidator(
      * @return helse-id token or null
      */
     @Suppress("MaxLineLength")
-    override fun getHelseIDTokenNodesFromDocument(doc: Document): String? {
+    fun getHelseIDTokenNodesFromDocument(doc: Document): String? {
         val nodes = XPathUtil.getNodesAtPath(
             doc,
             namespaceContext,

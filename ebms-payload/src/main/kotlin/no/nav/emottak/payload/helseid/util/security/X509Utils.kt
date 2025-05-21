@@ -1,34 +1,15 @@
 package no.nav.emottak.payload.helseid.util.security
 
 import jakarta.xml.bind.DatatypeConverter
-import java.io.ByteArrayInputStream
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
 import java.security.cert.CertificateEncodingException
-import java.security.cert.CertificateException
-import java.security.cert.CertificateFactory
 import java.security.cert.X509Certificate
 import javax.security.auth.x500.X500Principal
 
 @Suppress("TooManyFunctions")
 object X509Utils {
     private const val SHA256 = "SHA-256"
-
-    /**
-     * loads a certificate from a byte array
-     * @param bytes the encoded certificate
-     * @return the certificate
-     */
-    fun loadCertificate(bytes: ByteArray): X509Certificate {
-        return try {
-            val certFactory = CertificateFactory.getInstance("X.509")
-            ByteArrayInputStream(bytes).use { baos ->
-                certFactory.generateCertificate(baos) as X509Certificate
-            }
-        } catch (e: CertificateException) {
-            throw SecurityException("Failed to load certificate", e)
-        }
-    }
 
     /**
      * gets the issuer's distinguished name
@@ -51,8 +32,8 @@ object X509Utils {
      */
     fun toString(certificate: X509Certificate): String =
         getSubjectDN(certificate) + " issued by " +
-            getIssuerDN(certificate) + " with serial number " +
-            certificate.serialNumber
+                getIssuerDN(certificate) + " with serial number " +
+                certificate.serialNumber
 
     /**
      * Gets a certificate's thumbprint as a hex string.
