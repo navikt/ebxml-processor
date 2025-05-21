@@ -15,7 +15,7 @@ import no.nav.emottak.payload.helseid.testutils.HelseIDCreator
 import no.nav.emottak.payload.helseid.testutils.SecurityUtils
 import no.nav.emottak.payload.helseid.testutils.XMLUtil
 import no.nav.emottak.payload.helseid.util.security.X509Utils
-import no.nav.emottak.payload.helseid.util.util.ResourceUtil
+import no.nav.emottak.payload.helseid.testutils.ResourceUtil
 import org.hamcrest.CoreMatchers.`is`
 import org.hamcrest.CoreMatchers.notNullValue
 import org.hamcrest.CoreMatchers.nullValue

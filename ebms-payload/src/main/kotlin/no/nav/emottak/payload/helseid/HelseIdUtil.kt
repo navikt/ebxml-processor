@@ -1,5 +1,10 @@
 package no.nav.emottak.payload.helseid
 
+import java.security.Principal
+import java.security.cert.X509Certificate
+import java.time.ZonedDateTime
+import java.util.Date
+import javax.xml.namespace.NamespaceContext
 import no.nav.emottak.payload.helseid.util.lang.ByteUtil
 import no.nav.emottak.payload.helseid.util.security.X509Utils
 import no.nav.emottak.payload.helseid.util.util.DelegatingNamespaceContext
@@ -7,12 +12,6 @@ import no.nav.emottak.payload.helseid.util.util.XPathUtil
 import org.apache.xml.security.utils.Constants
 import org.slf4j.LoggerFactory
 import org.w3c.dom.Document
-import java.io.File
-import java.security.Principal
-import java.security.cert.X509Certificate
-import java.time.ZonedDateTime
-import java.util.Date
-import javax.xml.namespace.NamespaceContext
 
 private val log = LoggerFactory.getLogger("no.nav.emottak.payload.helseid.HelseIdUtil")
 
@@ -23,12 +22,6 @@ private const val XPATH_ENCAPSULATED_CERTIFICATE =
     "$XPATH_PROPERTIES_UNSIGNED_SIGNATURE/xades:CertificateValues/xades:EncapsulatedX509Certificate"
 private const val XPATH_ENCAPSULATED_CERTIFICATE_TEXT = "$XPATH_ENCAPSULATED_CERTIFICATE/text()"
 
-/**
- * used to filter out the files and directories created by k8s secrets manager, like
- * @param f the file
- * @return true if the file name contains two dots
- */
-fun isDotDot(f: File) = f.path.contains("..")
 
 fun toDate(zonedDateTime: ZonedDateTime?): Date =
     if (zonedDateTime == null) Date() else Date.from(zonedDateTime.toInstant())

@@ -1,8 +1,6 @@
-package no.nav.emottak.payload.helseid.util.util
+package no.nav.emottak.payload.helseid.testutils
 
-import java.io.File
 import java.io.FileNotFoundException
-import java.io.IOException
 import java.io.InputStream
 import java.net.URL
 import java.nio.file.Files
@@ -19,7 +17,7 @@ object ResourceUtil {
      * @param path The path.
      * @param b64decode if true and the path ends in .b64 we return the decoded contents
      * @return A byte array.
-     * @throws IOException if not found.
+     * @throws java.io.IOException if not found.
      */
     fun getByteArrayClasspathOrAbsolutePathResource(path: String, b64decode: Boolean = false): ByteArray {
         val p = Paths.get(path)
@@ -35,7 +33,7 @@ object ResourceUtil {
      * @param path The path.
      * @param b64decode if true and the path ends in .b64 we return the decoded contents
      * @return A byte array.
-     * @throws IOException if not found.
+     * @throws java.io.IOException if not found.
      */
     fun getByteArrayClasspathResource(path: String, b64decode: Boolean = false): ByteArray {
         val r = InternalResource(path)
@@ -50,39 +48,13 @@ object ResourceUtil {
      * Gets a string with UTF-8 encoding from a resource that's in the classpath.
      * @param path The path.
      * @return A string.
-     * @throws IOException if not found.
+     * @throws java.io.IOException if not found.
      */
     fun getStringClasspathResource(path: String): String {
         val r = InternalResource(path)
         return r.inputStream.use { s -> s.bufferedReader().use { b -> b.readText() } }
     }
 
-    /**
-     * Gets a File from a path found in the classpath.
-     * @param path the pathname in the classpath.
-     * @return the File.
-     * @throws IOException if file not found.
-     */
-    @JvmStatic
-    fun getFileClasspathResource(path: String): File {
-        val r = InternalResource(path)
-        return r.file
-    }
-
-    /**
-     * Gets a File from a path found in the classpath or on an absolute path.
-     * @param path the path.
-     * @return the File.
-     */
-    @JvmStatic
-    fun getFileClasspathOrOrAbsolutePathResource(path: String): File {
-        val p = Paths.get(path)
-        return if (!p.isAbsolute) {
-            getFileClasspathResource(path)
-        } else {
-            p.toFile()
-        }
-    }
 
     class InternalResource(private val path: String) {
 
@@ -90,9 +62,6 @@ object ResourceUtil {
         val exists = url != null
         val inputStream: InputStream by lazy {
             urlNotNull.openStream()
-        }
-        val file: File by lazy {
-            File(urlNotNull.file)
         }
 
         private val urlNotNull by lazy {

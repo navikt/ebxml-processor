@@ -1,26 +1,19 @@
 package no.nav.emottak.payload.helseid
 
-import com.nimbusds.jose.HeaderParameterNames
-import com.nimbusds.jose.JOSEException
 import com.nimbusds.jose.JOSEObjectType
 import com.nimbusds.jose.JWSAlgorithm
-import com.nimbusds.jose.JWSObject
-import com.nimbusds.jose.JWSVerifier
-import com.nimbusds.jose.crypto.RSASSAVerifier
 import com.nimbusds.jwt.JWTClaimNames
 import com.nimbusds.jwt.JWTClaimsSet
 import com.nimbusds.jwt.JWTParser
 import com.nimbusds.jwt.SignedJWT
-import no.nav.emottak.payload.helseid.util.security.X509Utils
-import no.nav.emottak.payload.helseid.util.util.XPathUtil
-import no.nav.emottak.utils.environment.getEnvVar
-import org.w3c.dom.Document
 import java.security.cert.X509Certificate
-import java.security.interfaces.RSAPublicKey
 import java.text.ParseException
 import java.time.ZonedDateTime
 import java.util.Base64
 import java.util.Date
+import no.nav.emottak.payload.helseid.util.util.XPathUtil
+import no.nav.emottak.utils.environment.getEnvVar
+import org.w3c.dom.Document
 
 interface NinTokenValidator {
 
@@ -60,9 +53,6 @@ class HelseIDValidator(
     private val allowedClockSkewInMs: Long = 0
 ) : NinTokenValidator {
 
-    // TODO:
-    // Skal vi validere certificate?
-    // Fordi vi har noe validering som feiler i test fordi vi ikke får validert orgno med denne flyten.
     override fun getValidatedNin(
         b64: String,
         timeStamp: ZonedDateTime,
@@ -102,19 +92,6 @@ class HelseIDValidator(
             return XPathUtil.getNormalizedValueAtPathOrNull(nodes[0], namespaceContext, "text()")
         }
         throw RuntimeException("unable to determine which of the ${nodes.size} attachments that is HelseID-token")
-    }
-
-    private fun getSignerCertificate(signedJWT: SignedJWT, certificates: Collection<X509Certificate>): X509Certificate {
-        val hdr = signedJWT.header
-        return when {
-            hdr.includedParams.any { it == HeaderParameterNames.X_509_CERT_SHA_256_THUMBPRINT } ->
-                getCertificateByThumbprint(hdr.x509CertSHA256Thumbprint.toString(), "SHA-256", certificates)
-
-            hdr.includedParams.any { it == HeaderParameterNames.KEY_ID } ->
-                getCertificateByThumbprint(hdr.keyID.lowercase(), "SHA-1", certificates, base64url = false)
-
-            else -> throw NoSuchElementException(NO_CERTIFICATE_TO_VERIFY_TOKEN)
-        }
     }
 
     private fun validateHeader(signedJWT: SignedJWT) {
@@ -175,13 +152,6 @@ class HelseIDValidator(
         }
     }
 
-    @Suppress("MaxLineLength")
-    fun verifySigner(certificate: X509Certificate) {
-        val orgNo = X509Utils.getOrganizationNumber(certificate)
-        if (orgNo != issuerOrganizationNumber) {
-            throw RuntimeException("Signer certificate organization number $orgNo is not the approved organization number")
-        }
-    }
 
     private fun getStringClaim(claimsSet: JWTClaimsSet, claim: String): String =
         try {
@@ -236,37 +206,6 @@ class HelseIDValidator(
         }
     }
 
-    private fun verifySignature(jwsObject: JWSObject, certificate: X509Certificate?) {
-        requireNotNull(certificate) { NO_CERTIFICATE_TO_VERIFY_TOKEN }
-        verifySignature(jwsObject, RSASSAVerifier(certificate.publicKey as RSAPublicKey))
-    }
-
-    private fun verifySignature(jwsObject: JWSObject, verifier: JWSVerifier) {
-        try {
-            if (!jwsObject.verify(verifier)) {
-                throw RuntimeException("signature does not verify")
-            }
-        } catch (e: JOSEException) {
-            throw RuntimeException("failed to verify token", e)
-        }
-    }
-
-    private fun getCertificateByThumbprint(
-        thumbprint: String,
-        algorithm: String,
-        certificates: Collection<X509Certificate>,
-        base64url: Boolean = true
-    ): X509Certificate =
-        certificates.firstOrNull {
-            thumbprint == if (base64url) {
-                X509Utils.thumbprintBase64Url(it, algorithm)
-            } else {
-                X509Utils.thumbprintHex(
-                    it,
-                    algorithm
-                )
-            }
-        } ?: throw NoSuchElementException(NO_CERTIFICATE_TO_VERIFY_TOKEN)
 
     companion object {
         private val SUPPORTED_ALGOS = listOf(
@@ -283,6 +222,5 @@ class HelseIDValidator(
         )
         private const val SECURITY_LEVEL = "4"
         private const val TIMESTAMP = "Timestamp ("
-        private const val NO_CERTIFICATE_TO_VERIFY_TOKEN = "no certificate to verify token with given"
     }
 }
