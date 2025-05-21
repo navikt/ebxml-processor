@@ -55,7 +55,6 @@ object ResourceUtil {
         return r.inputStream.use { s -> s.bufferedReader().use { b -> b.readText() } }
     }
 
-
     class InternalResource(private val path: String) {
 
         val url: URL? = this::class.java.classLoader.getResource(path)

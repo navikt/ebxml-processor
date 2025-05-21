@@ -1,8 +1,8 @@
 package no.nav.emottak.payload.helseid.util.util
 
+import org.apache.xml.security.utils.Constants
 import java.util.Objects
 import javax.xml.namespace.NamespaceContext
-import org.apache.xml.security.utils.Constants
 
 val namespaceContext: NamespaceContext = DelegatingNamespaceContext(
     "dsig", Constants.SignatureSpecNS,

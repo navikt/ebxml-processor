@@ -51,24 +51,6 @@ object XPathUtil {
     }
 
     /**
-     * Gets a list of Node values at a given xpath.
-     * @param root The root node.
-     * @param ctx The namespace context.
-     * @param path The xpath.
-     * @return The list of node values.
-     */
-    fun getNodeValuesAtPath(root: Node, ctx: NamespaceContext?, path: String): List<String> {
-        val nl = getAtPath<NodeList>(root, ctx, path, XPathConstants.NODESET)
-        val children: MutableList<String> = mutableListOf()
-        if (nl != null) {
-            for (i in 0 until nl.length) {
-                children.add(nl.item(i).nodeValue)
-            }
-        }
-        return children
-    }
-
-    /**
      * Gets a value at a given xpath.
      * @param root The root node.
      * @param ctx The namespace context.

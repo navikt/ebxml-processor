@@ -6,15 +6,14 @@ import com.nimbusds.jwt.JWTClaimNames
 import com.nimbusds.jwt.JWTClaimsSet
 import com.nimbusds.jwt.JWTParser
 import com.nimbusds.jwt.SignedJWT
-import java.security.cert.X509Certificate
-import java.text.ParseException
-import java.time.ZonedDateTime
-import java.util.Base64
-import java.util.Date
 import no.nav.emottak.payload.helseid.util.util.XPathUtil
 import no.nav.emottak.payload.helseid.util.util.namespaceContext
 import no.nav.emottak.utils.environment.getEnvVar
 import org.w3c.dom.Document
+import java.text.ParseException
+import java.time.ZonedDateTime
+import java.util.Base64
+import java.util.Date
 
 interface NinTokenValidator {
 
@@ -26,20 +25,10 @@ interface NinTokenValidator {
      */
     fun getHelseIDTokenNodesFromDocument(doc: Document): String?
 
-    fun getValidatedNin(b64: String, timeStamp: ZonedDateTime, certificates: Collection<X509Certificate>): String?
+    fun getValidatedNin(b64: String, timeStamp: ZonedDateTime): String?
 
-    /**
-     * Extracts national identity number from a string
-     * @param b64 the token
-     * @return the national identity number
-     */
-    fun getNin(b64: String): String
+    fun getNin(b64Token: String): String
 
-    /**
-     * Extracts national identity number from a signed json web token
-     * @param signedJWT the
-     * @return the national identity number
-     */
     fun getNin(signedJWT: SignedJWT): String
 }
 
@@ -54,8 +43,7 @@ class HelseIDValidator(
 
     override fun getValidatedNin(
         b64: String,
-        timeStamp: ZonedDateTime,
-        certificates: Collection<X509Certificate>
+        timeStamp: ZonedDateTime
     ): String? {
         val signedJWT = getSignedJWT(b64)
         validateHeader(signedJWT)
@@ -63,8 +51,8 @@ class HelseIDValidator(
         return getNin(signedJWT)
     }
 
-    override fun getNin(b64: String): String {
-        val signedJWT = getSignedJWT(b64)
+    override fun getNin(b64Token: String): String {
+        val signedJWT = getSignedJWT(b64Token)
         return getStringClaim(getClaims(signedJWT), "helseid://claims/identity/pid")
     }
 
@@ -151,7 +139,6 @@ class HelseIDValidator(
         }
     }
 
-
     private fun getStringClaim(claimsSet: JWTClaimsSet, claim: String): String =
         try {
             claimsSet.getStringClaim(claim)
@@ -204,7 +191,6 @@ class HelseIDValidator(
             throw RuntimeException("Failed to parse token $token", e)
         }
     }
-
 
     companion object {
         private val SUPPORTED_ALGOS = listOf(

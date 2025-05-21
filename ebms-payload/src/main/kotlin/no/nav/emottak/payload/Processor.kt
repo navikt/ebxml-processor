@@ -7,7 +7,6 @@ import no.nav.emottak.payload.crypto.Dekryptering
 import no.nav.emottak.payload.crypto.Kryptering
 import no.nav.emottak.payload.crypto.PayloadSignering
 import no.nav.emottak.payload.crypto.payloadSigneringConfig
-import no.nav.emottak.payload.helseid.getAllEncapsulatedCertificatesByPrincipal
 import no.nav.emottak.payload.helseid.helseIdValidator
 import no.nav.emottak.payload.juridisklogg.JuridiskLoggService
 import no.nav.emottak.payload.ocspstatus.OcspStatusService
@@ -108,11 +107,9 @@ class Processor(
                     domDocument.getElementsByTagNameNS("http://www.kith.no/xmlstds/msghead/2006-05-24", "GenDate")
                         .item(0)?.textContent
                 )
-                val certificatesByPrincipal = getAllEncapsulatedCertificatesByPrincipal(domDocument)
                 helseIdValidator.getValidatedNin(
                     helseIdToken,
-                    timeStamp = timeStamp,
-                    certificates = certificatesByPrincipal.values
+                    timeStamp = timeStamp
                 ).also { log.debug(marker, "Found NIN '$it' from HelseID") }
             } catch (e: Exception) {
                 log.error("Failed during helseID check", e)

@@ -1,6 +1,5 @@
 package no.nav.emottak.payload.helseid.testutils
 
-import no.nav.emottak.payload.helseid.testutils.ResourceUtil
 import java.io.ByteArrayInputStream
 import java.io.IOException
 import java.security.GeneralSecurityException
