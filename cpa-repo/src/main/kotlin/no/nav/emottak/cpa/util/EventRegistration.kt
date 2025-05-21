@@ -6,7 +6,6 @@ import no.nav.emottak.utils.common.parseOrGenerateUuid
 import no.nav.emottak.utils.kafka.model.Event
 import no.nav.emottak.utils.kafka.model.EventType
 import no.nav.emottak.utils.kafka.service.EventLoggingService
-import kotlin.uuid.ExperimentalUuidApi
 
 interface EventRegistrationService {
     suspend fun registerEvent(
@@ -19,7 +18,6 @@ interface EventRegistrationService {
 class EventRegistrationServiceImpl(
     private val eventLoggingService: EventLoggingService
 ) : EventRegistrationService {
-    @OptIn(ExperimentalUuidApi::class)
     override suspend fun registerEvent(
         eventType: EventType,
         validationRequest: ValidationRequest,
