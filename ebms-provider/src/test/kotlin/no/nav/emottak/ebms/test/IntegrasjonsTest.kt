@@ -27,7 +27,6 @@ import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.scopedAuthHttpClient
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.testConfiguration
-import no.nav.emottak.ebms.util.EventRegistrationServiceFake
 import no.nav.emottak.ebms.validation.DokumentValidator
 import no.nav.emottak.ebms.validation.MimeHeaders
 import no.nav.security.mock.oauth2.MockOAuth2Server
@@ -38,6 +37,8 @@ import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.testcontainers.containers.PostgreSQLContainer
 import no.nav.emottak.cpa.persistence.Database as CpaDatabase
+import no.nav.emottak.cpa.util.EventRegistrationServiceFake as CpaEventRegistrationServiceFake
+import no.nav.emottak.ebms.util.EventRegistrationServiceFake as EbmsEventRegistrationServiceFake
 
 open class EndToEndTest {
     companion object {
@@ -46,7 +47,8 @@ open class EndToEndTest {
         val mockOAuth2Server = MockOAuth2Server().also { it.start(port = 3344) }
         val ebmsProviderUrl = "http://localhost:$portnoEbmsProvider"
         val cpaRepoUrl = "http://localhost:$portnoCpaRepo"
-        val eventRegistrationService = EventRegistrationServiceFake()
+        val ebmsEventRegistrationService = EbmsEventRegistrationServiceFake()
+        val cpaEventRegistrationService = CpaEventRegistrationServiceFake()
 
         // TODO Start mailserver og payload processor
         val cpaRepoDbContainer: PostgreSQLContainer<Nothing>
@@ -78,14 +80,19 @@ open class EndToEndTest {
             cpaRepoServer = embeddedServer(
                 Netty,
                 port = portnoCpaRepo,
-                module = cpaApplicationModule(cpaRepoDb.dataSource, cpaRepoDb.dataSource, cpaRepoDb.dataSource)
+                module = cpaApplicationModule(
+                    cpaRepoDb.dataSource,
+                    cpaRepoDb.dataSource,
+                    cpaRepoDb.dataSource,
+                    cpaEventRegistrationService
+                )
             ).also {
                 it.start()
             }.engine
             ebmsProviderServer = embeddedServer(
                 Netty,
                 port = portnoEbmsProvider,
-                module = { ebmsProviderModule(dokumentValidator, processingService, sendInService, eventRegistrationService) }
+                module = { ebmsProviderModule(dokumentValidator, processingService, sendInService, ebmsEventRegistrationService) }
             ).also {
                 it.start()
             }.engine
@@ -104,7 +111,7 @@ class IntegrasjonsTest : EndToEndTest() {
 
     @Test
     fun basicEndpointTest() = testApplication {
-        application { ebmsProviderModule(dokumentValidator, processingService, sendInService, eventRegistrationService) }
+        application { ebmsProviderModule(dokumentValidator, processingService, sendInService, ebmsEventRegistrationService) }
         val response = client.get("/")
         Assertions.assertEquals(HttpStatusCode.OK, response.status)
         Assertions.assertEquals("{\"status\":\"Hello\"}", response.bodyAsText())
