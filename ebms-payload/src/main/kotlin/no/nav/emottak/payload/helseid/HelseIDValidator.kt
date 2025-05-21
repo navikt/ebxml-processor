@@ -6,15 +6,14 @@ import com.nimbusds.jwt.JWTClaimNames
 import com.nimbusds.jwt.JWTClaimsSet
 import com.nimbusds.jwt.JWTParser
 import com.nimbusds.jwt.SignedJWT
-import java.text.ParseException
-import java.time.ZonedDateTime
-import java.util.Base64
-import java.util.Date
 import no.nav.emottak.payload.helseid.util.util.XPathUtil
 import no.nav.emottak.payload.helseid.util.util.namespaceContext
 import no.nav.emottak.utils.environment.getEnvVar
 import org.w3c.dom.Document
-
+import java.text.ParseException
+import java.time.ZonedDateTime
+import java.util.Base64
+import java.util.Date
 
 val ISSUER = getEnvVar("HELSE_ID_ISSUER", "https://helseid-sts.test.nhn.no")
 val helseIdValidator = HelseIDValidator(ISSUER)

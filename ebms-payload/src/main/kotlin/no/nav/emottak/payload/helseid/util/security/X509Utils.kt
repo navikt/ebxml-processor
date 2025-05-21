@@ -32,8 +32,8 @@ object X509Utils {
      */
     fun toString(certificate: X509Certificate): String =
         getSubjectDN(certificate) + " issued by " +
-                getIssuerDN(certificate) + " with serial number " +
-                certificate.serialNumber
+            getIssuerDN(certificate) + " with serial number " +
+            certificate.serialNumber
 
     /**
      * Gets a certificate's thumbprint as a hex string.
