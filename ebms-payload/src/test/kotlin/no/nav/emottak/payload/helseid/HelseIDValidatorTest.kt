@@ -11,11 +11,17 @@ import com.nimbusds.jose.jwk.JWKSet
 import com.nimbusds.jose.jwk.gen.OctetSequenceKeyGenerator
 import com.nimbusds.jwt.JWTParser
 import com.nimbusds.jwt.SignedJWT
+import java.security.KeyStore
+import java.time.ZoneId
+import java.time.ZonedDateTime
+import java.util.Base64
+import java.util.Date
+import java.util.concurrent.TimeUnit
 import no.nav.emottak.payload.helseid.testutils.HelseIDCreator
+import no.nav.emottak.payload.helseid.testutils.ResourceUtil
 import no.nav.emottak.payload.helseid.testutils.SecurityUtils
 import no.nav.emottak.payload.helseid.testutils.XMLUtil
 import no.nav.emottak.payload.helseid.util.security.X509Utils
-import no.nav.emottak.payload.helseid.testutils.ResourceUtil
 import org.hamcrest.CoreMatchers.`is`
 import org.hamcrest.CoreMatchers.notNullValue
 import org.hamcrest.CoreMatchers.nullValue
@@ -27,12 +33,6 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
 import org.junit.jupiter.params.provider.ValueSource
-import java.security.KeyStore
-import java.time.ZoneId
-import java.time.ZonedDateTime
-import java.util.Base64
-import java.util.Date
-import java.util.concurrent.TimeUnit
 
 /**
  * TODO:
@@ -47,14 +47,14 @@ internal class HelseIDValidatorTest {
 
     @BeforeEach
     fun setUp() {
-        validator = HelseIDValidator(ISSUER, ORGNO)
+        validator = HelseIDValidator(ISSUER)
         helseIDCreator = HelseIDCreator("helseid/keystore.jks", "jks", "123456789".toCharArray())
         keyStore = SecurityUtils.createKeyStore("helseid/keystore.jks", "jks", "123456789".toCharArray())
     }
 
     @Test
     fun `validate helseID happy day`() {
-        val validator = HelseIDValidator(ISSUER, "")
+        val validator = HelseIDValidator(ISSUER)
         HelseIDValidator.SUPPORTED_SCOPES.forEach { scope ->
             HelseIDValidator.SUPPORTED_AUDIENCE.forEach { aud ->
                 validateHomeMadeHelseId(validator, scope = scope, audience = aud)
@@ -102,7 +102,7 @@ internal class HelseIDValidatorTest {
     @Test
     fun `validate helseID with wrong issuer`() {
         validateHomeMadeHelseId(
-            HelseIDValidator("https://foo.bar", ORGNO),
+            HelseIDValidator("https://foo.bar"),
             scope = HelseIDValidator.SUPPORTED_SCOPES.first(),
             audience = HelseIDValidator.SUPPORTED_AUDIENCE.first(),
             "invalid issuer https://helseid-sts.test.nhn.no"
@@ -113,7 +113,7 @@ internal class HelseIDValidatorTest {
     @ValueSource(strings = ["jwt", "at+jwt", "application/at+jwt"])
     fun `validate helseID with right type in header`(type: JOSEObjectType) {
         validateHomeMadeHelseId(
-            HelseIDValidator("https://foo.bar", ORGNO),
+            HelseIDValidator("https://foo.bar"),
             scope = HelseIDValidator.SUPPORTED_SCOPES.first(),
             audience = HelseIDValidator.SUPPORTED_AUDIENCE.first(),
             type = type,
@@ -124,7 +124,7 @@ internal class HelseIDValidatorTest {
     @Test
     fun `validate helseID with wrong type in header`() {
         validateHomeMadeHelseId(
-            HelseIDValidator("https://foo.bar", ORGNO),
+            HelseIDValidator("https://foo.bar"),
             scope = HelseIDValidator.SUPPORTED_SCOPES.first(),
             audience = HelseIDValidator.SUPPORTED_AUDIENCE.first(),
             type = JOSEObjectType("foo"),
@@ -195,7 +195,7 @@ internal class HelseIDValidatorTest {
 
     @Test
     fun validateHelseID2() {
-        val validator = HelseIDValidator(ISSUER, "")
+        val validator = HelseIDValidator(ISSUER)
         val certificate = SecurityUtils.getCertificate(keyStore, "docsigner")
         val token = helseIDCreator.getToken(alias = "docsigner", pid = "01010000110")
         TimeUnit.MILLISECONDS.sleep(20)
@@ -227,7 +227,7 @@ internal class HelseIDValidatorTest {
             "ZXlKaGJHY2lPaUpTVXpJMU5pSXNJbXRwWkNJNklrTXdOakl3UTBaRk1ESXpRVEEyTVVWQk1VVXlRa00xTkRBeE5UUXdNakpGUlVOQ01EVTJRallpTENKMGVYQWlPaUpLVjFRaUxDSjROWFFpT2lKM1IwbE5YMmRKTmtKb05tZzBjbmhWUVZaUlEweDFlWGRXY2xraWZRLmV5SnVZbVlpT2pFMU5EUTFNamt4TkRrc0ltVjRjQ0k2TVRVME5EVXpNamMwT1N3aWFYTnpJam9pYUhSMGNITTZMeTlvWld4elpXbGtMWE4wY3k1MFpYTjBMbTVvYmk1dWJ5SXNJbUYxWkNJNld5Sm9kSFJ3Y3pvdkwyaGxiSE5sYVdRdGMzUnpMblJsYzNRdWJtaHVMbTV2TDNKbGMyOTFjbU5sY3lJc0ltdHFaWEp1WldwdmRYSnVZV3d1WVhCcElpd2laUzFvWld4elpTOVRSazB1WVhCcElsMHNJbU5zYVdWdWRGOXBaQ0k2SWpRMk9EZGlaalZoTFRKbE5EVXRORFprTnkxaVpqYzNMV1l5Wm1VM01XVmhNalEyTnlJc0luTjFZaUk2SWtZclpta3hOM2x4VDJsNE5tbGlaWE5vYkhabmJVWlpURTlzWmt4SldqQlJLMWw2T0dkUGRVSmpNR005SWl3aVlYVjBhRjkwYVcxbElqb3hOVFEwTlRJNU1UUTVMQ0pwWkhBaU9pSjBaWE4wYVdSd0xXOXBaR01pTENKb1pXeHpaV2xrT2k4dlkyeGhhVzF6TDJsa1pXNTBhWFI1TDNObFkzVnlhWFI1WDJ4bGRtVnNJam9pTkNJc0ltaGxiSE5sYVdRNkx5OWpiR0ZwYlhNdmFIQnlMMmh3Y2w5dWRXMWlaWElpT2xzaU5ETXhNREF4TVRFd0lpd2lORE14TURBeE1URXdJbDBzSW1obGJITmxhV1E2THk5amJHRnBiWE12YVdSbGJuUnBkSGt2Y0dsa0lqb2lNVGN3TlRZMk1EQTFOelFpTENKelkyOXdaU0k2V3lKdmNHVnVhV1FpTENKd2NtOW1hV3hsSWl3aWFHVnNjMlZwWkRvdkwzTmpiM0JsY3k5cFpHVnVkR2wwZVM5d2FXUWlMQ0pvWld4elpXbGtPaTh2YzJOdmNHVnpMMmxrWlc1MGFYUjVMM05sWTNWeWFYUjVYMnhsZG1Wc0lpd2lhSFIwY0hNNkx5OWxhR1ZzYzJVdWJtOHZhMnBsY201bGFtOTFjbTVoYkM5cmFsOWhjR2tpTENKbExXaGxiSE5sTDNObWJTNWhjR2t2YzJadExtRndhU0pkTENKaGJYSWlPbHNpY0hka0lsMTkubERPT0xLZDlsOERraEcxN2JPQ05ILV90ZW9CZ2QydktsRHBxd2pzWlVFc0ZlRGtYNUhnc29YT2xsRGNGaGNDYzJhV3pDcmN0LVVZVklQczFhWXBzcV8weUtrOUp5dnNTZGV5MlhaUlg4MTlVWEtWMVFLWnZUTFZodW1PSmpFSkF0NGQxanRpZDZoWUVpLThxQW1OZDhwS1pqWHNmWDhaSkIyQmdUbVhGZFFLUVZlbGZpcHkzTHllNnMxSXZHRFViLXVnVnpWNGltckM5dVU3QVlVQlBzWS1yVFNQUk9BZU5PaUVEeng2ZlUydmp5VFBDdGV4UEY1QUlNQnc2Y096dzVoRHQ4dlpSVmpZSzhhLXB3cmE5STJXUjYtRDJMbTdNOUhIanN3RlJseUxtclByM2x1MGNISU4wYWFCd0tEMVU1dDJHVlhWNEpRLWJKa0pBeFN4NC1n"
         val certificate =
             X509Utils.loadCertificate(ResourceUtil.getByteArrayClasspathResource("helseid/certificates/cert.personal.commfides.cer"))
-        val validator2 = HelseIDValidator(ISSUER, ORGNO, LARGE_ALLOWED_CLOCK_SKEW)
+        val validator2 = HelseIDValidator(ISSUER, LARGE_ALLOWED_CLOCK_SKEW)
         val t: Throwable = assertThrows<RuntimeException> {
             validator2.getValidatedNin(b64, timeStamp = ZonedDateTime.parse(ts), certificates = setOf(certificate))
         }
@@ -370,7 +370,6 @@ internal class HelseIDValidatorTest {
             .map { Base64.getDecoder().decode(it) }
             .map { X509Utils.loadCertificate(it) }
         private const val ISSUER = "https://helseid-sts.test.nhn.no"
-        private const val ORGNO = "994598759"
         private const val JWT =
             "eyJhbGciOiJSUzI1NiIsImtpZCI6IkIyMEFFMzZDMTQ5M0M5MEI0QkJDMEM5NkFENzRBQ0Y1QTZFODg1MTQiLCJ0eXAiOiJKV1QiLCJ4NXQiOiJzZ3JqYkJTVHlRdEx2QXlXclhTczlhYm9oUlEifQ.eyJuYmYiOjE1NTY2MTI0NjYsImV4cCI6MTU1NjYxNjA2NiwiaXNzIjoiaHR0cHM6Ly9oZWxzZWlkLXN0cy50ZXN0Lm5obi5ubyIsImF1ZCI6WyJodHRwczovL2hlbHNlaWQtc3RzLnRlc3QubmhuLm5vL3Jlc291cmNlcyIsImUtaGVsc2U6cmVzZXB0Zm9ybWlkbGVyZW4iXSwiY2xpZW50X2lkIjoiM2RlYzM5OWQtOGIxMi00NTc3LWFjNmItMTAzZjBkMGVkNzYwIiwic3ViIjoiSWQ4eVNTQUwyQVoraWxRVW81RDd4bXl5bXp2a0pFN0VnWHNWRWdYbGJTRT0iLCJhdXRoX3RpbWUiOjE1NTY2MTIzNzMsImlkcCI6InRlc3RpZHAtb2lkYyIsImhlbHNlaWQ6Ly9jbGFpbXMvY2xpZW50L29yaWdpbmFsX2NsaWVudF9pZCI6IjZlZTljOTA1LWNlMGEtNDBkYS04MTE5LWM3MTEwYjZjMDVmNiIsImhlbHNlaWQ6Ly9jbGFpbXMvY2xpZW50L2tqL29yZ25yIjoiMTAwMTYzMTYwIiwiaGVsc2VpZDovL2NsYWltcy9jbGllbnQvZWMvb3JnbnJfcGFyZW50IjoiMTAwMTYzMTYwIiwiaGVsc2VpZDovL2NsYWltcy9jbGllbnQvZWMvZXhwIjoxNTc5MzkxOTQwLCJoZWxzZWlkOi8vY2xhaW1zL2NsaWVudC9lYy9jb21tb25fbmFtZSI6IlRIVUxBTEVHRUtPTlRPUiIsImhlbHNlaWQ6Ly9jbGFpbXMvaWRlbnRpdHkvc2VjdXJpdHlfbGV2ZWwiOiI0IiwiaGVsc2VpZDovL2NsYWltcy9pZGVudGl0eS9waWQiOiIwNzAxNTkwMDEzNCIsImhlbHNlaWQ6Ly9jbGFpbXMvaHByL2hwcl9udW1iZXIiOiIyMjIyMDAwODEiLCJoZWxzZWlkOi8vY2xhaW1zL2NsaWVudC9hbXIiOiJyc2FfcHJpdmF0ZV9rZXkiLCJzY29wZSI6WyJlLWhlbHNlOnJlc2VwdGZvcm1pZGxlcmVuL3Jla3ZpcmVudCJdLCJhbXIiOlsicHdkIl0sImFjdCI6eyJpc3MiOiJodHRwczovL2hlbHNlaWQtc3RzLnRlc3QubmhuLm5vIiwiY2xpZW50X2lkIjoiM2RlYzM5OWQtOGIxMi00NTc3LWFjNmItMTAzZjBkMGVkNzYwIiwiaGVsc2VpZDovL2NsYWltcy9jbGllbnQvZWMvb3JnbnJfcGFyZW50IjoiMTAwMTYzMTYwIiwiaGVsc2VpZDovL2NsYWltcy9jbGllbnQvZWMvZXhwIjoiMTU3OTM5MTk0MCIsImhlbHNlaWQ6Ly9jbGFpbXMvY2xpZW50L2VjL2NvbW1vbl9uYW1lIjoiVEhVTEFMRUdFS09OVE9SIiwiaGVsc2VpZDovL2NsYWltcy9jbGllbnQvY2xhaW1zL29yZ25yX3BhcmVudCI6IjEwMDE2MzE2MCJ9fQ.aYhx-TugOJ1Jd2euACZAuTl9PhXSkjb90kWOTZPCLz-36iDJaGzIz-m6bfakCvXSCJeaVz2zwmpF5uLtZNXQU3xG2wUkK-zN1xCfb_OEFwiFQZXHfx3_YFQ5IOua83jqs-BkldLjIId4FlUTp1w8a9TBBpiC4bgRBh0WpJ8W2mhsSsVb3bHOXDDh-twMEmMCdLogMHSCIbxyuHVtsDehqJK97rM08c74EumDCurDQ1Uh7n_x6WUcGkOk59QtObY5TLOl9Tb7V3aMOYGrGDsluDEpVD2qVoxl8rIkZ3O2O0UjLe9Dx1SGUCJbKoj7Sli7vnffoMnVgrQ8679dRPONlw"
         private const val LARGE_ALLOWED_CLOCK_SKEW = 31 * 24 * 3600 * 1000L

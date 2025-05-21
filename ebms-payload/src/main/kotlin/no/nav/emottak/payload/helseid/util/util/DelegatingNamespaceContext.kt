@@ -2,6 +2,15 @@ package no.nav.emottak.payload.helseid.util.util
 
 import java.util.Objects
 import javax.xml.namespace.NamespaceContext
+import org.apache.xml.security.utils.Constants
+
+val namespaceContext: NamespaceContext = DelegatingNamespaceContext(
+    "dsig", Constants.SignatureSpecNS,
+    "xades", "http://uri.etsi.org/01903/v1.3.2#",
+    "dss", "urn:oasis:names:tc:dss:1.0:core:schema",
+    "mh", "http://www.kith.no/xmlstds/msghead/2006-05-24",
+    "bas", "http://www.kith.no/xmlstds/base64container"
+)
 
 class DelegatingNamespaceContext(vararg prefixesAndNamespaces: String) : NamespaceContext {
     private val bindings = LinkedHashMap<String, String>()

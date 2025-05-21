@@ -12,6 +12,7 @@ import java.time.ZonedDateTime
 import java.util.Base64
 import java.util.Date
 import no.nav.emottak.payload.helseid.util.util.XPathUtil
+import no.nav.emottak.payload.helseid.util.util.namespaceContext
 import no.nav.emottak.utils.environment.getEnvVar
 import org.w3c.dom.Document
 
@@ -43,13 +44,11 @@ interface NinTokenValidator {
 }
 
 val ISSUER = getEnvVar("HELSE_ID_ISSUER", "https://helseid-sts.test.nhn.no")
-val ORGNR = "994598759"
-val helseIdValidator = HelseIDValidator(ISSUER, ORGNR)
+val helseIdValidator = HelseIDValidator(ISSUER)
 
 @Suppress("TooManyFunctions")
 class HelseIDValidator(
     private val issuer: String = "",
-    private val issuerOrganizationNumber: String,
     private val allowedClockSkewInMs: Long = 0
 ) : NinTokenValidator {
 

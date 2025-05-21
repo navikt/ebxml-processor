@@ -4,12 +4,10 @@ import java.security.Principal
 import java.security.cert.X509Certificate
 import java.time.ZonedDateTime
 import java.util.Date
-import javax.xml.namespace.NamespaceContext
 import no.nav.emottak.payload.helseid.util.lang.ByteUtil
 import no.nav.emottak.payload.helseid.util.security.X509Utils
-import no.nav.emottak.payload.helseid.util.util.DelegatingNamespaceContext
 import no.nav.emottak.payload.helseid.util.util.XPathUtil
-import org.apache.xml.security.utils.Constants
+import no.nav.emottak.payload.helseid.util.util.namespaceContext
 import org.slf4j.LoggerFactory
 import org.w3c.dom.Document
 
@@ -26,13 +24,6 @@ private const val XPATH_ENCAPSULATED_CERTIFICATE_TEXT = "$XPATH_ENCAPSULATED_CER
 fun toDate(zonedDateTime: ZonedDateTime?): Date =
     if (zonedDateTime == null) Date() else Date.from(zonedDateTime.toInstant())
 
-val namespaceContext: NamespaceContext = DelegatingNamespaceContext(
-    "dsig", Constants.SignatureSpecNS,
-    "xades", "http://uri.etsi.org/01903/v1.3.2#",
-    "dss", "urn:oasis:names:tc:dss:1.0:core:schema",
-    "mh", "http://www.kith.no/xmlstds/msghead/2006-05-24",
-    "bas", "http://www.kith.no/xmlstds/base64container"
-)
 
 fun getAllEncapsulatedCertificatesByPrincipal(doc: Document): Map<Principal, X509Certificate> {
     val values = XPathUtil.getNodeValuesAtPath(doc, namespaceContext, XPATH_ENCAPSULATED_CERTIFICATE_TEXT)
