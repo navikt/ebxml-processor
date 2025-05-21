@@ -105,7 +105,8 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
                 Party(listOf(PartyId("HER", "8090595")), "Utleverer"),
                 "HarBorgerEgenandelFritak",
                 "EgenandelForesporsel"
-            )
+            ),
+            "9cb28a36-faf3-44ef-aa46-6d3db35a72bc"
         )
         val response = httpClient.post("/cpa/validate/121212") {
             setBody(validationRequest)
@@ -138,7 +139,8 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
                 Party(listOf(PartyId("HER", "79768")), "Frikortregister"),
                 "HarBorgerEgenandelFritak",
                 "EgenandelForesporsel"
-            )
+            ),
+            "9cb28a36-faf3-44ef-aa46-6d3db35a72bc"
         )
         val response = httpClient.post("/cpa/validate/121212") {
             setBody(validationRequest)
@@ -172,7 +174,8 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
                 Party(listOf(PartyId("HER", "8090595")), "Utleverer"),
                 "OppgjorsKontroll",
                 "Oppgjorskrav"
-            )
+            ),
+            "9cb28a36-faf3-44ef-aa46-6d3db35a72bc"
         )
         val response = httpClient.post("/cpa/validate/121212") {
             setBody(validationRequest)
@@ -206,7 +209,8 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
                 Party(listOf(PartyId("HER", "8090595")), "Utleverer"),
                 "OppgjorsKontroll",
                 "Oppgjorskrav"
-            )
+            ),
+            "9cb28a36-faf3-44ef-aa46-6d3db35a72bc"
         )
         val response = httpClient.post("/cpa/validate/121212") {
             setBody(validationRequest)
