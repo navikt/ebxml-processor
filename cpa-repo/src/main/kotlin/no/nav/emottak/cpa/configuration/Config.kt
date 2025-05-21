@@ -1,4 +1,4 @@
-package no.nav.emottak.ebms.configuration
+package no.nav.emottak.cpa.configuration
 
 import no.nav.emottak.utils.config.EventLogging
 import no.nav.emottak.utils.config.Kafka

@@ -57,6 +57,8 @@ spec:
         mountPath: /secrets/oracle/creds
       - kvPath: /oracle/data/dev/config/emottak_q1
         mountPath: /secrets/oracle/config
+  kafka:
+    pool: nav-dev
   webproxy: true
   accessPolicy:
     inbound:

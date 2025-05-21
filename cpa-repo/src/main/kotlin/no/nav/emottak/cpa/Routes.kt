@@ -21,6 +21,7 @@ import no.nav.emottak.cpa.feil.MultiplePartnerException
 import no.nav.emottak.cpa.feil.PartnerNotFoundException
 import no.nav.emottak.cpa.persistence.CPARepository
 import no.nav.emottak.cpa.persistence.gammel.PartnerRepository
+import no.nav.emottak.cpa.util.EventRegistrationService
 import no.nav.emottak.cpa.validation.MessageDirection
 import no.nav.emottak.cpa.validation.partyInfoHasRoleServiceActionCombo
 import no.nav.emottak.cpa.validation.validate
@@ -38,6 +39,7 @@ import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.marker
 import no.nav.emottak.utils.environment.getEnvVar
+import no.nav.emottak.utils.kafka.model.EventType
 import no.nav.security.token.support.v3.TokenValidationContextPrincipal
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 import java.util.Date
@@ -174,7 +176,11 @@ fun Route.postCpa(cpaRepository: CPARepository) = post("/cpa") {
         }
 }
 
-fun Route.validateCpa(cpaRepository: CPARepository, partnerRepository: PartnerRepository) = post("/cpa/validate/{$REQUEST_ID}") {
+fun Route.validateCpa(
+    cpaRepository: CPARepository,
+    partnerRepository: PartnerRepository,
+    eventRegistrationService: EventRegistrationService
+) = post("/cpa/validate/{$REQUEST_ID}") {
     val validateRequest = call.receive(ValidationRequest::class)
 
     // TODO: Skal brukes i kall mot Event-logging:
@@ -213,7 +219,6 @@ fun Route.validateCpa(cpaRepository: CPARepository, partnerRepository: PartnerRe
 
         val partnerId = runCatching { partnerRepository.findPartnerId(cpa.cpaid) }.getOrNull()
 
-        // TODO: Event-logging OK
         call.respond(
             HttpStatusCode.OK,
             ValidationResult(
@@ -231,6 +236,11 @@ fun Route.validateCpa(cpaRepository: CPARepository, partnerRepository: PartnerRe
                 receiverEmails,
                 partnerId
             )
+        )
+
+        eventRegistrationService.registerEvent(
+            EventType.MESSAGE_VALIDATED_AGAINST_CPA,
+            validateRequest
         )
     } catch (ebmsEx: EbmsException) {
         // TODO: Event-logging feil?

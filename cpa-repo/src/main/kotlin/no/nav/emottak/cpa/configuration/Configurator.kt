@@ -1,4 +1,4 @@
-package no.nav.emottak.ebms.configuration
+package no.nav.emottak.cpa.configuration
 
 import com.sksamuel.hoplite.ConfigLoader
 import com.sksamuel.hoplite.ExperimentalHoplite
