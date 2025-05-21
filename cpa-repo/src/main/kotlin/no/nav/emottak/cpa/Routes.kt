@@ -40,6 +40,7 @@ import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.marker
 import no.nav.emottak.utils.environment.getEnvVar
 import no.nav.emottak.utils.kafka.model.EventType
+import no.nav.emottak.utils.serialization.toEventDataJson
 import no.nav.security.token.support.v3.TokenValidationContextPrincipal
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 import java.util.Date
@@ -243,21 +244,33 @@ fun Route.validateCpa(
             validateRequest
         )
     } catch (ebmsEx: EbmsException) {
-        // TODO: Event-logging feil?
+        eventRegistrationService.registerEvent(
+            EventType.VALIDATION_AGAINST_CPA_FAILED,
+            validateRequest,
+            ebmsEx.toEventDataJson()
+        )
         log.error(validateRequest.marker(), ebmsEx.message, ebmsEx)
         call.respond(
             HttpStatusCode.OK,
             ValidationResult(error = ebmsEx.feil)
         )
     } catch (ex: NotFoundException) {
-        // TODO: Event-logging feil?
+        eventRegistrationService.registerEvent(
+            EventType.VALIDATION_AGAINST_CPA_FAILED,
+            validateRequest,
+            ex.toEventDataJson()
+        )
         log.error(validateRequest.marker(), "${ex.message}")
         call.respond(
             HttpStatusCode.OK,
             ValidationResult(error = listOf(Feil(ErrorCode.DELIVERY_FAILURE, "${ex.message}")))
         )
     } catch (ex: Exception) {
-        // TODO: Event-logging feil
+        eventRegistrationService.registerEvent(
+            EventType.VALIDATION_AGAINST_CPA_FAILED,
+            validateRequest,
+            ex.toEventDataJson()
+        )
         log.error(validateRequest.marker(), ex.message, ex)
         call.respond(
             HttpStatusCode.OK,
