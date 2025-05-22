@@ -15,7 +15,7 @@ import com.nimbusds.jose.util.Base64URL
 import com.nimbusds.jwt.JWTClaimsSet
 import com.nimbusds.jwt.SignedJWT
 import no.nav.emottak.payload.helseid.HelseIDValidator
-import no.nav.emottak.payload.helseid.util.security.X509Utils
+import no.nav.emottak.payload.helseid.testutils.X509Utils
 import java.security.KeyStore
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException

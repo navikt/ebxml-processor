@@ -109,7 +109,7 @@ class Processor(
                 )
                 helseIdValidator.getValidatedNin(
                     helseIdToken,
-                    zonedDateTimestamp = timeStamp
+                    timeStamp
                 ).also { log.debug(marker, "Found NIN '$it' from HelseID") }
             } catch (e: Exception) {
                 log.error("Failed during helseID check", e)

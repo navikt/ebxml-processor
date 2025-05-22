@@ -104,7 +104,7 @@ internal class HelseIDValidatorTest {
             HelseIDValidator("https://foo.bar"),
             scope = HelseIDValidator.SUPPORTED_SCOPES.first(),
             audience = HelseIDValidator.SUPPORTED_AUDIENCE.first(),
-            "invalid issuer https://helseid-sts.test.nhn.no"
+            "Invalid issuer https://helseid-sts.test.nhn.no"
         )
     }
 
@@ -116,7 +116,7 @@ internal class HelseIDValidatorTest {
             scope = HelseIDValidator.SUPPORTED_SCOPES.first(),
             audience = HelseIDValidator.SUPPORTED_AUDIENCE.first(),
             type = type,
-            errMsg = "invalid issuer https://helseid-sts.test.nhn.no"
+            errMsg = "Invalid issuer https://helseid-sts.test.nhn.no"
         )
     }
 
@@ -167,7 +167,7 @@ internal class HelseIDValidatorTest {
         val func: () -> Unit = {
             validator.getValidatedNin(
                 b64,
-                zonedDateTimestamp = timeStamp
+                 timeStamp
             )
         }
         if (errMsg != null) {
@@ -187,7 +187,7 @@ internal class HelseIDValidatorTest {
         val b64 =
             "ZXlKaGJHY2lPaUpTVXpJMU5pSXNJbXRwWkNJNklrSXlNRUZGTXpaRE1UUTVNME01TUVJMFFrSkRNRU01TmtGRU56UkJRMFkxUVRaRk9EZzFNVFFpTENKMGVYQWlPaUpLVjFRaUxDSjROWFFpT2lKelozSnFZa0pUVkhsUmRFeDJRWGxYY2xoVGN6bGhZbTlvVWxFaWZRLmV5SnVZbVlpT2pFMU5UZzBNalk0TWpZc0ltVjRjQ0k2TVRVMU9EUXpNRFF5Tml3aWFYTnpJam9pYUhSMGNITTZMeTlvWld4elpXbGtMWE4wY3k1MFpYTjBMbTVvYmk1dWJ5SXNJbUYxWkNJNld5Sm9kSFJ3Y3pvdkwyaGxiSE5sYVdRdGMzUnpMblJsYzNRdWJtaHVMbTV2TDNKbGMyOTFjbU5sY3lJc0ltVXRhR1ZzYzJVNmNtVnpaWEIwWm05eWJXbGtiR1Z5Wlc0aVhTd2lZMnhwWlc1MFgybGtJam9pTTJSbFl6TTVPV1F0T0dJeE1pMDBOVGMzTFdGak5tSXRNVEF6WmpCa01HVmtOell3SWl3aWMzVmlJam9pU1ZCc2VtWXpRVVJvU0ZJMVZIRlVhelk1Ulc1VGFreERNek5IV2psSFRtTkxSMmRuVjIxNWJFeGlPRDBpTENKaGRYUm9YM1JwYldVaU9qRTFOVGcwTWpZNE1EUXNJbWxrY0NJNkluUmxjM1JwWkhBdGIybGtZeUlzSW1obGJITmxhV1E2THk5amJHRnBiWE12WTJ4cFpXNTBMMjl5YVdkcGJtRnNYMk5zYVdWdWRGOXBaQ0k2SWpabFpUbGpPVEExTFdObE1HRXROREJrWVMwNE1URTVMV00zTVRFd1lqWmpNRFZtTmlJc0ltaGxiSE5sYVdRNkx5OWpiR0ZwYlhNdmFXUmxiblJwZEhrdmMyVmpkWEpwZEhsZmJHVjJaV3dpT2lJMElpd2lhR1ZzYzJWcFpEb3ZMMk5zWVdsdGN5OXBaR1Z1ZEdsMGVTOXdhV1FpT2lJeU5UQXlOell3TURNMk15SXNJbWhsYkhObGFXUTZMeTlqYkdGcGJYTXZhSEJ5TDJod2NsOXVkVzFpWlhJaU9pSTBNekV3TURFNU1EWWlMQ0pvWld4elpXbGtPaTh2WTJ4aGFXMXpMMk5zYVdWdWRDOWhiWElpT2lKeWMyRmZjSEpwZG1GMFpWOXJaWGtpTENKelkyOXdaU0k2V3lKbExXaGxiSE5sT25KbGMyVndkR1p2Y20xcFpHeGxjbVZ1TDNKbGEzWnBjbVZ1ZENKZExDSmhiWElpT2xzaWNIZGtJbDBzSW1GamRDSTZleUpwYzNNaU9pSm9kSFJ3Y3pvdkwyaGxiSE5sYVdRdGMzUnpMblJsYzNRdWJtaHVMbTV2SWl3aVkyeHBaVzUwWDJsa0lqb2lNMlJsWXpNNU9XUXRPR0l4TWkwME5UYzNMV0ZqTm1JdE1UQXpaakJrTUdWa056WXdJaXdpYUdWc2MyVnBaRG92TDJOc1lXbHRjeTlqYkdsbGJuUXZaV012YjNKbmJuSmZjR0Z5Wlc1MElqb2lNVEF3TVRZek1UWXdJaXdpYUdWc2MyVnBaRG92TDJOc1lXbHRjeTlqYkdsbGJuUXZaV012Wlhod0lqb2lNVFUzT1RNNU1UazBNQ0lzSW1obGJITmxhV1E2THk5amJHRnBiWE12WTJ4cFpXNTBMMlZqTDJOdmJXMXZibDl1WVcxbElqb2lWRWhWVEVGTVJVZEZTMDlPVkU5U0lpd2lhR1ZzYzJWcFpEb3ZMMk5zWVdsdGN5OWpiR2xsYm5RdlkyeGhhVzF6TDI5eVoyNXlYM0JoY21WdWRDSTZJakV3TURFMk16RTJNQ0o5ZlEuV0NiYVRWMVNDLXRwZ3c2czdibmtsSDE4ZHJ2U2h1Z0ZDVFhMMGZ4N1F6MFl1SGRzV3RnTW9mSnFhbjFzNUk3VUNJT3MxdWxuQWVITlZINlhTNlE3clpXT3ZLVWphS2pHUE1UVVY5cGlMLUVxdXRFWkJCYjlhSW5HcU15bVRHbmJhQ0JjTzQtUFNnbXVKTkUyVG5fdW1PYkVSclExYlU0dHdIR05na3d4VHNBZzhyV25VTWNGbi1hVEZPSWt2RzdMSGxPY2RqNEZnQzVQRTQyckQtZ2pPSEtHZS1OZkR5c09WTTdPU000dnZnenBLbWEzWnFQd1N1VFpuZUZQMjJlZTRZdm4wN2c2WW9rU0hvc2pKbEQyOG83UnhPR3UwVGRpaVBwRm1WMUJVRjFlTDBzSmxNamh5ZFAyRkstZWZOSFBrYVhPbmZUOFoyLW9JTGZ6U2hHdkFn"
         val timeStamp = ZonedDateTime.of(2019, 5, 21, 10, 22, 0, 0, ZoneId.systemDefault())
-        validator.getValidatedNin(b64, zonedDateTimestamp = timeStamp)
+        validator.getValidatedNin(b64, timeStamp)
     }
 
     @Test
@@ -207,7 +207,7 @@ internal class HelseIDValidatorTest {
         val t: Throwable = assertThrows<RuntimeException> {
             validator.getValidatedNin(
                 b64,
-                zonedDateTimestamp = ZonedDateTime.parse(ts)
+                ZonedDateTime.parse(ts)
             )
         }
         assertThat(t.message, `is`(msg))
@@ -220,7 +220,7 @@ internal class HelseIDValidatorTest {
             "ZXlKaGJHY2lPaUpTVXpJMU5pSXNJbXRwWkNJNklrTXdOakl3UTBaRk1ESXpRVEEyTVVWQk1VVXlRa00xTkRBeE5UUXdNakpGUlVOQ01EVTJRallpTENKMGVYQWlPaUpLVjFRaUxDSjROWFFpT2lKM1IwbE5YMmRKTmtKb05tZzBjbmhWUVZaUlEweDFlWGRXY2xraWZRLmV5SnVZbVlpT2pFMU5EUTFNamt4TkRrc0ltVjRjQ0k2TVRVME5EVXpNamMwT1N3aWFYTnpJam9pYUhSMGNITTZMeTlvWld4elpXbGtMWE4wY3k1MFpYTjBMbTVvYmk1dWJ5SXNJbUYxWkNJNld5Sm9kSFJ3Y3pvdkwyaGxiSE5sYVdRdGMzUnpMblJsYzNRdWJtaHVMbTV2TDNKbGMyOTFjbU5sY3lJc0ltdHFaWEp1WldwdmRYSnVZV3d1WVhCcElpd2laUzFvWld4elpTOVRSazB1WVhCcElsMHNJbU5zYVdWdWRGOXBaQ0k2SWpRMk9EZGlaalZoTFRKbE5EVXRORFprTnkxaVpqYzNMV1l5Wm1VM01XVmhNalEyTnlJc0luTjFZaUk2SWtZclpta3hOM2x4VDJsNE5tbGlaWE5vYkhabmJVWlpURTlzWmt4SldqQlJLMWw2T0dkUGRVSmpNR005SWl3aVlYVjBhRjkwYVcxbElqb3hOVFEwTlRJNU1UUTVMQ0pwWkhBaU9pSjBaWE4wYVdSd0xXOXBaR01pTENKb1pXeHpaV2xrT2k4dlkyeGhhVzF6TDJsa1pXNTBhWFI1TDNObFkzVnlhWFI1WDJ4bGRtVnNJam9pTkNJc0ltaGxiSE5sYVdRNkx5OWpiR0ZwYlhNdmFIQnlMMmh3Y2w5dWRXMWlaWElpT2xzaU5ETXhNREF4TVRFd0lpd2lORE14TURBeE1URXdJbDBzSW1obGJITmxhV1E2THk5amJHRnBiWE12YVdSbGJuUnBkSGt2Y0dsa0lqb2lNVGN3TlRZMk1EQTFOelFpTENKelkyOXdaU0k2V3lKdmNHVnVhV1FpTENKd2NtOW1hV3hsSWl3aWFHVnNjMlZwWkRvdkwzTmpiM0JsY3k5cFpHVnVkR2wwZVM5d2FXUWlMQ0pvWld4elpXbGtPaTh2YzJOdmNHVnpMMmxrWlc1MGFYUjVMM05sWTNWeWFYUjVYMnhsZG1Wc0lpd2lhSFIwY0hNNkx5OWxhR1ZzYzJVdWJtOHZhMnBsY201bGFtOTFjbTVoYkM5cmFsOWhjR2tpTENKbExXaGxiSE5sTDNObWJTNWhjR2t2YzJadExtRndhU0pkTENKaGJYSWlPbHNpY0hka0lsMTkubERPT0xLZDlsOERraEcxN2JPQ05ILV90ZW9CZ2QydktsRHBxd2pzWlVFc0ZlRGtYNUhnc29YT2xsRGNGaGNDYzJhV3pDcmN0LVVZVklQczFhWXBzcV8weUtrOUp5dnNTZGV5MlhaUlg4MTlVWEtWMVFLWnZUTFZodW1PSmpFSkF0NGQxanRpZDZoWUVpLThxQW1OZDhwS1pqWHNmWDhaSkIyQmdUbVhGZFFLUVZlbGZpcHkzTHllNnMxSXZHRFViLXVnVnpWNGltckM5dVU3QVlVQlBzWS1yVFNQUk9BZU5PaUVEeng2ZlUydmp5VFBDdGV4UEY1QUlNQnc2Y096dzVoRHQ4dlpSVmpZSzhhLXB3cmE5STJXUjYtRDJMbTdNOUhIanN3RlJseUxtclByM2x1MGNISU4wYWFCd0tEMVU1dDJHVlhWNEpRLWJKa0pBeFN4NC1n"
         val validator2 = HelseIDValidator(ISSUER, LARGE_ALLOWED_CLOCK_SKEW)
         val t: Throwable = assertThrows<RuntimeException> {
-            validator2.getValidatedNin(b64, zonedDateTimestamp = ZonedDateTime.parse(ts))
+            validator2.getValidatedNin(b64, ZonedDateTime.parse(ts))
         }
         assertThat(t.message, `is`("Token does not contain required audience"))
     }
@@ -360,11 +360,11 @@ internal fun timestampAndErrorPairs(): List<Arguments> {
     return listOf(
         Arguments.of(
             "2018-12-10T13:51:00.000+01:00",
-            "Timestamp (Mon Dec 10 13:51:00 CET 2018) is before token not-before time (Tue Dec 11 12:52:29 CET 2018)"
+            "Timestamp (Mon Dec 10 13:51:00 CET 2018) is before not-before time (Tue Dec 11 12:52:29 CET 2018)"
         ),
         Arguments.of(
             "2018-12-12T13:51:00.000+01:00",
-            "Timestamp (Wed Dec 12 13:51:00 CET 2018) is after token expiry time (Tue Dec 11 13:52:29 CET 2018)"
+            "Timestamp (Wed Dec 12 13:51:00 CET 2018) is after expiry time (Tue Dec 11 13:52:29 CET 2018)"
         )
     )
 }

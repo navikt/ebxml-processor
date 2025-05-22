@@ -1,4 +1,4 @@
-package no.nav.emottak.payload.helseid.util.security
+package no.nav.emottak.payload.helseid.testutils
 
 import jakarta.xml.bind.DatatypeConverter
 import java.security.MessageDigest
