@@ -11,6 +11,7 @@ interface EventRegistrationService {
     suspend fun registerEvent(
         eventType: EventType,
         validationRequest: ValidationRequest,
+        requestId: String,
         eventData: String = "{}"
     )
 }
@@ -21,16 +22,15 @@ class EventRegistrationServiceImpl(
     override suspend fun registerEvent(
         eventType: EventType,
         validationRequest: ValidationRequest,
+        requestId: String,
         eventData: String
     ) {
-        log.debug("Registering event for requestId: ${validationRequest.requestId}")
+        log.debug("Registering event for requestId: $requestId")
 
         try {
-            val requestId = validationRequest.requestId.parseOrGenerateUuid()
-
             val event = Event(
                 eventType = eventType,
-                requestId = requestId,
+                requestId = requestId.parseOrGenerateUuid(),
                 contentId = "",
                 messageId = validationRequest.messageId,
                 eventData = eventData
@@ -49,6 +49,7 @@ class EventRegistrationServiceFake : EventRegistrationService {
     override suspend fun registerEvent(
         eventType: EventType,
         validationRequest: ValidationRequest,
+        requestId: String,
         eventData: String
     ) {
         log.debug("Registering event $eventType for validationRequest: $validationRequest and eventData: $eventData")

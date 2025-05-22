@@ -184,8 +184,7 @@ fun Route.validateCpa(
 ) = post("/cpa/validate/{$REQUEST_ID}") {
     val validateRequest = call.receive(ValidationRequest::class)
 
-    // TODO: Skal brukes i kall mot Event-logging:
-    // val requestId = call.parameters[REQUEST_ID] ?: throw BadRequestException("Mangler $REQUEST_ID")
+    val requestId = call.parameters[REQUEST_ID] ?: throw BadRequestException("Mangler $REQUEST_ID")
 
     try {
         log.info(validateRequest.marker(), "Validerer ebms mot CPA")
@@ -238,15 +237,16 @@ fun Route.validateCpa(
                 partnerId
             )
         )
-
         eventRegistrationService.registerEvent(
             EventType.MESSAGE_VALIDATED_AGAINST_CPA,
-            validateRequest
+            validateRequest,
+            requestId
         )
     } catch (ebmsEx: EbmsException) {
         eventRegistrationService.registerEvent(
             EventType.VALIDATION_AGAINST_CPA_FAILED,
             validateRequest,
+            requestId,
             ebmsEx.toEventDataJson()
         )
         log.error(validateRequest.marker(), ebmsEx.message, ebmsEx)
@@ -258,6 +258,7 @@ fun Route.validateCpa(
         eventRegistrationService.registerEvent(
             EventType.VALIDATION_AGAINST_CPA_FAILED,
             validateRequest,
+            requestId,
             ex.toEventDataJson()
         )
         log.error(validateRequest.marker(), "${ex.message}")
@@ -269,6 +270,7 @@ fun Route.validateCpa(
         eventRegistrationService.registerEvent(
             EventType.VALIDATION_AGAINST_CPA_FAILED,
             validateRequest,
+            requestId,
             ex.toEventDataJson()
         )
         log.error(validateRequest.marker(), ex.message, ex)
