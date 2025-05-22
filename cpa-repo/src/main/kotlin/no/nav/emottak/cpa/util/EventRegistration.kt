@@ -35,10 +35,10 @@ class EventRegistrationServiceImpl(
                 messageId = validationRequest.messageId,
                 eventData = eventData
             )
-            log.debug("Publishing event: $event")
+            log.debug("Registering event: {}", event)
 
             eventLoggingService.logEvent(event)
-            log.debug("Event published successfully")
+            log.debug("Event is registered successfully")
         } catch (e: Exception) {
             log.error("Error while registering event: ${e.message}", e)
         }
