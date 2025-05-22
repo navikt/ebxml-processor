@@ -10,7 +10,8 @@ import java.text.ParseException
 import java.time.ZonedDateTime
 import java.util.Base64
 import java.util.Date
-import no.nav.emottak.payload.helseid.util.util.namespaceContext
+import no.nav.emottak.payload.helseid.util.XPathEvaluator
+import no.nav.emottak.payload.helseid.util.msgHeadNamespaceContext
 import no.nav.emottak.utils.environment.getEnvVar
 import org.w3c.dom.Document
 
@@ -35,12 +36,12 @@ class HelseIDValidator(
     fun getHelseIDTokenNodesFromDocument(doc: Document): String? {
         val nodes = XPathEvaluator.nodesAt(
             doc,
-            namespaceContext,
+            msgHeadNamespaceContext,
             "/mh:MsgHead/mh:Document/mh:RefDoc[mh:MsgType/@V='A'][mh:MimeType/text()='application/jwt']/mh:Content/bas:Base64Container|/mh:MsgHead/mh:Document/mh:RefDoc[mh:MsgType/@V='A'][mh:MimeType/text()='application/json']/mh:Content/bas:Base64Container"
         )
         return when (nodes.size) {
             0 -> null
-            1 -> XPathEvaluator.stringAt(nodes[0], namespaceContext, "text()")
+            1 -> XPathEvaluator.stringAt(nodes[0], msgHeadNamespaceContext, "text()")
             else -> error("unable to determine which of the ${nodes.size} attachments that is HelseID-token")
         }
     }

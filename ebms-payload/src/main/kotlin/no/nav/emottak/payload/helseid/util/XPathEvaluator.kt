@@ -1,4 +1,4 @@
-package no.nav.emottak.payload.helseid
+package no.nav.emottak.payload.helseid.util
 
 import javax.xml.namespace.NamespaceContext
 import javax.xml.namespace.QName
