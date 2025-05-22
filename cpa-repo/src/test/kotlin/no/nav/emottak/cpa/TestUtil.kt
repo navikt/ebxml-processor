@@ -31,8 +31,7 @@ fun createValidValidationRequest() = ValidationRequest(
     messageId = "",
     conversationId = "",
     cpaId = "nav:qass:35065",
-    createValidAddressing(),
-    "9cb28a36-faf3-44ef-aa46-6d3db35a72bc"
+    createValidAddressing()
 )
 
 fun createValidAddressing() = Addressing(

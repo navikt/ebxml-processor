@@ -29,8 +29,7 @@ class DokumentValidator(val httpClient: CpaRepoClient) {
             message.messageId,
             message.conversationId,
             message.cpaId,
-            message.addressing,
-            message.requestId
+            message.addressing
         )
         val validationResult = withContext(Dispatchers.IO) {
             httpClient.postValidate(message.requestId, validationRequest)

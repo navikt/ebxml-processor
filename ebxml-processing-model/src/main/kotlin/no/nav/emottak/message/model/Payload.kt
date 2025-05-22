@@ -87,8 +87,7 @@ data class ValidationRequest(
     val messageId: String,
     val conversationId: String,
     val cpaId: String,
-    val addressing: Addressing,
-    val requestId: String
+    val addressing: Addressing
 )
 
 @Serializable
