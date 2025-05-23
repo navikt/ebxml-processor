@@ -50,12 +50,12 @@ class EventRegistrationServiceImpl(
                 messageId = ebMSDocument.transform().messageId,
                 eventData = eventData
             )
-            log.debug("Event reg. test: Publishing event: $event")
+            log.debug("Publishing event: $event")
 
             eventLoggingService.logEvent(event)
-            log.debug("Event reg. test: Event published successfully")
+            log.debug("Event published successfully")
         } catch (e: Exception) {
-            log.error("Event reg. test: Error while registering event: ${e.message}", e)
+            log.error("Error while registering event: ${e.message}", e)
         }
     }
 

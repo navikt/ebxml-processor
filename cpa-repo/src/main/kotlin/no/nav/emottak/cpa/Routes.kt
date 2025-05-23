@@ -15,12 +15,15 @@ import io.ktor.server.routing.post
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import no.nav.emottak.cpa.auth.AZURE_AD_AUTH
 import no.nav.emottak.cpa.feil.CpaValidationException
 import no.nav.emottak.cpa.feil.MultiplePartnerException
 import no.nav.emottak.cpa.feil.PartnerNotFoundException
 import no.nav.emottak.cpa.persistence.CPARepository
 import no.nav.emottak.cpa.persistence.gammel.PartnerRepository
+import no.nav.emottak.cpa.util.EventRegistrationService
 import no.nav.emottak.cpa.validation.MessageDirection
 import no.nav.emottak.cpa.validation.partyInfoHasRoleServiceActionCombo
 import no.nav.emottak.cpa.validation.validate
@@ -38,6 +41,8 @@ import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.marker
 import no.nav.emottak.utils.environment.getEnvVar
+import no.nav.emottak.utils.kafka.model.EventType
+import no.nav.emottak.utils.serialization.toEventDataJson
 import no.nav.security.token.support.v3.TokenValidationContextPrincipal
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 import java.util.Date
@@ -174,11 +179,14 @@ fun Route.postCpa(cpaRepository: CPARepository) = post("/cpa") {
         }
 }
 
-fun Route.validateCpa(cpaRepository: CPARepository, partnerRepository: PartnerRepository) = post("/cpa/validate/{$REQUEST_ID}") {
+fun Route.validateCpa(
+    cpaRepository: CPARepository,
+    partnerRepository: PartnerRepository,
+    eventRegistrationService: EventRegistrationService
+) = post("/cpa/validate/{$REQUEST_ID}") {
     val validateRequest = call.receive(ValidationRequest::class)
 
-    // TODO: Skal brukes i kall mot Event-logging:
-    // val requestId = call.parameters[REQUEST_ID] ?: throw BadRequestException("Mangler $REQUEST_ID")
+    val requestId = call.parameters[REQUEST_ID] ?: throw BadRequestException("Mangler $REQUEST_ID")
 
     try {
         log.info(validateRequest.marker(), "Validerer ebms mot CPA")
@@ -213,7 +221,6 @@ fun Route.validateCpa(cpaRepository: CPARepository, partnerRepository: PartnerRe
 
         val partnerId = runCatching { partnerRepository.findPartnerId(cpa.cpaid) }.getOrNull()
 
-        // TODO: Event-logging OK
         call.respond(
             HttpStatusCode.OK,
             ValidationResult(
@@ -232,22 +239,48 @@ fun Route.validateCpa(cpaRepository: CPARepository, partnerRepository: PartnerRe
                 partnerId
             )
         )
+
+        val eventData = Json.encodeToString(
+            mapOf("sender" to fromParty.partyName)
+        )
+
+        eventRegistrationService.registerEvent(
+            EventType.MESSAGE_VALIDATED_AGAINST_CPA,
+            validateRequest,
+            requestId,
+            eventData
+        )
     } catch (ebmsEx: EbmsException) {
-        // TODO: Event-logging feil?
+        eventRegistrationService.registerEvent(
+            EventType.VALIDATION_AGAINST_CPA_FAILED,
+            validateRequest,
+            requestId,
+            ebmsEx.toEventDataJson()
+        )
         log.error(validateRequest.marker(), ebmsEx.message, ebmsEx)
         call.respond(
             HttpStatusCode.OK,
             ValidationResult(error = ebmsEx.feil)
         )
     } catch (ex: NotFoundException) {
-        // TODO: Event-logging feil?
+        eventRegistrationService.registerEvent(
+            EventType.VALIDATION_AGAINST_CPA_FAILED,
+            validateRequest,
+            requestId,
+            ex.toEventDataJson()
+        )
         log.error(validateRequest.marker(), "${ex.message}")
         call.respond(
             HttpStatusCode.OK,
             ValidationResult(error = listOf(Feil(ErrorCode.DELIVERY_FAILURE, "${ex.message}")))
         )
     } catch (ex: Exception) {
-        // TODO: Event-logging feil
+        eventRegistrationService.registerEvent(
+            EventType.VALIDATION_AGAINST_CPA_FAILED,
+            validateRequest,
+            requestId,
+            ex.toEventDataJson()
+        )
         log.error(validateRequest.marker(), ex.message, ex)
         call.respond(
             HttpStatusCode.OK,
