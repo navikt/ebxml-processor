@@ -71,18 +71,14 @@ class PayloadMessageProcessor(
                 log.info(ebmsPayloadMessage.marker(), "Got duplicate payload message with reference <${record.key()}>")
             } else {
                 log.info(ebmsPayloadMessage.marker(), "Got payload message with reference <${record.key()}>")
-                ebmsMessageDetailsRepository.saveEbmsMessage(ebmsPayloadMessage)
-                // eventsRepository.saveEvent("Message received", ebmsPayloadMessage)
                 validator
                     .validateIn(ebmsPayloadMessage)
                     .let {
                         processingService.processAsync(ebmsPayloadMessage, it.payloadProcessing)
-                        // TODO store events from processing (juridisklog ++)
                     }
                     .let {
-                        // TODO do this asynchronously
                         when (val service = it.addressing.service) {
-                            "HarBorgerFrikortMengde" -> {
+                            "HarBorgerFrikortMengde", "Inntektsforesporsel" -> {
                                 log.debug(it.marker(), "Starting SendIn for $service")
                                 payloadMessageResponder.respond(it)
                             }
@@ -91,6 +87,7 @@ class PayloadMessageProcessor(
                             }
                         }
                     }
+                ebmsMessageDetailsRepository.saveEbmsMessage(ebmsPayloadMessage)
             }
             returnAcknowledgment(ebmsPayloadMessage)
         } catch (e: EbmsException) {
