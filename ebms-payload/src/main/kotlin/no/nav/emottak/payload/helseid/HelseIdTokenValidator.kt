@@ -6,14 +6,17 @@ import com.nimbusds.jwt.JWTClaimNames
 import com.nimbusds.jwt.JWTClaimsSet
 import com.nimbusds.jwt.JWTParser
 import com.nimbusds.jwt.SignedJWT
+import java.text.ParseException
+import java.time.ZoneId
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+import java.util.Base64
+import java.util.Date
+import java.util.Locale
 import no.nav.emottak.payload.helseid.util.XPathEvaluator
 import no.nav.emottak.payload.helseid.util.msgHeadNamespaceContext
 import no.nav.emottak.utils.environment.getEnvVar
 import org.w3c.dom.Document
-import java.text.ParseException
-import java.time.ZonedDateTime
-import java.util.Base64
-import java.util.Date
 
 val HELSE_ID_ISSUER = getEnvVar("HELSE_ID_ISSUER", "https://helseid-sts.test.nhn.no")
 
@@ -27,8 +30,7 @@ class HelseIdTokenValidator(
             validateClaims(it, Date.from(timestamp.toInstant()))
         }.let(::extractNin)
 
-    fun getNin(base64Token: String): String =
-        extractNin(parseSignedJwt(base64Token))
+    fun getNin(base64Token: String): String = extractNin(parseSignedJwt(base64Token))
 
     fun getNin(signedJwt: SignedJWT): String = extractNin(signedJwt)
 
@@ -37,8 +39,8 @@ class HelseIdTokenValidator(
             document,
             msgHeadNamespaceContext,
             "/mh:MsgHead/mh:Document/mh:RefDoc[mh:MsgType/@V='A']" +
-                "[mh:MimeType/text()='application/jwt' or mh:MimeType/text()='application/json']" +
-                "/mh:Content/bas:Base64Container"
+                    "[mh:MimeType/text()='application/jwt' or mh:MimeType/text()='application/json']" +
+                    "/mh:Content/bas:Base64Container"
         )
         return when (nodes.size) {
             0 -> null
@@ -79,23 +81,45 @@ class HelseIdTokenValidator(
 
     private fun validateTimestamps(claims: JWTClaimsSet, now: Date) {
         issuedAt(claims)?.let {
-            if (now.time < it.time - allowedClockSkewInMs) error("$TIMESTAMP$now) is before issued time ($it)")
+            if (now.time < it.time - allowedClockSkewInMs) error(
+                "${timePrefix(now)} is before issued time ${
+                    timePrefix(
+                        it
+                    )
+                }"
+            )
         }
         claims.expirationTime?.let {
-            if (now.time > it.time + allowedClockSkewInMs) error("$TIMESTAMP$now) is after expiry time ($it)")
+            if (now.time > it.time + allowedClockSkewInMs) error(
+                "${timePrefix(now)} is after expiry time ${
+                    timePrefix(
+                        it
+                    )
+                }"
+            )
         }
         claims.notBeforeTime?.let {
-            if (now.time < it.time - allowedClockSkewInMs) error("$TIMESTAMP$now) is before not-before time ($it)")
+            if (now.time < it.time - allowedClockSkewInMs) error(
+                "${timePrefix(now)} is before not-before time ${
+                    timePrefix(
+                        it
+                    )
+                }"
+            )
         }
         authTime(claims)?.let {
-            if (now.time < it.time - allowedClockSkewInMs) error("$TIMESTAMP$now) is before auth-time ($it)")
+            if (now.time < it.time - allowedClockSkewInMs) error("${timePrefix(now)} is before auth-time ${timePrefix(it)}")
         }
     }
 
     private fun validateEssentialClaims(claims: JWTClaimsSet) {
         if (claims.getClaim(SECURITY_LEVEL_CLAIM) != SECURITY_LEVEL) error("Invalid security-level")
         if (claims.audience.none { it in SUPPORTED_AUDIENCE }) error("Token does not contain required audience")
-        if (getStringArray(claims, "scope").none { it in SUPPORTED_SCOPES }) error("Token does not contain required scope")
+        if (getStringArray(
+                claims,
+                "scope"
+            ).none { it in SUPPORTED_SCOPES }
+        ) error("Token does not contain required scope")
     }
 
     private fun extractNin(jwt: SignedJWT): String =
@@ -123,7 +147,13 @@ class HelseIdTokenValidator(
             throw RuntimeException("failed to read claim '$name'", ex)
         }
 
+    private fun timePrefix(date: Date): String = DATE_FMT.format(date.toInstant())
+
     companion object {
+        private val OSLO_ZONE: ZoneId = ZoneId.of("Europe/Oslo")
+        private val DATE_FMT: DateTimeFormatter = DateTimeFormatter
+            .ofPattern("EEE MMM dd HH:mm:ss zzz yyyy", Locale.US)
+            .withZone(OSLO_ZONE)
         private val SUPPORTED_ALGORITHMS = listOf(
             JWSAlgorithm.RS256, JWSAlgorithm.RS384, JWSAlgorithm.RS512,
             JWSAlgorithm.PS256, JWSAlgorithm.PS384, JWSAlgorithm.PS512,
@@ -146,6 +176,5 @@ class HelseIdTokenValidator(
         private const val SECURITY_LEVEL = "4"
         private const val SECURITY_LEVEL_CLAIM = "helseid://claims/identity/security_level"
         private const val PID_CLAIM = "helseid://claims/identity/pid"
-        private const val TIMESTAMP = "Timestamp ("
     }
 }

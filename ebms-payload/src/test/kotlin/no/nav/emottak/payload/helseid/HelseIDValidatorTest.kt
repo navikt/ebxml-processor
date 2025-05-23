@@ -360,11 +360,11 @@ internal fun timestampAndErrorPairs(): List<Arguments> {
     return listOf(
         Arguments.of(
             "2018-12-10T13:51:00.000+01:00",
-            "Timestamp (Mon Dec 10 13:51:00 CET 2018) is before not-before time (Tue Dec 11 12:52:29 CET 2018)"
+            "Mon Dec 10 13:51:00 CET 2018 is before not-before time Tue Dec 11 12:52:29 CET 2018"
         ),
         Arguments.of(
             "2018-12-12T13:51:00.000+01:00",
-            "Timestamp (Wed Dec 12 13:51:00 CET 2018) is after expiry time (Tue Dec 11 13:52:29 CET 2018)"
+            "Wed Dec 12 13:51:00 CET 2018 is after expiry time Tue Dec 11 13:52:29 CET 2018"
         )
     )
 }
