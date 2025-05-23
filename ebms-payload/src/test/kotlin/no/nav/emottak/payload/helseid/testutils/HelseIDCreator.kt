@@ -14,14 +14,13 @@ import com.nimbusds.jose.jwk.OctetSequenceKey
 import com.nimbusds.jose.util.Base64URL
 import com.nimbusds.jwt.JWTClaimsSet
 import com.nimbusds.jwt.SignedJWT
-import no.nav.emottak.payload.helseid.HelseIDValidator
-import no.nav.emottak.payload.helseid.testutils.X509Utils
 import java.security.KeyStore
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
 import java.util.Base64
 import java.util.Date
 import java.util.UUID
+import no.nav.emottak.payload.helseid.HelseIdTokenValidator
 
 class HelseIDCreator(pathToKeystore: String, keystoreType: String = "jks", private val password: CharArray) {
 
@@ -34,8 +33,8 @@ class HelseIDCreator(pathToKeystore: String, keystoreType: String = "jks", priva
     fun getToken(
         alias: String? = null,
         pid: String,
-        audience: String = HelseIDValidator.Companion.SUPPORTED_AUDIENCE.last(),
-        scope: String = HelseIDValidator.Companion.SUPPORTED_SCOPES.last(),
+        audience: String = HelseIdTokenValidator.Companion.SUPPORTED_AUDIENCE.last(),
+        scope: String = HelseIdTokenValidator.Companion.SUPPORTED_SCOPES.last(),
         algo: JWSAlgorithm = JWSAlgorithm.RS256,
         type: JOSEObjectType = JOSEObjectType.JWT,
         jwk: JWK? = null

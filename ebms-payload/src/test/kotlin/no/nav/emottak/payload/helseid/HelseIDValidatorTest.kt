@@ -40,22 +40,22 @@ import java.util.concurrent.TimeUnit
  */
 @Suppress("MaxLineLength")
 internal class HelseIDValidatorTest {
-    private lateinit var validator: HelseIDValidator
+    private lateinit var validator: HelseIdTokenValidator
     private lateinit var helseIDCreator: HelseIDCreator
     private lateinit var keyStore: KeyStore
 
     @BeforeEach
     fun setUp() {
-        validator = HelseIDValidator(ISSUER)
+        validator = HelseIdTokenValidator(ISSUER)
         helseIDCreator = HelseIDCreator("helseid/keystore.jks", "jks", "123456789".toCharArray())
         keyStore = SecurityUtils.createKeyStore("helseid/keystore.jks", "jks", "123456789".toCharArray())
     }
 
     @Test
     fun `validate helseID happy day`() {
-        val validator = HelseIDValidator(ISSUER)
-        HelseIDValidator.SUPPORTED_SCOPES.forEach { scope ->
-            HelseIDValidator.SUPPORTED_AUDIENCE.forEach { aud ->
+        val validator = HelseIdTokenValidator(ISSUER)
+        HelseIdTokenValidator.SUPPORTED_SCOPES.forEach { scope ->
+            HelseIdTokenValidator.SUPPORTED_AUDIENCE.forEach { aud ->
                 validateHomeMadeHelseId(validator, scope = scope, audience = aud)
             }
         }
@@ -71,8 +71,8 @@ internal class HelseIDValidatorTest {
         validateHomeMadeHelseId(
             validator,
             jwk = jwk,
-            scope = HelseIDValidator.SUPPORTED_SCOPES.first(),
-            audience = HelseIDValidator.SUPPORTED_AUDIENCE.first(),
+            scope = HelseIdTokenValidator.SUPPORTED_SCOPES.first(),
+            audience = HelseIdTokenValidator.SUPPORTED_AUDIENCE.first(),
             errMsg = "Token is not signed with an approved algorithm",
             algo = JWSAlgorithm.HS256
         )
@@ -83,7 +83,7 @@ internal class HelseIDValidatorTest {
         validateHomeMadeHelseId(
             validator,
             scope = "e-hacker:hackhack",
-            audience = HelseIDValidator.SUPPORTED_AUDIENCE.first(),
+            audience = HelseIdTokenValidator.SUPPORTED_AUDIENCE.first(),
             "Token does not contain required scope"
         )
     }
@@ -92,7 +92,7 @@ internal class HelseIDValidatorTest {
     fun `validate helseID with missing audience`() {
         validateHomeMadeHelseId(
             validator,
-            scope = HelseIDValidator.SUPPORTED_SCOPES.first(),
+            scope = HelseIdTokenValidator.SUPPORTED_SCOPES.first(),
             audience = "e-hacker:dr.evil",
             "Token does not contain required audience"
         )
@@ -101,9 +101,9 @@ internal class HelseIDValidatorTest {
     @Test
     fun `validate helseID with wrong issuer`() {
         validateHomeMadeHelseId(
-            HelseIDValidator("https://foo.bar"),
-            scope = HelseIDValidator.SUPPORTED_SCOPES.first(),
-            audience = HelseIDValidator.SUPPORTED_AUDIENCE.first(),
+            HelseIdTokenValidator("https://foo.bar"),
+            scope = HelseIdTokenValidator.SUPPORTED_SCOPES.first(),
+            audience = HelseIdTokenValidator.SUPPORTED_AUDIENCE.first(),
             "Invalid issuer https://helseid-sts.test.nhn.no"
         )
     }
@@ -112,9 +112,9 @@ internal class HelseIDValidatorTest {
     @ValueSource(strings = ["jwt", "at+jwt", "application/at+jwt"])
     fun `validate helseID with right type in header`(type: JOSEObjectType) {
         validateHomeMadeHelseId(
-            HelseIDValidator("https://foo.bar"),
-            scope = HelseIDValidator.SUPPORTED_SCOPES.first(),
-            audience = HelseIDValidator.SUPPORTED_AUDIENCE.first(),
+            HelseIdTokenValidator("https://foo.bar"),
+            scope = HelseIdTokenValidator.SUPPORTED_SCOPES.first(),
+            audience = HelseIdTokenValidator.SUPPORTED_AUDIENCE.first(),
             type = type,
             errMsg = "Invalid issuer https://helseid-sts.test.nhn.no"
         )
@@ -123,9 +123,9 @@ internal class HelseIDValidatorTest {
     @Test
     fun `validate helseID with wrong type in header`() {
         validateHomeMadeHelseId(
-            HelseIDValidator("https://foo.bar"),
-            scope = HelseIDValidator.SUPPORTED_SCOPES.first(),
-            audience = HelseIDValidator.SUPPORTED_AUDIENCE.first(),
+            HelseIdTokenValidator("https://foo.bar"),
+            scope = HelseIdTokenValidator.SUPPORTED_SCOPES.first(),
+            audience = HelseIdTokenValidator.SUPPORTED_AUDIENCE.first(),
             type = JOSEObjectType("foo"),
             errMsg = "Unsupported token type foo"
         )
@@ -133,7 +133,7 @@ internal class HelseIDValidatorTest {
 
     @Suppress("LongParameterList")
     private fun validateHomeMadeHelseId(
-        validator: HelseIDValidator,
+        validator: HelseIdTokenValidator,
         scope: String,
         audience: String,
         errMsg: String? = null,
@@ -192,7 +192,7 @@ internal class HelseIDValidatorTest {
 
     @Test
     fun validateHelseID2() {
-        val validator = HelseIDValidator(ISSUER)
+        val validator = HelseIdTokenValidator(ISSUER)
         val token = helseIDCreator.getToken(alias = "docsigner", pid = "01010000110")
         TimeUnit.MILLISECONDS.sleep(20)
         val timeStamp = ZonedDateTime.now()
@@ -218,7 +218,7 @@ internal class HelseIDValidatorTest {
     fun validateHelseIDwrongTimestampWithLargeAllowedClockSkew(ts: String) {
         val b64 =
             "ZXlKaGJHY2lPaUpTVXpJMU5pSXNJbXRwWkNJNklrTXdOakl3UTBaRk1ESXpRVEEyTVVWQk1VVXlRa00xTkRBeE5UUXdNakpGUlVOQ01EVTJRallpTENKMGVYQWlPaUpLVjFRaUxDSjROWFFpT2lKM1IwbE5YMmRKTmtKb05tZzBjbmhWUVZaUlEweDFlWGRXY2xraWZRLmV5SnVZbVlpT2pFMU5EUTFNamt4TkRrc0ltVjRjQ0k2TVRVME5EVXpNamMwT1N3aWFYTnpJam9pYUhSMGNITTZMeTlvWld4elpXbGtMWE4wY3k1MFpYTjBMbTVvYmk1dWJ5SXNJbUYxWkNJNld5Sm9kSFJ3Y3pvdkwyaGxiSE5sYVdRdGMzUnpMblJsYzNRdWJtaHVMbTV2TDNKbGMyOTFjbU5sY3lJc0ltdHFaWEp1WldwdmRYSnVZV3d1WVhCcElpd2laUzFvWld4elpTOVRSazB1WVhCcElsMHNJbU5zYVdWdWRGOXBaQ0k2SWpRMk9EZGlaalZoTFRKbE5EVXRORFprTnkxaVpqYzNMV1l5Wm1VM01XVmhNalEyTnlJc0luTjFZaUk2SWtZclpta3hOM2x4VDJsNE5tbGlaWE5vYkhabmJVWlpURTlzWmt4SldqQlJLMWw2T0dkUGRVSmpNR005SWl3aVlYVjBhRjkwYVcxbElqb3hOVFEwTlRJNU1UUTVMQ0pwWkhBaU9pSjBaWE4wYVdSd0xXOXBaR01pTENKb1pXeHpaV2xrT2k4dlkyeGhhVzF6TDJsa1pXNTBhWFI1TDNObFkzVnlhWFI1WDJ4bGRtVnNJam9pTkNJc0ltaGxiSE5sYVdRNkx5OWpiR0ZwYlhNdmFIQnlMMmh3Y2w5dWRXMWlaWElpT2xzaU5ETXhNREF4TVRFd0lpd2lORE14TURBeE1URXdJbDBzSW1obGJITmxhV1E2THk5amJHRnBiWE12YVdSbGJuUnBkSGt2Y0dsa0lqb2lNVGN3TlRZMk1EQTFOelFpTENKelkyOXdaU0k2V3lKdmNHVnVhV1FpTENKd2NtOW1hV3hsSWl3aWFHVnNjMlZwWkRvdkwzTmpiM0JsY3k5cFpHVnVkR2wwZVM5d2FXUWlMQ0pvWld4elpXbGtPaTh2YzJOdmNHVnpMMmxrWlc1MGFYUjVMM05sWTNWeWFYUjVYMnhsZG1Wc0lpd2lhSFIwY0hNNkx5OWxhR1ZzYzJVdWJtOHZhMnBsY201bGFtOTFjbTVoYkM5cmFsOWhjR2tpTENKbExXaGxiSE5sTDNObWJTNWhjR2t2YzJadExtRndhU0pkTENKaGJYSWlPbHNpY0hka0lsMTkubERPT0xLZDlsOERraEcxN2JPQ05ILV90ZW9CZ2QydktsRHBxd2pzWlVFc0ZlRGtYNUhnc29YT2xsRGNGaGNDYzJhV3pDcmN0LVVZVklQczFhWXBzcV8weUtrOUp5dnNTZGV5MlhaUlg4MTlVWEtWMVFLWnZUTFZodW1PSmpFSkF0NGQxanRpZDZoWUVpLThxQW1OZDhwS1pqWHNmWDhaSkIyQmdUbVhGZFFLUVZlbGZpcHkzTHllNnMxSXZHRFViLXVnVnpWNGltckM5dVU3QVlVQlBzWS1yVFNQUk9BZU5PaUVEeng2ZlUydmp5VFBDdGV4UEY1QUlNQnc2Y096dzVoRHQ4dlpSVmpZSzhhLXB3cmE5STJXUjYtRDJMbTdNOUhIanN3RlJseUxtclByM2x1MGNISU4wYWFCd0tEMVU1dDJHVlhWNEpRLWJKa0pBeFN4NC1n"
-        val validator2 = HelseIDValidator(ISSUER, LARGE_ALLOWED_CLOCK_SKEW)
+        val validator2 = HelseIdTokenValidator(ISSUER, LARGE_ALLOWED_CLOCK_SKEW)
         val t: Throwable = assertThrows<RuntimeException> {
             validator2.getValidatedNin(b64, ZonedDateTime.parse(ts))
         }
@@ -231,7 +231,7 @@ internal class HelseIDValidatorTest {
             Base64.getDecoder().decode(ResourceUtil.getStringClasspathResource("helseid/testdata/m1.helseid.ok.b64"))
         )
         assertThat(
-            validator.getHelseIDTokenNodesFromDocument(doc),
+            validator.getHelseIdTokenFromDocument(doc),
             notNullValue()
         )
     }
@@ -242,7 +242,7 @@ internal class HelseIDValidatorTest {
             Base64.getDecoder()
                 .decode(ResourceUtil.getStringClasspathResource("helseid/testdata/m1.with.attachment.not.helseid.b64"))
         )
-        assertThat(validator.getHelseIDTokenNodesFromDocument(doc), nullValue())
+        assertThat(validator.getHelseIdTokenFromDocument(doc), nullValue())
     }
 
     @Test
@@ -250,7 +250,7 @@ internal class HelseIDValidatorTest {
         val doc =
             XMLUtil.createDocument(ResourceUtil.getStringClasspathResource("helseid/testdata/m1.helseid.multiple.xml"))
         assertThrows<RuntimeException> {
-            validator.getHelseIDTokenNodesFromDocument(
+            validator.getHelseIdTokenFromDocument(
                 doc
             )
         }

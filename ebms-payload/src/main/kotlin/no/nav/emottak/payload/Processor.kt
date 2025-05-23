@@ -1,15 +1,13 @@
 package no.nav.emottak.payload
 
-import no.nav.emottak.crypto.KeyStoreManager
+import java.io.ByteArrayInputStream
 import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadRequest
 import no.nav.emottak.payload.crypto.Dekryptering
 import no.nav.emottak.payload.crypto.Kryptering
 import no.nav.emottak.payload.crypto.PayloadSignering
-import no.nav.emottak.payload.crypto.payloadSigneringConfig
-import no.nav.emottak.payload.helseid.helseIdValidator
+import no.nav.emottak.payload.helseid.NinResolver
 import no.nav.emottak.payload.juridisklogg.JuridiskLoggService
-import no.nav.emottak.payload.ocspstatus.OcspStatusService
 import no.nav.emottak.payload.util.GZipUtil
 import no.nav.emottak.util.createDocument
 import no.nav.emottak.util.createX509Certificate
@@ -18,10 +16,6 @@ import no.nav.emottak.util.marker
 import no.nav.emottak.util.retrieveSignatureElement
 import no.nav.emottak.util.signatur.SignaturVerifisering
 import org.slf4j.Marker
-import org.w3c.dom.Document
-import java.io.ByteArrayInputStream
-import java.security.cert.X509Certificate
-import java.time.ZonedDateTime
 
 val processor = Processor()
 
@@ -31,15 +25,9 @@ class Processor(
     private val signering: PayloadSignering = PayloadSignering(),
     private val gZipUtil: GZipUtil = GZipUtil(),
     private val signatureVerifisering: SignaturVerifisering = SignaturVerifisering(),
-    private val juridiskLogging: JuridiskLoggService = JuridiskLoggService()
+    private val juridiskLogging: JuridiskLoggService = JuridiskLoggService(),
+    private val ninResolver: NinResolver = NinResolver()
 ) {
-
-    private val ocspStatusService = OcspStatusService(
-        defaultHttpClient().invoke(),
-        KeyStoreManager(
-            payloadSigneringConfig() // TODO add commfides config
-        )
-    )
 
     suspend fun loggMessageToJuridiskLogg(payloadRequest: PayloadRequest): String? {
         log.info(payloadRequest.marker(), "Save message to juridisk logg")
@@ -86,45 +74,12 @@ class Processor(
 
             val certificateFromSignature = xmlSignature.keyInfo.x509Certificate
 
-            var signedByFnr: String? = getNin(domDocument, certificateFromSignature, marker)
+            var signedByFnr: String? = ninResolver.resolve(domDocument, certificateFromSignature)
 
             payload.copy(signedBy = signedByFnr)
         } else {
             payload
         }
-    }
-
-    private suspend fun getNin(
-        domDocument: Document,
-        certificateFromSignature: X509Certificate,
-        marker: Marker
-    ): String? {
-        val helseIdToken = helseIdValidator.getHelseIDTokenNodesFromDocument(doc = domDocument)
-        var signedByFnr: String? = if (!helseIdToken.isNullOrBlank()) {
-            log.debug(marker, "Validating HelseID Token for payload")
-            try {
-                val timeStamp = ZonedDateTime.parse(
-                    domDocument.getElementsByTagNameNS("http://www.kith.no/xmlstds/msghead/2006-05-24", "GenDate")
-                        .item(0)?.textContent
-                )
-                helseIdValidator.getValidatedNin(
-                    helseIdToken,
-                    timeStamp
-                ).also { log.debug(marker, "Found NIN '$it' from HelseID") }
-            } catch (e: Exception) {
-                log.error("Failed during helseID check", e)
-                null
-            }
-        } else {
-            null
-        }
-
-        if (signedByFnr == null) {
-            log.debug(marker, "Fallback to validating OCSP for payload: getting fnr")
-            signedByFnr = ocspStatusService.getOCSPStatus(certificateFromSignature).fnr
-        }
-
-        return signedByFnr
     }
 
     fun processOutgoing(payloadRequest: PayloadRequest): Payload {
