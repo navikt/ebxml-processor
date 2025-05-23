@@ -8,7 +8,8 @@ import no.nav.emottak.payload.ocspstatus.OcspStatusService
 import org.slf4j.LoggerFactory
 import org.w3c.dom.Document
 import java.security.cert.X509Certificate
-import java.time.ZonedDateTime
+import java.time.Instant
+import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 
 class NinResolver(
@@ -37,8 +38,8 @@ class NinResolver(
         return document.getElementsByTagNameNS(ns, "GenDate").item(0)?.textContent
     }
 
-    private fun parseDateOrThrow(date: String?): ZonedDateTime {
+    private fun parseDateOrThrow(date: String?): Instant {
         requireNotNull(date) { "GenDate missing or empty in document" }
-        return ZonedDateTime.parse(date, DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+        return OffsetDateTime.parse(date, DateTimeFormatter.ISO_OFFSET_DATE_TIME).toInstant()
     }
 }
