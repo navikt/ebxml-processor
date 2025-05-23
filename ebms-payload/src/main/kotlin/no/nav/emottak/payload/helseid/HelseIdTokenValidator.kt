@@ -6,6 +6,10 @@ import com.nimbusds.jwt.JWTClaimNames
 import com.nimbusds.jwt.JWTClaimsSet
 import com.nimbusds.jwt.JWTParser
 import com.nimbusds.jwt.SignedJWT
+import no.nav.emottak.payload.helseid.util.XPathEvaluator
+import no.nav.emottak.payload.helseid.util.msgHeadNamespaceContext
+import no.nav.emottak.utils.environment.getEnvVar
+import org.w3c.dom.Document
 import java.text.ParseException
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -13,10 +17,6 @@ import java.time.format.DateTimeFormatter
 import java.util.Base64
 import java.util.Date
 import java.util.Locale
-import no.nav.emottak.payload.helseid.util.XPathEvaluator
-import no.nav.emottak.payload.helseid.util.msgHeadNamespaceContext
-import no.nav.emottak.utils.environment.getEnvVar
-import org.w3c.dom.Document
 
 val HELSE_ID_ISSUER = getEnvVar("HELSE_ID_ISSUER", "https://helseid-sts.test.nhn.no")
 
@@ -39,8 +39,8 @@ class HelseIdTokenValidator(
             document,
             msgHeadNamespaceContext,
             "/mh:MsgHead/mh:Document/mh:RefDoc[mh:MsgType/@V='A']" +
-                    "[mh:MimeType/text()='application/jwt' or mh:MimeType/text()='application/json']" +
-                    "/mh:Content/bas:Base64Container"
+                "[mh:MimeType/text()='application/jwt' or mh:MimeType/text()='application/json']" +
+                "/mh:Content/bas:Base64Container"
         )
         return when (nodes.size) {
             0 -> null
@@ -81,31 +81,37 @@ class HelseIdTokenValidator(
 
     private fun validateTimestamps(claims: JWTClaimsSet, now: Date) {
         issuedAt(claims)?.let {
-            if (now.time < it.time - allowedClockSkewInMs) error(
-                "${timePrefix(now)} is before issued time ${
+            if (now.time < it.time - allowedClockSkewInMs) {
+                error(
+                    "${timePrefix(now)} is before issued time ${
                     timePrefix(
                         it
                     )
-                }"
-            )
+                    }"
+                )
+            }
         }
         claims.expirationTime?.let {
-            if (now.time > it.time + allowedClockSkewInMs) error(
-                "${timePrefix(now)} is after expiry time ${
+            if (now.time > it.time + allowedClockSkewInMs) {
+                error(
+                    "${timePrefix(now)} is after expiry time ${
                     timePrefix(
                         it
                     )
-                }"
-            )
+                    }"
+                )
+            }
         }
         claims.notBeforeTime?.let {
-            if (now.time < it.time - allowedClockSkewInMs) error(
-                "${timePrefix(now)} is before not-before time ${
+            if (now.time < it.time - allowedClockSkewInMs) {
+                error(
+                    "${timePrefix(now)} is before not-before time ${
                     timePrefix(
                         it
                     )
-                }"
-            )
+                    }"
+                )
+            }
         }
         authTime(claims)?.let {
             if (now.time < it.time - allowedClockSkewInMs) error("${timePrefix(now)} is before auth-time ${timePrefix(it)}")
@@ -119,7 +125,9 @@ class HelseIdTokenValidator(
                 claims,
                 "scope"
             ).none { it in SUPPORTED_SCOPES }
-        ) error("Token does not contain required scope")
+        ) {
+            error("Token does not contain required scope")
+        }
     }
 
     private fun extractNin(jwt: SignedJWT): String =
