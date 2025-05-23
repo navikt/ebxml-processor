@@ -1,12 +1,12 @@
 package no.nav.emottak.payload.helseid.util
 
+import org.w3c.dom.Node
+import org.w3c.dom.NodeList
 import javax.xml.namespace.NamespaceContext
 import javax.xml.namespace.QName
 import javax.xml.xpath.XPathConstants
 import javax.xml.xpath.XPathExpressionException
 import javax.xml.xpath.XPathFactory
-import org.w3c.dom.Node
-import org.w3c.dom.NodeList
 
 object XPathEvaluator {
 

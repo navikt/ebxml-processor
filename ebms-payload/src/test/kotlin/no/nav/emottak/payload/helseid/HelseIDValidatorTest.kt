@@ -167,7 +167,7 @@ internal class HelseIDValidatorTest {
         val func: () -> Unit = {
             validator.getValidatedNin(
                 b64,
-                 timeStamp
+                timeStamp
             )
         }
         if (errMsg != null) {

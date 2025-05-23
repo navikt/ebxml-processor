@@ -1,8 +1,8 @@
 package no.nav.emottak.payload.helseid.util
 
+import org.apache.xml.security.utils.Constants
 import javax.xml.XMLConstants
 import javax.xml.namespace.NamespaceContext
-import org.apache.xml.security.utils.Constants
 
 val msgHeadNamespaceContext: NamespaceContext = object : NamespaceContext {
 

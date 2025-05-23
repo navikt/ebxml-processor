@@ -6,14 +6,14 @@ import com.nimbusds.jwt.JWTClaimNames
 import com.nimbusds.jwt.JWTClaimsSet
 import com.nimbusds.jwt.JWTParser
 import com.nimbusds.jwt.SignedJWT
-import java.text.ParseException
-import java.time.ZonedDateTime
-import java.util.Base64
-import java.util.Date
 import no.nav.emottak.payload.helseid.util.XPathEvaluator
 import no.nav.emottak.payload.helseid.util.msgHeadNamespaceContext
 import no.nav.emottak.utils.environment.getEnvVar
 import org.w3c.dom.Document
+import java.text.ParseException
+import java.time.ZonedDateTime
+import java.util.Base64
+import java.util.Date
 
 val HELSE_ID_ISSUER = getEnvVar("HELSE_ID_ISSUER", "https://helseid-sts.test.nhn.no")
 
@@ -37,8 +37,8 @@ class HelseIdTokenValidator(
             document,
             msgHeadNamespaceContext,
             "/mh:MsgHead/mh:Document/mh:RefDoc[mh:MsgType/@V='A']" +
-                    "[mh:MimeType/text()='application/jwt' or mh:MimeType/text()='application/json']" +
-                    "/mh:Content/bas:Base64Container"
+                "[mh:MimeType/text()='application/jwt' or mh:MimeType/text()='application/json']" +
+                "/mh:Content/bas:Base64Container"
         )
         return when (nodes.size) {
             0 -> null

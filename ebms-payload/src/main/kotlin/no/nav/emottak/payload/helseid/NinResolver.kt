@@ -1,8 +1,5 @@
 package no.nav.emottak.payload.helseid
 
-import java.security.cert.X509Certificate
-import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
 import no.nav.emottak.crypto.KeyStoreManager
 import no.nav.emottak.payload.crypto.payloadSigneringConfig
 import no.nav.emottak.payload.defaultHttpClient
@@ -10,6 +7,9 @@ import no.nav.emottak.payload.helseid.util.msgHeadNamespaceContext
 import no.nav.emottak.payload.ocspstatus.OcspStatusService
 import org.slf4j.LoggerFactory
 import org.w3c.dom.Document
+import java.security.cert.X509Certificate
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 
 class NinResolver(
     private val tokenValidator: HelseIdTokenValidator = HelseIdTokenValidator(),

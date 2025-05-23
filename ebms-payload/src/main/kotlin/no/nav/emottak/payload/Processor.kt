@@ -1,6 +1,5 @@
 package no.nav.emottak.payload
 
-import java.io.ByteArrayInputStream
 import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadRequest
 import no.nav.emottak.payload.crypto.Dekryptering
@@ -16,6 +15,7 @@ import no.nav.emottak.util.marker
 import no.nav.emottak.util.retrieveSignatureElement
 import no.nav.emottak.util.signatur.SignaturVerifisering
 import org.slf4j.Marker
+import java.io.ByteArrayInputStream
 
 val processor = Processor()
 

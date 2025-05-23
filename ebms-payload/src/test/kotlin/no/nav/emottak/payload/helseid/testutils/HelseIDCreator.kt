@@ -14,13 +14,13 @@ import com.nimbusds.jose.jwk.OctetSequenceKey
 import com.nimbusds.jose.util.Base64URL
 import com.nimbusds.jwt.JWTClaimsSet
 import com.nimbusds.jwt.SignedJWT
+import no.nav.emottak.payload.helseid.HelseIdTokenValidator
 import java.security.KeyStore
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
 import java.util.Base64
 import java.util.Date
 import java.util.UUID
-import no.nav.emottak.payload.helseid.HelseIdTokenValidator
 
 class HelseIDCreator(pathToKeystore: String, keystoreType: String = "jks", private val password: CharArray) {
 
