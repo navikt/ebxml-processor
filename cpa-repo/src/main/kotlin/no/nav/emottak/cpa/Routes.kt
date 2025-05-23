@@ -15,6 +15,8 @@ import io.ktor.server.routing.post
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import no.nav.emottak.cpa.auth.AZURE_AD_AUTH
 import no.nav.emottak.cpa.feil.CpaValidationException
 import no.nav.emottak.cpa.feil.MultiplePartnerException
@@ -237,10 +239,16 @@ fun Route.validateCpa(
                 partnerId
             )
         )
+
+        val eventData = Json.encodeToString(
+            mapOf("sender" to fromParty.partyName)
+        )
+
         eventRegistrationService.registerEvent(
             EventType.MESSAGE_VALIDATED_AGAINST_CPA,
             validateRequest,
-            requestId
+            requestId,
+            eventData
         )
     } catch (ebmsEx: EbmsException) {
         eventRegistrationService.registerEvent(
