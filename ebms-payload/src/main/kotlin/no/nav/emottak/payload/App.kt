@@ -16,6 +16,7 @@ import io.ktor.server.routing.routing
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import no.nav.emottak.payload.configuration.config
+import no.nav.emottak.payload.util.EventRegistrationService
 import no.nav.emottak.payload.util.EventRegistrationServiceImpl
 import no.nav.emottak.utils.environment.getEnvVar
 import no.nav.emottak.utils.kafka.client.EventPublisherClient
@@ -41,7 +42,7 @@ fun main() {
     embeddedServer(
         factory = Netty,
         port = 8080,
-        module = payloadApplicationModule(processor)
+        module = payloadApplicationModule(processor, eventRegistrationService)
     ).start(wait = true)
 }
 private val httpProxyUrl = getEnvVar("HTTP_PROXY", "")
@@ -58,7 +59,10 @@ fun defaultHttpClient(): () -> HttpClient {
     }
 }
 
-fun payloadApplicationModule(processor: Processor): Application.() -> Unit {
+fun payloadApplicationModule(
+    processor: Processor,
+    eventRegistrationService: EventRegistrationService
+): Application.() -> Unit {
     return {
         install(ContentNegotiation) {
             json()
@@ -75,7 +79,7 @@ fun payloadApplicationModule(processor: Processor): Application.() -> Unit {
             registerHealthEndpoints(appMicrometerRegistry)
 
             authenticate(AZURE_AD_AUTH) {
-                postPayload(processor)
+                postPayload(processor, eventRegistrationService)
             }
         }
     }

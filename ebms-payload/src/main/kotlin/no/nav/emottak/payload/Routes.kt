@@ -20,11 +20,15 @@ import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadRequest
 import no.nav.emottak.message.model.PayloadResponse
 import no.nav.emottak.message.model.ProcessConfig
+import no.nav.emottak.payload.util.EventRegistrationService
 import no.nav.emottak.payload.util.marshal
 import no.nav.emottak.payload.util.unmarshal
 import no.nav.emottak.util.marker
 
-fun Route.postPayload(processor: Processor) = post("/payload") {
+fun Route.postPayload(
+    processor: Processor,
+    eventRegistrationService: EventRegistrationService
+) = post("/payload") {
     val request: PayloadRequest = call.receive(PayloadRequest::class)
 
     // TODO: Skal brukes i kall mot Event-logging:

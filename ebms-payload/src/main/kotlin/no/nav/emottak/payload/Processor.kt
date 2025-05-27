@@ -1,5 +1,7 @@
 package no.nav.emottak.payload
 
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import no.nav.emottak.crypto.KeyStoreManager
 import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadRequest
@@ -17,6 +19,9 @@ import no.nav.emottak.util.getByteArrayFromDocument
 import no.nav.emottak.util.marker
 import no.nav.emottak.util.retrieveSignatureElement
 import no.nav.emottak.util.signatur.SignaturVerifisering
+import no.nav.emottak.utils.kafka.model.EventDataType
+import no.nav.emottak.utils.kafka.model.EventType
+import no.nav.emottak.utils.serialization.toEventDataJson
 import org.slf4j.Marker
 import java.io.ByteArrayInputStream
 
@@ -39,9 +44,22 @@ class Processor(
     suspend fun loggMessageToJuridiskLogg(payloadRequest: PayloadRequest): String? {
         log.info(payloadRequest.marker(), "Save message to juridisk logg")
         try {
-            return juridiskLogging.logge(payloadRequest)
+            val juridiskLoggId = juridiskLogging.logge(payloadRequest)
+            eventRegistrationService.registerEvent(
+                EventType.MESSAGE_SAVED_IN_JURIDISK_LOGG,
+                payloadRequest,
+                Json.encodeToString(
+                    mapOf(EventDataType.JURIDISK_LOGG_ID to juridiskLoggId)
+                )
+            )
+            return juridiskLoggId
         } catch (e: Exception) {
             log.error(payloadRequest.marker(), "Exception occurred while saving message to juridisk logg", e)
+            eventRegistrationService.registerEvent(
+                EventType.ERROR_WHILE_SAVING_MESSAGE_IN_JURIDISK_LOGG,
+                payloadRequest,
+                e.toEventDataJson()
+            )
             throw e
         }
     }

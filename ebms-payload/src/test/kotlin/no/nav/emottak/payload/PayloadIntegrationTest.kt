@@ -74,10 +74,11 @@ class PayloadIntegrationTest {
     private fun <T> ebmsPayloadTestApp(testBlock: suspend ApplicationTestBuilder.() -> T) = testApplication {
         setupEnv()
         configureOcspStatusService()
+
         val eventRegistrationService = EventRegistrationServiceFake()
         val processor = Processor(eventRegistrationService)
 
-        application(payloadApplicationModule(processor))
+        application(payloadApplicationModule(processor, eventRegistrationService))
         testBlock()
     }
 
