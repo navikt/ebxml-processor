@@ -9,6 +9,7 @@ import no.nav.emottak.payload.crypto.PayloadSignering
 import no.nav.emottak.payload.crypto.payloadSigneringConfig
 import no.nav.emottak.payload.juridisklogg.JuridiskLoggService
 import no.nav.emottak.payload.ocspstatus.OcspStatusService
+import no.nav.emottak.payload.util.EventRegistrationService
 import no.nav.emottak.payload.util.GZipUtil
 import no.nav.emottak.util.createDocument
 import no.nav.emottak.util.createX509Certificate
@@ -19,16 +20,15 @@ import no.nav.emottak.util.signatur.SignaturVerifisering
 import org.slf4j.Marker
 import java.io.ByteArrayInputStream
 
-val processor = Processor()
 class Processor(
-    private val kryptering: Kryptering = Kryptering(),
-    private val dekryptering: Dekryptering = Dekryptering(),
-    private val signering: PayloadSignering = PayloadSignering(),
-    private val gZipUtil: GZipUtil = GZipUtil(),
-    private val signatureVerifisering: SignaturVerifisering = SignaturVerifisering(),
-    private val juridiskLogging: JuridiskLoggService = JuridiskLoggService()
+    private val eventRegistrationService: EventRegistrationService
 ) {
-
+    private val kryptering: Kryptering = Kryptering()
+    private val dekryptering: Dekryptering = Dekryptering()
+    private val signering: PayloadSignering = PayloadSignering()
+    private val gZipUtil: GZipUtil = GZipUtil()
+    private val signatureVerifisering: SignaturVerifisering = SignaturVerifisering()
+    private val juridiskLogging: JuridiskLoggService = JuridiskLoggService()
     private val ocspStatusService = OcspStatusService(
         defaultHttpClient().invoke(),
         KeyStoreManager(

@@ -24,7 +24,7 @@ import no.nav.emottak.payload.util.marshal
 import no.nav.emottak.payload.util.unmarshal
 import no.nav.emottak.util.marker
 
-fun Route.postPayload() = post("/payload") {
+fun Route.postPayload(processor: Processor) = post("/payload") {
     val request: PayloadRequest = call.receive(PayloadRequest::class)
 
     // TODO: Skal brukes i kall mot Event-logging:
@@ -42,8 +42,8 @@ fun Route.postPayload() = post("/payload") {
         }
 
         when (request.direction) {
-            Direction.IN -> createIncomingPayloadResponse(request, processConfig)
-            Direction.OUT -> createOutgoingPayloadResponse(request)
+            Direction.IN -> createIncomingPayloadResponse(request, processConfig, processor)
+            Direction.OUT -> createOutgoingPayloadResponse(request, processor)
         }
     }.onSuccess {
         it.juridiskLoggRecordId = juridiskLoggRecordId
@@ -67,13 +67,14 @@ fun Route.postPayload() = post("/payload") {
     }
 }
 
-private fun createOutgoingPayloadResponse(request: PayloadRequest) = PayloadResponse(
+private fun createOutgoingPayloadResponse(request: PayloadRequest, processor: Processor) = PayloadResponse(
     processedPayload = processor.processOutgoing(request)
 )
 
 private suspend fun createIncomingPayloadResponse(
     request: PayloadRequest,
-    processConfig: ProcessConfig
+    processConfig: ProcessConfig,
+    processor: Processor
 ): PayloadResponse {
     val readablePayload =
         processor.convertToReadablePayload(request.payload, processConfig.kryptering, processConfig.komprimering).also {

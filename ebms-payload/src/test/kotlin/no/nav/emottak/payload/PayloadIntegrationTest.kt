@@ -34,6 +34,7 @@ import no.nav.emottak.payload.crypto.PayloadSignering
 import no.nav.emottak.payload.crypto.payloadSigneringConfig
 import no.nav.emottak.payload.ocspstatus.OcspStatusService
 import no.nav.emottak.payload.ocspstatus.ssnPolicyID
+import no.nav.emottak.payload.util.EventRegistrationServiceFake
 import no.nav.emottak.util.createDocument
 import no.nav.security.mock.oauth2.MockOAuth2Server
 import org.bouncycastle.asn1.ASN1Encodable
@@ -68,10 +69,15 @@ private val testKeystore = KeyStoreManager(payloadSigneringConfig())
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class PayloadIntegrationTest {
     private val mockOAuth2Server = MockOAuth2Server().also { it.start(port = 3344) }
+    private val ssn = "01010112345"
 
     private fun <T> ebmsPayloadTestApp(testBlock: suspend ApplicationTestBuilder.() -> T) = testApplication {
         setupEnv()
-        application(payloadApplicationModule())
+        configureOcspStatusService()
+        val eventRegistrationService = EventRegistrationServiceFake()
+        val processor = Processor(eventRegistrationService)
+
+        application(payloadApplicationModule(processor))
         testBlock()
     }
 
@@ -153,22 +159,7 @@ class PayloadIntegrationTest {
                 json()
             }
         }
-        val ssn = "01010112345"
-        mockkConstructor(OcspStatusService::class, recordPrivateCalls = true, localToThread = false)
-        val ocspRequestCaptureSlot = slot<ByteArray>()
-        coEvery {
-            anyConstructed<OcspStatusService>().postOCSPRequest(any(String::class), capture(ocspRequestCaptureSlot))
-        } coAnswers {
-            OCSPRespBuilder().build(
-                OCSPRespBuilder.SUCCESSFUL,
-                createOCSPResp(
-                    testKeystore.getCertificate("navtest-ca"),
-                    ssn,
-                    testKeystore.getKey("navtest-ca"),
-                    OCSPReq(ocspRequestCaptureSlot.captured).getExtension(id_pkix_ocsp_nonce).parsedValue
-                )
-            )
-        }
+
         // certificate = object {}::class.java.classLoader.getResourceAsStream("keystore/samhandlerRequest_CA-SIGNED.crt")
 
         val requestBody = payloadRequestMedOCSP(
@@ -192,6 +183,24 @@ class PayloadIntegrationTest {
         audience = audience,
         subject = "testUser"
     )
+
+    private fun configureOcspStatusService() {
+        mockkConstructor(OcspStatusService::class, recordPrivateCalls = true, localToThread = false)
+        val ocspRequestCaptureSlot = slot<ByteArray>()
+        coEvery {
+            anyConstructed<OcspStatusService>().postOCSPRequest(any(String::class), capture(ocspRequestCaptureSlot))
+        } coAnswers {
+            OCSPRespBuilder().build(
+                OCSPRespBuilder.SUCCESSFUL,
+                createOCSPResp(
+                    testKeystore.getCertificate("navtest-ca"),
+                    ssn,
+                    testKeystore.getKey("navtest-ca"),
+                    OCSPReq(ocspRequestCaptureSlot.captured).getExtension(id_pkix_ocsp_nonce).parsedValue
+                )
+            )
+        }
+    }
 }
 
 private fun createOCSPResp(responder: X509Certificate, ssn: String, pk: PrivateKey, asn1encodableNonce: ASN1Encodable): BasicOCSPResp {
