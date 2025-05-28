@@ -65,7 +65,7 @@ class JuridiskLoggService() {
                 }
             } catch (e: Exception) {
                 log.error(payloadRequest.marker(), "Exception occurred during sending message to juridisk logg: ${e.message}", e)
-                throw e
+                throw JuridiskLoggException("Exception occurred during sending message to juridisk logg", e)
             } finally {
                 httpClient.close()
             }
