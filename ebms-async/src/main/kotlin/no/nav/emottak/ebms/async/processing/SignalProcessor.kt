@@ -5,7 +5,7 @@ import kotlinx.coroutines.withContext
 import no.nav.emottak.ebms.async.log
 import no.nav.emottak.ebms.async.persistence.repository.EbmsMessageDetailsRepository
 import no.nav.emottak.ebms.util.marker
-import no.nav.emottak.ebms.validation.DokumentValidator
+import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.message.model.Acknowledgment
 import no.nav.emottak.message.model.EbMSDocument
 import no.nav.emottak.message.model.EbmsFail
@@ -16,14 +16,14 @@ import kotlin.uuid.ExperimentalUuidApi
 
 class SignalProcessor(
     val ebmsMessageDetailsRepository: EbmsMessageDetailsRepository,
-    val validator: DokumentValidator
+    val cpaValidationService: CPAValidationService
 ) {
 
     @OptIn(ExperimentalUuidApi::class)
     suspend fun processSignal(requestId: String, content: ByteArray) {
         try {
             val ebxmlSignalMessage = createEbmsMessage(requestId, content)
-            validator.validateIn(ebxmlSignalMessage)
+            cpaValidationService.validateIncomingMessage(ebxmlSignalMessage)
             when (ebxmlSignalMessage) {
                 is Acknowledgment -> {
                     ebmsMessageDetailsRepository.saveEbmsMessageDetails(ebxmlSignalMessage.toEbmsMessageDetails())

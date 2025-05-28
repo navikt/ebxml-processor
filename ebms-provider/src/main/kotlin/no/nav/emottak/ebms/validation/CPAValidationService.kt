@@ -18,10 +18,10 @@ import org.slf4j.LoggerFactory
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.DokumentValidator")
 
-class DokumentValidator(val httpClient: CpaRepoClient) {
+class CPAValidationService(val httpClient: CpaRepoClient) {
 
-    suspend fun validateIn(message: EbmsMessage): ValidationResult = validate(IN, message, true)
-    suspend fun validateOut(message: EbmsMessage): ValidationResult = validate(OUT, message, false)
+    suspend fun validateIncomingMessage(message: EbmsMessage): ValidationResult = validate(IN, message, true)
+    suspend fun validateOutgoingMessage(message: EbmsMessage): ValidationResult = validate(OUT, message, false)
 
     private suspend fun validate(direction: Direction, message: EbmsMessage, checkSignature: Boolean): ValidationResult {
         val validationRequest = ValidationRequest(

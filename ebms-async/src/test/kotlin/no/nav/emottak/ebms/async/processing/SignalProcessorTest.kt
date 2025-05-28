@@ -5,7 +5,7 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import no.nav.emottak.ebms.async.persistence.repository.EbmsMessageDetailsRepository
-import no.nav.emottak.ebms.validation.DokumentValidator
+import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.message.model.EbmsMessageDetails
 import no.nav.emottak.message.model.ValidationResult
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -20,8 +20,8 @@ import kotlin.uuid.Uuid
 class SignalProcessorTest {
 
     val repository = mockk<EbmsMessageDetailsRepository>()
-    val validator = mockk<DokumentValidator>()
-    val signalProcessor = SignalProcessor(repository, validator)
+    val cpaValidationService = mockk<CPAValidationService>()
+    val signalProcessor = SignalProcessor(repository, cpaValidationService)
 
     @OptIn(ExperimentalUuidApi::class)
     @Test
@@ -33,7 +33,7 @@ class SignalProcessorTest {
             repository.saveEbmsMessageDetails(any())
         } returns Uuid.random()
         coEvery {
-            validator.validateIn(any())
+            cpaValidationService.validateIncomingMessage(any())
         } returns validationResult
 
         val message = this::class.java.classLoader
