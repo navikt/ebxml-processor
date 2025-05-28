@@ -16,7 +16,7 @@ import no.nav.emottak.message.model.ValidationRequest
 import no.nav.emottak.message.model.ValidationResult
 import org.slf4j.LoggerFactory
 
-val log = LoggerFactory.getLogger("no.nav.emottak.ebms.DokumentValidator")
+val log = LoggerFactory.getLogger("no.nav.emottak.ebms.validation.CPAValidationService")
 
 class CPAValidationService(val httpClient: CpaRepoClient) {
 
