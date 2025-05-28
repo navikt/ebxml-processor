@@ -71,6 +71,7 @@ class PayloadMessageProcessor(
                 log.info(ebmsPayloadMessage.marker(), "Got duplicate payload message with reference <${record.key()}>")
             } else {
                 log.info(ebmsPayloadMessage.marker(), "Got payload message with reference <${record.key()}>")
+                ebmsMessageDetailsRepository.saveEbmsMessage(ebmsPayloadMessage)
                 validator
                     .validateIn(ebmsPayloadMessage)
                     .let {
@@ -87,7 +88,6 @@ class PayloadMessageProcessor(
                             }
                         }
                     }
-                ebmsMessageDetailsRepository.saveEbmsMessage(ebmsPayloadMessage)
             }
             returnAcknowledgment(ebmsPayloadMessage)
         } catch (e: EbmsException) {
