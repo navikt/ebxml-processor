@@ -39,8 +39,8 @@ abstract class EbmsMessage {
         return createEbmsDocument(createMessageHeader())
     }
 
-    open fun createFail(errorList: List<Feil>): EbmsFail {
-        return EbmsFail(
+    open fun createMessageError(errorList: List<Feil>): MessageError {
+        return MessageError(
             requestId,
             Uuid.random().toString(),
             this.messageId,
