@@ -19,7 +19,7 @@ import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.util.EventRegistrationService
 import no.nav.emottak.ebms.util.EventRegistrationServiceImpl
-import no.nav.emottak.ebms.validation.DokumentValidator
+import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.utils.kafka.client.EventPublisherClient
 import no.nav.emottak.utils.kafka.service.EventLoggingService
 import org.slf4j.LoggerFactory
@@ -34,7 +34,7 @@ fun main() = SuspendApp {
     val processingService = ProcessingService(processingClient)
 
     val cpaClient = CpaRepoClient(defaultHttpClient())
-    val dokumentValidator = DokumentValidator(cpaClient)
+    val cpaValidationService = CPAValidationService(cpaClient)
 
     val sendInClient = SendInClient(scopedAuthHttpClient(EBMS_SEND_IN_SCOPE))
     val sendInService = SendInService(sendInClient)
@@ -50,7 +50,7 @@ fun main() = SuspendApp {
                 port = 8080,
                 module = {
                     ebmsProviderModule(
-                        dokumentValidator,
+                        cpaValidationService,
                         processingService,
                         sendInService,
                         eventRegistrationService
@@ -70,7 +70,7 @@ fun main() = SuspendApp {
 }
 
 fun Application.ebmsProviderModule(
-    validator: DokumentValidator,
+    cpaValidationService: CPAValidationService,
     processing: ProcessingService,
     sendInService: SendInService,
     eventRegistrationService: EventRegistrationService
@@ -87,6 +87,6 @@ fun Application.ebmsProviderModule(
         registerPrometheusEndpoint(appMicrometerRegistry)
         registerNavCheckStatus()
 
-        postEbmsSync(validator, processing, sendInService, eventRegistrationService)
+        postEbmsSync(cpaValidationService, processing, sendInService, eventRegistrationService)
     }
 }
