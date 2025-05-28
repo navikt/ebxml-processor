@@ -130,7 +130,7 @@ class PayloadMessageProcessor(
 
     private suspend fun returnMessageError(ebmsPayloadMessage: PayloadMessage, ebmsException: EbmsException) {
         ebmsPayloadMessage
-            .createFail(ebmsException.feil)
+            .createMessageError(ebmsException.feil)
             .also {
                 val validationResult = validator.validateOut(it)
                 ebmsMessageDetailsRepository.saveEbmsMessage(it)

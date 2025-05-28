@@ -8,7 +8,7 @@ import no.nav.emottak.ebms.util.marker
 import no.nav.emottak.ebms.validation.DokumentValidator
 import no.nav.emottak.message.model.Acknowledgment
 import no.nav.emottak.message.model.EbMSDocument
-import no.nav.emottak.message.model.EbmsFail
+import no.nav.emottak.message.model.MessageError
 import no.nav.emottak.message.model.toEbmsMessageDetails
 import no.nav.emottak.message.xml.getDocumentBuilder
 import java.io.ByteArrayInputStream
@@ -29,7 +29,7 @@ class SignalProcessor(
                     ebmsMessageDetailsRepository.saveEbmsMessageDetails(ebxmlSignalMessage.toEbmsMessageDetails())
                     processAcknowledgment(ebxmlSignalMessage)
                 }
-                is EbmsFail -> {
+                is MessageError -> {
                     ebmsMessageDetailsRepository.saveEbmsMessageDetails(ebxmlSignalMessage.toEbmsMessageDetails())
                     processMessageError(ebxmlSignalMessage)
                 }
@@ -66,27 +66,27 @@ class SignalProcessor(
         }
     }
 
-    private fun processMessageError(ebmsFail: EbmsFail) {
-        log.info(ebmsFail.marker(), "Got MessageError with requestId <${ebmsFail.requestId}>")
-        val messageRef = ebmsFail.refToMessageId
+    private fun processMessageError(messageError: MessageError) {
+        log.info(messageError.marker(), "Got MessageError with requestId <${messageError.requestId}>")
+        val messageRef = messageError.refToMessageId
         if (messageRef == null) {
-            log.warn(ebmsFail.marker(), "Received MessageError without message requestId")
+            log.warn(messageError.marker(), "Received MessageError without message requestId")
             return
         }
 
         val referencedMessage = ebmsMessageDetailsRepository.getByConversationIdMessageIdAndCpaId(
-            ebmsFail.conversationId,
+            messageError.conversationId,
             messageRef,
-            ebmsFail.cpaId
+            messageError.cpaId
         )
         if (referencedMessage == null) {
-            log.warn(ebmsFail.marker(), "Received MessageError for unknown message $messageRef")
+            log.warn(messageError.marker(), "Received MessageError for unknown message $messageRef")
         } else {
-            log.info(ebmsFail.marker(), "Message Error received")
+            log.info(messageError.marker(), "Message Error received")
         }
         // TODO store events
-        ebmsFail.feil.forEach { error ->
-            log.info(ebmsFail.marker(), "Code: ${error.code}, Description: ${error.descriptionText}")
+        messageError.feil.forEach { error ->
+            log.info(messageError.marker(), "Code: ${error.code}, Description: ${error.descriptionText}")
         }
     }
 }
