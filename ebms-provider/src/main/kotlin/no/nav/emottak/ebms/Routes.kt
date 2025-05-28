@@ -10,6 +10,7 @@ import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
+import no.nav.emottak.ebms.util.EventRegistrationService
 import no.nav.emottak.ebms.util.marker
 import no.nav.emottak.ebms.validation.DokumentValidator
 import no.nav.emottak.ebms.validation.MimeValidationException
@@ -24,20 +25,15 @@ import no.nav.emottak.message.model.PayloadProcessing
 import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.util.marker
 import no.nav.emottak.util.retrieveLoggableHeaderPairs
-import no.nav.emottak.utils.common.parseOrGenerateUuid
-import no.nav.emottak.utils.kafka.model.Event
 import no.nav.emottak.utils.kafka.model.EventType
-import no.nav.emottak.utils.kafka.service.EventLoggingService
 import no.nav.emottak.utils.serialization.toEventDataJson
-import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
-@OptIn(ExperimentalUuidApi::class)
 fun Route.postEbmsSync(
     validator: DokumentValidator,
     processingService: ProcessingService,
     sendInService: SendInService,
-    eventLoggingService: EventLoggingService
+    eventRegistrationService: EventRegistrationService
 ): Route = post("/ebms/sync") {
     log.info("Receiving synchronous request")
 
@@ -47,7 +43,9 @@ fun Route.postEbmsSync(
         call.request.validateMime()
         ebMSDocument = call.receiveEbmsDokument()
         log.info(ebMSDocument.messageHeader().marker(loggableHeaders), "Melding mottatt")
-        eventLoggingService.registerEvent(
+
+        eventRegistrationService.registerEventMessageDetails(ebMSDocument)
+        eventRegistrationService.registerEvent(
             EventType.MESSAGE_RECEIVED_VIA_HTTP,
             ebMSDocument
         )
@@ -118,7 +116,7 @@ fun Route.postEbmsSync(
                     }
                 )
                 log.info(it.first.marker(), "Melding ferdig behandlet og svar returnert")
-                eventLoggingService.registerEvent(
+                eventRegistrationService.registerEvent(
                     EventType.MESSAGE_SENT_VIA_HTTP,
                     it.first.toEbmsDokument()
                 )
@@ -132,7 +130,7 @@ fun Route.postEbmsSync(
             }
             log.info(ebmsMessage.marker(), "Created MessageError response")
 
-            eventLoggingService.registerEvent(
+            eventRegistrationService.registerEvent(
                 EventType.ERROR_WHILE_SENDING_MESSAGE_VIA_HTTP,
                 ebMSDocument,
                 ebmsException.toEventDataJson()
@@ -144,7 +142,7 @@ fun Route.postEbmsSync(
     } catch (ex: Exception) {
         log.error(ebmsMessage.marker(), "Unknown error during message processing: ${ex.message}", ex)
 
-        eventLoggingService.registerEvent(
+        eventRegistrationService.registerEvent(
             EventType.ERROR_WHILE_SENDING_MESSAGE_VIA_HTTP,
             ebMSDocument,
             ex.toEventDataJson()
@@ -154,34 +152,5 @@ fun Route.postEbmsSync(
             HttpStatusCode.InternalServerError,
             ex.parseAsSoapFault()
         )
-    }
-}
-
-@OptIn(ExperimentalUuidApi::class)
-suspend fun EventLoggingService.registerEvent(
-    eventType: EventType,
-    ebMSDocument: EbMSDocument,
-    eventData: String = ""
-) {
-    log.debug("Event reg. test: Registering event for requestId: ${ebMSDocument.requestId}")
-
-    try {
-        val requestId = ebMSDocument.requestId.parseOrGenerateUuid()
-
-        log.debug("Event reg. test: RequestId: $requestId")
-
-        val event = Event(
-            eventType = eventType,
-            requestId = requestId,
-            contentId = "",
-            messageId = ebMSDocument.transform().messageId,
-            eventData = eventData
-        )
-
-        log.debug("Event reg. test: Publishing event: $event")
-        this.logEvent(event)
-        log.debug("Event reg. test: Event published successfully")
-    } catch (e: Exception) {
-        log.error("Event reg. test: Error while registering event: ${e.message}", e)
     }
 }

@@ -57,6 +57,8 @@ spec:
         mountPath: /secrets/oracle/creds
       - kvPath: /oracle/data/dev/config/emottak_q1
         mountPath: /secrets/oracle/config
+  kafka:
+    pool: nav-dev
   webproxy: true
   accessPolicy:
     inbound:
@@ -98,3 +100,7 @@ spec:
       value: "4"
     - name: MAX_CONNECTION_POOL_SIZE_FOR_ADMIN
       value: "1"
+    - name: ORACLE_CREDENTIAL_SECRET_PATH
+      value: /secrets/oracle/creds
+    - name: ORACLE_CONFIG_SECRET_PATH
+      value: /secrets/oracle/config

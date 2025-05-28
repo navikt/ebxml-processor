@@ -9,6 +9,7 @@ import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import no.nav.emottak.cpa.databasetest.PostgresOracleTest
 import no.nav.emottak.cpa.persistence.gammel.PARTNER_CPA
+import no.nav.emottak.cpa.util.EventRegistrationServiceFake
 import org.jetbrains.exposed.sql.deleteAll
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -35,7 +36,16 @@ class PartnerIntegrationTest : PostgresOracleTest() {
     }
 
     fun <T> cpaRepoTestApp(testBlock: suspend ApplicationTestBuilder.() -> T) = testApplication {
-        application(cpaApplicationModule(postgres.dataSource, postgres.dataSource, oracle.dataSource))
+        val eventRegistrationService = EventRegistrationServiceFake()
+
+        application(
+            cpaApplicationModule(
+                postgres.dataSource,
+                postgres.dataSource,
+                oracle.dataSource,
+                eventRegistrationService
+            )
+        )
         testBlock()
     }
 

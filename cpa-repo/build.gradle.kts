@@ -35,6 +35,12 @@ tasks {
     }
 }
 
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().all {
+    compilerOptions {
+        freeCompilerArgs = listOf("-opt-in=kotlin.uuid.ExperimentalUuidApi,com.sksamuel.hoplite.ExperimentalHoplite")
+    }
+}
+
 dependencies {
     api(project(":felles"))
     api(project(":ebxml-processing-model"))
@@ -53,6 +59,8 @@ dependencies {
     implementation(libs.bundles.exposed)
     implementation(libs.bundles.logging)
     implementation(libs.bundles.prometheus)
+    implementation(libs.hoplite.core)
+    implementation(libs.hoplite.hocon)
     implementation(libs.ktor.serialization.kotlinx.json)
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.cio)

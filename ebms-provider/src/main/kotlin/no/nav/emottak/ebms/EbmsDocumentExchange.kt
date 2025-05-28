@@ -33,10 +33,10 @@ import no.nav.emottak.message.util.createUniqueMimeMessageId
 import no.nav.emottak.message.xml.asByteArray
 import no.nav.emottak.message.xml.asString
 import no.nav.emottak.message.xml.getDocumentBuilder
+import no.nav.emottak.utils.common.parseOrGenerateUuid
 import java.io.ByteArrayInputStream
 import java.nio.charset.StandardCharsets
 import java.util.Base64
-import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 suspend fun PartData.payload(isBase64: Boolean = true): ByteArray {
@@ -71,7 +71,6 @@ fun Headers.actuallyUsefulToString(): String {
     return sb.toString()
 }
 
-@OptIn(ExperimentalUuidApi::class)
 @Throws(MimeValidationException::class)
 suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
     log.info("Parsing message with Message-Id: ${request.header(SMTPHeaders.MESSAGE_ID)}")
@@ -105,7 +104,7 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
             if (ebmsEnvelope == null) throw MimeValidationException("Failed to extract soap envelope from multipartdata")
             ebmsEnvelopeHeaders.validateMimeSoapEnvelope()
             EbMSDocument(
-                ebmsEnvelope!!.first,
+                ebmsEnvelope.first.parseOrGenerateUuid().toString(),
                 withContext(Dispatchers.IO) {
                     getDocumentBuilder().parse(ByteArrayInputStream(ebmsEnvelope!!.second))
                 },
@@ -121,8 +120,9 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
                     this@receiveEbmsDokument.receive<ByteArray>()
                 }
             }
+            val contentId = this.request.headers[MimeHeaders.CONTENT_ID]!!.convertToValidatedContentID()
             EbMSDocument(
-                this.request.headers[MimeHeaders.CONTENT_ID]!!.convertToValidatedContentID(),
+                contentId.parseOrGenerateUuid().toString(),
                 getDocumentBuilder().parse(ByteArrayInputStream(dokument)),
                 emptyList()
             )

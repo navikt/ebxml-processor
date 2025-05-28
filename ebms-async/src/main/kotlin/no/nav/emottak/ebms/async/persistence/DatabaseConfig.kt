@@ -16,10 +16,10 @@ val ebmsMigrationConfig = lazy { VaultConfig().configure("admin") }
 data class VaultConfig(
     val databaseName: String = EBMS_DB_NAME,
     val jdbcUrl: String = getEnvVar("VAULT_JDBC_URL", "jdbc:postgresql://b27dbvl033.preprod.local:5432/").also {
-        log.info("vault jdbc url set til: $it")
+        log.info("vault jdbc url set to: $it")
     },
     val vaultMountPath: String = ("postgresql/prod-fss".takeIf { getEnvVar("NAIS_CLUSTER_NAME", "local") == "prod-fss" } ?: "postgresql/preprod-fss").also {
-        log.info("vaultMountPath satt til $it")
+        log.info("vaultMountPath set to: $it")
     }
 )
 
@@ -34,7 +34,7 @@ fun VaultConfig.configure(role: String): HikariConfig {
         if (role == "admin") {
             this.maximumPoolSize = maxPoolSizeForAdmin
             val path: String = this@configure.vaultMountPath + "/creds/$databaseName-$role"
-            log.info("Fetching database credentials for role admin")
+            log.info("Fetching database credentials for role admin ($path)")
             val response: LogicalResponse = VaultUtil.getClient().logical().read(path)
             this.username = response.data["username"]
             this.password = response.data["password"]

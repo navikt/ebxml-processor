@@ -17,6 +17,8 @@ import kotlinx.coroutines.awaitCancellation
 import no.nav.emottak.ebms.configuration.config
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
+import no.nav.emottak.ebms.util.EventRegistrationService
+import no.nav.emottak.ebms.util.EventRegistrationServiceImpl
 import no.nav.emottak.ebms.validation.DokumentValidator
 import no.nav.emottak.utils.kafka.client.EventPublisherClient
 import no.nav.emottak.utils.kafka.service.EventLoggingService
@@ -38,7 +40,8 @@ fun main() = SuspendApp {
     val sendInService = SendInService(sendInClient)
 
     val kafkaPublisherClient = EventPublisherClient(config().kafka)
-    val eventLoggingService = EventLoggingService(kafkaPublisherClient)
+    val eventLoggingService = EventLoggingService(config().eventLogging, kafkaPublisherClient)
+    val eventRegistrationService = EventRegistrationServiceImpl(eventLoggingService)
 
     result {
         resourceScope {
@@ -50,7 +53,7 @@ fun main() = SuspendApp {
                         dokumentValidator,
                         processingService,
                         sendInService,
-                        eventLoggingService
+                        eventRegistrationService
                     )
                 }
             ).also { it.engineConfig.maxChunkSize = 100000 }
@@ -70,7 +73,7 @@ fun Application.ebmsProviderModule(
     validator: DokumentValidator,
     processing: ProcessingService,
     sendInService: SendInService,
-    eventLoggingService: EventLoggingService
+    eventRegistrationService: EventRegistrationService
 ) {
     val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
 
@@ -84,6 +87,6 @@ fun Application.ebmsProviderModule(
         registerPrometheusEndpoint(appMicrometerRegistry)
         registerNavCheckStatus()
 
-        postEbmsSync(validator, processing, sendInService, eventLoggingService)
+        postEbmsSync(validator, processing, sendInService, eventRegistrationService)
     }
 }

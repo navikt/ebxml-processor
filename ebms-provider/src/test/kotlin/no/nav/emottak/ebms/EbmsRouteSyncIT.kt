@@ -39,12 +39,10 @@ import no.nav.emottak.utils.environment.getEnvVar
 import org.apache.xml.security.algorithms.MessageDigestAlgorithm
 import org.apache.xml.security.signature.XMLSignature
 import org.junit.jupiter.api.Test
-import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 private const val SYNC_PATH = "/ebms/sync"
 
-@OptIn(ExperimentalUuidApi::class)
 class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
 
     fun <T> testSyncApp(testBlock: suspend ApplicationTestBuilder.() -> T) = testApplication {
@@ -69,7 +67,7 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
                 incomingMessage
             }
             routing {
-                postEbmsSync(dokumentValidator, processingService, SendInService(sendInClient), eventLoggingService)
+                postEbmsSync(dokumentValidator, processingService, SendInService(sendInClient), eventRegistrationService)
             }
         }
         externalServices {
@@ -195,7 +193,6 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
         println(String(response.readRawBytes()))
     }
 
-    @OptIn(ExperimentalUuidApi::class)
     @Test
     fun `Feilmelding fra fagsystemet må propageres til brukeren`() = testSyncApp {
         val soapFault = "<SOAP-ENV:Envelope xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\"><SOAP-ENV:Header/><SOAP-ENV:Body><SOAP-ENV:Fault><faultcode>SOAP-ENV:Server</faultcode><faultstring>Noe gikk galt i fagsystemet</faultstring></SOAP-ENV:Fault></SOAP-ENV:Body></SOAP-ENV:Envelope>"
