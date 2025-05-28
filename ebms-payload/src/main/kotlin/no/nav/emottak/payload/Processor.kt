@@ -9,6 +9,7 @@ import no.nav.emottak.message.model.ProcessConfig
 import no.nav.emottak.payload.crypto.Dekryptering
 import no.nav.emottak.payload.crypto.Kryptering
 import no.nav.emottak.payload.crypto.PayloadSignering
+import no.nav.emottak.payload.crypto.getEncryptionDetails
 import no.nav.emottak.payload.crypto.payloadSigneringConfig
 import no.nav.emottak.payload.juridisklogg.JuridiskLoggService
 import no.nav.emottak.payload.ocspstatus.OcspStatusService
@@ -145,7 +146,8 @@ class Processor(
     }
 
     private suspend fun encrypt(payload: ByteArray, payloadRequest: PayloadRequest): Payload {
-        return with(createX509Certificate(payloadRequest.processing.encryptionCertificate)) {
+        val certificate = createX509Certificate(payloadRequest.processing.encryptionCertificate)
+        return with(certificate) {
             kryptering.krypter(payload, this).let { kryptertPayload ->
                 log.info(payloadRequest.marker(), "Payload kryptert for ${this.subjectX500Principal.name}")
                 payloadRequest.payload.copy(bytes = kryptertPayload, contentType = "application/pkcs7-mime")
@@ -153,7 +155,10 @@ class Processor(
         }.also {
             eventRegistrationService.registerEvent(
                 EventType.MESSAGE_ENCRYPTED,
-                payloadRequest
+                payloadRequest,
+                Json.encodeToString(
+                    mapOf(EventDataType.ENCRYPTION_DETAILS to getEncryptionDetails(certificate))
+                )
             )
         }
     }
