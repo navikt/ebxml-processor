@@ -90,8 +90,8 @@ private suspend fun createIncomingPayloadResponse(
             processedPayload = processor.validateReadablePayload(
                 request.marker(),
                 readablePayload,
-                processConfig.signering,
-                processConfig.ocspSjekk
+                request,
+                processConfig
             ).also {
                 if (processConfig.signering) log.info(request.marker(), "Payload signatur verifisert")
                 if (processConfig.ocspSjekk) log.info(request.marker(), "Payload signatur ocsp sjekket")

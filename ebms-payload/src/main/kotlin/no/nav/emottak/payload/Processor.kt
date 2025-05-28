@@ -5,6 +5,7 @@ import kotlinx.serialization.json.Json
 import no.nav.emottak.crypto.KeyStoreManager
 import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadRequest
+import no.nav.emottak.message.model.ProcessConfig
 import no.nav.emottak.payload.crypto.Dekryptering
 import no.nav.emottak.payload.crypto.Kryptering
 import no.nav.emottak.payload.crypto.PayloadSignering
@@ -80,13 +81,23 @@ class Processor(
         )
     }
 
-    suspend fun validateReadablePayload(marker: Marker, payload: Payload, validateSignature: Boolean, validateOcsp: Boolean): Payload {
-        if (validateSignature) {
+    suspend fun validateReadablePayload(
+        marker: Marker,
+        payload: Payload,
+        payloadRequest: PayloadRequest,
+        processConfig: ProcessConfig
+    ): Payload {
+        if (processConfig.signering) {
             log.debug(marker, "Validating signature for payload")
 
-            signatureVerifisering.validate(payload.bytes)
+            signatureVerifisering.validate(payload.bytes).also {
+                eventRegistrationService.registerEvent(
+                    EventType.SIGNATURE_CHECK_SUCCESSFUL,
+                    payloadRequest
+                )
+            }
         }
-        return if (validateOcsp) {
+        return if (processConfig.ocspSjekk) {
             log.debug(marker, "Validating OCSP for payload: Step 1 create DOM")
             val dom = createDocument(ByteArrayInputStream(payload.bytes))
 
@@ -100,7 +111,12 @@ class Processor(
             val signedBy = ocspStatusService.getOCSPStatus(certificateFromSignature).fnr
 
             log.debug(marker, "Validating OCSP for payload: Step 5 copy")
-            payload.copy(signedBy = signedBy)
+            payload.copy(signedBy = signedBy).also {
+                eventRegistrationService.registerEvent(
+                    EventType.OCSP_CHECK_SUCCESSFUL,
+                    payloadRequest
+                )
+            }
         } else {
             payload
         }
