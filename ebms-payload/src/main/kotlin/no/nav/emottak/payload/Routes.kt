@@ -71,7 +71,7 @@ fun Route.postPayload(
     }
 }
 
-private fun createOutgoingPayloadResponse(request: PayloadRequest, processor: Processor) = PayloadResponse(
+private suspend fun createOutgoingPayloadResponse(request: PayloadRequest, processor: Processor) = PayloadResponse(
     processedPayload = processor.processOutgoing(request)
 )
 
@@ -81,7 +81,7 @@ private suspend fun createIncomingPayloadResponse(
     processor: Processor
 ): PayloadResponse {
     val readablePayload =
-        processor.convertToReadablePayload(request.payload, processConfig.kryptering, processConfig.komprimering).also {
+        processor.convertToReadablePayload(request, processConfig.kryptering, processConfig.komprimering).also {
             if (processConfig.kryptering) log.info(request.marker(), "Payload dekryptert")
             if (processConfig.komprimering) log.info(request.marker(), "Payload dekomprimert")
         }

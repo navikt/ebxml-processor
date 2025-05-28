@@ -44,15 +44,15 @@ class Processor(
     suspend fun loggMessageToJuridiskLogg(payloadRequest: PayloadRequest): String? {
         log.info(payloadRequest.marker(), "Save message to juridisk logg")
         try {
-            val juridiskLoggId = juridiskLogging.logge(payloadRequest)
-            eventRegistrationService.registerEvent(
-                EventType.MESSAGE_SAVED_IN_JURIDISK_LOGG,
-                payloadRequest,
-                Json.encodeToString(
-                    mapOf(EventDataType.JURIDISK_LOGG_ID to juridiskLoggId)
+            return juridiskLogging.logge(payloadRequest).also {
+                eventRegistrationService.registerEvent(
+                    EventType.MESSAGE_SAVED_IN_JURIDISK_LOGG,
+                    payloadRequest,
+                    Json.encodeToString(
+                        mapOf(EventDataType.JURIDISK_LOGG_ID to it)
+                    )
                 )
-            )
-            return juridiskLoggId
+            }
         } catch (e: Exception) {
             log.error(payloadRequest.marker(), "Exception occurred while saving message to juridisk logg", e)
             eventRegistrationService.registerEvent(
@@ -64,16 +64,16 @@ class Processor(
         }
     }
 
-    fun convertToReadablePayload(payload: Payload, encrypted: Boolean, compressed: Boolean): Payload {
-        return payload.copy(
-            bytes = payload.bytes.let {
+    suspend fun convertToReadablePayload(payloadRequest: PayloadRequest, encrypted: Boolean, compressed: Boolean): Payload {
+        return payloadRequest.payload.copy(
+            bytes = payloadRequest.payload.bytes.let {
                 when (encrypted) {
-                    true -> dekryptering.dekrypter(it, false)
+                    true -> decrypt(it, payloadRequest)
                     false -> it
                 }
             }.let {
                 when (compressed) {
-                    true -> gZipUtil.uncompress(it)
+                    true -> decompress(it, payloadRequest)
                     false -> it
                 }
             }
@@ -106,7 +106,7 @@ class Processor(
         }
     }
 
-    fun processOutgoing(payloadRequest: PayloadRequest): Payload {
+    suspend fun processOutgoing(payloadRequest: PayloadRequest): Payload {
         val processConfig = payloadRequest.processing.processConfig
         return payloadRequest.payload.let {
             when (processConfig.signering) {
@@ -123,21 +123,57 @@ class Processor(
             }
         }.let {
             when (processConfig.komprimering) {
-                true -> gZipUtil.compress(it).also { log.info(payloadRequest.marker(), "Payload komprimert") }
+                true -> compress(it, payloadRequest)
                 false -> it
             }
         }.let {
             when (processConfig.kryptering) {
-                true -> {
-                    with(createX509Certificate(payloadRequest.processing.encryptionCertificate)) {
-                        kryptering.krypter(it, this).let { kryptertPayload ->
-                            log.info(payloadRequest.marker(), "Payload kryptert for ${this.subjectX500Principal.name}")
-                            payloadRequest.payload.copy(bytes = kryptertPayload, contentType = "application/pkcs7-mime")
-                        }
-                    }
-                }
+                true -> encrypt(it, payloadRequest)
                 false -> payloadRequest.payload.copy(bytes = it)
             }
+        }
+    }
+
+    private suspend fun encrypt(payload: ByteArray, payloadRequest: PayloadRequest): Payload {
+        return with(createX509Certificate(payloadRequest.processing.encryptionCertificate)) {
+            kryptering.krypter(payload, this).let { kryptertPayload ->
+                log.info(payloadRequest.marker(), "Payload kryptert for ${this.subjectX500Principal.name}")
+                payloadRequest.payload.copy(bytes = kryptertPayload, contentType = "application/pkcs7-mime")
+            }
+        }.also {
+            eventRegistrationService.registerEvent(
+                EventType.MESSAGE_ENCRYPTED,
+                payloadRequest
+            )
+        }
+    }
+
+    private suspend fun decrypt(payload: ByteArray, payloadRequest: PayloadRequest): ByteArray {
+        return dekryptering.dekrypter(payload, false).also {
+            eventRegistrationService.registerEvent(
+                EventType.MESSAGE_DECRYPTED,
+                payloadRequest
+            )
+        }
+    }
+
+    private suspend fun compress(payload: ByteArray, payloadRequest: PayloadRequest): ByteArray {
+        return gZipUtil.compress(payload)
+            .also { log.info(payloadRequest.marker(), "Payload komprimert") }
+            .also {
+                eventRegistrationService.registerEvent(
+                    EventType.MESSAGE_COMPRESSED,
+                    payloadRequest
+                )
+            }
+    }
+
+    private suspend fun decompress(payload: ByteArray, payloadRequest: PayloadRequest): ByteArray {
+        return gZipUtil.uncompress(payload).also {
+            eventRegistrationService.registerEvent(
+                EventType.MESSAGE_DECOMPRESSED,
+                payloadRequest
+            )
         }
     }
 }
