@@ -56,11 +56,6 @@ class Processor(
             }
         } catch (e: Exception) {
             log.error(payloadRequest.marker(), "Exception occurred while saving message to juridisk logg", e)
-            eventRegistrationService.registerEvent(
-                EventType.ERROR_WHILE_SAVING_MESSAGE_IN_JURIDISK_LOGG,
-                payloadRequest,
-                e.toEventDataJson()
-            )
             throw e
         }
     }
