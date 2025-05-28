@@ -22,7 +22,6 @@ import no.nav.emottak.util.retrieveSignatureElement
 import no.nav.emottak.util.signatur.SignaturVerifisering
 import no.nav.emottak.utils.kafka.model.EventDataType
 import no.nav.emottak.utils.kafka.model.EventType
-import no.nav.emottak.utils.serialization.toEventDataJson
 import org.slf4j.Marker
 import java.io.ByteArrayInputStream
 
