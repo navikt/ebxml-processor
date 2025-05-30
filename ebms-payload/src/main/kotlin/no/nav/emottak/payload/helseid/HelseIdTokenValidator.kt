@@ -149,12 +149,10 @@ class HelseIdTokenValidator(
             JWSAlgorithm.ES512
         )
         internal val SUPPORTED_AUDIENCE = listOf(
-            "e-helse:reseptformidleren",
-            "hdir:rf-rekvirent"
+            "nav:sign-message",
         )
         internal val SUPPORTED_SCOPES = listOf(
-            "e-helse:reseptformidleren/rekvirent",
-            "hdir:rf-rekvirent/rekvirering"
+            "nav:sign-message/msghead",
         )
         private val SUPPORTED_JWT_TYPES = listOf(
             JOSEObjectType.JWT,
