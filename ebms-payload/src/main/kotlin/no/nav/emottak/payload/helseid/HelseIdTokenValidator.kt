@@ -149,10 +149,10 @@ class HelseIdTokenValidator(
             JWSAlgorithm.ES512
         )
         internal val SUPPORTED_AUDIENCE = listOf(
-            "nav:sign-message",
+            "nav:sign-message"
         )
         internal val SUPPORTED_SCOPES = listOf(
-            "nav:sign-message/msghead",
+            "nav:sign-message/msghead"
         )
         private val SUPPORTED_JWT_TYPES = listOf(
             JOSEObjectType.JWT,
