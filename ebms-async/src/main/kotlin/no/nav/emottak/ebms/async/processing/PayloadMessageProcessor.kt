@@ -72,17 +72,14 @@ class PayloadMessageProcessor(
             } else {
                 log.info(ebmsPayloadMessage.marker(), "Got payload message with reference <${record.key()}>")
                 ebmsMessageDetailsRepository.saveEbmsMessage(ebmsPayloadMessage)
-                // eventsRepository.saveEvent("Message received", ebmsPayloadMessage)
                 validator
                     .validateIn(ebmsPayloadMessage)
                     .let {
                         processingService.processAsync(ebmsPayloadMessage, it.payloadProcessing)
-                        // TODO store events from processing (juridisklog ++)
                     }
                     .let {
-                        // TODO do this asynchronously
                         when (val service = it.addressing.service) {
-                            "HarBorgerFrikortMengde" -> {
+                            "HarBorgerFrikortMengde", "Inntektsforesporsel" -> {
                                 log.debug(it.marker(), "Starting SendIn for $service")
                                 payloadMessageResponder.respond(it)
                             }
@@ -133,7 +130,7 @@ class PayloadMessageProcessor(
 
     private suspend fun returnMessageError(ebmsPayloadMessage: PayloadMessage, ebmsException: EbmsException) {
         ebmsPayloadMessage
-            .createFail(ebmsException.feil)
+            .createMessageError(ebmsException.feil)
             .also {
                 val validationResult = validator.validateOut(it)
                 ebmsMessageDetailsRepository.saveEbmsMessage(it)
