@@ -132,7 +132,7 @@ class PayloadMessageProcessor(
         ebmsPayloadMessage
             .createMessageError(ebmsException.feil)
             .also {
-                val validationResult = validator.validateOut(it)
+                val validationResult = validator.validateOutgoingMessageError(it)
                 ebmsMessageDetailsRepository.saveEbmsMessage(it)
                 sendResponseToTopic(
                     it.toEbmsDokument().signer(validationResult.payloadProcessing!!.signingCertificate),
