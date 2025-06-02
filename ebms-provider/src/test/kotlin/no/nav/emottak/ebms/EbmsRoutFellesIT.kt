@@ -15,7 +15,7 @@ import io.mockk.mockk
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.util.EventRegistrationServiceFake
-import no.nav.emottak.ebms.validation.DokumentValidator
+import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.ebms.validation.MimeHeaders
 import no.nav.emottak.message.ebxml.errorList
 import no.nav.emottak.message.ebxml.messageHeader
@@ -62,14 +62,14 @@ abstract class EbmsRoutFellesIT(val endpoint: String) {
         val cpaRepoClient = CpaRepoClient { client }
         val sendInClient = SendInClient { client }
         application {
-            val dokumentValidator = DokumentValidator(cpaRepoClient)
+            val cpaValidationService = CPAValidationService(cpaRepoClient)
 
             install(ContentNegotiation) {
                 json()
             }
 
             routing {
-                postEbmsSync(dokumentValidator, processingService, SendInService(sendInClient), eventRegistrationService)
+                postEbmsSync(cpaValidationService, processingService, SendInService(sendInClient), eventRegistrationService)
             }
         }
         externalServices {
