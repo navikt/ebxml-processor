@@ -19,7 +19,7 @@ import io.mockk.mockkStatic
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.sendin.SendInService
-import no.nav.emottak.ebms.validation.DokumentValidator
+import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.ebms.validation.MimeHeaders
 import no.nav.emottak.message.model.Addressing
 import no.nav.emottak.message.model.Direction
@@ -54,7 +54,7 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
         val cpaRepoClient = CpaRepoClient { client }
         val sendInClient = SendInClient { client }
         application {
-            val dokumentValidator = DokumentValidator(cpaRepoClient)
+            val cpaValidationService = CPAValidationService(cpaRepoClient)
             coEvery {
                 processingService.processSyncIn(any(), any())
             } answers {
@@ -67,7 +67,7 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
                 incomingMessage
             }
             routing {
-                postEbmsSync(dokumentValidator, processingService, SendInService(sendInClient), eventRegistrationService)
+                postEbmsSync(cpaValidationService, processingService, SendInService(sendInClient), eventRegistrationService)
             }
         }
         externalServices {

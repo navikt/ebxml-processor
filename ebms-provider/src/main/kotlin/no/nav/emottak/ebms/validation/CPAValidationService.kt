@@ -17,11 +17,11 @@ import no.nav.emottak.message.model.ValidationRequest
 import no.nav.emottak.message.model.ValidationResult
 import org.slf4j.LoggerFactory
 
-val log = LoggerFactory.getLogger("no.nav.emottak.ebms.DokumentValidator")
+val log = LoggerFactory.getLogger("no.nav.emottak.ebms.validation.CPAValidationService")
 
-class DokumentValidator(val httpClient: CpaRepoClient) {
+class CPAValidationService(val httpClient: CpaRepoClient) {
 
-    suspend fun validateIn(message: EbmsMessage): ValidationResult =
+    suspend fun validateIncomingMessage(message: EbmsMessage): ValidationResult =
         getValidationResult(IN, message).also {
             validateResult(
                 validationResult = it,
@@ -30,7 +30,7 @@ class DokumentValidator(val httpClient: CpaRepoClient) {
             )
         }
 
-    suspend fun validateOut(message: EbmsMessage): ValidationResult =
+    suspend fun validateOutgoingMessage(message: EbmsMessage): ValidationResult =
         getValidationResult(OUT, message).also {
             validateResult(
                 validationResult = it,
