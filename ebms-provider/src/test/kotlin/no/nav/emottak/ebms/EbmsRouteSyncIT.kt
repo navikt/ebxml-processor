@@ -80,30 +80,16 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
                         call.respond(ValidationResult(error = listOf(Feil(ErrorCode.SECURITY_FAILURE, "Signature Fail"))))
                     }
                     post("cpa/validate/{contentId}") {
-                        val contentId = call.parameters["contentId"]
-                        if (contentId == "e491180e-eea6-41d6-ac5b-d232c9fb115f" || (contentId?.startsWith("GENERERT") == true)) {
-                            call.respond(
-                                ValidationResult(
-                                    EbmsProcessing(),
-                                    payloadProcessing = PayloadProcessing(
-                                        TestData.HarBorgerEgenandel.validSignatureDetails,
-                                        byteArrayOf(),
-                                        mockProcessConfig
-                                    )
+                        call.respond(
+                            ValidationResult(
+                                EbmsProcessing(),
+                                payloadProcessing = PayloadProcessing(
+                                    TestData.HarBorgerEgenandel.validSignatureDetails,
+                                    byteArrayOf(),
+                                    mockProcessConfig
                                 )
                             )
-                        } else {
-                            call.respond(
-                                ValidationResult(
-                                    EbmsProcessing(),
-                                    payloadProcessing = PayloadProcessing(
-                                        SignatureDetails(byteArrayOf(), "test", "test"),
-                                        byteArrayOf(),
-                                        mockProcessConfig
-                                    )
-                                )
-                            )
-                        }
+                        )
                     }
                 }
             }
