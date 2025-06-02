@@ -40,11 +40,11 @@ class MimeValidationIT {
 
     fun <T> mimeTestApp(testBlock: suspend ApplicationTestBuilder.() -> T) = testApplication {
         application {
-            val dokumentValidator = DokumentValidator(cpaRepoClient)
+            val cpaValidationService = CPAValidationService(cpaRepoClient)
             val processingService = mockk<ProcessingService>()
             val sendInService = mockk<SendInService>()
             routing {
-                postEbmsSync(dokumentValidator, processingService, sendInService, eventRegistrationService)
+                postEbmsSync(cpaValidationService, processingService, sendInService, eventRegistrationService)
             }
         }
         externalServices {
