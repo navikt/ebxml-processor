@@ -44,7 +44,7 @@ data class EbMSDocument(val requestId: String, val dokument: Document, val attac
         if (dokument.getElementsByTagNameNS(OASIS_EBXML_MSG_HEADER_XSD_NS_URI, "ErrorList")
             .item(0) != null
         ) {
-            return DokumentType.FAIL
+            return DokumentType.MESSAGE_ERROR
         }
         throw RuntimeException("Unrecognized dokument type")
     }
@@ -72,11 +72,11 @@ data class EbMSDocument(val requestId: String, val dokument: Document, val attac
                 messageHeader.messageData.timestamp.toInstant()
             )
 
-            DokumentType.FAIL -> {
+            DokumentType.MESSAGE_ERROR -> {
                 val errorList = header.errorList()!!.error.map {
                     Feil(ErrorCode.fromString(it.errorCode), it.description!!.value!!)
                 }.toList()
-                EbmsFail(
+                MessageError(
                     requestId,
                     messageHeader.messageData.messageId,
                     messageHeader.messageData.refToMessageId!!,
@@ -108,5 +108,5 @@ data class EbMSDocument(val requestId: String, val dokument: Document, val attac
 }
 
 enum class DokumentType {
-    PAYLOAD, ACKNOWLEDGMENT, FAIL, STATUS, PING
+    PAYLOAD, ACKNOWLEDGMENT, MESSAGE_ERROR, STATUS, PING
 }

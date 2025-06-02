@@ -12,7 +12,7 @@ import no.nav.emottak.ebms.async.persistence.repository.EbmsMessageDetailsReposi
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.util.marker
-import no.nav.emottak.ebms.validation.DokumentValidator
+import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.melding.feil.EbmsException
 import no.nav.emottak.message.model.EbMSDocument
 import no.nav.emottak.message.model.EmailAddress
@@ -25,7 +25,7 @@ import java.io.ByteArrayInputStream
 
 class PayloadMessageProcessor(
     val ebmsMessageDetailsRepository: EbmsMessageDetailsRepository,
-    val validator: DokumentValidator,
+    val cpaValidationService: CPAValidationService,
     val processingService: ProcessingService,
     val ebmsSignalProducer: EbmsMessageProducer,
     val smtpTransportClient: SmtpTransportClient,
@@ -72,17 +72,14 @@ class PayloadMessageProcessor(
             } else {
                 log.info(ebmsPayloadMessage.marker(), "Got payload message with reference <${record.key()}>")
                 ebmsMessageDetailsRepository.saveEbmsMessage(ebmsPayloadMessage)
-                // eventsRepository.saveEvent("Message received", ebmsPayloadMessage)
-                validator
-                    .validateIn(ebmsPayloadMessage)
+                cpaValidationService
+                    .validateIncomingMessage(ebmsPayloadMessage)
                     .let {
                         processingService.processAsync(ebmsPayloadMessage, it.payloadProcessing)
-                        // TODO store events from processing (juridisklog ++)
                     }
                     .let {
-                        // TODO do this asynchronously
                         when (val service = it.addressing.service) {
-                            "HarBorgerFrikortMengde" -> {
+                            "HarBorgerFrikortMengde", "Inntektsforesporsel" -> {
                                 log.debug(it.marker(), "Starting SendIn for $service")
                                 payloadMessageResponder.respond(it)
                             }
@@ -121,7 +118,7 @@ class PayloadMessageProcessor(
         ebmsPayloadMessage
             .createAcknowledgment()
             .also {
-                val validationResult = validator.validateOut(it)
+                val validationResult = cpaValidationService.validateOutgoingMessage(it)
                 ebmsMessageDetailsRepository.saveEbmsMessage(it)
                 sendResponseToTopic(
                     it.toEbmsDokument().signer(validationResult.payloadProcessing!!.signingCertificate),
@@ -133,9 +130,9 @@ class PayloadMessageProcessor(
 
     private suspend fun returnMessageError(ebmsPayloadMessage: PayloadMessage, ebmsException: EbmsException) {
         ebmsPayloadMessage
-            .createFail(ebmsException.feil)
+            .createMessageError(ebmsException.feil)
             .also {
-                val validationResult = validator.validateOut(it)
+                val validationResult = cpaValidationService.validateOutgoingMessage(it)
                 ebmsMessageDetailsRepository.saveEbmsMessage(it)
                 sendResponseToTopic(
                     it.toEbmsDokument().signer(validationResult.payloadProcessing!!.signingCertificate),
