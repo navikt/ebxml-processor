@@ -229,13 +229,23 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         assertEquals(4, validationResult.signalEmailAddress.size)
         assertContains(
             validationResult.signalEmailAddress,
-            EmailAddress("mailto://mottak-qass@test-es.nav.no", EndpointTypeType.ALL_PURPOSE),
-            "'signalEmailAddress' inneholdt IKKE allPurpose-epostadresse"
+            EmailAddress("mailto://request@test-es.nav.no", EndpointTypeType.REQUEST),
+            "'signalEmailAddress' inneholdt IKKE request-epostadresse"
+        )
+        assertContains(
+            validationResult.signalEmailAddress,
+            EmailAddress("mailto://response@test-es.nav.no", EndpointTypeType.RESPONSE),
+            "'signalEmailAddress' inneholdt IKKE response-epostadresse"
         )
         assertContains(
             validationResult.signalEmailAddress,
             EmailAddress("mailto://error@test-es.nav.no", EndpointTypeType.ERROR),
             "'signalEmailAddress' inneholdt IKKE error-epostadresse"
+        )
+        assertContains(
+            validationResult.signalEmailAddress,
+            EmailAddress("mailto://login@test-es.nav.no", EndpointTypeType.LOGIN),
+            "'signalEmailAddress' inneholdt IKKE login-epostadresse"
         )
 
         assertEquals(5, validationResult.receiverEmailAddress.size)
