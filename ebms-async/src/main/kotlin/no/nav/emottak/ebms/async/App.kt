@@ -46,6 +46,7 @@ import no.nav.emottak.ebms.async.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.async.processing.PayloadMessageProcessor
 import no.nav.emottak.ebms.async.processing.PayloadMessageResponder
 import no.nav.emottak.ebms.async.processing.SignalProcessor
+import no.nav.emottak.ebms.async.util.EventRegistrationServiceImpl
 import no.nav.emottak.ebms.defaultHttpClient
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.registerHealthEndpoints
@@ -56,6 +57,8 @@ import no.nav.emottak.ebms.scopedAuthHttpClient
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.utils.environment.isProdEnv
+import no.nav.emottak.utils.kafka.client.EventPublisherClient
+import no.nav.emottak.utils.kafka.service.EventLoggingService
 import org.slf4j.LoggerFactory
 import kotlin.uuid.ExperimentalUuidApi
 
@@ -70,8 +73,8 @@ fun main() = SuspendApp {
     val ebmsMessageDetailsRepository = EbmsMessageDetailsRepository(database)
     val processingClient = PayloadProcessingClient(scopedAuthHttpClient(EBMS_PAYLOAD_SCOPE))
     val processingService = ProcessingService(processingClient)
-    val ebmsSignalProducer = EbmsMessageProducer(config.kafkaSignalProducer.topic, config.kafka)
-    val ebmsPayloadProducer = EbmsMessageProducer(config.kafkaPayloadProducer.topic, config.kafka)
+    val ebmsSignalProducer = EbmsMessageProducer(config.kafkaSignalProducer.topic, config.kafkaLocal)
+    val ebmsPayloadProducer = EbmsMessageProducer(config.kafkaPayloadProducer.topic, config.kafkaLocal)
 
     val cpaClient = CpaRepoClient(defaultHttpClient())
     val cpaValidationService = CPAValidationService(cpaClient)
@@ -98,6 +101,10 @@ fun main() = SuspendApp {
         smtpTransportClient = smtpTransportClient,
         payloadMessageResponder = payloadMessageResponder
     )
+
+    val kafkaPublisherClient = EventPublisherClient(config().kafka)
+    val eventLoggingService = EventLoggingService(config().eventLogging, kafkaPublisherClient)
+    val eventRegistrationService = EventRegistrationServiceImpl(eventLoggingService)
 
     result {
         resourceScope {
@@ -160,7 +167,7 @@ private fun CoroutineScope.launchPayloadReceiver(
         launch(Dispatchers.IO) {
             startPayloadReceiver(
                 config.kafkaPayloadReceiver.topic,
-                config.kafka,
+                config.kafkaLocal,
                 payloadMessageProcessorProvider.invoke()
             )
         }
@@ -178,7 +185,7 @@ private fun CoroutineScope.launchSignalReceiver(
                 ebmsMessageDetailsRepository,
                 cpaValidationService
             )
-            startSignalReceiver(config.kafkaSignalReceiver.topic, config.kafka, signalProcessor)
+            startSignalReceiver(config.kafkaSignalReceiver.topic, config.kafkaLocal, signalProcessor)
         }
     }
 }
@@ -237,7 +244,7 @@ fun Route.simulateError(): Route = get("/api/forceretry/{$KAFKA_OFFSET}") {
             val record = getRecord(
                 config()
                     .kafkaPayloadReceiver.topic,
-                config().kafka
+                config().kafkaLocal
                     .copy(groupId = "ebms-provider-retry"),
                 (call.parameters[KAFKA_OFFSET])?.toLong() ?: 0
             )

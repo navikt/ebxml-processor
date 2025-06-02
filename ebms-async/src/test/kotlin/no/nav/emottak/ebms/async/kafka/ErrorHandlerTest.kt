@@ -28,7 +28,7 @@ class ErrorHandlerTest {
             KafkaTestContainer.createTopic(config().kafkaPayloadProducer.topic)
 
             val testcontainerKafkaConfig =
-                config().kafka.copy(
+                config().kafkaLocal.copy(
                     bootstrapServers = KafkaTestContainer.kafkaContainer.bootstrapServers,
                     properties = Properties().apply {
                         put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, KafkaTestContainer.kafkaContainer.bootstrapServers)

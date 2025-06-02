@@ -1,6 +1,8 @@
 package no.nav.emottak.ebms.async.configuration
 
 import com.sksamuel.hoplite.Masked
+import no.nav.emottak.utils.config.EventLogging
+import no.nav.emottak.utils.config.Kafka
 import org.apache.kafka.clients.CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG
 import org.apache.kafka.clients.CommonClientConfigs.SECURITY_PROTOCOL_CONFIG
 import org.apache.kafka.common.config.SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG
@@ -12,7 +14,9 @@ import org.apache.kafka.common.config.SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG
 import java.util.Properties
 
 data class Config(
+    val kafkaLocal: KafkaLocal,
     val kafka: Kafka,
+    val eventLogging: EventLogging,
     val kafkaSignalReceiver: KafkaSignalReceiver,
     val kafkaSignalProducer: KafkaSignalProducer,
     val kafkaPayloadReceiver: KafkaPayloadReceiver,
@@ -60,7 +64,7 @@ data class KafkaErrorQueue(
     val topic: String
 )
 
-data class Kafka(
+data class KafkaLocal(
     val bootstrapServers: String,
     val securityProtocol: SecurityProtocol,
     val keystoreType: KeystoreType,
@@ -82,7 +86,7 @@ data class Kafka(
     }
 )
 
-fun Kafka.toProperties() = Properties()
+fun KafkaLocal.toProperties() = Properties()
     .apply {
         put(BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
         put(SECURITY_PROTOCOL_CONFIG, securityProtocol.value)

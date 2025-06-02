@@ -15,8 +15,8 @@ import kotlinx.coroutines.flow.cancellable
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import no.nav.emottak.ebms.async.configuration.Kafka
 import no.nav.emottak.ebms.async.configuration.KafkaErrorQueue
+import no.nav.emottak.ebms.async.configuration.KafkaLocal
 import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.processing.PayloadMessageProcessor
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -42,7 +42,7 @@ val logger = LoggerFactory.getLogger(FailedMessageKafkaHandler::class.java)
 
 class FailedMessageKafkaHandler(
     val kafkaErrorQueue: KafkaErrorQueue = config().kafkaErrorQueue,
-    kafka: Kafka = config().kafka
+    kafka: KafkaLocal = config().kafkaLocal
 ) {
 
     val publisher = KafkaPublisher(
@@ -159,12 +159,12 @@ fun ReceiverRecord<String, ByteArray>.addHeader(key: String, value: String) {
 }
 
 fun getRetryRecord(fromOffset: Long = 0, requestedRecords: Int = 1): ReceiverRecord<String, ByteArray>? {
-    return getRecord(config().kafkaErrorQueue.topic, config().kafka, fromOffset, requestedRecords)
+    return getRecord(config().kafkaErrorQueue.topic, config().kafkaLocal, fromOffset, requestedRecords)
 }
 
 fun getRecord(
     topic: String,
-    kafka: Kafka,
+    kafka: KafkaLocal,
     fromOffset: Long = 0,
     requestedRecords: Int = 1
 ): ReceiverRecord<String, ByteArray>? {
@@ -173,7 +173,7 @@ fun getRecord(
 
 fun getRecords(
     topic: String,
-    kafka: Kafka,
+    kafka: KafkaLocal,
     fromOffset: Long = 0,
     requestedRecords: Int = 1
 ): List<ReceiverRecord<String, ByteArray>> {
