@@ -134,11 +134,16 @@ class PayloadMessageProcessor(
             .also {
                 val validationResult = cpaValidationService.validateOutgoingMessageError(it)
                 ebmsMessageDetailsRepository.saveEbmsMessage(it)
-                sendResponseToTopic(
-                    it.toEbmsDokument().signer(validationResult.payloadProcessing!!.signingCertificate),
-                    validationResult.receiverEmailAddress
-                )
-                log.warn(it.marker(), "MessageError returned")
+                val signingCertificate = validationResult.payloadProcessing?.signingCertificate
+                if (signingCertificate == null) {
+                    log.warn(it.marker(), "Could not find signing certificate for outgoing MessageError")
+                } else {
+                    sendResponseToTopic(
+                        it.toEbmsDokument().signer(signingCertificate),
+                        validationResult.signalEmailAddress
+                    )
+                    log.warn(it.marker(), "MessageError returned")
+                }
             }
     }
 
