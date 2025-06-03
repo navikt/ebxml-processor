@@ -15,11 +15,13 @@ import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.util.marker
 import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.message.model.AsyncPayload
+import no.nav.emottak.message.model.EbMSDocument
 import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.xml.asByteArray
 import no.nav.emottak.utils.kafka.model.EventDataType
 import no.nav.emottak.utils.kafka.model.EventType
+import no.nav.emottak.utils.serialization.toEventDataJson
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -57,16 +59,8 @@ class PayloadMessageResponder(
                     ebmsMessageDetailsRepository.saveEbmsMessage(it)
                 }.toEbmsDokument().signer(it.second!!.signingCertificate)
                     .let {
-                        it.attachments.forEach { payload ->
-                            payloadRepository.updateOrInsert(
-                                AsyncPayload(
-                                    referenceId = it.requestId,
-                                    contentId = payload.contentId,
-                                    contentType = payload.contentType,
-                                    content = payload.bytes
-                                )
-                            )
-                        }
+                        savePayloadsToDatabase(it, payloadMessage)
+
                         ebmsPayloadProducer.publishMessage(it.requestId, it.dokument.asByteArray()).onSuccess {
                             val eventData = Json.encodeToString(
                                 mapOf(EventDataType.QUEUE_NAME to config().kafkaPayloadProducer.topic)
@@ -106,6 +100,38 @@ class PayloadMessageResponder(
                 payloadMessage,
                 eventData
             )
+        }
+    }
+
+    @OptIn(ExperimentalUuidApi::class)
+    suspend fun savePayloadsToDatabase(
+        document: EbMSDocument,
+        payloadMessage: PayloadMessage
+    ) {
+        try {
+            document.attachments.forEach { payload ->
+                val asyncPayload = AsyncPayload(
+                    referenceId = document.requestId,
+                    contentId = payload.contentId,
+                    contentType = payload.contentType,
+                    content = payload.bytes
+                )
+
+                payloadRepository.updateOrInsert(asyncPayload)
+
+                eventRegistrationService.registerEvent(
+                    EventType.PAYLOAD_SAVED_INTO_DATABASE,
+                    asyncPayload
+                )
+            }
+        } catch (e: Exception) {
+            log.error(payloadMessage.marker(), "Error occurred while saving payloads into database", e)
+            eventRegistrationService.registerEvent(
+                EventType.ERROR_WHILE_SAVING_PAYLOAD_INTO_DATABASE,
+                payloadMessage,
+                e.toEventDataJson()
+            )
+            throw e
         }
     }
 }

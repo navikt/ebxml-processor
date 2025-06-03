@@ -127,7 +127,8 @@ fun main() = SuspendApp {
                 module = {
                     ebmsProviderModule(
                         payloadRepository = payloadRepository,
-                        payloadProcessorProvider = payloadMessageProcessorProvider
+                        payloadProcessorProvider = payloadMessageProcessorProvider,
+                        eventRegistrationService = eventRegistrationService
                     )
                 }
             ).also { it.engineConfig.maxChunkSize = 100000 }
@@ -197,7 +198,8 @@ private fun CoroutineScope.launchSignalReceiver(
 
 fun Application.ebmsProviderModule(
     payloadRepository: PayloadRepository,
-    payloadProcessorProvider: () -> PayloadMessageProcessor
+    payloadProcessorProvider: () -> PayloadMessageProcessor,
+    eventRegistrationService: EventRegistrationService
 ) {
     val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
 
@@ -215,7 +217,7 @@ fun Application.ebmsProviderModule(
         }
         retryErrors(payloadProcessorProvider)
         authenticate(AZURE_AD_AUTH) {
-            getPayloads(payloadRepository)
+            getPayloads(payloadRepository, eventRegistrationService)
         }
     }
 }
