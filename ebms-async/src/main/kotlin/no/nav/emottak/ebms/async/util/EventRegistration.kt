@@ -8,7 +8,6 @@ import no.nav.emottak.utils.kafka.model.Event
 import no.nav.emottak.utils.kafka.model.EventType
 import no.nav.emottak.utils.kafka.service.EventLoggingService
 import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 
 interface EventRegistrationService {
     suspend fun registerEvent(
@@ -23,10 +22,10 @@ interface EventRegistrationService {
         eventData: String = "{}"
     )
 
-    @OptIn(ExperimentalUuidApi::class)
     suspend fun registerEvent(
         eventType: EventType,
-        requestId: Uuid,
+        requestId: String,
+        contentId: String = "",
         eventData: String = "{}"
     )
 }
@@ -88,7 +87,8 @@ class EventRegistrationServiceImpl(
     @OptIn(ExperimentalUuidApi::class)
     override suspend fun registerEvent(
         eventType: EventType,
-        requestId: Uuid,
+        requestId: String,
+        contentId: String,
         eventData: String
     ) {
         log.debug("Registering event for requestId: $requestId")
@@ -96,8 +96,8 @@ class EventRegistrationServiceImpl(
         try {
             val event = Event(
                 eventType = eventType,
-                requestId = requestId,
-                contentId = "",
+                requestId = requestId.parseOrGenerateUuid(),
+                contentId = contentId,
                 messageId = "",
                 eventData = eventData
             )
@@ -128,10 +128,10 @@ class EventRegistrationServiceFake : EventRegistrationService {
         log.debug("Registering event $eventType for asyncPayload: $asyncPayload and eventData: $eventData")
     }
 
-    @OptIn(ExperimentalUuidApi::class)
     override suspend fun registerEvent(
         eventType: EventType,
-        requestId: Uuid,
+        requestId: String,
+        contentId: String,
         eventData: String
     ) {
         log.debug("Registering event $eventType for requestId: $requestId and eventData: $eventData")

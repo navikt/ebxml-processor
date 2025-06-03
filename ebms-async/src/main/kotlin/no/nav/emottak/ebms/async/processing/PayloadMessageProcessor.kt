@@ -26,6 +26,7 @@ import no.nav.emottak.message.xml.getDocumentBuilder
 import no.nav.emottak.util.marker
 import no.nav.emottak.utils.kafka.model.EventDataType
 import no.nav.emottak.utils.kafka.model.EventType
+import no.nav.emottak.utils.serialization.toEventDataJson
 import java.io.ByteArrayInputStream
 
 class PayloadMessageProcessor(
@@ -59,14 +60,31 @@ class PayloadMessageProcessor(
         return ebmsMessage as PayloadMessage
     }
 
-    private suspend fun retrievePayloads(reference: String) =
-        smtpTransportClient.getPayload(reference).map {
-            Payload(
-                bytes = it.content,
-                contentId = it.contentId,
-                contentType = it.contentType
+    private suspend fun retrievePayloads(reference: String): List<Payload> {
+        try {
+            return smtpTransportClient.getPayload(reference).map {
+                Payload(
+                    bytes = it.content,
+                    contentId = it.contentId,
+                    contentType = it.contentType
+                )
+            }.onEach {
+                eventRegistrationService.registerEvent(
+                    EventType.PAYLOAD_RECEIVED_VIA_HTTP,
+                    requestId = reference,
+                    contentId = it.contentId
+                )
+            }
+        } catch (e: Exception) {
+            log.error("Error occurred while retrieving payloads for referenceId: $reference", e)
+            eventRegistrationService.registerEvent(
+                EventType.ERROR_WHILE_RECEIVING_PAYLOAD_VIA_HTTP,
+                requestId = reference,
+                eventData = e.toEventDataJson()
             )
+            throw e
         }
+    }
 
     private suspend fun processPayloadMessage(
         ebmsPayloadMessage: PayloadMessage,
