@@ -31,7 +31,7 @@ class EventRegistrationServiceImpl(
             val event = Event(
                 eventType = eventType,
                 requestId = payloadRequest.requestId.parseOrGenerateUuid(),
-                contentId = "",
+                contentId = payloadRequest.payload.contentId,
                 messageId = payloadRequest.messageId,
                 eventData = eventData
             )
