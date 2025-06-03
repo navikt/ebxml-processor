@@ -46,6 +46,7 @@ import no.nav.emottak.ebms.async.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.async.processing.PayloadMessageProcessor
 import no.nav.emottak.ebms.async.processing.PayloadMessageResponder
 import no.nav.emottak.ebms.async.processing.SignalProcessor
+import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.ebms.async.util.EventRegistrationServiceImpl
 import no.nav.emottak.ebms.defaultHttpClient
 import no.nav.emottak.ebms.processing.ProcessingService
@@ -84,13 +85,18 @@ fun main() = SuspendApp {
 
     val smtpTransportClient = SmtpTransportClient(scopedAuthHttpClient(SMTP_TRANSPORT_SCOPE))
 
+    val kafkaPublisherClient = EventPublisherClient(config().kafka)
+    val eventLoggingService = EventLoggingService(config().eventLogging, kafkaPublisherClient)
+    val eventRegistrationService = EventRegistrationServiceImpl(eventLoggingService)
+
     val payloadMessageResponder = PayloadMessageResponder(
         sendInService = sendInService,
         cpaValidationService = cpaValidationService,
         processingService = processingService,
         payloadRepository = payloadRepository,
         ebmsMessageDetailsRepository = ebmsMessageDetailsRepository,
-        ebmsPayloadProducer = ebmsPayloadProducer
+        ebmsPayloadProducer = ebmsPayloadProducer,
+        eventRegistrationService = eventRegistrationService
     )
 
     val payloadMessageProcessorProvider = payloadMessageProcessorProvider(
@@ -99,12 +105,9 @@ fun main() = SuspendApp {
         processingService = processingService,
         ebmsSignalProducer = ebmsSignalProducer,
         smtpTransportClient = smtpTransportClient,
-        payloadMessageResponder = payloadMessageResponder
+        payloadMessageResponder = payloadMessageResponder,
+        eventRegistrationService = eventRegistrationService
     )
-
-    val kafkaPublisherClient = EventPublisherClient(config().kafka)
-    val eventLoggingService = EventLoggingService(config().eventLogging, kafkaPublisherClient)
-    val eventRegistrationService = EventRegistrationServiceImpl(eventLoggingService)
 
     result {
         resourceScope {
@@ -146,7 +149,8 @@ fun payloadMessageProcessorProvider(
     processingService: ProcessingService,
     ebmsSignalProducer: EbmsMessageProducer,
     smtpTransportClient: SmtpTransportClient,
-    payloadMessageResponder: PayloadMessageResponder
+    payloadMessageResponder: PayloadMessageResponder,
+    eventRegistrationService: EventRegistrationService
 
 ): () -> PayloadMessageProcessor = {
     PayloadMessageProcessor(
@@ -155,7 +159,8 @@ fun payloadMessageProcessorProvider(
         processingService = processingService,
         ebmsSignalProducer = ebmsSignalProducer,
         smtpTransportClient = smtpTransportClient,
-        payloadMessageResponder
+        payloadMessageResponder = payloadMessageResponder,
+        eventRegistrationService = eventRegistrationService
     )
 }
 

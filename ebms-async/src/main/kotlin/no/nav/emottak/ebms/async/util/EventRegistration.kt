@@ -1,7 +1,7 @@
 package no.nav.emottak.ebms.async.util
 
 import no.nav.emottak.ebms.async.log
-import no.nav.emottak.message.model.ValidationRequest
+import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.utils.common.parseOrGenerateUuid
 import no.nav.emottak.utils.kafka.model.Event
 import no.nav.emottak.utils.kafka.model.EventType
@@ -11,8 +11,7 @@ import kotlin.uuid.ExperimentalUuidApi
 interface EventRegistrationService {
     suspend fun registerEvent(
         eventType: EventType,
-        validationRequest: ValidationRequest,
-        requestId: String,
+        payloadMessage: PayloadMessage,
         eventData: String = "{}"
     )
 }
@@ -23,18 +22,17 @@ class EventRegistrationServiceImpl(
     @OptIn(ExperimentalUuidApi::class)
     override suspend fun registerEvent(
         eventType: EventType,
-        validationRequest: ValidationRequest,
-        requestId: String,
+        payloadMessage: PayloadMessage,
         eventData: String
     ) {
-        log.debug("Registering event for requestId: $requestId")
+        log.debug("Registering event for requestId: ${payloadMessage.requestId}")
 
         try {
             val event = Event(
                 eventType = eventType,
-                requestId = requestId.parseOrGenerateUuid(),
-                contentId = "",
-                messageId = validationRequest.messageId,
+                requestId = payloadMessage.requestId.parseOrGenerateUuid(),
+                contentId = payloadMessage.payload.contentId,
+                messageId = payloadMessage.messageId,
                 eventData = eventData
             )
             log.debug("Registering event: {}", event)
@@ -50,10 +48,9 @@ class EventRegistrationServiceImpl(
 class EventRegistrationServiceFake : EventRegistrationService {
     override suspend fun registerEvent(
         eventType: EventType,
-        validationRequest: ValidationRequest,
-        requestId: String,
+        payloadMessage: PayloadMessage,
         eventData: String
     ) {
-        log.debug("Registering event $eventType for validationRequest: $validationRequest and eventData: $eventData")
+        log.debug("Registering event $eventType for payloadMessage: $payloadMessage and eventData: $eventData")
     }
 }
