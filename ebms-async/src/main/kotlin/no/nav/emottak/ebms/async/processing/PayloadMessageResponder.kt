@@ -22,7 +22,6 @@ import no.nav.emottak.message.xml.asByteArray
 import no.nav.emottak.utils.kafka.model.EventDataType
 import no.nav.emottak.utils.kafka.model.EventType
 import no.nav.emottak.utils.serialization.toEventDataJson
-import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 class PayloadMessageResponder(
@@ -35,7 +34,6 @@ class PayloadMessageResponder(
     val eventRegistrationService: EventRegistrationService
 ) {
 
-    @OptIn(ExperimentalUuidApi::class)
     suspend fun respond(payloadMessage: PayloadMessage) {
         try {
             sendInService.sendIn(payloadMessage).let { sendInResponse ->
@@ -103,7 +101,6 @@ class PayloadMessageResponder(
         }
     }
 
-    @OptIn(ExperimentalUuidApi::class)
     suspend fun savePayloadsToDatabase(
         document: EbMSDocument,
         payloadMessage: PayloadMessage

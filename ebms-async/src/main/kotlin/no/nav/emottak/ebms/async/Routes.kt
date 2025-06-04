@@ -8,12 +8,10 @@ import no.nav.emottak.ebms.async.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.utils.kafka.model.EventType
 import no.nav.emottak.utils.serialization.toEventDataJson
-import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 private const val REFERENCE_ID = "referenceId"
 
-@OptIn(ExperimentalUuidApi::class)
 fun Route.getPayloads(
     payloadRepository: PayloadRepository,
     eventRegistrationService: EventRegistrationService

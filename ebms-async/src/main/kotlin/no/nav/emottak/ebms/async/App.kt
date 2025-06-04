@@ -61,7 +61,6 @@ import no.nav.emottak.utils.environment.isProdEnv
 import no.nav.emottak.utils.kafka.client.EventPublisherClient
 import no.nav.emottak.utils.kafka.service.EventLoggingService
 import org.slf4j.LoggerFactory
-import kotlin.uuid.ExperimentalUuidApi
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.async.App")
 
@@ -224,7 +223,6 @@ fun Application.ebmsProviderModule(
 
 const val RETRY_LIMIT = "retryLimit"
 
-@OptIn(ExperimentalUuidApi::class)
 fun Routing.retryErrors(
     payloadMessageProcessorProvider: () -> PayloadMessageProcessor
 ): Route =
