@@ -40,23 +40,15 @@ class EventRegistrationServiceImpl(
         payloadMessage: PayloadMessage,
         eventData: String
     ) {
-        log.debug("Registering event for requestId: ${payloadMessage.requestId}")
-
-        try {
-            val event = Event(
+        registerEvent(
+            Event(
                 eventType = eventType,
                 requestId = payloadMessage.requestId.parseOrGenerateUuid(),
                 contentId = payloadMessage.payload.contentId,
                 messageId = payloadMessage.messageId,
                 eventData = eventData
             )
-            log.debug("Registering event: {}", event)
-
-            eventLoggingService.logEvent(event)
-            log.debug("Event is registered successfully")
-        } catch (e: Exception) {
-            log.error("Error while registering event: ${e.message}", e)
-        }
+        )
     }
 
     @OptIn(ExperimentalUuidApi::class)
@@ -65,23 +57,15 @@ class EventRegistrationServiceImpl(
         asyncPayload: AsyncPayload,
         eventData: String
     ) {
-        log.debug("Registering event for requestId: ${asyncPayload.referenceId}")
-
-        try {
-            val event = Event(
+        registerEvent(
+            Event(
                 eventType = eventType,
                 requestId = asyncPayload.referenceId.parseOrGenerateUuid(),
                 contentId = asyncPayload.contentId,
                 messageId = "",
                 eventData = eventData
             )
-            log.debug("Registering event: {}", event)
-
-            eventLoggingService.logEvent(event)
-            log.debug("Event is registered successfully")
-        } catch (e: Exception) {
-            log.error("Error while registering event: ${e.message}", e)
-        }
+        )
     }
 
     @OptIn(ExperimentalUuidApi::class)
@@ -91,18 +75,20 @@ class EventRegistrationServiceImpl(
         contentId: String,
         eventData: String
     ) {
-        log.debug("Registering event for requestId: $requestId")
-
-        try {
-            val event = Event(
+        registerEvent(
+            Event(
                 eventType = eventType,
                 requestId = requestId.parseOrGenerateUuid(),
                 contentId = contentId,
                 messageId = "",
                 eventData = eventData
             )
-            log.debug("Registering event: {}", event)
+        )
+    }
 
+    private suspend fun registerEvent(event: Event) {
+        try {
+            log.debug("Registering event: {}", event)
             eventLoggingService.logEvent(event)
             log.debug("Event is registered successfully")
         } catch (e: Exception) {
