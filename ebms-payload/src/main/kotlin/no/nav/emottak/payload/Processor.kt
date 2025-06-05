@@ -50,7 +50,7 @@ class Processor(
                     EventType.MESSAGE_SAVED_IN_JURIDISK_LOGG,
                     payloadRequest,
                     Json.encodeToString(
-                        mapOf(EventDataType.JURIDISK_LOGG_ID to it)
+                        mapOf(EventDataType.JURIDISK_LOGG_ID.value to it)
                     )
                 )
             }
@@ -157,7 +157,7 @@ class Processor(
                 EventType.MESSAGE_ENCRYPTED,
                 payloadRequest,
                 Json.encodeToString(
-                    mapOf(EventDataType.ENCRYPTION_DETAILS to getEncryptionDetails(certificate))
+                    mapOf(EventDataType.ENCRYPTION_DETAILS.value to getEncryptionDetails(certificate))
                 )
             )
         }
