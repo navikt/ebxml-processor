@@ -7,7 +7,7 @@ import io.ktor.client.statement.readRawBytes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import no.nav.emottak.crypto.KeyStoreManager
-import no.nav.emottak.payload.config
+import no.nav.emottak.payload.configuration.config
 import no.nav.emottak.payload.log
 import no.nav.emottak.utils.environment.getEnvVar
 import org.bouncycastle.asn1.ocsp.OCSPObjectIdentifiers
