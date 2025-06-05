@@ -61,7 +61,7 @@ class PayloadMessageResponder(
 
                         ebmsPayloadProducer.publishMessage(it.requestId, it.dokument.asByteArray()).onSuccess {
                             val eventData = Json.encodeToString(
-                                mapOf(EventDataType.QUEUE_NAME to config().kafkaPayloadProducer.topic)
+                                mapOf(EventDataType.QUEUE_NAME.value to config().kafkaPayloadProducer.topic)
                             )
                             eventRegistrationService.registerEvent(
                                 EventType.MESSAGE_PLACED_IN_QUEUE,
@@ -71,8 +71,8 @@ class PayloadMessageResponder(
                         }.onFailure {
                             val eventData = Json.encodeToString(
                                 mapOf(
-                                    EventDataType.QUEUE_NAME to config().kafkaPayloadProducer.topic,
-                                    EventDataType.ERROR_MESSAGE to it.message
+                                    EventDataType.QUEUE_NAME.value to config().kafkaPayloadProducer.topic,
+                                    EventDataType.ERROR_MESSAGE.value to it.message
                                 )
                             )
                             eventRegistrationService.registerEvent(
@@ -89,8 +89,8 @@ class PayloadMessageResponder(
 
             val eventData = Json.encodeToString(
                 mapOf(
-                    EventDataType.QUEUE_NAME to config().kafkaPayloadProducer.topic,
-                    EventDataType.ERROR_MESSAGE to e.message
+                    EventDataType.QUEUE_NAME.value to config().kafkaPayloadProducer.topic,
+                    EventDataType.ERROR_MESSAGE.value to e.message
                 )
             )
             eventRegistrationService.registerEvent(

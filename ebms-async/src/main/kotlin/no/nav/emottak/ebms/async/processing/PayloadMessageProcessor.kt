@@ -92,7 +92,7 @@ class PayloadMessageProcessor(
     ) {
         try {
             val eventData = Json.encodeToString(
-                mapOf(EventDataType.QUEUE_NAME to config().kafkaPayloadReceiver.topic)
+                mapOf(EventDataType.QUEUE_NAME.value to config().kafkaPayloadReceiver.topic)
             )
             eventRegistrationService.registerEvent(
                 EventType.MESSAGE_READ_FROM_QUEUE,
