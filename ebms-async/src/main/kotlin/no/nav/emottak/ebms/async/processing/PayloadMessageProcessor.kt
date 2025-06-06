@@ -9,6 +9,7 @@ import no.nav.emottak.ebms.async.kafka.consumer.failedMessageQueue
 import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
 import no.nav.emottak.ebms.async.log
 import no.nav.emottak.ebms.async.persistence.repository.EbmsMessageDetailsRepository
+import no.nav.emottak.ebms.async.util.toHeaders
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.util.marker
@@ -49,7 +50,8 @@ class PayloadMessageProcessor(
                 getDocumentBuilder().parse(ByteArrayInputStream(content))
             },
             retrievePayloads(requestId)
-        ).transform().takeIf { it is PayloadMessage } ?: throw RuntimeException("Cannot process message as payload message: $requestId")
+        ).transform().takeIf { it is PayloadMessage }
+            ?: throw RuntimeException("Cannot process message as payload message: $requestId")
         return ebmsMessage as PayloadMessage
     }
 
@@ -83,6 +85,7 @@ class PayloadMessageProcessor(
                                 log.debug(it.marker(), "Starting SendIn for $service")
                                 payloadMessageResponder.respond(it)
                             }
+
                             else -> {
                                 log.debug(it.marker(), "Skipping SendIn for $service")
                             }
@@ -152,7 +155,12 @@ class PayloadMessageProcessor(
             val markers = ebMSDocument.messageHeader().marker()
             try {
                 log.info(markers, "Sending message to Kafka queue")
-                ebmsSignalProducer.publishMessage(ebMSDocument.requestId, ebMSDocument.dokument.asByteArray())
+                ebmsSignalProducer.publishMessage(
+                    ebMSDocument.requestId,
+                    ebMSDocument.dokument.asByteArray(),
+                    signalResponderEmails.toHeaders()
+
+                )
             } catch (e: Exception) {
                 log.error(markers, "Exception occurred while sending message to Kafka queue", e)
             }
