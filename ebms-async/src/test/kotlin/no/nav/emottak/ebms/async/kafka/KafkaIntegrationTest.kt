@@ -42,7 +42,7 @@ class KafkaIntegrationTest {
         if (noLocalKafkaEnv()) return
         val record = getRecord(
             kafkaConfig.kafkaPayloadReceiver.topic,
-            kafkaConfig.kafkaLocal
+            kafkaConfig.kafka
         )
         assert(
             record?.key() != null
@@ -58,7 +58,7 @@ class KafkaIntegrationTest {
                 fromOffset = 9379942,
                 topic = kafkaConfig.kafkaPayloadReceiver.topic,
                 requestedRecords = 2,
-                kafka = kafkaConfig.kafkaLocal
+                kafka = kafkaConfig.kafka
             )!!
             runBlocking {
                 failedMessageQueue.sendToRetry(

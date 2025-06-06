@@ -16,9 +16,10 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import no.nav.emottak.ebms.async.configuration.KafkaErrorQueue
-import no.nav.emottak.ebms.async.configuration.KafkaLocal
 import no.nav.emottak.ebms.async.configuration.config
+import no.nav.emottak.ebms.async.configuration.toProperties
 import no.nav.emottak.ebms.async.processing.PayloadMessageProcessor
+import no.nav.emottak.utils.config.Kafka
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.consumer.ConsumerRecords
 import org.apache.kafka.clients.consumer.KafkaConsumer
@@ -42,7 +43,7 @@ val logger = LoggerFactory.getLogger(FailedMessageKafkaHandler::class.java)
 
 class FailedMessageKafkaHandler(
     val kafkaErrorQueue: KafkaErrorQueue = config().kafkaErrorQueue,
-    kafka: KafkaLocal = config().kafkaLocal
+    kafka: Kafka = config().kafka
 ) {
 
     val publisher = KafkaPublisher(
@@ -51,7 +52,7 @@ class FailedMessageKafkaHandler(
             keySerializer = StringSerializer(),
             valueSerializer = ByteArraySerializer(),
             acknowledgments = Acks.All,
-            properties = kafka.properties
+            properties = kafka.toProperties()
         )
     )
 
@@ -62,7 +63,7 @@ class FailedMessageKafkaHandler(
             valueDeserializer = ByteArrayDeserializer(),
             groupId = kafka.groupId,
             pollTimeout = 10.seconds,
-            properties = kafka.properties
+            properties = kafka.toProperties()
         )
     )
 
@@ -159,12 +160,12 @@ fun ReceiverRecord<String, ByteArray>.addHeader(key: String, value: String) {
 }
 
 fun getRetryRecord(fromOffset: Long = 0, requestedRecords: Int = 1): ReceiverRecord<String, ByteArray>? {
-    return getRecord(config().kafkaErrorQueue.topic, config().kafkaLocal, fromOffset, requestedRecords)
+    return getRecord(config().kafkaErrorQueue.topic, config().kafka, fromOffset, requestedRecords)
 }
 
 fun getRecord(
     topic: String,
-    kafka: KafkaLocal,
+    kafka: Kafka,
     fromOffset: Long = 0,
     requestedRecords: Int = 1
 ): ReceiverRecord<String, ByteArray>? {
@@ -173,12 +174,12 @@ fun getRecord(
 
 fun getRecords(
     topic: String,
-    kafka: KafkaLocal,
+    kafka: Kafka,
     fromOffset: Long = 0,
     requestedRecords: Int = 1
 ): List<ReceiverRecord<String, ByteArray>> {
     KafkaConsumer(
-        kafka.properties,
+        kafka.toProperties(),
         StringDeserializer(),
         ByteArrayDeserializer()
     ).use { consumer ->

@@ -5,15 +5,15 @@ import io.github.nomisRev.kafka.receiver.KafkaReceiver
 import io.github.nomisRev.kafka.receiver.ReceiverSettings
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.map
-import no.nav.emottak.ebms.async.configuration.KafkaLocal
 import no.nav.emottak.ebms.async.configuration.toProperties
 import no.nav.emottak.ebms.async.log
 import no.nav.emottak.ebms.async.processing.PayloadMessageProcessor
+import no.nav.emottak.utils.config.Kafka
 import org.apache.kafka.common.serialization.ByteArrayDeserializer
 import org.apache.kafka.common.serialization.StringDeserializer
 import kotlin.time.Duration.Companion.seconds
 
-suspend fun startPayloadReceiver(topic: String, kafka: KafkaLocal, payloadMessageProcessor: PayloadMessageProcessor) {
+suspend fun startPayloadReceiver(topic: String, kafka: Kafka, payloadMessageProcessor: PayloadMessageProcessor) {
     log.info("Starting payload message receiver on topic $topic")
     val receiverSettings: ReceiverSettings<String, ByteArray> =
         ReceiverSettings(

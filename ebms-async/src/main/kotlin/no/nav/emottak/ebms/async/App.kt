@@ -73,8 +73,8 @@ fun main() = SuspendApp {
     val ebmsMessageDetailsRepository = EbmsMessageDetailsRepository(database)
     val processingClient = PayloadProcessingClient(scopedAuthHttpClient(EBMS_PAYLOAD_SCOPE))
     val processingService = ProcessingService(processingClient)
-    val ebmsSignalProducer = EbmsMessageProducer(config.kafkaSignalProducer.topic, config.kafkaLocal)
-    val ebmsPayloadProducer = EbmsMessageProducer(config.kafkaPayloadProducer.topic, config.kafkaLocal)
+    val ebmsSignalProducer = EbmsMessageProducer(config.kafkaSignalProducer.topic, config.kafka)
+    val ebmsPayloadProducer = EbmsMessageProducer(config.kafkaPayloadProducer.topic, config.kafka)
 
     val cpaClient = CpaRepoClient(defaultHttpClient())
     val cpaValidationService = CPAValidationService(cpaClient)
@@ -172,7 +172,7 @@ private fun CoroutineScope.launchPayloadReceiver(
         launch(Dispatchers.IO) {
             startPayloadReceiver(
                 config.kafkaPayloadReceiver.topic,
-                config.kafkaLocal,
+                config.kafka,
                 payloadMessageProcessorProvider.invoke()
             )
         }
@@ -190,7 +190,7 @@ private fun CoroutineScope.launchSignalReceiver(
                 ebmsMessageDetailsRepository,
                 cpaValidationService
             )
-            startSignalReceiver(config.kafkaSignalReceiver.topic, config.kafkaLocal, signalProcessor)
+            startSignalReceiver(config.kafkaSignalReceiver.topic, config.kafka, signalProcessor)
         }
     }
 }
@@ -249,7 +249,7 @@ fun Route.simulateError(): Route = get("/api/forceretry/{$KAFKA_OFFSET}") {
             val record = getRecord(
                 config()
                     .kafkaPayloadReceiver.topic,
-                config().kafkaLocal
+                config().kafka
                     .copy(groupId = "ebms-provider-retry"),
                 (call.parameters[KAFKA_OFFSET])?.toLong() ?: 0
             )
