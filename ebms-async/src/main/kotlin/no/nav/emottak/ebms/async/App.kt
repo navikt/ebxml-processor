@@ -46,6 +46,8 @@ import no.nav.emottak.ebms.async.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.async.processing.PayloadMessageProcessor
 import no.nav.emottak.ebms.async.processing.PayloadMessageResponder
 import no.nav.emottak.ebms.async.processing.SignalProcessor
+import no.nav.emottak.ebms.async.util.EventRegistrationService
+import no.nav.emottak.ebms.async.util.EventRegistrationServiceImpl
 import no.nav.emottak.ebms.defaultHttpClient
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.registerHealthEndpoints
@@ -56,8 +58,9 @@ import no.nav.emottak.ebms.scopedAuthHttpClient
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.utils.environment.isProdEnv
+import no.nav.emottak.utils.kafka.client.EventPublisherClient
+import no.nav.emottak.utils.kafka.service.EventLoggingService
 import org.slf4j.LoggerFactory
-import kotlin.uuid.ExperimentalUuidApi
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.async.App")
 
@@ -81,13 +84,18 @@ fun main() = SuspendApp {
 
     val smtpTransportClient = SmtpTransportClient(scopedAuthHttpClient(SMTP_TRANSPORT_SCOPE))
 
+    val kafkaPublisherClient = EventPublisherClient(config().kafka)
+    val eventLoggingService = EventLoggingService(config().eventLogging, kafkaPublisherClient)
+    val eventRegistrationService = EventRegistrationServiceImpl(eventLoggingService)
+
     val payloadMessageResponder = PayloadMessageResponder(
         sendInService = sendInService,
         cpaValidationService = cpaValidationService,
         processingService = processingService,
         payloadRepository = payloadRepository,
         ebmsMessageDetailsRepository = ebmsMessageDetailsRepository,
-        ebmsPayloadProducer = ebmsPayloadProducer
+        ebmsPayloadProducer = ebmsPayloadProducer,
+        eventRegistrationService = eventRegistrationService
     )
 
     val payloadMessageProcessorProvider = payloadMessageProcessorProvider(
@@ -96,7 +104,8 @@ fun main() = SuspendApp {
         processingService = processingService,
         ebmsSignalProducer = ebmsSignalProducer,
         smtpTransportClient = smtpTransportClient,
-        payloadMessageResponder = payloadMessageResponder
+        payloadMessageResponder = payloadMessageResponder,
+        eventRegistrationService = eventRegistrationService
     )
 
     result {
@@ -117,7 +126,8 @@ fun main() = SuspendApp {
                 module = {
                     ebmsProviderModule(
                         payloadRepository = payloadRepository,
-                        payloadProcessorProvider = payloadMessageProcessorProvider
+                        payloadProcessorProvider = payloadMessageProcessorProvider,
+                        eventRegistrationService = eventRegistrationService
                     )
                 }
             ).also { it.engineConfig.maxChunkSize = 100000 }
@@ -139,7 +149,8 @@ fun payloadMessageProcessorProvider(
     processingService: ProcessingService,
     ebmsSignalProducer: EbmsMessageProducer,
     smtpTransportClient: SmtpTransportClient,
-    payloadMessageResponder: PayloadMessageResponder
+    payloadMessageResponder: PayloadMessageResponder,
+    eventRegistrationService: EventRegistrationService
 
 ): () -> PayloadMessageProcessor = {
     PayloadMessageProcessor(
@@ -148,7 +159,8 @@ fun payloadMessageProcessorProvider(
         processingService = processingService,
         ebmsSignalProducer = ebmsSignalProducer,
         smtpTransportClient = smtpTransportClient,
-        payloadMessageResponder
+        payloadMessageResponder = payloadMessageResponder,
+        eventRegistrationService = eventRegistrationService
     )
 }
 
@@ -185,7 +197,8 @@ private fun CoroutineScope.launchSignalReceiver(
 
 fun Application.ebmsProviderModule(
     payloadRepository: PayloadRepository,
-    payloadProcessorProvider: () -> PayloadMessageProcessor
+    payloadProcessorProvider: () -> PayloadMessageProcessor,
+    eventRegistrationService: EventRegistrationService
 ) {
     val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
 
@@ -203,14 +216,13 @@ fun Application.ebmsProviderModule(
         }
         retryErrors(payloadProcessorProvider)
         authenticate(AZURE_AD_AUTH) {
-            getPayloads(payloadRepository)
+            getPayloads(payloadRepository, eventRegistrationService)
         }
     }
 }
 
 const val RETRY_LIMIT = "retryLimit"
 
-@OptIn(ExperimentalUuidApi::class)
 fun Routing.retryErrors(
     payloadMessageProcessorProvider: () -> PayloadMessageProcessor
 ): Route =

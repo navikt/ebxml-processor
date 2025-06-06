@@ -23,12 +23,10 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.upsert
 import org.slf4j.LoggerFactory
 import java.sql.SQLException
-import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import kotlin.uuid.toJavaUuid
 import kotlin.uuid.toKotlinUuid
 
-@OptIn(ExperimentalUuidApi::class)
 class EbmsMessageDetailsRepository(private val database: Database) {
 
     private val log = LoggerFactory.getLogger(EbmsMessageDetailsRepository::class.java)
@@ -128,7 +126,6 @@ class EbmsMessageDetailsRepository(private val database: Database) {
         }
     }
 
-    @OptIn(ExperimentalUuidApi::class)
     fun saveEbmsMessage(
         ebmsMessage: EbmsMessage
     ) {
