@@ -21,7 +21,6 @@ import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.xml.asByteArray
 import no.nav.emottak.utils.kafka.model.EventDataType
 import no.nav.emottak.utils.kafka.model.EventType
-import no.nav.emottak.utils.serialization.toEventDataJson
 import kotlin.uuid.Uuid
 
 class PayloadMessageResponder(
@@ -59,27 +58,16 @@ class PayloadMessageResponder(
                     .let {
                         savePayloadsToDatabase(it, payloadMessage)
 
-                        ebmsPayloadProducer.publishMessage(it.requestId, it.dokument.asByteArray()).onSuccess {
-                            val eventData = Json.encodeToString(
+                        eventRegistrationService.runWithEvent(
+                            successEvent = EventType.MESSAGE_PLACED_IN_QUEUE,
+                            failEvent = EventType.ERROR_WHILE_STORING_MESSAGE_IN_QUEUE,
+                            requestId = payloadMessage.requestId,
+                            contentId = payloadMessage.payload.contentId,
+                            eventData = Json.encodeToString(
                                 mapOf(EventDataType.QUEUE_NAME.value to config().kafkaPayloadProducer.topic)
                             )
-                            eventRegistrationService.registerEvent(
-                                EventType.MESSAGE_PLACED_IN_QUEUE,
-                                payloadMessage,
-                                eventData
-                            )
-                        }.onFailure {
-                            val eventData = Json.encodeToString(
-                                mapOf(
-                                    EventDataType.QUEUE_NAME.value to config().kafkaPayloadProducer.topic,
-                                    EventDataType.ERROR_MESSAGE.value to it.message
-                                )
-                            )
-                            eventRegistrationService.registerEvent(
-                                EventType.ERROR_WHILE_STORING_MESSAGE_IN_QUEUE,
-                                payloadMessage,
-                                eventData
-                            )
+                        ) {
+                            ebmsPayloadProducer.publishMessage(it.requestId, it.dokument.asByteArray())
                         }
                     }
                 log.info(it.first.marker(), "Payload message response returned successfully")
@@ -114,20 +102,17 @@ class PayloadMessageResponder(
                     content = payload.bytes
                 )
 
-                payloadRepository.updateOrInsert(asyncPayload)
-
-                eventRegistrationService.registerEvent(
-                    EventType.PAYLOAD_SAVED_INTO_DATABASE,
-                    asyncPayload
-                )
+                eventRegistrationService.runWithEvent(
+                    successEvent = EventType.PAYLOAD_SAVED_INTO_DATABASE,
+                    failEvent = EventType.ERROR_WHILE_SAVING_PAYLOAD_INTO_DATABASE,
+                    requestId = asyncPayload.referenceId,
+                    contentId = asyncPayload.contentId
+                ) {
+                    payloadRepository.updateOrInsert(asyncPayload)
+                }
             }
         } catch (e: Exception) {
             log.error(payloadMessage.marker(), "Error occurred while saving payloads into database", e)
-            eventRegistrationService.registerEvent(
-                EventType.ERROR_WHILE_SAVING_PAYLOAD_INTO_DATABASE,
-                payloadMessage,
-                e.toEventDataJson()
-            )
             throw e
         }
     }
