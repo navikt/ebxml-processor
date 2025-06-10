@@ -9,10 +9,11 @@ import no.nav.emottak.ebms.async.kafka.consumer.failedMessageQueue
 import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
 import no.nav.emottak.ebms.async.log
 import no.nav.emottak.ebms.async.persistence.repository.EbmsMessageDetailsRepository
+import no.nav.emottak.ebms.async.util.toHeaders
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.util.marker
-import no.nav.emottak.ebms.validation.DokumentValidator
+import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.melding.feil.EbmsException
 import no.nav.emottak.message.model.EbMSDocument
 import no.nav.emottak.message.model.EmailAddress
@@ -25,7 +26,7 @@ import java.io.ByteArrayInputStream
 
 class PayloadMessageProcessor(
     val ebmsMessageDetailsRepository: EbmsMessageDetailsRepository,
-    val validator: DokumentValidator,
+    val cpaValidationService: CPAValidationService,
     val processingService: ProcessingService,
     val ebmsSignalProducer: EbmsMessageProducer,
     val smtpTransportClient: SmtpTransportClient,
@@ -49,7 +50,8 @@ class PayloadMessageProcessor(
                 getDocumentBuilder().parse(ByteArrayInputStream(content))
             },
             retrievePayloads(requestId)
-        ).transform().takeIf { it is PayloadMessage } ?: throw RuntimeException("Cannot process message as payload message: $requestId")
+        ).transform().takeIf { it is PayloadMessage }
+            ?: throw RuntimeException("Cannot process message as payload message: $requestId")
         return ebmsMessage as PayloadMessage
     }
 
@@ -72,8 +74,8 @@ class PayloadMessageProcessor(
             } else {
                 log.info(ebmsPayloadMessage.marker(), "Got payload message with reference <${record.key()}>")
                 ebmsMessageDetailsRepository.saveEbmsMessage(ebmsPayloadMessage)
-                validator
-                    .validateIn(ebmsPayloadMessage)
+                cpaValidationService
+                    .validateIncomingMessage(ebmsPayloadMessage)
                     .let {
                         processingService.processAsync(ebmsPayloadMessage, it.payloadProcessing)
                     }
@@ -83,6 +85,7 @@ class PayloadMessageProcessor(
                                 log.debug(it.marker(), "Starting SendIn for $service")
                                 payloadMessageResponder.respond(it)
                             }
+
                             else -> {
                                 log.debug(it.marker(), "Skipping SendIn for $service")
                             }
@@ -118,7 +121,7 @@ class PayloadMessageProcessor(
         ebmsPayloadMessage
             .createAcknowledgment()
             .also {
-                val validationResult = validator.validateOut(it)
+                val validationResult = cpaValidationService.validateOutgoingMessage(it)
                 ebmsMessageDetailsRepository.saveEbmsMessage(it)
                 sendResponseToTopic(
                     it.toEbmsDokument().signer(validationResult.payloadProcessing!!.signingCertificate),
@@ -132,7 +135,7 @@ class PayloadMessageProcessor(
         ebmsPayloadMessage
             .createMessageError(ebmsException.feil)
             .also {
-                val validationResult = validator.validateOut(it)
+                val validationResult = cpaValidationService.validateOutgoingMessage(it)
                 ebmsMessageDetailsRepository.saveEbmsMessage(it)
                 sendResponseToTopic(
                     it.toEbmsDokument().signer(validationResult.payloadProcessing!!.signingCertificate),
@@ -147,7 +150,12 @@ class PayloadMessageProcessor(
             val markers = ebMSDocument.messageHeader().marker()
             try {
                 log.info(markers, "Sending message to Kafka queue")
-                ebmsSignalProducer.publishMessage(ebMSDocument.requestId, ebMSDocument.dokument.asByteArray())
+                ebmsSignalProducer.publishMessage(
+                    ebMSDocument.requestId,
+                    ebMSDocument.dokument.asByteArray(),
+                    signalResponderEmails.toHeaders()
+
+                )
             } catch (e: Exception) {
                 log.error(markers, "Exception occurred while sending message to Kafka queue", e)
             }

@@ -9,7 +9,7 @@ import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.util.marker
-import no.nav.emottak.ebms.validation.DokumentValidator
+import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.message.model.AsyncPayload
 import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadMessage
@@ -19,7 +19,7 @@ import kotlin.uuid.Uuid
 
 class PayloadMessageResponder(
     val sendInService: SendInService,
-    val validator: DokumentValidator,
+    val cpaValidationService: CPAValidationService,
     val processingService: ProcessingService,
     val payloadRepository: PayloadRepository,
     val ebmsMessageDetailsRepository: EbmsMessageDetailsRepository,
@@ -40,7 +40,7 @@ class PayloadMessageResponder(
                     refToMessageId = payloadMessage.messageId
                 )
             }.let { payloadMessageResponse ->
-                Pair(payloadMessageResponse, validator.validateOut(payloadMessageResponse).payloadProcessing)
+                Pair(payloadMessageResponse, cpaValidationService.validateOutgoingMessage(payloadMessageResponse).payloadProcessing)
             }.let { messageProcessing ->
                 val processedMessage =
                     processingService.proccessSyncOut(messageProcessing.first, messageProcessing.second)
