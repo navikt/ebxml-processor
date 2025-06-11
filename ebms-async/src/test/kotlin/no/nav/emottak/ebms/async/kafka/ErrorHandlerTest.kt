@@ -10,7 +10,7 @@ import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
 import no.nav.emottak.ebms.async.kafka.consumer.RETRY_COUNT_HEADER
 import no.nav.emottak.ebms.async.kafka.consumer.asReceiverRecord
 import no.nav.emottak.ebms.async.kafka.consumer.getRecord
-import no.nav.emottak.ebms.async.processing.PayloadMessageProcessor
+import no.nav.emottak.ebms.async.processing.PayloadMessageService
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.junit.jupiter.api.AfterEach
@@ -38,10 +38,10 @@ class ErrorHandlerTest {
             val errorHandler = FailedMessageKafkaHandler(
                 kafka = testcontainerKafkaConfig
             )
-            val payloadMessageProcessor = mockk<PayloadMessageProcessor>()
+            val payloadMessageService = mockk<PayloadMessageService>()
             val processedMessages = ArrayList<ReceiverRecord<String, ByteArray>>()
             coEvery {
-                payloadMessageProcessor.process(any())
+                payloadMessageService.process(any())
             } coAnswers { processedMessages.add(firstArg<ReceiverRecord<String, ByteArray>>()) }
 
             errorHandler
@@ -50,7 +50,7 @@ class ErrorHandlerTest {
                         .asReceiverRecord()
                 )
             launch {
-                errorHandler.consumeRetryQueue(payloadMessageProcessor)
+                errorHandler.consumeRetryQueue(payloadMessageService)
             }.join()
             val writtenRecord = getRecord(config().kafkaErrorQueue.topic, testcontainerKafkaConfig, 0, 1)
             assert(writtenRecord?.key() == "test-message")

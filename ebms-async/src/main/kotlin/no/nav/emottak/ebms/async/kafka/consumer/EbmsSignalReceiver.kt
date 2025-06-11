@@ -8,12 +8,16 @@ import kotlinx.coroutines.flow.map
 import no.nav.emottak.ebms.async.configuration.Kafka
 import no.nav.emottak.ebms.async.configuration.toProperties
 import no.nav.emottak.ebms.async.log
-import no.nav.emottak.ebms.async.processing.SignalProcessor
+import no.nav.emottak.ebms.async.processing.SignalMessageService
 import org.apache.kafka.common.serialization.ByteArrayDeserializer
 import org.apache.kafka.common.serialization.StringDeserializer
 import kotlin.time.Duration.Companion.seconds
 
-suspend fun startSignalReceiver(topic: String, kafka: Kafka, signalProcessor: SignalProcessor) {
+suspend fun startSignalReceiver(
+    topic: String,
+    kafka: Kafka,
+    signalMessageService: SignalMessageService
+) {
     log.info("Starting signal message receiver on topic $topic")
     val receiverSettings: ReceiverSettings<String, ByteArray> =
         ReceiverSettings(
@@ -29,7 +33,7 @@ suspend fun startSignalReceiver(topic: String, kafka: Kafka, signalProcessor: Si
     KafkaReceiver(receiverSettings)
         .receive(topic)
         .map { record ->
-            signalProcessor.processSignal(record.key(), record.value())
+            signalMessageService.processSignal(record.key(), record.value())
             record.offset.acknowledge()
         }.collect()
 }

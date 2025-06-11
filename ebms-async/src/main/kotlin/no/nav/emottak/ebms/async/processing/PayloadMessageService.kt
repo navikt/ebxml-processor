@@ -24,13 +24,13 @@ import no.nav.emottak.message.xml.getDocumentBuilder
 import no.nav.emottak.util.marker
 import java.io.ByteArrayInputStream
 
-class PayloadMessageProcessor(
+class PayloadMessageService(
     val ebmsMessageDetailsRepository: EbmsMessageDetailsRepository,
     val cpaValidationService: CPAValidationService,
     val processingService: ProcessingService,
     val ebmsSignalProducer: EbmsMessageProducer,
     val smtpTransportClient: SmtpTransportClient,
-    val payloadMessageResponder: PayloadMessageResponder
+    val payloadMessageSendInService: PayloadMessageSendInService
 ) {
     suspend fun process(record: ReceiverRecord<String, ByteArray>) {
         try {
@@ -83,7 +83,7 @@ class PayloadMessageProcessor(
                         when (val service = it.addressing.service) {
                             "HarBorgerFrikortMengde", "Inntektsforesporsel" -> {
                                 log.debug(it.marker(), "Starting SendIn for $service")
-                                payloadMessageResponder.respond(it)
+                                payloadMessageSendInService.forwardMessageWithSyncResponse(it)
                             }
 
                             else -> {
