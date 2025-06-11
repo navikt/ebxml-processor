@@ -19,7 +19,7 @@ import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.xml.asByteArray
 import kotlin.uuid.Uuid
 
-class PayloadMessageSendInService(
+class PayloadMessageForwardingService(
     val sendInService: SendInService,
     val cpaValidationService: CPAValidationService,
     val processingService: ProcessingService,

@@ -30,7 +30,7 @@ class PayloadMessageService(
     val processingService: ProcessingService,
     val ebmsSignalProducer: EbmsMessageProducer,
     val smtpTransportClient: SmtpTransportClient,
-    val payloadMessageSendInService: PayloadMessageSendInService
+    val payloadMessageForwardingService: PayloadMessageForwardingService
 ) {
     suspend fun process(record: ReceiverRecord<String, ByteArray>) {
         try {
@@ -83,7 +83,7 @@ class PayloadMessageService(
                         when (val service = it.addressing.service) {
                             "HarBorgerFrikortMengde", "Inntektsforesporsel" -> {
                                 log.debug(it.marker(), "Starting SendIn for $service")
-                                payloadMessageSendInService.forwardMessageWithSyncResponse(it)
+                                payloadMessageForwardingService.forwardMessageWithSyncResponse(it)
                             }
 
                             else -> {

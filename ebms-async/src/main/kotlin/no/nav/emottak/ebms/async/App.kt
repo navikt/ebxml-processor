@@ -43,7 +43,7 @@ import no.nav.emottak.ebms.async.persistence.ebmsDbConfig
 import no.nav.emottak.ebms.async.persistence.ebmsMigrationConfig
 import no.nav.emottak.ebms.async.persistence.repository.EbmsMessageDetailsRepository
 import no.nav.emottak.ebms.async.persistence.repository.PayloadRepository
-import no.nav.emottak.ebms.async.processing.PayloadMessageSendInService
+import no.nav.emottak.ebms.async.processing.PayloadMessageForwardingService
 import no.nav.emottak.ebms.async.processing.PayloadMessageService
 import no.nav.emottak.ebms.async.processing.SignalMessageService
 import no.nav.emottak.ebms.defaultHttpClient
@@ -80,7 +80,7 @@ fun main() = SuspendApp {
 
     val smtpTransportClient = SmtpTransportClient(scopedAuthHttpClient(SMTP_TRANSPORT_SCOPE))
 
-    val payloadMessageSendInService = PayloadMessageSendInService(
+    val payloadMessageForwardingService = PayloadMessageForwardingService(
         sendInService = sendInService,
         cpaValidationService = cpaValidationService,
         processingService = processingService,
@@ -95,7 +95,7 @@ fun main() = SuspendApp {
         processingService = processingService,
         ebmsSignalProducer = ebmsSignalProducer,
         smtpTransportClient = smtpTransportClient,
-        payloadMessageSendInService = payloadMessageSendInService
+        payloadMessageForwardingService = payloadMessageForwardingService
     )
 
     result {
@@ -138,7 +138,7 @@ fun payloadMessageServiceProvider(
     processingService: ProcessingService,
     ebmsSignalProducer: EbmsMessageProducer,
     smtpTransportClient: SmtpTransportClient,
-    payloadMessageSendInService: PayloadMessageSendInService
+    payloadMessageForwardingService: PayloadMessageForwardingService
 
 ): () -> PayloadMessageService = {
     PayloadMessageService(
@@ -147,7 +147,7 @@ fun payloadMessageServiceProvider(
         processingService = processingService,
         ebmsSignalProducer = ebmsSignalProducer,
         smtpTransportClient = smtpTransportClient,
-        payloadMessageSendInService
+        payloadMessageForwardingService
     )
 }
 
