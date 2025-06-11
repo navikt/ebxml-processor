@@ -76,7 +76,11 @@ fun EbmsMessage.createAcknowledgementJaxB(): Acknowledgment =
     }
 
 @OptIn(ExperimentalUuidApi::class)
-fun EbmsMessage.createMessageHeader(newAddressing: Addressing = this.addressing, withAcknowledgmentElement: Boolean = false): Header {
+fun EbmsMessage.createMessageHeader(
+    newAddressing: Addressing = this.addressing,
+    withAcknowledgmentElement: Boolean = false,
+    withSyncReplyElement: Boolean = false
+): Header {
     val messageData = MessageData().apply {
         this.messageId = Uuid.random().toString()
         this.refToMessageId = this@createMessageHeader.refToMessageId
@@ -104,12 +108,6 @@ fun EbmsMessage.createMessageHeader(newAddressing: Addressing = this.addressing,
             }.toList()
         )
     }
-    // TODO SyncReply should not be present for SMTP messages
-    val syncReply = SyncReply().apply {
-        this.actor = "http://schemas.xmlsoap.org/soap/actor/next"
-        this.isMustUnderstand = true
-        this.version = "2.0"
-    }
     val messageHeader = MessageHeader().apply {
         this.from = from
         this.to = to
@@ -126,11 +124,16 @@ fun EbmsMessage.createMessageHeader(newAddressing: Addressing = this.addressing,
     }
 
     return Header().apply {
-        this.any.addAll(
-            listOf(messageHeader, syncReply)
-        )
+        this.any.add(messageHeader)
+        if (withSyncReplyElement) this.any.add(createSyncReplyElement())
         if (withAcknowledgmentElement) this.any.add(createAcknowledgementJaxB())
     }
+}
+
+private fun createSyncReplyElement() = SyncReply().apply {
+    this.actor = "http://schemas.xmlsoap.org/soap/actor/next"
+    this.isMustUnderstand = true
+    this.version = "2.0"
 }
 
 @OptIn(ExperimentalUuidApi::class)
