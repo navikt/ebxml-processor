@@ -30,7 +30,6 @@ import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.xmlsoap.schemas.soap.envelope.Envelope
-import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientContentNegotiation
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation as ServerContentNegotiation
@@ -58,7 +57,6 @@ class EbmsRouteAsyncIT {
         testBlock()
     }
 
-    @OptIn(ExperimentalUuidApi::class)
     @Test
     fun `Payload endpoint returns list of payloads`() = validationTestApp {
         val validReferenceId = Uuid.random()
@@ -98,7 +96,6 @@ class EbmsRouteAsyncIT {
         assertEquals(2, listOfPayloads.size)
     }
 
-    @OptIn(ExperimentalUuidApi::class)
     @Test
     fun `Payload endpoint returns 404 Not Found when no payload is found`() = validationTestApp {
         val validReferenceId = Uuid.random()

@@ -57,7 +57,6 @@ import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.utils.environment.isProdEnv
 import org.slf4j.LoggerFactory
-import kotlin.uuid.ExperimentalUuidApi
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.async.App")
 
@@ -210,7 +209,6 @@ fun Application.ebmsProviderModule(
 
 const val RETRY_LIMIT = "retryLimit"
 
-@OptIn(ExperimentalUuidApi::class)
 fun Routing.retryErrors(
     payloadMessageProcessorProvider: () -> PayloadMessageProcessor
 ): Route =

@@ -19,7 +19,6 @@ class SignalProcessor(
     val cpaValidationService: CPAValidationService
 ) {
 
-    @OptIn(ExperimentalUuidApi::class)
     suspend fun processSignal(requestId: String, content: ByteArray) {
         try {
             val ebxmlSignalMessage = createEbmsMessage(requestId, content)
