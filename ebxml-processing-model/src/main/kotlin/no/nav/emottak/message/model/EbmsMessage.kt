@@ -55,27 +55,25 @@ abstract class EbmsMessage {
     }
 }
 
-fun EbmsMessage.createAcknowledgementJaxB(): org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Acknowledgment {
-    val acknowledgment = Acknowledgment()
-    acknowledgment.id = "ACK_ID" // Identifier for Acknowledgment elementet, IKKE message ID (ebms spec 2.3.7)
-    acknowledgment.version = "2.0"
-    acknowledgment.isMustUnderstand = true // Alltid
-    acknowledgment.actor = "http://schemas.xmlsoap.org/soap/actor/next"
-    acknowledgment.timestamp = Date.from(this.mottatt)
-    acknowledgment.refToMessageId = this.messageId
-    acknowledgment.from = From().apply {
-        this.partyId.addAll(
-            this@createAcknowledgementJaxB.addressing.from.partyId.map {
-                PartyId().apply {
-                    this.value = it.value
-                    this.type = it.type
+fun EbmsMessage.createAcknowledgementJaxB(): Acknowledgment =
+    Acknowledgment().apply {
+        version = "2.0"
+        isMustUnderstand = true // Alltid
+        actor = "http://schemas.xmlsoap.org/soap/actor/next"
+        timestamp = Date.from(this@createAcknowledgementJaxB.mottatt)
+        refToMessageId = this@createAcknowledgementJaxB.messageId
+        from = From().apply {
+            this.partyId.addAll(
+                this@createAcknowledgementJaxB.addressing.from.partyId.map {
+                    PartyId().apply {
+                        this.value = it.value
+                        this.type = it.type
+                    }
                 }
-            }
-        )
-        this.role = this@createAcknowledgementJaxB.addressing.from.role
+            )
+            this.role = this@createAcknowledgementJaxB.addressing.from.role
+        }
     }
-    return acknowledgment
-}
 
 @OptIn(ExperimentalUuidApi::class)
 fun EbmsMessage.createMessageHeader(newAddressing: Addressing = this.addressing, withAcknowledgmentElement: Boolean = false): Header {
