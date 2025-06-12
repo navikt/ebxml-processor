@@ -29,35 +29,31 @@ class PayloadMessageForwardingService(
 ) {
 
     suspend fun forwardMessageWithSyncResponse(payloadMessage: PayloadMessage) {
-        try {
-            val payloadMessageResponse = sendInService.sendIn(payloadMessage).let { sendInResponse ->
-                PayloadMessage(
-                    requestId = Uuid.random().toString(),
-                    messageId = Uuid.random().toString(),
-                    conversationId = sendInResponse.conversationId,
-                    cpaId = payloadMessage.cpaId,
-                    addressing = sendInResponse.addressing,
-                    payload = Payload(sendInResponse.payload, ContentType.Application.Xml.toString()),
-                    refToMessageId = payloadMessage.messageId
-                )
-            }
-
-            val validationResult = cpaValidationService.validateOutgoingMessage(payloadMessageResponse)
-            val processedMessage = processingService.proccessSyncOut(
-                payloadMessageResponse,
-                validationResult.payloadProcessing
+        val payloadMessageResponse = sendInService.sendIn(payloadMessage).let { sendInResponse ->
+            PayloadMessage(
+                requestId = Uuid.random().toString(),
+                messageId = Uuid.random().toString(),
+                conversationId = sendInResponse.conversationId,
+                cpaId = payloadMessage.cpaId,
+                addressing = sendInResponse.addressing,
+                payload = Payload(sendInResponse.payload, ContentType.Application.Xml.toString()),
+                refToMessageId = payloadMessage.messageId
             )
-
-            ebmsMessageDetailsRepository.saveEbmsMessage(processedMessage)
-            val signedEbmsDocument = processedMessage.toEbmsDokument()
-                .signer(validationResult.payloadProcessing!!.signingCertificate)
-
-            persistPayloads(signedEbmsDocument.requestId, signedEbmsDocument.attachments)
-            sendResponseToTopic(signedEbmsDocument, validationResult.receiverEmailAddress)
-            log.info(processedMessage.marker(), "Payload message response returned successfully")
-        } catch (e: Exception) {
-            log.error(payloadMessage.marker(), "Error processing asynchronous payload response", e)
         }
+
+        val validationResult = cpaValidationService.validateOutgoingMessage(payloadMessageResponse)
+        val processedMessage = processingService.proccessSyncOut(
+            payloadMessageResponse,
+            validationResult.payloadProcessing
+        )
+
+        ebmsMessageDetailsRepository.saveEbmsMessage(processedMessage)
+        val signedEbmsDocument = processedMessage.toEbmsDokument()
+            .signer(validationResult.payloadProcessing!!.signingCertificate)
+
+        persistPayloads(signedEbmsDocument.requestId, signedEbmsDocument.attachments)
+        sendResponseToTopic(signedEbmsDocument, validationResult.receiverEmailAddress)
+        log.info(processedMessage.marker(), "Payload message response returned successfully")
     }
 
     private suspend fun sendResponseToTopic(signedEbmsDocument: EbMSDocument, receiverEmailAddress: List<EmailAddress>) {
