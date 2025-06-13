@@ -15,10 +15,11 @@ import kotlinx.coroutines.flow.cancellable
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import no.nav.emottak.ebms.async.configuration.Kafka
 import no.nav.emottak.ebms.async.configuration.KafkaErrorQueue
 import no.nav.emottak.ebms.async.configuration.config
+import no.nav.emottak.ebms.async.configuration.toProperties
 import no.nav.emottak.ebms.async.processing.PayloadMessageService
+import no.nav.emottak.utils.config.Kafka
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.consumer.ConsumerRecords
 import org.apache.kafka.clients.consumer.KafkaConsumer
@@ -51,7 +52,7 @@ class FailedMessageKafkaHandler(
             keySerializer = StringSerializer(),
             valueSerializer = ByteArraySerializer(),
             acknowledgments = Acks.All,
-            properties = kafka.properties
+            properties = kafka.toProperties()
         )
     )
 
@@ -62,7 +63,7 @@ class FailedMessageKafkaHandler(
             valueDeserializer = ByteArrayDeserializer(),
             groupId = kafka.groupId,
             pollTimeout = 10.seconds,
-            properties = kafka.properties
+            properties = kafka.toProperties()
         )
     )
 
@@ -178,7 +179,7 @@ fun getRecords(
     requestedRecords: Int = 1
 ): List<ReceiverRecord<String, ByteArray>> {
     KafkaConsumer(
-        kafka.properties,
+        kafka.toProperties(),
         StringDeserializer(),
         ByteArrayDeserializer()
     ).use { consumer ->

@@ -18,6 +18,7 @@ import io.mockk.every
 import io.mockk.mockk
 import no.nav.emottak.ebms.async.kafka.KafkaTestContainer
 import no.nav.emottak.ebms.async.persistence.repository.PayloadRepository
+import no.nav.emottak.ebms.async.util.EventRegistrationServiceFake
 import no.nav.emottak.ebms.configuration.config
 import no.nav.emottak.message.ebxml.acknowledgment
 import no.nav.emottak.message.ebxml.messageHeader
@@ -37,6 +38,7 @@ import io.ktor.server.plugins.contentnegotiation.ContentNegotiation as ServerCon
 class EbmsRouteAsyncIT {
 
     val payloadRepository = mockk<PayloadRepository>()
+    val eventRegistrationService = EventRegistrationServiceFake()
 
     fun <T> validationTestApp(testBlock: suspend ApplicationTestBuilder.() -> T) = testApplication {
         application {
@@ -50,7 +52,7 @@ class EbmsRouteAsyncIT {
 
             routing {
                 authenticate(AZURE_AD_AUTH) {
-                    getPayloads(payloadRepository)
+                    getPayloads(payloadRepository, eventRegistrationService)
                 }
             }
         }
