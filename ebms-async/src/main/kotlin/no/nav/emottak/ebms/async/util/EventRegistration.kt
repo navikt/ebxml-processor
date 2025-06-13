@@ -28,6 +28,7 @@ interface EventRegistrationService {
         eventType: EventType,
         requestId: String,
         contentId: String = "",
+        messageId: String = "",
         eventData: String = "{}"
     )
 
@@ -36,6 +37,7 @@ interface EventRegistrationService {
         failEvent: EventType,
         requestId: String,
         contentId: String = "",
+        messageId: String = "",
         eventData: String = "{}",
         function: suspend () -> T
     ): T
@@ -81,6 +83,7 @@ class EventRegistrationServiceImpl(
         eventType: EventType,
         requestId: String,
         contentId: String,
+        messageId: String,
         eventData: String
     ) {
         registerEvent(
@@ -88,7 +91,7 @@ class EventRegistrationServiceImpl(
                 eventType = eventType,
                 requestId = requestId.parseOrGenerateUuid(),
                 contentId = contentId,
-                messageId = "",
+                messageId = messageId,
                 eventData = eventData
             )
         )
@@ -99,6 +102,7 @@ class EventRegistrationServiceImpl(
         failEvent: EventType,
         requestId: String,
         contentId: String,
+        messageId: String,
         eventData: String,
         function: suspend () -> T
     ): T {
@@ -109,6 +113,7 @@ class EventRegistrationServiceImpl(
                 successEvent,
                 requestId = requestId,
                 contentId = contentId,
+                messageId = messageId,
                 eventData = eventData
             )
         }.onFailure {
@@ -120,6 +125,7 @@ class EventRegistrationServiceImpl(
                 failEvent,
                 requestId = requestId,
                 contentId = contentId,
+                messageId = messageId,
                 eventData = updatedEventData
             )
         }.getOrThrow()
@@ -157,6 +163,7 @@ class EventRegistrationServiceFake : EventRegistrationService {
         eventType: EventType,
         requestId: String,
         contentId: String,
+        messageId: String,
         eventData: String
     ) {
         log.debug("Registering event $eventType for requestId: $requestId and eventData: $eventData")
@@ -167,6 +174,7 @@ class EventRegistrationServiceFake : EventRegistrationService {
         failEvent: EventType,
         requestId: String,
         contentId: String,
+        messageId: String,
         eventData: String,
         function: suspend () -> T
     ): T {

@@ -13,7 +13,7 @@ import no.nav.emottak.message.model.toEbmsMessageDetails
 import no.nav.emottak.message.xml.getDocumentBuilder
 import java.io.ByteArrayInputStream
 
-class SignalProcessor(
+class SignalMessageService(
     val ebmsMessageDetailsRepository: EbmsMessageDetailsRepository,
     val cpaValidationService: CPAValidationService
 ) {
