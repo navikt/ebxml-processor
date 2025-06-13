@@ -38,7 +38,7 @@ class PayloadMessageForwardingService(
     suspend fun forwardMessageWithSyncResponse(payloadMessage: PayloadMessage) {
         val payloadMessageResponse = sendInService.sendIn(payloadMessage).let { sendInResponse ->
             PayloadMessage(
-                requestId = Uuid.random().toString(),
+                requestId = sendInResponse.requestId,
                 messageId = Uuid.random().toString(),
                 conversationId = sendInResponse.conversationId,
                 cpaId = payloadMessage.cpaId,
