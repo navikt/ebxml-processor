@@ -11,11 +11,9 @@ import no.nav.emottak.ebms.async.kafka.consumer.RETRY_COUNT_HEADER
 import no.nav.emottak.ebms.async.kafka.consumer.asReceiverRecord
 import no.nav.emottak.ebms.async.kafka.consumer.getRecord
 import no.nav.emottak.ebms.async.processing.PayloadMessageProcessor
-import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
-import java.util.Properties
 
 class ErrorHandlerTest {
 
@@ -29,10 +27,7 @@ class ErrorHandlerTest {
 
             val testcontainerKafkaConfig =
                 config().kafka.copy(
-                    bootstrapServers = KafkaTestContainer.kafkaContainer.bootstrapServers,
-                    properties = Properties().apply {
-                        put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, KafkaTestContainer.kafkaContainer.bootstrapServers)
-                    }
+                    bootstrapServers = KafkaTestContainer.kafkaContainer.bootstrapServers
                 )
 
             val errorHandler = FailedMessageKafkaHandler(

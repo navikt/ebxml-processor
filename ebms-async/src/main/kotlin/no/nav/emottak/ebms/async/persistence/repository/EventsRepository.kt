@@ -15,12 +15,10 @@ import no.nav.emottak.message.model.Event
 import no.nav.emottak.message.model.log
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.upsert
-import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import kotlin.uuid.toJavaUuid
 import kotlin.uuid.toKotlinUuid
 
-@OptIn(ExperimentalUuidApi::class)
 class EventsRepository(private val database: Database) {
 
     fun updateOrInsert(event: Event): Uuid {
@@ -64,7 +62,6 @@ class EventsRepository(private val database: Database) {
     }
 }
 
-@OptIn(ExperimentalUuidApi::class)
 fun EbmsMessage.saveEvent(message: String, eventsRepository: EventsRepository) {
     log.info(this.marker(), message)
     eventsRepository.updateOrInsert(

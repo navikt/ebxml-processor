@@ -11,10 +11,8 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.testcontainers.containers.PostgreSQLContainer
 import java.sql.DriverManager
-import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
-@OptIn(ExperimentalUuidApi::class)
 class PayloadRepositoryTest {
     companion object {
         lateinit var payloadRepository: PayloadRepository
