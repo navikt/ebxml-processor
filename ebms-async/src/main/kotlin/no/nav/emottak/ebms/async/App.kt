@@ -126,7 +126,7 @@ fun main() = SuspendApp {
                 module = {
                     ebmsProviderModule(
                         payloadRepository = payloadRepository,
-                        payloadProcessorProvider = payloadMessageServiceProvider,
+                        payloadMessageServiceProvider = payloadMessageServiceProvider,
                         eventRegistrationService = eventRegistrationService
                     )
                 }
@@ -159,7 +159,7 @@ fun payloadMessageServiceProvider(
         processingService = processingService,
         ebmsSignalProducer = ebmsSignalProducer,
         smtpTransportClient = smtpTransportClient,
-        payloadMessageForwardingService,
+        payloadMessageForwardingService = payloadMessageForwardingService,
         eventRegistrationService = eventRegistrationService
     )
 }
