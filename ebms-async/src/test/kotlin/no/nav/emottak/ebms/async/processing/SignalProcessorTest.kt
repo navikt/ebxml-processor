@@ -14,7 +14,6 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import java.util.UUID
 import javax.xml.bind.UnmarshalException
-import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 class SignalProcessorTest {
@@ -23,7 +22,6 @@ class SignalProcessorTest {
     val cpaValidationService = mockk<CPAValidationService>()
     val signalProcessor = SignalProcessor(repository, cpaValidationService)
 
-    @OptIn(ExperimentalUuidApi::class)
     @Test
     fun `Process acknowledgment goes OK`() {
         every {
@@ -74,7 +72,6 @@ class SignalProcessorTest {
 
 val validationResult = ValidationResult()
 
-@OptIn(ExperimentalUuidApi::class)
 val ebmsMessageDetails = EbmsMessageDetails(
     Uuid.random(),
     "123",

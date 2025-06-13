@@ -17,9 +17,7 @@ import org.junit.jupiter.api.Test
 import org.testcontainers.containers.PostgreSQLContainer
 import java.sql.DriverManager
 import java.time.Instant
-import kotlin.uuid.ExperimentalUuidApi
 
-@OptIn(ExperimentalUuidApi::class)
 class EbmsMessageDetailsRepositoryTest {
     companion object {
         lateinit var ebmsMessageDetailsRepository: EbmsMessageDetailsRepository
