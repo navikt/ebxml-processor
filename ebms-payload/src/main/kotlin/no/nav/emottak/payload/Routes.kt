@@ -20,11 +20,24 @@ import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadRequest
 import no.nav.emottak.message.model.PayloadResponse
 import no.nav.emottak.message.model.ProcessConfig
+import no.nav.emottak.payload.crypto.DecryptionException
+import no.nav.emottak.payload.crypto.EncryptionException
+import no.nav.emottak.payload.juridisklogg.JuridiskLoggException
+import no.nav.emottak.payload.ocspstatus.SertifikatError
+import no.nav.emottak.payload.util.CompressionException
+import no.nav.emottak.payload.util.DecompressionException
+import no.nav.emottak.payload.util.EventRegistrationService
 import no.nav.emottak.payload.util.marshal
 import no.nav.emottak.payload.util.unmarshal
 import no.nav.emottak.util.marker
+import no.nav.emottak.util.signatur.SignatureException
+import no.nav.emottak.utils.kafka.model.EventType
+import no.nav.emottak.utils.serialization.toEventDataJson
 
-fun Route.postPayload() = post("/payload") {
+fun Route.postPayload(
+    processor: Processor,
+    eventRegistrationService: EventRegistrationService
+) = post("/payload") {
     val request: PayloadRequest = call.receive(PayloadRequest::class)
 
     // TODO: Skal brukes i kall mot Event-logging:
@@ -42,8 +55,8 @@ fun Route.postPayload() = post("/payload") {
         }
 
         when (request.direction) {
-            Direction.IN -> createIncomingPayloadResponse(request, processConfig)
-            Direction.OUT -> createOutgoingPayloadResponse(request)
+            Direction.IN -> createIncomingPayloadResponse(request, processConfig, processor)
+            Direction.OUT -> createOutgoingPayloadResponse(request, processor)
         }
     }.onSuccess {
         it.juridiskLoggRecordId = juridiskLoggRecordId
@@ -56,8 +69,25 @@ fun Route.postPayload() = post("/payload") {
             call.respond(it)
         }
     }.onFailure { error ->
-        // TODO: Event-logging feil
         log.error(request.marker(), "Payload prosessert med feil: ${error.localizedMessage}", error)
+
+        val eventType = when (error) {
+            is JuridiskLoggException -> EventType.ERROR_WHILE_SAVING_MESSAGE_IN_JURIDISK_LOGG
+            is EncryptionException -> EventType.MESSAGE_ENCRYPTION_FAILED
+            is DecryptionException -> EventType.MESSAGE_DECRYPTION_FAILED
+            is CompressionException -> EventType.MESSAGE_COMPRESSION_FAILED
+            is DecompressionException -> EventType.MESSAGE_DECOMPRESSION_FAILED
+            is SignatureException -> EventType.SIGNATURE_CHECK_FAILED
+            is SertifikatError -> EventType.OCSP_CHECK_FAILED
+            else -> EventType.UNKNOWN_ERROR_OCCURRED
+        }
+
+        eventRegistrationService.registerEvent(
+            eventType,
+            request,
+            Exception(error).toEventDataJson()
+        )
+
         call.respond(
             HttpStatusCode.BadRequest,
             PayloadResponse(
@@ -67,16 +97,17 @@ fun Route.postPayload() = post("/payload") {
     }
 }
 
-private fun createOutgoingPayloadResponse(request: PayloadRequest) = PayloadResponse(
+private suspend fun createOutgoingPayloadResponse(request: PayloadRequest, processor: Processor) = PayloadResponse(
     processedPayload = processor.processOutgoing(request)
 )
 
 private suspend fun createIncomingPayloadResponse(
     request: PayloadRequest,
-    processConfig: ProcessConfig
+    processConfig: ProcessConfig,
+    processor: Processor
 ): PayloadResponse {
     val readablePayload =
-        processor.convertToReadablePayload(request.payload, processConfig.kryptering, processConfig.komprimering).also {
+        processor.convertToReadablePayload(request, processConfig.kryptering, processConfig.komprimering).also {
             if (processConfig.kryptering) log.info(request.marker(), "Payload dekryptert")
             if (processConfig.komprimering) log.info(request.marker(), "Payload dekomprimert")
         }
@@ -85,8 +116,8 @@ private suspend fun createIncomingPayloadResponse(
             processedPayload = processor.validateReadablePayload(
                 request.marker(),
                 readablePayload,
-                processConfig.signering,
-                processConfig.ocspSjekk
+                request,
+                processConfig
             ).also {
                 if (processConfig.signering) log.info(request.marker(), "Payload signatur verifisert")
                 if (processConfig.ocspSjekk) log.info(request.marker(), "Payload signatur ocsp sjekket")
