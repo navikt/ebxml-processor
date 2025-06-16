@@ -20,7 +20,7 @@ class SignalProcessorTest {
 
     val repository = mockk<EbmsMessageDetailsRepository>()
     val cpaValidationService = mockk<CPAValidationService>()
-    val signalProcessor = SignalProcessor(repository, cpaValidationService)
+    val signalMessageService = SignalMessageService(repository, cpaValidationService)
 
     @Test
     fun `Process acknowledgment goes OK`() {
@@ -38,7 +38,7 @@ class SignalProcessorTest {
             .getResourceAsStream("signaltest/acknowledgment.xml")
 
         runBlocking {
-            signalProcessor.processSignal(UUID.randomUUID().toString(), message!!.readAllBytes())
+            signalMessageService.processSignal(UUID.randomUUID().toString(), message!!.readAllBytes())
         }
     }
 
@@ -50,7 +50,7 @@ class SignalProcessorTest {
 
         val exception = assertThrows<RuntimeException> {
             runBlocking {
-                signalProcessor.processSignal(UUID.randomUUID().toString(), message!!.readAllBytes())
+                signalMessageService.processSignal(UUID.randomUUID().toString(), message!!.readAllBytes())
             }
         }
         assertEquals("Unrecognized dokument type", exception.message)
@@ -64,7 +64,7 @@ class SignalProcessorTest {
 
         assertThrows<UnmarshalException> {
             runBlocking {
-                signalProcessor.processSignal(UUID.randomUUID().toString(), message!!.readAllBytes())
+                signalMessageService.processSignal(UUID.randomUUID().toString(), message!!.readAllBytes())
             }
         }
     }
