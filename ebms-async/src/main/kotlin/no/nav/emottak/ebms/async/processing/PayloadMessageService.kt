@@ -29,13 +29,13 @@ import no.nav.emottak.utils.kafka.model.EventDataType
 import no.nav.emottak.utils.kafka.model.EventType
 import java.io.ByteArrayInputStream
 
-class PayloadMessageProcessor(
+class PayloadMessageService(
     val ebmsMessageDetailsRepository: EbmsMessageDetailsRepository,
     val cpaValidationService: CPAValidationService,
     val processingService: ProcessingService,
     val ebmsSignalProducer: EbmsMessageProducer,
     val smtpTransportClient: SmtpTransportClient,
-    val payloadMessageResponder: PayloadMessageResponder,
+    val payloadMessageForwardingService: PayloadMessageForwardingService,
     val eventRegistrationService: EventRegistrationService
 ) {
     suspend fun process(record: ReceiverRecord<String, ByteArray>) {
@@ -107,7 +107,7 @@ class PayloadMessageProcessor(
                         when (val service = it.addressing.service) {
                             "HarBorgerFrikortMengde", "Inntektsforesporsel" -> {
                                 log.debug(it.marker(), "Starting SendIn for $service")
-                                payloadMessageResponder.respond(it)
+                                payloadMessageForwardingService.forwardMessageWithSyncResponse(it)
                             }
 
                             else -> {
