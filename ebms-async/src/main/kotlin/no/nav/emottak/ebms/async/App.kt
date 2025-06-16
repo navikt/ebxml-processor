@@ -41,7 +41,6 @@ import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
 import no.nav.emottak.ebms.async.persistence.Database
 import no.nav.emottak.ebms.async.persistence.ebmsDbConfig
 import no.nav.emottak.ebms.async.persistence.ebmsMigrationConfig
-import no.nav.emottak.ebms.async.persistence.repository.EbmsMessageDetailsRepository
 import no.nav.emottak.ebms.async.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.async.processing.PayloadMessageProcessor
 import no.nav.emottak.ebms.async.processing.PayloadMessageResponder
@@ -67,7 +66,7 @@ fun main() = SuspendApp {
 
     val config = config()
     val payloadRepository = PayloadRepository(database)
-    val ebmsMessageDetailsRepository = EbmsMessageDetailsRepository(database)
+    // val ebmsMessageDetailsRepository = EbmsMessageDetailsRepository(database)
     val processingClient = PayloadProcessingClient(scopedAuthHttpClient(EBMS_PAYLOAD_SCOPE))
     val processingService = ProcessingService(processingClient)
     val ebmsSignalProducer = EbmsMessageProducer(config.kafkaSignalProducer.topic, config.kafka)
@@ -86,12 +85,12 @@ fun main() = SuspendApp {
         validator = dokumentValidator,
         processingService = processingService,
         payloadRepository = payloadRepository,
-        ebmsMessageDetailsRepository = ebmsMessageDetailsRepository,
+        // ebmsMessageDetailsRepository = ebmsMessageDetailsRepository,
         ebmsPayloadProducer = ebmsPayloadProducer
     )
 
     val payloadMessageProcessorProvider = payloadMessageProcessorProvider(
-        ebmsMessageDetailsRepository = ebmsMessageDetailsRepository,
+        // ebmsMessageDetailsRepository = ebmsMessageDetailsRepository,
         dokumentValidator = dokumentValidator,
         processingService = processingService,
         ebmsSignalProducer = ebmsSignalProducer,
@@ -103,8 +102,8 @@ fun main() = SuspendApp {
         resourceScope {
             launchSignalReceiver(
                 config = config,
-                dokumentValidator = dokumentValidator,
-                ebmsMessageDetailsRepository = ebmsMessageDetailsRepository
+                dokumentValidator = dokumentValidator
+                // ebmsMessageDetailsRepository = ebmsMessageDetailsRepository
             )
             launchPayloadReceiver(
                 config = config,
@@ -134,7 +133,7 @@ fun main() = SuspendApp {
 }
 
 fun payloadMessageProcessorProvider(
-    ebmsMessageDetailsRepository: EbmsMessageDetailsRepository,
+    // ebmsMessageDetailsRepository: EbmsMessageDetailsRepository,
     dokumentValidator: DokumentValidator,
     processingService: ProcessingService,
     ebmsSignalProducer: EbmsMessageProducer,
@@ -143,7 +142,7 @@ fun payloadMessageProcessorProvider(
 
 ): () -> PayloadMessageProcessor = {
     PayloadMessageProcessor(
-        ebmsMessageDetailsRepository = ebmsMessageDetailsRepository,
+        // ebmsMessageDetailsRepository = ebmsMessageDetailsRepository,
         validator = dokumentValidator,
         processingService = processingService,
         ebmsSignalProducer = ebmsSignalProducer,
@@ -169,13 +168,13 @@ private fun CoroutineScope.launchPayloadReceiver(
 
 private fun CoroutineScope.launchSignalReceiver(
     config: Config,
-    dokumentValidator: DokumentValidator,
-    ebmsMessageDetailsRepository: EbmsMessageDetailsRepository
+    dokumentValidator: DokumentValidator
+    // ebmsMessageDetailsRepository: EbmsMessageDetailsRepository
 ) {
     if (config.kafkaSignalReceiver.active) {
         launch(Dispatchers.IO) {
             val signalProcessor = SignalProcessor(
-                ebmsMessageDetailsRepository,
+                // ebmsMessageDetailsRepository,
                 dokumentValidator
             )
             startSignalReceiver(config.kafkaSignalReceiver.topic, config.kafka, signalProcessor)

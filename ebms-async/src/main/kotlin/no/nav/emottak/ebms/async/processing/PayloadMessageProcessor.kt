@@ -8,7 +8,6 @@ import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.kafka.consumer.failedMessageQueue
 import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
 import no.nav.emottak.ebms.async.log
-import no.nav.emottak.ebms.async.persistence.repository.EbmsMessageDetailsRepository
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.util.marker
@@ -24,7 +23,7 @@ import no.nav.emottak.util.marker
 import java.io.ByteArrayInputStream
 
 class PayloadMessageProcessor(
-    val ebmsMessageDetailsRepository: EbmsMessageDetailsRepository,
+    // val ebmsMessageDetailsRepository: EbmsMessageDetailsRepository,
     val validator: DokumentValidator,
     val processingService: ProcessingService,
     val ebmsSignalProducer: EbmsMessageProducer,
@@ -67,31 +66,34 @@ class PayloadMessageProcessor(
         record: ReceiverRecord<String, ByteArray>
     ) {
         try {
-            if (isDuplicateMessage(ebmsPayloadMessage)) {
+           /*
+           if (isDuplicateMessage(ebmsPayloadMessage)) {
                 log.info(ebmsPayloadMessage.marker(), "Got duplicate payload message with reference <${record.key()}>")
             } else {
-                log.info(ebmsPayloadMessage.marker(), "Got payload message with reference <${record.key()}>")
-                ebmsMessageDetailsRepository.saveEbmsMessage(ebmsPayloadMessage)
-                // eventsRepository.saveEvent("Message received", ebmsPayloadMessage)
-                validator
-                    .validateIn(ebmsPayloadMessage)
-                    .let {
-                        processingService.processAsync(ebmsPayloadMessage, it.payloadProcessing)
-                        // TODO store events from processing (juridisklog ++)
-                    }
-                    .let {
-                        // TODO do this asynchronously
-                        when (val service = it.addressing.service) {
-                            "HarBorgerFrikortMengde" -> {
-                                log.debug(it.marker(), "Starting SendIn for $service")
-                                payloadMessageResponder.respond(it)
-                            }
-                            else -> {
-                                log.debug(it.marker(), "Skipping SendIn for $service")
-                            }
+
+            */
+            log.info(ebmsPayloadMessage.marker(), "Got payload message with reference <${record.key()}>")
+            // ebmsMessageDetailsRepository.saveEbmsMessage(ebmsPayloadMessage)
+            // eventsRepository.saveEvent("Message received", ebmsPayloadMessage)
+            validator
+                .validateIn(ebmsPayloadMessage)
+                .let {
+                    processingService.processAsync(ebmsPayloadMessage, it.payloadProcessing)
+                    // TODO store events from processing (juridisklog ++)
+                }
+                .let {
+                    // TODO do this asynchronously
+                    when (val service = it.addressing.service) {
+                        "HarBorgerFrikortMengde" -> {
+                            log.debug(it.marker(), "Starting SendIn for $service")
+                            payloadMessageResponder.respond(it)
+                        }
+                        else -> {
+                            log.debug(it.marker(), "Skipping SendIn for $service")
                         }
                     }
-            }
+                }
+            // }
             returnAcknowledgment(ebmsPayloadMessage)
         } catch (e: EbmsException) {
             returnMessageError(ebmsPayloadMessage, e)
@@ -108,7 +110,7 @@ class PayloadMessageProcessor(
     }
 
     // TODO More advanced duplicate check
-    private fun isDuplicateMessage(ebmsPayloadMessage: PayloadMessage): Boolean {
+    /*private fun isDuplicateMessage(ebmsPayloadMessage: PayloadMessage): Boolean {
         log.debug(ebmsPayloadMessage.marker(), "Checking for duplicates")
         return ebmsMessageDetailsRepository.getByConversationIdMessageIdAndCpaId(
             conversationId = ebmsPayloadMessage.conversationId,
@@ -116,13 +118,13 @@ class PayloadMessageProcessor(
             cpaId = ebmsPayloadMessage.cpaId
         ) != null
     }
-
+*/
     private suspend fun returnAcknowledgment(ebmsPayloadMessage: PayloadMessage) {
         ebmsPayloadMessage
             .createAcknowledgment()
             .also {
                 val validationResult = validator.validateOut(it)
-                ebmsMessageDetailsRepository.saveEbmsMessage(it)
+                // ebmsMessageDetailsRepository.saveEbmsMessage(it)
                 sendResponseToTopic(
                     it.toEbmsDokument().signer(validationResult.payloadProcessing!!.signingCertificate),
                     validationResult.receiverEmailAddress
@@ -136,7 +138,7 @@ class PayloadMessageProcessor(
             .createFail(ebmsException.feil)
             .also {
                 val validationResult = validator.validateOut(it)
-                ebmsMessageDetailsRepository.saveEbmsMessage(it)
+                // ebmsMessageDetailsRepository.saveEbmsMessage(it)
                 sendResponseToTopic(
                     it.toEbmsDokument().signer(validationResult.payloadProcessing!!.signingCertificate),
                     validationResult.receiverEmailAddress

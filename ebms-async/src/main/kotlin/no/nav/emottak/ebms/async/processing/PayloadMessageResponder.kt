@@ -3,7 +3,6 @@ package no.nav.emottak.ebms.async.processing
 import io.ktor.http.ContentType
 import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
 import no.nav.emottak.ebms.async.log
-import no.nav.emottak.ebms.async.persistence.repository.EbmsMessageDetailsRepository
 import no.nav.emottak.ebms.async.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
@@ -22,7 +21,7 @@ class PayloadMessageResponder(
     val validator: DokumentValidator,
     val processingService: ProcessingService,
     val payloadRepository: PayloadRepository,
-    val ebmsMessageDetailsRepository: EbmsMessageDetailsRepository,
+    // val ebmsMessageDetailsRepository: EbmsMessageDetailsRepository,
     val ebmsPayloadProducer: EbmsMessageProducer
 ) {
 
@@ -46,9 +45,7 @@ class PayloadMessageResponder(
                     processingService.proccessSyncOut(messageProcessing.first, messageProcessing.second)
                 Pair(processedMessage, messageProcessing.second)
             }.let {
-                it.first.also {
-                    ebmsMessageDetailsRepository.saveEbmsMessage(it)
-                }.toEbmsDokument().signer(it.second!!.signingCertificate)
+                it.first.toEbmsDokument().signer(it.second!!.signingCertificate)
                     .let {
                         it.attachments.forEach { payload ->
                             payloadRepository.updateOrInsert(
