@@ -57,6 +57,8 @@ spec:
     paths:
       - kvPath: serviceuser/data/dev/srv-ebms-payload
         mountPath: /var/run/secrets/nais.io/vault/serviceuser
+  kafka:
+    pool: nav-dev
   webproxy: true
   envFrom:
     - secret: ebms-payload-secret
