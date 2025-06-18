@@ -123,8 +123,6 @@ class PayloadMessageService(
             log.error(ebmsPayloadMessage.marker(), ex.message ?: "Unknown error", ex)
             failedMessageQueue.sendToRetry(
                 record,
-                ebmsPayloadMessage.requestId,
-                ebmsPayloadMessage.toEbmsDokument().dokument.asByteArray(),
                 ex.message ?: "Unknown error"
             )
             throw ex
