@@ -21,19 +21,19 @@ fun List<EmailAddress>.toKafkaHeaders(): List<Header> = listOf(
 )
 
 fun MessageHeader.toKafkaHeaders(): List<Header> =
-    mapOf<String, String>(
+    mapOf(
         EBXML_SERVICE_HEADER to this.service.value,
         EBXML_ACTION_HEADER to this.action,
         EBXML_CPA_ID_HEADER to this.cpaId,
         EBXML_CONVERSATION_ID_HEADER to this.conversationId,
         EBXML_MESSAGE_ID_HEADER to this.messageData.messageId,
-        EBXML_REF_TO_MESSAGE_ID_HEADER to (this.messageData.refToMessageId ?: "NA")
+        EBXML_REF_TO_MESSAGE_ID_HEADER to this.messageData.refToMessageId
     ).toKafkaHeaders()
 
-fun Map<String, String>.toKafkaHeaders(): List<Header> =
+fun Map<String, String?>.toKafkaHeaders(): List<Header> =
     this.map { (key, value) ->
         RecordHeader(
             key,
-            value.toByteArray()
+            value.orEmpty().toByteArray()
         )
     }
