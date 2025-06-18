@@ -1,16 +1,16 @@
-package no.nav.emottak.payload
+package no.nav.emottak.payload.configuration
 
 import com.sksamuel.hoplite.ConfigLoader
 import com.sksamuel.hoplite.ExperimentalHoplite
 import com.sksamuel.hoplite.addEnvironmentSource
 import com.sksamuel.hoplite.addResourceSource
-import no.nav.emottak.payload.configuration.Config
 import no.nav.emottak.utils.environment.getEnvVar
 
 @OptIn(ExperimentalHoplite::class)
 fun config() = ConfigLoader.builder()
     .addEnvironmentSource()
     .addResourceSource(certificateAuthorityResourceResolver())
+    .addResourceSource("/kafka_common.conf")
     .withExplicitSealedTypes()
     .build()
     .loadConfigOrThrow<Config>()
