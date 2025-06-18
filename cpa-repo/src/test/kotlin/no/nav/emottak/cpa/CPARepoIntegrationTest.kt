@@ -126,7 +126,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         assertNotNull(validationResult)
 
         assertEquals(1, validationResult.signalEmailAddress.size)
-        assertEquals("mailto://TEST_A1_Haugerud_t1@edi.nhn.no", validationResult.signalEmailAddress.first().emailAddress)
+        assertEquals("mailto://mottak-qass@test-es.nav.no", validationResult.signalEmailAddress.first().emailAddress)
         assertTrue(validationResult.receiverEmailAddress.isEmpty()) // Channel-protokoll er HTTP
     }
 
@@ -193,7 +193,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         assertNotNull(validationResult)
 
         assertEquals(1, validationResult.signalEmailAddress.size)
-        assertEquals("mailto://TEST_A1_Haugerud_t1@edi.nhn.no", validationResult.signalEmailAddress.first().emailAddress)
+        assertEquals("mailto://mottak-qass@test-es.nav.no", validationResult.signalEmailAddress.first().emailAddress)
         assertEquals(1, validationResult.receiverEmailAddress.size)
         assertEquals("mailto://mottak-qass@test-es.nav.no", validationResult.receiverEmailAddress.first().emailAddress)
     }
@@ -226,16 +226,26 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         val validationResult = response.body<ValidationResult>()
         assertNotNull(validationResult)
 
-        assertEquals(2, validationResult.signalEmailAddress.size)
+        assertEquals(4, validationResult.signalEmailAddress.size)
         assertContains(
             validationResult.signalEmailAddress,
-            EmailAddress("mailto://allPurpose@edi.nhn.no", EndpointTypeType.ALL_PURPOSE),
-            "'signalEmailAddress' inneholdt IKKE allPurpose-epostadresse"
+            EmailAddress("mailto://request@test-es.nav.no", EndpointTypeType.REQUEST),
+            "'signalEmailAddress' inneholdt IKKE request-epostadresse"
         )
         assertContains(
             validationResult.signalEmailAddress,
-            EmailAddress("mailto://error@edi.nhn.no", EndpointTypeType.ERROR),
+            EmailAddress("mailto://response@test-es.nav.no", EndpointTypeType.RESPONSE),
+            "'signalEmailAddress' inneholdt IKKE response-epostadresse"
+        )
+        assertContains(
+            validationResult.signalEmailAddress,
+            EmailAddress("mailto://error@test-es.nav.no", EndpointTypeType.ERROR),
             "'signalEmailAddress' inneholdt IKKE error-epostadresse"
+        )
+        assertContains(
+            validationResult.signalEmailAddress,
+            EmailAddress("mailto://login@test-es.nav.no", EndpointTypeType.LOGIN),
+            "'signalEmailAddress' inneholdt IKKE login-epostadresse"
         )
 
         assertEquals(5, validationResult.receiverEmailAddress.size)
