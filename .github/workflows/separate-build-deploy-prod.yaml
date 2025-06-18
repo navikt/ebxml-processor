@@ -1,0 +1,75 @@
+name: "PROD: Separate build and deploy to prod"
+on:
+  workflow_dispatch:
+    inputs:
+      project:
+        description: "Select the project to build and deploy"
+        required: true
+        type: choice
+        options:
+          - cpa-repo
+          - ebms-async
+          - ebms-payload
+          - ebms-provider
+
+jobs:
+  build:
+    name: "Build selected project"
+    runs-on: "ubuntu-24.04"
+    permissions:
+      packages: write
+      repository-projects: write
+      contents: write
+      id-token: write
+    steps:
+      - uses: "actions/checkout@v4"
+      - uses: "actions/setup-java@v4"
+        with:
+          java-version: "21"
+          distribution: "temurin"
+      - name: Cache gradle wrapper
+        uses: actions/cache@v3
+        with:
+          path: ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-wrapper-${{ hashFiles('**/gradle/wrapper/gradle-wrapper.properties') }}
+      - name: Cache Gradle packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.gradle/caches
+          key: ${{ runner.os }}-gradle-cache-${{ hashFiles('build.gradle') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-cache-
+      - name: "Build and test selected project"
+        run: ./gradlew :${{ github.event.inputs.project }}:test :${{ github.event.inputs.project }}:build
+        env:
+          ORG_GRADLE_PROJECT_githubUser: x-access-token
+          ORG_GRADLE_PROJECT_githubPassword: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: "Docker build and push selected project"
+        uses: nais/docker-build-push@v0
+        id: docker-push
+        with:
+          team: team-emottak
+          tag: ${{ github.sha }}
+          dockerfile: Dockerfile
+          docker_context: ${{ github.event.inputs.project }}
+          image_suffix: ${{ github.event.inputs.project }}
+    outputs:
+      image: ${{ steps.docker-push.outputs.image }}
+
+  deploy:
+    name: "Deploy selected project to PROD"
+    needs: "build"
+    runs-on: "ubuntu-24.04"
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: "actions/checkout@v4"
+      - name: "Deploy to PROD"
+        uses: "nais/deploy/actions/deploy@v2"
+        env:
+          CLUSTER: "prod-fss"
+          RESOURCE: ".nais/${{ github.event.inputs.project }}-prod.yaml"
+          IMAGE: ${{ needs.build.outputs.image }}
