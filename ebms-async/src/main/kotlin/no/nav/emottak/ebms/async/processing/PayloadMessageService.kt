@@ -118,7 +118,15 @@ class PayloadMessageService(
             }
             returnAcknowledgment(ebmsPayloadMessage)
         } catch (e: EbmsException) {
-            returnMessageError(ebmsPayloadMessage, e)
+            try {
+                returnMessageError(ebmsPayloadMessage, e)
+            } catch (ex: Exception) {
+                log.error(ebmsPayloadMessage.marker(), "Failed to return MessageError", ex)
+                failedMessageQueue.sendToRetry(
+                    record,
+                    "Failed to return MessageError: ${ex.message ?: "Unknown error"}"
+                )
+            }
         } catch (ex: Exception) {
             log.error(ebmsPayloadMessage.marker(), ex.message ?: "Unknown error", ex)
             failedMessageQueue.sendToRetry(
@@ -157,7 +165,7 @@ class PayloadMessageService(
         ebmsPayloadMessage
             .createMessageError(ebmsException.feil)
             .also {
-                val validationResult = cpaValidationService.validateOutgoingMessageError(it)
+                val validationResult = cpaValidationService.validateOutgoingMessage(it)
                 ebmsMessageDetailsRepository.saveEbmsMessage(it)
                 val signingCertificate = validationResult.payloadProcessing?.signingCertificate
                 if (signingCertificate == null) {
@@ -167,7 +175,7 @@ class PayloadMessageService(
                         it.toEbmsDokument().signer(signingCertificate),
                         validationResult.signalEmailAddress
                     )
-                    log.warn(it.marker(), "MessageError returned")
+                    log.warn(it.marker(), "MessageError returned", ebmsException)
                 }
             }
     }
