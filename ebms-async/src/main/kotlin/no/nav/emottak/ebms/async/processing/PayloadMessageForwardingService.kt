@@ -9,7 +9,7 @@ import no.nav.emottak.ebms.async.log
 import no.nav.emottak.ebms.async.persistence.repository.EbmsMessageDetailsRepository
 import no.nav.emottak.ebms.async.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.async.util.EventRegistrationService
-import no.nav.emottak.ebms.async.util.toHeaders
+import no.nav.emottak.ebms.async.util.toKafkaHeaders
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
@@ -104,7 +104,7 @@ class PayloadMessageForwardingService(
             ebmsPayloadProducer.publishMessage(
                 key = signedEbmsDocument.requestId,
                 value = signedEbmsDocument.dokument.asByteArray(),
-                headers = receiverEmailAddress.toHeaders()
+                headers = receiverEmailAddress.toKafkaHeaders() + signedEbmsDocument.messageHeader().toKafkaHeaders()
             )
         }
     }
