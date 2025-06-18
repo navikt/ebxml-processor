@@ -124,7 +124,9 @@ class PayloadMessageService(
             failedMessageQueue.sendToRetry(
                 record,
                 ebmsPayloadMessage.requestId,
-                ebmsPayloadMessage.toEbmsDokument().dokument.asByteArray(),
+                ebmsPayloadMessage.dokument?.asByteArray() ?: byteArrayOf().also {
+                    log.warn(ebmsPayloadMessage.marker(), "ebXML document missing")
+                },
                 ex.message ?: "Unknown error"
             )
             throw ex
