@@ -123,15 +123,15 @@ class PayloadMessageService(
             } catch (ex: Exception) {
                 log.error(ebmsPayloadMessage.marker(), "Failed to return MessageError", ex)
                 failedMessageQueue.sendToRetry(
-                    record,
-                    "Failed to return MessageError: ${ex.message ?: "Unknown error"}"
+                    record = record,
+                    reason = "Failed to return MessageError: ${ex.message ?: "Unknown error"}"
                 )
             }
         } catch (ex: Exception) {
             log.error(ebmsPayloadMessage.marker(), ex.message ?: "Unknown error", ex)
             failedMessageQueue.sendToRetry(
-                record,
-                ex.message ?: "Unknown error"
+                record = record,
+                reason = ex.message ?: "Unknown error"
             )
             throw ex
         }
