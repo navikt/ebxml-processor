@@ -61,11 +61,11 @@ class EbMSSigning(private val keyStore: KeyStoreManager = KeyStoreManager(signer
 
     fun sign(ebMSDocument: EbMSDocument, signatureDetails: SignatureDetails) {
         sign(
-            ebMSDocument.dokument,
-            ebMSDocument.attachments,
-            createX509Certificate(signatureDetails.certificate),
-            signatureDetails.signatureAlgorithm,
-            signatureDetails.hashFunction
+            document = ebMSDocument.dokument,
+            attachments = ebMSDocument.attachments,
+            publicCertificate = createX509Certificate(signatureDetails.certificate),
+            signatureAlgorithm = signatureDetails.signatureAlgorithm,
+            hashFunction = signatureDetails.hashFunction
         )
     }
 
@@ -82,8 +82,7 @@ class EbMSSigning(private val keyStore: KeyStoreManager = KeyStoreManager(signer
         signatureAlgorithm: String,
         hashFunction: String
     ) {
-        val alias = keyStore.getCertificateAlias(publicCertificate)
-            ?: throw SignatureException("Fant ikke sertifikat med subject ${publicCertificate.subjectX500Principal.name} i keystore")
+        val alias = getCertificateAlias(publicCertificate)
         val keyPair = keyStore.getKeyPair(alias)
         val signature: XMLSignature = createSignature(document, signatureAlgorithm)
         appendSignature(document, signature)
@@ -100,6 +99,18 @@ class EbMSSigning(private val keyStore: KeyStoreManager = KeyStoreManager(signer
         signature.addKeyInfo(publicCertificate)
         signature.sign(keyPair.private)
     }
+
+    private fun getCertificateAlias(publicCertificate: X509Certificate): String =
+        try {
+            keyStore.getCertificateAlias(publicCertificate)
+        } catch (e: Exception) {
+            throw SignatureException(
+                "Could not find certificate with " +
+                    "subject <${publicCertificate.subjectX500Principal.name}> and " +
+                    "issuer <${publicCertificate.issuerX500Principal.name}> in keystore",
+                e
+            )
+        }
 
     private fun appendSignature(document: Document, signature: XMLSignature) {
         val soapHeader = document.documentElement.getFirstChildElement()
