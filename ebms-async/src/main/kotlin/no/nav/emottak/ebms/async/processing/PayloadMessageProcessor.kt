@@ -23,7 +23,6 @@ import no.nav.emottak.util.marker
 import java.io.ByteArrayInputStream
 
 class PayloadMessageProcessor(
-    // val ebmsMessageDetailsRepository: EbmsMessageDetailsRepository,
     val validator: DokumentValidator,
     val processingService: ProcessingService,
     val ebmsSignalProducer: EbmsMessageProducer,
@@ -66,15 +65,7 @@ class PayloadMessageProcessor(
         record: ReceiverRecord<String, ByteArray>
     ) {
         try {
-           /*
-           if (isDuplicateMessage(ebmsPayloadMessage)) {
-                log.info(ebmsPayloadMessage.marker(), "Got duplicate payload message with reference <${record.key()}>")
-            } else {
-
-            */
             log.info(ebmsPayloadMessage.marker(), "Got payload message with reference <${record.key()}>")
-            // ebmsMessageDetailsRepository.saveEbmsMessage(ebmsPayloadMessage)
-            // eventsRepository.saveEvent("Message received", ebmsPayloadMessage)
             validator
                 .validateIn(ebmsPayloadMessage)
                 .let {
@@ -93,7 +84,6 @@ class PayloadMessageProcessor(
                         }
                     }
                 }
-            // }
             returnAcknowledgment(ebmsPayloadMessage)
         } catch (e: EbmsException) {
             returnMessageError(ebmsPayloadMessage, e)
@@ -109,22 +99,11 @@ class PayloadMessageProcessor(
         }
     }
 
-    // TODO More advanced duplicate check
-    /*private fun isDuplicateMessage(ebmsPayloadMessage: PayloadMessage): Boolean {
-        log.debug(ebmsPayloadMessage.marker(), "Checking for duplicates")
-        return ebmsMessageDetailsRepository.getByConversationIdMessageIdAndCpaId(
-            conversationId = ebmsPayloadMessage.conversationId,
-            messageId = ebmsPayloadMessage.messageId,
-            cpaId = ebmsPayloadMessage.cpaId
-        ) != null
-    }
-*/
     private suspend fun returnAcknowledgment(ebmsPayloadMessage: PayloadMessage) {
         ebmsPayloadMessage
             .createAcknowledgment()
             .also {
                 val validationResult = validator.validateOut(it)
-                // ebmsMessageDetailsRepository.saveEbmsMessage(it)
                 sendResponseToTopic(
                     it.toEbmsDokument().signer(validationResult.payloadProcessing!!.signingCertificate),
                     validationResult.receiverEmailAddress
@@ -138,7 +117,6 @@ class PayloadMessageProcessor(
             .createFail(ebmsException.feil)
             .also {
                 val validationResult = validator.validateOut(it)
-                // ebmsMessageDetailsRepository.saveEbmsMessage(it)
                 sendResponseToTopic(
                     it.toEbmsDokument().signer(validationResult.payloadProcessing!!.signingCertificate),
                     validationResult.receiverEmailAddress

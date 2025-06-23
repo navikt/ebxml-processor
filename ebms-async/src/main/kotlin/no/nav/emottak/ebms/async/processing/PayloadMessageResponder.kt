@@ -21,7 +21,6 @@ class PayloadMessageResponder(
     val validator: DokumentValidator,
     val processingService: ProcessingService,
     val payloadRepository: PayloadRepository,
-    // val ebmsMessageDetailsRepository: EbmsMessageDetailsRepository,
     val ebmsPayloadProducer: EbmsMessageProducer
 ) {
 

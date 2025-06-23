@@ -13,7 +13,6 @@ import java.io.ByteArrayInputStream
 import kotlin.uuid.ExperimentalUuidApi
 
 class SignalProcessor(
-    // val ebmsMessageDetailsRepository: EbmsMessageDetailsRepository,
     val validator: DokumentValidator
 ) {
 
@@ -24,11 +23,9 @@ class SignalProcessor(
             validator.validateIn(ebxmlSignalMessage)
             when (ebxmlSignalMessage) {
                 is Acknowledgment -> {
-                    // ebmsMessageDetailsRepository.saveEbmsMessageDetails(ebxmlSignalMessage.toEbmsMessageDetails())
                     processAcknowledgment(ebxmlSignalMessage)
                 }
                 is EbmsFail -> {
-                    // ebmsMessageDetailsRepository.saveEbmsMessageDetails(ebxmlSignalMessage.toEbmsMessageDetails())
                     processMessageError(ebxmlSignalMessage)
                 }
                 else -> log.warn(ebxmlSignalMessage.marker(), "Cannot process message as signal message: $requestId")
@@ -52,19 +49,6 @@ class SignalProcessor(
 
     private fun processAcknowledgment(acknowledgment: Acknowledgment) {
         log.info(acknowledgment.marker(), "Got acknowledgment with requestId <${acknowledgment.requestId}>")
-       /*
-        val referencedMessage = ebmsMessageDetailsRepository.getByConversationIdMessageIdAndCpaId(
-            acknowledgment.conversationId,
-            acknowledgment.refToMessageId,
-            acknowledgment.cpaId
-        )
-        if (referencedMessage == null) {
-            log.warn(acknowledgment.marker(), "Received Acknowledgment for unknown message ${acknowledgment.refToMessageId}")
-        } else {
-            log.info(acknowledgment.marker(), "Message acknowledged")
-        }
-
-        */
     }
 
     private fun processMessageError(ebmsFail: EbmsFail) {
@@ -74,19 +58,6 @@ class SignalProcessor(
             log.warn(ebmsFail.marker(), "Received MessageError without message requestId")
             return
         }
-        /*
-        val referencedMessage = ebmsMessageDetailsRepository.getByConversationIdMessageIdAndCpaId(
-            ebmsFail.conversationId,
-            messageRef,
-            ebmsFail.cpaId
-        )
-        if (referencedMessage == null) {
-            log.warn(ebmsFail.marker(), "Received MessageError for unknown message $messageRef")
-        } else {
-            log.info(ebmsFail.marker(), "Message Error received")
-        }
-
-         */
         // TODO store events
         ebmsFail.feil.forEach { error ->
             log.info(ebmsFail.marker(), "Code: ${error.code}, Description: ${error.descriptionText}")
