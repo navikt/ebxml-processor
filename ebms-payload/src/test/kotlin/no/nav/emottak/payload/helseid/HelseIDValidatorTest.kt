@@ -6,11 +6,16 @@ import com.nimbusds.jose.JWSObject
 import com.nimbusds.jose.JWSVerifier
 import com.nimbusds.jose.crypto.ECDSAVerifier
 import com.nimbusds.jose.crypto.RSASSAVerifier
+import com.nimbusds.jose.crypto.factories.DefaultJWSVerifierFactory
 import com.nimbusds.jose.jwk.JWK
+import com.nimbusds.jose.jwk.JWKSelector
 import com.nimbusds.jose.jwk.JWKSet
 import com.nimbusds.jose.jwk.gen.OctetSequenceKeyGenerator
+import com.nimbusds.jose.jwk.source.JWKSource
+import com.nimbusds.jose.proc.SecurityContext
 import com.nimbusds.jwt.JWTParser
 import com.nimbusds.jwt.SignedJWT
+import kotlinx.coroutines.runBlocking
 import no.nav.emottak.payload.helseid.testutils.HelseIDCreator
 import no.nav.emottak.payload.helseid.testutils.ResourceUtil
 import no.nav.emottak.payload.helseid.testutils.SecurityUtils
@@ -32,6 +37,7 @@ import java.time.OffsetDateTime
 import java.util.Base64
 import java.util.Date
 import java.util.concurrent.TimeUnit
+import kotlin.test.assertTrue
 
 @Suppress("MaxLineLength")
 internal class HelseIDValidatorTest {
@@ -53,6 +59,42 @@ internal class HelseIDValidatorTest {
             HelseIdTokenValidator.SUPPORTED_AUDIENCE.forEach { aud ->
                 validateHomeMadeHelseId(validator, scope = scope, audience = aud)
             }
+        }
+    }
+
+    @Test
+    fun `validate helseID signature with JWKS`() {
+        runBlocking {
+            val jwtString =
+                "eyJhbGciOiJSUzI1NiIsImtpZCI6Ijc4NjY3RjkwREMxMUJGMDRCRDk0NjdEMUY5MTIwQzRBNDM0MEI0Q0YiLCJ4NXQiOiJlR1pfa053UnZ3UzlsR2ZSLVJJTVNrTkF0TTgiLCJ0eXAiOiJhdCtqd3QifQ.eyJhdWQiOiJuYXY6c2lnbi1tZXNzYWdlIiwiaXNzIjoiaHR0cHM6Ly9oZWxzZWlkLXN0cy50ZXN0Lm5obi5ubyIsIm5iZiI6MTc1MDQyMzAxNCwiaWF0IjoxNzUwNDIzMDE0LCJleHAiOjE3NTA0MjM2MTQsImF1dGhfdGltZSI6MTc1MDQyMzAxMywic2NvcGUiOlsib3BlbmlkIiwicHJvZmlsZSIsInJlYWQiLCJuYXY6c2lnbi1tZXNzYWdlL21zZ2hlYWQiXSwiaWRwIjoiaWRwb3J0ZW4tb2lkYyIsImhlbHNlaWQ6Ly9jbGFpbXMvaWRlbnRpdHkvcGlkIjoiMDQwNTY2MDAzMjQiLCJoZWxzZWlkOi8vY2xhaW1zL2lkZW50aXR5L3BpZF9wc2V1ZG9ueW0iOiJQR3pWenZQMkp2bFhWKytPSlNKQVFHNWQ5OUJIOFFzaWtteHBkSUFLU1prPSIsImhlbHNlaWQ6Ly9jbGFpbXMvaWRlbnRpdHkvc2VjdXJpdHlfbGV2ZWwiOiI0IiwiaGVsc2VpZDovL2NsYWltcy9pZGVudGl0eS9hc3N1cmFuY2VfbGV2ZWwiOiJoaWdoIiwiaGVsc2VpZDovL2NsYWltcy9pZGVudGl0eS9uZXR3b3JrIjoiaW50ZXJuZXR0Iiwic3ViIjoiUEd6Vnp2UDJKdmxYVisrT0pTSkFRRzVkOTlCSDhRc2lrbXhwZElBS1Naaz0iLCJzaWQiOiIwOTcwRjBFRDYwQzU1MjU5N0JGQzI1NDE1MEZBNDA2RCIsIm5hbWUiOiJLVkFSVCBHUkVWTElORyIsImZhbWlseV9uYW1lIjoiR1JFVkxJTkciLCJnaXZlbl9uYW1lIjoiS1ZBUlQiLCJoZWxzZWlkOi8vY2xhaW1zL2hwci9ocHJfbnVtYmVyIjoiNTY1NTA1OTMzIiwiYW1yIjpbInB3ZCJdfQ.lTe8yFT3njKqapVNP9v2SfVOlYvmVkSrXWWqiEJ-hzNUG2PEq_h8fXxZQv2HMaUaqK5KFqebzy0-JOXSAnJfNaFXOe_JkV7VX-38MnB7ktTkZ8yOzyEDsr5voY0JmUCjGeIUfPB7P_9aPbUOkAx1OBHG-jaKJ3sCviO96KxEdHz0BjI2Nzto--UswCwkf04wLRbuAfir1SXn_ibpex5lRW5zTUv4YxdbzM2tKFI4x4X4dewVf7w-1Dj99y2x_EWm9-eFO90XtMpPZlLLNYubYdivQ4uuQtn5ITQOlIXYp6fzukguFSGcdHywswvWCEATQdyoRnl1eqvgTw_wFcfB4muuXS2z_bp60fJOJ6QDndozk8ybOaSBiUFKY9mZyqIf0frTcudr4HwKXyY7nsf4o4HUSHRNwApm7uRrAIyQjrUTN0dcarynTcT-ytpoOPIPDZQ0Mju0DgahrcqCWBb-x2brhCo7Fsa5IemtXvD4znXatI7cmzWkpLh--Nisgks0"
+            val signedJwt = SignedJWT.parse(jwtString)
+
+            val jwkString =
+                "{\"keys\":[{\"kty\":\"RSA\",\"use\":\"sig\",\"kid\":\"78667F90DC11BF04BD9467D1F9120C4A4340B4CF\",\"x5t\":\"eGZ_kNwRvwS9lGfR-RIMSkNAtM8\",\"e\":\"AQAB\",\"n\":\"tN7XtBOECw46hgl6q76EW122XGy8OjsobNCxpnds6awfMwt3yoBASQ8z7lcwW5rXQUXlfg3b6K2jBZc33-KmwrT7FBJrcOKIRZWl_EhHm4JGdKXbMva7UmyBsr3LBFAj9cQvKukbF6b5ATIknz9NFTlDn7Cv0TFzxpbtolIvNH6gy0Yk5U1hsNxQ1eS96w40K0gvKSw_Fow_rgkhfNcOzYqC9TIbKihvL9Ya0ZhiVaEVvq58ZtXGXgduQZGcMr8vk1XwTKmQ4AXtrIajnO_id67bV60chDdxSGyc5yKBEjPFIoPXpebRtgl2IL7z1O80A48vtXeH2B492wgQyFIDgN70UZwNYvlfniD8Zjn66kWPPn0W3erdiHoYQoMluaqIsoY2K2r7dN0Wxi9OYcTvUfH128lOVVLkw0zANCh57yi67fNjB_aaExQZ4tWY21HAdIgQRSOgPwbtyv4TQ-_RU0_FtZWyc6Yn2mij_tV3D7pGnEeSB2evLWeO2M8oE3e1\",\"x5c\":[\"MIIGTzCCBDegAwIBAgILAZrJWW\\u002BfA1PUzAAwDQYJKoZIhvcNAQELBQAwbjELMAkGA1UEBhMCTk8xGDAWBgNVBGEMD05UUk5PLTk4MzE2MzMyNzETMBEGA1UECgwKQnV5cGFzcyBBUzEwMC4GA1UEAwwnQnV5cGFzcyBDbGFzcyAzIFRlc3Q0IENBIEcyIFNUIEJ1c2luZXNzMB4XDTIzMDgwMTA4MDg1M1oXDTI2MDgwMTIxNTkwMFowczELMAkGA1UEBhMCTk8xGzAZBgNVBAoMEk5PUlNLIEhFTFNFTkVUVCBTRjEQMA4GA1UECwwHSGVsc2VJRDEbMBkGA1UEAwwSTk9SU0sgSEVMU0VORVRUIFNGMRgwFgYDVQRhDA9OVFJOTy05OTQ1OTg3NTkwggGiMA0GCSqGSIb3DQEBAQUAA4IBjwAwggGKAoIBgQC03te0E4QLDjqGCXqrvoRbXbZcbLw6Oyhs0LGmd2zprB8zC3fKgEBJDzPuVzBbmtdBReV\\u002BDdvoraMFlzff4qbCtPsUEmtw4ohFlaX8SEebgkZ0pdsy9rtSbIGyvcsEUCP1xC8q6RsXpvkBMiSfP00VOUOfsK/RMXPGlu2iUi80fqDLRiTlTWGw3FDV5L3rDjQrSC8pLD8WjD\\u002BuCSF81w7NioL1MhsqKG8v1hrRmGJVoRW\\u002Brnxm1cZeB25BkZwyvy\\u002BTVfBMqZDgBe2shqOc7\\u002BJ3rttXrRyEN3FIbJznIoESM8Uig9el5tG2CXYgvvPU7zQDjy\\u002B1d4fYHj3bCBDIUgOA3vRRnA1i\\u002BV\\u002BeIPxmOfrqRY8\\u002BfRbd6t2IehhCgyW5qoiyhjYravt03RbGL05hxO9R8fXbyU5VUuTDTMA0KHnvKLrt82MH9poTFBni1ZjbUcB0iBBFI6A/Bu3K/hND79FTT8W1lbJzpifaaKP\\u002B1XcPukacR5IHZ68tZ47YzygTd7UCAwEAAaOCAWcwggFjMAkGA1UdEwQCMAAwHwYDVR0jBBgwFoAUp/67bFmIrXQuRl56aPnRu7/PtoswHQYDVR0OBBYEFGl1wjQjGFeojCQ6MM1li7CQwhvNMA4GA1UdDwEB/wQEAwIGQDAfBgNVHSAEGDAWMAoGCGCEQgEaAQMCMAgGBgQAj3oBATBBBgNVHR8EOjA4MDagNKAyhjBodHRwOi8vY3JsLnRlc3Q0LmJ1eXBhc3NjYS5jb20vQlBDbDNDYUcyU1RCUy5jcmwwewYIKwYBBQUHAQEEbzBtMC0GCCsGAQUFBzABhiFodHRwOi8vb2NzcGJzLnRlc3Q0LmJ1eXBhc3NjYS5jb20wPAYIKwYBBQUHMAKGMGh0dHA6Ly9jcnQudGVzdDQuYnV5cGFzc2NhLmNvbS9CUENsM0NhRzJTVEJTLmNlcjAlBggrBgEFBQcBAwQZMBcwFQYIKwYBBQUHCwIwCQYHBACL7EkBAjANBgkqhkiG9w0BAQsFAAOCAgEAPdxOpsX7betsTS7197VcsjyRjnDnUTe/TUdKbgrdWxIwZTo7aNwqhliSu5XIWR019QLLPntYJ/\\u002BG4clRkNdkmgKy\\u002B6INDtLnbOhN/jl7pJXTTgn2qvalEBE2IR9Gt0cTU88HTutz2cbAKoZBMSdw/thsXVoPzQ0OTRhq2S3Y7a9YUfgSaEf4/OfDg4ZU17JOxvbn7kJ3m0BHRykwLD\\u002B1tLC8FsCV6UtvsyDzxj5bXIGpKLjoKFuETiUJd7UEjbRl75bOEnEojyLQx4XNTkw9Li3Z\\u002BPFo71Z\\u002BnENSpTNjyntUgZp/62spoA5vhvQi8pfsxKTFaUH9dakkPDJM1QZ1c8kSjW3nwhLgcZk5q64hfTsrJT7ZOckbaq53/1nE46B4tcMMJAnXjxG70WzvWfADOORwE/sGDmlCd1/nq\\u002Bd/0V\\u002Br8VzZdSVEn9eVBddrIAerW95Jevc12f4N86ez6f6lrXhPzBPUFhg8bqiIX2vj7umiQURipJWvNp7\\u002B3r/otBeQ8PO5bbIZtmf2tCnJEHs8kpCyX62JIwjQGSJnfRXa6hjq\\u002BEt9M5d\\u002Bzco1ArNPAJ73jnHTObKeSgu3TuAmiFadhmVKG\\u002BsLsPOQk6D0guYVULIKS5d/pDTjffaIo\\u002BaWz62q5LDrC8m4F6qHgRiI7BEcaZCrVyRllLXr4bCsuFk6oDk=\"],\"alg\":\"RS256\"}]}"
+            println(jwkString)
+
+            val jwkSet = JWKSet.parse(jwkString)
+
+            class StaticJWKSource(jwkSetJson: String) : JWKSource<SecurityContext> {
+                private val jwkSet: JWKSet = JWKSet.parse(jwkSetJson)
+
+                override fun get(selector: JWKSelector, context: SecurityContext?): List<JWK> {
+                    return selector.select(jwkSet)
+                }
+            }
+            assertTrue(
+                signedJwt.verify(StaticJWKSource(jwkString))
+            )
+
+            val pubKeyJwk = jwkSet.getKeyByKeyId(signedJwt.header.keyID)
+            assertTrue(
+                signedJwt.verify(
+                    DefaultJWSVerifierFactory().createJWSVerifier(
+                        signedJwt.header,
+                        pubKeyJwk.toRSAKey().toPublicKey()
+                    )
+                )
+            )
         }
     }
 
