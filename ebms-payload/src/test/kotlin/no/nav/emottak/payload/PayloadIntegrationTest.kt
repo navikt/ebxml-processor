@@ -2,6 +2,7 @@
 
 package no.nav.emottak.payload
 
+import com.nimbusds.jwt.SignedJWT
 import io.ktor.client.call.body
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -136,6 +137,30 @@ class PayloadIntegrationTest : PayloadTestBase() {
             assertEquals(HttpStatusCode.OK, response.status)
             assertNull(response.body<PayloadResponse>().error)
             assertEquals(ssn, response.body<PayloadResponse>().processedPayload!!.signedBy)
+        }
+    }
+
+    private fun getToken(audience: String = AuthConfig.getScope()): SignedJWT = mockOAuth2Server.issueToken(
+        issuerId = AZURE_AD_AUTH,
+        audience = audience,
+        subject = "testUser"
+    )
+
+    private fun configureOcspStatusService() {
+        mockkConstructor(OcspStatusService::class, recordPrivateCalls = true, localToThread = false)
+        val ocspRequestCaptureSlot = slot<ByteArray>()
+        coEvery {
+            anyConstructed<OcspStatusService>().postOCSPRequest(any(String::class), capture(ocspRequestCaptureSlot))
+        } coAnswers {
+            OCSPRespBuilder().build(
+                OCSPRespBuilder.SUCCESSFUL,
+                createOCSPResp(
+                    testKeystore.getCertificate("navtest-ca"),
+                    "01010112345",
+                    testKeystore.getKey("navtest-ca"),
+                    OCSPReq(ocspRequestCaptureSlot.captured).getExtension(id_pkix_ocsp_nonce).parsedValue
+                )
+            )
         }
     }
 }

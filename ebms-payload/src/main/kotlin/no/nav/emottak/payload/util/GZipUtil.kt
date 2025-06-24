@@ -21,7 +21,7 @@ class GZipUtil {
             gzip.write(byteArray)
             gzip.close()
         } catch (e: Exception) {
-            throw e
+            throw CompressionException("Exception occurred while compressing payload", e)
         }
         return out.toByteArray()
     }
@@ -40,7 +40,7 @@ class GZipUtil {
                 out.write(buffer, 0, n)
             }
         } catch (e: Exception) {
-            throw e
+            throw DecompressionException("Exception occurred while decompressing payload", e)
         }
         return out.toByteArray()
     }

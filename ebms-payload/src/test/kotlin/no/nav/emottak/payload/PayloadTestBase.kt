@@ -25,6 +25,7 @@ import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.message.xml.asByteArray
 import no.nav.emottak.payload.crypto.PayloadSignering
 import no.nav.emottak.payload.crypto.payloadSigneringConfig
+import no.nav.emottak.payload.util.EventRegistrationServiceFake
 import no.nav.emottak.util.createDocument
 import no.nav.security.mock.oauth2.MockOAuth2Server
 import kotlin.uuid.ExperimentalUuidApi
@@ -60,7 +61,11 @@ abstract class PayloadTestBase {
     protected fun <T> testApp(testBlock: suspend ApplicationTestBuilder.() -> T) =
         testApplication {
             setupEnv()
-            application(payloadApplicationModule())
+
+            val eventRegistrationService = EventRegistrationServiceFake()
+            val processor = Processor(eventRegistrationService)
+
+            application(payloadApplicationModule(processor, eventRegistrationService))
             testBlock()
         }
 

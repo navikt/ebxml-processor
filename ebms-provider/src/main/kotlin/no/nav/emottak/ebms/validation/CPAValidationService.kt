@@ -3,7 +3,7 @@ package no.nav.emottak.ebms.validation
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import no.nav.emottak.ebms.CpaRepoClient
-import no.nav.emottak.ebms.model.sjekkSignature
+import no.nav.emottak.ebms.model.validateSignature
 import no.nav.emottak.ebms.util.marker
 import no.nav.emottak.melding.feil.EbmsException
 import no.nav.emottak.message.model.Direction
@@ -20,10 +20,25 @@ val log = LoggerFactory.getLogger("no.nav.emottak.ebms.validation.CPAValidationS
 
 class CPAValidationService(val httpClient: CpaRepoClient) {
 
-    suspend fun validateIncomingMessage(message: EbmsMessage): ValidationResult = validate(IN, message, true)
-    suspend fun validateOutgoingMessage(message: EbmsMessage): ValidationResult = validate(OUT, message, false)
+    suspend fun validateIncomingMessage(message: EbmsMessage): ValidationResult =
+        getValidationResult(IN, message).also {
+            validateResult(
+                validationResult = it,
+                message = message,
+                checkSignature = true
+            )
+        }
 
-    private suspend fun validate(direction: Direction, message: EbmsMessage, checkSignature: Boolean): ValidationResult {
+    suspend fun validateOutgoingMessage(message: EbmsMessage): ValidationResult =
+        getValidationResult(OUT, message).also {
+            validateResult(
+                validationResult = it,
+                message = message,
+                checkSignature = false
+            )
+        }
+
+    private suspend fun getValidationResult(direction: Direction, message: EbmsMessage): ValidationResult {
         val validationRequest = ValidationRequest(
             direction,
             message.messageId,
@@ -34,11 +49,14 @@ class CPAValidationService(val httpClient: CpaRepoClient) {
         val validationResult = withContext(Dispatchers.IO) {
             httpClient.postValidate(message.requestId, validationRequest)
         }
+        return validationResult
+    }
 
+    private fun validateResult(validationResult: ValidationResult, message: EbmsMessage, checkSignature: Boolean): ValidationResult {
         if (!validationResult.valid()) throw EbmsException(validationResult.error!!)
         if (checkSignature) {
             runCatching {
-                message.sjekkSignature(validationResult.payloadProcessing!!.signingCertificate)
+                message.validateSignature(validationResult.payloadProcessing!!.signingCertificate)
             }.onFailure {
                 log.warn(message.marker(), "Signatursjekk har feilet", it)
                 throw EbmsException(

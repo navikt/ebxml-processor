@@ -14,16 +14,14 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import java.util.UUID
 import javax.xml.bind.UnmarshalException
-import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 class SignalProcessorTest {
 
     val repository = mockk<EbmsMessageDetailsRepository>()
     val cpaValidationService = mockk<CPAValidationService>()
-    val signalProcessor = SignalProcessor(repository, cpaValidationService)
+    val signalMessageService = SignalMessageService(repository, cpaValidationService)
 
-    @OptIn(ExperimentalUuidApi::class)
     @Test
     fun `Process acknowledgment goes OK`() {
         every {
@@ -40,7 +38,7 @@ class SignalProcessorTest {
             .getResourceAsStream("signaltest/acknowledgment.xml")
 
         runBlocking {
-            signalProcessor.processSignal(UUID.randomUUID().toString(), message!!.readAllBytes())
+            signalMessageService.processSignal(UUID.randomUUID().toString(), message!!.readAllBytes())
         }
     }
 
@@ -52,7 +50,7 @@ class SignalProcessorTest {
 
         val exception = assertThrows<RuntimeException> {
             runBlocking {
-                signalProcessor.processSignal(UUID.randomUUID().toString(), message!!.readAllBytes())
+                signalMessageService.processSignal(UUID.randomUUID().toString(), message!!.readAllBytes())
             }
         }
         assertEquals("Unrecognized dokument type", exception.message)
@@ -66,7 +64,7 @@ class SignalProcessorTest {
 
         assertThrows<UnmarshalException> {
             runBlocking {
-                signalProcessor.processSignal(UUID.randomUUID().toString(), message!!.readAllBytes())
+                signalMessageService.processSignal(UUID.randomUUID().toString(), message!!.readAllBytes())
             }
         }
     }
@@ -74,7 +72,6 @@ class SignalProcessorTest {
 
 val validationResult = ValidationResult()
 
-@OptIn(ExperimentalUuidApi::class)
 val ebmsMessageDetails = EbmsMessageDetails(
     Uuid.random(),
     "123",
