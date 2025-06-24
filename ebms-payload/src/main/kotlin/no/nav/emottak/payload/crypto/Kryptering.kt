@@ -45,7 +45,7 @@ fun krypterDokument(doc: ByteArray, certificate: X509Certificate): ByteArray {
     return try {
         krypterDokument(doc, listOf(certificate))
     } catch (e: Exception) {
-        throw EncryptionException("Feil ved kryptering av dokument", e)
+        throw EncryptionException("Feil ved kryptering av dokument. Sertifikat: ${getEncryptionDetails(certificate)}", e)
     }
 }
 
@@ -68,4 +68,13 @@ private fun krypterDokument(input: ByteArray, certificates: List<X509Certificate
     } catch (e: CMSException) {
         throw EncryptionException("Feil ved kryptering av dokument", e)
     }
+}
+
+fun getEncryptionDetails(certificate: X509Certificate): String {
+    return """
+            X.509 Certificate: 
+            Subject: ${certificate.subjectX500Principal}
+            Issuer: ${certificate.issuerX500Principal}
+            Serial Number: ${certificate.serialNumber}
+    """.trimIndent()
 }

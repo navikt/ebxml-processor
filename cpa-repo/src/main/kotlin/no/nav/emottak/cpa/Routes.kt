@@ -28,9 +28,10 @@ import no.nav.emottak.cpa.validation.MessageDirection
 import no.nav.emottak.cpa.validation.partyInfoHasRoleServiceActionCombo
 import no.nav.emottak.cpa.validation.validate
 import no.nav.emottak.melding.feil.EbmsException
+import no.nav.emottak.message.ebxml.EbXMLConstants.ACKNOWLEDGMENT_ACTION
+import no.nav.emottak.message.ebxml.EbXMLConstants.EBMS_SERVICE_URI
+import no.nav.emottak.message.ebxml.EbXMLConstants.MESSAGE_ERROR_ACTION
 import no.nav.emottak.message.ebxml.PartyTypeEnum
-import no.nav.emottak.message.model.Direction.IN
-import no.nav.emottak.message.model.Direction.OUT
 import no.nav.emottak.message.model.EbmsProcessing
 import no.nav.emottak.message.model.ErrorCode
 import no.nav.emottak.message.model.Feil
@@ -192,15 +193,13 @@ fun Route.validateCpa(
         log.info(validateRequest.marker(), "Validerer ebms mot CPA")
         val cpa = cpaRepository.findCpa(validateRequest.cpaId)
             ?: throw NotFoundException("Fant ikke CPA (${validateRequest.cpaId})")
-        cpa.validate(validateRequest) // Delivery Failure
+        if (!validateRequest.isSignalMessage()) {
+            cpa.validate(validateRequest)
+        } // Delivery Failure
+
         val fromParty = cpa.getPartyInfoByTypeAndID(validateRequest.addressing.from.partyId) // Delivery Failure
-        val encryptionCertificate = when (validateRequest.direction) {
-            IN -> fromParty.getCertificateForEncryption() // Security Failure
-            OUT ->
-                cpa
-                    .getPartyInfoByTypeAndID(validateRequest.addressing.to.partyId)
-                    .getCertificateForEncryption()
-        }
+        val toParty = cpa.getPartyInfoByTypeAndID(validateRequest.addressing.to.partyId) // Delivery Failure
+        val encryptionCertificate = toParty.getCertificateForEncryption()
 
         val signingCertificate = fromParty.getCertificateForSignatureValidation(
             validateRequest.addressing.from.role,
@@ -208,8 +207,7 @@ fun Route.validateCpa(
             validateRequest.addressing.action
         ) // Security Failure
 
-        val signalEmails = fromParty.getSignalEmailAddress(validateRequest)
-        val toParty = cpa.getPartyInfoByTypeAndID(validateRequest.addressing.to.partyId) // Delivery Failure
+        val signalEmails = toParty.getSignalEmailAddress(validateRequest)
         val receiverEmails = toParty.getReceiveEmailAddress(validateRequest)
 
         runCatching {
@@ -288,6 +286,9 @@ fun Route.validateCpa(
         )
     }
 }
+
+private fun ValidationRequest.isSignalMessage(): Boolean = this.addressing.service == EBMS_SERVICE_URI &&
+    (this.addressing.action == MESSAGE_ERROR_ACTION || this.addressing.action == ACKNOWLEDGMENT_ACTION)
 
 fun Route.getCertificate(cpaRepository: CPARepository) =
     get("/cpa/{$CPA_ID}/party/{$PARTY_TYPE}/{$PARTY_ID}/encryption/certificate") {

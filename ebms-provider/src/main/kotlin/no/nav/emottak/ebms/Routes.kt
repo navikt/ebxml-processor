@@ -12,7 +12,7 @@ import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.util.EventRegistrationService
 import no.nav.emottak.ebms.util.marker
-import no.nav.emottak.ebms.validation.DokumentValidator
+import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.ebms.validation.MimeValidationException
 import no.nav.emottak.ebms.validation.parseAsSoapFault
 import no.nav.emottak.ebms.validation.validateMime
@@ -30,7 +30,7 @@ import no.nav.emottak.utils.serialization.toEventDataJson
 import kotlin.uuid.Uuid
 
 fun Route.postEbmsSync(
-    validator: DokumentValidator,
+    cpaValidationService: CPAValidationService,
     processingService: ProcessingService,
     sendInService: SendInService,
     eventRegistrationService: EventRegistrationService
@@ -64,7 +64,6 @@ fun Route.postEbmsSync(
                 "Message-Id ${call.request.header(SMTPHeaders.MESSAGE_ID)}",
             ex
         )
-        // @TODO done only for demo fiks!
         call.respond(
             HttpStatusCode.InternalServerError,
             ex.parseAsSoapFault()
@@ -76,7 +75,7 @@ fun Route.postEbmsSync(
 
     var signingCertificate: SignatureDetails? = null
     try {
-        validator.validateIn(ebmsMessage)
+        cpaValidationService.validateIncomingMessage(ebmsMessage)
             .let { validationResult ->
                 val partnerId: Long? = validationResult.partnerId
 
@@ -101,7 +100,7 @@ fun Route.postEbmsSync(
                         }
                     }
             }.let { payloadMessage ->
-                validator.validateOut(payloadMessage).let {
+                cpaValidationService.validateOutgoingMessage(payloadMessage).let {
                     signingCertificate = it.payloadProcessing?.signingCertificate
                     Pair<PayloadMessage, PayloadProcessing?>(payloadMessage, it.payloadProcessing)
                 }
@@ -125,7 +124,7 @@ fun Route.postEbmsSync(
             }
     } catch (ebmsException: EbmsException) {
         log.error(ebmsMessage.marker(), ebmsException.message, ebmsException)
-        ebmsMessage.createFail(ebmsException.feil).toEbmsDokument().also {
+        ebmsMessage.createMessageError(ebmsException.feil).toEbmsDokument().also {
             signingCertificate?.let { signatureDetails ->
                 it.signer(signatureDetails)
             }

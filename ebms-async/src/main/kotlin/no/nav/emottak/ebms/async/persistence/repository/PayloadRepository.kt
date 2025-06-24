@@ -7,12 +7,10 @@ import no.nav.emottak.ebms.async.persistence.table.PayloadTable.referenceId
 import no.nav.emottak.message.model.AsyncPayload
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.upsert
-import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 class PayloadRepository(private val database: Database) {
 
-    @OptIn(ExperimentalUuidApi::class)
     fun updateOrInsert(payload: AsyncPayload): Uuid {
         transaction(database.db) {
             PayloadTable.upsert(referenceId, contentId) {
@@ -25,7 +23,6 @@ class PayloadRepository(private val database: Database) {
         return Uuid.parse(payload.referenceId)
     }
 
-    @OptIn(ExperimentalUuidApi::class)
     fun getByReferenceId(referenceId: Uuid): List<AsyncPayload> {
         return transaction(database.db) {
             PayloadTable

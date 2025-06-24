@@ -7,7 +7,7 @@ import org.xmlsoap.schemas.soap.envelope.Body
 import org.xmlsoap.schemas.soap.envelope.ObjectFactory
 import java.time.Instant
 
-data class EbmsFail(
+data class MessageError(
     override val requestId: String,
     override val messageId: String,
     override val refToMessageId: String?,

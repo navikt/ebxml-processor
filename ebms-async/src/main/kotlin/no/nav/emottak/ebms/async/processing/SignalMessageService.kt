@@ -4,28 +4,26 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import no.nav.emottak.ebms.async.log
 import no.nav.emottak.ebms.util.marker
-import no.nav.emottak.ebms.validation.DokumentValidator
+import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.message.model.Acknowledgment
 import no.nav.emottak.message.model.EbMSDocument
-import no.nav.emottak.message.model.EbmsFail
+import no.nav.emottak.message.model.MessageError
 import no.nav.emottak.message.xml.getDocumentBuilder
 import java.io.ByteArrayInputStream
-import kotlin.uuid.ExperimentalUuidApi
 
-class SignalProcessor(
-    val validator: DokumentValidator
+class SignalMessageService(
+    val cpaValidationService: CPAValidationService
 ) {
 
-    @OptIn(ExperimentalUuidApi::class)
     suspend fun processSignal(requestId: String, content: ByteArray) {
         try {
             val ebxmlSignalMessage = createEbmsMessage(requestId, content)
-            validator.validateIn(ebxmlSignalMessage)
+            cpaValidationService.validateIncomingMessage(ebxmlSignalMessage)
             when (ebxmlSignalMessage) {
                 is Acknowledgment -> {
                     processAcknowledgment(ebxmlSignalMessage)
                 }
-                is EbmsFail -> {
+                is MessageError -> {
                     processMessageError(ebxmlSignalMessage)
                 }
                 else -> log.warn(ebxmlSignalMessage.marker(), "Cannot process message as signal message: $requestId")
@@ -51,16 +49,16 @@ class SignalProcessor(
         log.info(acknowledgment.marker(), "Got acknowledgment with requestId <${acknowledgment.requestId}>")
     }
 
-    private fun processMessageError(ebmsFail: EbmsFail) {
-        log.info(ebmsFail.marker(), "Got MessageError with requestId <${ebmsFail.requestId}>")
-        val messageRef = ebmsFail.refToMessageId
+    private fun processMessageError(messageError: MessageError) {
+        log.info(messageError.marker(), "Got MessageError with requestId <${messageError.requestId}>")
+        val messageRef = messageError.refToMessageId
         if (messageRef == null) {
-            log.warn(ebmsFail.marker(), "Received MessageError without message requestId")
+            log.warn(messageError.marker(), "Received MessageError without message requestId")
             return
         }
         // TODO store events
-        ebmsFail.feil.forEach { error ->
-            log.info(ebmsFail.marker(), "Code: ${error.code}, Description: ${error.descriptionText}")
+        messageError.feil.forEach { error ->
+            log.info(messageError.marker(), "Code: ${error.code}, Description: ${error.descriptionText}")
         }
     }
 }
