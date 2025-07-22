@@ -18,11 +18,17 @@ class EventManagerService(val httpClient: EventManagerClient) {
         )
         log.debug("Sending duplicate check request: $duplicateCheckRequest")
 
-        val duplicateCheckResponse = withContext(Dispatchers.IO) {
-            httpClient.duplicateCheck(duplicateCheckRequest)
-        }
-        log.info("Duplicate check response received: $duplicateCheckResponse")
+        try {
+            val duplicateCheckResponse = withContext(Dispatchers.IO) {
+                httpClient.duplicateCheck(duplicateCheckRequest)
+            }
+            log.debug("Duplicate check response received: $duplicateCheckResponse")
 
-        return duplicateCheckResponse.isDuplicate
+            return duplicateCheckResponse.isDuplicate
+        }
+        catch (e: Exception) {
+            log.error("Error during duplicate check", e)
+            return false
+        }
     }
 }
