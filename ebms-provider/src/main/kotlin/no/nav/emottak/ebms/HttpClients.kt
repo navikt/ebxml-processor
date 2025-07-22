@@ -20,6 +20,8 @@ import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import no.nav.emottak.message.model.AsyncPayload
+import no.nav.emottak.message.model.DuplicateCheckRequest
+import no.nav.emottak.message.model.DuplicateCheckResponse
 import no.nav.emottak.message.model.PayloadRequest
 import no.nav.emottak.message.model.PayloadResponse
 import no.nav.emottak.message.model.SendInRequest
@@ -30,8 +32,6 @@ import no.nav.emottak.utils.environment.getEnvVar
 import java.net.InetSocketAddress
 import java.net.Proxy
 import java.net.URI
-import no.nav.emottak.message.model.DuplicateCheckRequest
-import no.nav.emottak.message.model.DuplicateCheckResponse
 
 const val AZURE_AD_AUTH = "AZURE_AD"
 
@@ -102,6 +102,7 @@ class EventManagerClient(clientProvider: () -> HttpClient) {
     suspend fun duplicateCheck(duplicateCheckRequest: DuplicateCheckRequest): DuplicateCheckResponse {
         val duplicateCheckUri = "$eventManagerUrl/duplicateCheck"
         val response = httpClient.post(duplicateCheckUri) {
+            setBody(duplicateCheckRequest)
             contentType(ContentType.Application.Json)
         }
         if (response.status != HttpStatusCode.OK) {
@@ -129,7 +130,6 @@ val EVENT_MANAGER_SCOPE = getEnvVar(
     "EVENT_MANAGER_SCOPE",
     "api://" + getEnvVar("NAIS_CLUSTER_NAME", "dev-fss") + ".team-emottak.emottak-event-manager/.default"
 )
-
 
 fun defaultHttpClient(): () -> HttpClient {
     return {
