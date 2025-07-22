@@ -16,14 +16,11 @@ class EventManagerService(val httpClient: EventManagerClient) {
             conversationId = ebmsPayloadMessage.conversationId,
             cpaId = ebmsPayloadMessage.cpaId
         )
-        log.debug("Sending duplicate check request: $duplicateCheckRequest")
 
         try {
             val duplicateCheckResponse = withContext(Dispatchers.IO) {
                 httpClient.duplicateCheck(duplicateCheckRequest)
             }
-            log.debug("Duplicate check response received: $duplicateCheckResponse")
-
             return duplicateCheckResponse.isDuplicate
         } catch (e: Exception) {
             log.error("Error during duplicate check", e)

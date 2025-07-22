@@ -102,7 +102,7 @@ class EventManagerClient(clientProvider: () -> HttpClient) {
     suspend fun duplicateCheck(duplicateCheckRequest: DuplicateCheckRequest): DuplicateCheckResponse {
         val duplicateCheckUri = "$eventManagerUrl/duplicateCheck"
 
-        log.debug("Sending duplicate check request: $duplicateCheckRequest to $duplicateCheckUri")
+        log.debug("Sending duplicate check request: $duplicateCheckRequest")
         val response = httpClient.post(duplicateCheckUri) {
             setBody(duplicateCheckRequest)
             contentType(ContentType.Application.Json)

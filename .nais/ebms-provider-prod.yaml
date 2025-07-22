@@ -82,5 +82,3 @@ spec:
       value: http://ebms-send-in
     - name: SMTP_TRANSPORT_URL
       value: http://smtp-transport
-    - name: EVENT_MANAGER_URL
-      value: http://emottak-event-manager
