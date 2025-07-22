@@ -30,6 +30,8 @@ import no.nav.emottak.utils.environment.getEnvVar
 import java.net.InetSocketAddress
 import java.net.Proxy
 import java.net.URI
+import no.nav.emottak.message.model.DuplicateCheckRequest
+import no.nav.emottak.message.model.DuplicateCheckResponse
 
 const val AZURE_AD_AUTH = "AZURE_AD"
 
@@ -93,6 +95,24 @@ class SmtpTransportClient(clientProvider: () -> HttpClient) {
     }
 }
 
+class EventManagerClient(clientProvider: () -> HttpClient) {
+    private var httpClient = clientProvider.invoke()
+    private val eventManagerUrl = getEnvVar("EVENT_MANAGER_URL", "http://emottak-event-manager")
+
+    suspend fun duplicateCheck(duplicateCheckRequest: DuplicateCheckRequest): DuplicateCheckResponse {
+        val duplicateCheckUri = "$eventManagerUrl/duplicateCheck"
+        val response = httpClient.post(duplicateCheckUri) {
+            contentType(ContentType.Application.Json)
+        }
+        if (response.status != HttpStatusCode.OK) {
+            val errorMessage = response.bodyAsText()
+            log.debug("Failed to check if the message is a duplicate: $errorMessage")
+            throw Exception(errorMessage)
+        }
+        return response.body()
+    }
+}
+
 val EBMS_SEND_IN_SCOPE = getEnvVar(
     "EBMS_SEND_IN_SCOPE",
     "api://" + getEnvVar("NAIS_CLUSTER_NAME", "dev-fss") + ".team-emottak.ebms-send-in/.default"
@@ -105,6 +125,11 @@ val SMTP_TRANSPORT_SCOPE = getEnvVar(
     "SMTP_TRANSPORT_SCOPE",
     "api://" + getEnvVar("NAIS_CLUSTER_NAME", "dev-fss") + ".team-emottak.smtp-transport/.default"
 )
+val EVENT_MANAGER_SCOPE = getEnvVar(
+    "EVENT_MANAGER_SCOPE",
+    "api://" + getEnvVar("NAIS_CLUSTER_NAME", "dev-fss") + ".team-emottak.emottak-event-manager/.default"
+)
+
 
 fun defaultHttpClient(): () -> HttpClient {
     return {
