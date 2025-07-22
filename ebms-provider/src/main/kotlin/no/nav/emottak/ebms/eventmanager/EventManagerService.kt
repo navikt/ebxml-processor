@@ -25,8 +25,7 @@ class EventManagerService(val httpClient: EventManagerClient) {
             log.debug("Duplicate check response received: $duplicateCheckResponse")
 
             return duplicateCheckResponse.isDuplicate
-        }
-        catch (e: Exception) {
+        } catch (e: Exception) {
             log.error("Error during duplicate check", e)
             return false
         }
