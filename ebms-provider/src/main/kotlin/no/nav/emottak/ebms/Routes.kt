@@ -140,7 +140,7 @@ fun Route.postEbmsSync(
             return@post
         }
     } catch (ex: Exception) {
-        log.error(ebmsMessage.marker(), "Unknown error during message processing: ${ex.message}", ex)
+        log.error(ebmsMessage.marker(), ex.message ?: "Unknown error during message processing", ex)
 
         eventRegistrationService.registerEvent(
             EventType.ERROR_WHILE_SENDING_MESSAGE_VIA_HTTP,

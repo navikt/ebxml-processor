@@ -4,7 +4,7 @@ import no.nav.emottak.ebms.log
 import no.nav.emottak.message.model.EbMSDocument
 import no.nav.emottak.message.model.PartyId
 import no.nav.emottak.utils.common.parseOrGenerateUuid
-import no.nav.emottak.utils.kafka.model.EbmsMessageDetails
+import no.nav.emottak.utils.kafka.model.EbmsMessageDetail
 import no.nav.emottak.utils.kafka.model.Event
 import no.nav.emottak.utils.kafka.model.EventType
 import no.nav.emottak.utils.kafka.service.EventLoggingService
@@ -66,7 +66,7 @@ class EventRegistrationServiceImpl(
             val ebmsMessage = ebMSDocument.transform()
             val requestId = ebmsMessage.requestId.parseOrGenerateUuid()
 
-            val ebmsMessageDetails = EbmsMessageDetails(
+            val ebmsMessageDetail = EbmsMessageDetail(
                 requestId = requestId,
                 cpaId = ebmsMessage.cpaId,
                 conversationId = ebmsMessage.conversationId,
@@ -82,9 +82,9 @@ class EventRegistrationServiceImpl(
                 sender = null,
                 sentAt = ebmsMessage.sentAt
             )
-            log.debug("Publishing message details: $ebmsMessageDetails")
+            log.debug("Publishing message details: $ebmsMessageDetail")
 
-            eventLoggingService.logMessageDetails(ebmsMessageDetails)
+            eventLoggingService.logMessageDetails(ebmsMessageDetail)
             log.debug("Message details published successfully")
         } catch (e: Exception) {
             log.error("Error while registering message details: ${e.message}", e)

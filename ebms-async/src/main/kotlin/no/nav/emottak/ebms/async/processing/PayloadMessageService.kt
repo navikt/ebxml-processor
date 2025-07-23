@@ -11,7 +11,7 @@ import no.nav.emottak.ebms.async.kafka.consumer.failedMessageQueue
 import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
 import no.nav.emottak.ebms.async.log
 import no.nav.emottak.ebms.async.util.EventRegistrationService
-import no.nav.emottak.ebms.async.util.toHeaders
+import no.nav.emottak.ebms.async.util.toKafkaHeaders
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.util.marker
@@ -163,17 +163,16 @@ class PayloadMessageService(
 
     private suspend fun sendResponseToTopic(ebMSDocument: EbMSDocument, signalResponderEmails: List<EmailAddress>) {
         if (config().kafkaSignalProducer.active) {
-            val markers = ebMSDocument.messageHeader().marker()
+            val messageHeader = ebMSDocument.messageHeader()
             try {
-                log.info(markers, "Sending message to Kafka queue")
+                log.info(messageHeader.marker(), "Sending message to Kafka queue")
                 ebmsSignalProducer.publishMessage(
-                    ebMSDocument.requestId,
-                    ebMSDocument.dokument.asByteArray(),
-                    signalResponderEmails.toHeaders()
-
+                    key = ebMSDocument.requestId,
+                    value = ebMSDocument.dokument.asByteArray(),
+                    headers = signalResponderEmails.toKafkaHeaders() + messageHeader.toKafkaHeaders()
                 )
             } catch (e: Exception) {
-                log.error(markers, "Exception occurred while sending message to Kafka queue", e)
+                log.error(messageHeader.marker(), "Exception occurred while sending message to Kafka queue", e)
             }
         }
     }
