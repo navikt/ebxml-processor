@@ -70,7 +70,7 @@ class SendInClient(clientProvider: () -> HttpClient) {
         }
         if (response.status == HttpStatusCode.BadRequest) {
             val errorMessage = response.bodyAsText()
-            log.debug("Propagerer feilmelding fra fagsystemet til brukeren: $errorMessage")
+            log.error("Propagerer feilmelding fra fagsystemet til brukeren: $errorMessage")
             throw Exception(errorMessage)
         }
         return response.body()
@@ -88,7 +88,7 @@ class SmtpTransportClient(clientProvider: () -> HttpClient) {
         }
         if (response.status != HttpStatusCode.OK) {
             val errorMessage = response.bodyAsText()
-            log.debug("Failed to get payload from smtp-transport: $errorMessage")
+            log.error("Failed to get payload from smtp-transport: $errorMessage")
             throw Exception(errorMessage)
         }
         return response.body()
@@ -111,7 +111,7 @@ class EventManagerClient(clientProvider: () -> HttpClient) {
 
         if (response.status != HttpStatusCode.OK) {
             val errorMessage = response.bodyAsText()
-            log.debug("Failed to check if the message is a duplicate: $errorMessage")
+            log.error("Failed to check if the message is a duplicate: $errorMessage")
             throw Exception(errorMessage)
         }
         return response.body()
