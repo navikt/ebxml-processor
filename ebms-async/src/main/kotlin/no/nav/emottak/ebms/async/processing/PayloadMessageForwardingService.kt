@@ -24,6 +24,7 @@ import no.nav.emottak.util.marker
 import no.nav.emottak.utils.common.parseOrGenerateUuid
 import no.nav.emottak.util.marker
 import no.nav.emottak.utils.common.parseOrGenerateUuid
+import no.nav.emottak.util.marker
 import no.nav.emottak.utils.kafka.model.EventDataType
 import no.nav.emottak.utils.kafka.model.EventType
 import kotlin.uuid.Uuid
