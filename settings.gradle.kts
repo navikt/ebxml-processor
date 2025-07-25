@@ -64,7 +64,7 @@ dependencyResolutionManagement {
             library("kotlin-kafka", "io.github.nomisrev", "kotlin-kafka").versionRef("kotlin-kafka")
 
             library("ebxml-protokoll", "no.nav.emottak:ebxml-protokoll:0.0.6")
-            library("emottak-payload-xsd", "no.nav.emottak:emottak-payload-xsd:0.0.8")
+            library("emottak-payload-xsd", "no.nav.emottak:emottak-payload-xsd:0.0.9")
             library("emottak-utils", "no.nav.emottak", "emottak-utils").versionRef("emottak-utils")
             library("hikari", "com.zaxxer:HikariCP:5.0.1")
             library("labai-jsr305x-annotations", "com.github.labai:labai-jsr305x-annotations:0.0.2")

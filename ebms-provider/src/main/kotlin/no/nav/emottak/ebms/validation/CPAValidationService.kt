@@ -4,7 +4,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import no.nav.emottak.ebms.CpaRepoClient
 import no.nav.emottak.ebms.model.validateSignature
-import no.nav.emottak.ebms.util.marker
 import no.nav.emottak.melding.feil.EbmsException
 import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.Direction.IN
@@ -15,6 +14,7 @@ import no.nav.emottak.message.model.Feil
 import no.nav.emottak.message.model.MessagingCharacteristicsRequest
 import no.nav.emottak.message.model.ValidationRequest
 import no.nav.emottak.message.model.ValidationResult
+import no.nav.emottak.util.marker
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PerMessageCharacteristicsType
 import org.slf4j.LoggerFactory
 
