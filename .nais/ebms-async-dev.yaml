@@ -27,6 +27,7 @@ spec:
     logging:
       destinations:
         - id: elastic
+        - id: loki
   readiness:
     path: "/internal/health/readiness"
     port: 8080
