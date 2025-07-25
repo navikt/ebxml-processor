@@ -4,7 +4,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import no.nav.emottak.ebms.CpaRepoClient
 import no.nav.emottak.ebms.model.validateSignature
-import no.nav.emottak.ebms.util.marker
 import no.nav.emottak.melding.feil.EbmsException
 import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.Direction.IN
@@ -14,6 +13,7 @@ import no.nav.emottak.message.model.ErrorCode
 import no.nav.emottak.message.model.Feil
 import no.nav.emottak.message.model.ValidationRequest
 import no.nav.emottak.message.model.ValidationResult
+import no.nav.emottak.util.marker
 import org.slf4j.LoggerFactory
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.validation.CPAValidationService")

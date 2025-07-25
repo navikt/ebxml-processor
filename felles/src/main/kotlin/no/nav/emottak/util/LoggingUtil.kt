@@ -15,6 +15,7 @@ import no.nav.emottak.constants.LogIndex.TO_ROLE
 import no.nav.emottak.constants.LogIndex.X_MAILER
 import no.nav.emottak.constants.LogIndex.X_REQUEST_ID
 import no.nav.emottak.constants.SMTPHeaders
+import no.nav.emottak.message.model.EbmsMessage
 import no.nav.emottak.message.model.Header
 import no.nav.emottak.message.model.PayloadRequest
 import no.nav.emottak.message.model.SendInRequest
@@ -54,6 +55,21 @@ fun SendInRequest.marker(): LogstashMarker = Markers.appendEntries(
         MESSAGE_ID to this.messageId,
         CONVERSATION_ID to this.conversationId
     )
+)
+
+fun EbmsMessage.marker(loggableHeaderPairs: Map<String, String> = emptyMap()): LogstashMarker = Markers.appendEntries(
+    mapOf(
+        X_REQUEST_ID to this.requestId,
+        MESSAGE_ID to this.messageId,
+        CONVERSATION_ID to this.conversationId,
+        CPA_ID to this.cpaId,
+        SERVICE to this.addressing.service,
+        ACTION to this.addressing.action,
+        TO_ROLE to this.addressing.to.role,
+        FROM_ROLE to this.addressing.from.role,
+        TO_PARTY to (this.addressing.to.partyId.firstOrNull()?.type + ":" + this.addressing.to.partyId.firstOrNull()?.value),
+        FROM_PARTY to (this.addressing.from.partyId.firstOrNull()?.type + ":" + this.addressing.from.partyId.firstOrNull()?.value)
+    ) + loggableHeaderPairs
 )
 
 fun ValidationRequest.marker(): LogstashMarker = Markers.appendEntries(
