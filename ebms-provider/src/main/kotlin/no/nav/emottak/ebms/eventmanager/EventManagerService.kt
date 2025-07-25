@@ -4,8 +4,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import no.nav.emottak.ebms.EventManagerClient
 import no.nav.emottak.ebms.log
-import no.nav.emottak.message.model.DuplicateCheckRequest
 import no.nav.emottak.message.model.PayloadMessage
+import no.nav.emottak.utils.common.model.DuplicateCheckRequest
 
 class EventManagerService(val httpClient: EventManagerClient) {
 
