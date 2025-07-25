@@ -1,4 +1,4 @@
-package no.nav.emottak.melding.apprec
+package no.nav.emottak.payload.apprec
 
 import no.kith.xmlstds.apprec._2004_11_21.AppRec
 import no.kith.xmlstds.apprec._2004_11_21.AppRec.Receiver
@@ -11,6 +11,7 @@ import no.kith.xmlstds.msghead._2006_05_24.HealthcareProfessional
 import no.kith.xmlstds.msghead._2006_05_24.Ident
 import no.kith.xmlstds.msghead._2006_05_24.MsgHead
 import no.kith.xmlstds.msghead._2006_05_24.MsgInfo
+import no.nav.emottak.melding.apprec.AppRecErrorCode
 import no.nav.emottak.util.toXMLGregorianCalendar
 import org.apache.commons.lang3.StringUtils
 import java.time.Instant

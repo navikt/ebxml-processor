@@ -21,7 +21,7 @@ dependencyResolutionManagement {
             version("hoplite", "2.8.2")
             version("logback", "1.5.17")
             version("logstash", "8.0")
-            version("emottak-utils", "0.2.7")
+            version("emottak-utils", "0.3.0")
 
             library("bcpkix-jdk18on", "org.bouncycastle", "bcpkix-jdk18on").versionRef("bouncycastle")
             library("bcprov-jdk18on", "org.bouncycastle", "bcprov-jdk18on").versionRef("bouncycastle")
@@ -64,7 +64,7 @@ dependencyResolutionManagement {
             library("kotlin-kafka", "io.github.nomisrev", "kotlin-kafka").versionRef("kotlin-kafka")
 
             library("ebxml-protokoll", "no.nav.emottak:ebxml-protokoll:0.0.6")
-            library("emottak-payload-xsd", "no.nav.emottak:emottak-payload-xsd:0.0.8")
+            library("emottak-payload-xsd", "no.nav.emottak:emottak-payload-xsd:0.0.9")
             library("emottak-utils", "no.nav.emottak", "emottak-utils").versionRef("emottak-utils")
             library("hikari", "com.zaxxer:HikariCP:5.0.1")
             library("labai-jsr305x-annotations", "com.github.labai:labai-jsr305x-annotations:0.0.2")
