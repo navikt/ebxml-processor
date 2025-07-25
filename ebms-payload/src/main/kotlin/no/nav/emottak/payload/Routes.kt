@@ -2,7 +2,6 @@ package no.nav.emottak.payload
 
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.call
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
@@ -12,7 +11,6 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import no.kith.xmlstds.msghead._2006_05_24.MsgHead
-import no.nav.emottak.melding.apprec.createNegativeApprec
 import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.ErrorCode
 import no.nav.emottak.message.model.Feil
@@ -20,6 +18,7 @@ import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadRequest
 import no.nav.emottak.message.model.PayloadResponse
 import no.nav.emottak.message.model.ProcessConfig
+import no.nav.emottak.payload.apprec.createNegativeApprec
 import no.nav.emottak.payload.crypto.DecryptionException
 import no.nav.emottak.payload.crypto.EncryptionException
 import no.nav.emottak.payload.juridisklogg.JuridiskLoggException
