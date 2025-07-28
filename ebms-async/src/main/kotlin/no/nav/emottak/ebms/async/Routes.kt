@@ -47,7 +47,7 @@ fun Route.getPayloads(
 
             eventRegistrationService.registerEvent(
                 EventType.ERROR_WHILE_READING_PAYLOAD_FROM_DATABASE,
-                requestId = referenceId.toString(),
+                requestId = referenceId,
                 eventData = Exception("Payload not found for reference ID $referenceId").toEventDataJson()
             )
         } else {
@@ -69,7 +69,7 @@ fun Route.getPayloads(
 
         eventRegistrationService.registerEvent(
             EventType.ERROR_WHILE_READING_PAYLOAD_FROM_DATABASE,
-            requestId = referenceId.toString(),
+            requestId = referenceId,
             eventData = ex.toEventDataJson()
         )
     }

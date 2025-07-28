@@ -1,5 +1,8 @@
 package no.nav.emottak.message.model
 
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import no.nav.emottak.message.util.createUniqueMimeMessageId
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.EndpointTypeType
@@ -172,8 +175,10 @@ data class EmailAddress(
 data class Payload(val bytes: ByteArray, val contentType: String, val contentId: String = "att-${createUniqueMimeMessageId()}", val signedBy: String? = null)
 
 @Serializable
+@OptIn(ExperimentalUuidApi::class)
 data class AsyncPayload(
-    val referenceId: String, // TODO: Erstatt med kotlin.kotlin.Uuid når vi har migrert til KTOR 3
+    @Contextual
+    val referenceId: Uuid,
     val contentId: String,
     val contentType: String,
     val content: ByteArray
