@@ -8,7 +8,6 @@ import kotlinx.coroutines.withContext
 import no.nav.emottak.ebms.PayloadProcessingClient
 import no.nav.emottak.ebms.logger
 import no.nav.emottak.melding.feil.EbmsException
-import no.nav.emottak.utils.common.model.Addressing
 import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadMessage
@@ -16,6 +15,7 @@ import no.nav.emottak.message.model.PayloadProcessing
 import no.nav.emottak.message.model.PayloadRequest
 import no.nav.emottak.message.model.PayloadResponse
 import no.nav.emottak.util.marker
+import no.nav.emottak.utils.common.model.Addressing
 
 class ProcessingService(private val httpClient: PayloadProcessingClient) {
 
