@@ -1,7 +1,5 @@
 package no.nav.emottak.message.model
 
-import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import no.nav.emottak.message.util.createUniqueMimeMessageId
@@ -9,6 +7,8 @@ import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.EndpointTypeType
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Description
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ErrorList
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.SeverityType
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 @Serializable
 data class SendInRequest(
