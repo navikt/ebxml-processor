@@ -18,11 +18,11 @@ import io.mockk.coEvery
 import io.mockk.mockkConstructor
 import io.mockk.slot
 import no.nav.emottak.crypto.KeyStoreManager
-import no.nav.emottak.message.model.Addressing
+import no.nav.emottak.utils.common.model.Addressing
 import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.ErrorCode
-import no.nav.emottak.message.model.Party
-import no.nav.emottak.message.model.PartyId
+import no.nav.emottak.utils.common.model.Party
+import no.nav.emottak.utils.common.model.PartyId
 import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadProcessing
 import no.nav.emottak.message.model.PayloadRequest

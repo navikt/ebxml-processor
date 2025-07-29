@@ -27,12 +27,12 @@ import no.nav.emottak.cpa.auth.AZURE_AD_AUTH
 import no.nav.emottak.cpa.auth.AuthConfig
 import no.nav.emottak.cpa.databasetest.PostgresOracleTest
 import no.nav.emottak.cpa.util.EventRegistrationServiceFake
-import no.nav.emottak.message.model.Addressing
+import no.nav.emottak.utils.common.model.Addressing
 import no.nav.emottak.message.model.Direction.IN
 import no.nav.emottak.message.model.EmailAddress
 import no.nav.emottak.message.model.ErrorCode
-import no.nav.emottak.message.model.Party
-import no.nav.emottak.message.model.PartyId
+import no.nav.emottak.utils.common.model.Party
+import no.nav.emottak.utils.common.model.PartyId
 import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.message.model.SignatureDetailsRequest
 import no.nav.emottak.message.model.ValidationRequest
