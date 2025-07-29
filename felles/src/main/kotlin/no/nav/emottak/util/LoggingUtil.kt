@@ -3,6 +3,12 @@ package no.nav.emottak.util
 import io.ktor.http.Headers
 import net.logstash.logback.marker.LogstashMarker
 import net.logstash.logback.marker.Markers
+import no.nav.emottak.constants.SMTPHeaders
+import no.nav.emottak.message.model.EbmsMessage
+import no.nav.emottak.message.model.Header
+import no.nav.emottak.message.model.PayloadRequest
+import no.nav.emottak.message.model.SignatureDetailsRequest
+import no.nav.emottak.message.model.ValidationRequest
 import no.nav.emottak.utils.common.constants.LogFields.ACTION
 import no.nav.emottak.utils.common.constants.LogFields.CONVERSATION_ID
 import no.nav.emottak.utils.common.constants.LogFields.CPA_ID
@@ -14,13 +20,7 @@ import no.nav.emottak.utils.common.constants.LogFields.TO_PARTY
 import no.nav.emottak.utils.common.constants.LogFields.TO_ROLE
 import no.nav.emottak.utils.common.constants.LogFields.X_MAILER
 import no.nav.emottak.utils.common.constants.LogFields.X_REQUEST_ID
-import no.nav.emottak.constants.SMTPHeaders
-import no.nav.emottak.message.model.EbmsMessage
-import no.nav.emottak.message.model.Header
-import no.nav.emottak.message.model.PayloadRequest
 import no.nav.emottak.utils.common.model.SendInRequest
-import no.nav.emottak.message.model.SignatureDetailsRequest
-import no.nav.emottak.message.model.ValidationRequest
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
 
 fun Header.marker(): LogstashMarker = Markers.appendEntries(
