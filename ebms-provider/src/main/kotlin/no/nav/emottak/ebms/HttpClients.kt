@@ -22,8 +22,8 @@ import kotlinx.serialization.json.Json
 import no.nav.emottak.message.model.AsyncPayload
 import no.nav.emottak.message.model.PayloadRequest
 import no.nav.emottak.message.model.PayloadResponse
-import no.nav.emottak.message.model.SendInRequest
-import no.nav.emottak.message.model.SendInResponse
+import no.nav.emottak.utils.common.model.SendInRequest
+import no.nav.emottak.utils.common.model.SendInResponse
 import no.nav.emottak.message.model.ValidationRequest
 import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.utils.common.model.DuplicateCheckRequest
