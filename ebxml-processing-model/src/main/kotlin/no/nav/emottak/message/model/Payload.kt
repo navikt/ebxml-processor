@@ -3,35 +3,15 @@ package no.nav.emottak.message.model
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import no.nav.emottak.message.util.createUniqueMimeMessageId
+import no.nav.emottak.utils.common.model.Addressing
+import no.nav.emottak.utils.common.model.EbmsProcessing
+import no.nav.emottak.utils.common.model.Party
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.EndpointTypeType
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Description
-import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ErrorList
+import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Error
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.SeverityType
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
-
-@Serializable
-data class SendInRequest(
-    val messageId: String,
-    val conversationId: String,
-    val payloadId: String,
-    val payload: ByteArray,
-    val addressing: Addressing,
-    val cpaId: String,
-    val ebmsProcessing: EbmsProcessing,
-    val signedOf: String? = null,
-    val requestId: String,
-    val partnerId: Long? = null
-)
-
-@Serializable
-data class SendInResponse(
-    val messageId: String,
-    val conversationId: String,
-    val addressing: Addressing,
-    val payload: ByteArray,
-    val requestId: String
-)
 
 @Serializable
 enum class Direction(val str: String) {
@@ -64,7 +44,7 @@ data class Feil(
     val severity: String? = null
 ) {
 
-    fun asEbxmlError(location: String? = null): org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Error {
+    fun asEbxmlError(location: String? = null): Error {
         val error = org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Error()
         error.errorCode = this.code.value
         val description = Description()
@@ -127,22 +107,6 @@ data class ProcessConfig(
 )
 
 @Serializable
-data class EbmsProcessing(
-    val test: String = "123",
-    val errorAction: String? = null
-)
-
-@Serializable
-data class Addressing(
-    val to: Party,
-    val from: Party,
-    val service: String,
-    val action: String
-) {
-    fun replyTo(service: String, action: String): Addressing = Addressing(to = from.copy(), from = to.copy(), service, action)
-}
-
-@Serializable
 data class Header(
     val messageId: String,
     val conversationId: String,
@@ -154,25 +118,18 @@ data class Header(
 )
 
 @Serializable
-data class Party(
-    val partyId: List<PartyId>,
-    val role: String
-)
-
-@Serializable
-data class PartyId(
-    val type: String,
-    val value: String
-)
-
-@Serializable
 data class EmailAddress(
     val emailAddress: String,
     var type: EndpointTypeType
 )
 
 @Serializable
-data class Payload(val bytes: ByteArray, val contentType: String, val contentId: String = "att-${createUniqueMimeMessageId()}", val signedBy: String? = null)
+data class Payload(
+    val bytes: ByteArray,
+    val contentType: String,
+    val contentId: String = "att-${createUniqueMimeMessageId()}",
+    val signedBy: String? = null
+)
 
 @Serializable
 @OptIn(ExperimentalUuidApi::class)
@@ -208,8 +165,8 @@ enum class ErrorCode(val value: String, val description: String) {
         descriptionText: String? = this.description,
         severityType: SeverityType? = null,
         location: String? = null
-    ): org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Error {
-        val error = org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Error()
+    ): Error {
+        val error = Error()
         error.errorCode = this.value
         val description = Description()
         description.lang = "no" // Default verdi fra spec.
@@ -222,32 +179,4 @@ enum class ErrorCode(val value: String, val description: String) {
         // error.otherAttributes // Unused?
         return error
     }
-}
-
-@JvmName("asErrorList")
-fun List<Feil>.asErrorList(): ErrorList {
-    if (this.isEmpty()) {
-        throw IllegalArgumentException("(4.2.3 Kan ikke opprette ErrorList uten errors")
-    }
-
-    return this.map {
-        it.code.createEbxmlError(it.descriptionText, if (it.severity != null) SeverityType.fromValue(it.severity) else null)
-    }.asErrorList()
-}
-
-@JvmName("toErrorList")
-fun List<org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Error>.asErrorList(): ErrorList {
-    if (this.isEmpty()) {
-        throw IllegalArgumentException("(4.2.3 Kan ikke opprette ErrorList uten errors")
-    }
-    val errorList = ErrorList()
-    errorList.error.addAll(this)
-    errorList.version = "2.0"
-    // errorList.any // Unused?
-    errorList.id // "May be used for error tracking"
-    errorList.highestSeverity = this.sortedBy {
-        it.severity == SeverityType.ERROR
-    }.first().severity
-    errorList.isMustUnderstand = true // Alltid
-    return errorList
 }
