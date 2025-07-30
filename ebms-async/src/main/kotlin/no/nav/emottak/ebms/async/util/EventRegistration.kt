@@ -10,6 +10,7 @@ import no.nav.emottak.utils.kafka.model.Event
 import no.nav.emottak.utils.kafka.model.EventDataType
 import no.nav.emottak.utils.kafka.model.EventType
 import no.nav.emottak.utils.kafka.service.EventLoggingService
+import kotlin.uuid.Uuid
 
 interface EventRegistrationService {
     suspend fun registerEvent(
@@ -26,7 +27,7 @@ interface EventRegistrationService {
 
     suspend fun registerEvent(
         eventType: EventType,
-        requestId: String,
+        requestId: Uuid,
         contentId: String = "",
         messageId: String = "",
         eventData: String = "{}"
@@ -35,7 +36,7 @@ interface EventRegistrationService {
     suspend fun <T> runWithEvent(
         successEvent: EventType,
         failEvent: EventType,
-        requestId: String,
+        requestId: Uuid,
         contentId: String = "",
         messageId: String = "",
         eventData: String = "{}",
@@ -71,7 +72,7 @@ class EventRegistrationServiceImpl(
         registerEvent(
             Event(
                 eventType = eventType,
-                requestId = asyncPayload.referenceId.parseOrGenerateUuid(),
+                requestId = asyncPayload.referenceId,
                 contentId = asyncPayload.contentId,
                 messageId = "",
                 eventData = eventData
@@ -81,7 +82,7 @@ class EventRegistrationServiceImpl(
 
     override suspend fun registerEvent(
         eventType: EventType,
-        requestId: String,
+        requestId: Uuid,
         contentId: String,
         messageId: String,
         eventData: String
@@ -89,7 +90,7 @@ class EventRegistrationServiceImpl(
         registerEvent(
             Event(
                 eventType = eventType,
-                requestId = requestId.parseOrGenerateUuid(),
+                requestId = requestId,
                 contentId = contentId,
                 messageId = messageId,
                 eventData = eventData
@@ -100,7 +101,7 @@ class EventRegistrationServiceImpl(
     override suspend fun <T> runWithEvent(
         successEvent: EventType,
         failEvent: EventType,
-        requestId: String,
+        requestId: Uuid,
         contentId: String,
         messageId: String,
         eventData: String,
@@ -161,7 +162,7 @@ class EventRegistrationServiceFake : EventRegistrationService {
 
     override suspend fun registerEvent(
         eventType: EventType,
-        requestId: String,
+        requestId: Uuid,
         contentId: String,
         messageId: String,
         eventData: String
@@ -172,7 +173,7 @@ class EventRegistrationServiceFake : EventRegistrationService {
     override suspend fun <T> runWithEvent(
         successEvent: EventType,
         failEvent: EventType,
-        requestId: String,
+        requestId: Uuid,
         contentId: String,
         messageId: String,
         eventData: String,
