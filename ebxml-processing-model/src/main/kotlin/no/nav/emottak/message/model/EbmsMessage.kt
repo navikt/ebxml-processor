@@ -3,6 +3,7 @@ package no.nav.emottak.message.model
 import no.nav.emottak.message.ebxml.EbXMLConstants
 import no.nav.emottak.message.xml.getDocumentBuilder
 import no.nav.emottak.message.xml.marshal
+import no.nav.emottak.utils.common.model.Addressing
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Acknowledgment
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.From
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Manifest

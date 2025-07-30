@@ -14,10 +14,10 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
-import no.nav.emottak.message.model.PartyId
 import no.nav.emottak.message.model.PayloadRequest
 import no.nav.emottak.payload.log
 import no.nav.emottak.util.marker
+import no.nav.emottak.utils.common.model.PartyId
 import no.nav.emottak.utils.environment.getEnvVar
 import no.nav.emottak.utils.environment.getSecret
 

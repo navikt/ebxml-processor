@@ -53,6 +53,7 @@ publishing {
 dependencies {
     implementation(libs.ebxml.protokoll)
     implementation(libs.emottak.payload.xsd)
+    implementation(libs.emottak.utils)
     implementation(libs.ktor.serialization.kotlinx.json)
     implementation(libs.bundles.logging)
     runtimeOnly("org.postgresql:postgresql:42.7.3")

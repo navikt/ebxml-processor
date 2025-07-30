@@ -9,10 +9,10 @@ import no.nav.emottak.ebms.async.persistence.table.EventsTable.eventMessage
 import no.nav.emottak.ebms.async.persistence.table.EventsTable.juridiskLoggId
 import no.nav.emottak.ebms.async.persistence.table.EventsTable.messageId
 import no.nav.emottak.ebms.async.persistence.table.EventsTable.requestId
-import no.nav.emottak.ebms.util.marker
 import no.nav.emottak.message.model.EbmsMessage
 import no.nav.emottak.message.model.Event
 import no.nav.emottak.message.model.log
+import no.nav.emottak.util.marker
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.upsert
 import kotlin.uuid.Uuid

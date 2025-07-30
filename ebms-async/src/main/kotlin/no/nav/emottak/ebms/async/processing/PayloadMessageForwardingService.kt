@@ -13,7 +13,6 @@ import no.nav.emottak.ebms.async.util.toKafkaHeaders
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
-import no.nav.emottak.ebms.util.marker
 import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.message.model.AsyncPayload
 import no.nav.emottak.message.model.EbMSDocument
@@ -21,6 +20,7 @@ import no.nav.emottak.message.model.EmailAddress
 import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.xml.asByteArray
+import no.nav.emottak.util.marker
 import no.nav.emottak.utils.common.parseOrGenerateUuid
 import no.nav.emottak.utils.kafka.model.EventDataType
 import no.nav.emottak.utils.kafka.model.EventType

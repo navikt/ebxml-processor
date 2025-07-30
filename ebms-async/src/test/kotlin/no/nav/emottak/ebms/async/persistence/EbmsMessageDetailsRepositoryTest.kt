@@ -3,12 +3,12 @@ package no.nav.emottak.ebms.async.persistence
 import no.nav.emottak.ebms.async.ebmsPostgres
 import no.nav.emottak.ebms.async.persistence.repository.EbmsMessageDetailsRepository
 import no.nav.emottak.ebms.async.testConfiguration
-import no.nav.emottak.message.model.Addressing
-import no.nav.emottak.message.model.Party
-import no.nav.emottak.message.model.PartyId
 import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.model.toEbmsMessageDetails
+import no.nav.emottak.utils.common.model.Addressing
+import no.nav.emottak.utils.common.model.Party
+import no.nav.emottak.utils.common.model.PartyId
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions

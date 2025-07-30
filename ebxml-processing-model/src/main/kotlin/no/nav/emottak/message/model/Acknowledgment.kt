@@ -1,5 +1,6 @@
 package no.nav.emottak.message.model
 
+import no.nav.emottak.utils.common.model.Addressing
 import org.w3c.dom.Document
 import java.time.Instant
 
