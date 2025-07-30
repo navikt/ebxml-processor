@@ -30,6 +30,7 @@ import no.nav.emottak.utils.environment.getEnvVar
 import java.net.InetSocketAddress
 import java.net.Proxy
 import java.net.URI
+import kotlin.uuid.Uuid
 
 const val AZURE_AD_AUTH = "AZURE_AD"
 
@@ -79,7 +80,7 @@ class SmtpTransportClient(clientProvider: () -> HttpClient) {
     private var httpClient = clientProvider.invoke()
     private val smtpTransportEndpoint = getEnvVar("SMTP_TRANSPORT_URL", "http://smtp-transport")
 
-    suspend fun getPayload(referenceId: String): List<AsyncPayload> {
+    suspend fun getPayload(referenceId: Uuid): List<AsyncPayload> {
         val payloadUri = "$smtpTransportEndpoint/api/payloads/$referenceId"
         val response = httpClient.get(payloadUri) {
             contentType(ContentType.Application.Json)

@@ -1,5 +1,6 @@
 package no.nav.emottak.message.model
 
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import no.nav.emottak.message.util.createUniqueMimeMessageId
 import no.nav.emottak.utils.common.model.Addressing
@@ -9,6 +10,8 @@ import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.EndpointTypeType
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Description
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Error
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.SeverityType
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 @Serializable
 enum class Direction(val str: String) {
@@ -129,8 +132,10 @@ data class Payload(
 )
 
 @Serializable
+@OptIn(ExperimentalUuidApi::class)
 data class AsyncPayload(
-    val referenceId: String, // TODO: Erstatt med kotlin.kotlin.Uuid når vi har migrert til KTOR 3
+    @Contextual
+    val referenceId: Uuid,
     val contentId: String,
     val contentType: String,
     val content: ByteArray
