@@ -10,7 +10,6 @@ import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.kafka.consumer.failedMessageQueue
 import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
 import no.nav.emottak.ebms.async.log
-import no.nav.emottak.ebms.async.persistence.repository.EbmsMessageDetailsRepository
 import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.ebms.async.util.toKafkaHeaders
 import no.nav.emottak.ebms.model.signer
@@ -32,7 +31,6 @@ import java.io.ByteArrayInputStream
 import kotlin.uuid.Uuid
 
 class PayloadMessageService(
-    val ebmsMessageDetailsRepository: EbmsMessageDetailsRepository,
     val cpaValidationService: CPAValidationService,
     val processingService: ProcessingService,
     val ebmsSignalProducer: EbmsMessageProducer,
@@ -95,29 +93,24 @@ class PayloadMessageService(
                 eventData
             )
 
-            if (isDuplicateMessage(ebmsPayloadMessage)) {
-                log.info(ebmsPayloadMessage.marker(), "Got duplicate payload message with reference <${record.key()}>")
-            } else {
-                log.info(ebmsPayloadMessage.marker(), "Got payload message with reference <${record.key()}>")
-                ebmsMessageDetailsRepository.saveEbmsMessage(ebmsPayloadMessage)
-                cpaValidationService
-                    .validateIncomingMessage(ebmsPayloadMessage)
-                    .let {
-                        processingService.processAsync(ebmsPayloadMessage, it.payloadProcessing)
-                    }
-                    .let {
-                        when (val service = it.addressing.service) {
-                            "HarBorgerFrikortMengde", "Inntektsforesporsel" -> {
-                                log.debug(it.marker(), "Starting SendIn for $service")
-                                payloadMessageForwardingService.forwardMessageWithSyncResponse(it)
-                            }
+            log.info(ebmsPayloadMessage.marker(), "Got payload message with reference <${record.key()}>")
+            cpaValidationService
+                .validateIncomingMessage(ebmsPayloadMessage)
+                .let {
+                    processingService.processAsync(ebmsPayloadMessage, it.payloadProcessing)
+                }
+                .let {
+                    when (val service = it.addressing.service) {
+                        "HarBorgerFrikortMengde", "Inntektsforesporsel" -> {
+                            log.debug(it.marker(), "Starting SendIn for $service")
+                            payloadMessageForwardingService.forwardMessageWithSyncResponse(it)
+                        }
 
-                            else -> {
-                                log.debug(it.marker(), "Skipping SendIn for $service")
-                            }
+                        else -> {
+                            log.debug(it.marker(), "Skipping SendIn for $service")
                         }
                     }
-            }
+                }
             returnAcknowledgment(ebmsPayloadMessage)
         } catch (e: EbmsException) {
             try {
@@ -139,22 +132,11 @@ class PayloadMessageService(
         }
     }
 
-    // TODO More advanced duplicate check
-    private fun isDuplicateMessage(ebmsPayloadMessage: PayloadMessage): Boolean {
-        log.debug(ebmsPayloadMessage.marker(), "Checking for duplicates")
-        return ebmsMessageDetailsRepository.getByConversationIdMessageIdAndCpaId(
-            conversationId = ebmsPayloadMessage.conversationId,
-            messageId = ebmsPayloadMessage.messageId,
-            cpaId = ebmsPayloadMessage.cpaId
-        ) != null
-    }
-
     private suspend fun returnAcknowledgment(ebmsPayloadMessage: PayloadMessage) {
         ebmsPayloadMessage
             .createAcknowledgment()
             .also {
                 val validationResult = cpaValidationService.validateOutgoingMessage(it)
-                ebmsMessageDetailsRepository.saveEbmsMessage(it)
                 sendResponseToTopic(
                     it.toEbmsDokument().signer(validationResult.payloadProcessing!!.signingCertificate),
                     validationResult.receiverEmailAddress
@@ -168,7 +150,6 @@ class PayloadMessageService(
             .createMessageError(ebmsException.feil)
             .also {
                 val validationResult = cpaValidationService.validateOutgoingMessage(it)
-                ebmsMessageDetailsRepository.saveEbmsMessage(it)
                 val signingCertificate = validationResult.payloadProcessing?.signingCertificate
                 if (signingCertificate == null) {
                     log.warn(it.marker(), "Could not find signing certificate for outgoing MessageError")
