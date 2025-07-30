@@ -24,9 +24,11 @@ import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.xml.asByteArray
 import no.nav.emottak.message.xml.getDocumentBuilder
 import no.nav.emottak.util.marker
+import no.nav.emottak.utils.common.parseOrGenerateUuid
 import no.nav.emottak.utils.kafka.model.EventDataType
 import no.nav.emottak.utils.kafka.model.EventType
 import java.io.ByteArrayInputStream
+import kotlin.uuid.Uuid
 
 class PayloadMessageService(
     val cpaValidationService: CPAValidationService,
@@ -53,13 +55,13 @@ class PayloadMessageService(
             withContext(Dispatchers.IO) {
                 getDocumentBuilder().parse(ByteArrayInputStream(content))
             },
-            retrievePayloads(requestId)
+            retrievePayloads(requestId.parseOrGenerateUuid())
         ).transform().takeIf { it is PayloadMessage }
             ?: throw RuntimeException("Cannot process message as payload message: $requestId")
         return ebmsMessage as PayloadMessage
     }
 
-    private suspend fun retrievePayloads(reference: String): List<Payload> {
+    private suspend fun retrievePayloads(reference: Uuid): List<Payload> {
         return smtpTransportClient.getPayload(reference)
             .map {
                 eventRegistrationService.runWithEvent(

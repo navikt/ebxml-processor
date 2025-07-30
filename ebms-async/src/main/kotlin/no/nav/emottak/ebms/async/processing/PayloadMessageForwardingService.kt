@@ -20,6 +20,7 @@ import no.nav.emottak.message.model.EmailAddress
 import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.xml.asByteArray
+import no.nav.emottak.utils.common.parseOrGenerateUuid
 import no.nav.emottak.utils.kafka.model.EventDataType
 import no.nav.emottak.utils.kafka.model.EventType
 import kotlin.uuid.Uuid
@@ -55,7 +56,7 @@ class PayloadMessageForwardingService(
         val signedEbmsDocument = processedMessage.toEbmsDokument()
             .signer(validationResult.payloadProcessing!!.signingCertificate)
         savePayloadsToDatabase(
-            signedEbmsDocument.requestId,
+            signedEbmsDocument.requestId.parseOrGenerateUuid(),
             signedEbmsDocument.messageHeader().messageData.messageId,
             signedEbmsDocument.attachments
         )
@@ -64,7 +65,7 @@ class PayloadMessageForwardingService(
     }
 
     suspend fun savePayloadsToDatabase(
-        requestId: String,
+        requestId: Uuid,
         messageId: String,
         attachments: List<Payload>
     ) {
@@ -92,7 +93,7 @@ class PayloadMessageForwardingService(
         eventRegistrationService.runWithEvent(
             successEvent = EventType.MESSAGE_PLACED_IN_QUEUE,
             failEvent = EventType.ERROR_WHILE_STORING_MESSAGE_IN_QUEUE,
-            requestId = signedEbmsDocument.requestId,
+            requestId = signedEbmsDocument.requestId.parseOrGenerateUuid(),
             messageId = signedEbmsDocument.messageHeader().messageData.messageId ?: "",
             eventData = Json.encodeToString(
                 mapOf(EventDataType.QUEUE_NAME.value to config().kafkaPayloadProducer.topic)
