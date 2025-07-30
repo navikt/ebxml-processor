@@ -65,13 +65,13 @@ class EbmsRouteAsyncIT {
         val validAuthToken = getToken().serialize()
         val mockedListOfPayloads = listOf(
             AsyncPayload(
-                validReferenceId.toString(),
+                validReferenceId,
                 "attachment-0fa6e663-010a-4764-85b4-94081119497a@eik.no",
                 "application/pkcs7-mime",
                 "Payload test content 1".toByteArray()
             ),
             AsyncPayload(
-                validReferenceId.toString(),
+                validReferenceId,
                 "attachment-c53f9027-ffa4-4770-95f4-8ed0463b87c3@eik.no",
                 "application/pkcs7-mime",
                 "Payload test content 2".toByteArray()
