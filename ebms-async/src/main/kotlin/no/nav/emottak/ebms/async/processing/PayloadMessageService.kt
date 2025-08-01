@@ -97,7 +97,7 @@ class PayloadMessageService(
                 eventData
             )
 
-            if (eventManagerService.isDuplicateMessage(ebmsPayloadMessage)) {
+            if (isDuplicateMessage(ebmsPayloadMessage)) {
                 log.info(ebmsPayloadMessage.marker(), "Got duplicate payload message with reference <${record.key()}>")
             } else {
                 log.info(ebmsPayloadMessage.marker(), "Got payload message with reference <${record.key()}>")
