@@ -15,11 +15,14 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
+import io.ktor.http.ContentType.Application.Json
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import no.nav.emottak.message.model.AsyncPayload
+import no.nav.emottak.message.model.MessagingCharacteristicsRequest
+import no.nav.emottak.message.model.MessagingCharacteristicsResponse
 import no.nav.emottak.message.model.PayloadRequest
 import no.nav.emottak.message.model.PayloadResponse
 import no.nav.emottak.message.model.SendInRequest
@@ -43,8 +46,19 @@ class CpaRepoClient(clientProvider: () -> HttpClient) {
     suspend fun postValidate(requestId: String, validationRequest: ValidationRequest): ValidationResult {
         return httpClient.post("$cpaRepoEndpoint/cpa/validate/$requestId") {
             setBody(validationRequest)
-            contentType(ContentType.Application.Json)
+            contentType(Json)
         }.body()
+    }
+
+    suspend fun getMessagingCharacteristics(request: MessagingCharacteristicsRequest): MessagingCharacteristicsResponse {
+        log.debug("Sending messaging characteristics request: $request")
+        val response = httpClient.post("$cpaRepoEndpoint/cpa/messagingCharacteristics") {
+            setBody(request)
+            contentType(Json)
+        }
+
+        log.debug("Received messaging characteristics response: ${response.status} - ${response.bodyAsText()}")
+        return response.body()
     }
 }
 
