@@ -119,6 +119,7 @@ class EbmsMessageDetailsRepositoryTest {
         ),
         null,
         "refToMessageId1",
-        Instant.now()
+        Instant.now(),
+        duplicateElimination = false
     )
 }

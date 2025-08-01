@@ -15,7 +15,8 @@ data class PayloadMessage(
     val payload: EbmsAttachment,
     override val dokument: Document? = null,
     override val refToMessageId: String? = null,
-    override val sentAt: Instant? = null
+    override val sentAt: Instant? = null,
+    val duplicateElimination: Boolean
 
 ) : EbmsMessage() {
 
