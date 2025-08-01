@@ -13,6 +13,7 @@ import no.nav.emottak.ebms.async.log
 import no.nav.emottak.ebms.async.persistence.repository.EbmsMessageDetailsRepository
 import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.ebms.async.util.toKafkaHeaders
+import no.nav.emottak.ebms.eventmanager.EventManagerService
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.util.marker
@@ -28,6 +29,7 @@ import no.nav.emottak.util.marker
 import no.nav.emottak.utils.common.parseOrGenerateUuid
 import no.nav.emottak.utils.kafka.model.EventDataType
 import no.nav.emottak.utils.kafka.model.EventType
+import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PerMessageCharacteristicsType
 import java.io.ByteArrayInputStream
 import kotlin.uuid.Uuid
 
@@ -38,7 +40,8 @@ class PayloadMessageService(
     val ebmsSignalProducer: EbmsMessageProducer,
     val smtpTransportClient: SmtpTransportClient,
     val payloadMessageForwardingService: PayloadMessageForwardingService,
-    val eventRegistrationService: EventRegistrationService
+    val eventRegistrationService: EventRegistrationService,
+    val eventManagerService: EventManagerService
 ) {
     suspend fun process(record: ReceiverRecord<String, ByteArray>) {
         try {
@@ -139,16 +142,6 @@ class PayloadMessageService(
         }
     }
 
-    // TODO More advanced duplicate check
-    private fun isDuplicateMessage(ebmsPayloadMessage: PayloadMessage): Boolean {
-        log.debug(ebmsPayloadMessage.marker(), "Checking for duplicates")
-        return ebmsMessageDetailsRepository.getByConversationIdMessageIdAndCpaId(
-            conversationId = ebmsPayloadMessage.conversationId,
-            messageId = ebmsPayloadMessage.messageId,
-            cpaId = ebmsPayloadMessage.cpaId
-        ) != null
-    }
-
     private suspend fun returnAcknowledgment(ebmsPayloadMessage: PayloadMessage) {
         ebmsPayloadMessage
             .createAcknowledgment()
@@ -196,5 +189,21 @@ class PayloadMessageService(
                 log.error(messageHeader.marker(), "Exception occurred while sending message to Kafka queue", e)
             }
         }
+    }
+
+    private suspend fun isDuplicateMessage(ebmsPayloadMessage: PayloadMessage): Boolean {
+        val duplicateEliminationStrategy = cpaValidationService.getDuplicateEliminationStrategy(ebmsPayloadMessage)
+
+        if (duplicateEliminationStrategy == PerMessageCharacteristicsType.ALWAYS) {
+            return eventManagerService.isDuplicateMessage(ebmsPayloadMessage)
+        }
+
+        if (
+            duplicateEliminationStrategy == PerMessageCharacteristicsType.PER_MESSAGE &&
+            ebmsPayloadMessage.duplicateElimination
+        ) {
+            return eventManagerService.isDuplicateMessage(ebmsPayloadMessage)
+        }
+        return false
     }
 }

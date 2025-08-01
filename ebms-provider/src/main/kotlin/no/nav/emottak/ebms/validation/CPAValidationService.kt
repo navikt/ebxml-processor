@@ -12,8 +12,10 @@ import no.nav.emottak.message.model.Direction.OUT
 import no.nav.emottak.message.model.EbmsMessage
 import no.nav.emottak.message.model.ErrorCode
 import no.nav.emottak.message.model.Feil
+import no.nav.emottak.message.model.MessagingCharacteristicsRequest
 import no.nav.emottak.message.model.ValidationRequest
 import no.nav.emottak.message.model.ValidationResult
+import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PerMessageCharacteristicsType
 import org.slf4j.LoggerFactory
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.validation.CPAValidationService")
@@ -37,6 +39,24 @@ class CPAValidationService(val httpClient: CpaRepoClient) {
                 checkSignature = false
             )
         }
+
+    suspend fun getDuplicateEliminationStrategy(message: EbmsMessage): PerMessageCharacteristicsType? {
+        val messagingCharacteristicsRequest = MessagingCharacteristicsRequest(
+            requestId = message.requestId,
+            cpaId = message.cpaId,
+            partyIds = message.addressing.from.partyId,
+            role = message.addressing.from.role,
+            service = message.addressing.service,
+            action = message.addressing.action
+        )
+
+        val messagingCharacteristicsResponse = withContext(Dispatchers.IO) {
+            httpClient.getMessagingCharacteristics(messagingCharacteristicsRequest)
+        }
+
+        log.debug("Duplicate elimination strategy for message ${message.requestId}: ${messagingCharacteristicsResponse.duplicateElimination}")
+        return messagingCharacteristicsResponse.duplicateElimination
+    }
 
     private suspend fun getValidationResult(direction: Direction, message: EbmsMessage): ValidationResult {
         val validationRequest = ValidationRequest(
