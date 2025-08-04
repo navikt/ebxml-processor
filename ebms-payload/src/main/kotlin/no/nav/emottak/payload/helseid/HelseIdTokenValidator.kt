@@ -23,6 +23,7 @@ import jakarta.xml.bind.DatatypeConverter
 import no.nav.emottak.payload.helseid.util.XPathEvaluator
 import no.nav.emottak.payload.helseid.util.msgHeadNamespaceContext
 import no.nav.emottak.utils.environment.getEnvVar
+import org.slf4j.LoggerFactory
 import org.w3c.dom.Document
 import java.net.URI
 import java.security.MessageDigest
@@ -36,6 +37,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Base64
 import java.util.Date
 import java.util.Locale
+import kotlin.math.log
 
 const val HELSE_ID_ISSUER_URL_PROD = "https://helseid-sts.nhn.no"
 const val HELSE_ID_ISSUER_URL_TEST = "https://helseid-sts.test.nhn.no"
@@ -74,14 +76,15 @@ fun SignedJWT.verify(jwkSource: JWKSource<SecurityContext>): Boolean {
     }
 }
 
+val log = LoggerFactory.getLogger(HelseIdTokenValidator::class.java)
+
 class HelseIdTokenValidator(
     private val issuer: String = HELSE_ID_ISSUER,
     private val allowedClockSkewInMs: Long = 0,
     private val helseIdJwkSource: JWKSource<SecurityContext> = JWKSourceBuilder<SecurityContext>.create<SecurityContext>(
-        URI.create(HELSE_ID_JWKS_URL).toURL()
+        URI.create(HELSE_ID_JWKS_URL).toURL().also { log.info("HELSE_ID_JWKS_URL=$it") }
     ).build()
 ) {
-
     fun getValidatedNin(base64Token: String, timestamp: Instant): String? = parseSignedJwt(base64Token).also {
         validateHeader(it)
         validateClaims(it, Date.from(timestamp))
