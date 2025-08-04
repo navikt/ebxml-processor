@@ -53,7 +53,7 @@ class PayloadRepositoryTest {
     fun `Payload get saved to database`() {
         val originalReferenceId = Uuid.random()
         val originalPayload = AsyncPayload(
-            originalReferenceId.toString(),
+            originalReferenceId,
             "contentId1",
             "application/pkcs7-mime",
             "Payload test content 1".toByteArray()
@@ -75,20 +75,20 @@ class PayloadRepositoryTest {
     fun `Multiple payloads can be found by reference ID`() {
         val originalReferenceId = Uuid.random()
         val originalPayload1 = AsyncPayload(
-            originalReferenceId.toString(),
+            originalReferenceId,
             "contentId1",
             "application/pkcs7-mime",
             "Payload test content 1".toByteArray()
         )
         val originalPayload2 = AsyncPayload(
-            originalReferenceId.toString(),
+            originalReferenceId,
             "contentId2",
             "application/pkcs7-mime",
             "Payload test content 2".toByteArray()
         )
         // With different reference ID
         val originalPayload3 = AsyncPayload(
-            Uuid.random().toString(),
+            Uuid.random(),
             "contentId3",
             "application/pkcs7-mime",
             "Payload test content 3".toByteArray()
@@ -102,6 +102,6 @@ class PayloadRepositoryTest {
 
         Assertions.assertNotNull(retrievedPayloads)
         Assertions.assertEquals(2, retrievedPayloads.size)
-        Assertions.assertEquals(originalReferenceId.toString(), retrievedPayloads[0].referenceId)
+        Assertions.assertEquals(originalReferenceId, retrievedPayloads[0].referenceId)
     }
 }
