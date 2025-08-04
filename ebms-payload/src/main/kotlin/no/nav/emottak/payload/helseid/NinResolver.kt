@@ -6,6 +6,7 @@ import no.nav.emottak.payload.defaultHttpClient
 import no.nav.emottak.payload.helseid.util.msgHeadNamespaceContext
 import no.nav.emottak.payload.ocspstatus.OcspStatusService
 import org.slf4j.LoggerFactory
+import org.slf4j.Marker
 import org.w3c.dom.Document
 import java.security.cert.X509Certificate
 import java.time.Instant
@@ -21,13 +22,13 @@ class NinResolver(
 ) {
     private val log = LoggerFactory.getLogger(NinResolver::class.java)
 
-    suspend fun resolve(document: Document, certificate: X509Certificate): String? {
+    suspend fun resolve(marker: Marker, document: Document, certificate: X509Certificate): String? {
         val token = tokenValidator.getHelseIdTokenFromDocument(document)
 
         val nin = token?.let {
             runCatching {
                 tokenValidator.getValidatedNin(it, parseDateOrThrow(extractGeneratedDate(document)))
-            }.onFailure { log.error("HelseID validation failed", it) }.getOrNull()
+            }.onFailure { log.error(marker, "HelseID validation failed", it) }.getOrNull()
         }
 
         return nin ?: ocspStatusService.getOCSPStatus(certificate).fnr
