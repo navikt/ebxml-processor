@@ -7,4 +7,4 @@ COPY build/libs/app.jar /app/app.jar
 
 WORKDIR /app
 USER nonroot
-CMD [ "$JDK_JAVA_OPTIONS", "app.jar" ]
+CMD [ "app.jar" ]
