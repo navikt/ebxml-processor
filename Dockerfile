@@ -5,6 +5,8 @@ COPY build/libs/app.jar /app/app.jar
 
 #debug sikkerhet ENV JAVA_OPTS="-XX:MaxRAMPercentage=75 -Doracle.jdbc.javaNetNio=false -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=8787 -Djava.security.debug=all"
 
+ENV JAVA_OPTS="$JDK_JAVA_OPTIONS"
+
 WORKDIR /app
 USER nonroot
-CMD [ "app.jar" ]
+CMD [ "$JAVA_OPTS", "app.jar" ]
