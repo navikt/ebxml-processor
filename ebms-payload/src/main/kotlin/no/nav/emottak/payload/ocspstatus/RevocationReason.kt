@@ -1,13 +1,13 @@
 package no.nav.emottak.payload.ocspstatus
 
 enum class RevocationReason {
-    Unspecified,
-    KeyCompromise,
-    CACompromise,
-    AffiliationChanged,
-    Superseded,
-    CessationOfOperation,
-    CertificateHold;
+    UNSPECIFIED,
+    KEY_COMPROMISE,
+    CA_COMPROMISE,
+    AFFILIATION_CHANGED,
+    SUPERSEDED,
+    CESSATION_OF_OPERATION,
+    CERTIFICATE_HOLD;
 
     companion object {
 
