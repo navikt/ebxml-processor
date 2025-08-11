@@ -119,7 +119,6 @@ class HelseIDCreator(pathToKeystore: String, keystoreType: String = "jks", priva
     }
 
     private fun <T : JWSObject?> doSign(jwsObject: T, alias: String): T {
-        // Create RSA-signer with the private key
         val signer: JWSSigner = signerWithCertificate(alias)
         try {
             jwsObject!!.sign(signer)
@@ -130,7 +129,6 @@ class HelseIDCreator(pathToKeystore: String, keystoreType: String = "jks", priva
     }
 
     private fun <T : JWSObject?> doSign(jwsObject: T, jwk: JWK): T {
-        // Create RSA-signer with the private key
         val signer: JWSSigner = signer(jwk)
         try {
             jwsObject!!.sign(signer)
