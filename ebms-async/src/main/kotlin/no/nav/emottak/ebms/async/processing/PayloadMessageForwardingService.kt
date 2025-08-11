@@ -6,7 +6,6 @@ import kotlinx.serialization.json.Json
 import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
 import no.nav.emottak.ebms.async.log
-import no.nav.emottak.ebms.async.persistence.repository.EbmsMessageDetailsRepository
 import no.nav.emottak.ebms.async.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.ebms.async.util.toKafkaHeaders
@@ -31,7 +30,6 @@ class PayloadMessageForwardingService(
     val cpaValidationService: CPAValidationService,
     val processingService: ProcessingService,
     val payloadRepository: PayloadRepository,
-    val ebmsMessageDetailsRepository: EbmsMessageDetailsRepository,
     val ebmsPayloadProducer: EbmsMessageProducer,
     val eventRegistrationService: EventRegistrationService
 ) {
@@ -55,7 +53,6 @@ class PayloadMessageForwardingService(
             validationResult.payloadProcessing
         )
 
-        ebmsMessageDetailsRepository.saveEbmsMessage(processedMessage)
         val signedEbmsDocument = processedMessage.toEbmsDokument()
             .signer(validationResult.payloadProcessing!!.signingCertificate)
         savePayloadsToDatabase(
