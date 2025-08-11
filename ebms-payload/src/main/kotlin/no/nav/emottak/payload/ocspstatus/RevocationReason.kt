@@ -18,21 +18,5 @@ enum class RevocationReason {
                 i.toString()
             }
         }
-
-        fun toString(i: Int): String =
-            try {
-                RevocationReason.Companion.valueOf(i).name
-            } catch (e: IllegalArgumentException) {
-                i.toString()
-            }
-
-        fun valueOf(i: Int): RevocationReason {
-            for (rc in RevocationReason.entries) {
-                if (i == rc.ordinal) {
-                    return rc
-                }
-            }
-            throw IllegalArgumentException("no RevocationReason for ordinal $i")
-        }
     }
 }

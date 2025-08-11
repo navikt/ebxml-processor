@@ -13,19 +13,19 @@ object XPathEvaluator {
     private val xPathFactory: XPathFactory = XPathFactory.newInstance()
 
     fun stringAt(node: Node, namespaceContext: NamespaceContext?, xPath: String): String? =
-        (evaluate(node, namespaceContext, xPath, XPathConstants.STRING) as String?)
+        (evaluateExpression(node, namespaceContext, xPath, XPathConstants.STRING) as String?)
             ?.trim()
             ?.replace(MULTIPLE_WHITESPACE_REGEX, " ")
             ?.ifBlank { null }
 
     fun nodesAt(node: Node, namespaceContext: NamespaceContext?, xPath: String): List<Node> {
-        val nodeList = evaluate(node, namespaceContext, xPath, XPathConstants.NODESET) as NodeList
+        val nodeList = evaluateExpression(node, namespaceContext, xPath, XPathConstants.NODESET) as NodeList
         val nodes = ArrayList<Node>(nodeList.length)
         for (index in 0 until nodeList.length) nodes.add(nodeList.item(index))
         return nodes
     }
 
-    private fun evaluate(
+    private fun evaluateExpression(
         contextNode: Node,
         namespaceContext: NamespaceContext?,
         xPathExpression: String,

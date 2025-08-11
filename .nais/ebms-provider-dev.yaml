@@ -75,8 +75,6 @@ spec:
       value: http://ebms-send-in
     - name: SMTP_TRANSPORT_URL
       value: http://smtp-transport
-    - name: JDK_JAVA_OPTIONS
-      value: "$(JAVA_PROXY_OPTIONS)"
   envFrom:
     - secret: ebms-payload-secret
   filesFrom:

@@ -40,7 +40,7 @@ class NinResolver(
     }
 
     private fun parseDateOrThrow(date: String?): Instant {
-        requireNotNull(date) { "GenDate missing or empty in document" }
+        requireNotNull(date) { "GenDate element missing or empty in document" }
         return OffsetDateTime.parse(date, DateTimeFormatter.ISO_OFFSET_DATE_TIME).toInstant()
     }
 }
