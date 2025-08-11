@@ -10,15 +10,15 @@ import javax.security.auth.x500.X500Principal
 @Suppress("TooManyFunctions")
 object X509Utils {
     private const val SHA256 = "SHA-256"
-    
+
     fun getIssuerDN(certificate: X509Certificate): String = getName(certificate.issuerX500Principal)
 
     fun getSubjectDN(certificate: X509Certificate): String = getName(certificate.subjectX500Principal)
 
     fun toString(certificate: X509Certificate): String =
         getSubjectDN(certificate) + " issued by " +
-                getIssuerDN(certificate) + " with serial number " +
-                certificate.serialNumber
+            getIssuerDN(certificate) + " with serial number " +
+            certificate.serialNumber
 
     fun thumbprintHex(certificate: X509Certificate, algorithm: String = SHA256): String =
         DatatypeConverter.printHexBinary(thumbprint(certificate, algorithm)).lowercase()

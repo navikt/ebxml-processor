@@ -18,7 +18,6 @@ object ResourceUtil {
         }
     }
 
-
     fun getByteArrayClasspathResource(path: String, b64decode: Boolean = false): ByteArray {
         val r = InternalResource(path)
         return if (b64decode && path.endsWith(".b64")) {
@@ -27,7 +26,6 @@ object ResourceUtil {
             r.inputStream.use { it.readBytes() }
         }
     }
-
 
     fun getStringClasspathResource(path: String): String {
         val r = InternalResource(path)

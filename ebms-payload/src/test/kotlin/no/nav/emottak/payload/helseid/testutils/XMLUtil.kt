@@ -10,7 +10,6 @@ import javax.xml.XMLConstants
 import javax.xml.parsers.DocumentBuilderFactory
 import javax.xml.parsers.ParserConfigurationException
 
-
 object XMLUtil {
     private const val FAILED_TO_CREATE = "Failed to create XML document from byte array"
     private val errorHandler = SilentErrorHandler()
