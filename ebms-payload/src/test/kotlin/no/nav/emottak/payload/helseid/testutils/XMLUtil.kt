@@ -10,28 +10,14 @@ import javax.xml.XMLConstants
 import javax.xml.parsers.DocumentBuilderFactory
 import javax.xml.parsers.ParserConfigurationException
 
-/**
- * XML stuff.
- */
 object XMLUtil {
     private const val FAILED_TO_CREATE = "Failed to create XML document from byte array"
     private val errorHandler = SilentErrorHandler()
 
-    /**
-     * Creates an XML Document from a string
-     * @param xml The document.
-     * @return The XML Document.
-     */
     fun createDocument(xml: String): Document {
         return createDocument(xml.toByteArray())
     }
 
-    /**
-     * Creates an XML Document from a (decoded) byte array.
-     * @param bytes The document bytes
-     * @return The XML Document.
-     */
-    // XML parsers should not be vulnerable to XXE attacks
     @Suppress("ThrowsCount")
     fun createDocument(bytes: ByteArray?): Document {
         val dbf = DocumentBuilderFactory.newInstance()
@@ -57,9 +43,6 @@ object XMLUtil {
     }
 }
 
-/**
- * Error handler that doesn't write to stderr (like the default ErrorHandler does)
- */
 private class SilentErrorHandler : ErrorHandler {
     override fun warning(exception: SAXParseException) {
         throw exception
