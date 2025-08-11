@@ -7,18 +7,8 @@ import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.Base64
 
-/**
- * Methods for reading resources.
- */
 @Suppress("TooManyFunctions")
 object ResourceUtil {
-    /**
-     * Gets a byte array from a resource that's in the classpath or on an absolute path.
-     * @param path The path.
-     * @param b64decode if true and the path ends in .b64 we return the decoded contents
-     * @return A byte array.
-     * @throws java.io.IOException if not found.
-     */
     fun getByteArrayClasspathOrAbsolutePathResource(path: String, b64decode: Boolean = false): ByteArray {
         val p = Paths.get(path)
         return when {
@@ -28,13 +18,6 @@ object ResourceUtil {
         }
     }
 
-    /**
-     * Gets a byte array from a resource that's in the classpath.
-     * @param path The path.
-     * @param b64decode if true and the path ends in .b64 we return the decoded contents
-     * @return A byte array.
-     * @throws java.io.IOException if not found.
-     */
     fun getByteArrayClasspathResource(path: String, b64decode: Boolean = false): ByteArray {
         val r = InternalResource(path)
         return if (b64decode && path.endsWith(".b64")) {
@@ -44,12 +27,6 @@ object ResourceUtil {
         }
     }
 
-    /**
-     * Gets a string with UTF-8 encoding from a resource that's in the classpath.
-     * @param path The path.
-     * @return A string.
-     * @throws java.io.IOException if not found.
-     */
     fun getStringClasspathResource(path: String): String {
         val r = InternalResource(path)
         return r.inputStream.use { s -> s.bufferedReader().use { b -> b.readText() } }
