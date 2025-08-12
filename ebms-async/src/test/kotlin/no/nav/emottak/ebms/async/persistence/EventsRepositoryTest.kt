@@ -101,7 +101,8 @@ class EventsRepositoryTest {
             "contentId1"
         ),
         null,
-        "refToMessageId1"
+        "refToMessageId1",
+        duplicateElimination = false
     )
 
     private fun buildTestEvent(requestId: Uuid) = Event(

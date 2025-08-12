@@ -69,7 +69,8 @@ data class EbMSDocument(val requestId: String, val dokument: Document, val attac
                 attachments.first(),
                 dokument,
                 messageHeader.messageData.refToMessageId,
-                messageHeader.messageData.timestamp.toInstant()
+                messageHeader.messageData.timestamp.toInstant(),
+                messageHeader.duplicateElimination != null
             )
 
             DokumentType.MESSAGE_ERROR -> {
