@@ -5,11 +5,14 @@ import no.nav.emottak.utils.environment.getEnvVar
 import no.nav.emottak.utils.vault.parseVaultJsonObject
 import java.io.FileReader
 
-internal fun trustStoreConfig() = FileKeyStoreConfig(
-    keyStoreFilePath = getEnvVar("TRUSTSTORE_PATH", resolveDefaultTruststorePath()),
-    keyStorePass = getEnvVar("TRUSTSTORE_PWD", "123456789").toCharArray(),
-    keyStoreType = "PKCS12"
-)
+internal fun trustStoreConfig() =
+    listOf(
+        FileKeyStoreConfig(
+            keyStoreFilePath = getEnvVar("TRUSTSTORE_PATH", resolveDefaultTruststorePath()),
+            keyStorePass = getEnvVar("TRUSTSTORE_PWD", "123456789").toCharArray(),
+            keyStoreType = "PKCS12"
+        )
+    )
 
 fun ocspSigneringConfigCommfides() =
     when (getEnvVar("NAIS_CLUSTER_NAME", "local")) {
