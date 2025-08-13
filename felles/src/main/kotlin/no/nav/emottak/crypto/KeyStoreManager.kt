@@ -13,7 +13,6 @@ import java.security.PrivateKey
 import java.security.Security
 import java.security.cert.X509Certificate
 import java.util.Enumeration
-import java.util.function.Predicate.not
 import javax.security.auth.x500.X500Principal
 
 internal val log = LoggerFactory.getLogger(KeyStoreManager::class.java)
@@ -24,7 +23,7 @@ interface KeyStoreConfig {
     val keyStoreType: String
 }
 
-class KeyStoreManager(private vararg val keyStoreConfig: KeyStoreConfig) {
+class KeyStoreManager(private val keyStoreConfig: List<KeyStoreConfig>) {
     private val keyStores: List<Pair<KeyStore, KeyStoreConfig>>
 
     init {
