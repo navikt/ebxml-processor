@@ -20,7 +20,7 @@ class SignaturValidatorTest {
             "KEYSTORE_PWD_FILE",
             javaClass.classLoader.getResource("credentials-test.json").path.toString()
         )
-        Assertions.assertEquals("123456789", String(signeringConfig().keyStorePass))
+        Assertions.assertEquals("123456789", String(signeringConfig().first().keyStorePass))
     }
 
     @Test
