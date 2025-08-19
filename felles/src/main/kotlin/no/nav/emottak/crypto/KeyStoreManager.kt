@@ -7,6 +7,7 @@ import org.bouncycastle.cert.jcajce.JcaX509CertificateHolder
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.slf4j.LoggerFactory
 import java.io.InputStream
+import java.math.BigInteger
 import java.security.KeyPair
 import java.security.KeyStore
 import java.security.PrivateKey
@@ -70,6 +71,18 @@ class KeyStoreManager(private vararg val keyStoreConfig: KeyStoreConfig) {
             log.debug("Alias found: ${it.key} for issuer $issuer")
             Pair(getKey(it.key), it.value)
         }.first()
+    }
+
+    fun getPrivateCertificate(serialnumber: BigInteger): PrivateKey? {
+        keyStores.forEach { (store, config) ->
+            val theAlias = store.aliases().iterator().asSequence().filter { alias ->
+                (store.getCertificate(alias) as X509Certificate).serialNumber == serialnumber
+            }.first()
+            if(hasPrivateKeyEntry(theAlias)) {
+                return store.getKey(theAlias, config.keyStorePass) as PrivateKey
+            }
+        }
+        return null
     }
 
     fun getPrivateCertificates(): Map<String, X509Certificate> {

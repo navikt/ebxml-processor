@@ -98,15 +98,9 @@ class Dekryptering(private val keyStore: KeyStoreManager = KeyStoreManager(*dekr
 
     private fun getPrivateKeyMatch(recipient: RecipientInformation): PrivateKey {
         if (recipient.rid.type == RecipientId.keyTrans) {
-            val privateCertificates: Map<String, X509Certificate> = keyStore.getPrivateCertificates()
             val rid = recipient.rid as KeyTransRecipientId
-            val issuer = rid.issuer
-            privateCertificates.entries.filter { (_, cert) ->
-                val certificateIssuer = X500Name(cert.issuerX500Principal.name)
-                issuer == certificateIssuer && cert.serialNumber == rid.serialNumber
-            }.firstOrNull { entry ->
-                return keyStore.getKey(entry.key)
-            } ?: throw DecryptionException("Fant ingen gyldige privatsertifikat for dekryptering")
+            return keyStore.getPrivateCertificate(rid.serialNumber)
+                ?: throw DecryptionException("Fant ingen gyldige privatsertifikat for dekryptering")
         }
         throw DecryptionException("Fant ikke riktig sertifikat for mottaker: ")
     }
