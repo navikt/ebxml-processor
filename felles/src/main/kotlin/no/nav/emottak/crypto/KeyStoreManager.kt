@@ -75,11 +75,10 @@ class KeyStoreManager(private vararg val keyStoreConfig: KeyStoreConfig) {
 
     fun getPrivateKey(serialnumber: BigInteger): PrivateKey? {
         keyStores.forEach { (store, config) ->
-            val theAlias = store.aliases().iterator().asSequence().filter { alias ->
+            store.aliases().iterator().asSequence().firstOrNull { alias ->
                 (store.getCertificate(alias) as X509Certificate).serialNumber == serialnumber
-            }.first()
-            if (hasPrivateKeyEntry(theAlias)) {
-                return store.getKey(theAlias, config.keyStorePass) as PrivateKey
+            }?.let { alias ->
+                return store.getKey(alias, config.keyStorePass) as PrivateKey?
             }
         }
         return null
@@ -87,10 +86,11 @@ class KeyStoreManager(private vararg val keyStoreConfig: KeyStoreConfig) {
 
     fun getCertificate(serialnumber: BigInteger): X509Certificate? {
         keyStores.forEach { (store) ->
-            val theAlias = store.aliases().iterator().asSequence().filter { alias ->
+            store.aliases().iterator().asSequence().firstOrNull { alias ->
                 (store.getCertificate(alias) as X509Certificate).serialNumber == serialnumber
-            }.first()
-            return store.getCertificate(theAlias) as X509Certificate
+            }?.let { alias ->
+                return store.getCertificate(alias) as X509Certificate
+            }
         }
         return null
     }
