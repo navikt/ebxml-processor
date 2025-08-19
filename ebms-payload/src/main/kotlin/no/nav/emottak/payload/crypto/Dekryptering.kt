@@ -97,7 +97,7 @@ class Dekryptering(private val keyStore: KeyStoreManager = KeyStoreManager(*dekr
     private fun getPrivateKeyMatch(recipient: RecipientInformation): PrivateKey {
         if (recipient.rid.type == RecipientId.keyTrans) {
             val rid = recipient.rid as KeyTransRecipientId
-            return keyStore.getPrivateCertificate(rid.serialNumber)
+            return keyStore.getPrivateKey(rid.serialNumber)
                 ?: throw DecryptionException("Fant ingen gyldige privatsertifikat for dekryptering")
         }
         throw DecryptionException("Fant ikke riktig sertifikat for mottaker: ")
