@@ -73,7 +73,7 @@ class KeyStoreManager(private vararg val keyStoreConfig: KeyStoreConfig) {
         }.first()
     }
 
-    fun getPrivateCertificate(serialnumber: BigInteger): PrivateKey? {
+    fun getPrivateKey(serialnumber: BigInteger): PrivateKey? {
         keyStores.forEach { (store, config) ->
             val theAlias = store.aliases().iterator().asSequence().filter { alias ->
                 (store.getCertificate(alias) as X509Certificate).serialNumber == serialnumber
