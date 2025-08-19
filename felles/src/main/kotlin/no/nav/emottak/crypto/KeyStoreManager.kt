@@ -68,7 +68,7 @@ class KeyStoreManager(private vararg val keyStoreConfig: KeyStoreConfig) {
                     privCert.issuerX500Principal.name.contains(rdn) // "Loose" matching for key. RDN match for CN not needed
                 }
         }.map {
-            log.info("Serial number found: ${it.key} for issuer $issuer")
+            log.debug("Serial number found: ${it.key} for issuer $issuer")
             Pair(getPrivateKey(it.key.toBigInteger())!!, it.value)
         }.first()
     }
