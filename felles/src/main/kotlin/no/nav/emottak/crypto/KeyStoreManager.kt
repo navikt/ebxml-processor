@@ -68,12 +68,12 @@ class KeyStoreManager(private vararg val keyStoreConfig: KeyStoreConfig) {
                     privCert.issuerX500Principal.name.contains(rdn) // "Loose" matching for key. RDN match for CN not needed
                 }
         }.map {
-            log.debug("Alias found: ${it.key} for issuer $issuer")
-            Pair(getKey(it.key), it.value)
+            log.debug("Serial number found: ${it.key} for issuer $issuer")
+            Pair(getPrivateKey(it.key.toBigInteger())!!, it.value)
         }.first()
     }
 
-    fun getPrivateCertificate(serialnumber: BigInteger): PrivateKey? {
+    fun getPrivateKey(serialnumber: BigInteger): PrivateKey? {
         keyStores.forEach { (store, config) ->
             val theAlias = store.aliases().iterator().asSequence().filter { alias ->
                 (store.getCertificate(alias) as X509Certificate).serialNumber == serialnumber
@@ -85,12 +85,22 @@ class KeyStoreManager(private vararg val keyStoreConfig: KeyStoreConfig) {
         return null
     }
 
+    fun getCertificate(serialnumber: BigInteger): X509Certificate? {
+        keyStores.forEach { (store) ->
+            val theAlias = store.aliases().iterator().asSequence().filter { alias ->
+                (store.getCertificate(alias) as X509Certificate).serialNumber == serialnumber
+            }.first()
+            return store.getCertificate(theAlias) as X509Certificate
+        }
+        return null
+    }
+
     fun getPrivateCertificates(): Map<String, X509Certificate> {
         val certificates: MutableMap<String, X509Certificate> = HashMap()
         keyStores.forEach { (store) ->
             store.aliases().iterator().forEach { alias ->
                 if (hasPrivateKeyEntry(alias)) {
-                    certificates[alias] = store.getCertificate(alias) as X509Certificate
+                    certificates[(store.getCertificate(alias) as X509Certificate).serialNumber.toString()] = store.getCertificate(alias) as X509Certificate
                 }
             }
         }
@@ -101,7 +111,7 @@ class KeyStoreManager(private vararg val keyStoreConfig: KeyStoreConfig) {
         val certificates: MutableMap<String, X509Certificate> = HashMap()
         keyStores.aliases().iterator().forEach { alias ->
             if (hasCertEntry(alias)) {
-                certificates[alias] = getCertificate(alias)
+                certificates[getCertificate(alias).serialNumber.toString()] = getCertificate(alias)
             }
         }
         return certificates
