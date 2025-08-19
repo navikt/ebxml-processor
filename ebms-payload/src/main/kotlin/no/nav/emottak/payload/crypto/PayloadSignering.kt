@@ -10,7 +10,6 @@ import no.nav.emottak.utils.environment.getEnvVar
 import no.nav.emottak.utils.vault.parseVaultJsonObject
 import org.w3c.dom.Document
 import java.io.FileReader
-import java.security.Key
 import java.security.cert.X509Certificate
 import javax.xml.crypto.dsig.Reference
 import javax.xml.crypto.dsig.SignedInfo
@@ -80,9 +79,11 @@ class PayloadSignering(private val keyStore: KeyStoreManager = KeyStoreManager(*
         signerCertificate: X509Certificate,
         document: Document
     ): DOMSignContext {
-        val alias = keyStore.getCertificateAlias(signerCertificate)
-            ?: throw SignatureException("Fant ikke sertifikat med subject ${signerCertificate.subjectX500Principal.name} i keystore")
-        val signerKey: Key = keyStore.getKey(alias)
+        val signerKey = keyStore.getPrivateKey(signerCertificate.serialNumber)
+            ?: throw SignatureException(
+                "Fant ikke key for sertifikat med subject ${signerCertificate.subjectX500Principal.name} " +
+                    "og serienummer ${signerCertificate.serialNumber} i keystore"
+            )
         val signingContext = DOMSignContext(signerKey, document.documentElement)
         return signingContext
     }
