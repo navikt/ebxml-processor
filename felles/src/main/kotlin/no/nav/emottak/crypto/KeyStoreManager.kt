@@ -78,7 +78,7 @@ class KeyStoreManager(private vararg val keyStoreConfig: KeyStoreConfig) {
             val theAlias = store.aliases().iterator().asSequence().filter { alias ->
                 (store.getCertificate(alias) as X509Certificate).serialNumber == serialnumber
             }.first()
-            if(hasPrivateKeyEntry(theAlias)) {
+            if (hasPrivateKeyEntry(theAlias)) {
                 return store.getKey(theAlias, config.keyStorePass) as PrivateKey
             }
         }
