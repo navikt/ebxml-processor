@@ -93,8 +93,6 @@ class EbMSSigning(private val keyStore: KeyStoreManager = KeyStoreManager(*signe
         signatureAlgorithm: String,
         hashFunction: String
     ) {
-        val alias = getCertificateAlias(publicCertificate)
-        val keyPair = keyStore.getKeyPair(alias)
         val signature: XMLSignature = createSignature(document, signatureAlgorithm)
         appendSignature(document, signature)
         addAttachmentResolver(signature, attachments)
@@ -106,9 +104,9 @@ class EbMSSigning(private val keyStore: KeyStoreManager = KeyStoreManager(*signe
             )
         }
         signature.addDocument("", createTransforms(document), hashFunction)
-        signature.addKeyInfo(keyPair.public)
+        signature.addKeyInfo(keyStore.getCertificate(publicCertificate.serialNumber))
         signature.addKeyInfo(publicCertificate)
-        signature.sign(keyPair.private)
+        signature.sign(keyStore.getPrivateCertificate(publicCertificate.serialNumber))
     }
 
     private fun getCertificateAlias(publicCertificate: X509Certificate): String =
