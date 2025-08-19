@@ -6,7 +6,6 @@ import no.nav.emottak.crypto.VaultKeyStoreConfig
 import no.nav.emottak.util.decodeBase64
 import no.nav.emottak.utils.environment.getEnvVar
 import no.nav.emottak.utils.vault.parseVaultJsonObject
-import org.bouncycastle.asn1.x500.X500Name
 import org.bouncycastle.cms.CMSEnvelopedData
 import org.bouncycastle.cms.KeyTransRecipientId
 import org.bouncycastle.cms.KeyTransRecipientInformation
@@ -18,7 +17,6 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider
 import java.io.FileReader
 import java.security.PrivateKey
 import java.security.Security
-import java.security.cert.X509Certificate
 
 private fun dekrypteringConfig() =
     when (getEnvVar("NAIS_CLUSTER_NAME", "local")) {
