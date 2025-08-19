@@ -56,7 +56,7 @@ import java.util.Date
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
-val testKeystore = KeyStoreManager(payloadSigneringConfig())
+val testKeystore = KeyStoreManager(*payloadSigneringConfig().toTypedArray())
 
 abstract class PayloadTestBase {
 

@@ -63,7 +63,7 @@ private fun dekrypteringConfig() =
  *
  * 5.15.1 Dekryptering av vedlegg
  */
-class Dekryptering(private val keyStore: KeyStoreManager = KeyStoreManager(dekrypteringConfig())) {
+class Dekryptering(private val keyStore: KeyStoreManager = KeyStoreManager(*dekrypteringConfig().toTypedArray())) {
 
     init {
         val provider = BouncyCastleProvider()

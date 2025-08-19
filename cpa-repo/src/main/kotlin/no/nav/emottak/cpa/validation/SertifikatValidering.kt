@@ -30,12 +30,10 @@ import java.util.Date
 
 internal val log = LoggerFactory.getLogger("no.nav.emottak.cpa.validation.SertifikatValidering")
 
-private fun trustStoreConfig() = listOf(
-    FileKeyStoreConfig(
-        keyStoreFilePath = getEnvVar("TRUSTSTORE_PATH", resolveDefaultTruststorePath()),
-        keyStorePass = getEnvVar("TRUSTSTORE_PWD", "123456789").toCharArray(),
-        keyStoreType = "PKCS12"
-    )
+private fun trustStoreConfig() = FileKeyStoreConfig(
+    keyStoreFilePath = getEnvVar("TRUSTSTORE_PATH", resolveDefaultTruststorePath()),
+    keyStorePass = getEnvVar("TRUSTSTORE_PWD", "123456789").toCharArray(),
+    keyStoreType = "PKCS12"
 )
 
 fun resolveDefaultTruststorePath(): String? {

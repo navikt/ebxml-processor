@@ -60,7 +60,7 @@ fun payloadSigneringConfig() =
             )
     }
 
-class PayloadSignering(private val keyStore: KeyStoreManager = KeyStoreManager(payloadSigneringConfig())) {
+class PayloadSignering(private val keyStore: KeyStoreManager = KeyStoreManager(*payloadSigneringConfig().toTypedArray())) {
 
     private val digestAlgorithm: String = "http://www.w3.org/2001/04/xmlenc#sha256"
     private val canonicalizationMethod: String = "http://www.w3.org/TR/2001/REC-xml-c14n-20010315"

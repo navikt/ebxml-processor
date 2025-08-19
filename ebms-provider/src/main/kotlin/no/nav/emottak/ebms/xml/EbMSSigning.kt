@@ -64,7 +64,7 @@ fun signeringConfig() =
 
 val ebMSSigning = EbMSSigning()
 
-class EbMSSigning(private val keyStore: KeyStoreManager = KeyStoreManager(signeringConfig())) {
+class EbMSSigning(private val keyStore: KeyStoreManager = KeyStoreManager(*signeringConfig().toTypedArray())) {
 
     private val canonicalizationMethodAlgorithm = Transforms.TRANSFORM_C14N_OMIT_COMMENTS
     private val SOAP_ENVELOPE = SOAPConstants.URI_NS_SOAP_1_1_ENVELOPE

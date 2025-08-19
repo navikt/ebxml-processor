@@ -23,7 +23,7 @@ interface KeyStoreConfig {
     val keyStoreType: String
 }
 
-class KeyStoreManager(private val keyStoreConfig: List<KeyStoreConfig>) {
+class KeyStoreManager(private vararg val keyStoreConfig: KeyStoreConfig) {
     private val keyStores: List<Pair<KeyStore, KeyStoreConfig>>
 
     init {
