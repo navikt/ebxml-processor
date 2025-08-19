@@ -90,7 +90,7 @@ class KeyStoreManager(private vararg val keyStoreConfig: KeyStoreConfig) {
             val theAlias = store.aliases().iterator().asSequence().filter { alias ->
                 (store.getCertificate(alias) as X509Certificate).serialNumber == serialnumber
             }.first()
-             return store.getCertificate(theAlias) as X509Certificate
+            return store.getCertificate(theAlias) as X509Certificate
         }
         return null
     }

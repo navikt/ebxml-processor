@@ -111,11 +111,12 @@ class EbMSSigning(private val keyStore: KeyStoreManager = KeyStoreManager(*signe
     }
 
     private fun getPublicCertFromKeyStore(publicCertificate: X509Certificate): PublicKey =
-            keyStore.getCertificate(publicCertificate.serialNumber)?.publicKey ?:
-            throw SignatureException(
+        keyStore.getCertificate(publicCertificate.serialNumber)?.publicKey
+            ?: throw SignatureException(
                 "Could not find certificate with " +
-                        "subject <${publicCertificate.subjectX500Principal.name}> and " +
-                        "issuer <${publicCertificate.issuerX500Principal.name}> in keystore")
+                    "subject <${publicCertificate.subjectX500Principal.name}> and " +
+                    "issuer <${publicCertificate.issuerX500Principal.name}> in keystore"
+            )
 
     private fun appendSignature(document: Document, signature: XMLSignature) {
         val soapHeader = document.documentElement.getFirstChildElement()
