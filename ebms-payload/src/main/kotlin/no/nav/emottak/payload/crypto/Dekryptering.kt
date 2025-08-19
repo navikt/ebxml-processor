@@ -24,27 +24,38 @@ private fun dekrypteringConfig() =
     when (getEnvVar("NAIS_CLUSTER_NAME", "local")) {
         "dev-fss" ->
             // Fixme burde egentlig hente fra dev vault context for å matche prod oppførsel
-            FileKeyStoreConfig(
-                keyStoreFilePath = getEnvVar("KEYSTORE_FILE_DEKRYPT"),
-                keyStorePass = getEnvVar("KEYSTORE_PWD").toCharArray(),
-                keyStoreType = getEnvVar("KEYSTORE_TYPE", "PKCS12")
+            listOf(
+                FileKeyStoreConfig(
+                    keyStoreFilePath = getEnvVar("KEYSTORE_FILE_DEKRYPT"),
+                    keyStorePass = getEnvVar("KEYSTORE_PWD").toCharArray(),
+                    keyStoreType = getEnvVar("KEYSTORE_TYPE", "PKCS12")
+                )
             )
         "prod-fss" ->
-            VaultKeyStoreConfig(
-                keyStoreVaultPath = getEnvVar("VIRKSOMHETSSERTIFIKAT_PATH"),
-                keyStoreFileResource = getEnvVar("VIRKSOMHETSSERTIFIKAT_DEKRYPTERING"),
-                keyStorePassResource = getEnvVar("VIRKSOMHETSSERTIFIKAT_CREDENTIALS")
+            listOf(
+                VaultKeyStoreConfig(
+                    keyStoreVaultPath = getEnvVar("VIRKSOMHETSSERTIFIKAT_PATH"),
+                    keyStoreFileResource = getEnvVar("VIRKSOMHETSSERTIFIKAT_DEKRYPTERING_2022"),
+                    keyStorePassResource = getEnvVar("VIRKSOMHETSSERTIFIKAT_CREDENTIALS_2022")
+                ),
+                VaultKeyStoreConfig(
+                    keyStoreVaultPath = getEnvVar("VIRKSOMHETSSERTIFIKAT_PATH"),
+                    keyStoreFileResource = getEnvVar("VIRKSOMHETSSERTIFIKAT_DEKRYPTERING_2025"),
+                    keyStorePassResource = getEnvVar("VIRKSOMHETSSERTIFIKAT_CREDENTIALS_2025")
+                )
             )
         else ->
-            FileKeyStoreConfig(
-                keyStoreFilePath = getEnvVar("KEYSTORE_FILE_DEKRYPT", "xml/signering_keystore.p12"),
-                keyStorePass = FileReader(
-                    getEnvVar(
-                        "KEYSTORE_PWD_FILE",
-                        FileKeyStoreConfig::class.java.classLoader.getResource("keystore/credentials-test.json").path.toString()
-                    )
-                ).readText().parseVaultJsonObject("password").toCharArray(),
-                keyStoreType = getEnvVar("KEYSTORE_TYPE", "PKCS12")
+            listOf(
+                FileKeyStoreConfig(
+                    keyStoreFilePath = getEnvVar("KEYSTORE_FILE_DEKRYPT", "xml/signering_keystore.p12"),
+                    keyStorePass = FileReader(
+                        getEnvVar(
+                            "KEYSTORE_PWD_FILE",
+                            FileKeyStoreConfig::class.java.classLoader.getResource("keystore/credentials-test.json").path.toString()
+                        )
+                    ).readText().parseVaultJsonObject("password").toCharArray(),
+                    keyStoreType = getEnvVar("KEYSTORE_TYPE", "PKCS12")
+                )
             )
     }
 
@@ -52,7 +63,7 @@ private fun dekrypteringConfig() =
  *
  * 5.15.1 Dekryptering av vedlegg
  */
-class Dekryptering(private val keyStore: KeyStoreManager = KeyStoreManager(dekrypteringConfig())) {
+class Dekryptering(private val keyStore: KeyStoreManager = KeyStoreManager(*dekrypteringConfig().toTypedArray())) {
 
     init {
         val provider = BouncyCastleProvider()
