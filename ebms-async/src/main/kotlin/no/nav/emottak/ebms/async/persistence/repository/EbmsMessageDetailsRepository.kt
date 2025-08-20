@@ -14,10 +14,10 @@ import no.nav.emottak.ebms.async.persistence.table.EbmsMessageDetailsTable.sentA
 import no.nav.emottak.ebms.async.persistence.table.EbmsMessageDetailsTable.service
 import no.nav.emottak.ebms.async.persistence.table.EbmsMessageDetailsTable.toPartyId
 import no.nav.emottak.ebms.async.persistence.table.EbmsMessageDetailsTable.toRole
-import no.nav.emottak.ebms.util.marker
 import no.nav.emottak.message.model.EbmsMessage
 import no.nav.emottak.message.model.EbmsMessageDetails
 import no.nav.emottak.message.model.toEbmsMessageDetails
+import no.nav.emottak.util.marker
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.upsert
