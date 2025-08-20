@@ -22,10 +22,12 @@ import kotlinx.serialization.json.Json
 import no.nav.emottak.message.model.AsyncPayload
 import no.nav.emottak.message.model.PayloadRequest
 import no.nav.emottak.message.model.PayloadResponse
+import no.nav.emottak.message.model.SendInRequest
+import no.nav.emottak.message.model.SendInResponse
 import no.nav.emottak.message.model.ValidationRequest
 import no.nav.emottak.message.model.ValidationResult
-import no.nav.emottak.utils.common.model.SendInRequest
-import no.nav.emottak.utils.common.model.SendInResponse
+import no.nav.emottak.utils.common.model.DuplicateCheckRequest
+import no.nav.emottak.utils.common.model.DuplicateCheckResponse
 import no.nav.emottak.utils.environment.getEnvVar
 import java.net.InetSocketAddress
 import java.net.Proxy
@@ -69,7 +71,7 @@ class SendInClient(clientProvider: () -> HttpClient) {
         }
         if (response.status == HttpStatusCode.BadRequest) {
             val errorMessage = response.bodyAsText()
-            log.debug("Propagerer feilmelding fra fagsystemet til brukeren: $errorMessage")
+            log.error("Propagerer feilmelding fra fagsystemet til brukeren: $errorMessage")
             throw Exception(errorMessage)
         }
         return response.body()
@@ -87,7 +89,30 @@ class SmtpTransportClient(clientProvider: () -> HttpClient) {
         }
         if (response.status != HttpStatusCode.OK) {
             val errorMessage = response.bodyAsText()
-            log.debug("Failed to get payload from smtp-transport: $errorMessage")
+            log.error("Failed to get payload from smtp-transport: $errorMessage")
+            throw Exception(errorMessage)
+        }
+        return response.body()
+    }
+}
+
+class EventManagerClient(clientProvider: () -> HttpClient) {
+    private var httpClient = clientProvider.invoke()
+    private val eventManagerUrl = getEnvVar("EVENT_MANAGER_URL", "http://emottak-event-manager")
+
+    suspend fun duplicateCheck(duplicateCheckRequest: DuplicateCheckRequest): DuplicateCheckResponse {
+        val duplicateCheckUri = "$eventManagerUrl/duplicateCheck"
+
+        log.debug("Sending duplicate check request: $duplicateCheckRequest")
+        val response = httpClient.post(duplicateCheckUri) {
+            setBody(duplicateCheckRequest)
+            contentType(ContentType.Application.Json)
+        }
+        log.debug("Received response from duplicate check: ${response.status} - ${response.bodyAsText()}")
+
+        if (response.status != HttpStatusCode.OK) {
+            val errorMessage = response.bodyAsText()
+            log.error("Failed to check if the message is a duplicate: $errorMessage")
             throw Exception(errorMessage)
         }
         return response.body()
@@ -105,6 +130,10 @@ val EBMS_PAYLOAD_SCOPE = getEnvVar(
 val SMTP_TRANSPORT_SCOPE = getEnvVar(
     "SMTP_TRANSPORT_SCOPE",
     "api://" + getEnvVar("NAIS_CLUSTER_NAME", "dev-fss") + ".team-emottak.smtp-transport/.default"
+)
+val EVENT_MANAGER_SCOPE = getEnvVar(
+    "EVENT_MANAGER_SCOPE",
+    "api://" + getEnvVar("NAIS_CLUSTER_NAME", "dev-fss") + ".team-emottak.emottak-event-manager/.default"
 )
 
 fun defaultHttpClient(): () -> HttpClient {

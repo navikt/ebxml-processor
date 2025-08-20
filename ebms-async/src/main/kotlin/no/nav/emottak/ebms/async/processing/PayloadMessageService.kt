@@ -13,6 +13,7 @@ import no.nav.emottak.ebms.async.log
 import no.nav.emottak.ebms.async.persistence.repository.EbmsMessageDetailsRepository
 import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.ebms.async.util.toKafkaHeaders
+import no.nav.emottak.ebms.eventmanager.EventManagerService
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.validation.CPAValidationService
@@ -37,7 +38,8 @@ class PayloadMessageService(
     val ebmsSignalProducer: EbmsMessageProducer,
     val smtpTransportClient: SmtpTransportClient,
     val payloadMessageForwardingService: PayloadMessageForwardingService,
-    val eventRegistrationService: EventRegistrationService
+    val eventRegistrationService: EventRegistrationService,
+    val eventManagerService: EventManagerService
 ) {
     suspend fun process(record: ReceiverRecord<String, ByteArray>) {
         try {
@@ -94,7 +96,7 @@ class PayloadMessageService(
                 eventData
             )
 
-            if (isDuplicateMessage(ebmsPayloadMessage)) {
+            if (eventManagerService.isDuplicateMessage(ebmsPayloadMessage)) {
                 log.info(ebmsPayloadMessage.marker(), "Got duplicate payload message with reference <${record.key()}>")
             } else {
                 log.info(ebmsPayloadMessage.marker(), "Got payload message with reference <${record.key()}>")
@@ -136,16 +138,6 @@ class PayloadMessageService(
             )
             throw ex
         }
-    }
-
-    // TODO More advanced duplicate check
-    private fun isDuplicateMessage(ebmsPayloadMessage: PayloadMessage): Boolean {
-        log.debug(ebmsPayloadMessage.marker(), "Checking for duplicates")
-        return ebmsMessageDetailsRepository.getByConversationIdMessageIdAndCpaId(
-            conversationId = ebmsPayloadMessage.conversationId,
-            messageId = ebmsPayloadMessage.messageId,
-            cpaId = ebmsPayloadMessage.cpaId
-        ) != null
     }
 
     private suspend fun returnAcknowledgment(ebmsPayloadMessage: PayloadMessage) {
