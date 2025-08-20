@@ -1,4 +1,4 @@
-package no.nav.emottak.payload.apprec.melding
+package no.nav.emottak.payload.apprec.message
 
 import no.nav.emottak.util.signatur.SignatureException
 

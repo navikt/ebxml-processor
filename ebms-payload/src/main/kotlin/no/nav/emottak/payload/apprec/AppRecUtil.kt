@@ -11,7 +11,7 @@ import no.kith.xmlstds.msghead._2006_05_24.HealthcareProfessional
 import no.kith.xmlstds.msghead._2006_05_24.Ident
 import no.kith.xmlstds.msghead._2006_05_24.MsgHead
 import no.kith.xmlstds.msghead._2006_05_24.MsgInfo
-import no.nav.emottak.payload.apprec.melding.AppRecErrorCode
+import no.nav.emottak.payload.apprec.message.AppRecErrorCode
 import no.nav.emottak.util.toXMLGregorianCalendar
 import org.apache.commons.lang3.StringUtils
 import java.time.Instant

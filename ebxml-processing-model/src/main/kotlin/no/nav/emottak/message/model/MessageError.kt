@@ -57,11 +57,10 @@ fun List<org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Error>.asErro
     val errorList = ErrorList()
     errorList.error.addAll(this)
     errorList.version = "2.0"
-    // errorList.any // Unused?
-    errorList.id // "May be used for error tracking"
+    errorList.id
     errorList.highestSeverity = this.sortedBy {
         it.severity == SeverityType.ERROR
     }.first().severity
-    errorList.isMustUnderstand = true // Alltid
+    errorList.isMustUnderstand = true
     return errorList
 }
