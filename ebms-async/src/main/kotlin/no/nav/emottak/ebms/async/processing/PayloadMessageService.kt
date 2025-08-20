@@ -99,7 +99,6 @@ class PayloadMessageService(
                 log.info(ebmsPayloadMessage.marker(), "Got duplicate payload message with reference <${record.key()}>")
             } else {
                 log.info(ebmsPayloadMessage.marker(), "Got payload message with reference <${record.key()}>")
-                ebmsMessageDetailsRepository.saveEbmsMessage(ebmsPayloadMessage)
                 cpaValidationService
                     .validateIncomingMessage(ebmsPayloadMessage)
                     .let {
