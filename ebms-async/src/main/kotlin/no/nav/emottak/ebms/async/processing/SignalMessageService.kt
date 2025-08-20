@@ -4,13 +4,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import no.nav.emottak.ebms.async.log
 import no.nav.emottak.ebms.async.persistence.repository.EbmsMessageDetailsRepository
-import no.nav.emottak.ebms.util.marker
 import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.message.model.Acknowledgment
 import no.nav.emottak.message.model.EbMSDocument
 import no.nav.emottak.message.model.MessageError
 import no.nav.emottak.message.model.toEbmsMessageDetails
 import no.nav.emottak.message.xml.getDocumentBuilder
+import no.nav.emottak.util.marker
 import java.io.ByteArrayInputStream
 
 class SignalMessageService(

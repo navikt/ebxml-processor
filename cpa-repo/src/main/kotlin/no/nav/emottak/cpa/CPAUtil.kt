@@ -5,9 +5,9 @@ import no.nav.emottak.cpa.feil.SecurityException
 import no.nav.emottak.message.ebxml.EbXMLConstants.EBMS_SERVICE_URI
 import no.nav.emottak.message.ebxml.PartyTypeEnum
 import no.nav.emottak.message.model.EmailAddress
-import no.nav.emottak.message.model.PartyId
 import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.message.model.ValidationRequest
+import no.nav.emottak.utils.common.model.PartyId
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.Certificate
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.DeliveryChannel
