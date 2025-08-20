@@ -12,6 +12,7 @@ import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
 import no.nav.emottak.ebms.async.log
 import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.ebms.async.util.toKafkaHeaders
+import no.nav.emottak.ebms.eventmanager.EventManagerService
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.util.marker
@@ -36,7 +37,8 @@ class PayloadMessageService(
     val ebmsSignalProducer: EbmsMessageProducer,
     val smtpTransportClient: SmtpTransportClient,
     val payloadMessageForwardingService: PayloadMessageForwardingService,
-    val eventRegistrationService: EventRegistrationService
+    val eventRegistrationService: EventRegistrationService,
+    val eventManagerService: EventManagerService
 ) {
     suspend fun process(record: ReceiverRecord<String, ByteArray>) {
         try {
@@ -93,24 +95,29 @@ class PayloadMessageService(
                 eventData
             )
 
-            log.info(ebmsPayloadMessage.marker(), "Got payload message with reference <${record.key()}>")
-            cpaValidationService
-                .validateIncomingMessage(ebmsPayloadMessage)
-                .let {
-                    processingService.processAsync(ebmsPayloadMessage, it.payloadProcessing)
-                }
-                .let {
-                    when (val service = it.addressing.service) {
-                        "HarBorgerFrikortMengde", "Inntektsforesporsel" -> {
-                            log.debug(it.marker(), "Starting SendIn for $service")
-                            payloadMessageForwardingService.forwardMessageWithSyncResponse(it)
-                        }
+            if (eventManagerService.isDuplicateMessage(ebmsPayloadMessage)) {
+                log.info(ebmsPayloadMessage.marker(), "Got duplicate payload message with reference <${record.key()}>")
+            } else {
+                log.info(ebmsPayloadMessage.marker(), "Got payload message with reference <${record.key()}>")
+                ebmsMessageDetailsRepository.saveEbmsMessage(ebmsPayloadMessage)
+                cpaValidationService
+                    .validateIncomingMessage(ebmsPayloadMessage)
+                    .let {
+                        processingService.processAsync(ebmsPayloadMessage, it.payloadProcessing)
+                    }
+                    .let {
+                        when (val service = it.addressing.service) {
+                            "HarBorgerFrikortMengde", "Inntektsforesporsel" -> {
+                                log.debug(it.marker(), "Starting SendIn for $service")
+                                payloadMessageForwardingService.forwardMessageWithSyncResponse(it)
+                            }
 
-                        else -> {
-                            log.debug(it.marker(), "Skipping SendIn for $service")
+                            else -> {
+                                log.debug(it.marker(), "Skipping SendIn for $service")
+                            }
                         }
                     }
-                }
+            }
             returnAcknowledgment(ebmsPayloadMessage)
         } catch (e: EbmsException) {
             try {

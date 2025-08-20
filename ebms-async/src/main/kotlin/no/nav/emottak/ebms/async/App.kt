@@ -27,6 +27,8 @@ import no.nav.emottak.ebms.AZURE_AD_AUTH
 import no.nav.emottak.ebms.CpaRepoClient
 import no.nav.emottak.ebms.EBMS_PAYLOAD_SCOPE
 import no.nav.emottak.ebms.EBMS_SEND_IN_SCOPE
+import no.nav.emottak.ebms.EVENT_MANAGER_SCOPE
+import no.nav.emottak.ebms.EventManagerClient
 import no.nav.emottak.ebms.PayloadProcessingClient
 import no.nav.emottak.ebms.SMTP_TRANSPORT_SCOPE
 import no.nav.emottak.ebms.SendInClient
@@ -48,6 +50,7 @@ import no.nav.emottak.ebms.async.processing.SignalMessageService
 import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.ebms.async.util.EventRegistrationServiceImpl
 import no.nav.emottak.ebms.defaultHttpClient
+import no.nav.emottak.ebms.eventmanager.EventManagerService
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.registerHealthEndpoints
 import no.nav.emottak.ebms.registerNavCheckStatus
@@ -86,6 +89,9 @@ fun main() = SuspendApp {
     val eventLoggingService = EventLoggingService(config().eventLogging, kafkaPublisherClient)
     val eventRegistrationService = EventRegistrationServiceImpl(eventLoggingService)
 
+    val eventManagerClient = EventManagerClient(scopedAuthHttpClient(EVENT_MANAGER_SCOPE))
+    val eventManagerService = EventManagerService(eventManagerClient)
+
     val payloadMessageForwardingService = PayloadMessageForwardingService(
         sendInService = sendInService,
         cpaValidationService = cpaValidationService,
@@ -101,7 +107,8 @@ fun main() = SuspendApp {
         ebmsSignalProducer = ebmsSignalProducer,
         smtpTransportClient = smtpTransportClient,
         payloadMessageForwardingService = payloadMessageForwardingService,
-        eventRegistrationService = eventRegistrationService
+        eventRegistrationService = eventRegistrationService,
+        eventManagerService = eventManagerService
     )
 
     result {
@@ -144,7 +151,8 @@ fun payloadMessageServiceProvider(
     ebmsSignalProducer: EbmsMessageProducer,
     smtpTransportClient: SmtpTransportClient,
     payloadMessageForwardingService: PayloadMessageForwardingService,
-    eventRegistrationService: EventRegistrationService
+    eventRegistrationService: EventRegistrationService,
+    eventManagerService: EventManagerService
 
 ): () -> PayloadMessageService = {
     PayloadMessageService(
@@ -153,7 +161,8 @@ fun payloadMessageServiceProvider(
         ebmsSignalProducer = ebmsSignalProducer,
         smtpTransportClient = smtpTransportClient,
         payloadMessageForwardingService = payloadMessageForwardingService,
-        eventRegistrationService = eventRegistrationService
+        eventRegistrationService = eventRegistrationService,
+        eventManagerService = eventManagerService
     )
 }
 

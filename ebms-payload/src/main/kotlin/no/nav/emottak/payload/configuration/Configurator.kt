@@ -16,6 +16,6 @@ fun config() = ConfigLoader.builder()
     .loadConfigOrThrow<Config>()
 
 private fun certificateAuthorityResourceResolver() = when (getEnvVar("NAIS_CLUSTER_NAME", "local")) {
-    "prod-fss" -> "/ca_prod.conf"
-    else -> "/ca_dev.conf"
+    "prod-fss" -> "/application_prod.conf"
+    else -> "/application_dev.conf"
 }

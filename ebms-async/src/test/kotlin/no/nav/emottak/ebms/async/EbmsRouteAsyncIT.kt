@@ -16,10 +16,10 @@ import io.ktor.server.testing.testApplication
 import io.ktor.utils.io.core.toByteArray
 import io.mockk.every
 import io.mockk.mockk
+import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.kafka.KafkaTestContainer
 import no.nav.emottak.ebms.async.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.async.util.EventRegistrationServiceFake
-import no.nav.emottak.ebms.configuration.config
 import no.nav.emottak.message.ebxml.acknowledgment
 import no.nav.emottak.message.ebxml.messageHeader
 import no.nav.emottak.message.model.AsyncPayload
