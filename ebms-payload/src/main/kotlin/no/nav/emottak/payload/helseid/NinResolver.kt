@@ -17,7 +17,7 @@ class NinResolver(
     private val tokenValidator: HelseIdTokenValidator = HelseIdTokenValidator(),
     private val ocspStatusService: OcspStatusService = OcspStatusService(
         defaultHttpClient().invoke(),
-        KeyStoreManager(payloadSigneringConfig())
+        KeyStoreManager(*payloadSigneringConfig().toTypedArray())
     )
 ) {
     private val log = LoggerFactory.getLogger(NinResolver::class.java)
