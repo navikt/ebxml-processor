@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MsgHead xmlns="http://www.kith.no/xmlstds/msghead/2006-05-24">
+    <MsgInfo>
+        <Type DN="Resept" V="ERM1"/>
+        <MIGversion>v1.2 2006-05-24</MIGversion>
+        <GenDate>2014-05-26T07:39:34.3899829+02:00</GenDate>
+        <MsgId>c84ae50b-ee34-410d-9f5e-aa43bfc9dbd9</MsgId>
+        <Sender>
+            <Organisation>
+                <OrganisationName>Strømsø Legesenter</OrganisationName>
+                <Ident>
+                    <Id>990862575</Id>
+                    <TypeId DN="Organisasjonsnummeret i Enhetsregister (Brønnøysund)" S="2.16.578.1.12.4.1.1.9051"
+                            V="ENH"/>
+                </Ident>
+                <Ident>
+                    <Id>96915</Id>
+                    <TypeId DN="HER-id" S="2.16.578.1.12.4.1.1.9051" V="HER"/>
+                </Ident>
+                <Address>
+                    <Type DN="Besoksadresse" V="RES"/>
+                    <StreetAdr>Tollbugata 13</StreetAdr>
+                    <PostalCode>3044</PostalCode>
+                    <City>DRAMMEN</City>
+                </Address>
+                <HealthcareProfessional>
+                    <FamilyName>Mone</FamilyName>
+                    <GivenName>Ane</GivenName>
+                    <Sex DN="Ikke Spesifisert" V="9"/>
+                    <Ident>
+                        <Id>002109743</Id>
+                        <TypeId DN="HPR-nummer" S="2.16.578.1.12.4.1.1.8116" V="HPR"/>
+                    </Ident>
+                    <Ident>
+                        <Id>96921</Id>
+                        <TypeId DN="Identifikator fra Helsetjenesteenhetsregisteret" S="2.16.578.1.12.4.1.1.8116"
+                                V="HER"/>
+                    </Ident>
+                    <Address>
+                        <Type DN="Arbeidsadresse" V="WP"/>
+                        <StreetAdr>Strømsø legese 13, p.boks 2077</StreetAdr>
+                        <PostalCode>3003</PostalCode>
+                        <City>DRAMMEN</City>
+                    </Address>
+                    <TeleCom>
+                        <TypeTelecom DN="Arbeidsplass" V="WP"/>
+                        <TeleAddress V="32213860"/>
+                    </TeleCom>
+                </HealthcareProfessional>
+            </Organisation>
+        </Sender>
+        <Receiver>
+            <Organisation>
+                <OrganisationName>Reseptformidleren</OrganisationName>
+                <Ident>
+                    <Id>983544622</Id>
+                    <TypeId DN="Organisasjonsnummeret i Enhetsregister (Brønnøysund)" S="2.16.578.1.12.4.1.1.9051"
+                            V="ENH"/>
+                </Ident>
+                <Ident>
+                    <Id>80624</Id>
+                    <TypeId DN="HER-id" S="2.16.578.1.12.4.1.1.9051" V="HER"/>
+                </Ident>
+            </Organisation>
+        </Receiver>
+        <Patient>
+            <FamilyName>TRING</FamilyName>
+            <GivenName>KJELL</GivenName>
+            <Sex DN="Mann" V="1"/>
+            <Ident>
+                <Id>01010000110</Id>
+                <TypeId DN="Fødselsnummer" S="2.16.578.1.12.4.1.1.8116" V="FNR"/>
+            </Ident>
+            <Address>
+                <Type DN="Bostedsadresse" V="H"/>
+                <StreetAdr>HAVNEGATA 54</StreetAdr>
+                <PostalCode>3040</PostalCode>
+                <City>DRAMMEN</City>
+                <County V="0602"/>
+            </Address>
+        </Patient>
+    </MsgInfo>
+    <Document>
+        <RefDoc>
+            <MsgType DN="XML-instans" V="XML"/>
+            <Content>
+                <Resept xmlns="http://www.kith.no/xmlstds/eresept/m1/2010-05-01">
+                    <Forskrivningsdato>2014-05-26+02:00</Forskrivningsdato>
+                    <Utloper>2015-05-26+02:00</Utloper>
+                    <Frikort>false</Frikort>
+                    <ReseptDokLegemiddel>
+                        <Varegruppekode DN="Legemiddel" V="L"/>
+                        <Antall>1</Antall>
+                        <RefHjemmel DN="§5-14 §2"
+                                    OT="Viser til legemidler med forhåndsgodkjent refusjon, oppført i refusjonslisten"
+                                    S="2.16.578.1.12.4.1.1.7427" V="200"/>
+                        <RefKode DN="Betydelig forhøyet risiko for å utvikle aterosklerotisk sykdom (primærprevensjon)"
+                                 S="2.16.578.1.12.4.1.1.7434" V="-27"/>
+                        <Reiterasjon>1</Reiterasjon>
+                        <BytteresRekvirent DN="Nei" V="2"/>
+                        <Forskrivning xmlns="http://www.kith.no/xmlstds/eresept/forskrivning/2010-04-01">
+                            <DosVeiledEnkel>1 tablett daglig</DosVeiledEnkel>
+                            <Bruk DN="Fast" V="1"/>
+                            <Legemiddelpakning>
+                                <Atc DN="Simvastatin" S="2.16.578.1.12.4.1.1.7180" V="C10AA01"/>
+                                <NavnFormStyrke>Simvastatin Sandoz Tab 40 mg</NavnFormStyrke>
+                                <Reseptgruppe DN="Reseptgruppe C" V="C"/>
+                                <LegemiddelformKort DN="Tablett" S="2.16.578.1.12.4.1.1.7448" V="53"/>
+                                <Preparattype DN="Legemiddel" V="7"/>
+                                <Varenr>096415</Varenr>
+                                <Ean>7046260964150</Ean>
+                                <PakningsinfoResept>
+                                    <Varenavn>Simvastatin Sandoz</Varenavn>
+                                    <Pakningsstr>100</Pakningsstr>
+                                    <EnhetPakning DN="stykk" S="2.16.578.1.12.4.1.1.7452" V="stk"/>
+                                </PakningsinfoResept>
+                            </Legemiddelpakning>
+                        </Forskrivning>
+                    </ReseptDokLegemiddel>
+                    <OppdatertFest>2014-05-13T01:01:38</OppdatertFest>
+                </Resept>
+            </Content>
+        </RefDoc>
+    </Document>
+    <Document>
+        <RefDoc>
+            <MsgType DN="Vedlegg" V="A"/>
+            <MimeType>application/json</MimeType>
+            <Description>HelseID</Description>
+            <Content>
+                <bas:Base64Container xmlns:bas="http://www.kith.no/xmlstds/base64container">Z2FyYmFnZQ==</bas:Base64Container>
+            </Content>
+        </RefDoc>
+    </Document>
+    <Document>
+        <RefDoc>
+            <MsgType DN="Vedlegg" V="A"/>
+            <MimeType>application/json</MimeType>
+            <Description>somethings that looks like helseid</Description>
+            <Content>
+                <bas:Base64Container xmlns:bas="http://www.kith.no/xmlstds/base64container">Z2FyYmFnZQ==</bas:Base64Container>
+            </Content>
+        </RefDoc>
+    </Document>
+</MsgHead>

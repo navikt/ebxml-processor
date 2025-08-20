@@ -2,7 +2,6 @@ package no.nav.emottak.payload
 
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import no.nav.emottak.crypto.KeyStoreManager
 import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadRequest
 import no.nav.emottak.message.model.ProcessConfig
@@ -10,9 +9,8 @@ import no.nav.emottak.payload.crypto.Dekryptering
 import no.nav.emottak.payload.crypto.Kryptering
 import no.nav.emottak.payload.crypto.PayloadSignering
 import no.nav.emottak.payload.crypto.getEncryptionDetails
-import no.nav.emottak.payload.crypto.payloadSigneringConfig
+import no.nav.emottak.payload.helseid.NinResolver
 import no.nav.emottak.payload.juridisklogg.JuridiskLoggService
-import no.nav.emottak.payload.ocspstatus.OcspStatusService
 import no.nav.emottak.payload.util.EventRegistrationService
 import no.nav.emottak.payload.util.GZipUtil
 import no.nav.emottak.util.createDocument
@@ -35,12 +33,7 @@ class Processor(
     private val gZipUtil: GZipUtil = GZipUtil()
     private val signatureVerifisering: SignaturVerifisering = SignaturVerifisering()
     private val juridiskLogging: JuridiskLoggService = JuridiskLoggService()
-    private val ocspStatusService = OcspStatusService(
-        defaultHttpClient().invoke(),
-        KeyStoreManager(
-            payloadSigneringConfig() // TODO add commfides config
-        )
-    )
+    private val ninResolver: NinResolver = NinResolver()
 
     suspend fun loggMessageToJuridiskLogg(payloadRequest: PayloadRequest): String? {
         log.info(payloadRequest.marker(), "Save message to juridisk logg")
@@ -93,20 +86,17 @@ class Processor(
             }
         }
         return if (processConfig.ocspSjekk) {
-            log.debug(marker, "Validating OCSP for payload: Step 1 create DOM")
-            val dom = createDocument(ByteArrayInputStream(payload.bytes))
+            log.debug(marker, "Validating for payload in validateOcsp flow")
+            val domDocument = createDocument(ByteArrayInputStream(payload.bytes))
 
-            log.debug(marker, "Validating OCSP for payload: Step 2 retrieve signature element")
-            val xmlSignature = dom.retrieveSignatureElement()
+            val xmlSignature = domDocument.retrieveSignatureElement()
 
-            log.debug(marker, "Validating OCSP for payload: Step 3 get certificate from signature")
             val certificateFromSignature = xmlSignature.keyInfo.x509Certificate
 
-            log.debug(marker, "Validating OCSP for payload: Step 4 fnr from getOCSPStatus")
-            val signedBy = ocspStatusService.getOCSPStatus(certificateFromSignature).fnr
+            var signedByFnr: String? = ninResolver.resolve(marker, domDocument, certificateFromSignature)
 
             log.debug(marker, "Validating OCSP for payload: Step 5 copy")
-            payload.copy(signedBy = signedBy).also {
+            payload.copy(signedBy = signedByFnr).also {
                 eventRegistrationService.registerEvent(
                     EventType.OCSP_CHECK_SUCCESSFUL,
                     payloadRequest

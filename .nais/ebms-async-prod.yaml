@@ -70,12 +70,18 @@ spec:
   env:
     - name: VIRKSOMHETSSERTIFIKAT_PATH
       value: /secret/virksomhetssertifikat/prod/Arbeids-og-velferdsetaten
-    - name: VIRKSOMHETSSERTIFIKAT_SIGNERING
+    - name: VIRKSOMHETSSERTIFIKAT_SIGNERING_2022
       value: key.p12.b64.2022
-    - name: VIRKSOMHETSSERTIFIKAT_DEKRYPTERING
+    - name: VIRKSOMHETSSERTIFIKAT_DEKRYPTERING_2022
       value: key.decrypt.p12.b64.2022
-    - name: VIRKSOMHETSSERTIFIKAT_CREDENTIALS
+    - name: VIRKSOMHETSSERTIFIKAT_CREDENTIALS_2022
       value: credentials.2022
+    - name: VIRKSOMHETSSERTIFIKAT_SIGNERING_2025
+      value: key.p12.b64.2025
+    - name: VIRKSOMHETSSERTIFIKAT_DEKRYPTERING_2025
+      value: key.decrypt.p12.b64.2025
+    - name: VIRKSOMHETSSERTIFIKAT_CREDENTIALS_2025
+      value: credentials.2025
     - name: MAX_CONNECTION_POOL_SIZE_FOR_USER
       value: "4"
     - name: MAX_CONNECTION_POOL_SIZE_FOR_ADMIN

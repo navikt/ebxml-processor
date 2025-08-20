@@ -10,7 +10,6 @@ import no.nav.emottak.utils.environment.getEnvVar
 import no.nav.emottak.utils.vault.parseVaultJsonObject
 import org.w3c.dom.Document
 import java.io.FileReader
-import java.security.Key
 import java.security.cert.X509Certificate
 import javax.xml.crypto.dsig.Reference
 import javax.xml.crypto.dsig.SignedInfo
@@ -25,31 +24,42 @@ fun payloadSigneringConfig() =
     when (getEnvVar("NAIS_CLUSTER_NAME", "local")) {
         "dev-fss" ->
             // Fixme burde egentlig hente fra dev vault context for å matche prod oppførsel
-            FileKeyStoreConfig(
-                keyStoreFilePath = getEnvVar("KEYSTORE_FILE_SIGN"),
-                keyStorePass = getEnvVar("KEYSTORE_PWD").toCharArray(),
-                keyStoreType = getEnvVar("KEYSTORE_TYPE", "PKCS12")
+            listOf(
+                FileKeyStoreConfig(
+                    keyStoreFilePath = getEnvVar("KEYSTORE_FILE_SIGN"),
+                    keyStorePass = getEnvVar("KEYSTORE_PWD").toCharArray(),
+                    keyStoreType = getEnvVar("KEYSTORE_TYPE", "PKCS12")
+                )
             )
         "prod-fss" ->
-            VaultKeyStoreConfig(
-                keyStoreVaultPath = getEnvVar("VIRKSOMHETSSERTIFIKAT_PATH"),
-                keyStoreFileResource = getEnvVar("VIRKSOMHETSSERTIFIKAT_SIGNERING"),
-                keyStorePassResource = getEnvVar("VIRKSOMHETSSERTIFIKAT_CREDENTIALS")
+            listOf(
+                VaultKeyStoreConfig(
+                    keyStoreVaultPath = getEnvVar("VIRKSOMHETSSERTIFIKAT_PATH"),
+                    keyStoreFileResource = getEnvVar("VIRKSOMHETSSERTIFIKAT_SIGNERING_2022"),
+                    keyStorePassResource = getEnvVar("VIRKSOMHETSSERTIFIKAT_CREDENTIALS_2022")
+                ),
+                VaultKeyStoreConfig(
+                    keyStoreVaultPath = getEnvVar("VIRKSOMHETSSERTIFIKAT_PATH"),
+                    keyStoreFileResource = getEnvVar("VIRKSOMHETSSERTIFIKAT_SIGNERING_2025"),
+                    keyStorePassResource = getEnvVar("VIRKSOMHETSSERTIFIKAT_CREDENTIALS_2025")
+                )
             )
         else ->
-            FileKeyStoreConfig(
-                keyStoreFilePath = getEnvVar("KEYSTORE_FILE_SIGN", "keystore/test_keystore2024.p12"),
-                keyStorePass = FileReader(
-                    getEnvVar(
-                        "KEYSTORE_PWD_FILE",
-                        FileKeyStoreConfig::class.java.classLoader.getResource("keystore/credentials-test.json")?.path.toString()
-                    )
-                ).readText().parseVaultJsonObject("password").toCharArray(),
-                keyStoreType = getEnvVar("KEYSTORE_TYPE", "PKCS12")
+            listOf(
+                FileKeyStoreConfig(
+                    keyStoreFilePath = getEnvVar("KEYSTORE_FILE_SIGN", "keystore/test_keystore2024.p12"),
+                    keyStorePass = FileReader(
+                        getEnvVar(
+                            "KEYSTORE_PWD_FILE",
+                            FileKeyStoreConfig::class.java.classLoader.getResource("keystore/credentials-test.json")?.path.toString()
+                        )
+                    ).readText().parseVaultJsonObject("password").toCharArray(),
+                    keyStoreType = getEnvVar("KEYSTORE_TYPE", "PKCS12")
+                )
             )
     }
 
-class PayloadSignering(private val keyStore: KeyStoreManager = KeyStoreManager(payloadSigneringConfig())) {
+class PayloadSignering(private val keyStore: KeyStoreManager = KeyStoreManager(*payloadSigneringConfig().toTypedArray())) {
 
     private val digestAlgorithm: String = "http://www.w3.org/2001/04/xmlenc#sha256"
     private val canonicalizationMethod: String = "http://www.w3.org/TR/2001/REC-xml-c14n-20010315"
@@ -69,9 +79,11 @@ class PayloadSignering(private val keyStore: KeyStoreManager = KeyStoreManager(p
         signerCertificate: X509Certificate,
         document: Document
     ): DOMSignContext {
-        val alias = keyStore.getCertificateAlias(signerCertificate)
-            ?: throw SignatureException("Fant ikke sertifikat med subject ${signerCertificate.subjectX500Principal.name} i keystore")
-        val signerKey: Key = keyStore.getKey(alias)
+        val signerKey = keyStore.getPrivateKey(signerCertificate.serialNumber)
+            ?: throw SignatureException(
+                "Fant ikke key for sertifikat med subject ${signerCertificate.subjectX500Principal.name} " +
+                    "og serienummer ${signerCertificate.serialNumber} i keystore"
+            )
         val signingContext = DOMSignContext(signerKey, document.documentElement)
         return signingContext
     }
