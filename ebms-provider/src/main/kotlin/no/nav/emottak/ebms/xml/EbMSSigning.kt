@@ -21,39 +21,51 @@ import org.apache.xml.security.transforms.params.XPathContainer
 import org.w3c.dom.Document
 import org.w3c.dom.NodeList
 import java.io.FileReader
+import java.security.PublicKey
 import java.security.cert.X509Certificate
 
 fun signeringConfig() =
     when (getEnvVar("NAIS_CLUSTER_NAME", "local")) {
         "dev-fss" ->
             // Fixme burde egentlig hente fra dev vault context for å matche prod oppførsel
-            FileKeyStoreConfig(
-                keyStoreFilePath = getEnvVar("KEYSTORE_FILE"),
-                keyStorePass = getEnvVar("KEYSTORE_PWD").toCharArray(),
-                keyStoreType = getEnvVar("KEYSTORE_TYPE", "PKCS12")
+            listOf(
+                FileKeyStoreConfig(
+                    keyStoreFilePath = getEnvVar("KEYSTORE_FILE"),
+                    keyStorePass = getEnvVar("KEYSTORE_PWD").toCharArray(),
+                    keyStoreType = getEnvVar("KEYSTORE_TYPE", "PKCS12")
+                )
             )
         "prod-fss" ->
-            VaultKeyStoreConfig(
-                keyStoreVaultPath = getEnvVar("VIRKSOMHETSSERTIFIKAT_PATH"),
-                keyStoreFileResource = getEnvVar("VIRKSOMHETSSERTIFIKAT_SIGNERING"),
-                keyStorePassResource = getEnvVar("VIRKSOMHETSSERTIFIKAT_CREDENTIALS")
+            listOf(
+                VaultKeyStoreConfig(
+                    keyStoreVaultPath = getEnvVar("VIRKSOMHETSSERTIFIKAT_PATH"),
+                    keyStoreFileResource = getEnvVar("VIRKSOMHETSSERTIFIKAT_SIGNERING_2022"),
+                    keyStorePassResource = getEnvVar("VIRKSOMHETSSERTIFIKAT_CREDENTIALS_2022")
+                ),
+                VaultKeyStoreConfig(
+                    keyStoreVaultPath = getEnvVar("VIRKSOMHETSSERTIFIKAT_PATH"),
+                    keyStoreFileResource = getEnvVar("VIRKSOMHETSSERTIFIKAT_SIGNERING_2025"),
+                    keyStorePassResource = getEnvVar("VIRKSOMHETSSERTIFIKAT_CREDENTIALS_2025")
+                )
             )
         else ->
-            FileKeyStoreConfig(
-                keyStoreFilePath = getEnvVar("KEYSTORE_FILE", "xml/signering_keystore.p12"),
-                keyStorePass = FileReader(
-                    getEnvVar(
-                        "KEYSTORE_PWD_FILE",
-                        FileKeyStoreConfig::class.java.classLoader.getResource("credentials-test.json").path.toString()
-                    )
-                ).readText().parseVaultJsonObject("password").toCharArray(),
-                keyStoreType = getEnvVar("KEYSTORE_TYPE", "PKCS12")
+            listOf(
+                FileKeyStoreConfig(
+                    keyStoreFilePath = getEnvVar("KEYSTORE_FILE", "xml/signering_keystore.p12"),
+                    keyStorePass = FileReader(
+                        getEnvVar(
+                            "KEYSTORE_PWD_FILE",
+                            FileKeyStoreConfig::class.java.classLoader.getResource("credentials-test.json").path.toString()
+                        )
+                    ).readText().parseVaultJsonObject("password").toCharArray(),
+                    keyStoreType = getEnvVar("KEYSTORE_TYPE", "PKCS12")
+                )
             )
     }
 
 val ebMSSigning = EbMSSigning()
 
-class EbMSSigning(private val keyStore: KeyStoreManager = KeyStoreManager(signeringConfig())) {
+class EbMSSigning(private val keyStore: KeyStoreManager = KeyStoreManager(*signeringConfig().toTypedArray())) {
 
     private val canonicalizationMethodAlgorithm = Transforms.TRANSFORM_C14N_OMIT_COMMENTS
     private val SOAP_ENVELOPE = SOAPConstants.URI_NS_SOAP_1_1_ENVELOPE
@@ -82,8 +94,6 @@ class EbMSSigning(private val keyStore: KeyStoreManager = KeyStoreManager(signer
         signatureAlgorithm: String,
         hashFunction: String
     ) {
-        val alias = getCertificateAlias(publicCertificate)
-        val keyPair = keyStore.getKeyPair(alias)
         val signature: XMLSignature = createSignature(document, signatureAlgorithm)
         appendSignature(document, signature)
         addAttachmentResolver(signature, attachments)
@@ -95,22 +105,18 @@ class EbMSSigning(private val keyStore: KeyStoreManager = KeyStoreManager(signer
             )
         }
         signature.addDocument("", createTransforms(document), hashFunction)
-        signature.addKeyInfo(keyPair.public)
+        signature.addKeyInfo(getPublicCertFromKeyStore(publicCertificate))
         signature.addKeyInfo(publicCertificate)
-        signature.sign(keyPair.private)
+        signature.sign(keyStore.getPrivateKey(publicCertificate.serialNumber))
     }
 
-    private fun getCertificateAlias(publicCertificate: X509Certificate): String =
-        try {
-            keyStore.getCertificateAlias(publicCertificate)
-        } catch (e: Exception) {
-            throw SignatureException(
+    private fun getPublicCertFromKeyStore(publicCertificate: X509Certificate): PublicKey =
+        keyStore.getCertificate(publicCertificate.serialNumber)?.publicKey
+            ?: throw SignatureException(
                 "Could not find certificate with " +
                     "subject <${publicCertificate.subjectX500Principal.name}> and " +
-                    "issuer <${publicCertificate.issuerX500Principal.name}> in keystore",
-                e
+                    "issuer <${publicCertificate.issuerX500Principal.name}> in keystore"
             )
-        }
 
     private fun appendSignature(document: Document, signature: XMLSignature) {
         val soapHeader = document.documentElement.getFirstChildElement()
