@@ -78,8 +78,6 @@ class EventRegistrationServiceImpl(
                 toRole = ebmsMessage.addressing.to.role,
                 service = ebmsMessage.addressing.service,
                 action = ebmsMessage.addressing.action,
-                refParam = null,
-                sender = null,
                 sentAt = ebmsMessage.sentAt
             )
             log.debug("Publishing message details: $ebmsMessageDetail")
