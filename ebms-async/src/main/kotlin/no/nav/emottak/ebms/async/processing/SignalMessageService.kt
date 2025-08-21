@@ -3,18 +3,15 @@ package no.nav.emottak.ebms.async.processing
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import no.nav.emottak.ebms.async.log
-import no.nav.emottak.ebms.async.persistence.repository.EbmsMessageDetailsRepository
 import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.message.model.Acknowledgment
 import no.nav.emottak.message.model.EbMSDocument
 import no.nav.emottak.message.model.MessageError
-import no.nav.emottak.message.model.toEbmsMessageDetails
 import no.nav.emottak.message.xml.getDocumentBuilder
 import no.nav.emottak.util.marker
 import java.io.ByteArrayInputStream
 
 class SignalMessageService(
-    val ebmsMessageDetailsRepository: EbmsMessageDetailsRepository,
     val cpaValidationService: CPAValidationService
 ) {
 
@@ -24,11 +21,9 @@ class SignalMessageService(
             cpaValidationService.validateIncomingMessage(ebxmlSignalMessage)
             when (ebxmlSignalMessage) {
                 is Acknowledgment -> {
-                    ebmsMessageDetailsRepository.saveEbmsMessageDetails(ebxmlSignalMessage.toEbmsMessageDetails())
                     processAcknowledgment(ebxmlSignalMessage)
                 }
                 is MessageError -> {
-                    ebmsMessageDetailsRepository.saveEbmsMessageDetails(ebxmlSignalMessage.toEbmsMessageDetails())
                     processMessageError(ebxmlSignalMessage)
                 }
                 else -> log.warn(ebxmlSignalMessage.marker(), "Cannot process message as signal message: $requestId")
@@ -52,16 +47,6 @@ class SignalMessageService(
 
     private fun processAcknowledgment(acknowledgment: Acknowledgment) {
         log.info(acknowledgment.marker(), "Got acknowledgment with requestId <${acknowledgment.requestId}>")
-        val referencedMessage = ebmsMessageDetailsRepository.getByConversationIdMessageIdAndCpaId(
-            acknowledgment.conversationId,
-            acknowledgment.refToMessageId,
-            acknowledgment.cpaId
-        )
-        if (referencedMessage == null) {
-            log.warn(acknowledgment.marker(), "Received Acknowledgment for unknown message ${acknowledgment.refToMessageId}")
-        } else {
-            log.info(acknowledgment.marker(), "Message acknowledged")
-        }
     }
 
     private fun processMessageError(messageError: MessageError) {
@@ -70,17 +55,6 @@ class SignalMessageService(
         if (messageRef == null) {
             log.warn(messageError.marker(), "Received MessageError without message requestId")
             return
-        }
-
-        val referencedMessage = ebmsMessageDetailsRepository.getByConversationIdMessageIdAndCpaId(
-            messageError.conversationId,
-            messageRef,
-            messageError.cpaId
-        )
-        if (referencedMessage == null) {
-            log.warn(messageError.marker(), "Received MessageError for unknown message $messageRef")
-        } else {
-            log.info(messageError.marker(), "Message Error received")
         }
         // TODO store events
         messageError.feil.forEach { error ->
