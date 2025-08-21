@@ -16,10 +16,7 @@ import io.mockk.coEvery
 import io.mockk.mockkConstructor
 import io.mockk.slot
 import no.nav.emottak.crypto.KeyStoreManager
-import no.nav.emottak.message.model.Addressing
 import no.nav.emottak.message.model.Direction
-import no.nav.emottak.message.model.Party
-import no.nav.emottak.message.model.PartyId
 import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadProcessing
 import no.nav.emottak.message.model.PayloadRequest
@@ -32,6 +29,9 @@ import no.nav.emottak.payload.ocspstatus.OcspStatusService
 import no.nav.emottak.payload.ocspstatus.ssnPolicyID
 import no.nav.emottak.payload.util.EventRegistrationServiceFake
 import no.nav.emottak.util.createDocument
+import no.nav.emottak.utils.common.model.Addressing
+import no.nav.emottak.utils.common.model.Party
+import no.nav.emottak.utils.common.model.PartyId
 import no.nav.security.mock.oauth2.MockOAuth2Server
 import org.bouncycastle.asn1.ASN1Encodable
 import org.bouncycastle.asn1.DEROctetString

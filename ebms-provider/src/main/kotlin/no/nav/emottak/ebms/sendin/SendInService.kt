@@ -3,10 +3,10 @@ package no.nav.emottak.ebms.sendin
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import no.nav.emottak.ebms.SendInClient
-import no.nav.emottak.message.model.EbmsProcessing
 import no.nav.emottak.message.model.PayloadMessage
-import no.nav.emottak.message.model.SendInRequest
-import no.nav.emottak.message.model.SendInResponse
+import no.nav.emottak.utils.common.model.EbmsProcessing
+import no.nav.emottak.utils.common.model.SendInRequest
+import no.nav.emottak.utils.common.model.SendInResponse
 
 class SendInService(val httpClient: SendInClient) {
 

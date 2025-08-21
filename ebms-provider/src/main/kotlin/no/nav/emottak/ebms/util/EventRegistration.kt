@@ -2,7 +2,7 @@ package no.nav.emottak.ebms.util
 
 import no.nav.emottak.ebms.log
 import no.nav.emottak.message.model.EbMSDocument
-import no.nav.emottak.message.model.PartyId
+import no.nav.emottak.utils.common.model.PartyId
 import no.nav.emottak.utils.common.parseOrGenerateUuid
 import no.nav.emottak.utils.kafka.model.EbmsMessageDetail
 import no.nav.emottak.utils.kafka.model.Event
@@ -78,8 +78,6 @@ class EventRegistrationServiceImpl(
                 toRole = ebmsMessage.addressing.to.role,
                 service = ebmsMessage.addressing.service,
                 action = ebmsMessage.addressing.action,
-                refParam = null,
-                sender = null,
                 sentAt = ebmsMessage.sentAt
             )
             log.debug("Publishing message details: $ebmsMessageDetail")
