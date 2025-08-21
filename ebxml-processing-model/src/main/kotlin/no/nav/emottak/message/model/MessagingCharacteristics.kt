@@ -1,6 +1,7 @@
 package no.nav.emottak.message.model
 
 import kotlinx.serialization.Serializable
+import no.nav.emottak.utils.common.model.PartyId
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PerMessageCharacteristicsType
 
 @Serializable
