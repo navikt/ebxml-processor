@@ -138,24 +138,6 @@ private fun createSyncReplyElement() = SyncReply().apply {
 }
 
 @OptIn(ExperimentalUuidApi::class)
-fun EbmsMessage.toEbmsMessageDetails(): EbmsMessageDetails {
-    return EbmsMessageDetails(
-        EbmsMessageDetails.convertStringToUUIDOrGenerateNew(this.requestId),
-        cpaId,
-        conversationId,
-        messageId,
-        refToMessageId,
-        EbmsMessageDetails.serializePartyId(addressing.from.partyId),
-        addressing.from.role,
-        EbmsMessageDetails.serializePartyId(addressing.to.partyId),
-        addressing.to.role,
-        addressing.service,
-        addressing.action,
-        sentAt
-    )
-}
-
-@OptIn(ExperimentalUuidApi::class)
 fun EbmsMessage.createEbmsDocument(ebxmlDokument: Header, payload: EbmsAttachment? = null): EbMSDocument {
     val envelope = Envelope()
     val attachmentUid = Uuid.random().toString()

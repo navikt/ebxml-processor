@@ -10,7 +10,6 @@ import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.kafka.consumer.failedMessageQueue
 import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
 import no.nav.emottak.ebms.async.log
-import no.nav.emottak.ebms.async.persistence.repository.EbmsMessageDetailsRepository
 import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.ebms.async.util.toKafkaHeaders
 import no.nav.emottak.ebms.eventmanager.EventManagerService
@@ -33,7 +32,6 @@ import java.io.ByteArrayInputStream
 import kotlin.uuid.Uuid
 
 class PayloadMessageService(
-    val ebmsMessageDetailsRepository: EbmsMessageDetailsRepository,
     val cpaValidationService: CPAValidationService,
     val processingService: ProcessingService,
     val ebmsSignalProducer: EbmsMessageProducer,
@@ -101,7 +99,6 @@ class PayloadMessageService(
                 log.info(ebmsPayloadMessage.marker(), "Got duplicate payload message with reference <${record.key()}>")
             } else {
                 log.info(ebmsPayloadMessage.marker(), "Got payload message with reference <${record.key()}>")
-                ebmsMessageDetailsRepository.saveEbmsMessage(ebmsPayloadMessage)
                 cpaValidationService
                     .validateIncomingMessage(ebmsPayloadMessage)
                     .let {
@@ -146,7 +143,6 @@ class PayloadMessageService(
             .createAcknowledgment()
             .also {
                 val validationResult = cpaValidationService.validateOutgoingMessage(it)
-                ebmsMessageDetailsRepository.saveEbmsMessage(it)
                 sendResponseToTopic(
                     it.toEbmsDokument().signer(validationResult.payloadProcessing!!.signingCertificate),
                     validationResult.receiverEmailAddress
@@ -160,7 +156,6 @@ class PayloadMessageService(
             .createMessageError(ebmsException.feil)
             .also {
                 val validationResult = cpaValidationService.validateOutgoingMessage(it)
-                ebmsMessageDetailsRepository.saveEbmsMessage(it)
                 val signingCertificate = validationResult.payloadProcessing?.signingCertificate
                 if (signingCertificate == null) {
                     log.warn(it.marker(), "Could not find signing certificate for outgoing MessageError")
