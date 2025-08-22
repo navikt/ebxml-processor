@@ -43,11 +43,10 @@ class PayloadMessageService(
 ) {
     suspend fun process(record: ReceiverRecord<String, ByteArray>) {
         try {
-
             val ebmsMessage = createEbmsDocument(record.key(), record.value())
 
             if (ebmsMessage is Acknowledgment) {
-                log.info("Multi-part acknowledgement skipped for referenceId ${record.key()}")
+                processMultipartAcknowledgment(ebmsMessage)
                 return
             }
             if (ebmsMessage !is PayloadMessage) {
@@ -193,5 +192,9 @@ class PayloadMessageService(
                 log.error(messageHeader.marker(), "Exception occurred while sending message to Kafka queue", e)
             }
         }
+    }
+
+    private fun processMultipartAcknowledgment(acknowledgment: Acknowledgment) {
+        log.info(acknowledgment.marker(), "Got acknowledgment with requestId <${acknowledgment.requestId}>")
     }
 }
