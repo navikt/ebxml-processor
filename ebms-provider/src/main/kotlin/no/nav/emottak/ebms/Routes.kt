@@ -90,7 +90,8 @@ fun Route.postEbmsSync(
                                         cpaId = ebmsMessage.cpaId,
                                         addressing = it.addressing,
                                         payload = Payload(it.payload, ContentType.Application.Xml.toString()),
-                                        refToMessageId = it.messageId
+                                        refToMessageId = it.messageId,
+                                        duplicateElimination = ebmsMessage.duplicateElimination
                                     )
                                 }
                             }
