@@ -35,7 +35,17 @@ data class EbMSDocument(val requestId: String, val dokument: Document, val attac
     private val envelope = lazy { xmlMarshaller.unmarshal(this.dokument) as Envelope }
 
     fun dokumentType(): DokumentType {
-        if (attachments.size > 0) return DokumentType.PAYLOAD
+        if (attachments.size > 0) {
+            val acknowledgmentHeader = dokument
+                .getElementsByTagNameNS(OASIS_EBXML_MSG_HEADER_XSD_NS_URI, "Acknowledgment")
+                .item(0)
+
+            if (acknowledgmentHeader != null) {
+                return DokumentType.MULTIPART_ACKNOWLEDGMENT
+            }
+            return DokumentType.PAYLOAD
+        }
+
         if (dokument.getElementsByTagNameNS(OASIS_EBXML_MSG_HEADER_XSD_NS_URI, "Acknowledgment")
             .item(0) != null
         ) {
@@ -89,7 +99,7 @@ data class EbMSDocument(val requestId: String, val dokument: Document, val attac
                 )
             }
 
-            DokumentType.ACKNOWLEDGMENT -> {
+            DokumentType.ACKNOWLEDGMENT, DokumentType.MULTIPART_ACKNOWLEDGMENT -> {
                 Acknowledgment(
                     requestId,
                     messageHeader.messageData.messageId,
@@ -108,5 +118,5 @@ data class EbMSDocument(val requestId: String, val dokument: Document, val attac
 }
 
 enum class DokumentType {
-    PAYLOAD, ACKNOWLEDGMENT, MESSAGE_ERROR, STATUS, PING
+    PAYLOAD, ACKNOWLEDGMENT, MULTIPART_ACKNOWLEDGMENT, MESSAGE_ERROR, STATUS, PING
 }

@@ -17,7 +17,9 @@ import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.melding.feil.EbmsException
+import no.nav.emottak.message.model.Acknowledgment
 import no.nav.emottak.message.model.EbMSDocument
+import no.nav.emottak.message.model.EbmsMessage
 import no.nav.emottak.message.model.EmailAddress
 import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadMessage
@@ -41,7 +43,18 @@ class PayloadMessageService(
 ) {
     suspend fun process(record: ReceiverRecord<String, ByteArray>) {
         try {
-            processPayloadMessage(createEbmsDocument(record.key(), record.value()), record)
+
+            val ebmsMessage = createEbmsDocument(record.key(), record.value())
+
+            if (ebmsMessage is Acknowledgment) {
+                log.info("Multi-part acknowledgement skipped for referenceId ${record.key()}")
+                return
+            }
+            if (ebmsMessage !is PayloadMessage) {
+                throw RuntimeException("Cannot process message as payload message for referenceId ${record.key()}")
+            }
+
+            processPayloadMessage(ebmsMessage, record)
         } catch (e: Exception) {
             log.error("Message failed for reference ${record.key()}", e)
         }
@@ -50,16 +63,14 @@ class PayloadMessageService(
     private suspend fun createEbmsDocument(
         requestId: String,
         content: ByteArray
-    ): PayloadMessage {
-        val ebmsMessage = EbMSDocument(
+    ): EbmsMessage {
+        return EbMSDocument(
             requestId,
             withContext(Dispatchers.IO) {
                 getDocumentBuilder().parse(ByteArrayInputStream(content))
             },
             retrievePayloads(requestId.parseOrGenerateUuid())
-        ).transform().takeIf { it is PayloadMessage }
-            ?: throw RuntimeException("Cannot process message as payload message: $requestId")
-        return ebmsMessage as PayloadMessage
+        ).transform()
     }
 
     private suspend fun retrievePayloads(reference: Uuid): List<Payload> {
