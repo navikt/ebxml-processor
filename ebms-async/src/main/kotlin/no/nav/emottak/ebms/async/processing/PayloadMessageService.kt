@@ -45,15 +45,11 @@ class PayloadMessageService(
         try {
             val ebmsMessage = createEbmsDocument(record.key(), record.value())
 
-            if (ebmsMessage is Acknowledgment) {
-                processMultipartAcknowledgment(ebmsMessage)
-                return
+            when (ebmsMessage) {
+                is PayloadMessage -> processPayloadMessage(ebmsMessage, record)
+                is Acknowledgment -> processMultipartAcknowledgment(ebmsMessage)
+                else -> throw RuntimeException("Cannot process message as payload message for referenceId ${record.key()}")
             }
-            if (ebmsMessage !is PayloadMessage) {
-                throw RuntimeException("Cannot process message as payload message for referenceId ${record.key()}")
-            }
-
-            processPayloadMessage(ebmsMessage, record)
         } catch (e: Exception) {
             log.error("Message failed for reference ${record.key()}", e)
         }
