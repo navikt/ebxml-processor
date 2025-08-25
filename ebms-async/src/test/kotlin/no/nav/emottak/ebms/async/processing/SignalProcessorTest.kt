@@ -2,6 +2,7 @@ package no.nav.emottak.ebms.async.processing
 
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
+import no.nav.emottak.ebms.async.util.EventRegistrationServiceFake
 import no.nav.emottak.ebms.validation.CPAValidationService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Disabled
@@ -13,10 +14,10 @@ import javax.xml.bind.UnmarshalException
 class SignalProcessorTest {
 
     val cpaValidationService = mockk<CPAValidationService>()
-    val signalMessageService = SignalMessageService(cpaValidationService)
+    val eventRegistrationService = EventRegistrationServiceFake()
+    val signalMessageService = SignalMessageService(cpaValidationService, eventRegistrationService)
 
     @Test
-    @Disabled
     fun `Payload message throws error`() {
         val message = this::class.java.classLoader
             .getResourceAsStream("signaltest/payloadmessage.xml")

@@ -2,17 +2,24 @@ package no.nav.emottak.ebms.async.processing
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import no.nav.emottak.ebms.async.log
+import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.message.model.Acknowledgment
 import no.nav.emottak.message.model.EbMSDocument
 import no.nav.emottak.message.model.MessageError
 import no.nav.emottak.message.xml.getDocumentBuilder
 import no.nav.emottak.util.marker
+import no.nav.emottak.utils.common.parseOrGenerateUuid
+import no.nav.emottak.utils.kafka.model.EventDataType
+import no.nav.emottak.utils.kafka.model.EventType
 import java.io.ByteArrayInputStream
 
 class SignalMessageService(
-    val cpaValidationService: CPAValidationService
+    val cpaValidationService: CPAValidationService,
+    val eventRegistrationService: EventRegistrationService
 ) {
 
     suspend fun processSignal(requestId: String, content: ByteArray) {
@@ -26,11 +33,14 @@ class SignalMessageService(
                 is MessageError -> {
                     processMessageError(ebxmlSignalMessage)
                 }
-                else -> log.warn(ebxmlSignalMessage.marker(), "Cannot process message as signal message: $requestId")
+                else -> {
+                    log.warn(ebxmlSignalMessage.marker(), "Cannot process message as signal message: $requestId")
+                    throw RuntimeException("Cannot process message as signal message: $requestId")
+                }
             }
         } catch (e: Exception) {
-            // TODO Clearer error handling
             log.error("Error processing signal requestId $requestId", e)
+            throw e
         }
     }
 
@@ -45,20 +55,36 @@ class SignalMessageService(
         emptyList()
     ).transform()
 
-    private fun processAcknowledgment(acknowledgment: Acknowledgment) {
+    private suspend fun processAcknowledgment(acknowledgment: Acknowledgment) {
         log.info(acknowledgment.marker(), "Got acknowledgment with requestId <${acknowledgment.requestId}>")
+        eventRegistrationService.registerEventMessageDetails(acknowledgment)
+        eventRegistrationService.registerEvent(
+            eventType = EventType.MESSAGE_RECEIVED_VIA_SMTP,
+            requestId = acknowledgment.requestId.parseOrGenerateUuid(),
+            messageId = acknowledgment.messageId
+        )
     }
 
-    private fun processMessageError(messageError: MessageError) {
+    private suspend fun processMessageError(messageError: MessageError) {
         log.info(messageError.marker(), "Got MessageError with requestId <${messageError.requestId}>")
-        val messageRef = messageError.refToMessageId
-        if (messageRef == null) {
-            log.warn(messageError.marker(), "Received MessageError without message requestId")
-            return
-        }
-        // TODO store events
+        eventRegistrationService.registerEventMessageDetails(messageError)
+        eventRegistrationService.registerEvent(
+            eventType = EventType.MESSAGE_RECEIVED_VIA_SMTP,
+            requestId = messageError.requestId.parseOrGenerateUuid(),
+            messageId = messageError.messageId
+        )
         messageError.feil.forEach { error ->
             log.info(messageError.marker(), "Code: ${error.code}, Description: ${error.descriptionText}")
+            eventRegistrationService.registerEvent(
+                eventType = EventType.UNKNOWN_ERROR_OCCURRED,
+                requestId = messageError.requestId.parseOrGenerateUuid(),
+                messageId = messageError.messageId,
+                eventData = Json.encodeToString(
+                    mapOf(
+                        EventDataType.ERROR_MESSAGE to "${error.code}: ${error.descriptionText}"
+                    )
+                )
+            )
         }
     }
 }
