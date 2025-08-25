@@ -44,6 +44,7 @@ import no.nav.emottak.ebms.async.persistence.Database
 import no.nav.emottak.ebms.async.persistence.ebmsDbConfig
 import no.nav.emottak.ebms.async.persistence.ebmsMigrationConfig
 import no.nav.emottak.ebms.async.persistence.repository.PayloadRepository
+import no.nav.emottak.ebms.async.processing.MessageFilterService
 import no.nav.emottak.ebms.async.processing.PayloadMessageForwardingService
 import no.nav.emottak.ebms.async.processing.PayloadMessageService
 import no.nav.emottak.ebms.async.processing.SignalMessageService
@@ -105,21 +106,31 @@ fun main() = SuspendApp {
         cpaValidationService = cpaValidationService,
         processingService = processingService,
         ebmsSignalProducer = ebmsSignalProducer,
-        smtpTransportClient = smtpTransportClient,
         payloadMessageForwardingService = payloadMessageForwardingService,
         eventRegistrationService = eventRegistrationService,
         eventManagerService = eventManagerService
+    )
+
+    val signalMessageServiceProvider = signalMessageServiceProvider(
+        cpaValidationService = cpaValidationService
+    )
+
+    val messageFilterService = MessageFilterService(
+        payloadMessageService = payloadMessageServiceProvider.invoke(),
+        signalMessageService = signalMessageServiceProvider.invoke(),
+        smtpTransportClient = smtpTransportClient,
+        eventRegistrationService = eventRegistrationService
     )
 
     result {
         resourceScope {
             launchSignalReceiver(
                 config = config,
-                cpaValidationService = cpaValidationService
+                messageFilterService = messageFilterService
             )
             launchPayloadReceiver(
                 config = config,
-                payloadMessageServiceProvider = payloadMessageServiceProvider
+                messageFilterService = messageFilterService
             )
 
             server(
@@ -128,7 +139,7 @@ fun main() = SuspendApp {
                 module = {
                     ebmsProviderModule(
                         payloadRepository = payloadRepository,
-                        payloadMessageServiceProvider = payloadMessageServiceProvider,
+                        messageFilterService = messageFilterService,
                         eventRegistrationService = eventRegistrationService
                     )
                 }
@@ -149,7 +160,6 @@ fun payloadMessageServiceProvider(
     cpaValidationService: CPAValidationService,
     processingService: ProcessingService,
     ebmsSignalProducer: EbmsMessageProducer,
-    smtpTransportClient: SmtpTransportClient,
     payloadMessageForwardingService: PayloadMessageForwardingService,
     eventRegistrationService: EventRegistrationService,
     eventManagerService: EventManagerService
@@ -159,23 +169,31 @@ fun payloadMessageServiceProvider(
         cpaValidationService = cpaValidationService,
         processingService = processingService,
         ebmsSignalProducer = ebmsSignalProducer,
-        smtpTransportClient = smtpTransportClient,
         payloadMessageForwardingService = payloadMessageForwardingService,
         eventRegistrationService = eventRegistrationService,
         eventManagerService = eventManagerService
     )
 }
 
+fun signalMessageServiceProvider(
+    cpaValidationService: CPAValidationService
+
+): () -> SignalMessageService = {
+    SignalMessageService(
+        cpaValidationService = cpaValidationService
+    )
+}
+
 private fun CoroutineScope.launchPayloadReceiver(
     config: Config,
-    payloadMessageServiceProvider: () -> PayloadMessageService
+    messageFilterService: MessageFilterService
 ) {
     if (config.kafkaPayloadReceiver.active) {
         launch(Dispatchers.IO) {
             startPayloadReceiver(
                 config.kafkaPayloadReceiver.topic,
                 config.kafka,
-                payloadMessageServiceProvider.invoke()
+                messageFilterService
             )
         }
     }
@@ -183,21 +201,22 @@ private fun CoroutineScope.launchPayloadReceiver(
 
 private fun CoroutineScope.launchSignalReceiver(
     config: Config,
-    cpaValidationService: CPAValidationService
+    messageFilterService: MessageFilterService
 ) {
     if (config.kafkaSignalReceiver.active) {
         launch(Dispatchers.IO) {
-            val signalProcessor = SignalMessageService(
-                cpaValidationService
+            startSignalReceiver(
+                config.kafkaSignalReceiver.topic,
+                config.kafka,
+                messageFilterService = messageFilterService
             )
-            startSignalReceiver(config.kafkaSignalReceiver.topic, config.kafka, signalProcessor)
         }
     }
 }
 
 fun Application.ebmsProviderModule(
     payloadRepository: PayloadRepository,
-    payloadMessageServiceProvider: () -> PayloadMessageService,
+    messageFilterService: MessageFilterService,
     eventRegistrationService: EventRegistrationService
 ) {
     val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
@@ -214,7 +233,7 @@ fun Application.ebmsProviderModule(
         if (!isProdEnv()) {
             simulateError()
         }
-        retryErrors(payloadMessageServiceProvider)
+        retryErrors(messageFilterService)
         authenticate(AZURE_AD_AUTH) {
             getPayloads(payloadRepository, eventRegistrationService)
         }
@@ -224,7 +243,7 @@ fun Application.ebmsProviderModule(
 const val RETRY_LIMIT = "retryLimit"
 
 fun Routing.retryErrors(
-    payloadMessageServiceProvider: () -> PayloadMessageService
+    messageFilterService: MessageFilterService
 ): Route =
     get("/api/retry/{$RETRY_LIMIT}") {
         if (!config().kafkaErrorQueue.active) {
@@ -232,7 +251,7 @@ fun Routing.retryErrors(
             return@get
         }
         failedMessageQueue.consumeRetryQueue(
-            payloadMessageServiceProvider.invoke(),
+            messageFilterService,
             limit = (call.parameters[RETRY_LIMIT])?.toInt() ?: 10
         )
         call.respondText(

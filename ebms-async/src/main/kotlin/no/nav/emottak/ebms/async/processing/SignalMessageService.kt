@@ -1,55 +1,38 @@
 package no.nav.emottak.ebms.async.processing
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import no.nav.emottak.ebms.async.log
 import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.message.model.Acknowledgment
-import no.nav.emottak.message.model.EbMSDocument
+import no.nav.emottak.message.model.EbmsMessage
 import no.nav.emottak.message.model.MessageError
-import no.nav.emottak.message.xml.getDocumentBuilder
 import no.nav.emottak.util.marker
-import java.io.ByteArrayInputStream
 
 class SignalMessageService(
     val cpaValidationService: CPAValidationService
 ) {
 
-    suspend fun processSignal(requestId: String, content: ByteArray) {
+    suspend fun processSignal(requestId: String, signalMessage: EbmsMessage) {
         try {
-            val ebxmlSignalMessage = createEbmsMessage(requestId, content)
-            cpaValidationService.validateIncomingMessage(ebxmlSignalMessage)
-            when (ebxmlSignalMessage) {
-                is Acknowledgment -> {
-                    processAcknowledgment(ebxmlSignalMessage)
+            when (signalMessage) {
+                is Acknowledgment -> processAcknowledgment(signalMessage)
+                is MessageError -> processMessageError(signalMessage)
+                else -> {
+                    throw RuntimeException("Cannot process message as signal message: $requestId")
                 }
-                is MessageError -> {
-                    processMessageError(ebxmlSignalMessage)
-                }
-                else -> log.warn(ebxmlSignalMessage.marker(), "Cannot process message as signal message: $requestId")
             }
         } catch (e: Exception) {
-            // TODO Clearer error handling
             log.error("Error processing signal requestId $requestId", e)
+            throw e
         }
     }
 
-    private suspend fun createEbmsMessage(
-        requestId: String,
-        content: ByteArray
-    ) = EbMSDocument(
-        requestId,
-        withContext(Dispatchers.IO) {
-            getDocumentBuilder().parse(ByteArrayInputStream(content))
-        },
-        emptyList()
-    ).transform()
-
-    private fun processAcknowledgment(acknowledgment: Acknowledgment) {
+    private suspend fun processAcknowledgment(acknowledgment: Acknowledgment) {
+        cpaValidationService.validateIncomingMessage(acknowledgment)
         log.info(acknowledgment.marker(), "Got acknowledgment with requestId <${acknowledgment.requestId}>")
     }
 
-    private fun processMessageError(messageError: MessageError) {
+    private suspend fun processMessageError(messageError: MessageError) {
+        cpaValidationService.validateIncomingMessage(messageError)
         log.info(messageError.marker(), "Got MessageError with requestId <${messageError.requestId}>")
         val messageRef = messageError.refToMessageId
         if (messageRef == null) {

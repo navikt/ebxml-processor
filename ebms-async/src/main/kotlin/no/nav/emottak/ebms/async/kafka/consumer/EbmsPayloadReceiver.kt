@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.map
 import no.nav.emottak.ebms.async.configuration.toProperties
 import no.nav.emottak.ebms.async.log
-import no.nav.emottak.ebms.async.processing.PayloadMessageService
+import no.nav.emottak.ebms.async.processing.MessageFilterService
 import no.nav.emottak.utils.config.Kafka
 import org.apache.kafka.common.serialization.ByteArrayDeserializer
 import org.apache.kafka.common.serialization.StringDeserializer
@@ -16,7 +16,7 @@ import kotlin.time.Duration.Companion.seconds
 suspend fun startPayloadReceiver(
     topic: String,
     kafka: Kafka,
-    payloadMessageService: PayloadMessageService
+    messageFilterService: MessageFilterService
 ) {
     log.info("Starting payload message receiver on topic $topic")
     val receiverSettings: ReceiverSettings<String, ByteArray> =
@@ -33,7 +33,7 @@ suspend fun startPayloadReceiver(
     KafkaReceiver(receiverSettings)
         .receive(topic)
         .map { record ->
-            payloadMessageService.process(record)
+            messageFilterService.filterMessage(record)
             record.offset.acknowledge()
         }.collect()
 }

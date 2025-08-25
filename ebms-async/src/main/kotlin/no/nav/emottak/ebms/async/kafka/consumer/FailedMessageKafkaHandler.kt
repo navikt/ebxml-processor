@@ -18,7 +18,7 @@ import kotlinx.coroutines.launch
 import no.nav.emottak.ebms.async.configuration.KafkaErrorQueue
 import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.configuration.toProperties
-import no.nav.emottak.ebms.async.processing.PayloadMessageService
+import no.nav.emottak.ebms.async.processing.MessageFilterService
 import no.nav.emottak.utils.config.Kafka
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.consumer.ConsumerRecords
@@ -90,7 +90,7 @@ class FailedMessageKafkaHandler(
     }
 
     suspend fun consumeRetryQueue( // TODO refine retry logic
-        payloadMessageService: PayloadMessageService,
+        messageService: MessageFilterService,
         limit: Int = 10 // TODO default limit to offset
     ) {
         // TODO DefaultKafkaReceiver is too constrainted so need own impl for custom logic
@@ -124,7 +124,7 @@ class FailedMessageKafkaHandler(
                             String(record.headers().lastHeader(RETRY_AFTER).value())
                         )
                         if (DateTime.now().isAfter(retryableAfter)) {
-                            payloadMessageService.process(record)
+                            messageService.filterMessage(record)
                         } else {
                             logger.info("${record.key()} is not retryable yet.")
                             failedMessageQueue.sendToRetry(record)

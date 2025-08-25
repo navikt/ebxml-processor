@@ -1,6 +1,9 @@
 package no.nav.emottak.message.xml
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.w3c.dom.Document
+import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.StringWriter
 import javax.xml.parsers.DocumentBuilder
@@ -39,4 +42,8 @@ fun Document.asByteArray(): ByteArray {
             .transform(DOMSource(this), StreamResult(it))
         it.toByteArray()
     }
+}
+
+suspend fun ByteArray.createDocument() = withContext(Dispatchers.IO) {
+    getDocumentBuilder().parse(ByteArrayInputStream(this@createDocument))
 }
