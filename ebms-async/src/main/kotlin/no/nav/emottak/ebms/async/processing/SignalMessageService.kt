@@ -4,6 +4,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.log
 import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.ebms.validation.CPAValidationService
@@ -25,6 +26,15 @@ class SignalMessageService(
     suspend fun processSignal(requestId: String, content: ByteArray) {
         try {
             val ebxmlSignalMessage = createEbmsMessage(requestId, content)
+            eventRegistrationService.registerEventMessageDetails(ebxmlSignalMessage)
+            eventRegistrationService.registerEvent(
+                eventType = EventType.MESSAGE_READ_FROM_QUEUE,
+                requestId = ebxmlSignalMessage.requestId.parseOrGenerateUuid(),
+                messageId = ebxmlSignalMessage.messageId,
+                eventData = Json.encodeToString(
+                    mapOf(EventDataType.QUEUE_NAME.value to config().kafkaSignalReceiver.topic)
+                )
+            )
             cpaValidationService.validateIncomingMessage(ebxmlSignalMessage)
             when (ebxmlSignalMessage) {
                 is Acknowledgment -> {
@@ -55,26 +65,14 @@ class SignalMessageService(
         emptyList()
     ).transform()
 
-    private suspend fun processAcknowledgment(acknowledgment: Acknowledgment) {
+    private fun processAcknowledgment(acknowledgment: Acknowledgment) {
         log.info(acknowledgment.marker(), "Got acknowledgment with requestId <${acknowledgment.requestId}>")
-        eventRegistrationService.registerEventMessageDetails(acknowledgment)
-        eventRegistrationService.registerEvent(
-            eventType = EventType.MESSAGE_RECEIVED_VIA_SMTP,
-            requestId = acknowledgment.requestId.parseOrGenerateUuid(),
-            messageId = acknowledgment.messageId
-        )
     }
 
     private suspend fun processMessageError(messageError: MessageError) {
         log.info(messageError.marker(), "Got MessageError with requestId <${messageError.requestId}>")
-        eventRegistrationService.registerEventMessageDetails(messageError)
-        eventRegistrationService.registerEvent(
-            eventType = EventType.MESSAGE_RECEIVED_VIA_SMTP,
-            requestId = messageError.requestId.parseOrGenerateUuid(),
-            messageId = messageError.messageId
-        )
         messageError.feil.forEach { error ->
-            log.info(messageError.marker(), "Code: ${error.code}, Description: ${error.descriptionText}")
+            log.warn(messageError.marker(), "Code: ${error.code}, Description: ${error.descriptionText}")
             eventRegistrationService.registerEvent(
                 eventType = EventType.UNKNOWN_ERROR_OCCURRED,
                 requestId = messageError.requestId.parseOrGenerateUuid(),
