@@ -21,6 +21,9 @@ import no.nav.emottak.message.xml.asByteArray
 import no.nav.emottak.util.marker
 import no.nav.emottak.utils.kafka.model.EventDataType
 import no.nav.emottak.utils.kafka.model.EventType
+import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PerMessageCharacteristicsType
+import java.io.ByteArrayInputStream
+import kotlin.uuid.Uuid
 
 class PayloadMessageService(
     val cpaValidationService: CPAValidationService,
@@ -69,21 +72,21 @@ class PayloadMessageService(
             )
         )
 
-        if (eventManagerService.isDuplicateMessage(ebmsPayloadMessage)) {
-            log.info(ebmsPayloadMessage.marker(), "Got duplicate payload message with reference <${ebmsPayloadMessage.requestId}>")
-        } else {
-            log.info(ebmsPayloadMessage.marker(), "Got payload message with reference <${ebmsPayloadMessage.requestId}>")
-            cpaValidationService
-                .validateIncomingMessage(ebmsPayloadMessage)
-                .let {
-                    processingService.processAsync(ebmsPayloadMessage, it.payloadProcessing)
-                }
-                .let {
-                    when (val service = it.addressing.service) {
-                        "HarBorgerFrikortMengde", "Inntektsforesporsel" -> {
-                            log.debug(it.marker(), "Starting SendIn for $service")
-                            payloadMessageForwardingService.forwardMessageWithSyncResponse(it)
-                        }
+            if (isDuplicateMessage(ebmsPayloadMessage)) {
+                log.info(ebmsPayloadMessage.marker(), "Got duplicate payload message with reference <${ebmsPayloadMessage.requestId}>")
+            } else {
+                log.info(ebmsPayloadMessage.marker(), "Got payload message with reference <${ebmsPayloadMessage.requestId}>")
+                cpaValidationService
+                    .validateIncomingMessage(ebmsPayloadMessage)
+                    .let {
+                        processingService.processAsync(ebmsPayloadMessage, it.payloadProcessing)
+                    }
+                    .let {
+                        when (val service = it.addressing.service) {
+                            "HarBorgerFrikortMengde", "Inntektsforesporsel" -> {
+                                log.debug(it.marker(), "Starting SendIn for $service")
+                                payloadMessageForwardingService.forwardMessageWithSyncResponse(it)
+                            }
 
                         else -> {
                             log.debug(it.marker(), "Skipping SendIn for $service")
@@ -138,5 +141,21 @@ class PayloadMessageService(
                 log.error(messageHeader.marker(), "Exception occurred while sending message to Kafka queue", e)
             }
         }
+    }
+
+    private suspend fun isDuplicateMessage(ebmsPayloadMessage: PayloadMessage): Boolean {
+        val duplicateEliminationStrategy = cpaValidationService.getDuplicateEliminationStrategy(ebmsPayloadMessage)
+
+        if (duplicateEliminationStrategy == PerMessageCharacteristicsType.ALWAYS) {
+            return eventManagerService.isDuplicateMessage(ebmsPayloadMessage)
+        }
+
+        if (
+            duplicateEliminationStrategy == PerMessageCharacteristicsType.PER_MESSAGE &&
+            ebmsPayloadMessage.duplicateElimination
+        ) {
+            return eventManagerService.isDuplicateMessage(ebmsPayloadMessage)
+        }
+        return false
     }
 }
