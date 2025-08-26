@@ -14,9 +14,7 @@ import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.melding.feil.EbmsException
-import no.nav.emottak.message.model.Acknowledgment
 import no.nav.emottak.message.model.EbMSDocument
-import no.nav.emottak.message.model.EbmsMessage
 import no.nav.emottak.message.model.EmailAddress
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.xml.asByteArray
@@ -24,8 +22,6 @@ import no.nav.emottak.util.marker
 import no.nav.emottak.utils.kafka.model.EventDataType
 import no.nav.emottak.utils.kafka.model.EventType
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PerMessageCharacteristicsType
-import java.io.ByteArrayInputStream
-import kotlin.uuid.Uuid
 
 class PayloadMessageService(
     val cpaValidationService: CPAValidationService,
