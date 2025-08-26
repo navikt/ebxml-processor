@@ -2,6 +2,7 @@ package no.nav.emottak.ebms.async.processing
 
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
+import no.nav.emottak.ebms.async.util.EventRegistrationServiceFake
 import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.message.model.EbMSDocument
 import no.nav.emottak.message.model.Payload
@@ -14,7 +15,8 @@ import java.util.UUID
 class SignalProcessorTest {
 
     val cpaValidationService = mockk<CPAValidationService>()
-    val signalMessageService = SignalMessageService(cpaValidationService)
+    val eventRegistrationService = EventRegistrationServiceFake()
+    val signalMessageService = SignalMessageService(cpaValidationService, eventRegistrationService)
 
     @Test
     fun `Payload message throws error`() {

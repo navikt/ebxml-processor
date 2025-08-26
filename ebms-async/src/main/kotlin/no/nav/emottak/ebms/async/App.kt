@@ -112,7 +112,8 @@ fun main() = SuspendApp {
     )
 
     val signalMessageServiceProvider = signalMessageServiceProvider(
-        cpaValidationService = cpaValidationService
+        cpaValidationService = cpaValidationService,
+        eventRegistrationService = eventRegistrationService
     )
 
     val messageFilterService = MessageFilterService(
@@ -176,11 +177,12 @@ fun payloadMessageServiceProvider(
 }
 
 fun signalMessageServiceProvider(
-    cpaValidationService: CPAValidationService
-
+    cpaValidationService: CPAValidationService,
+    eventRegistrationService: EventRegistrationService
 ): () -> SignalMessageService = {
     SignalMessageService(
-        cpaValidationService = cpaValidationService
+        cpaValidationService = cpaValidationService,
+        eventRegistrationService = eventRegistrationService
     )
 }
 
