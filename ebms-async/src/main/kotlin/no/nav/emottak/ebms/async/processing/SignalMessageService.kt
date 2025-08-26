@@ -2,7 +2,6 @@ package no.nav.emottak.ebms.async.processing
 
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.log
 import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.ebms.validation.CPAValidationService
@@ -21,16 +20,6 @@ class SignalMessageService(
 
     suspend fun processSignal(requestId: String, ebxmlSignalMessage: EbmsMessage) {
         try {
-            eventRegistrationService.registerEventMessageDetails(ebxmlSignalMessage)
-            eventRegistrationService.registerEvent(
-                eventType = EventType.MESSAGE_READ_FROM_QUEUE,
-                requestId = ebxmlSignalMessage.requestId.parseOrGenerateUuid(),
-                messageId = ebxmlSignalMessage.messageId,
-                eventData = Json.encodeToString(
-                    mapOf(EventDataType.QUEUE_NAME.value to config().kafkaSignalReceiver.topic)
-                )
-            )
-            cpaValidationService.validateIncomingMessage(ebxmlSignalMessage)
             when (ebxmlSignalMessage) {
                 is Acknowledgment -> processAcknowledgment(ebxmlSignalMessage)
                 is MessageError -> processMessageError(ebxmlSignalMessage)
@@ -45,11 +34,13 @@ class SignalMessageService(
         }
     }
 
-    private fun processAcknowledgment(acknowledgment: Acknowledgment) {
+    private suspend fun processAcknowledgment(acknowledgment: Acknowledgment) {
+        cpaValidationService.validateIncomingMessage(acknowledgment)
         log.info(acknowledgment.marker(), "Got acknowledgment with requestId <${acknowledgment.requestId}>")
     }
 
     private suspend fun processMessageError(messageError: MessageError) {
+        cpaValidationService.validateIncomingMessage(messageError)
         log.info(messageError.marker(), "Got MessageError with requestId <${messageError.requestId}>")
         messageError.feil.forEach { error ->
             log.warn(messageError.marker(), "Code: ${error.code}, Description: ${error.descriptionText}")

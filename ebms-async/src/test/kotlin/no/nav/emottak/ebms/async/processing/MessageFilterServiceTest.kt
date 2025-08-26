@@ -63,6 +63,7 @@ class MessageFilterServiceTest {
 
         every { record.key() } returns Uuid.random().toString()
         every { record.value() } returns message!!.readAllBytes()
+        every { record.topic() } returns "topic"
         coEvery { smtpTransportClient.getPayload(any()) } returns listOf(createAsyncPayload())
 
         runBlocking {
@@ -83,6 +84,7 @@ class MessageFilterServiceTest {
 
         every { record.key() } returns Uuid.random().toString()
         every { record.value() } returns message!!.readAllBytes()
+        every { record.topic() } returns "topic"
 
         runBlocking {
             messageFilterService.filterMessage(record)

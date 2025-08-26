@@ -1,6 +1,8 @@
 package no.nav.emottak.ebms.async.processing
 
 import io.github.nomisRev.kafka.receiver.ReceiverRecord
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import no.nav.emottak.ebms.SmtpTransportClient
 import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.message.model.Acknowledgment
@@ -13,6 +15,7 @@ import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.model.dokumentType
 import no.nav.emottak.message.xml.createDocument
 import no.nav.emottak.utils.common.parseOrGenerateUuid
+import no.nav.emottak.utils.kafka.model.EventDataType
 import no.nav.emottak.utils.kafka.model.EventType
 import org.w3c.dom.Document
 import kotlin.uuid.Uuid
@@ -28,6 +31,15 @@ class MessageFilterService(
         val ebmsMessage = createEbmsDocument(
             requestId = record.key(),
             document = record.value().createDocument()
+        )
+        eventRegistrationService.registerEventMessageDetails(ebmsMessage)
+        eventRegistrationService.registerEvent(
+            eventType = EventType.MESSAGE_READ_FROM_QUEUE,
+            requestId = ebmsMessage.requestId.parseOrGenerateUuid(),
+            messageId = ebmsMessage.messageId,
+            eventData = Json.encodeToString(
+                mapOf(EventDataType.QUEUE_NAME.value to record.topic())
+            )
         )
         when (ebmsMessage) {
             is PayloadMessage -> payloadMessageService.process(record, ebmsMessage)
