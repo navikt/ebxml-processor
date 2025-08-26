@@ -35,12 +35,14 @@ data class EbMSDocument(val requestId: String, val dokument: Document, val attac
     private val envelope = lazy { xmlMarshaller.unmarshal(this.dokument) as Envelope }
 
     fun dokumentType(): DokumentType {
-        if (attachments.size > 0) return DokumentType.PAYLOAD
         if (dokument.getElementsByTagNameNS(OASIS_EBXML_MSG_HEADER_XSD_NS_URI, "Acknowledgment")
             .item(0) != null
         ) {
             return DokumentType.ACKNOWLEDGMENT
         }
+
+        if (attachments.isNotEmpty()) return DokumentType.PAYLOAD
+
         if (dokument.getElementsByTagNameNS(OASIS_EBXML_MSG_HEADER_XSD_NS_URI, "ErrorList")
             .item(0) != null
         ) {
