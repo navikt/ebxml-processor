@@ -115,7 +115,8 @@ fun main() = SuspendApp {
         resourceScope {
             launchSignalReceiver(
                 config = config,
-                cpaValidationService = cpaValidationService
+                cpaValidationService = cpaValidationService,
+                eventRegistrationService = eventRegistrationService
             )
             launchPayloadReceiver(
                 config = config,
@@ -183,12 +184,14 @@ private fun CoroutineScope.launchPayloadReceiver(
 
 private fun CoroutineScope.launchSignalReceiver(
     config: Config,
-    cpaValidationService: CPAValidationService
+    cpaValidationService: CPAValidationService,
+    eventRegistrationService: EventRegistrationService
 ) {
     if (config.kafkaSignalReceiver.active) {
         launch(Dispatchers.IO) {
             val signalProcessor = SignalMessageService(
-                cpaValidationService
+                cpaValidationService,
+                eventRegistrationService
             )
             startSignalReceiver(config.kafkaSignalReceiver.topic, config.kafka, signalProcessor)
         }
