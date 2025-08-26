@@ -19,7 +19,7 @@ interface EventRegistrationService {
 
     suspend fun registerEventMessageDetails(ebMSDocument: EbMSDocument)
 
-    suspend fun registerEventMessageDetails(ebmsMessage: EbmsMessage)
+    suspend fun registerEventMessageDetails(ebMSMessage: EbmsMessage)
 
     companion object {
         fun serializePartyId(partyIDs: List<PartyId>): String {
@@ -63,11 +63,7 @@ class EventRegistrationServiceImpl(
     }
 
     override suspend fun registerEventMessageDetails(ebMSDocument: EbMSDocument) {
-        try {
-            registerEventMessageDetails(ebMSDocument.transform())
-        } catch (e: Exception) {
-            log.error("Error while registering message details: ${e.message}", e)
-        }
+        registerEventMessageDetails(ebMSDocument.transform())
     }
 
     override suspend fun registerEventMessageDetails(ebMSMessage: EbmsMessage) {
