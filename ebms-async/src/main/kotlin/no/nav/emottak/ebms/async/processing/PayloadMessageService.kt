@@ -19,6 +19,7 @@ import no.nav.emottak.message.model.EmailAddress
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.xml.asByteArray
 import no.nav.emottak.util.marker
+import no.nav.emottak.utils.common.parseOrGenerateUuid
 import no.nav.emottak.utils.kafka.model.EventDataType
 import no.nav.emottak.utils.kafka.model.EventType
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PerMessageCharacteristicsType
@@ -62,14 +63,6 @@ class PayloadMessageService(
     suspend fun processPayloadMessage(
         ebmsPayloadMessage: PayloadMessage
     ) {
-        eventRegistrationService.registerEvent(
-            eventType = EventType.MESSAGE_READ_FROM_QUEUE,
-            payloadMessage = ebmsPayloadMessage,
-            eventData = Json.encodeToString(
-                mapOf(EventDataType.QUEUE_NAME.value to config().kafkaPayloadReceiver.topic)
-            )
-        )
-
         if (isDuplicateMessage(ebmsPayloadMessage)) {
             log.info(ebmsPayloadMessage.marker(), "Got duplicate payload message with reference <${ebmsPayloadMessage.requestId}>")
         } else {
@@ -95,6 +88,7 @@ class PayloadMessageService(
         ebmsPayloadMessage
             .createAcknowledgment()
             .also {
+                eventRegistrationService.registerEventMessageDetails(it)
                 val validationResult = cpaValidationService.validateOutgoingMessage(it)
                 sendResponseToTopic(
                     it.toEbmsDokument().signer(validationResult.payloadProcessing!!.signingCertificate),
@@ -108,6 +102,7 @@ class PayloadMessageService(
         ebmsPayloadMessage
             .createMessageError(ebmsException.feil)
             .also {
+                eventRegistrationService.registerEventMessageDetails(it)
                 val validationResult = cpaValidationService.validateOutgoingMessage(it)
                 val signingCertificate = validationResult.payloadProcessing?.signingCertificate
                 if (signingCertificate == null) {
@@ -127,11 +122,21 @@ class PayloadMessageService(
             val messageHeader = ebMSDocument.messageHeader()
             try {
                 log.info(messageHeader.marker(), "Sending message to Kafka queue")
-                ebmsSignalProducer.publishMessage(
-                    key = ebMSDocument.requestId,
-                    value = ebMSDocument.dokument.asByteArray(),
-                    headers = signalResponderEmails.toKafkaHeaders() + messageHeader.toKafkaHeaders()
-                )
+                eventRegistrationService.runWithEvent(
+                    successEvent = EventType.MESSAGE_PLACED_IN_QUEUE,
+                    failEvent = EventType.ERROR_WHILE_STORING_MESSAGE_IN_QUEUE,
+                    requestId = ebMSDocument.requestId.parseOrGenerateUuid(),
+                    messageId = ebMSDocument.messageHeader().messageData.messageId ?: "",
+                    eventData = Json.encodeToString(
+                        mapOf(EventDataType.QUEUE_NAME.value to config().kafkaSignalProducer.topic)
+                    )
+                ) {
+                    ebmsSignalProducer.publishMessage(
+                        key = ebMSDocument.requestId,
+                        value = ebMSDocument.dokument.asByteArray(),
+                        headers = signalResponderEmails.toKafkaHeaders() + messageHeader.toKafkaHeaders()
+                    )
+                }
             } catch (e: Exception) {
                 log.error(messageHeader.marker(), "Exception occurred while sending message to Kafka queue", e)
             }
