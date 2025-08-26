@@ -14,7 +14,9 @@ import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.melding.feil.EbmsException
+import no.nav.emottak.message.model.Acknowledgment
 import no.nav.emottak.message.model.EbMSDocument
+import no.nav.emottak.message.model.EbmsMessage
 import no.nav.emottak.message.model.EmailAddress
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.xml.asByteArray
@@ -72,25 +74,22 @@ class PayloadMessageService(
             )
         )
 
-            if (isDuplicateMessage(ebmsPayloadMessage)) {
-                log.info(ebmsPayloadMessage.marker(), "Got duplicate payload message with reference <${ebmsPayloadMessage.requestId}>")
-            } else {
-                log.info(ebmsPayloadMessage.marker(), "Got payload message with reference <${ebmsPayloadMessage.requestId}>")
-                cpaValidationService
-                    .validateIncomingMessage(ebmsPayloadMessage)
-                    .let {
-                        processingService.processAsync(ebmsPayloadMessage, it.payloadProcessing)
-                    }
-                    .let {
-                        when (val service = it.addressing.service) {
-                            "HarBorgerFrikortMengde", "Inntektsforesporsel" -> {
-                                log.debug(it.marker(), "Starting SendIn for $service")
-                                payloadMessageForwardingService.forwardMessageWithSyncResponse(it)
-                            }
-
-                        else -> {
-                            log.debug(it.marker(), "Skipping SendIn for $service")
+        if (isDuplicateMessage(ebmsPayloadMessage)) {
+            log.info(ebmsPayloadMessage.marker(), "Got duplicate payload message with reference <${ebmsPayloadMessage.requestId}>")
+        } else {
+            log.info(ebmsPayloadMessage.marker(), "Got payload message with reference <${ebmsPayloadMessage.requestId}>")
+            cpaValidationService
+                .validateIncomingMessage(ebmsPayloadMessage)
+                .let {
+                    processingService.processAsync(ebmsPayloadMessage, it.payloadProcessing)
+                }
+                .let {
+                    when (val service = it.addressing.service) {
+                        "HarBorgerFrikortMengde", "Inntektsforesporsel" -> {
+                            log.debug(it.marker(), "Starting SendIn for $service")
+                            payloadMessageForwardingService.forwardMessageWithSyncResponse(it)
                         }
+                        else -> log.debug(it.marker(), "Skipping SendIn for $service")
                     }
                 }
         }
