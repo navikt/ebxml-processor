@@ -30,6 +30,8 @@ import no.nav.emottak.cpa.util.EventRegistrationServiceFake
 import no.nav.emottak.message.model.Direction.IN
 import no.nav.emottak.message.model.EmailAddress
 import no.nav.emottak.message.model.ErrorCode
+import no.nav.emottak.message.model.MessagingCharacteristicsRequest
+import no.nav.emottak.message.model.MessagingCharacteristicsResponse
 import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.message.model.SignatureDetailsRequest
 import no.nav.emottak.message.model.ValidationRequest
@@ -39,11 +41,13 @@ import no.nav.emottak.utils.common.model.Party
 import no.nav.emottak.utils.common.model.PartyId
 import no.nav.emottak.utils.environment.getEnvVar
 import no.nav.security.mock.oauth2.MockOAuth2Server
+import no.nav.security.mock.oauth2.http.json
 import org.apache.commons.lang3.StringUtils
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.EndpointTypeType
+import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PerMessageCharacteristicsType
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import kotlin.test.assertContains
@@ -51,6 +55,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import kotlin.uuid.Uuid
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class CPARepoIntegrationTest : PostgresOracleTest() {
@@ -378,6 +383,78 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
             StringUtils.isNotBlank(response.bodyAsText()),
             "Response can't be null or blank"
         )
+    }
+
+    @Test
+    fun `messagingCharacteristics endpoint should return MessagingCharacteristicsResponse`() = cpaRepoTestApp {
+        val httpClient = createClient {
+            install(ContentNegotiation) {
+                json()
+            }
+        }
+
+        val messagingCharacteristicsRequest = MessagingCharacteristicsRequest(
+            requestId = Uuid.random().toString(),
+            cpaId = "nav:qass:35065",
+            partyIds = listOf(PartyId("HER", "8141253")),
+            role = "Behandler",
+            service = "BehandlerKrav",
+            action = "OppgjorsMelding"
+        )
+
+        val response = httpClient.post("/cpa/messagingCharacteristics") {
+            setBody(messagingCharacteristicsRequest)
+            contentType(Json)
+        }
+
+        assertEquals(HttpStatusCode.OK, response.status)
+        val messagingCharacteristicsResponse = response.body<MessagingCharacteristicsResponse>()
+        assertNotNull(messagingCharacteristicsResponse)
+        assertEquals(
+            messagingCharacteristicsRequest.requestId,
+            messagingCharacteristicsResponse.requestId,
+            "Request ID should match"
+        )
+        assertEquals(
+            PerMessageCharacteristicsType.ALWAYS,
+            messagingCharacteristicsResponse.ackRequested,
+            "AckRequested should be the same as in nav-qass-35065.xml file"
+        )
+        assertEquals(
+            PerMessageCharacteristicsType.PER_MESSAGE,
+            messagingCharacteristicsResponse.ackSignatureRequested,
+            "AckSignatureRequested should be the same as in nav-qass-35065.xml file"
+        )
+        assertEquals(
+            PerMessageCharacteristicsType.PER_MESSAGE,
+            messagingCharacteristicsResponse.duplicateElimination,
+            "DuplicateElimination should be the same as in nav-qass-35065.xml file"
+        )
+    }
+
+    @Test
+    fun `messagingCharacteristics endpoint should return NotFound if CPA is not found`() = cpaRepoTestApp {
+        val httpClient = createClient {
+            install(ContentNegotiation) {
+                json()
+            }
+        }
+
+        val messagingCharacteristicsRequest = MessagingCharacteristicsRequest(
+            requestId = Uuid.random().toString(),
+            cpaId = "no:such:cpa",
+            partyIds = listOf(PartyId("HER", "8141253")),
+            role = "Behandler",
+            service = "BehandlerKrav",
+            action = "OppgjorsMelding"
+        )
+
+        val response = httpClient.post("/cpa/messagingCharacteristics") {
+            setBody(messagingCharacteristicsRequest)
+            contentType(Json)
+        }
+
+        assertEquals(HttpStatusCode.NotFound, response.status)
     }
 
     @Test

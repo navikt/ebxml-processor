@@ -34,6 +34,8 @@ import no.nav.emottak.message.ebxml.EbXMLConstants.MESSAGE_ERROR_ACTION
 import no.nav.emottak.message.ebxml.PartyTypeEnum
 import no.nav.emottak.message.model.ErrorCode
 import no.nav.emottak.message.model.Feil
+import no.nav.emottak.message.model.MessagingCharacteristicsRequest
+import no.nav.emottak.message.model.MessagingCharacteristicsResponse
 import no.nav.emottak.message.model.PayloadProcessing
 import no.nav.emottak.message.model.SignatureDetailsRequest
 import no.nav.emottak.message.model.ValidationRequest
@@ -323,6 +325,24 @@ fun Route.signingCertificate(cpaRepository: CPARepository) = post("/signing/cert
         call.respond(HttpStatusCode.BadRequest, ex.localizedMessage)
     }
 }
+
+fun Route.getMessagingCharacteristics(cpaRepository: CPARepository) =
+    post("/cpa/messagingCharacteristics") {
+        val request = call.receive(MessagingCharacteristicsRequest::class)
+
+        val cpa = cpaRepository.findCpa(request.cpaId) ?: throw NotFoundException("CPA not found for ID ${request.cpaId}")
+        val fromParty = cpa.getPartyInfoByTypeAndID(request.partyIds)
+        val deliveryChannel = fromParty.getSendDeliveryChannel(request.role, request.service, request.action)
+
+        val response = MessagingCharacteristicsResponse(
+            requestId = request.requestId,
+            ackRequested = deliveryChannel.messagingCharacteristics.ackRequested,
+            ackSignatureRequested = deliveryChannel.messagingCharacteristics.ackSignatureRequested,
+            duplicateElimination = deliveryChannel.messagingCharacteristics.duplicateElimination
+        )
+
+        call.respond(response)
+    }
 
 fun Routing.registerHealthEndpoints(
     collectorRegistry: PrometheusMeterRegistry,
