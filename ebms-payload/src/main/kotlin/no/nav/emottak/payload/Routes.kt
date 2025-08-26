@@ -109,6 +109,8 @@ private suspend fun createIncomingPayloadResponse(
         processor.convertToReadablePayload(request, processConfig.kryptering, processConfig.komprimering).also {
             if (processConfig.kryptering) log.info(request.marker(), "Payload dekryptert")
             if (processConfig.komprimering) log.info(request.marker(), "Payload dekomprimert")
+        }.also {
+            log.debug(request.marker(), "Dekomprimert payload: ${String(it.bytes)}")
         }
     return try {
         PayloadResponse(
