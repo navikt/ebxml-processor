@@ -35,7 +35,7 @@ class PayloadMessageForwardingService(
 ) {
 
     suspend fun forwardMessageWithSyncResponse(payloadMessage: PayloadMessage) {
-        val payloadMessageResponse = sendInService.sendIn(payloadMessage).let { sendInResponse ->
+        sendInService.sendIn(payloadMessage).let { sendInResponse ->
             PayloadMessage(
                 requestId = sendInResponse.requestId,
                 messageId = Uuid.random().toString(),
@@ -46,11 +46,15 @@ class PayloadMessageForwardingService(
                 refToMessageId = payloadMessage.messageId,
                 duplicateElimination = payloadMessage.duplicateElimination
             )
+        }.let { payloadMessageResponse ->
+            returnMessageResponse(payloadMessageResponse)
         }
+    }
 
-        val validationResult = cpaValidationService.validateOutgoingMessage(payloadMessageResponse)
+    suspend fun returnMessageResponse(payloadMessage: PayloadMessage) {
+        val validationResult = cpaValidationService.validateOutgoingMessage(payloadMessage)
         val processedMessage = processingService.proccessSyncOut(
-            payloadMessageResponse,
+            payloadMessage,
             validationResult.payloadProcessing
         )
 
