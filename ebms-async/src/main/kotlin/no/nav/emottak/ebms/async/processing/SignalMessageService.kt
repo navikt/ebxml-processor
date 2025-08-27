@@ -5,6 +5,7 @@ import kotlinx.serialization.json.Json
 import no.nav.emottak.ebms.async.log
 import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.ebms.validation.CPAValidationService
+import no.nav.emottak.melding.feil.EbmsException
 import no.nav.emottak.message.model.Acknowledgment
 import no.nav.emottak.message.model.EbmsMessage
 import no.nav.emottak.message.model.MessageError
@@ -28,8 +29,10 @@ class SignalMessageService(
                     throw RuntimeException("Cannot process message as signal message: $requestId")
                 }
             }
+        } catch (e: EbmsException) {
+            log.error("EbmsException processing signal requestId $requestId", e)
         } catch (e: Exception) {
-            log.error("Error processing signal requestId $requestId", e)
+            log.error("Unknown error processing signal requestId $requestId", e)
             throw e
         }
     }
