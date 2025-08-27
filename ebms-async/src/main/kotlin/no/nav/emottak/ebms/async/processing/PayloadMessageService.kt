@@ -63,15 +63,13 @@ class PayloadMessageService(
     suspend fun processPayloadMessage(
         ebmsPayloadMessage: PayloadMessage
     ) {
+        val validationResult = cpaValidationService.validateIncomingMessage(ebmsPayloadMessage)
         if (isDuplicateMessage(ebmsPayloadMessage)) {
             log.info(ebmsPayloadMessage.marker(), "Got duplicate payload message with reference <${ebmsPayloadMessage.requestId}>")
         } else {
             log.info(ebmsPayloadMessage.marker(), "Got payload message with reference <${ebmsPayloadMessage.requestId}>")
-            cpaValidationService
-                .validateIncomingMessage(ebmsPayloadMessage)
-                .let {
-                    processingService.processAsync(ebmsPayloadMessage, it.payloadProcessing)
-                }
+            processingService
+                .processAsync(ebmsPayloadMessage, validationResult.payloadProcessing)
                 .let {
                     when (val service = it.addressing.service) {
                         "HarBorgerFrikortMengde", "Inntektsforesporsel" -> {

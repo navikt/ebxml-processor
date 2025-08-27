@@ -66,13 +66,14 @@ class PayloadMessageServiceTest {
     @Test
     fun `processPayloadMessage should stop processing if message is duplicate`() = runBlocking {
         val payloadMessage = mockk<PayloadMessage>(relaxed = true)
+        coEvery { cpaValidationService.validateIncomingMessage(payloadMessage) } returns mockk(relaxed = true)
         coEvery { cpaValidationService.getDuplicateEliminationStrategy(payloadMessage) } returns PerMessageCharacteristicsType.ALWAYS
         coEvery { eventManagerService.isDuplicateMessage(payloadMessage) } returns true
 
         service.processPayloadMessage(payloadMessage)
 
         coVerify(exactly = 1) { eventManagerService.isDuplicateMessage(payloadMessage) }
-        coVerify(exactly = 0) { cpaValidationService.validateIncomingMessage(any()) }
+        coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(any()) }
         coVerify(exactly = 0) { processingService.processAsync(any(), any()) }
         coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithSyncResponse(any()) }
     }
