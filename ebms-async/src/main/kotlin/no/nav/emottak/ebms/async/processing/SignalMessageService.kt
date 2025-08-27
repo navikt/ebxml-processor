@@ -34,12 +34,12 @@ class SignalMessageService(
         }
     }
 
-    private suspend fun processAcknowledgment(acknowledgment: Acknowledgment) {
+    suspend fun processAcknowledgment(acknowledgment: Acknowledgment) {
         cpaValidationService.validateIncomingMessage(acknowledgment)
         log.info(acknowledgment.marker(), "Got acknowledgment with requestId <${acknowledgment.requestId}>")
     }
 
-    private suspend fun processMessageError(messageError: MessageError) {
+    suspend fun processMessageError(messageError: MessageError) {
         cpaValidationService.validateIncomingMessage(messageError)
         log.info(messageError.marker(), "Got MessageError with requestId <${messageError.requestId}>")
         messageError.feil.forEach { error ->

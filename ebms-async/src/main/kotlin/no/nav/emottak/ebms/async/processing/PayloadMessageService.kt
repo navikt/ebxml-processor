@@ -143,7 +143,7 @@ class PayloadMessageService(
         }
     }
 
-    private suspend fun isDuplicateMessage(ebmsPayloadMessage: PayloadMessage): Boolean {
+    suspend fun isDuplicateMessage(ebmsPayloadMessage: PayloadMessage): Boolean {
         val duplicateEliminationStrategy = cpaValidationService.getDuplicateEliminationStrategy(ebmsPayloadMessage)
 
         if (duplicateEliminationStrategy == PerMessageCharacteristicsType.ALWAYS) {
