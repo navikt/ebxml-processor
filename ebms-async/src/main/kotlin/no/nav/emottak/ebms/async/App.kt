@@ -70,28 +70,31 @@ val log = LoggerFactory.getLogger("no.nav.emottak.ebms.async.App")
 fun main() = SuspendApp {
     val database = Database(ebmsDbConfig.value)
     database.migrate(ebmsMigrationConfig.value)
+    val payloadRepository = PayloadRepository(database)
 
     val config = config()
-    val payloadRepository = PayloadRepository(database)
-    val processingClient = PayloadProcessingClient(scopedAuthHttpClient(EBMS_PAYLOAD_SCOPE))
-    val processingService = ProcessingService(processingClient)
+
+    val processingService = ProcessingService(
+        httpClient = PayloadProcessingClient(scopedAuthHttpClient(EBMS_PAYLOAD_SCOPE))
+    )
+    val cpaValidationService = CPAValidationService(
+        httpClient = CpaRepoClient(defaultHttpClient())
+    )
+    val sendInService = SendInService(
+        httpClient = SendInClient(scopedAuthHttpClient(EBMS_SEND_IN_SCOPE))
+    )
+
     val ebmsSignalProducer = EbmsMessageProducer(config.kafkaSignalProducer.topic, config.kafka)
     val ebmsPayloadProducer = EbmsMessageProducer(config.kafkaPayloadProducer.topic, config.kafka)
 
-    val cpaClient = CpaRepoClient(defaultHttpClient())
-    val cpaValidationService = CPAValidationService(cpaClient)
-
-    val sendInClient = SendInClient(scopedAuthHttpClient(EBMS_SEND_IN_SCOPE))
-    val sendInService = SendInService(sendInClient)
-
     val smtpTransportClient = SmtpTransportClient(scopedAuthHttpClient(SMTP_TRANSPORT_SCOPE))
 
-    val kafkaPublisherClient = EventPublisherClient(config().kafka)
-    val eventLoggingService = EventLoggingService(config().eventLogging, kafkaPublisherClient)
-    val eventRegistrationService = EventRegistrationServiceImpl(eventLoggingService)
-
-    val eventManagerClient = EventManagerClient(scopedAuthHttpClient(EVENT_MANAGER_SCOPE))
-    val eventManagerService = EventManagerService(eventManagerClient)
+    val eventManagerService = EventManagerService(
+        EventManagerClient(scopedAuthHttpClient(EVENT_MANAGER_SCOPE))
+    )
+    val eventRegistrationService = EventRegistrationServiceImpl(
+        EventLoggingService(config().eventLogging, EventPublisherClient(config().kafka))
+    )
 
     val payloadMessageForwardingService = PayloadMessageForwardingService(
         sendInService = sendInService,
@@ -102,7 +105,7 @@ fun main() = SuspendApp {
         eventRegistrationService = eventRegistrationService
     )
 
-    val payloadMessageServiceProvider = payloadMessageServiceProvider(
+    val payloadMessageService = PayloadMessageService(
         cpaValidationService = cpaValidationService,
         processingService = processingService,
         ebmsSignalProducer = ebmsSignalProducer,
@@ -111,14 +114,14 @@ fun main() = SuspendApp {
         eventManagerService = eventManagerService
     )
 
-    val signalMessageServiceProvider = signalMessageServiceProvider(
+    val signalMessageService = SignalMessageService(
         cpaValidationService = cpaValidationService,
         eventRegistrationService = eventRegistrationService
     )
 
     val messageFilterService = MessageFilterService(
-        payloadMessageService = payloadMessageServiceProvider.invoke(),
-        signalMessageService = signalMessageServiceProvider.invoke(),
+        payloadMessageService = payloadMessageService,
+        signalMessageService = signalMessageService,
         smtpTransportClient = smtpTransportClient,
         eventRegistrationService = eventRegistrationService
     )
@@ -155,35 +158,6 @@ fun main() = SuspendApp {
                 else -> log.error("Unexpected shutdown initiated", error)
             }
         }
-}
-
-fun payloadMessageServiceProvider(
-    cpaValidationService: CPAValidationService,
-    processingService: ProcessingService,
-    ebmsSignalProducer: EbmsMessageProducer,
-    payloadMessageForwardingService: PayloadMessageForwardingService,
-    eventRegistrationService: EventRegistrationService,
-    eventManagerService: EventManagerService
-
-): () -> PayloadMessageService = {
-    PayloadMessageService(
-        cpaValidationService = cpaValidationService,
-        processingService = processingService,
-        ebmsSignalProducer = ebmsSignalProducer,
-        payloadMessageForwardingService = payloadMessageForwardingService,
-        eventRegistrationService = eventRegistrationService,
-        eventManagerService = eventManagerService
-    )
-}
-
-fun signalMessageServiceProvider(
-    cpaValidationService: CPAValidationService,
-    eventRegistrationService: EventRegistrationService
-): () -> SignalMessageService = {
-    SignalMessageService(
-        cpaValidationService = cpaValidationService,
-        eventRegistrationService = eventRegistrationService
-    )
 }
 
 private fun CoroutineScope.launchPayloadReceiver(

@@ -21,6 +21,7 @@ class SignalMessageService(
 
     suspend fun processSignal(requestId: String, ebxmlSignalMessage: EbmsMessage) {
         try {
+            eventRegistrationService.registerEventMessageDetails(ebxmlSignalMessage)
             when (ebxmlSignalMessage) {
                 is Acknowledgment -> processAcknowledgment(ebxmlSignalMessage)
                 is MessageError -> processMessageError(ebxmlSignalMessage)

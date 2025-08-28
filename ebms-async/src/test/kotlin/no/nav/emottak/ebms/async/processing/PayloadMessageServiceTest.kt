@@ -1,5 +1,6 @@
 package no.nav.emottak.ebms.async.processing
 
+import io.github.nomisRev.kafka.receiver.ReceiverRecord
 import io.mockk.Runs
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
@@ -67,13 +68,14 @@ class PayloadMessageServiceTest {
     fun `processPayloadMessage should stop processing if message is duplicate`() = runBlocking {
         val payloadMessage = mockk<PayloadMessage>(relaxed = true)
         coEvery { cpaValidationService.validateIncomingMessage(payloadMessage) } returns mockk(relaxed = true)
+        coEvery { cpaValidationService.validateOutgoingMessage(any()) } returns mockk(relaxed = true)
         coEvery { cpaValidationService.getDuplicateEliminationStrategy(payloadMessage) } returns PerMessageCharacteristicsType.ALWAYS
         coEvery { eventManagerService.isDuplicateMessage(payloadMessage) } returns true
 
-        service.processPayloadMessage(payloadMessage)
+        service.process(mockk<ReceiverRecord<String, ByteArray>>(), payloadMessage)
 
         coVerify(exactly = 1) { eventManagerService.isDuplicateMessage(payloadMessage) }
-        coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(any()) }
+        coVerify(exactly = 0) { cpaValidationService.validateIncomingMessage(any()) }
         coVerify(exactly = 0) { processingService.processAsync(any(), any()) }
         coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithSyncResponse(any()) }
     }
@@ -84,10 +86,11 @@ class PayloadMessageServiceTest {
         coEvery { cpaValidationService.getDuplicateEliminationStrategy(payloadMessage) } returns PerMessageCharacteristicsType.PER_MESSAGE
         coEvery { eventManagerService.isDuplicateMessage(payloadMessage) } returns false
         coEvery { cpaValidationService.validateIncomingMessage(payloadMessage) } returns mockk<ValidationResult>(relaxed = true)
+        coEvery { cpaValidationService.validateOutgoingMessage(any()) } returns mockk(relaxed = true)
         coEvery { processingService.processAsync(any(), any()) } returns payloadMessage
         coEvery { payloadMessageForwardingService.forwardMessageWithSyncResponse(any()) } just Runs
 
-        service.processPayloadMessage(payloadMessage)
+        service.process(mockk<ReceiverRecord<String, ByteArray>>(), payloadMessage)
 
         coVerify(exactly = 1) { eventManagerService.isDuplicateMessage(payloadMessage) }
         coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(payloadMessage) }

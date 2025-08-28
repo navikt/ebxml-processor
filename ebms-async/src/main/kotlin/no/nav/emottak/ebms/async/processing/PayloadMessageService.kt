@@ -1,6 +1,7 @@
 package no.nav.emottak.ebms.async.processing
 
 import io.github.nomisRev.kafka.receiver.ReceiverRecord
+import io.ktor.client.plugins.ClientRequestException
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import no.nav.emottak.ebms.async.configuration.config
@@ -38,7 +39,10 @@ class PayloadMessageService(
         ebmsPayloadMessage: PayloadMessage
     ) {
         try {
-            processPayloadMessage(ebmsPayloadMessage)
+            when (isDuplicateMessage(ebmsPayloadMessage)) {
+                true -> log.info(ebmsPayloadMessage.marker(), "Got duplicate payload message with reference <${ebmsPayloadMessage.requestId}>")
+                false -> processPayloadMessage(ebmsPayloadMessage)
+            }
             returnAcknowledgment(ebmsPayloadMessage)
         } catch (e: EbmsException) {
             try {
@@ -63,11 +67,9 @@ class PayloadMessageService(
     suspend fun processPayloadMessage(
         ebmsPayloadMessage: PayloadMessage
     ) {
-        val validationResult = cpaValidationService.validateIncomingMessage(ebmsPayloadMessage)
-        if (isDuplicateMessage(ebmsPayloadMessage)) {
-            log.info(ebmsPayloadMessage.marker(), "Got duplicate payload message with reference <${ebmsPayloadMessage.requestId}>")
-        } else {
-            log.info(ebmsPayloadMessage.marker(), "Got payload message with reference <${ebmsPayloadMessage.requestId}>")
+        log.info(ebmsPayloadMessage.marker(), "Got payload message with reference <${ebmsPayloadMessage.requestId}>")
+        eventRegistrationService.registerEventMessageDetails(ebmsPayloadMessage)
+        cpaValidationService.validateIncomingMessage(ebmsPayloadMessage).let { validationResult ->
             processingService
                 .processAsync(ebmsPayloadMessage, validationResult.payloadProcessing)
                 .let {
@@ -142,7 +144,12 @@ class PayloadMessageService(
     }
 
     suspend fun isDuplicateMessage(ebmsPayloadMessage: PayloadMessage): Boolean {
-        val duplicateEliminationStrategy = cpaValidationService.getDuplicateEliminationStrategy(ebmsPayloadMessage)
+        val duplicateEliminationStrategy = try {
+            cpaValidationService.getDuplicateEliminationStrategy(ebmsPayloadMessage)
+        } catch (e: ClientRequestException) {
+            log.warn(ebmsPayloadMessage.marker(), "${e.response.status} received checking duplicate status", e)
+            return false
+        }
 
         if (duplicateEliminationStrategy == PerMessageCharacteristicsType.ALWAYS) {
             return eventManagerService.isDuplicateMessage(ebmsPayloadMessage)

@@ -32,7 +32,6 @@ class MessageFilterService(
             requestId = record.key(),
             document = record.value().createDocument()
         )
-        eventRegistrationService.registerEventMessageDetails(ebmsMessage)
         eventRegistrationService.registerEvent(
             eventType = EventType.MESSAGE_READ_FROM_QUEUE,
             requestId = ebmsMessage.requestId.parseOrGenerateUuid(),
