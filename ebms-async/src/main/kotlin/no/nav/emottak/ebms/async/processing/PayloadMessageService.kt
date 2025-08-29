@@ -20,6 +20,7 @@ import no.nav.emottak.message.model.EmailAddress
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.xml.asByteArray
 import no.nav.emottak.util.marker
+import no.nav.emottak.util.signatur.SignatureException
 import no.nav.emottak.utils.common.parseOrGenerateUuid
 import no.nav.emottak.utils.kafka.model.EventDataType
 import no.nav.emottak.utils.kafka.model.EventType
@@ -44,9 +45,9 @@ class PayloadMessageService(
                 false -> processPayloadMessage(ebmsPayloadMessage)
             }
             returnAcknowledgment(ebmsPayloadMessage)
-        } catch (e: EbmsException) {
+        } catch (ex: EbmsException) {
             try {
-                returnMessageError(ebmsPayloadMessage, e)
+                returnMessageError(ebmsPayloadMessage, ex)
             } catch (ex: Exception) {
                 log.error(ebmsPayloadMessage.marker(), "Failed to return MessageError", ex)
                 failedMessageQueue.sendToRetry(
@@ -54,6 +55,12 @@ class PayloadMessageService(
                     reason = "Failed to return MessageError: ${ex.message ?: "Unknown error"}"
                 )
             }
+        } catch (ex: SignatureException) {
+            log.error(ebmsPayloadMessage.marker(), ex.message, ex)
+            failedMessageQueue.sendToRetry(
+                record = record,
+                reason = ex.message
+            )
         } catch (ex: Exception) {
             log.error(ebmsPayloadMessage.marker(), ex.message ?: "Unknown error", ex)
             failedMessageQueue.sendToRetry(
