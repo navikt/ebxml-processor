@@ -1,7 +1,6 @@
 package no.nav.emottak.ebms.async.processing
 
 import io.github.nomisRev.kafka.receiver.ReceiverRecord
-import io.ktor.client.plugins.ClientRequestException
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import no.nav.emottak.ebms.async.configuration.config
@@ -153,8 +152,8 @@ class PayloadMessageService(
     suspend fun isDuplicateMessage(ebmsPayloadMessage: PayloadMessage): Boolean {
         val duplicateEliminationStrategy = try {
             cpaValidationService.getDuplicateEliminationStrategy(ebmsPayloadMessage)
-        } catch (e: ClientRequestException) {
-            log.warn(ebmsPayloadMessage.marker(), "${e.response.status} received checking duplicate status", e)
+        } catch (e: Exception) {
+            log.warn(ebmsPayloadMessage.marker(), "Error checking duplicate status", e)
             return false
         }
 
