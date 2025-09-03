@@ -66,7 +66,7 @@ spec:
     - name: KEYSTORE_FILE_SIGN_2022
       value: /var/run/secrets/ebms-keystore-signering/signering-key.p12
     - name: KEYSTORE_FILE_SIGN_2025
-      value: /var/run/secrets/ebms-keystore-signering-2025/signering-key.p12
+      value: /var/run/secrets/ebms-signing-keystore-2025/nav_signing_test.p12
     - name: EMOTTAK_LOGGING_LEVEL
       value: DEBUG
     - name: CPA_REPO_URL
@@ -84,4 +84,4 @@ spec:
     - secret: ebms-keystore-signering
       mountPath: /var/run/secrets/ebms-keystore-signering
     - secret: ebms-keystore-sign-2025
-      mountPath: /var/run/secrets/ebms-keystore-signering-2025
+      mountPath: /var/run/secrets/ebms-signing-keystore-2025

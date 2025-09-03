@@ -79,9 +79,9 @@ spec:
     - name: KEYSTORE_FILE_SIGN_2022
       value: /var/run/secrets/ebms-signing-keystore/nav_signing_test.p12
     - name: KEYSTORE_FILE_DEKRYPT_2025
-      value: /var/run/secrets/ebms-signing-keystore-2025/nav_encryption_test.p12
+      value: /var/run/secrets/ebms-encryption-keystore-2025/nav_encryption_test.p12
     - name: KEYSTORE_FILE_SIGN_2025
-      value: /var/run/secrets/ebms-encryption-keystore-2025/nav_signing_test.p12
+      value: /var/run/secrets/ebms-signing-keystore-2025/nav_signing_test.p12
     - name: EMOTTAK_LOGGING_LEVEL
       value: DEBUG
     - name: TRUSTSTORE_PATH
