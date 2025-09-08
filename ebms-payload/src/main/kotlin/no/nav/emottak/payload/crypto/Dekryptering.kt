@@ -24,8 +24,13 @@ private fun dekrypteringConfig() =
             // Fixme burde egentlig hente fra dev vault context for å matche prod oppførsel
             listOf(
                 FileKeyStoreConfig(
-                    keyStoreFilePath = getEnvVar("KEYSTORE_FILE_DEKRYPT"),
+                    keyStoreFilePath = getEnvVar("KEYSTORE_FILE_DEKRYPT_2022"),
                     keyStorePass = getEnvVar("KEYSTORE_PWD").toCharArray(),
+                    keyStoreType = getEnvVar("KEYSTORE_TYPE", "PKCS12")
+                ),
+                FileKeyStoreConfig(
+                    keyStoreFilePath = getEnvVar("KEYSTORE_FILE_DEKRYPT_2025"),
+                    keyStorePass = getEnvVar("KEYSTORE_PWD_2025").toCharArray(),
                     keyStoreType = getEnvVar("KEYSTORE_TYPE", "PKCS12")
                 )
             )

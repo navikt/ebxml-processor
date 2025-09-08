@@ -63,16 +63,23 @@ spec:
   webproxy: true
   envFrom:
     - secret: ebms-payload-secret
+    - secret: ebms-keystore-pwd-2025
   filesFrom:
     - secret: ebms-payload-sign-keystore
       mountPath: /var/run/secrets/ebms-signing-keystore
     - secret: ebms-payload-enc-keystore
       mountPath: /var/run/secrets/ebms-encryption-keystore
+    - secret: ebms-keystore-2025
+      mountPath: /var/run/secrets/ebms-keystore-2025
   env:
-    - name: KEYSTORE_FILE_DEKRYPT
+    - name: KEYSTORE_FILE_DEKRYPT_2022
       value: /var/run/secrets/ebms-encryption-keystore/nav_encryption_test.p12
-    - name: KEYSTORE_FILE_SIGN
+    - name: KEYSTORE_FILE_SIGN_2022
       value: /var/run/secrets/ebms-signing-keystore/nav_signing_test.p12
+    - name: KEYSTORE_FILE_DEKRYPT_2025
+      value: /var/run/secrets/ebms-keystore-2025/nav_encryption_test.p12
+    - name: KEYSTORE_FILE_SIGN_2025
+      value: /var/run/secrets/ebms-keystore-2025/nav_signing_test.p12
     - name: EMOTTAK_LOGGING_LEVEL
       value: DEBUG
     - name: TRUSTSTORE_PATH
