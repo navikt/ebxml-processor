@@ -44,6 +44,7 @@ import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.marker
 import no.nav.emottak.utils.common.model.EbmsProcessing
 import no.nav.emottak.utils.environment.getEnvVar
+import no.nav.emottak.utils.kafka.model.EventDataType
 import no.nav.emottak.utils.kafka.model.EventType
 import no.nav.emottak.utils.serialization.toEventDataJson
 import no.nav.security.token.support.v3.TokenValidationContextPrincipal
@@ -241,7 +242,7 @@ fun Route.validateCpa(
         )
 
         val eventData = Json.encodeToString(
-            mapOf("sender" to fromParty.partyName)
+            mapOf(EventDataType.SENDER_NAME to fromParty.partyName)
         )
 
         eventRegistrationService.registerEvent(
