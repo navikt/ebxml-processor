@@ -112,15 +112,9 @@ class PayloadMessageService(
                         processingService.processAsync(ebmsPayloadMessage, it.payloadProcessing)
                     }
                     .let { (payloadMessage, direction) ->
-                        if (direction == Direction.OUT) payloadMessageForwardingService.returnMessageResponse(payloadMessage)
-                        when (val service = payloadMessage.addressing.service) {
-                            "HarBorgerFrikortMengde", "Inntektsforesporsel" -> {
-                                log.debug(payloadMessage.marker(), "Starting SendIn for $service")
-                                payloadMessageForwardingService.forwardMessageWithSyncResponse(payloadMessage)
-                            }
-                            else -> {
-                                log.debug(payloadMessage.marker(), "Skipping SendIn for $service")
-                            }
+                        when (direction) {
+                            Direction.IN -> payloadMessageForwardingService.forwardMessageWithSyncResponse(payloadMessage)
+                            Direction.OUT -> payloadMessageForwardingService.returnMessageResponse(payloadMessage)
                         }
                     }
             }

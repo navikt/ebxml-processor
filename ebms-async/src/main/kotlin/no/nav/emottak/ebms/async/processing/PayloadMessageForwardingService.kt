@@ -35,19 +35,27 @@ class PayloadMessageForwardingService(
 ) {
 
     suspend fun forwardMessageWithSyncResponse(payloadMessage: PayloadMessage) {
-        sendInService.sendIn(payloadMessage).let { sendInResponse ->
-            PayloadMessage(
-                requestId = sendInResponse.requestId,
-                messageId = Uuid.random().toString(),
-                conversationId = sendInResponse.conversationId,
-                cpaId = payloadMessage.cpaId,
-                addressing = sendInResponse.addressing,
-                payload = Payload(sendInResponse.payload, ContentType.Application.Xml.toString()),
-                refToMessageId = payloadMessage.messageId,
-                duplicateElimination = payloadMessage.duplicateElimination
-            )
-        }.let { payloadMessageResponse ->
-            returnMessageResponse(payloadMessageResponse)
+        when (val service = payloadMessage.addressing.service) {
+            "HarBorgerFrikortMengde", "Inntektsforesporsel" -> {
+                log.debug(payloadMessage.marker(), "Starting SendIn for $service")
+                sendInService.sendIn(payloadMessage).let { sendInResponse ->
+                    PayloadMessage(
+                        requestId = sendInResponse.requestId,
+                        messageId = Uuid.random().toString(),
+                        conversationId = sendInResponse.conversationId,
+                        cpaId = payloadMessage.cpaId,
+                        addressing = sendInResponse.addressing,
+                        payload = Payload(sendInResponse.payload, ContentType.Application.Xml.toString()),
+                        refToMessageId = payloadMessage.messageId,
+                        duplicateElimination = payloadMessage.duplicateElimination
+                    )
+                }.let { payloadMessageResponse ->
+                    returnMessageResponse(payloadMessageResponse)
+                }
+            }
+            else -> {
+                log.debug(payloadMessage.marker(), "Skipping SendIn for $service")
+            }
         }
     }
 
