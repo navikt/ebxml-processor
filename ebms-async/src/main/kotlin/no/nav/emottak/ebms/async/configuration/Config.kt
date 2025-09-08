@@ -4,6 +4,7 @@ import no.nav.emottak.config.KafkaPayloadProducer
 import no.nav.emottak.config.KafkaPayloadReceiver
 import no.nav.emottak.config.KafkaSignalProducer
 import no.nav.emottak.config.KafkaSignalReceiver
+import no.nav.emottak.util.KeyStoreConfiguration
 import no.nav.emottak.utils.config.EventLogging
 import no.nav.emottak.utils.config.Kafka
 import no.nav.emottak.utils.environment.getEnvVar
@@ -24,7 +25,8 @@ data class Config(
     val kafkaSignalProducer: KafkaSignalProducer,
     val kafkaPayloadReceiver: KafkaPayloadReceiver,
     val kafkaPayloadProducer: KafkaPayloadProducer,
-    val kafkaErrorQueue: KafkaErrorQueue
+    val kafkaErrorQueue: KafkaErrorQueue,
+    val signering: List<KeyStoreConfiguration>
 )
 
 data class KafkaErrorQueue(

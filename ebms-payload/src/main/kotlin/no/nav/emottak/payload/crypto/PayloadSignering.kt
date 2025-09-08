@@ -1,15 +1,11 @@
 package no.nav.emottak.payload.crypto
 
-import no.nav.emottak.crypto.FileKeyStoreConfig
 import no.nav.emottak.crypto.KeyStoreManager
-import no.nav.emottak.crypto.VaultKeyStoreConfig
 import no.nav.emottak.message.model.SignatureDetails
+import no.nav.emottak.payload.configuration.config
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.signatur.SignatureException
-import no.nav.emottak.utils.environment.getEnvVar
-import no.nav.emottak.utils.vault.parseVaultJsonObject
 import org.w3c.dom.Document
-import java.io.FileReader
 import java.security.cert.X509Certificate
 import javax.xml.crypto.dsig.Reference
 import javax.xml.crypto.dsig.SignedInfo
@@ -20,51 +16,10 @@ import javax.xml.crypto.dsig.dom.DOMSignContext
 import javax.xml.crypto.dsig.spec.C14NMethodParameterSpec
 import javax.xml.crypto.dsig.spec.TransformParameterSpec
 
-fun payloadSigneringConfig() =
-    when (getEnvVar("NAIS_CLUSTER_NAME", "local")) {
-        "dev-fss" ->
-            // Fixme burde egentlig hente fra dev vault context for å matche prod oppførsel
-            listOf(
-                FileKeyStoreConfig(
-                    keyStoreFilePath = getEnvVar("KEYSTORE_FILE_SIGN_2022"),
-                    keyStorePass = getEnvVar("KEYSTORE_PWD").toCharArray(),
-                    keyStoreType = getEnvVar("KEYSTORE_TYPE", "PKCS12")
-                ),
-                FileKeyStoreConfig(
-                    keyStoreFilePath = getEnvVar("KEYSTORE_FILE_SIGN_2025"),
-                    keyStorePass = getEnvVar("KEYSTORE_PWD_2025").toCharArray(),
-                    keyStoreType = getEnvVar("KEYSTORE_TYPE", "PKCS12")
-                )
-            )
-        "prod-fss" ->
-            listOf(
-                VaultKeyStoreConfig(
-                    keyStoreVaultPath = getEnvVar("VIRKSOMHETSSERTIFIKAT_PATH"),
-                    keyStoreFileResource = getEnvVar("VIRKSOMHETSSERTIFIKAT_SIGNERING_2022"),
-                    keyStorePassResource = getEnvVar("VIRKSOMHETSSERTIFIKAT_CREDENTIALS_2022")
-                ),
-                VaultKeyStoreConfig(
-                    keyStoreVaultPath = getEnvVar("VIRKSOMHETSSERTIFIKAT_PATH"),
-                    keyStoreFileResource = getEnvVar("VIRKSOMHETSSERTIFIKAT_SIGNERING_2025"),
-                    keyStorePassResource = getEnvVar("VIRKSOMHETSSERTIFIKAT_CREDENTIALS_2025")
-                )
-            )
-        else ->
-            listOf(
-                FileKeyStoreConfig(
-                    keyStoreFilePath = getEnvVar("KEYSTORE_FILE_SIGN", "keystore/test_keystore2024.p12"),
-                    keyStorePass = FileReader(
-                        getEnvVar(
-                            "KEYSTORE_PWD_FILE",
-                            FileKeyStoreConfig::class.java.classLoader.getResource("keystore/credentials-test.json")?.path.toString()
-                        )
-                    ).readText().parseVaultJsonObject("password").toCharArray(),
-                    keyStoreType = getEnvVar("KEYSTORE_TYPE", "PKCS12")
-                )
-            )
-    }
-
-class PayloadSignering(private val keyStore: KeyStoreManager = KeyStoreManager(*payloadSigneringConfig().toTypedArray())) {
+class PayloadSignering(
+    private val keyStore: KeyStoreManager =
+        KeyStoreManager(*config().signering.map { it.resolveKeyStoreConfiguration() }.toTypedArray())
+) {
 
     private val digestAlgorithm: String = "http://www.w3.org/2001/04/xmlenc#sha256"
     private val canonicalizationMethod: String = "http://www.w3.org/TR/2001/REC-xml-c14n-20010315"
