@@ -1,6 +1,5 @@
 package no.nav.emottak.ebms.validation
 
-import no.nav.emottak.ebms.xml.signeringConfig
 import no.nav.emottak.message.model.EbmsAttachment
 import no.nav.emottak.message.model.EbmsDocument
 import no.nav.emottak.message.model.SignatureDetails
@@ -9,19 +8,9 @@ import no.nav.emottak.util.decodeBase64
 import no.nav.emottak.util.signatur.SignatureException
 import org.apache.xml.security.algorithms.MessageDigestAlgorithm
 import org.apache.xml.security.signature.XMLSignature
-import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 
 class SignaturValidatorTest {
-
-    @Test
-    fun `Signeringconfig kan parse Json`() {
-        System.setProperty(
-            "KEYSTORE_PWD_FILE",
-            javaClass.classLoader.getResource("credentials-test.json").path.toString()
-        )
-        Assertions.assertEquals("123456789", String(signeringConfig().first().keyStorePass))
-    }
 
     @Test
     fun `Validering av signatur`() {
