@@ -17,6 +17,7 @@ import no.nav.emottak.ebms.eventmanager.EventManagerService
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.validation.CPAValidationService
+import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.EbMSDocument
 import no.nav.emottak.message.model.EbmsAttachment
 import no.nav.emottak.message.model.PayloadMessage
@@ -87,7 +88,7 @@ class PayloadMessageServiceTest {
         coEvery { eventManagerService.isDuplicateMessage(payloadMessage) } returns false
         coEvery { cpaValidationService.validateIncomingMessage(payloadMessage) } returns mockk<ValidationResult>(relaxed = true)
         coEvery { cpaValidationService.validateOutgoingMessage(any()) } returns mockk(relaxed = true)
-        coEvery { processingService.processAsync(any(), any()) } returns payloadMessage
+        coEvery { processingService.processAsync(any(), any()) } returns Pair(payloadMessage, Direction.IN)
         coEvery { payloadMessageForwardingService.forwardMessageWithSyncResponse(any()) } just Runs
 
         service.process(mockk<ReceiverRecord<String, ByteArray>>(), payloadMessage)
