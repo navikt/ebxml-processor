@@ -18,6 +18,7 @@ import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.melding.feil.EbmsException
 import no.nav.emottak.message.model.Acknowledgment
+import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.EbMSDocument
 import no.nav.emottak.message.model.EbmsMessage
 import no.nav.emottak.message.model.EmailAddress
@@ -110,16 +111,10 @@ class PayloadMessageService(
                     .let {
                         processingService.processAsync(ebmsPayloadMessage, it.payloadProcessing)
                     }
-                    .let {
-                        when (val service = it.addressing.service) {
-                            "HarBorgerFrikortMengde", "Inntektsforesporsel" -> {
-                                log.debug(it.marker(), "Starting SendIn for $service")
-                                payloadMessageForwardingService.forwardMessageWithSyncResponse(it)
-                            }
-
-                            else -> {
-                                log.debug(it.marker(), "Skipping SendIn for $service")
-                            }
+                    .let { (payloadMessage, direction) ->
+                        when (direction) {
+                            Direction.IN -> payloadMessageForwardingService.forwardMessageWithSyncResponse(payloadMessage)
+                            Direction.OUT -> payloadMessageForwardingService.returnMessageResponse(payloadMessage)
                         }
                     }
             }

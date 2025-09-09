@@ -54,7 +54,7 @@ class ProcessingService(private val httpClient: PayloadProcessingClient) {
                     return Pair(
                         payloadMessage.convertToErrorActionMessage(
                             clientRequestException.retrieveReturnableApprecResponse(direction).processedPayload!!,
-                            payloadProcessing.processConfig!!.errorAction!!
+                            payloadProcessing.processConfig.errorAction!!
                         ),
                         Direction.OUT
                     )
@@ -97,9 +97,9 @@ class ProcessingService(private val httpClient: PayloadProcessingClient) {
         }
     }
 
-    suspend fun processAsync(payloadMessage: PayloadMessage, payloadProcessing: PayloadProcessing?): PayloadMessage {
+    suspend fun processAsync(payloadMessage: PayloadMessage, payloadProcessing: PayloadProcessing?): Pair<PayloadMessage, Direction> {
         if (payloadProcessing == null) throw Exception("Processing information is missing for ${payloadMessage.messageId}")
-        return processMessage(payloadMessage, payloadProcessing, Direction.IN, payloadMessage.addressing).first
+        return processMessage(payloadMessage, payloadProcessing, Direction.IN, payloadMessage.addressing)
     }
 }
 
