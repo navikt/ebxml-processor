@@ -34,22 +34,7 @@ data class EbMSDocument(val requestId: String, val dokument: Document, val attac
 
     private val envelope = lazy { xmlMarshaller.unmarshal(this.dokument) as Envelope }
 
-    fun dokumentType(): DokumentType {
-        if (dokument.getElementsByTagNameNS(OASIS_EBXML_MSG_HEADER_XSD_NS_URI, "Acknowledgment")
-            .item(0) != null
-        ) {
-            return DokumentType.ACKNOWLEDGMENT
-        }
-
-        if (attachments.isNotEmpty()) return DokumentType.PAYLOAD
-
-        if (dokument.getElementsByTagNameNS(OASIS_EBXML_MSG_HEADER_XSD_NS_URI, "ErrorList")
-            .item(0) != null
-        ) {
-            return DokumentType.MESSAGE_ERROR
-        }
-        throw RuntimeException("Unrecognized dokument type")
-    }
+    fun dokumentType(): DokumentType = dokument.dokumentType()
 
     fun messageHeader(): MessageHeader {
         val node: Node =
@@ -112,4 +97,22 @@ data class EbMSDocument(val requestId: String, val dokument: Document, val attac
 
 enum class DokumentType {
     PAYLOAD, ACKNOWLEDGMENT, MESSAGE_ERROR, STATUS, PING
+}
+
+fun Document.dokumentType(): DokumentType {
+    if (this.getElementsByTagNameNS(OASIS_EBXML_MSG_HEADER_XSD_NS_URI, "MessageHeader").length == 0) {
+        throw RuntimeException("Message does not contain ebXML message header")
+    }
+
+    return if (this.getElementsByTagNameNS(OASIS_EBXML_MSG_HEADER_XSD_NS_URI, "Acknowledgment")
+        .item(0) != null
+    ) {
+        DokumentType.ACKNOWLEDGMENT
+    } else if (this.getElementsByTagNameNS(OASIS_EBXML_MSG_HEADER_XSD_NS_URI, "ErrorList")
+        .item(0) != null
+    ) {
+        DokumentType.MESSAGE_ERROR
+    } else {
+        DokumentType.PAYLOAD
+    }
 }
