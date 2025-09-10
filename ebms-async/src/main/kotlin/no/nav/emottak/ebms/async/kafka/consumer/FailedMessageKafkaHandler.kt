@@ -90,7 +90,7 @@ class FailedMessageKafkaHandler(
     }
 
     suspend fun consumeRetryQueue( // TODO refine retry logic
-        messageService: MessageFilterService,
+        messageFilterService: MessageFilterService,
         limit: Int = 10 // TODO default limit to offset
     ) {
         // TODO DefaultKafkaReceiver is too constrainted so need own impl for custom logic
@@ -124,7 +124,7 @@ class FailedMessageKafkaHandler(
                             String(record.headers().lastHeader(RETRY_AFTER).value())
                         )
                         if (DateTime.now().isAfter(retryableAfter)) {
-                            messageService.filterMessage(record)
+                            messageFilterService.filterMessage(record)
                         } else {
                             logger.info("${record.key()} is not retryable yet.")
                             failedMessageQueue.sendToRetry(record)

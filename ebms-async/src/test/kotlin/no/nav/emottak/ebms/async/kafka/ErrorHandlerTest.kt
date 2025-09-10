@@ -33,10 +33,10 @@ class ErrorHandlerTest {
             val errorHandler = FailedMessageKafkaHandler(
                 kafka = testcontainerKafkaConfig
             )
-            val messageService = mockk<MessageFilterService>()
+            val messageFilterService = mockk<MessageFilterService>()
             val processedMessages = ArrayList<ReceiverRecord<String, ByteArray>>()
             coEvery {
-                messageService.filterMessage(any())
+                messageFilterService.filterMessage(any())
             } coAnswers { processedMessages.add(firstArg<ReceiverRecord<String, ByteArray>>()) }
 
             errorHandler
@@ -45,7 +45,7 @@ class ErrorHandlerTest {
                         .asReceiverRecord()
                 )
             launch {
-                errorHandler.consumeRetryQueue(messageService)
+                errorHandler.consumeRetryQueue(messageFilterService)
             }.join()
             val writtenRecord = getRecord(config().kafkaErrorQueue.topic, testcontainerKafkaConfig, 0, 1)
             assert(writtenRecord?.key() == "test-message")
