@@ -76,49 +76,41 @@ class PayloadMessageService(
     ) {
         log.info(ebmsPayloadMessage.marker(), "Got payload message with reference <${ebmsPayloadMessage.requestId}>")
         eventRegistrationService.registerEventMessageDetails(ebmsPayloadMessage)
-        cpaValidationService.validateIncomingMessage(ebmsPayloadMessage).let { validationResult ->
-            processingService
-                .processAsync(ebmsPayloadMessage, validationResult.payloadProcessing)
-                .let { (payloadMessage, direction) ->
-                    when (direction) {
-                        Direction.IN -> payloadMessageForwardingService.forwardMessageWithSyncResponse(payloadMessage)
-                        Direction.OUT -> payloadMessageForwardingService.returnMessageResponse(payloadMessage)
-                    }
-                }
+        val validationResult = cpaValidationService.validateIncomingMessage(ebmsPayloadMessage)
+        val (processedPayload, direction) = processingService.processAsync(ebmsPayloadMessage, validationResult.payloadProcessing)
+        when (direction) {
+            Direction.IN -> payloadMessageForwardingService.forwardMessageWithSyncResponse(processedPayload)
+            Direction.OUT -> payloadMessageForwardingService.returnMessageResponse(processedPayload)
         }
     }
 
     private suspend fun returnAcknowledgment(ebmsPayloadMessage: PayloadMessage) {
-        ebmsPayloadMessage
-            .createAcknowledgment()
-            .also {
-                eventRegistrationService.registerEventMessageDetails(it)
-                val validationResult = cpaValidationService.validateOutgoingMessage(it)
-                sendResponseToTopic(
-                    it.toEbmsDokument().signer(validationResult.payloadProcessing!!.signingCertificate),
-                    validationResult.receiverEmailAddress
-                )
-                log.info(it.marker(), "Acknowledgment returned")
-            }
+        val acknowledgment = ebmsPayloadMessage.createAcknowledgment().also {
+            eventRegistrationService.registerEventMessageDetails(it)
+        }
+        val validationResult = cpaValidationService.validateOutgoingMessage(acknowledgment)
+        sendResponseToTopic(
+            acknowledgment.toEbmsDokument().signer(validationResult.payloadProcessing!!.signingCertificate),
+            validationResult.signalEmailAddress
+        )
+        log.info(acknowledgment.marker(), "Acknowledgment returned")
     }
 
     private suspend fun returnMessageError(ebmsPayloadMessage: PayloadMessage, ebmsException: EbmsException) {
-        ebmsPayloadMessage
-            .createMessageError(ebmsException.feil)
-            .also {
-                eventRegistrationService.registerEventMessageDetails(it)
-                val validationResult = cpaValidationService.validateOutgoingMessage(it)
-                val signingCertificate = validationResult.payloadProcessing?.signingCertificate
-                if (signingCertificate == null) {
-                    log.warn(it.marker(), "Could not find signing certificate for outgoing MessageError")
-                } else {
-                    sendResponseToTopic(
-                        it.toEbmsDokument().signer(signingCertificate),
-                        validationResult.signalEmailAddress
-                    )
-                    log.warn(it.marker(), "MessageError returned", ebmsException)
-                }
-            }
+        val messageError = ebmsPayloadMessage.createMessageError(ebmsException.feil).also {
+            eventRegistrationService.registerEventMessageDetails(it)
+        }
+        val validationResult = cpaValidationService.validateOutgoingMessage(messageError)
+        val signingCertificate = validationResult.payloadProcessing?.signingCertificate
+        if (signingCertificate == null) {
+            log.warn(messageError.marker(), "Could not find signing certificate for outgoing MessageError")
+        } else {
+            sendResponseToTopic(
+                messageError.toEbmsDokument().signer(signingCertificate),
+                validationResult.signalEmailAddress
+            )
+            log.warn(messageError.marker(), "MessageError returned", ebmsException)
+        }
     }
 
     private suspend fun sendResponseToTopic(ebMSDocument: EbMSDocument, signalResponderEmails: List<EmailAddress>) {
