@@ -8,6 +8,6 @@ import no.nav.emottak.message.model.log
 import no.nav.emottak.util.marker
 
 fun EbmsMessage.validateSignature(signatureDetails: SignatureDetails) {
-    SignaturValidator.validate(signatureDetails, this.dokument!!, if (this is PayloadMessage) listOf(this.payload) else listOf())
+    SignaturValidator.validate(signatureDetails, this.document!!, if (this is PayloadMessage) listOf(this.payload) else listOf())
     log.info(this.marker(), "Signatur OK")
 }

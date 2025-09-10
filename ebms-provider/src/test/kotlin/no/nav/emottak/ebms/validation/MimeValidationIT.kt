@@ -74,7 +74,7 @@ class MimeValidationIT {
     }
 
     @Test
-    fun `Sending unparsable xml as dokument should Soap Fault`() = mimeTestApp {
+    fun `Sending unparsable xml as document should Soap Fault`() = mimeTestApp {
         val illegalContent = validMultipartRequest.modify(validMultipartRequest.parts.first() to validMultipartRequest.parts.first().payload("Illegal payload"))
 
         val response = client.post("/ebms/sync", illegalContent.asHttpRequest())

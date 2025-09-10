@@ -17,7 +17,7 @@ import no.nav.emottak.ebms.validation.parseAsSoapFault
 import no.nav.emottak.ebms.validation.validateMime
 import no.nav.emottak.melding.feil.EbmsException
 import no.nav.emottak.message.model.Direction
-import no.nav.emottak.message.model.EbMSDocument
+import no.nav.emottak.message.model.EbmsDocument
 import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.model.PayloadProcessing
@@ -36,17 +36,17 @@ fun Route.postEbmsSync(
 ): Route = post("/ebms/sync") {
     log.info("Receiving synchronous request")
 
-    val ebMSDocument: EbMSDocument
+    val ebmsDocument: EbmsDocument
     val loggableHeaders = call.request.headers.retrieveLoggableHeaderPairs()
     try {
         call.request.validateMime()
-        ebMSDocument = call.receiveEbmsDokument()
-        log.info(ebMSDocument.messageHeader().marker(loggableHeaders), "Melding mottatt")
+        ebmsDocument = call.receiveEbmsDokument()
+        log.info(ebmsDocument.messageHeader().marker(loggableHeaders), "Melding mottatt")
 
-        eventRegistrationService.registerEventMessageDetails(ebMSDocument)
+        eventRegistrationService.registerEventMessageDetails(ebmsDocument)
         eventRegistrationService.registerEvent(
             EventType.MESSAGE_RECEIVED_VIA_HTTP,
-            ebMSDocument
+            ebmsDocument
         )
     } catch (ex: MimeValidationException) {
         logger().error(
@@ -70,7 +70,7 @@ fun Route.postEbmsSync(
         return@post
     }
 
-    val ebmsMessage = ebMSDocument.transform() as PayloadMessage
+    val ebmsMessage = ebmsDocument.transform() as PayloadMessage
 
     var signingCertificate: SignatureDetails? = null
     try {
@@ -109,9 +109,9 @@ fun Route.postEbmsSync(
                     processingService.proccessSyncOut(messageProcessing.first, messageProcessing.second)
                 Pair<PayloadMessage, PayloadProcessing?>(processedMessage, messageProcessing.second)
             }.let {
-                val ebMSDocument = it.first.toEbmsDokument()
+                val ebmsDocument = it.first.toEbmsDokument()
                 call.respondEbmsDokument(
-                    ebMSDocument.also { ebmsDocument ->
+                    ebmsDocument.also { ebmsDocument ->
                         ebmsDocument.signer(it.second!!.signingCertificate)
                     }
                 )
@@ -132,7 +132,7 @@ fun Route.postEbmsSync(
 
             eventRegistrationService.registerEvent(
                 EventType.ERROR_WHILE_SENDING_MESSAGE_VIA_HTTP,
-                ebMSDocument,
+                ebmsDocument,
                 ebmsException.toEventDataJson()
             )
 
@@ -144,7 +144,7 @@ fun Route.postEbmsSync(
 
         eventRegistrationService.registerEvent(
             EventType.ERROR_WHILE_SENDING_MESSAGE_VIA_HTTP,
-            ebMSDocument,
+            ebmsDocument,
             ex.toEventDataJson()
         )
 
