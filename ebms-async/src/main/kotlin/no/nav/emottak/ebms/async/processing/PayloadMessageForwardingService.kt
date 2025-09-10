@@ -14,7 +14,7 @@ import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.message.model.AsyncPayload
-import no.nav.emottak.message.model.EbMSDocument
+import no.nav.emottak.message.model.EbmsDocument
 import no.nav.emottak.message.model.EmailAddress
 import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadMessage
@@ -102,7 +102,7 @@ class PayloadMessageForwardingService(
         }
     }
 
-    private suspend fun sendResponseToTopic(signedEbmsDocument: EbMSDocument, receiverEmailAddress: List<EmailAddress>) {
+    private suspend fun sendResponseToTopic(signedEbmsDocument: EbmsDocument, receiverEmailAddress: List<EmailAddress>) {
         eventRegistrationService.runWithEvent(
             successEvent = EventType.MESSAGE_PLACED_IN_QUEUE,
             failEvent = EventType.ERROR_WHILE_STORING_MESSAGE_IN_QUEUE,
@@ -114,7 +114,7 @@ class PayloadMessageForwardingService(
         ) {
             ebmsPayloadProducer.publishMessage(
                 key = signedEbmsDocument.requestId,
-                value = signedEbmsDocument.dokument.asByteArray(),
+                value = signedEbmsDocument.document.asByteArray(),
                 headers = receiverEmailAddress.toKafkaHeaders() + signedEbmsDocument.messageHeader().toKafkaHeaders()
             )
         }

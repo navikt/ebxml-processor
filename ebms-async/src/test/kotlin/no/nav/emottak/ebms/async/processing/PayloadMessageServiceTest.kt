@@ -18,8 +18,8 @@ import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.message.model.Direction
-import no.nav.emottak.message.model.EbMSDocument
 import no.nav.emottak.message.model.EbmsAttachment
+import no.nav.emottak.message.model.EbmsDocument
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.utils.common.model.Addressing
@@ -59,9 +59,9 @@ class PayloadMessageServiceTest {
             eventManagerService
         )
 
-        mockkStatic(EbMSDocument::signer)
+        mockkStatic(EbmsDocument::signer)
         every {
-            any<EbMSDocument>().signer(any())
+            any<EbmsDocument>().signer(any())
         } returnsArgument(0)
     }
 
@@ -154,7 +154,7 @@ fun createPayloadMessage() = PayloadMessage(
         bytes = byteArrayOf(),
         contentType = ""
     ),
-    dokument = null,
+    document = null,
     refToMessageId = null,
     duplicateElimination = true
 )

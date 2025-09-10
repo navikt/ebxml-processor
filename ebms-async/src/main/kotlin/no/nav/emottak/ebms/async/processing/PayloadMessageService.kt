@@ -15,7 +15,7 @@ import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.melding.feil.EbmsException
 import no.nav.emottak.message.model.Direction
-import no.nav.emottak.message.model.EbMSDocument
+import no.nav.emottak.message.model.EbmsDocument
 import no.nav.emottak.message.model.EmailAddress
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.xml.asByteArray
@@ -110,23 +110,23 @@ class PayloadMessageService(
         }
     }
 
-    private suspend fun sendResponseToTopic(ebMSDocument: EbMSDocument, signalResponderEmails: List<EmailAddress>) {
+    private suspend fun sendResponseToTopic(ebmsDocument: EbmsDocument, signalResponderEmails: List<EmailAddress>) {
         if (config().kafkaSignalProducer.active) {
-            val messageHeader = ebMSDocument.messageHeader()
+            val messageHeader = ebmsDocument.messageHeader()
             try {
                 log.info(messageHeader.marker(), "Sending message to Kafka queue")
                 eventRegistrationService.runWithEvent(
                     successEvent = EventType.MESSAGE_PLACED_IN_QUEUE,
                     failEvent = EventType.ERROR_WHILE_STORING_MESSAGE_IN_QUEUE,
-                    requestId = ebMSDocument.requestId.parseOrGenerateUuid(),
-                    messageId = ebMSDocument.messageHeader().messageData.messageId ?: "",
+                    requestId = ebmsDocument.requestId.parseOrGenerateUuid(),
+                    messageId = ebmsDocument.messageHeader().messageData.messageId ?: "",
                     eventData = Json.encodeToString(
                         mapOf(EventDataType.QUEUE_NAME.value to config().kafkaSignalProducer.topic)
                     )
                 ) {
                     ebmsSignalProducer.publishMessage(
-                        key = ebMSDocument.requestId,
-                        value = ebMSDocument.dokument.asByteArray(),
+                        key = ebmsDocument.requestId,
+                        value = ebmsDocument.document.asByteArray(),
                         headers = signalResponderEmails.toKafkaHeaders() + messageHeader.toKafkaHeaders()
                     )
                 }

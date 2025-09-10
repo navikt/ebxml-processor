@@ -11,11 +11,11 @@ data class Acknowledgment(
     override val conversationId: String,
     override val cpaId: String,
     override val addressing: Addressing,
-    override val dokument: Document? = null,
+    override val document: Document? = null,
     override val sentAt: Instant? = null
 ) : EbmsMessage() {
 
-    override fun toEbmsDokument(): EbMSDocument {
+    override fun toEbmsDokument(): EbmsDocument {
         return createEbmsDocument(createMessageHeader(withAcknowledgmentElement = true))
     }
 }

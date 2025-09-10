@@ -26,9 +26,9 @@ import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.validation.MimeHeaders
 import no.nav.emottak.ebms.validation.MimeValidationException
 import no.nav.emottak.ebms.validation.validateMimeSoapEnvelope
-import no.nav.emottak.message.model.DokumentType
-import no.nav.emottak.message.model.EbMSDocument
+import no.nav.emottak.message.model.DocumentType
 import no.nav.emottak.message.model.EbmsAttachment
+import no.nav.emottak.message.model.EbmsDocument
 import no.nav.emottak.message.util.createUniqueMimeMessageId
 import no.nav.emottak.message.xml.asByteArray
 import no.nav.emottak.message.xml.asString
@@ -72,7 +72,7 @@ fun Headers.actuallyUsefulToString(): String {
 }
 
 @Throws(MimeValidationException::class)
-suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
+suspend fun ApplicationCall.receiveEbmsDokument(): EbmsDocument {
     log.info("Parsing message with Message-Id: ${request.header(SMTPHeaders.MESSAGE_ID)}")
     return when (val contentType = this.request.contentType().withoutParameters()) {
         ContentType.parse("multipart/related") -> {
@@ -103,7 +103,7 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
             }
             if (ebmsEnvelope == null) throw MimeValidationException("Failed to extract soap envelope from multipartdata")
             ebmsEnvelopeHeaders.validateMimeSoapEnvelope()
-            EbMSDocument(
+            EbmsDocument(
                 ebmsEnvelope.first.parseOrGenerateUuid().toString(),
                 withContext(Dispatchers.IO) {
                     getDocumentBuilder().parse(ByteArrayInputStream(ebmsEnvelope!!.second))
@@ -113,7 +113,7 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
         }
 
         ContentType.parse("text/xml") -> {
-            val dokument = withContext(Dispatchers.IO) {
+            val document = withContext(Dispatchers.IO) {
                 if ("base64" == request.header(MimeHeaders.CONTENT_TRANSFER_ENCODING)?.lowercase()) {
                     Base64.getMimeDecoder().decode(this@receiveEbmsDokument.receive<ByteArray>())
                 } else {
@@ -121,9 +121,9 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbMSDocument {
                 }
             }
             val contentId = this.request.headers[MimeHeaders.CONTENT_ID]!!.convertToValidatedContentID()
-            EbMSDocument(
+            EbmsDocument(
                 contentId.parseOrGenerateUuid().toString(),
-                getDocumentBuilder().parse(ByteArrayInputStream(dokument)),
+                getDocumentBuilder().parse(ByteArrayInputStream(document)),
                 emptyList()
             )
         }
@@ -138,16 +138,16 @@ private fun String.convertToValidatedContentID(): String {
     return Regex("""<(.*?)>""").find(this)?.groups?.get(1)?.value ?: this
 }
 
-suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbMSDocument) {
-    if (ebmsDokument.dokumentType() == DokumentType.ACKNOWLEDGMENT) {
+suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbmsDocument) {
+    if (ebmsDokument.documentType() == DocumentType.ACKNOWLEDGMENT) {
         log.info("Successfuly processed Payload Message")
     }
 
     this.response.headers.apply {
         this.append(MimeHeaders.SOAP_ACTION, "ebXML")
     }
-    if (ebmsDokument.dokumentType() == DokumentType.PAYLOAD) {
-        val ebxml = Base64.getMimeEncoder().encodeToString(ebmsDokument.dokument.asByteArray())
+    if (ebmsDokument.documentType() == DocumentType.PAYLOAD) {
+        val ebxml = Base64.getMimeEncoder().encodeToString(ebmsDokument.document.asByteArray())
         val contentId = createUniqueMimeMessageId()
         val ebxmlFormItem = PartData.FormItem(
             ebxml,
@@ -186,6 +186,6 @@ suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbMSDocument) {
     } else {
         this.response.headers.append(MimeHeaders.CONTENT_TYPE, ContentType.Text.Xml.toString())
         this.response.headers.append(MimeHeaders.CONTENT_TRANSFER_ENCODING, "8bit")
-        this.respondText(status = HttpStatusCode.OK, text = ebmsDokument.dokument.asString())
+        this.respondText(status = HttpStatusCode.OK, text = ebmsDokument.document.asString())
     }
 }

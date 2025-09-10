@@ -6,8 +6,8 @@ import no.nav.emottak.crypto.KeyStoreManager
 import no.nav.emottak.crypto.VaultKeyStoreConfig
 import no.nav.emottak.ebms.validation.CID_PREFIX
 import no.nav.emottak.ebms.validation.EbMSAttachmentResolver
-import no.nav.emottak.message.model.EbMSDocument
 import no.nav.emottak.message.model.EbmsAttachment
+import no.nav.emottak.message.model.EbmsDocument
 import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.getFirstChildElement
@@ -68,18 +68,18 @@ fun signeringConfig() =
             )
     }
 
-val ebMSSigning = EbMSSigning()
+val ebmsSigning = EbmsSigning()
 
-class EbMSSigning(private val keyStore: KeyStoreManager = KeyStoreManager(*signeringConfig().toTypedArray())) {
+class EbmsSigning(private val keyStore: KeyStoreManager = KeyStoreManager(*signeringConfig().toTypedArray())) {
 
     private val canonicalizationMethodAlgorithm = Transforms.TRANSFORM_C14N_OMIT_COMMENTS
     private val SOAP_ENVELOPE = SOAPConstants.URI_NS_SOAP_1_1_ENVELOPE
     private val SOAP_NEXT_ACTOR = SOAPConstants.URI_SOAP_ACTOR_NEXT
 
-    fun sign(ebMSDocument: EbMSDocument, signatureDetails: SignatureDetails) {
+    fun sign(ebmsDocument: EbmsDocument, signatureDetails: SignatureDetails) {
         sign(
-            document = ebMSDocument.dokument,
-            attachments = ebMSDocument.attachments,
+            document = ebmsDocument.document,
+            attachments = ebmsDocument.attachments,
             publicCertificate = createX509Certificate(signatureDetails.certificate),
             signatureAlgorithm = signatureDetails.signatureAlgorithm,
             hashFunction = signatureDetails.hashFunction

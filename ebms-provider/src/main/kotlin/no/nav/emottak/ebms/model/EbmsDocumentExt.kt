@@ -1,13 +1,13 @@
 package no.nav.emottak.ebms.model
 
-import no.nav.emottak.ebms.xml.ebMSSigning
-import no.nav.emottak.message.model.EbMSDocument
+import no.nav.emottak.ebms.xml.ebmsSigning
+import no.nav.emottak.message.model.EbmsDocument
 import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.util.signatur.SignatureException
 
-fun EbMSDocument.signer(signatureDetails: SignatureDetails): EbMSDocument =
+fun EbmsDocument.signer(signatureDetails: SignatureDetails): EbmsDocument =
     try {
-        ebMSSigning.sign(this, signatureDetails)
+        ebmsSigning.sign(this, signatureDetails)
         this
     } catch (e: Exception) {
         throw SignatureException("Error signing outgoing ebXML envelope", e)

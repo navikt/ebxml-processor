@@ -7,7 +7,7 @@ import kotlinx.coroutines.runBlocking
 import no.nav.emottak.ebms.async.util.EventRegistrationServiceFake
 import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.message.model.Acknowledgment
-import no.nav.emottak.message.model.EbMSDocument
+import no.nav.emottak.message.model.EbmsDocument
 import no.nav.emottak.message.model.MessageError
 import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.xml.createDocument
@@ -30,9 +30,9 @@ class SignalMessageServiceTest {
         }
 
         val requestId = Uuid.random().toString()
-        val acknowledgment = EbMSDocument(
+        val acknowledgment = EbmsDocument(
             requestId = requestId,
-            dokument = document,
+            document = document,
             attachments = emptyList()
         ).transform() as Acknowledgment
 
@@ -54,9 +54,9 @@ class SignalMessageServiceTest {
         }
 
         val requestId = Uuid.random().toString()
-        val messageError = EbMSDocument(
+        val messageError = EbmsDocument(
             requestId = requestId,
-            dokument = document,
+            document = document,
             attachments = emptyList()
         ).transform() as MessageError
 
@@ -78,9 +78,9 @@ class SignalMessageServiceTest {
         }
 
         val requestId = Uuid.random().toString()
-        val ebmsMessage = EbMSDocument(
+        val ebmsMessage = EbmsDocument(
             requestId = requestId,
-            dokument = document,
+            document = document,
             attachments = listOf(mockk<Payload>())
         ).transform()
 
