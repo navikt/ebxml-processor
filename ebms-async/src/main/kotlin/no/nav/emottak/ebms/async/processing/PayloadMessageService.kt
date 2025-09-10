@@ -39,35 +39,32 @@ class PayloadMessageService(
         record: ReceiverRecord<String, ByteArray>,
         ebmsPayloadMessage: PayloadMessage
     ) {
-        try {
+        runCatching {
             when (isDuplicateMessage(ebmsPayloadMessage)) {
                 true -> log.info(ebmsPayloadMessage.marker(), "Got duplicate payload message with reference <${ebmsPayloadMessage.requestId}>")
                 false -> processPayloadMessage(ebmsPayloadMessage)
             }
             returnAcknowledgment(ebmsPayloadMessage)
-        } catch (ex: EbmsException) {
-            try {
-                returnMessageError(ebmsPayloadMessage, ex)
-            } catch (ex: Exception) {
-                log.error(ebmsPayloadMessage.marker(), "Failed to return MessageError", ex)
-                failedMessageQueue.sendToRetry(
-                    record = record,
-                    reason = "Failed to return MessageError: ${ex.message ?: "Unknown error"}"
-                )
+        }.onFailure { exception ->
+            when (exception) {
+                is EbmsException -> {
+                    runCatching {
+                        returnMessageError(ebmsPayloadMessage, exception)
+                    }.onFailure {
+                        log.error(ebmsPayloadMessage.marker(), "Failed to return MessageError", exception)
+                        sendToRetry(record = record, exceptionReason = "Failed to return MessageError: ${exception.message ?: "Unknown error"}")
+                    }
+                }
+                is SignatureException -> {
+                    log.error(ebmsPayloadMessage.marker(), exception.message, exception)
+                    sendToRetry(record = record, exceptionReason = exception.message)
+                }
+                else -> {
+                    log.error(ebmsPayloadMessage.marker(), exception.message ?: "Unknown error", exception)
+                    sendToRetry(record = record, exceptionReason = exception.message ?: "Unknown error")
+                    throw exception
+                }
             }
-        } catch (ex: SignatureException) {
-            log.error(ebmsPayloadMessage.marker(), ex.message, ex)
-            failedMessageQueue.sendToRetry(
-                record = record,
-                reason = ex.message
-            )
-        } catch (ex: Exception) {
-            log.error(ebmsPayloadMessage.marker(), ex.message ?: "Unknown error", ex)
-            failedMessageQueue.sendToRetry(
-                record = record,
-                reason = ex.message ?: "Unknown error"
-            )
-            throw ex
         }
     }
 
@@ -137,6 +134,16 @@ class PayloadMessageService(
                 log.error(messageHeader.marker(), "Exception occurred while sending message to Kafka queue", e)
             }
         }
+    }
+
+    private suspend fun sendToRetry(
+        record: ReceiverRecord<String, ByteArray>,
+        exceptionReason: String
+    ) {
+        failedMessageQueue.sendToRetry(
+            record = record,
+            reason = exceptionReason
+        )
     }
 
     suspend fun isDuplicateMessage(ebmsPayloadMessage: PayloadMessage): Boolean {
