@@ -2,6 +2,7 @@ package no.nav.emottak.ebms.util
 
 import no.nav.emottak.ebms.log
 import no.nav.emottak.message.model.EbMSDocument
+import no.nav.emottak.message.model.EbmsMessage
 import no.nav.emottak.utils.common.model.PartyId
 import no.nav.emottak.utils.common.parseOrGenerateUuid
 import no.nav.emottak.utils.kafka.model.EbmsMessageDetail
@@ -17,6 +18,8 @@ interface EventRegistrationService {
     )
 
     suspend fun registerEventMessageDetails(ebMSDocument: EbMSDocument)
+
+    suspend fun registerEventMessageDetails(ebMSMessage: EbmsMessage)
 
     companion object {
         fun serializePartyId(partyIDs: List<PartyId>): String {
@@ -60,25 +63,28 @@ class EventRegistrationServiceImpl(
     }
 
     override suspend fun registerEventMessageDetails(ebMSDocument: EbMSDocument) {
-        log.debug("Registering message with requestId: ${ebMSDocument.requestId}")
+        registerEventMessageDetails(ebMSDocument.transform())
+    }
+
+    override suspend fun registerEventMessageDetails(ebMSMessage: EbmsMessage) {
+        log.debug("Registering message with requestId: ${ebMSMessage.requestId}")
 
         try {
-            val ebmsMessage = ebMSDocument.transform()
-            val requestId = ebmsMessage.requestId.parseOrGenerateUuid()
+            val requestId = ebMSMessage.requestId.parseOrGenerateUuid()
 
             val ebmsMessageDetail = EbmsMessageDetail(
                 requestId = requestId,
-                cpaId = ebmsMessage.cpaId,
-                conversationId = ebmsMessage.conversationId,
-                messageId = ebmsMessage.messageId,
-                refToMessageId = ebmsMessage.refToMessageId,
-                fromPartyId = EventRegistrationService.serializePartyId(ebmsMessage.addressing.from.partyId),
-                fromRole = ebmsMessage.addressing.from.role,
-                toPartyId = EventRegistrationService.serializePartyId(ebmsMessage.addressing.to.partyId),
-                toRole = ebmsMessage.addressing.to.role,
-                service = ebmsMessage.addressing.service,
-                action = ebmsMessage.addressing.action,
-                sentAt = ebmsMessage.sentAt
+                cpaId = ebMSMessage.cpaId,
+                conversationId = ebMSMessage.conversationId,
+                messageId = ebMSMessage.messageId,
+                refToMessageId = ebMSMessage.refToMessageId,
+                fromPartyId = EventRegistrationService.serializePartyId(ebMSMessage.addressing.from.partyId),
+                fromRole = ebMSMessage.addressing.from.role,
+                toPartyId = EventRegistrationService.serializePartyId(ebMSMessage.addressing.to.partyId),
+                toRole = ebMSMessage.addressing.to.role,
+                service = ebMSMessage.addressing.service,
+                action = ebMSMessage.addressing.action,
+                sentAt = ebMSMessage.sentAt
             )
             log.debug("Publishing message details: $ebmsMessageDetail")
 
@@ -101,5 +107,9 @@ class EventRegistrationServiceFake : EventRegistrationService {
 
     override suspend fun registerEventMessageDetails(ebMSDocument: EbMSDocument) {
         log.debug("Registering message details for ebMSDocument: $ebMSDocument")
+    }
+
+    override suspend fun registerEventMessageDetails(ebMSMessage: EbmsMessage) {
+        log.debug("Registering message details for ebMSDocument: $ebMSMessage")
     }
 }

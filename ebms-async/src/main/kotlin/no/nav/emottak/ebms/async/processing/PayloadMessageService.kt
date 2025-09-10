@@ -1,11 +1,8 @@
 package no.nav.emottak.ebms.async.processing
 
 import io.github.nomisRev.kafka.receiver.ReceiverRecord
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import no.nav.emottak.ebms.SmtpTransportClient
 import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.kafka.consumer.failedMessageQueue
 import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
@@ -17,157 +14,100 @@ import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.melding.feil.EbmsException
-import no.nav.emottak.message.model.Acknowledgment
 import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.EbMSDocument
-import no.nav.emottak.message.model.EbmsMessage
 import no.nav.emottak.message.model.EmailAddress
-import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.xml.asByteArray
-import no.nav.emottak.message.xml.getDocumentBuilder
 import no.nav.emottak.util.marker
+import no.nav.emottak.util.signatur.SignatureException
 import no.nav.emottak.utils.common.parseOrGenerateUuid
 import no.nav.emottak.utils.kafka.model.EventDataType
 import no.nav.emottak.utils.kafka.model.EventType
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PerMessageCharacteristicsType
-import java.io.ByteArrayInputStream
-import kotlin.uuid.Uuid
 
 class PayloadMessageService(
     val cpaValidationService: CPAValidationService,
     val processingService: ProcessingService,
     val ebmsSignalProducer: EbmsMessageProducer,
-    val smtpTransportClient: SmtpTransportClient,
     val payloadMessageForwardingService: PayloadMessageForwardingService,
     val eventRegistrationService: EventRegistrationService,
     val eventManagerService: EventManagerService
 ) {
-    suspend fun process(record: ReceiverRecord<String, ByteArray>) {
-        try {
-            val ebmsMessage = createEbmsDocument(record.key(), record.value())
 
-            when (ebmsMessage) {
-                is PayloadMessage -> processPayloadMessage(ebmsMessage, record)
-                is Acknowledgment -> processMultipartAcknowledgment(ebmsMessage)
-                else -> throw RuntimeException("Cannot process message as payload message for referenceId ${record.key()}")
+    suspend fun process(
+        record: ReceiverRecord<String, ByteArray>,
+        ebmsPayloadMessage: PayloadMessage
+    ) {
+        runCatching {
+            when (isDuplicateMessage(ebmsPayloadMessage)) {
+                true -> log.info(ebmsPayloadMessage.marker(), "Got duplicate payload message with reference <${ebmsPayloadMessage.requestId}>")
+                false -> processPayloadMessage(ebmsPayloadMessage)
             }
-        } catch (e: Exception) {
-            log.error("Message failed for reference ${record.key()}", e)
+            returnAcknowledgment(ebmsPayloadMessage)
+        }.onFailure { exception ->
+            when (exception) {
+                is EbmsException -> {
+                    runCatching {
+                        returnMessageError(ebmsPayloadMessage, exception)
+                    }.onFailure {
+                        log.error(ebmsPayloadMessage.marker(), "Failed to return MessageError", exception)
+                        sendToRetry(record = record, exceptionReason = "Failed to return MessageError: ${exception.message ?: "Unknown error"}")
+                    }
+                }
+                is SignatureException -> {
+                    log.error(ebmsPayloadMessage.marker(), exception.message, exception)
+                    sendToRetry(record = record, exceptionReason = exception.message)
+                }
+                else -> {
+                    log.error(ebmsPayloadMessage.marker(), exception.message ?: "Unknown error", exception)
+                    sendToRetry(record = record, exceptionReason = exception.message ?: "Unknown error")
+                    throw exception
+                }
+            }
         }
     }
 
-    private suspend fun createEbmsDocument(
-        requestId: String,
-        content: ByteArray
-    ): EbmsMessage {
-        return EbMSDocument(
-            requestId,
-            withContext(Dispatchers.IO) {
-                getDocumentBuilder().parse(ByteArrayInputStream(content))
-            },
-            retrievePayloads(requestId.parseOrGenerateUuid())
-        ).transform()
-    }
-
-    private suspend fun retrievePayloads(reference: Uuid): List<Payload> {
-        return smtpTransportClient.getPayload(reference)
-            .map {
-                eventRegistrationService.runWithEvent(
-                    successEvent = EventType.PAYLOAD_RECEIVED_VIA_HTTP,
-                    failEvent = EventType.ERROR_WHILE_RECEIVING_PAYLOAD_VIA_HTTP,
-                    requestId = reference,
-                    contentId = it.contentId
-                ) {
-                    Payload(
-                        bytes = it.content,
-                        contentId = it.contentId,
-                        contentType = it.contentType
-                    )
-                }
-            }
-    }
-
-    private suspend fun processPayloadMessage(
-        ebmsPayloadMessage: PayloadMessage,
-        record: ReceiverRecord<String, ByteArray>
+    suspend fun processPayloadMessage(
+        ebmsPayloadMessage: PayloadMessage
     ) {
-        try {
-            val eventData = Json.encodeToString(
-                mapOf(EventDataType.QUEUE_NAME.value to config().kafkaPayloadReceiver.topic)
-            )
-            eventRegistrationService.registerEvent(
-                EventType.MESSAGE_READ_FROM_QUEUE,
-                ebmsPayloadMessage,
-                eventData
-            )
-
-            if (isDuplicateMessage(ebmsPayloadMessage)) {
-                log.info(ebmsPayloadMessage.marker(), "Got duplicate payload message with reference <${record.key()}>")
-            } else {
-                log.info(ebmsPayloadMessage.marker(), "Got payload message with reference <${record.key()}>")
-                cpaValidationService
-                    .validateIncomingMessage(ebmsPayloadMessage)
-                    .let {
-                        processingService.processAsync(ebmsPayloadMessage, it.payloadProcessing)
-                    }
-                    .let { (payloadMessage, direction) ->
-                        when (direction) {
-                            Direction.IN -> payloadMessageForwardingService.forwardMessageWithSyncResponse(payloadMessage)
-                            Direction.OUT -> payloadMessageForwardingService.returnMessageResponse(payloadMessage)
-                        }
-                    }
-            }
-            returnAcknowledgment(ebmsPayloadMessage)
-        } catch (e: EbmsException) {
-            try {
-                returnMessageError(ebmsPayloadMessage, e)
-            } catch (ex: Exception) {
-                log.error(ebmsPayloadMessage.marker(), "Failed to return MessageError", ex)
-                failedMessageQueue.sendToRetry(
-                    record = record,
-                    reason = "Failed to return MessageError: ${ex.message ?: "Unknown error"}"
-                )
-            }
-        } catch (ex: Exception) {
-            log.error(ebmsPayloadMessage.marker(), ex.message ?: "Unknown error", ex)
-            failedMessageQueue.sendToRetry(
-                record = record,
-                reason = ex.message ?: "Unknown error"
-            )
-            throw ex
+        log.info(ebmsPayloadMessage.marker(), "Got payload message with reference <${ebmsPayloadMessage.requestId}>")
+        eventRegistrationService.registerEventMessageDetails(ebmsPayloadMessage)
+        val validationResult = cpaValidationService.validateIncomingMessage(ebmsPayloadMessage)
+        val (processedPayload, direction) = processingService.processAsync(ebmsPayloadMessage, validationResult.payloadProcessing)
+        when (direction) {
+            Direction.IN -> payloadMessageForwardingService.forwardMessageWithSyncResponse(processedPayload)
+            Direction.OUT -> payloadMessageForwardingService.returnMessageResponse(processedPayload)
         }
     }
 
     private suspend fun returnAcknowledgment(ebmsPayloadMessage: PayloadMessage) {
-        ebmsPayloadMessage
-            .createAcknowledgment()
-            .also {
-                val validationResult = cpaValidationService.validateOutgoingMessage(it)
-                sendResponseToTopic(
-                    it.toEbmsDokument().signer(validationResult.payloadProcessing!!.signingCertificate),
-                    validationResult.receiverEmailAddress
-                )
-                log.info(it.marker(), "Acknowledgment returned")
-            }
+        val acknowledgment = ebmsPayloadMessage.createAcknowledgment().also {
+            eventRegistrationService.registerEventMessageDetails(it)
+        }
+        val validationResult = cpaValidationService.validateOutgoingMessage(acknowledgment)
+        sendResponseToTopic(
+            acknowledgment.toEbmsDokument().signer(validationResult.payloadProcessing!!.signingCertificate),
+            validationResult.signalEmailAddress
+        )
+        log.info(acknowledgment.marker(), "Acknowledgment returned")
     }
 
     private suspend fun returnMessageError(ebmsPayloadMessage: PayloadMessage, ebmsException: EbmsException) {
-        ebmsPayloadMessage
-            .createMessageError(ebmsException.feil)
-            .also {
-                val validationResult = cpaValidationService.validateOutgoingMessage(it)
-                val signingCertificate = validationResult.payloadProcessing?.signingCertificate
-                if (signingCertificate == null) {
-                    log.warn(it.marker(), "Could not find signing certificate for outgoing MessageError")
-                } else {
-                    sendResponseToTopic(
-                        it.toEbmsDokument().signer(signingCertificate),
-                        validationResult.signalEmailAddress
-                    )
-                    log.warn(it.marker(), "MessageError returned", ebmsException)
-                }
-            }
+        val messageError = ebmsPayloadMessage.createMessageError(ebmsException.feil).also {
+            eventRegistrationService.registerEventMessageDetails(it)
+        }
+        val validationResult = cpaValidationService.validateOutgoingMessage(messageError)
+        val signingCertificate = validationResult.payloadProcessing?.signingCertificate
+        if (signingCertificate == null) {
+            log.warn(messageError.marker(), "Could not find signing certificate for outgoing MessageError")
+        } else {
+            sendResponseToTopic(
+                messageError.toEbmsDokument().signer(signingCertificate),
+                validationResult.signalEmailAddress
+            )
+            log.warn(messageError.marker(), "MessageError returned", ebmsException)
+        }
     }
 
     private suspend fun sendResponseToTopic(ebMSDocument: EbMSDocument, signalResponderEmails: List<EmailAddress>) {
@@ -175,19 +115,44 @@ class PayloadMessageService(
             val messageHeader = ebMSDocument.messageHeader()
             try {
                 log.info(messageHeader.marker(), "Sending message to Kafka queue")
-                ebmsSignalProducer.publishMessage(
-                    key = ebMSDocument.requestId,
-                    value = ebMSDocument.dokument.asByteArray(),
-                    headers = signalResponderEmails.toKafkaHeaders() + messageHeader.toKafkaHeaders()
-                )
+                eventRegistrationService.runWithEvent(
+                    successEvent = EventType.MESSAGE_PLACED_IN_QUEUE,
+                    failEvent = EventType.ERROR_WHILE_STORING_MESSAGE_IN_QUEUE,
+                    requestId = ebMSDocument.requestId.parseOrGenerateUuid(),
+                    messageId = ebMSDocument.messageHeader().messageData.messageId ?: "",
+                    eventData = Json.encodeToString(
+                        mapOf(EventDataType.QUEUE_NAME.value to config().kafkaSignalProducer.topic)
+                    )
+                ) {
+                    ebmsSignalProducer.publishMessage(
+                        key = ebMSDocument.requestId,
+                        value = ebMSDocument.dokument.asByteArray(),
+                        headers = signalResponderEmails.toKafkaHeaders() + messageHeader.toKafkaHeaders()
+                    )
+                }
             } catch (e: Exception) {
                 log.error(messageHeader.marker(), "Exception occurred while sending message to Kafka queue", e)
             }
         }
     }
 
-    private suspend fun isDuplicateMessage(ebmsPayloadMessage: PayloadMessage): Boolean {
-        val duplicateEliminationStrategy = cpaValidationService.getDuplicateEliminationStrategy(ebmsPayloadMessage)
+    private suspend fun sendToRetry(
+        record: ReceiverRecord<String, ByteArray>,
+        exceptionReason: String
+    ) {
+        failedMessageQueue.sendToRetry(
+            record = record,
+            reason = exceptionReason
+        )
+    }
+
+    suspend fun isDuplicateMessage(ebmsPayloadMessage: PayloadMessage): Boolean {
+        val duplicateEliminationStrategy = try {
+            cpaValidationService.getDuplicateEliminationStrategy(ebmsPayloadMessage)
+        } catch (e: Exception) {
+            log.warn(ebmsPayloadMessage.marker(), "Error checking duplicate status", e)
+            return false
+        }
 
         if (duplicateEliminationStrategy == PerMessageCharacteristicsType.ALWAYS) {
             return eventManagerService.isDuplicateMessage(ebmsPayloadMessage)
@@ -200,9 +165,5 @@ class PayloadMessageService(
             return eventManagerService.isDuplicateMessage(ebmsPayloadMessage)
         }
         return false
-    }
-
-    private fun processMultipartAcknowledgment(acknowledgment: Acknowledgment) {
-        log.info(acknowledgment.marker(), "Got acknowledgment with requestId <${acknowledgment.requestId}>")
     }
 }
