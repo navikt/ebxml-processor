@@ -18,12 +18,12 @@ data class MessageError(
     override val cpaId: String,
     override val addressing: Addressing,
     val feil: List<Feil>,
-    override val dokument: Document? = null,
+    override val document: Document? = null,
     override val sentAt: Instant? = null
 
 ) : EbmsMessage() {
 
-    override fun toEbmsDokument(): EbMSDocument {
+    override fun toEbmsDokument(): EbmsDocument {
         val header = this.createMessageHeader(this.addressing.copy(action = EbXMLConstants.MESSAGE_ERROR_ACTION, service = EbXMLConstants.EBMS_SERVICE_URI))
         return ObjectFactory().createEnvelope()!!.also {
             it.header = header.also {
@@ -33,7 +33,7 @@ data class MessageError(
         }.let {
             xmlMarshaller.marshal(it)
         }.let {
-            EbMSDocument(requestId, it, emptyList())
+            EbmsDocument(requestId, it, emptyList())
         }
     }
 }

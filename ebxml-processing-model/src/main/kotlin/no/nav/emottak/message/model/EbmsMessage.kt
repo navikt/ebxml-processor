@@ -33,10 +33,10 @@ abstract class EbmsMessage {
     abstract val cpaId: String
     abstract val addressing: Addressing
     abstract val refToMessageId: String?
-    abstract val dokument: Document?
+    abstract val document: Document?
     abstract val sentAt: Instant?
     val mottatt: Instant = Instant.now()
-    open fun toEbmsDokument(): EbMSDocument {
+    open fun toEbmsDokument(): EbmsDocument {
         return createEbmsDocument(createMessageHeader())
     }
 
@@ -138,7 +138,7 @@ private fun createSyncReplyElement() = SyncReply().apply {
 }
 
 @OptIn(ExperimentalUuidApi::class)
-fun EbmsMessage.createEbmsDocument(ebxmlDokument: Header, payload: EbmsAttachment? = null): EbMSDocument {
+fun EbmsMessage.createEbmsDocument(ebxmlDokument: Header, payload: EbmsAttachment? = null): EbmsDocument {
     val envelope = Envelope()
     val attachmentUid = Uuid.random().toString()
     envelope.header = ebxmlDokument
@@ -158,11 +158,11 @@ fun EbmsMessage.createEbmsDocument(ebxmlDokument: Header, payload: EbmsAttachmen
             )
         }
     }
-    val dokument = getDocumentBuilder().parse(InputSource(StringReader(marshal(envelope))))
+    val document = getDocumentBuilder().parse(InputSource(StringReader(marshal(envelope))))
     val payloads = if (payload != null) listOf(EbmsAttachment(payload.bytes, payload.contentType, payload.contentId)) else listOf()
-    return EbMSDocument(
+    return EbmsDocument(
         requestId,
-        dokument,
+        document,
         payloads
     )
 }

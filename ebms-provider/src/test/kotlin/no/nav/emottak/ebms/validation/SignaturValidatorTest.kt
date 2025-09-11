@@ -1,8 +1,8 @@
 package no.nav.emottak.ebms.validation
 
 import no.nav.emottak.ebms.xml.signeringConfig
-import no.nav.emottak.message.model.EbMSDocument
 import no.nav.emottak.message.model.EbmsAttachment
+import no.nav.emottak.message.model.EbmsDocument
 import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.message.xml.getDocumentBuilder
 import no.nav.emottak.util.decodeBase64
@@ -25,15 +25,15 @@ class SignaturValidatorTest {
 
     @Test
     fun `Validering av signatur`() {
-        val dokument = getDocumentBuilder().parse(
+        val document = getDocumentBuilder().parse(
             this::class.java.classLoader
                 .getResourceAsStream("oppgjørsmelding/2023_08_29T12_56_58_328.xml")
         )
         val attachment = this::class.java.classLoader
             .getResourceAsStream("oppgjørsmelding/2023_08_29T12_56_58_328.p7m").readAllBytes()
-        val ebMSDocument = EbMSDocument(
+        val ebmsDocument = EbmsDocument(
             "Test",
-            dokument,
+            document,
             listOf(
                 EbmsAttachment(
                     attachment,
@@ -42,23 +42,23 @@ class SignaturValidatorTest {
                 )
             )
         )
-        SignaturValidator.validate(getSignatureDetailsForTest(), dokument, ebMSDocument.attachments)
+        SignaturValidator.validate(getSignatureDetailsForTest(), document, ebmsDocument.attachments)
     }
 
     @Test
     fun `Validering av signatur uten attachments feiler`() {
-        val dokument = getDocumentBuilder().parse(
+        val document = getDocumentBuilder().parse(
             this::class.java.classLoader
                 .getResourceAsStream("oppgjørsmelding/2023_08_29T12_56_58_328.xml")
         )
-        val ebMSDocument = EbMSDocument(
+        val ebmsDocument = EbmsDocument(
             "Test",
-            dokument,
+            document,
             listOf()
         )
 
         org.junit.jupiter.api.assertThrows<SignatureException> {
-            SignaturValidator.validate(getSignatureDetailsForTest(), dokument, ebMSDocument.attachments)
+            SignaturValidator.validate(getSignatureDetailsForTest(), document, ebmsDocument.attachments)
         }
     }
 }

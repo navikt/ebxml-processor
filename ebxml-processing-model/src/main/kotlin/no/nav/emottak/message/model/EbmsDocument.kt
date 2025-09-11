@@ -30,30 +30,15 @@ import org.xmlsoap.schemas.soap.envelope.Envelope
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.model")
 
-data class EbMSDocument(val requestId: String, val dokument: Document, val attachments: List<Payload>) {
+data class EbmsDocument(val requestId: String, val document: Document, val attachments: List<Payload>) {
 
-    private val envelope = lazy { xmlMarshaller.unmarshal(this.dokument) as Envelope }
+    private val envelope = lazy { xmlMarshaller.unmarshal(this.document) as Envelope }
 
-    fun dokumentType(): DokumentType {
-        if (dokument.getElementsByTagNameNS(OASIS_EBXML_MSG_HEADER_XSD_NS_URI, "Acknowledgment")
-            .item(0) != null
-        ) {
-            return DokumentType.ACKNOWLEDGMENT
-        }
-
-        if (attachments.isNotEmpty()) return DokumentType.PAYLOAD
-
-        if (dokument.getElementsByTagNameNS(OASIS_EBXML_MSG_HEADER_XSD_NS_URI, "ErrorList")
-            .item(0) != null
-        ) {
-            return DokumentType.MESSAGE_ERROR
-        }
-        throw RuntimeException("Unrecognized dokument type")
-    }
+    fun documentType(): DocumentType = document.documentType()
 
     fun messageHeader(): MessageHeader {
         val node: Node =
-            this.dokument.getElementsByTagNameNS(OASIS_EBXML_MSG_HEADER_XSD_NS_URI, OASIS_EBXML_MSG_HEADER_TAG).item(0)
+            this.document.getElementsByTagNameNS(OASIS_EBXML_MSG_HEADER_XSD_NS_URI, OASIS_EBXML_MSG_HEADER_TAG).item(0)
         return xmlMarshaller.unmarshal(node)
     }
 
@@ -61,21 +46,21 @@ data class EbMSDocument(val requestId: String, val dokument: Document, val attac
         val header = envelope.value.header!!
         val messageHeader = header.messageHeader()
 
-        return when (dokumentType()) {
-            DokumentType.PAYLOAD -> PayloadMessage(
+        return when (documentType()) {
+            DocumentType.PAYLOAD -> PayloadMessage(
                 requestId,
                 messageHeader.messageData.messageId,
                 messageHeader.conversationId,
                 messageHeader.cpaId!!,
                 messageHeader.addressing(),
                 attachments.first(),
-                dokument,
+                document,
                 messageHeader.messageData.refToMessageId,
                 messageHeader.messageData.timestamp.toInstant(),
                 messageHeader.duplicateElimination != null
             )
 
-            DokumentType.MESSAGE_ERROR -> {
+            DocumentType.MESSAGE_ERROR -> {
                 val errorList = header.errorList()!!.error.map {
                     Feil(ErrorCode.fromString(it.errorCode), it.description!!.value!!)
                 }.toList()
@@ -87,12 +72,12 @@ data class EbMSDocument(val requestId: String, val dokument: Document, val attac
                     messageHeader.cpaId!!,
                     messageHeader.addressing(isRoleApplicable = false),
                     errorList,
-                    dokument,
+                    document,
                     messageHeader.messageData.timestamp.toInstant()
                 )
             }
 
-            DokumentType.ACKNOWLEDGMENT -> {
+            DocumentType.ACKNOWLEDGMENT -> {
                 Acknowledgment(
                     requestId,
                     messageHeader.messageData.messageId,
@@ -100,16 +85,34 @@ data class EbMSDocument(val requestId: String, val dokument: Document, val attac
                     messageHeader.conversationId,
                     messageHeader.cpaId!!,
                     messageHeader.addressing(isRoleApplicable = false),
-                    dokument,
+                    document,
                     messageHeader.messageData.timestamp.toInstant()
                 )
             }
 
-            else -> throw RuntimeException("Unrecognized message type ${dokumentType()}")
+            else -> throw RuntimeException("Unrecognized message type ${documentType()}")
         }
     }
 }
 
-enum class DokumentType {
+enum class DocumentType {
     PAYLOAD, ACKNOWLEDGMENT, MESSAGE_ERROR, STATUS, PING
+}
+
+fun Document.documentType(): DocumentType {
+    if (this.getElementsByTagNameNS(OASIS_EBXML_MSG_HEADER_XSD_NS_URI, "MessageHeader").length == 0) {
+        throw RuntimeException("Message does not contain ebXML message header")
+    }
+
+    return if (this.getElementsByTagNameNS(OASIS_EBXML_MSG_HEADER_XSD_NS_URI, "Acknowledgment")
+        .item(0) != null
+    ) {
+        DocumentType.ACKNOWLEDGMENT
+    } else if (this.getElementsByTagNameNS(OASIS_EBXML_MSG_HEADER_XSD_NS_URI, "ErrorList")
+        .item(0) != null
+    ) {
+        DocumentType.MESSAGE_ERROR
+    } else {
+        DocumentType.PAYLOAD
+    }
 }

@@ -87,15 +87,15 @@ spec:
     - name: MAX_CONNECTION_POOL_SIZE_FOR_ADMIN
       value: "1"
     - name: EBMS_SIGNAL_RECEIVER
-      value: "false"
+      value: "true"
     - name: EBMS_SIGNAL_PRODUCER
-      value: "false"
+      value: "true"
     - name: EBMS_PAYLOAD_RECEIVER
-      value: "false"
+      value: "true"
     - name: EBMS_PAYLOAD_PRODUCER
-      value: "false"
+      value: "true"
     - name: EBMS_RETRY_QUEUE
-      value: "false"
+      value: "true"
     - name: VAULT_JDBC_URL
       value: jdbc:postgresql://A01DBVL037.adeo.no:5432/
     - name: CPA_REPO_URL

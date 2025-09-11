@@ -1,7 +1,8 @@
 package no.nav.emottak.ebms.util
 
 import no.nav.emottak.ebms.log
-import no.nav.emottak.message.model.EbMSDocument
+import no.nav.emottak.message.model.EbmsDocument
+import no.nav.emottak.message.model.EbmsMessage
 import no.nav.emottak.utils.common.model.PartyId
 import no.nav.emottak.utils.common.parseOrGenerateUuid
 import no.nav.emottak.utils.kafka.model.EbmsMessageDetail
@@ -12,11 +13,13 @@ import no.nav.emottak.utils.kafka.service.EventLoggingService
 interface EventRegistrationService {
     suspend fun registerEvent(
         eventType: EventType,
-        ebMSDocument: EbMSDocument,
+        ebmsDocument: EbmsDocument,
         eventData: String = "{}"
     )
 
-    suspend fun registerEventMessageDetails(ebMSDocument: EbMSDocument)
+    suspend fun registerEventMessageDetails(ebmsDocument: EbmsDocument)
+
+    suspend fun registerEventMessageDetails(ebmsMessage: EbmsMessage)
 
     companion object {
         fun serializePartyId(partyIDs: List<PartyId>): String {
@@ -35,19 +38,19 @@ class EventRegistrationServiceImpl(
 ) : EventRegistrationService {
     override suspend fun registerEvent(
         eventType: EventType,
-        ebMSDocument: EbMSDocument,
+        ebmsDocument: EbmsDocument,
         eventData: String
     ) {
-        log.debug("Registering event for requestId: ${ebMSDocument.requestId}")
+        log.debug("Registering event for requestId: ${ebmsDocument.requestId}")
 
         try {
-            val requestId = ebMSDocument.requestId.parseOrGenerateUuid()
+            val requestId = ebmsDocument.requestId.parseOrGenerateUuid()
 
             val event = Event(
                 eventType = eventType,
                 requestId = requestId,
                 contentId = "",
-                messageId = ebMSDocument.transform().messageId,
+                messageId = ebmsDocument.transform().messageId,
                 eventData = eventData
             )
             log.debug("Publishing event: $event")
@@ -59,11 +62,14 @@ class EventRegistrationServiceImpl(
         }
     }
 
-    override suspend fun registerEventMessageDetails(ebMSDocument: EbMSDocument) {
-        log.debug("Registering message with requestId: ${ebMSDocument.requestId}")
+    override suspend fun registerEventMessageDetails(ebmsDocument: EbmsDocument) {
+        registerEventMessageDetails(ebmsDocument.transform())
+    }
+
+    override suspend fun registerEventMessageDetails(ebmsMessage: EbmsMessage) {
+        log.debug("Registering message with requestId: ${ebmsMessage.requestId}")
 
         try {
-            val ebmsMessage = ebMSDocument.transform()
             val requestId = ebmsMessage.requestId.parseOrGenerateUuid()
 
             val ebmsMessageDetail = EbmsMessageDetail(
@@ -93,13 +99,17 @@ class EventRegistrationServiceImpl(
 class EventRegistrationServiceFake : EventRegistrationService {
     override suspend fun registerEvent(
         eventType: EventType,
-        ebMSDocument: EbMSDocument,
+        ebmsDocument: EbmsDocument,
         eventData: String
     ) {
-        log.debug("Registering event $eventType for ebMSDocument: $ebMSDocument and eventData: $eventData")
+        log.debug("Registering event $eventType for ebmsDocument: $ebmsDocument and eventData: $eventData")
     }
 
-    override suspend fun registerEventMessageDetails(ebMSDocument: EbMSDocument) {
-        log.debug("Registering message details for ebMSDocument: $ebMSDocument")
+    override suspend fun registerEventMessageDetails(ebmsDocument: EbmsDocument) {
+        log.debug("Registering message details for ebmsDocument: $ebmsDocument")
+    }
+
+    override suspend fun registerEventMessageDetails(ebmsMessage: EbmsMessage) {
+        log.debug("Registering message details for ebmsDocument: $ebmsMessage")
     }
 }

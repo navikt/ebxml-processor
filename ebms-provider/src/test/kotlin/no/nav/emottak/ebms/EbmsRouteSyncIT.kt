@@ -22,7 +22,7 @@ import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.ebms.validation.MimeHeaders
 import no.nav.emottak.message.model.Direction
-import no.nav.emottak.message.model.EbMSDocument
+import no.nav.emottak.message.model.EbmsDocument
 import no.nav.emottak.message.model.ErrorCode
 import no.nav.emottak.message.model.Feil
 import no.nav.emottak.message.model.PayloadMessage
@@ -117,9 +117,9 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
 
     @Test
     fun `Valid FormItem payload request should trigger processing and validation on way out`() = testSyncApp {
-        mockkStatic(EbMSDocument::signer)
+        mockkStatic(EbmsDocument::signer)
         every {
-            any<EbMSDocument>().signer(any())
+            any<EbmsDocument>().signer(any())
         } returnsArgument(0)
         val multipart = TestData.HarBorgerEgenandel.harBorgerEgenandelFritakRequestWithFormItem
         val response = client.post(SYNC_PATH, multipart.asHttpRequest())
@@ -132,9 +132,9 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
 
     @Test
     fun `Valid payload request without start in Content-Type should trigger processing and validation on way out`() = testSyncApp {
-        mockkStatic(EbMSDocument::signer)
+        mockkStatic(EbmsDocument::signer)
         every {
-            any<EbMSDocument>().signer(any())
+            any<EbmsDocument>().signer(any())
         } returnsArgument(0)
         val multipart = TestData.HarBorgerEgenandel.harBorgerEgenandelFritakRequestWithFormItem
         multipart.headers.modify {
@@ -150,9 +150,9 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
 
     @Test
     fun `Valid payload request without start in Content-Type and Content-Id on Soap part should trigger processing and validation on way out`() = testSyncApp {
-        mockkStatic(EbMSDocument::signer)
+        mockkStatic(EbmsDocument::signer)
         every {
-            any<EbMSDocument>().signer(any())
+            any<EbmsDocument>().signer(any())
         } returnsArgument(0)
         val multipart = TestData.HarBorgerEgenandel.harBorgerEgenandelFritakRequestWithoutBoundaryStartAndSoapPartContentId
 
@@ -166,9 +166,9 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
 
     @Test
     fun `Valid FileItem payload request should trigger processing and validation on way out`() = testSyncApp {
-        mockkStatic(EbMSDocument::signer)
+        mockkStatic(EbmsDocument::signer)
         every {
-            any<EbMSDocument>().signer(any())
+            any<EbmsDocument>().signer(any())
         } returnsArgument(0)
         val multipart = TestData.HarBorgerEgenandel.harBorgerEgenandelFritakRequestWithFileItem
         val response = client.post(SYNC_PATH, multipart.asHttpRequest())
@@ -182,9 +182,9 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
     @Test
     fun `Feilmelding fra fagsystemet må propageres til brukeren`() = testSyncApp {
         val soapFault = "<SOAP-ENV:Envelope xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\"><SOAP-ENV:Header/><SOAP-ENV:Body><SOAP-ENV:Fault><faultcode>SOAP-ENV:Server</faultcode><faultstring>Noe gikk galt i fagsystemet</faultstring></SOAP-ENV:Fault></SOAP-ENV:Body></SOAP-ENV:Envelope>"
-        mockkStatic(EbMSDocument::signer)
+        mockkStatic(EbmsDocument::signer)
         every {
-            any<EbMSDocument>().signer(any())
+            any<EbmsDocument>().signer(any())
         } returnsArgument(0)
         externalServices {
             hosts(getEnvVar("SEND_IN_URL", "http://ebms-send-in")) {

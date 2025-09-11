@@ -14,14 +14,14 @@ data class PayloadMessage(
     override val cpaId: String,
     override val addressing: Addressing,
     val payload: EbmsAttachment,
-    override val dokument: Document? = null,
+    override val document: Document? = null,
     override val refToMessageId: String? = null,
     override val sentAt: Instant? = null,
     val duplicateElimination: Boolean
 
 ) : EbmsMessage() {
 
-    override fun toEbmsDokument(): EbMSDocument {
+    override fun toEbmsDokument(): EbmsDocument {
         return createEbmsDocument(createMessageHeader(), this.payload)
     }
 
