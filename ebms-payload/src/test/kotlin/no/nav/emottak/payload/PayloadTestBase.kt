@@ -23,8 +23,8 @@ import no.nav.emottak.message.model.PayloadRequest
 import no.nav.emottak.message.model.ProcessConfig
 import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.message.xml.asByteArray
+import no.nav.emottak.payload.configuration.config
 import no.nav.emottak.payload.crypto.PayloadSignering
-import no.nav.emottak.payload.crypto.payloadSigneringConfig
 import no.nav.emottak.payload.ocspstatus.OcspStatusService
 import no.nav.emottak.payload.ocspstatus.ssnPolicyID
 import no.nav.emottak.payload.util.EventRegistrationServiceFake
@@ -56,7 +56,7 @@ import java.util.Date
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
-val testKeystore = KeyStoreManager(*payloadSigneringConfig().toTypedArray())
+val testKeystore = KeyStoreManager(*config().signering.map { it.resolveKeyStoreConfiguration() }.toTypedArray())
 
 abstract class PayloadTestBase {
 

@@ -1,7 +1,7 @@
 package no.nav.emottak.payload.helseid
 
 import no.nav.emottak.crypto.KeyStoreManager
-import no.nav.emottak.payload.crypto.payloadSigneringConfig
+import no.nav.emottak.payload.configuration.config
 import no.nav.emottak.payload.defaultHttpClient
 import no.nav.emottak.payload.helseid.util.msgHeadNamespaceContext
 import no.nav.emottak.payload.ocspstatus.OcspStatusService
@@ -17,7 +17,7 @@ class NinResolver(
     private val tokenValidator: HelseIdTokenValidator = HelseIdTokenValidator(),
     private val ocspStatusService: OcspStatusService = OcspStatusService(
         defaultHttpClient().invoke(),
-        KeyStoreManager(*payloadSigneringConfig().toTypedArray())
+        KeyStoreManager(*config().signering.map { it.resolveKeyStoreConfiguration() }.toTypedArray())
     )
 ) {
     private val log = LoggerFactory.getLogger(NinResolver::class.java)
