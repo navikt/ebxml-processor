@@ -115,7 +115,7 @@ class EventManagerClient(clientProvider: () -> HttpClient) {
     private val eventManagerUrl = getEnvVar("EVENT_MANAGER_URL", "http://emottak-event-manager")
 
     suspend fun duplicateCheck(duplicateCheckRequest: DuplicateCheckRequest): DuplicateCheckResponse {
-        val duplicateCheckUri = "$eventManagerUrl/duplicateCheck"
+        val duplicateCheckUri = "$eventManagerUrl/message-details/duplicate-check"
 
         log.debug("Sending duplicate check request: $duplicateCheckRequest")
         val response = httpClient.post(duplicateCheckUri) {
