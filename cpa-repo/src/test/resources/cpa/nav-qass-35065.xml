@@ -664,10 +664,10 @@
                 <ns1:SenderNonRepudiation>
                     <ns1:NonRepudiationProtocol ns1:version="string">http://www.w3.org/2000/09/xmldsig#
                     </ns1:NonRepudiationProtocol>
-                    <ns1:HashFunction>http://www.w3.org/2000/09/xmldsig#sha1</ns1:HashFunction>
+                    <ns1:HashFunction>http://www.w3.org/2001/04/xmlenc#sha256</ns1:HashFunction>
                     <ns1:SignatureAlgorithm ns1:oid="1.2.840.113549.1.1.5"
-                                            ns1:w3c="http://www.w3.org/2000/09/xmldsig#rsa-sha1">
-                        http://www.w3.org/2000/09/xmldsig#rsa-sha1
+                                            ns1:w3c="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256">
+                        http://www.w3.org/2001/04/xmldsig-more#rsa-sha256
                     </ns1:SignatureAlgorithm>
                     <ns1:SigningCertificateRef ns1:certId="Partner_cert_sign_partner"/>
                 </ns1:SenderNonRepudiation>
@@ -682,10 +682,10 @@
                 <ns1:ReceiverNonRepudiation>
                     <ns1:NonRepudiationProtocol ns1:version="string">http://www.w3.org/2000/09/xmldsig#
                     </ns1:NonRepudiationProtocol>
-                    <ns1:HashFunction>http://www.w3.org/2000/09/xmldsig#sha1</ns1:HashFunction>
+                    <ns1:HashFunction>http://www.w3.org/2001/04/xmlenc#sha256</ns1:HashFunction>
                     <ns1:SignatureAlgorithm ns1:oid="1.2.840.113549.1.1.5"
-                                            ns1:w3c="http://www.w3.org/2000/09/xmldsig#rsa-sha1">
-                        http://www.w3.org/2000/09/xmldsig#rsa-sha1
+                                            ns1:w3c="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256">
+                        http://www.w3.org/2001/04/xmldsig-more#rsa-sha256
                     </ns1:SignatureAlgorithm>
                 </ns1:ReceiverNonRepudiation>
             </ns1:ebXMLReceiverBinding>
@@ -694,10 +694,10 @@
             <ns1:ebXMLSenderBinding ns1:version="2.0">
                 <ns1:SenderNonRepudiation>
                     <ns1:NonRepudiationProtocol>http://www.w3.org/2000/09/xmldsig#</ns1:NonRepudiationProtocol>
-                    <ns1:HashFunction>http://www.w3.org/2000/09/xmldsig#sha1</ns1:HashFunction>
+                    <ns1:HashFunction>http://www.w3.org/2001/04/xmlenc#sha256</ns1:HashFunction>
                     <ns1:SignatureAlgorithm ns1:oid="1.2.840.113549.1.1.5"
-                                            ns1:w3c="http://www.w3.org/2000/09/xmldsig#rsa-sha1">
-                        http://www.w3.org/2000/09/xmldsig#rsa-sha1
+                                            ns1:w3c="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256">
+                        http://www.w3.org/2001/04/xmldsig-more#rsa-sha256
                     </ns1:SignatureAlgorithm>
                     <ns1:SigningCertificateRef ns1:certId="Partner_cert_sign_partner"/>
                 </ns1:SenderNonRepudiation>
@@ -707,10 +707,10 @@
                     <ns1:NonRepudiationProtocol>
                         http://www.w3.org/2000/09/xmldsig#
                     </ns1:NonRepudiationProtocol>
-                    <ns1:HashFunction>http://www.w3.org/2000/09/xmldsig#sha1</ns1:HashFunction>
+                    <ns1:HashFunction>http://www.w3.org/2001/04/xmlenc#sha256</ns1:HashFunction>
                     <ns1:SignatureAlgorithm ns1:oid="1.2.840.113549.1.1.5"
-                                            ns1:w3c="http://www.w3.org/2000/09/xmldsig#rsa-sha1">
-                        http://www.w3.org/2000/09/xmldsig#rsa-sha1
+                                            ns1:w3c="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256">
+                        http://www.w3.org/2001/04/xmldsig-more#rsa-sha256
                     </ns1:SignatureAlgorithm>
                 </ns1:ReceiverNonRepudiation>
             </ns1:ebXMLReceiverBinding>
@@ -1378,10 +1378,10 @@
                 <ns1:SenderNonRepudiation>
                     <ns1:NonRepudiationProtocol ns1:version="string">http://www.w3.org/2000/09/xmldsig#
                     </ns1:NonRepudiationProtocol>
-                    <ns1:HashFunction>http://www.w3.org/2000/09/xmldsig#sha1</ns1:HashFunction>
+                    <ns1:HashFunction>http://www.w3.org/2001/04/xmlenc#sha256</ns1:HashFunction>
                     <ns1:SignatureAlgorithm ns1:oid="1.2.840.113549.1.1.5"
-                                            ns1:w3c="http://www.w3.org/2000/09/xmldsig#rsa-sha1">
-                        http://www.w3.org/2000/09/xmldsig#rsa-sha1
+                                            ns1:w3c="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256">
+                        http://www.w3.org/2001/04/xmldsig-more#rsa-sha256
                     </ns1:SignatureAlgorithm>
                     <ns1:SigningCertificateRef ns1:certId="NAV_default_sign_cert"/>
                 </ns1:SenderNonRepudiation>
@@ -1396,10 +1396,10 @@
                 <ns1:ReceiverNonRepudiation>
                     <ns1:NonRepudiationProtocol ns1:version="string">http://www.w3.org/2000/09/xmldsig#
                     </ns1:NonRepudiationProtocol>
-                    <ns1:HashFunction>http://www.w3.org/2000/09/xmldsig#sha1</ns1:HashFunction>
+                    <ns1:HashFunction>http://www.w3.org/2001/04/xmlenc#sha256</ns1:HashFunction>
                     <ns1:SignatureAlgorithm ns1:oid="1.2.840.113549.1.1.5"
-                                            ns1:w3c="http://www.w3.org/2000/09/xmldsig#rsa-sha1">
-                        http://www.w3.org/2000/09/xmldsig#rsa-sha1
+                                            ns1:w3c="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256">
+                        http://www.w3.org/2001/04/xmldsig-more#rsa-sha256
                     </ns1:SignatureAlgorithm>
                 </ns1:ReceiverNonRepudiation>
             </ns1:ebXMLReceiverBinding>
@@ -1410,10 +1410,10 @@
                     <ns1:NonRepudiationProtocol>
                         http://www.w3.org/2000/09/xmldsig#
                     </ns1:NonRepudiationProtocol>
-                    <ns1:HashFunction>http://www.w3.org/2000/09/xmldsig#sha1</ns1:HashFunction>
+                    <ns1:HashFunction>http://www.w3.org/2001/04/xmlenc#sha256</ns1:HashFunction>
                     <ns1:SignatureAlgorithm ns1:oid="1.2.840.113549.1.1.5"
-                                            ns1:w3c="http://www.w3.org/2000/09/xmldsig#rsa-sha1">
-                        http://www.w3.org/2000/09/xmldsig#rsa-sha1
+                                            ns1:w3c="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256">
+                        http://www.w3.org/2001/04/xmldsig-more#rsa-sha256
                     </ns1:SignatureAlgorithm>
                     <ns1:SigningCertificateRef ns1:certId="NAV_default_sign_cert"/>
                 </ns1:SenderNonRepudiation>
@@ -1421,10 +1421,10 @@
             <ns1:ebXMLReceiverBinding ns1:version="2.0">
                 <ns1:ReceiverNonRepudiation>
                     <ns1:NonRepudiationProtocol>http://www.w3.org/2000/09/xmldsig#</ns1:NonRepudiationProtocol>
-                    <ns1:HashFunction>http://www.w3.org/2000/09/xmldsig#sha1</ns1:HashFunction>
+                    <ns1:HashFunction>http://www.w3.org/2001/04/xmlenc#sha256</ns1:HashFunction>
                     <ns1:SignatureAlgorithm ns1:oid="1.2.840.113549.1.1.5"
-                                            ns1:w3c="http://www.w3.org/2000/09/xmldsig#rsa-sha1">
-                        http://www.w3.org/2000/09/xmldsig#rsa-sha1
+                                            ns1:w3c="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256">
+                        http://www.w3.org/2001/04/xmldsig-more#rsa-sha256
                     </ns1:SignatureAlgorithm>
                 </ns1:ReceiverNonRepudiation>
             </ns1:ebXMLReceiverBinding>
