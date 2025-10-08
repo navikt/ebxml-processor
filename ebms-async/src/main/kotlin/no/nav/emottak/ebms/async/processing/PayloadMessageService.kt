@@ -136,7 +136,6 @@ class PayloadMessageService(
     }
 
     private suspend fun sendToRetry(record: ReceiverRecord<String, ByteArray>, exceptionReason: String) {
-        config().kafkaErrorQueue.active
         failedMessageQueue.sendToRetry(
             record = record,
             reason = exceptionReason
