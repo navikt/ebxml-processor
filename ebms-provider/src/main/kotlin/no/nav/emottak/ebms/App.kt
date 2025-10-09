@@ -24,7 +24,6 @@ import no.nav.emottak.ebms.util.EventRegistrationService
 import no.nav.emottak.ebms.util.EventRegistrationServiceImpl
 import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.utils.edi2.EdiAdapterClient
-import no.nav.emottak.utils.environment.getEnvVar
 import no.nav.emottak.utils.kafka.client.EventPublisherClient
 import no.nav.emottak.utils.kafka.service.EventLoggingService
 import org.slf4j.LoggerFactory
