@@ -96,10 +96,7 @@ fun Application.ebmsProviderModule(
         postEbmsSync(cpaValidationService, processing, sendInService, eventRegistrationService)
 
         get("/edi2-test") {
-            val scope = getEnvVar(
-                "EDI_ADAPTER_SCOPE",
-                "api://" + getEnvVar("NAIS_CLUSTER_NAME", "dev-gcp") + ".team-emottak.edi-adapter/.default"
-            )
+            val scope = "api://dev-gcp.team-emottak.edi-adapter/.default"
             log.info("EDI2 test: using scope $scope")
 
             val ediAdapterClient = EdiAdapterClient(scopedAuthHttpClient(scope))

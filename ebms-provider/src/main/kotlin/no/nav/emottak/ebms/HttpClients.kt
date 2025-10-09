@@ -194,13 +194,13 @@ fun scopedAuthHttpClient(
                             )
                         }.bodyAsText()
                             .let { tokenResponseString ->
-                                // log.info("The token response string we received was: $tokenResponseString")
+                                log.info("EDI2 test: The token response string we received was: $tokenResponseString")
                                 SignedJWT.parse(
                                     LENIENT_JSON_PARSER.decodeFromString<Map<String, String>>(tokenResponseString)["access_token"] as String
                                 )
                             }
                             .let { parsedJwt ->
-                                // log.info("After parsing it, we got: $parsedJwt")
+                                log.info("EDI2 test: After parsing it, we got: $parsedJwt")
                                 BearerTokens(parsedJwt.serialize(), "refresh token is unused")
                             }
                     }
