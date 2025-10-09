@@ -7,8 +7,11 @@ import arrow.continuations.SuspendApp
 import arrow.continuations.ktor.server
 import arrow.core.raise.result
 import arrow.fx.coroutines.resourceScope
+import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.netty.Netty
+import io.ktor.server.response.respond
+import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import io.ktor.utils.io.CancellationException
 import io.micrometer.prometheusmetrics.PrometheusConfig
@@ -20,9 +23,12 @@ import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.util.EventRegistrationService
 import no.nav.emottak.ebms.util.EventRegistrationServiceImpl
 import no.nav.emottak.ebms.validation.CPAValidationService
+import no.nav.emottak.utils.edi2.EdiAdapterClient
+import no.nav.emottak.utils.environment.getEnvVar
 import no.nav.emottak.utils.kafka.client.EventPublisherClient
 import no.nav.emottak.utils.kafka.service.EventLoggingService
 import org.slf4j.LoggerFactory
+import kotlin.uuid.Uuid
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.App")
 
@@ -88,5 +94,27 @@ fun Application.ebmsProviderModule(
         registerNavCheckStatus()
 
         postEbmsSync(cpaValidationService, processing, sendInService, eventRegistrationService)
+
+        get("/edi2-test") {
+            val scope = getEnvVar(
+                "EDI_ADAPTER_SCOPE",
+                "api://" + getEnvVar("NAIS_CLUSTER_NAME", "dev-gcp") + ".team-emottak.edi-adapter/.default"
+            )
+            log.info("EDI2 test: using scope $scope")
+
+            val ediAdapterClient = EdiAdapterClient(scopedAuthHttpClient(scope))
+
+            try {
+                val response = ediAdapterClient.getApprecInfo(Uuid.random())
+                log.info("EDI2 test: Response from edi-adapter: $response")
+            } catch (e: Exception) {
+                log.error("EDI2 test: Exception occurred while calling edi-adapter", e)
+            }
+
+            call.respond(
+                HttpStatusCode.InternalServerError,
+                "EDI2 test: Pong from edi2-test"
+            )
+        }
     }
 }
