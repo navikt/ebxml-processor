@@ -96,7 +96,6 @@ fun Application.ebmsProviderModule(
 
         get("/edi2-test") {
             val scope = "api://dev-gcp.team-emottak.edi-adapter/.default"
-            log.info("EDI2 test: using scope $scope")
 
             val ediAdapterClient = EdiAdapterClient(scopedAuthHttpClient(scope))
 
