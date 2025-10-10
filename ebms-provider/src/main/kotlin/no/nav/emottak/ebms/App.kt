@@ -96,8 +96,9 @@ fun Application.ebmsProviderModule(
 
         get("/edi2-test") {
             val scope = "api://dev-gcp.team-emottak.edi-adapter/.default"
+            val ediAdapterUrl = "https://edi-transport.intern.dev.nav.no"
 
-            val ediAdapterClient = EdiAdapterClient(scopedAuthHttpClient(scope))
+            val ediAdapterClient = EdiAdapterClient(ediAdapterUrl)
 
             try {
                 val response = ediAdapterClient.getApprecInfo(Uuid.random())
