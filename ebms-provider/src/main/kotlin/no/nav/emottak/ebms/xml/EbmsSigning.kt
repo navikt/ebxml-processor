@@ -1,9 +1,8 @@
 package no.nav.emottak.ebms.xml
 
 import jakarta.xml.soap.SOAPConstants
-import no.nav.emottak.crypto.FileKeyStoreConfig
 import no.nav.emottak.crypto.KeyStoreManager
-import no.nav.emottak.crypto.VaultKeyStoreConfig
+import no.nav.emottak.ebms.configuration.config
 import no.nav.emottak.ebms.validation.CID_PREFIX
 import no.nav.emottak.ebms.validation.EbMSAttachmentResolver
 import no.nav.emottak.message.model.EbmsAttachment
@@ -12,65 +11,21 @@ import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.getFirstChildElement
 import no.nav.emottak.util.signatur.SignatureException
-import no.nav.emottak.utils.environment.getEnvVar
-import no.nav.emottak.utils.vault.parseVaultJsonObject
 import org.apache.xml.security.exceptions.XMLSecurityException
 import org.apache.xml.security.signature.XMLSignature
 import org.apache.xml.security.transforms.Transforms
 import org.apache.xml.security.transforms.params.XPathContainer
 import org.w3c.dom.Document
 import org.w3c.dom.NodeList
-import java.io.FileReader
 import java.security.PublicKey
 import java.security.cert.X509Certificate
 
-fun signeringConfig() =
-    when (getEnvVar("NAIS_CLUSTER_NAME", "local")) {
-        "dev-fss" ->
-            // Fixme burde egentlig hente fra dev vault context for å matche prod oppførsel
-            listOf(
-                FileKeyStoreConfig(
-                    keyStoreFilePath = getEnvVar("KEYSTORE_FILE_SIGN_2022"),
-                    keyStorePass = getEnvVar("KEYSTORE_PWD").toCharArray(),
-                    keyStoreType = getEnvVar("KEYSTORE_TYPE", "PKCS12")
-                ),
-                FileKeyStoreConfig(
-                    keyStoreFilePath = getEnvVar("KEYSTORE_FILE_SIGN_2025"),
-                    keyStorePass = getEnvVar("KEYSTORE_PWD_2025").toCharArray(),
-                    keyStoreType = getEnvVar("KEYSTORE_TYPE", "PKCS12")
-                )
-            )
-        "prod-fss" ->
-            listOf(
-                VaultKeyStoreConfig(
-                    keyStoreVaultPath = getEnvVar("VIRKSOMHETSSERTIFIKAT_PATH"),
-                    keyStoreFileResource = getEnvVar("VIRKSOMHETSSERTIFIKAT_SIGNERING_2022"),
-                    keyStorePassResource = getEnvVar("VIRKSOMHETSSERTIFIKAT_CREDENTIALS_2022")
-                ),
-                VaultKeyStoreConfig(
-                    keyStoreVaultPath = getEnvVar("VIRKSOMHETSSERTIFIKAT_PATH"),
-                    keyStoreFileResource = getEnvVar("VIRKSOMHETSSERTIFIKAT_SIGNERING_2025"),
-                    keyStorePassResource = getEnvVar("VIRKSOMHETSSERTIFIKAT_CREDENTIALS_2025")
-                )
-            )
-        else ->
-            listOf(
-                FileKeyStoreConfig(
-                    keyStoreFilePath = getEnvVar("KEYSTORE_FILE", "xml/signering_keystore.p12"),
-                    keyStorePass = FileReader(
-                        getEnvVar(
-                            "KEYSTORE_PWD_FILE",
-                            FileKeyStoreConfig::class.java.classLoader.getResource("credentials-test.json").path.toString()
-                        )
-                    ).readText().parseVaultJsonObject("password").toCharArray(),
-                    keyStoreType = getEnvVar("KEYSTORE_TYPE", "PKCS12")
-                )
-            )
-    }
-
 val ebmsSigning = EbmsSigning()
 
-class EbmsSigning(private val keyStore: KeyStoreManager = KeyStoreManager(*signeringConfig().toTypedArray())) {
+class EbmsSigning(
+    private val keyStore: KeyStoreManager =
+        KeyStoreManager(*config().signering.map { it.resolveKeyStoreConfiguration() }.toTypedArray())
+) {
 
     private val canonicalizationMethodAlgorithm = Transforms.TRANSFORM_C14N_OMIT_COMMENTS
     private val SOAP_ENVELOPE = SOAPConstants.URI_NS_SOAP_1_1_ENVELOPE
