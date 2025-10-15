@@ -2,8 +2,8 @@ package no.nav.emottak.payload
 
 import no.nav.emottak.crypto.KeyStoreManager
 import no.nav.emottak.message.model.SignatureDetails
+import no.nav.emottak.payload.configuration.config
 import no.nav.emottak.payload.crypto.PayloadSignering
-import no.nav.emottak.payload.crypto.payloadSigneringConfig
 import no.nav.emottak.util.createDocument
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeAll
@@ -13,7 +13,7 @@ class SigneringTest {
 
     @Test
     fun testSigneringAvDokument() {
-        val ksm = KeyStoreManager(*payloadSigneringConfig().toTypedArray())
+        val ksm = KeyStoreManager(*config().signering.map { it.resolveKeyStoreConfiguration() }.toTypedArray())
         val signering = PayloadSignering()
         val usignertXMLInputStream = SigneringTest::class.java.classLoader
             .getResourceAsStream("xml/test.xml")
