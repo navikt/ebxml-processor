@@ -33,21 +33,21 @@ class HelseIDCreator(pathToKeystore: String, keystoreType: String = "jks", priva
     fun getToken(
         alias: String? = null,
         pid: String,
-        audience: String = HelseIdTokenValidator.Companion.SUPPORTED_AUDIENCE.last(),
-        scope: String = HelseIdTokenValidator.Companion.SUPPORTED_SCOPES.last(),
+        audiences: List<String> = listOf(HelseIdTokenValidator.Companion.SUPPORTED_AUDIENCE.first()),
+        scopes: List<String> = listOf(HelseIdTokenValidator.Companion.SUPPORTED_SCOPES.first()),
         algo: JWSAlgorithm = JWSAlgorithm.RS256,
         type: JOSEObjectType = JOSEObjectType.JWT,
         jwk: JWK? = null
     ): String {
-        return getSignedJWT(alias, pid, audience, scope, algo, type, jwk).serialize()
+        return getSignedJWT(alias, pid, audiences, scopes, algo, type, jwk).serialize()
     }
 
     @Suppress("LongParameterList")
     private fun getSignedJWT(
         alias: String? = null,
         pid: String,
-        audience: String,
-        scope: String,
+        audiences: List<String>,
+        scopes: List<String>,
         algo: JWSAlgorithm,
         type: JOSEObjectType,
         jwk: JWK?
@@ -60,11 +60,7 @@ class HelseIDCreator(pathToKeystore: String, keystoreType: String = "jks", priva
             .issuer("https://helseid-sts.test.nhn.no")
             .expirationTime(expirationTime)
             .audience(
-                listOf(
-                    "https://helseid-sts.test.nhn.no/resources",
-                    "kjernejournal.api",
-                    audience
-                )
+                audiences
             )
             .issueTime(now)
             .notBeforeTime(now)
@@ -78,14 +74,7 @@ class HelseIDCreator(pathToKeystore: String, keystoreType: String = "jks", priva
             .claim("amr", listOf("pwd"))
             .claim(
                 "scope",
-                listOf(
-                    "openid",
-                    "profile",
-                    "helseid://scopes/identity/pid",
-                    "helseid://scopes/identity/security_level",
-                    "https://ehelse.no/kjernejournal/kj_api",
-                    scope
-                )
+                scopes
             )
             .build()
         return when {
