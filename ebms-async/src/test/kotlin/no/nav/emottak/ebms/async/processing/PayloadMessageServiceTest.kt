@@ -35,7 +35,6 @@ import no.nav.emottak.utils.kafka.model.EventType
 import org.apache.kafka.clients.producer.RecordMetadata
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PerMessageCharacteristicsType
 import kotlin.test.assertEquals
@@ -72,8 +71,9 @@ class PayloadMessageServiceTest {
     }
 
     private fun initService(enableSignalProducer: Boolean = true, enableRetryQueue: Boolean = true) {
+        System.setProperty("EBMS_PAYLOAD_PRODUCER", "true")
         System.setProperty("EBMS_SIGNAL_PRODUCER", enableSignalProducer.toString())
-        System.setProperty("EBMS_RETRY_QUEUE", enableSignalProducer.toString())
+        System.setProperty("EBMS_RETRY_QUEUE", enableRetryQueue.toString())
         service = PayloadMessageService(
             cpaValidationService,
             processingService,
@@ -358,7 +358,6 @@ class PayloadMessageServiceTest {
     }
 
     @Test
-    @Disabled
     fun `process should not send to retry if SignatureException is thrown but kafkaErrorQueue is not active`() = runBlocking {
         initService(enableRetryQueue = false)
         val (payloadMessage, ebmsMessageSlots, _) = setupMocks(

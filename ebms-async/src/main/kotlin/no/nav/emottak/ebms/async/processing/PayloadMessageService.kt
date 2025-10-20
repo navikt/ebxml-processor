@@ -136,10 +136,12 @@ class PayloadMessageService(
     }
 
     private suspend fun sendToRetry(record: ReceiverRecord<String, ByteArray>, exceptionReason: String) {
-        failedMessageQueue.sendToRetry(
-            record = record,
-            reason = exceptionReason
-        )
+        if (config().kafkaSignalProducer.active && config().kafkaPayloadProducer.active && config().kafkaErrorQueue.active) {
+            failedMessageQueue.sendToRetry(
+                record = record,
+                reason = exceptionReason
+            )
+        }
     }
 
     suspend fun isDuplicateMessage(ebmsPayloadMessage: PayloadMessage): Boolean {
