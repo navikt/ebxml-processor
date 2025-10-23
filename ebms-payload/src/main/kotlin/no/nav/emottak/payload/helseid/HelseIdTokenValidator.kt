@@ -33,13 +33,14 @@ import java.util.Locale
 class HelseIdTokenValidator(
     private val issuer: String = config().helseId.issuerUrl,
     private val allowedClockSkewInMs: Long = 0,
+    private val allowedMessageGenerationGap: Long = 10000,
     private val helseIdJwkSource: JWKSource<SecurityContext> = JWKSourceBuilder<SecurityContext>
         .create<SecurityContext>(URI.create(config().helseId.jwksUrl).toURL()).build()
 ) {
-    fun getValidatedNin(base64Token: String, timestamp: Instant): String? = parseSignedJwt(base64Token)
+    fun getValidatedNin(base64Token: String, messageGenerationDate: Instant): String? = parseSignedJwt(base64Token)
         .also {
             validateHeader(it)
-            validateClaims(it, Date.from(timestamp))
+            validateClaims(it, Date.from(messageGenerationDate))
             it.verify(helseIdJwkSource)
         }.let(::extractNin)
 
@@ -78,35 +79,40 @@ class HelseIdTokenValidator(
         if (jwt.header.type !in SUPPORTED_JWT_TYPES) error("Unsupported token type ${jwt.header.type}")
     }
 
-    private fun validateClaims(jwt: SignedJWT, timestamp: Date) = try {
+    private fun validateClaims(jwt: SignedJWT, messageGenerationDate: Date) = try {
         jwt.jwtClaimsSet
     } catch (ex: ParseException) {
         throw RuntimeException("Failed to parse claims", ex)
     }.also { claims ->
-        validateTimestamps(claims, timestamp)
+        validateTimestamps(claims, messageGenerationDate)
         if (claims.issuer != issuer) error("Invalid issuer ${claims.issuer}")
         validateEssentialClaims(claims)
     }
 
-    private fun validateTimestamps(claims: JWTClaimsSet, timestamp: Date) {
+    private fun validateTimestamps(claims: JWTClaimsSet, messageGenerationDate: Date) {
         claims.issueTime?.let { iat ->
-            if (timestamp.time < iat.time - allowedClockSkewInMs) {
-                error("${timePrefix(timestamp)} is before issued time ${timePrefix(iat)}")
+            if (messageGenerationDate.time < iat.time - allowedClockSkewInMs) {
+                error("${timePrefix(messageGenerationDate)} is before issued time ${timePrefix(iat)}")
+            }
+        }
+        claims.issueTime?.let { iat ->
+            if (messageGenerationDate.time > iat.time - allowedClockSkewInMs + allowedMessageGenerationGap) {
+                error("Message generation time should be within ${allowedMessageGenerationGap / 1000} seconds after token issued time")
             }
         }
         claims.expirationTime?.let { exp ->
-            if (timestamp.time > exp.time + allowedClockSkewInMs) {
-                error("${timePrefix(timestamp)} is after expiry time ${timePrefix(exp)}")
+            if (messageGenerationDate.time > exp.time + allowedClockSkewInMs) {
+                error("${timePrefix(messageGenerationDate)} is after expiry time ${timePrefix(exp)}")
             }
         }
         claims.notBeforeTime?.let { nbf ->
-            if (timestamp.time < nbf.time - allowedClockSkewInMs) {
-                error("${timePrefix(timestamp)} is before not-before time ${timePrefix(nbf)}")
+            if (messageGenerationDate.time < nbf.time - allowedClockSkewInMs) {
+                error("${timePrefix(messageGenerationDate)} is before not-before time ${timePrefix(nbf)}")
             }
         }
         authTime(claims)?.let { at ->
-            if (timestamp.time < at.time - allowedClockSkewInMs) {
-                error("${timePrefix(timestamp)} is before auth-time ${timePrefix(at)}")
+            if (messageGenerationDate.time < at.time - allowedClockSkewInMs) {
+                error("${timePrefix(messageGenerationDate)} is before auth-time ${timePrefix(at)}")
             }
         }
     }
