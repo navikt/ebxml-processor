@@ -14,7 +14,6 @@ import com.nimbusds.jose.jwk.source.JWKSource
 import com.nimbusds.jose.jwk.source.JWKSourceBuilder
 import com.nimbusds.jose.proc.SecurityContext
 import com.nimbusds.jose.proc.SimpleSecurityContext
-import com.nimbusds.jwt.JWTClaimNames
 import com.nimbusds.jwt.JWTClaimsSet
 import com.nimbusds.jwt.JWTParser
 import com.nimbusds.jwt.SignedJWT
@@ -89,25 +88,25 @@ class HelseIdTokenValidator(
         validateEssentialClaims(claims)
     }
 
-    private fun validateTimestamps(claims: JWTClaimsSet, now: Date) {
-        issuedAt(claims)?.let { iat ->
-            if (now.time < iat.time - allowedClockSkewInMs) {
-                error("${timePrefix(now)} is before issued time ${timePrefix(iat)}")
+    private fun validateTimestamps(claims: JWTClaimsSet, timestamp: Date) {
+        claims.issueTime?.let { iat ->
+            if (timestamp.time < iat.time - allowedClockSkewInMs) {
+                error("${timePrefix(timestamp)} is before issued time ${timePrefix(iat)}")
             }
         }
         claims.expirationTime?.let { exp ->
-            if (now.time > exp.time + allowedClockSkewInMs) {
-                error("${timePrefix(now)} is after expiry time ${timePrefix(exp)}")
+            if (timestamp.time > exp.time + allowedClockSkewInMs) {
+                error("${timePrefix(timestamp)} is after expiry time ${timePrefix(exp)}")
             }
         }
         claims.notBeforeTime?.let { nbf ->
-            if (now.time < nbf.time - allowedClockSkewInMs) {
-                error("${timePrefix(now)} is before not-before time ${timePrefix(nbf)}")
+            if (timestamp.time < nbf.time - allowedClockSkewInMs) {
+                error("${timePrefix(timestamp)} is before not-before time ${timePrefix(nbf)}")
             }
         }
         authTime(claims)?.let { at ->
-            if (now.time < at.time - allowedClockSkewInMs) {
-                error("${timePrefix(now)} is before auth-time ${timePrefix(at)}")
+            if (timestamp.time < at.time - allowedClockSkewInMs) {
+                error("${timePrefix(timestamp)} is before auth-time ${timePrefix(at)}")
             }
         }
     }
@@ -125,9 +124,6 @@ class HelseIdTokenValidator(
     }
 
     private fun extractNin(jwt: SignedJWT): String = getString(jwt.jwtClaimsSet, PID_CLAIM)
-
-    private fun issuedAt(claims: JWTClaimsSet): Date? =
-        (claims.getClaim(JWTClaimNames.ISSUED_AT) as? Number)?.let { Date(it.toLong() * 1000) }
 
     private fun authTime(claims: JWTClaimsSet): Date? =
         (claims.getClaim("auth_time") as? Number)?.let { Date(it.toLong()) }
