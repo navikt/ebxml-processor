@@ -169,7 +169,7 @@ internal class HelseIDValidatorTest {
     }
 
     @Test
-    fun `validate helseID with lang message generation lag`() {
+    fun `validate helseID with long message generation lag`() {
         validateHomeMadeHelseId(
             validator,
             scope = HelseIdTokenValidator.SUPPORTED_SCOPES.first(),
