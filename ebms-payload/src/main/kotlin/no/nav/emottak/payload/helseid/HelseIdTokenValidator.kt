@@ -119,8 +119,16 @@ class HelseIdTokenValidator(
         if (claims.audience.none { it in SUPPORTED_AUDIENCE }) {
             error("Token does not contain required audience")
         }
-        if (getStringArray(claims, "scope").none { it in SUPPORTED_SCOPES }) {
+        if (claims.audience.size > 1) {
+            error("Token contains multiple audiences")
+        }
+
+        val scopes = getStringArray(claims, "scope")
+        if (scopes.none { it in SUPPORTED_SCOPES }) {
             error("Token does not contain required scope")
+        }
+        if (scopes.size > 1) {
+            error("Token contains multiple scopes")
         }
     }
 
