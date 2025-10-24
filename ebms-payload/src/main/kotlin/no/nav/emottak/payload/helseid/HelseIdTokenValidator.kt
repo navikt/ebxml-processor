@@ -32,8 +32,8 @@ import java.util.Locale
 
 class HelseIdTokenValidator(
     private val issuer: String = config().helseId.issuerUrl,
-    private val allowedClockSkewInMs: Long = 0,
-    private val allowedMessageGenerationGap: Long = 10000,
+    private val allowedClockSkewInMs: Long = config().helseId.allowedClockSkewInMs,
+    private val allowedMessageGenerationGapInMs: Long = config().helseId.allowedMessageGenerationGapInMs,
     private val helseIdJwkSource: JWKSource<SecurityContext> = JWKSourceBuilder<SecurityContext>
         .create<SecurityContext>(URI.create(config().helseId.jwksUrl).toURL()).build()
 ) {
@@ -96,8 +96,8 @@ class HelseIdTokenValidator(
             }
         }
         claims.issueTime?.let { iat ->
-            if (messageGenerationDate.time > iat.time - allowedClockSkewInMs + allowedMessageGenerationGap) {
-                error("Message generation time should be within ${allowedMessageGenerationGap / 1000} seconds after token issued time")
+            if (messageGenerationDate.time > iat.time - allowedClockSkewInMs + allowedMessageGenerationGapInMs) {
+                error("Message generation time should be within ${allowedMessageGenerationGapInMs / 1000} seconds after token issued time")
             }
         }
         claims.expirationTime?.let { exp ->

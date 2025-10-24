@@ -20,5 +20,7 @@ data class CertificateAuthority(
 
 data class HelseId(
     val issuerUrl: String,
-    val jwksUrl: String
+    val jwksUrl: String,
+    val allowedClockSkewInMs: Long,
+    val allowedMessageGenerationGapInMs: Long
 )
