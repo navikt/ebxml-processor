@@ -34,7 +34,6 @@ import org.slf4j.LoggerFactory
 import java.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
-val failedMessageQueue: FailedMessageKafkaHandler = FailedMessageKafkaHandler()
 const val RETRY_COUNT_HEADER = "retryCount"
 const val RETRY_AFTER = "retryableAfter"
 const val RETRY_REASON = "retryReason"
@@ -127,7 +126,7 @@ class FailedMessageKafkaHandler(
                             messageFilterService.filterMessage(record)
                         } else {
                             logger.info("${record.key()} is not retryable yet.")
-                            failedMessageQueue.sendToRetry(record)
+                            sendToRetry(record)
                         }
                         record.offset.commit()
                     }.collect()

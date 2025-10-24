@@ -1,9 +1,9 @@
-package no.nav.emottak.ebms.kafka
+package no.nav.emottak.ebms.async.kafka
 
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import no.nav.emottak.ebms.async.configuration.config
-import no.nav.emottak.ebms.async.kafka.consumer.failedMessageQueue
+import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
 import no.nav.emottak.ebms.async.kafka.consumer.getRecord
 import no.nav.emottak.ebms.async.kafka.consumer.getRetryRecord
 import org.junit.jupiter.api.Test
@@ -53,6 +53,7 @@ class KafkaIntegrationTest {
     @DisabledIf("noLocalKafkaEnv")
     fun leggTilRetry() {
         if (noLocalKafkaEnv()) return
+        val failedMessageQueue = FailedMessageKafkaHandler()
         runTest {
             val record = getRecord(
                 fromOffset = 9379942,
