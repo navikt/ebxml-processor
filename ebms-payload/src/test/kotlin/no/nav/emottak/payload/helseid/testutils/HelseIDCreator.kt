@@ -21,6 +21,7 @@ import java.security.NoSuchAlgorithmException
 import java.util.Base64
 import java.util.Date
 import java.util.UUID
+import kotlin.math.floor
 
 class HelseIDCreator(pathToKeystore: String, keystoreType: String = "jks", private val password: CharArray) {
 
@@ -69,8 +70,8 @@ class HelseIDCreator(pathToKeystore: String, keystoreType: String = "jks", priva
             .issueTime(now)
             .notBeforeTime(now)
             .claim("client_id", clientId)
-            .claim("auth_time", now.time)
-            .claim("iat", now.time)
+            .claim("auth_time", floor(now.time / 1000.0))
+            .claim("iat", floor(now.time / 1000.0))
             .claim("idp", "testidp-oidc")
             .claim("helseid://claims/identity/security_level", "4")
             .claim("helseid://claims/hpr/hpr_number", listOf("431001110"))
