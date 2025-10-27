@@ -186,8 +186,6 @@ internal class HelseIDValidatorTest {
     fun `validate helseID with long message generation lag`() {
         validateHomeMadeHelseId(
             validator,
-            scope = HelseIdTokenValidator.SUPPORTED_SCOPES.first(),
-            audience = HelseIdTokenValidator.SUPPORTED_AUDIENCE.first(),
             messageGenerationLagSec = 20,
             errMsg = "Message generation time should be within 10 seconds after token issued time"
         )
