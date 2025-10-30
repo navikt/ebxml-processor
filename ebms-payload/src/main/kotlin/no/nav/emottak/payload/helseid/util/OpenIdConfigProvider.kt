@@ -36,7 +36,6 @@ object OpenIdConfigProvider {
 
     private fun getConfig(): OIDCProviderMetadata {
         val now = Instant.now()
-
         if (cachedConfig != null &&
             lastFetched != null &&
             now.isBefore(lastFetched?.plusSeconds(cacheTimeInSec))
@@ -50,6 +49,8 @@ object OpenIdConfigProvider {
     private fun loadOpenIdConfig(): OIDCProviderMetadata {
         val issuer = Issuer(nhnUrl)
         val metadata = OIDCProviderMetadata.resolve(issuer)
+        lastFetched = Instant.now()
+        cachedConfig = metadata
         return metadata
     }
 }
