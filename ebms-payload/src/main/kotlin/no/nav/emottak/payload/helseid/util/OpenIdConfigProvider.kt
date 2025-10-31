@@ -19,8 +19,9 @@ object OpenIdConfigProvider {
             try {
                 return this.getConfig().issuer.value
             } catch (e: Exception) {
-                log.error("Failed to get OpenID issuer from $nhnUrl", e)
-                return config().helseId.issuerDefaultValue
+                val defaultIssuer = config().helseId.issuerDefaultValue
+                log.warn("Failed to get OpenID issuer from $nhnUrl, use default value $defaultIssuer", e)
+                return defaultIssuer
             }
         }
 
@@ -29,8 +30,9 @@ object OpenIdConfigProvider {
             try {
                 return this.getConfig().jwkSetURI.toURL()
             } catch (e: Exception) {
-                log.error("Failed to get OpenID JWK set URL from $nhnUrl", e)
-                return URI.create(config().helseId.jwksUrlDefaultValue).toURL()
+                val defaultJwksUrl = config().helseId.jwksUrlDefaultValue
+                log.warn("Failed to get OpenID JWK set URL from $nhnUrl, use default value $defaultJwksUrl", e)
+                return URI.create(defaultJwksUrl).toURL()
             }
         }
 
