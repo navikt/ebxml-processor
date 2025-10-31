@@ -18,10 +18,10 @@ import com.nimbusds.jwt.JWTClaimsSet
 import com.nimbusds.jwt.JWTParser
 import com.nimbusds.jwt.SignedJWT
 import no.nav.emottak.payload.configuration.config
+import no.nav.emottak.payload.helseid.util.OpenIdConfigProvider
 import no.nav.emottak.payload.helseid.util.XPathEvaluator
 import no.nav.emottak.payload.helseid.util.msgHeadNamespaceContext
 import org.w3c.dom.Document
-import java.net.URI
 import java.text.ParseException
 import java.time.Instant
 import java.time.ZoneId
@@ -31,11 +31,11 @@ import java.util.Date
 import java.util.Locale
 
 class HelseIdTokenValidator(
-    private val issuer: String = config().helseId.issuerUrl,
+    private val issuer: String = OpenIdConfigProvider.issuer,
     private val allowedClockSkewInMs: Long = config().helseId.allowedClockSkewInMs,
     private val allowedMessageGenerationGapInMs: Long = config().helseId.allowedMessageGenerationGapInMs,
     private val helseIdJwkSource: JWKSource<SecurityContext> = JWKSourceBuilder<SecurityContext>
-        .create<SecurityContext>(URI.create(config().helseId.jwksUrl).toURL()).build()
+        .create<SecurityContext>(OpenIdConfigProvider.jwksUrl).build()
 ) {
     fun getValidatedNin(base64Token: String, messageGenerationDate: Instant): String? = parseSignedJwt(base64Token)
         .also {
