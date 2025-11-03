@@ -38,8 +38,11 @@ fun Document.asString(): String {
 
 fun Document.asByteArray(): ByteArray {
     return ByteArrayOutputStream().use {
-        TransformerFactory.newInstance().newTransformer()
-            .transform(DOMSource(this), StreamResult(it))
+        val transformer = TransformerFactory.newInstance().newTransformer()
+        transformer.setOutputProperty(javax.xml.transform.OutputKeys.INDENT, "no")
+        transformer.setOutputProperty(javax.xml.transform.OutputKeys.OMIT_XML_DECLARATION, "no")
+        transformer.setOutputProperty(javax.xml.transform.OutputKeys.ENCODING, "UTF-8")
+        transformer.transform(DOMSource(this), StreamResult(it))
         it.toByteArray()
     }
 }
