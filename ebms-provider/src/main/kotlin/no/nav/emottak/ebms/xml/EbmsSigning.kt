@@ -31,6 +31,11 @@ class EbmsSigning(
     private val SOAP_ENVELOPE = SOAPConstants.URI_NS_SOAP_1_1_ENVELOPE
     private val SOAP_NEXT_ACTOR = SOAPConstants.URI_SOAP_ACTOR_NEXT
 
+    init {
+        System.setProperty("org.apache.xml.security.ignoreLineBreaks", "true")
+        org.apache.xml.security.Init.init()
+    }
+
     fun sign(ebmsDocument: EbmsDocument, signatureDetails: SignatureDetails) {
         sign(
             document = ebmsDocument.document,
