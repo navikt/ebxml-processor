@@ -29,6 +29,7 @@ val log = LoggerFactory.getLogger("no.nav.emottak.ebms.App")
 fun logger() = log
 fun main() = SuspendApp {
     System.setProperty("io.ktor.http.content.multipart.skipTempFile", "true")
+    System.setProperty("org.apache.xml.security.ignoreLineBreaks", "true")
 
     val processingClient = PayloadProcessingClient(scopedAuthHttpClient(EBMS_PAYLOAD_SCOPE))
     val processingService = ProcessingService(processingClient)

@@ -68,6 +68,8 @@ import org.slf4j.LoggerFactory
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.async.App")
 
 fun main() = SuspendApp {
+    System.setProperty("org.apache.xml.security.ignoreLineBreaks", "true")
+
     val database = Database(ebmsDbConfig.value)
     database.migrate(ebmsMigrationConfig.value)
     val payloadRepository = PayloadRepository(database)

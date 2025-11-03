@@ -32,7 +32,6 @@ class EbmsSigning(
     private val SOAP_NEXT_ACTOR = SOAPConstants.URI_SOAP_ACTOR_NEXT
 
     init {
-        System.setProperty("org.apache.xml.security.ignoreLineBreaks", "true")
         org.apache.xml.security.Init.init()
     }
 
