@@ -66,7 +66,19 @@ class SignaturValidator {
             signature.validateIn()
             val resolver = EbMSAttachmentResolver(attachments)
             signature.addResourceResolver(resolver)
-            return signature.checkSignatureValue(certificate)
+            val isValid = signature.checkSignatureValue(certificate)
+            if (!isValid) {
+                log.warn("Signature is invalid, checking references for more details...")
+                val signedInfo = signature.signedInfo
+                for (i in 0 until signedInfo.length) {
+                    val reference = signedInfo.item(i)
+                    if (!reference.verify()) {
+                        throw SignatureException("Reference digest for URI <${reference.uri}> invalid!")
+                    }
+                }
+            }
+            log.debug("Signature value valid: {}", isValid)
+            return isValid
         }
     }
 }
