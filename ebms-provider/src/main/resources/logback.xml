@@ -15,7 +15,7 @@
 
     <logger name="no.nav" level="INFO"/>
     <logger name="no.nav.emottak" level="${EMOTTAK_LOGGING_LEVEL:-INFO}"/>
-<!--    <logger name="org.apache.xml" level="TRACE"/>-->
+    <logger name="org.apache.xml.security" level="TRACE"/>
 <!--    <logger name="org.bouncycastle" level="TRACE"/>-->
 <!--    <logger name="sun.security" level="TRACE"/>-->
 
