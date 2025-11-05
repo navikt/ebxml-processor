@@ -29,7 +29,7 @@ values ('Behandler',        'HarBorgerFrikort',         'EgenandelForesporsel', 
        ('Utleverer',        'OppgjorsKontroll',         'Svarmelding',               TRUE,  false, false, TRUE,  TRUE,  false,  false,  false,   null,            null       ),
        ('Saksbehandler',    'Sykmelding',               'Svar',                      TRUE,  false, false, TRUE,  false, false,  false,  TRUE,    null,            'Svar'     ),
        ('Sykmelder',        'Sykmelding',               'Registrering',              TRUE,  false, TRUE,  TRUE,  TRUE,  TRUE,   TRUE,   TRUE,    null,            'Svar'     ),
-       ('Innmelding',       'Trekkopplysning',          'Fordringshaver',            TRUE,  false, TRUE,  TRUE,  TRUE,  TRUE,   TRUE,   TRUE,    null,            'Svar'     )
+       ('Fordringshaver',       'Trekkopplysning',          'Innmelding',            TRUE,  false, TRUE,  TRUE,  TRUE,  TRUE,   TRUE,   TRUE,    null,            'Svar'     )
 
 on conflict (ROLE, SERVICE, ACTION) do update set KRYPTERING   = EXCLUDED.KRYPTERING,
                                                   KOMPRIMERING = EXCLUDED.KOMPRIMERING,
