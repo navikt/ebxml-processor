@@ -11,10 +11,12 @@ import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.getFirstChildElement
 import no.nav.emottak.util.signatur.SignatureException
+import org.apache.xml.security.algorithms.MessageDigestAlgorithm
 import org.apache.xml.security.exceptions.XMLSecurityException
 import org.apache.xml.security.signature.XMLSignature
 import org.apache.xml.security.transforms.Transforms
 import org.apache.xml.security.transforms.params.XPathContainer
+import org.slf4j.LoggerFactory
 import org.w3c.dom.Document
 import org.w3c.dom.NodeList
 import java.security.PublicKey
@@ -30,14 +32,19 @@ class EbmsSigning(
     private val canonicalizationMethodAlgorithm = Transforms.TRANSFORM_C14N_OMIT_COMMENTS
     private val SOAP_ENVELOPE = SOAPConstants.URI_NS_SOAP_1_1_ENVELOPE
     private val SOAP_NEXT_ACTOR = SOAPConstants.URI_SOAP_ACTOR_NEXT
+    private val logger = LoggerFactory.getLogger(this::class.java)
+
+    init {
+        org.apache.xml.security.Init.init()
+    }
 
     fun sign(ebmsDocument: EbmsDocument, signatureDetails: SignatureDetails) {
         sign(
             document = ebmsDocument.document,
             attachments = ebmsDocument.attachments,
             publicCertificate = createX509Certificate(signatureDetails.certificate),
-            signatureAlgorithm = signatureDetails.signatureAlgorithm,
-            hashFunction = signatureDetails.hashFunction
+            signatureAlgorithm = signatureDetails.signatureAlgorithm.getOrUseMinimumAllowedAlgorithm(),
+            hashFunction = signatureDetails.hashFunction.getOrUseMinimumAllowedAlgorithm()
         )
     }
 
@@ -113,5 +120,15 @@ class EbmsSigning(
                 ) + "\"])"
         )
         return container.getElementPlusReturns()
+    }
+
+    private fun String.getOrUseMinimumAllowedAlgorithm(): String = when (this) {
+        XMLSignature.ALGO_ID_SIGNATURE_RSA_SHA1 -> XMLSignature.ALGO_ID_SIGNATURE_RSA_SHA256.also {
+            logger.warn("XML Signature Algorithm SHA1 is not allowed, switching to SHA256")
+        }
+        MessageDigestAlgorithm.ALGO_ID_DIGEST_SHA1 -> MessageDigestAlgorithm.ALGO_ID_DIGEST_SHA256.also {
+            logger.warn("Message Digest Algorithm SHA1 is not allowed, switching to SHA256")
+        }
+        else -> this
     }
 }
