@@ -35,7 +35,7 @@ import no.nav.emottak.ebms.SendInClient
 import no.nav.emottak.ebms.SmtpTransportClient
 import no.nav.emottak.ebms.async.configuration.Config
 import no.nav.emottak.ebms.async.configuration.config
-import no.nav.emottak.ebms.async.kafka.consumer.failedMessageQueue
+import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
 import no.nav.emottak.ebms.async.kafka.consumer.getRecord
 import no.nav.emottak.ebms.async.kafka.consumer.startPayloadReceiver
 import no.nav.emottak.ebms.async.kafka.consumer.startSignalReceiver
@@ -74,6 +74,8 @@ fun main() = SuspendApp {
 
     val config = config()
 
+    val failedMessageQueue = FailedMessageKafkaHandler()
+
     val processingService = ProcessingService(
         httpClient = PayloadProcessingClient(scopedAuthHttpClient(EBMS_PAYLOAD_SCOPE))
     )
@@ -111,7 +113,8 @@ fun main() = SuspendApp {
         ebmsSignalProducer = ebmsSignalProducer,
         payloadMessageForwardingService = payloadMessageForwardingService,
         eventRegistrationService = eventRegistrationService,
-        eventManagerService = eventManagerService
+        eventManagerService = eventManagerService,
+        failedMessageQueue = failedMessageQueue
     )
 
     val signalMessageService = SignalMessageService(
@@ -144,7 +147,8 @@ fun main() = SuspendApp {
                     ebmsProviderModule(
                         payloadRepository = payloadRepository,
                         messageFilterService = messageFilterService,
-                        eventRegistrationService = eventRegistrationService
+                        eventRegistrationService = eventRegistrationService,
+                        failedMessageQueue = failedMessageQueue
                     )
                 }
             ).also { it.engineConfig.maxChunkSize = 100000 }
@@ -193,7 +197,8 @@ private fun CoroutineScope.launchSignalReceiver(
 fun Application.ebmsProviderModule(
     payloadRepository: PayloadRepository,
     messageFilterService: MessageFilterService,
-    eventRegistrationService: EventRegistrationService
+    eventRegistrationService: EventRegistrationService,
+    failedMessageQueue: FailedMessageKafkaHandler
 ) {
     val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
 
@@ -207,9 +212,9 @@ fun Application.ebmsProviderModule(
         registerPrometheusEndpoint(appMicrometerRegistry)
         registerNavCheckStatus()
         if (!isProdEnv()) {
-            simulateError()
+            simulateError(failedMessageQueue)
         }
-        retryErrors(messageFilterService)
+        retryErrors(messageFilterService, failedMessageQueue)
         authenticate(AZURE_AD_AUTH) {
             getPayloads(payloadRepository, eventRegistrationService)
         }
@@ -219,7 +224,8 @@ fun Application.ebmsProviderModule(
 const val RETRY_LIMIT = "retryLimit"
 
 fun Routing.retryErrors(
-    messageFilterService: MessageFilterService
+    messageFilterService: MessageFilterService,
+    failedMessageQueue: FailedMessageKafkaHandler
 ): Route =
     get("/api/retry/{$RETRY_LIMIT}") {
         if (!config().kafkaErrorQueue.active) {
@@ -238,20 +244,23 @@ fun Routing.retryErrors(
 
 const val KAFKA_OFFSET = "offset"
 
-fun Route.simulateError(): Route = get("/api/forceretry/{$KAFKA_OFFSET}") {
-    CoroutineScope(Dispatchers.IO).launch() {
-        if (config().kafkaErrorQueue.active) {
-            val record = getRecord(
-                config()
-                    .kafkaPayloadReceiver.topic,
-                config().kafka
-                    .copy(groupId = "ebms-provider-retry"),
-                (call.parameters[KAFKA_OFFSET])?.toLong() ?: 0
-            )
-            failedMessageQueue.sendToRetry(
-                record = record ?: throw Exception("No Record found. Offset: ${call.parameters[KAFKA_OFFSET]}"),
-                reason = "Simulated Error"
-            )
+fun Route.simulateError(
+    failedMessageQueue: FailedMessageKafkaHandler
+): Route =
+    get("/api/forceretry/{$KAFKA_OFFSET}") {
+        CoroutineScope(Dispatchers.IO).launch() {
+            if (config().kafkaErrorQueue.active) {
+                val record = getRecord(
+                    config()
+                        .kafkaPayloadReceiver.topic,
+                    config().kafka
+                        .copy(groupId = "ebms-provider-retry"),
+                    (call.parameters[KAFKA_OFFSET])?.toLong() ?: 0
+                )
+                failedMessageQueue.sendToRetry(
+                    record = record ?: throw Exception("No Record found. Offset: ${call.parameters[KAFKA_OFFSET]}"),
+                    reason = "Simulated Error"
+                )
+            }
         }
     }
-}

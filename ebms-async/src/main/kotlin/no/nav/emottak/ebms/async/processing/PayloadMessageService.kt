@@ -4,7 +4,7 @@ import io.github.nomisRev.kafka.receiver.ReceiverRecord
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import no.nav.emottak.ebms.async.configuration.config
-import no.nav.emottak.ebms.async.kafka.consumer.failedMessageQueue
+import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
 import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
 import no.nav.emottak.ebms.async.log
 import no.nav.emottak.ebms.async.util.EventRegistrationService
@@ -32,7 +32,8 @@ class PayloadMessageService(
     val ebmsSignalProducer: EbmsMessageProducer,
     val payloadMessageForwardingService: PayloadMessageForwardingService,
     val eventRegistrationService: EventRegistrationService,
-    val eventManagerService: EventManagerService
+    val eventManagerService: EventManagerService,
+    val failedMessageQueue: FailedMessageKafkaHandler
 ) {
 
     suspend fun process(
@@ -68,9 +69,7 @@ class PayloadMessageService(
         }
     }
 
-    suspend fun processPayloadMessage(
-        ebmsPayloadMessage: PayloadMessage
-    ) {
+    private suspend fun processPayloadMessage(ebmsPayloadMessage: PayloadMessage) {
         log.info(ebmsPayloadMessage.marker(), "Got payload message with reference <${ebmsPayloadMessage.requestId}>")
         eventRegistrationService.registerEventMessageDetails(ebmsPayloadMessage)
         val validationResult = cpaValidationService.validateIncomingMessage(ebmsPayloadMessage)
@@ -136,14 +135,13 @@ class PayloadMessageService(
         }
     }
 
-    private suspend fun sendToRetry(
-        record: ReceiverRecord<String, ByteArray>,
-        exceptionReason: String
-    ) {
-        failedMessageQueue.sendToRetry(
-            record = record,
-            reason = exceptionReason
-        )
+    private suspend fun sendToRetry(record: ReceiverRecord<String, ByteArray>, exceptionReason: String) {
+        if (config().kafkaSignalProducer.active && config().kafkaPayloadProducer.active && config().kafkaErrorQueue.active) {
+            failedMessageQueue.sendToRetry(
+                record = record,
+                reason = exceptionReason
+            )
+        }
     }
 
     suspend fun isDuplicateMessage(ebmsPayloadMessage: PayloadMessage): Boolean {

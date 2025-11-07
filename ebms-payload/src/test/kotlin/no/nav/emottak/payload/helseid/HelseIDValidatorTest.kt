@@ -168,6 +168,17 @@ internal class HelseIDValidatorTest {
         )
     }
 
+    @Test
+    fun `validate helseID with long message generation lag`() {
+        validateHomeMadeHelseId(
+            validator,
+            scope = HelseIdTokenValidator.SUPPORTED_SCOPES.first(),
+            audience = HelseIdTokenValidator.SUPPORTED_AUDIENCE.first(),
+            messageGenerationLagSec = 20,
+            errMsg = "Message generation time should be within 10 seconds after token issued time"
+        )
+    }
+
     @Suppress("LongParameterList")
     private fun validateHomeMadeHelseId(
         validator: HelseIdTokenValidator,
@@ -176,7 +187,8 @@ internal class HelseIDValidatorTest {
         errMsg: String? = null,
         algo: JWSAlgorithm = JWSAlgorithm.RS256,
         type: JOSEObjectType = JOSEObjectType.JWT,
-        jwk: JWK? = null
+        jwk: JWK? = null,
+        messageGenerationLagSec: Long = 0L
     ) {
         val b64 = Base64.getEncoder().encodeToString(
             if (jwk == null) {
@@ -200,7 +212,7 @@ internal class HelseIDValidatorTest {
             }
         )
         TimeUnit.MILLISECONDS.sleep(20)
-        val timeStamp = Instant.now()
+        val timeStamp = Instant.now().plusSeconds(messageGenerationLagSec)
         val func: () -> Unit = {
             validator.getValidatedNin(
                 b64,
