@@ -142,7 +142,7 @@ fun Route.getTimeStamps(cpaRepository: CPARepository): Route = get("/cpa/timesta
     log.info("Timestamps")
     call.respond(
         HttpStatusCode.OK,
-        cpaRepository.findCpaTimestamps(
+        cpaRepository.findTimestampsCpaUpdated(
             withContext(Dispatchers.IO) {
                 return@withContext call.request.headers[CPA_IDS]
                     .let {
@@ -160,12 +160,20 @@ fun Route.getTimeStamps(cpaRepository: CPARepository): Route = get("/cpa/timesta
 fun Route.getTimeStampsLatest(cpaRepository: CPARepository) = get("/cpa/timestamps/latest") {
     log.info("Timestamplatest")
     val latestTimestamp = withContext(Dispatchers.IO) {
-        cpaRepository.findLatestUpdatedCpaTimestamp()
+        cpaRepository.findTimestampCpaLatestUpdated()
     }
     when (latestTimestamp) {
         null -> call.respond(HttpStatusCode.NotFound, "No timestamps found")
         else -> call.respond(HttpStatusCode.OK, latestTimestamp)
     }
+}
+
+fun Route.getTimeStampsLastUsed(cpaRepository: CPARepository): Route = get("/cpa/timestamps/last_used") {
+    log.info("Timestamps last_used")
+    call.respond(
+        HttpStatusCode.OK,
+        cpaRepository.findTimestampsCpaLastUsed()
+    )
 }
 
 fun Route.postCpa(cpaRepository: CPARepository) = post("/cpa") {
@@ -196,6 +204,9 @@ fun Route.validateCpa(
         log.info(validateRequest.marker(), "Validerer ebms mot CPA")
         val cpa = cpaRepository.findCpa(validateRequest.cpaId)
             ?: throw NotFoundException("Fant ikke CPA (${validateRequest.cpaId})")
+        if (!cpaRepository.updateCpaLastUsed(validateRequest.cpaId)) {
+            log.warn(validateRequest.marker(), "Feilet med å oppdatere last_used for CPA '${validateRequest.cpaId}'")
+        }
         if (!validateRequest.isSignalMessage()) {
             cpa.validate(validateRequest)
         } // Delivery Failure
@@ -354,7 +365,7 @@ fun Routing.registerHealthEndpoints(
     }
     get("/internal/health/readiness") {
         runCatching {
-            cpaRepository.findLatestUpdatedCpaTimestamp()
+            cpaRepository.findTimestampCpaLatestUpdated()
         }.onSuccess {
             call.respond(HttpStatusCode.OK, "Readiness OK")
         }.onFailure {
