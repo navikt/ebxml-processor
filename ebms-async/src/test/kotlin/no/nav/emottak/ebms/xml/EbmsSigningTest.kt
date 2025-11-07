@@ -18,7 +18,12 @@ import kotlin.uuid.Uuid
 
 class EbmsSigningTest {
 
-    private val ebmsSigning = EbmsSigning()
+    private val ebmsSigning: EbmsSigning
+
+    init {
+        System.setProperty("org.apache.xml.security.ignoreLineBreaks", "true")
+        ebmsSigning = EbmsSigning()
+    }
 
     @Test
     fun `Message with attachment is signed correctly`() {
