@@ -105,7 +105,8 @@ fun Application.ebmsProviderModule(
             val scope = "api://dev-gcp.team-emottak.edi-adapter/.default"
             val ediAdapterUrl = "https://edi-transport.intern.dev.nav.no"
 
-            val ediAdapterClient = EdiAdapterClient(ediAdapterUrl)
+            val scopedClient = scopedAuthHttpClient(scope)
+            val ediAdapterClient = EdiAdapterClient(ediAdapterUrl, scopedClient)
 
             // 1
             try {
@@ -148,7 +149,7 @@ fun Application.ebmsProviderModule(
                         service = "test-service",
                         serviceType = "test-service-type",
                         action = "test-action",
-                        senderRole = "test-sender-role",
+                        role = "test-sender-role",
                         useSenderLevel1HerId = true,
                         receiverRole = "test-receiver-role",
                         applicationName = "test-application-name",
@@ -160,7 +161,7 @@ fun Application.ebmsProviderModule(
                     receiverHerIdsSubset = listOf(123456)
                 )
 
-                val response = ediAdapterClient.postMessages(postMessagesRequest)
+                val response = ediAdapterClient.postMessage(postMessagesRequest)
                 log.info("EDI2 test: Response from edi-adapter: $response")
                 log.info("EDI2 test: test succeeded postMessages()")
             } catch (e: Exception) {
@@ -216,7 +217,7 @@ fun Application.ebmsProviderModule(
                         service = "test-service",
                         serviceType = "test-service-type",
                         action = "test-action",
-                        senderRole = "test-sender-role",
+                        role = "test-sender-role",
                         useSenderLevel1HerId = true,
                         receiverRole = "test-receiver-role",
                         applicationName = "test-application-name",

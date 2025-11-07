@@ -62,6 +62,8 @@ spec:
         - application: cpa-repo
         - application: ebms-payload
         - application: ebms-send-in
+        - application: edi-adapter
+          cluster: dev-gcp
   env:
     - name: KEYSTORE_FILE_SIGN_2025
       value: /var/run/secrets/ebms-keystore-2025/nav_signing_test.p12
