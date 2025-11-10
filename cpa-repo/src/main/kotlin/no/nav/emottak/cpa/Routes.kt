@@ -1,5 +1,6 @@
 package no.nav.emottak.cpa
 
+import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.authentication
 import io.ktor.server.plugins.BadRequestException
@@ -66,7 +67,10 @@ fun Route.whoAmI(): Route = get("/whoami") {
 fun Route.getCPA(cpaRepository: CPARepository): Route = get("/cpa/{$CPA_ID}") {
     val cpaId = call.parameters[CPA_ID] ?: throw BadRequestException("Mangler $CPA_ID")
     val cpa = cpaRepository.findCpa(cpaId) ?: throw NotFoundException("Fant ikke CPA $CPA_ID")
-    call.respond(cpa.asText())
+    call.respondText(
+        contentType = ContentType.Text.Xml,
+        text = cpa.asText()
+    )
 }
 
 fun Route.deleteAllCPA(cpaRepository: CPARepository): Route = get("/cpa/deleteAll") {
