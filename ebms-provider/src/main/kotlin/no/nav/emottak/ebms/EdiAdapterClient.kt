@@ -36,7 +36,9 @@ class EdiAdapterClient(
         }
         log.debug("EDI2 test: Response from getApprecInfo: $url : ${response.bodyAsText()}")
 
-        return handleResponse(response)
+        val result: Pair<List<ApprecInfo>?, ErrorMessage?> = handleResponse(response)
+        log.debug("EDI2 test: getApprecInfo() method returns $result")
+        return result
     }
 
     suspend fun getMessages(getMessagesRequest: GetMessagesRequest): Pair<List<Message>?, ErrorMessage?> {
@@ -46,7 +48,9 @@ class EdiAdapterClient(
         }
         log.debug("EDI2 test: Response from getMessages(): $url : ${response.bodyAsText()}")
 
-        return handleResponse(response)
+        val result: Pair<List<Message>?, ErrorMessage?> = handleResponse(response)
+        log.debug("EDI2 test: getMessages() method returns $result")
+        return result
     }
 
     suspend fun postMessage(postMessagesRequest: PostMessageRequest): Pair<String?, ErrorMessage?> {
@@ -67,7 +71,9 @@ class EdiAdapterClient(
         }
         log.debug("EDI2 test: Response from getMessage() : $url : ${response.bodyAsText()}")
 
-        return handleResponse(response)
+        val result: Pair<Message?, ErrorMessage?> = handleResponse(response)
+        log.debug("EDI2 test: getMessage() method returns $result")
+        return result
     }
 
     suspend fun getBusinessDocument(id: Uuid): Pair<GetBusinessDocumentResponse?, ErrorMessage?> {
@@ -116,12 +122,10 @@ class EdiAdapterClient(
     }
 
     private suspend inline fun <reified T> handleResponse(httpResponse: HttpResponse): Pair<T?, ErrorMessage?> {
-        val result: Pair<T?, ErrorMessage?> = if (httpResponse.status == HttpStatusCode.OK || httpResponse.status == HttpStatusCode.Created) {
+        return if (httpResponse.status == HttpStatusCode.OK || httpResponse.status == HttpStatusCode.Created) {
             Pair(httpResponse.body(), null)
         } else {
             Pair(null, httpResponse.body())
         }
-        log.debug("EDI2 test: handleResponse result: {}", result)
-        return result
     }
 }
