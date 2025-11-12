@@ -23,7 +23,8 @@ import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.util.EventRegistrationService
 import no.nav.emottak.ebms.util.EventRegistrationServiceImpl
 import no.nav.emottak.ebms.validation.CPAValidationService
-import no.nav.emottak.utils.edi2.EdiAdapterClient
+import no.nav.emottak.edi.EdiAdapterClient
+import no.nav.emottak.edi.scopedAuthHttpClientEdi
 import no.nav.emottak.utils.edi2.models.AppRecError
 import no.nav.emottak.utils.edi2.models.AppRecStatus
 import no.nav.emottak.utils.edi2.models.EbXmlInfo
@@ -105,7 +106,7 @@ fun Application.ebmsProviderModule(
             val scope = "api://dev-gcp.team-emottak.edi-adapter/.default"
             val ediAdapterUrl = "https://edi-transport.intern.dev.nav.no"
 
-            val scopedClient = scopedAuthHttpClient(scope)
+            val scopedClient = scopedAuthHttpClientEdi(scope)
             val ediAdapterClient = EdiAdapterClient(ediAdapterUrl, scopedClient, log = log)
 
             // 1
