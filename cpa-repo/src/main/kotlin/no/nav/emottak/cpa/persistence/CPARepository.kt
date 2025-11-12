@@ -25,22 +25,23 @@ import java.time.temporal.ChronoUnit
 
 class CPARepository(val database: Database) {
 
-    fun findCpa(cpaId: String): CollaborationProtocolAgreement? {
+    fun findCpa(cpaId: String): CollaborationProtocolAgreement? = findCpaAndLastUsed(cpaId).first
+
+    fun findCpaAndLastUsed(cpaId: String): Pair<CollaborationProtocolAgreement?, Instant?> {
         if (cpaId == "nav:qass:30823" && !isProdEnv()) {
             return loadOverrideCPA()
         }
-        return transaction(db = database.db) {
+        val resultRow = transaction(db = database.db) {
             CPA.selectAll().where {
                 CPA.id.eq(cpaId)
-            }.firstOrNull()?.get(
-                CPA.cpa
-            )
+            }.firstOrNull()
         }
+        return Pair(resultRow?.get(CPA.cpa), resultRow?.get(CPA.lastUsed))
     }
 
-    fun loadOverrideCPA(): CollaborationProtocolAgreement {
+    private fun loadOverrideCPA(): Pair<CollaborationProtocolAgreement, Instant> {
         val cpaString = String(object {}::class.java.classLoader.getResource("cpa/nav_qass_30823_modified.xml").readBytes())
-        return xmlMarshaller.unmarshal(cpaString, CollaborationProtocolAgreement::class.java)
+        return Pair(xmlMarshaller.unmarshal(cpaString, CollaborationProtocolAgreement::class.java), Instant.now())
     }
 
     fun findTimestampsCpaUpdated(idList: List<String>): Map<String, String> {
@@ -173,12 +174,12 @@ class CPARepository(val database: Database) {
         }
     }
 
-    fun findTimestampsCpaLastUsed(): Map<String, String> {
+    fun findTimestampsCpaLastUsed(): Map<String, String?> {
         return transaction(db = database.db) {
             CPA.select(CPA.id, CPA.lastUsed)
                 .orderBy(CPA.id, SortOrder.ASC)
                 .associate {
-                    it[CPA.id] to it[CPA.lastUsed].toString()
+                    it[CPA.id] to it[CPA.lastUsed]?.toString()
                 }
         }
     }
