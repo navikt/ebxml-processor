@@ -7,7 +7,6 @@ Prosjektet består av fire hovedmoduler for behandling av ebXML-meldinger.
 * EbMS Provider
 * EbMS Payload behandling
 * CPA Repo
-* EbMS Send In
 
 I tillegg er det en modul for asynkron trafikk som lytter på epost, og router meldinger til ebMS-Provider for behandling.
 * SMTP-Listener
@@ -15,23 +14,17 @@ I tillegg er det en modul for asynkron trafikk som lytter på epost, og router m
 ### EbMS Provider
 Selve motoren i ebMS-håndteringen. Det er her ebMS-spesifikasjonen er implementert.
 Validerer ebXML-konvolutten, pakker ut fagmeldingen og sender den til ebMS-payload.
+REST-endepunkt: https://ebms-provider-fss.intern.dev.nav.no/ebms/sync (post)
 
 ### EbMS Payload
 Behandling av fagmeldingene som er pakket inn i ebXML. Mottar meldinger fra ebMS-provider, og
 validerer at innholdet er en korrekt fagmelding og er klar for videreformidling til fagsystem.
+REST-endepunkt: https://ebms-payload-fss.intern.dev.nav.no/payload (post)
 
 ### CPA Repo
 Holder på alle godkjente CPAer. Mottar ebXML-header informasjon fra ebMS-provider, og validerer innholdet mot
 relevant CPA.
-
-### EbMS Send In
-Denne tjenesten har ansvaret for å route fagmeldingene til og fra fagsystemene. På vei inn mottar den ferdigbehandlede 
-fagmeldinger som routes videre til riktig fagsystem. På vei ut mottar den fagmeldinger fra fagsystemene, og router dem 
-videre til EbMS provider som validerer, pakker og sender ut meldingene.
-
-### SMTP Listener
-Liten modul som henter eposter fra definert innboks, og router meldingene videre til ebMS-Provider.
-Trigges av periodisk NAISJob, og leser alle mail i innboksen ved aktivering.
+REST-baseUrl: https://cpa-repo-fss.intern.dev.nav.no
 
 
 ## Utvikling
@@ -43,6 +36,7 @@ Alle modulene kjører som selvstendig applikasjoner, og er bygd opp av følgende
 
 ### Avhengigheter
 Avhengigheter og relasjoner til andre repoer i teamet
+* https://github.com/navikt/emottak-utils
 * https://github.com/navikt/emottak-payload-xsd
 * https://github.com/navikt/ebxml-protokoll
 * https://github.com/navikt/ebms-sync-router
@@ -54,13 +48,13 @@ For å bygge prosjektet brukes gradle.
 ./gradlew build
 ```
 
-Noen av testene bruker [testcontainers](https://github.com/testcontainers/testcontainers-java) for å bygge opp et mer komplett
-kjøretidsmiljø. Disse er avhengig av et fungerende docker miljø. For eksempel docker eller [colima](https://github.com/abiosoft/colima) på mac.
+Noen av testene bruker [testcontainers](https://github.com/testcontainers/testcontainers-java) for å bygge opp et mer komplett kjøretidsmiljø. 
+Disse er avhengig av et fungerende Docker-miljø. For eksempel Docker, [Colima](https://github.com/abiosoft/colima) på mac, eller [Rancher Desktop](https://rancherdesktop.io/) (win/mac/linux).
 
 Hvis du har en mac som bruker de nyere "M"-chipene (eks. M3) vil du møte på problemer når du spinner opp testcontainers i dette prosjektet. 
 Dette gjelder containerne for Oracle DB (gvenzl/oracle-xe:21-slim-faststart) når man bruker docker desktop.
 For å unngå dette må man heller bruke Colima. Under er steg for hvordan:
-1. [Innstaller Colima](https://github.com/abiosoft/colima?tab=readme-ov-file#installation).
+1. [Installér Colima](https://github.com/abiosoft/colima?tab=readme-ov-file#installation).
 2. Sett DOCKER_HOST env-variabel til Colima (mulig dette må reverseres når man bygger andre prosjekter).
    - `export DOCKER_HOST="unix://${HOME}/.colima/default/docker.sock"`
 3. Start Colima med x86_64. 

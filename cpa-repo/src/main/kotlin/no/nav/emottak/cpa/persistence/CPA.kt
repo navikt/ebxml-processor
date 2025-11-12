@@ -14,6 +14,7 @@ object CPA : Table("cpa") {
     val cpa = json("cpa", CollaborationProtocolAgreement::class.java)
     val updated_date = timestamp("updated_date")
     val entryCreated = timestamp("create_date")
+    val lastUsed: Column<java.time.Instant?> = timestamp("last_used").nullable()
 }
 
 fun <T : Any> Table.json(

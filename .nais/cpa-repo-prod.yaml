@@ -69,6 +69,7 @@ spec:
         - application: ebms-provider
         - application: ebms-async
         - application: ebms-payload
+        - application: emottak-monitor
     outbound:
       external:
         - host: crl.buypassca.com

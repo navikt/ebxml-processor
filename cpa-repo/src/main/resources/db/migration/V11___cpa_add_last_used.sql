@@ -1,0 +1,1 @@
+ALTER TABLE cpa ADD last_used timestamp;

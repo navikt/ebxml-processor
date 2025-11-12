@@ -7,6 +7,8 @@
  * in the user manual at https://docs.gradle.org/8.1.1/userguide/multi_project_builds.html
  */
 
+rootProject.name = "ebxml-processor"
+
 dependencyResolutionManagement {
 
     versionCatalogs {
@@ -153,5 +155,4 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "ebxml-processor"
 include("felles", "ebxml-processing-model", "cpa-repo", "ebms-provider", "ebms-payload", "ebms-async")

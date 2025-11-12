@@ -17,6 +17,7 @@ import org.jetbrains.exposed.sql.deleteAll
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.sql.update
 import org.jetbrains.exposed.sql.upsert
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 import java.time.Instant
@@ -24,25 +25,26 @@ import java.time.temporal.ChronoUnit
 
 class CPARepository(val database: Database) {
 
-    fun findCpa(cpaId: String): CollaborationProtocolAgreement? {
+    fun findCpa(cpaId: String): CollaborationProtocolAgreement? = findCpaAndLastUsed(cpaId).first
+
+    fun findCpaAndLastUsed(cpaId: String): Pair<CollaborationProtocolAgreement?, Instant?> {
         if (cpaId == "nav:qass:30823" && !isProdEnv()) {
             return loadOverrideCPA()
         }
-        return transaction(db = database.db) {
+        val resultRow = transaction(db = database.db) {
             CPA.selectAll().where {
                 CPA.id.eq(cpaId)
-            }.firstOrNull()?.get(
-                CPA.cpa
-            )
+            }.firstOrNull()
         }
+        return Pair(resultRow?.get(CPA.cpa), resultRow?.get(CPA.lastUsed))
     }
 
-    fun loadOverrideCPA(): CollaborationProtocolAgreement {
+    private fun loadOverrideCPA(): Pair<CollaborationProtocolAgreement, Instant> {
         val cpaString = String(object {}::class.java.classLoader.getResource("cpa/nav_qass_30823_modified.xml").readBytes())
-        return xmlMarshaller.unmarshal(cpaString, CollaborationProtocolAgreement::class.java)
+        return Pair(xmlMarshaller.unmarshal(cpaString, CollaborationProtocolAgreement::class.java), Instant.now())
     }
 
-    fun findCpaTimestamps(idList: List<String>): Map<String, String> {
+    fun findTimestampsCpaUpdated(idList: List<String>): Map<String, String> {
         return transaction(db = database.db) {
             if (idList.isNotEmpty()) {
                 CPA.select(CPA.id, CPA.updated_date).where { CPA.id inList idList }
@@ -54,7 +56,7 @@ class CPARepository(val database: Database) {
         }
     }
 
-    fun findLatestUpdatedCpaTimestamp(): String? {
+    fun findTimestampCpaLatestUpdated(): String? {
         return transaction(db = database.db) {
             CPA.select(CPA.id, CPA.updated_date)
                 .where { CPA.updated_date.isNotNull() }
@@ -73,7 +75,8 @@ class CPARepository(val database: Database) {
                     it[CPA.cpa],
                     it[CPA.updated_date],
                     it[CPA.entryCreated],
-                    it[CPA.herId]
+                    it[CPA.herId],
+                    it[CPA.lastUsed]
                 )
             }
         }
@@ -87,6 +90,7 @@ class CPARepository(val database: Database) {
                 it[entryCreated] = cpa.createdDate
                 it[updated_date] = cpa.updatedDate
                 it[herId] = cpa.herId
+                it[lastUsed] = cpa.lastUsed
             }
         }
         return cpa.id
@@ -157,19 +161,44 @@ class CPARepository(val database: Database) {
         }
     }
 
+    fun updateCpaLastUsed(cpaId: String): Boolean {
+        if (cpaId == "nav:qass:30823" && !isProdEnv()) {
+            return true
+        }
+        return 1 == transaction(database.db) {
+            CPA.update({
+                CPA.id eq cpaId
+            }) {
+                it[lastUsed] = Instant.now().truncatedTo(ChronoUnit.SECONDS)
+            }
+        }
+    }
+
+    fun findTimestampsCpaLastUsed(): Map<String, String?> {
+        return transaction(db = database.db) {
+            CPA.select(CPA.id, CPA.lastUsed)
+                .orderBy(CPA.id, SortOrder.ASC)
+                .associate {
+                    it[CPA.id] to it[CPA.lastUsed]?.toString()
+                }
+        }
+    }
+
     data class CpaDbEntry(
         val id: String,
         val cpa: CollaborationProtocolAgreement? = null,
         val updatedDate: Instant,
         val createdDate: Instant,
-        val herId: String?
+        val herId: String?,
+        val lastUsed: Instant?
     ) {
         constructor(cpa: CollaborationProtocolAgreement, updatedDateString: String?) : this(
             id = cpa.cpaid,
             cpa = cpa,
             updatedDate = parseOrDefault(updatedDateString),
             createdDate = Instant.now().truncatedTo(ChronoUnit.SECONDS),
-            herId = cpa.getPartnerPartyIdByType(PartyTypeEnum.HER)?.value
+            herId = cpa.getPartnerPartyIdByType(PartyTypeEnum.HER)?.value,
+            lastUsed = null
         )
 
         companion object {
@@ -182,11 +211,4 @@ class CPARepository(val database: Database) {
             }
         }
     }
-
-    // @Serializable
-    // data class TimestampResponse(
-    //    val idMap: Map<String, String>
-    // )
-
-    // fun List<Pair<>>.toTimestampResponse() {}
 }
