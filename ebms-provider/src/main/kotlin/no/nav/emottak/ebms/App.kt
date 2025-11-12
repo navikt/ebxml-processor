@@ -247,7 +247,7 @@ fun Application.ebmsProviderModule(
             }
 
             call.respond(
-                HttpStatusCode.InternalServerError,
+                HttpStatusCode.OK,
                 "EDI2 test: Pong from edi2-test"
             )
         }
