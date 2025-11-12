@@ -106,7 +106,7 @@ fun Application.ebmsProviderModule(
             val ediAdapterUrl = "https://edi-transport.intern.dev.nav.no"
 
             val scopedClient = scopedAuthHttpClient(scope)
-            val ediAdapterClient = EdiAdapterClient(ediAdapterUrl, scopedClient)
+            val ediAdapterClient = EdiAdapterClient(ediAdapterUrl, scopedClient, log = log)
 
             // 1
             try {
