@@ -24,12 +24,12 @@ import no.nav.emottak.ebms.util.EventRegistrationService
 import no.nav.emottak.ebms.util.EventRegistrationServiceImpl
 import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.edi.EdiAdapterClient
+import no.nav.emottak.edi.GetMessagesRequest
+import no.nav.emottak.edi.OrderBy
 import no.nav.emottak.edi.scopedAuthHttpClientEdi
 import no.nav.emottak.utils.edi2.models.AppRecError
 import no.nav.emottak.utils.edi2.models.AppRecStatus
 import no.nav.emottak.utils.edi2.models.EbXmlInfo
-import no.nav.emottak.utils.edi2.models.GetMessagesRequest
-import no.nav.emottak.utils.edi2.models.OrderBy
 import no.nav.emottak.utils.edi2.models.PostAppRecRequest
 import no.nav.emottak.utils.edi2.models.PostMessageRequest
 import no.nav.emottak.utils.kafka.client.EventPublisherClient
