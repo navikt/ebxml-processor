@@ -28,6 +28,7 @@ class SignaturValidator {
 
     companion object {
         init {
+            System.setProperty("org.apache.xml.security.ignoreLineBreaks", "true")
             org.apache.xml.security.Init.init()
         }
 

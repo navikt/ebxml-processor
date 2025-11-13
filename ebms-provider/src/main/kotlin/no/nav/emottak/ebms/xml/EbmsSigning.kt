@@ -35,6 +35,7 @@ class EbmsSigning(
     private val logger = LoggerFactory.getLogger(this::class.java)
 
     init {
+        System.setProperty("org.apache.xml.security.ignoreLineBreaks", "true")
         org.apache.xml.security.Init.init()
     }
 
