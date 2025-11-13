@@ -24,7 +24,6 @@ fun scopedAuthHttpClientEdi(
 ): () -> HttpClient {
     return {
         HttpClient(CIO) {
-            expectSuccess = true
             install(ContentNegotiation) {
                 json()
             }
