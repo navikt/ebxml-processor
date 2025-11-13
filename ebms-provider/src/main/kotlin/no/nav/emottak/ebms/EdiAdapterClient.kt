@@ -12,7 +12,6 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import no.nav.emottak.utils.edi2.models.ApprecInfo
-import no.nav.emottak.utils.edi2.models.ErrorMessage
 import no.nav.emottak.utils.edi2.models.GetBusinessDocumentResponse
 import no.nav.emottak.utils.edi2.models.GetMessagesRequest
 import no.nav.emottak.utils.edi2.models.Message
