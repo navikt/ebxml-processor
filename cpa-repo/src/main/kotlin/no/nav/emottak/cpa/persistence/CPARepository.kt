@@ -3,13 +3,11 @@ package no.nav.emottak.cpa.persistence
 import no.nav.emottak.cpa.feil.CpaValidationException
 import no.nav.emottak.cpa.getPartnerPartyIdByType
 import no.nav.emottak.cpa.log
-import no.nav.emottak.cpa.xmlMarshaller
 import no.nav.emottak.message.ebxml.EbXMLConstants.ACKNOWLEDGMENT_ACTION
 import no.nav.emottak.message.ebxml.EbXMLConstants.EBMS_SERVICE_URI
 import no.nav.emottak.message.ebxml.EbXMLConstants.MESSAGE_ERROR_ACTION
 import no.nav.emottak.message.ebxml.PartyTypeEnum
 import no.nav.emottak.message.model.ProcessConfig
-import no.nav.emottak.utils.environment.isProdEnv
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.and
@@ -25,9 +23,6 @@ import java.time.temporal.ChronoUnit
 class CPARepository(val database: Database) {
 
     fun findCpa(cpaId: String): CollaborationProtocolAgreement? {
-        if (cpaId == "nav:qass:30823" && !isProdEnv()) {
-            return loadOverrideCPA()
-        }
         return transaction(db = database.db) {
             CPA.selectAll().where {
                 CPA.id.eq(cpaId)
@@ -35,11 +30,6 @@ class CPARepository(val database: Database) {
                 CPA.cpa
             )
         }
-    }
-
-    fun loadOverrideCPA(): CollaborationProtocolAgreement {
-        val cpaString = String(object {}::class.java.classLoader.getResource("cpa/nav_qass_30823_modified.xml").readBytes())
-        return xmlMarshaller.unmarshal(cpaString, CollaborationProtocolAgreement::class.java)
     }
 
     fun findCpaTimestamps(idList: List<String>): Map<String, String> {
