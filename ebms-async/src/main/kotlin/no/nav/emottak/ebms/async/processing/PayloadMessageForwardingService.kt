@@ -47,7 +47,8 @@ class PayloadMessageForwardingService(
                         addressing = sendInResponse.addressing,
                         payload = Payload(sendInResponse.payload, ContentType.Application.Xml.toString()),
                         refToMessageId = payloadMessage.messageId,
-                        duplicateElimination = payloadMessage.duplicateElimination
+                        duplicateElimination = payloadMessage.duplicateElimination,
+                        ackRequested = true
                     )
                 }.let { payloadMessageResponse ->
                     returnMessageResponse(payloadMessageResponse)

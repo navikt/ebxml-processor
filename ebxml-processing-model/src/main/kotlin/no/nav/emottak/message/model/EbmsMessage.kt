@@ -4,6 +4,7 @@ import no.nav.emottak.message.ebxml.EbXMLConstants
 import no.nav.emottak.message.xml.getDocumentBuilder
 import no.nav.emottak.message.xml.marshal
 import no.nav.emottak.utils.common.model.Addressing
+import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.AckRequested
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Acknowledgment
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.From
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Manifest
@@ -80,7 +81,8 @@ fun EbmsMessage.createAcknowledgementJaxB(): Acknowledgment =
 fun EbmsMessage.createMessageHeader(
     newAddressing: Addressing = this.addressing,
     withAcknowledgmentElement: Boolean = false,
-    withSyncReplyElement: Boolean = false
+    withSyncReplyElement: Boolean = false,
+    withAckRequestedElement: Boolean = false
 ): Header {
     val messageData = MessageData().apply {
         this.messageId = Uuid.random().toString()
@@ -128,11 +130,19 @@ fun EbmsMessage.createMessageHeader(
         this.any.add(messageHeader)
         if (withSyncReplyElement) this.any.add(createSyncReplyElement())
         if (withAcknowledgmentElement) this.any.add(createAcknowledgementJaxB())
+        if (withAckRequestedElement) this.any.add(createAckRequestedElement())
     }
 }
 
 private fun createSyncReplyElement() = SyncReply().apply {
     this.actor = "http://schemas.xmlsoap.org/soap/actor/next"
+    this.isMustUnderstand = true
+    this.version = "2.0"
+}
+
+private fun createAckRequestedElement() = AckRequested().apply {
+    this.isSigned = true
+    this.actor = "urn:oasis:names:tc:ebxml-msg:actor:toPartyMSH"
     this.isMustUnderstand = true
     this.version = "2.0"
 }

@@ -17,12 +17,12 @@ data class PayloadMessage(
     override val document: Document? = null,
     override val refToMessageId: String? = null,
     override val sentAt: Instant? = null,
-    val duplicateElimination: Boolean
-
+    val duplicateElimination: Boolean,
+    val ackRequested: Boolean = false
 ) : EbmsMessage() {
 
     override fun toEbmsDokument(): EbmsDocument {
-        return createEbmsDocument(createMessageHeader(), this.payload)
+        return createEbmsDocument(createMessageHeader(withAckRequestedElement = ackRequested), this.payload)
     }
 
     @OptIn(ExperimentalUuidApi::class)
