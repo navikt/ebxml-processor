@@ -12,6 +12,7 @@ import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.getFirstChildElement
 import no.nav.emottak.util.signatur.SignatureException
 import org.apache.xml.security.algorithms.MessageDigestAlgorithm
+import org.apache.xml.security.c14n.Canonicalizer
 import org.apache.xml.security.exceptions.XMLSecurityException
 import org.apache.xml.security.signature.XMLSignature
 import org.apache.xml.security.transforms.Transforms
@@ -19,6 +20,7 @@ import org.apache.xml.security.transforms.params.XPathContainer
 import org.slf4j.LoggerFactory
 import org.w3c.dom.Document
 import org.w3c.dom.NodeList
+import java.io.ByteArrayOutputStream
 import java.security.PublicKey
 import java.security.cert.X509Certificate
 
@@ -66,6 +68,7 @@ class EbmsSigning(
         val signature: XMLSignature = createSignature(document, signatureAlgorithm)
         appendSignature(document, signature)
         addAttachmentResolver(signature, attachments)
+        signature.addDocument("", createTransforms(document), hashFunction)
         attachments.forEach {
             signature.addDocument(
                 CID_PREFIX + it.contentId,
@@ -73,7 +76,6 @@ class EbmsSigning(
                 hashFunction
             )
         }
-        signature.addDocument("", createTransforms(document), hashFunction)
         signature.addKeyInfo(getPublicCertFromKeyStore(publicCertificate))
         signature.addKeyInfo(publicCertificate)
         signature.sign(keyStore.getPrivateKey(publicCertificate.serialNumber))
@@ -98,12 +100,10 @@ class EbmsSigning(
     }
 
     @Throws(XMLSecurityException::class)
-    private fun createTransforms(document: Document): Transforms {
-        val result = Transforms(document)
-        result.addTransform(Transforms.TRANSFORM_ENVELOPED_SIGNATURE)
-        result.addTransform(Transforms.TRANSFORM_XPATH, getXPathTransform(document))
-        result.addTransform(Transforms.TRANSFORM_C14N_OMIT_COMMENTS)
-        return result
+    private fun createTransforms(document: Document): Transforms = Transforms(document).apply {
+        addTransform(Transforms.TRANSFORM_ENVELOPED_SIGNATURE)
+        addTransform(Transforms.TRANSFORM_XPATH, getXPathTransform(document))
+        addTransform(Transforms.TRANSFORM_C14N_OMIT_COMMENTS)
     }
 
     @Throws(XMLSecurityException::class)
@@ -127,4 +127,11 @@ class EbmsSigning(
         }
         else -> this
     }
+}
+
+fun Document.toByteArray(): ByteArray {
+    val byteArrayOutputStream = ByteArrayOutputStream()
+    val canonicalizer = Canonicalizer.getInstance(Canonicalizer.ALGO_ID_C14N_OMIT_COMMENTS)
+    canonicalizer.canonicalizeSubtree(this, byteArrayOutputStream)
+    return byteArrayOutputStream.toByteArray()
 }

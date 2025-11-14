@@ -13,12 +13,12 @@ import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.CPAValidationService
+import no.nav.emottak.ebms.xml.toByteArray
 import no.nav.emottak.message.model.AsyncPayload
 import no.nav.emottak.message.model.EbmsDocument
 import no.nav.emottak.message.model.EmailAddress
 import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadMessage
-import no.nav.emottak.message.xml.asByteArray
 import no.nav.emottak.util.marker
 import no.nav.emottak.utils.common.parseOrGenerateUuid
 import no.nav.emottak.utils.kafka.model.EventDataType
@@ -115,7 +115,7 @@ class PayloadMessageForwardingService(
         ) {
             ebmsPayloadProducer.publishMessage(
                 key = signedEbmsDocument.requestId,
-                value = signedEbmsDocument.document.asByteArray(),
+                value = signedEbmsDocument.document.toByteArray(),
                 headers = receiverEmailAddress.toKafkaHeaders() + signedEbmsDocument.messageHeader().toKafkaHeaders()
             )
         }

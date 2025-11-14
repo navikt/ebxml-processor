@@ -26,11 +26,11 @@ import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.validation.MimeHeaders
 import no.nav.emottak.ebms.validation.MimeValidationException
 import no.nav.emottak.ebms.validation.validateMimeSoapEnvelope
+import no.nav.emottak.ebms.xml.toByteArray
 import no.nav.emottak.message.model.DocumentType
 import no.nav.emottak.message.model.EbmsAttachment
 import no.nav.emottak.message.model.EbmsDocument
 import no.nav.emottak.message.util.createUniqueMimeMessageId
-import no.nav.emottak.message.xml.asByteArray
 import no.nav.emottak.message.xml.asString
 import no.nav.emottak.message.xml.getDocumentBuilder
 import no.nav.emottak.utils.common.parseOrGenerateUuid
@@ -147,7 +147,7 @@ suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbmsDocument) {
         this.append(MimeHeaders.SOAP_ACTION, "ebXML")
     }
     if (ebmsDokument.documentType() == DocumentType.PAYLOAD) {
-        val ebxml = Base64.getMimeEncoder().encodeToString(ebmsDokument.document.asByteArray())
+        val ebxml = Base64.getMimeEncoder().encodeToString(ebmsDokument.document.toByteArray())
         val contentId = createUniqueMimeMessageId()
         val ebxmlFormItem = PartData.FormItem(
             ebxml,
