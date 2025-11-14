@@ -11,10 +11,12 @@ import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.getFirstChildElement
 import no.nav.emottak.util.signatur.SignatureException
+import org.apache.xml.security.algorithms.MessageDigestAlgorithm
 import org.apache.xml.security.exceptions.XMLSecurityException
 import org.apache.xml.security.signature.XMLSignature
 import org.apache.xml.security.transforms.Transforms
 import org.apache.xml.security.transforms.params.XPathContainer
+import org.slf4j.LoggerFactory
 import org.w3c.dom.Document
 import org.w3c.dom.NodeList
 import java.security.PublicKey
@@ -28,16 +30,23 @@ class EbmsSigning(
 ) {
 
     private val canonicalizationMethodAlgorithm = Transforms.TRANSFORM_C14N_OMIT_COMMENTS
+    private val SOAP_ENVELOPE_PREFIX = "SOAP-ENV"
     private val SOAP_ENVELOPE = SOAPConstants.URI_NS_SOAP_1_1_ENVELOPE
     private val SOAP_NEXT_ACTOR = SOAPConstants.URI_SOAP_ACTOR_NEXT
+    private val logger = LoggerFactory.getLogger(this::class.java)
+
+    init {
+        System.setProperty("org.apache.xml.security.ignoreLineBreaks", "true")
+        org.apache.xml.security.Init.init()
+    }
 
     fun sign(ebmsDocument: EbmsDocument, signatureDetails: SignatureDetails) {
         sign(
             document = ebmsDocument.document,
             attachments = ebmsDocument.attachments,
             publicCertificate = createX509Certificate(signatureDetails.certificate),
-            signatureAlgorithm = signatureDetails.signatureAlgorithm,
-            hashFunction = signatureDetails.hashFunction
+            signatureAlgorithm = signatureDetails.signatureAlgorithm.getOrUseMinimumAllowedAlgorithm(),
+            hashFunction = signatureDetails.hashFunction.getOrUseMinimumAllowedAlgorithm()
         )
     }
 
@@ -98,20 +107,24 @@ class EbmsSigning(
     }
 
     @Throws(XMLSecurityException::class)
-    private fun getXPathTransform(document: Document): NodeList {
-        val rawPrefix = document.lookupPrefix(SOAP_ENVELOPE)
-        val prefix = if (rawPrefix == null) "" else "$rawPrefix:"
-        val container = XPathContainer(document)
-        container.setXPath(
+    private fun getXPathTransform(document: Document): NodeList = XPathContainer(document).apply {
+        setXPathNamespaceContext(SOAP_ENVELOPE_PREFIX, SOAP_ENVELOPE)
+        setXPath(
             (
-                "not(ancestor-or-self::node()[@" +
-                    prefix +
-                    "actor=\"urn:oasis:names:tc:ebxml-msg:actor:nextMSH\"]|ancestor-or-self::node()[@" +
-                    prefix +
-                    "actor=\"" +
-                    SOAP_NEXT_ACTOR
-                ) + "\"])"
+                "not(ancestor-or-self::node()" +
+                    "[@$SOAP_ENVELOPE_PREFIX:actor=\"urn:oasis:names:tc:ebxml-msg:actor:nextMSH\"]|ancestor-or-self::node()" +
+                    "[@$SOAP_ENVELOPE_PREFIX:actor=\"$SOAP_NEXT_ACTOR\"])"
+                )
         )
-        return container.getElementPlusReturns()
+    }.getElementPlusReturns()
+
+    private fun String.getOrUseMinimumAllowedAlgorithm(): String = when (this) {
+        XMLSignature.ALGO_ID_SIGNATURE_RSA_SHA1 -> XMLSignature.ALGO_ID_SIGNATURE_RSA_SHA256.also {
+            logger.warn("XML Signature Algorithm SHA1 is not allowed, switching to SHA256")
+        }
+        MessageDigestAlgorithm.ALGO_ID_DIGEST_SHA1 -> MessageDigestAlgorithm.ALGO_ID_DIGEST_SHA256.also {
+            logger.warn("Message Digest Algorithm SHA1 is not allowed, switching to SHA256")
+        }
+        else -> this
     }
 }

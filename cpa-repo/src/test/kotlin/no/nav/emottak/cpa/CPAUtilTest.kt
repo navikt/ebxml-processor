@@ -56,4 +56,12 @@ class CPAUtilTest {
         }
         assertEquals("PartyID med type $type og id $id eksisterer ikke i CPA", exception.message)
     }
+
+    @Test
+    fun `Hent signatureAlgorithm og hashFunction`() {
+        val cpa = TestUtil.createValidTestCPA()
+        val signatureDetails = cpa.getPartyInfoByTypeAndID(partyType = "HER", partyId = "8141253").getCertificateForSignatureValidation(role = "Behandler", service = "BehandlerKrav", action = "OppgjorsMelding")
+        assertEquals("http://www.w3.org/2001/04/xmldsig-more#rsa-sha256", signatureDetails.signatureAlgorithm)
+        assertEquals("http://www.w3.org/2001/04/xmlenc#sha256", signatureDetails.hashFunction)
+    }
 }

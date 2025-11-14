@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<SOAP:Envelope xmlns:SOAP="http://schemas.xmlsoap.org/soap/envelope/"
+               xmlns:eb="http://www.oasis-open.org/committees/ebxml-msg/schema/msg-header-2_0.xsd"
+               xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://schemas.xmlsoap.org/soap/envelope/ http://www.oasis-open.org/committees/ebxml-msg/schema/envelope.xsd http://www.oasis-open.org/committees/ebxml-msg/schema/msg-header-2_0.xsd http://www.oasis-open.org/committees/ebxml-msg/schema/msg-header-2_0.xsd">
+    <SOAP:Header>
+        <eb:MessageHeader SOAP:mustUnderstand="1" eb:version="2.0">
+            <eb:From>
+                <eb:PartyId eb:type="HER">8141253</eb:PartyId>
+                <eb:Role>Behandler</eb:Role>
+            </eb:From>
+            <eb:To>
+                <eb:PartyId eb:type="HER">79768</eb:PartyId>
+                <eb:Role>KontrollUtbetaler</eb:Role>
+            </eb:To>
+            <eb:CPAId>nav:qass:35065</eb:CPAId>
+            <eb:ConversationId>be192d3a-34b5-448a-a374-5eab0524c74d</eb:ConversationId>
+            <eb:Service eb:type="string">BehandlerKrav</eb:Service>
+            <eb:Action>OppgjorsMelding</eb:Action>
+            <eb:MessageData>
+                <eb:MessageId>7104acf8-21e9-4ee7-b894-d413a00a8881</eb:MessageId>
+                <eb:Timestamp>2023-08-29T10:56:50.3069479Z</eb:Timestamp>
+            </eb:MessageData>
+        </eb:MessageHeader>
+        <eb:AckRequested SOAP:actor="urn:oasis:names:tc:ebxml-msg:actor:toPartyMSH" SOAP:mustUnderstand="1"
+                         eb:signed="true" eb:version="2.0"></eb:AckRequested>
+    </SOAP:Header>
+    <SOAP:Body>
+        <eb:Manifest eb:version="2.0">
+            <eb:Reference xlink:href="cid:attachment1" xlink:type="simple"></eb:Reference>
+        </eb:Manifest>
+    </SOAP:Body>
+</SOAP:Envelope>
