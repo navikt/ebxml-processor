@@ -31,7 +31,6 @@ import no.nav.emottak.utils.edi2.models.GetMessagesRequest
 import no.nav.emottak.utils.edi2.models.OrderBy
 import no.nav.emottak.utils.edi2.models.PostAppRecRequest
 import no.nav.emottak.utils.edi2.models.PostMessageRequest
-import no.nav.emottak.utils.edi2.scopedAuthHttpClient
 import no.nav.emottak.utils.kafka.client.EventPublisherClient
 import no.nav.emottak.utils.kafka.service.EventLoggingService
 import org.slf4j.LoggerFactory
@@ -107,7 +106,7 @@ fun Application.ebmsProviderModule(
             val ediAdapterUrl = "https://edi-transport.intern.dev.nav.no"
 
             val scopedClient = scopedAuthHttpClient(scope)
-            val ediAdapterClient = EdiAdapterClient(ediAdapterUrl, scopedClient, log = log)
+            val ediAdapterClient = EdiAdapterClient(ediAdapterUrl, scopedClient)
 
             // 1
             try {
