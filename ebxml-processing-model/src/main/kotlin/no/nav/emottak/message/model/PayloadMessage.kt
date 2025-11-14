@@ -22,7 +22,11 @@ data class PayloadMessage(
 ) : EbmsMessage() {
 
     override fun toEbmsDokument(): EbmsDocument {
-        return createEbmsDocument(createMessageHeader(withAckRequestedElement = ackRequested), this.payload)
+        return createEbmsDocument(createMessageHeader(
+            withAckRequestedElement = ackRequested,
+            withDuplicateEliminationElement = duplicateElimination
+        ), this.payload
+        )
     }
 
     @OptIn(ExperimentalUuidApi::class)

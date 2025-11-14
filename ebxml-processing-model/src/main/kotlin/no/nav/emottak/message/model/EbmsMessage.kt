@@ -82,7 +82,8 @@ fun EbmsMessage.createMessageHeader(
     newAddressing: Addressing = this.addressing,
     withAcknowledgmentElement: Boolean = false,
     withSyncReplyElement: Boolean = false,
-    withAckRequestedElement: Boolean = false
+    withAckRequestedElement: Boolean = false,
+    withDuplicateEliminationElement: Boolean = false
 ): Header {
     val messageData = MessageData().apply {
         this.messageId = Uuid.random().toString()
@@ -124,6 +125,7 @@ fun EbmsMessage.createMessageHeader(
         this.version = "2.0"
         this.action = newAddressing.action
         this.messageData = messageData
+        if (withDuplicateEliminationElement) this.duplicateElimination = ""
     }
 
     return Header().apply {
