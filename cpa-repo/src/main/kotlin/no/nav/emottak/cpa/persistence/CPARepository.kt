@@ -10,15 +10,18 @@ import no.nav.emottak.message.ebxml.EbXMLConstants.MESSAGE_ERROR_ACTION
 import no.nav.emottak.message.ebxml.PartyTypeEnum
 import no.nav.emottak.message.model.ProcessConfig
 import no.nav.emottak.utils.environment.isProdEnv
-import org.jetbrains.exposed.sql.SortOrder
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.and
-import org.jetbrains.exposed.sql.deleteAll
-import org.jetbrains.exposed.sql.deleteWhere
-import org.jetbrains.exposed.sql.selectAll
-import org.jetbrains.exposed.sql.transactions.transaction
-import org.jetbrains.exposed.sql.update
-import org.jetbrains.exposed.sql.upsert
+import org.jetbrains.exposed.v1.core.SortOrder
+import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.inList
+import org.jetbrains.exposed.v1.core.isNotNull
+import org.jetbrains.exposed.v1.jdbc.deleteAll
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
+import org.jetbrains.exposed.v1.jdbc.select
+import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.jetbrains.exposed.v1.jdbc.update
+import org.jetbrains.exposed.v1.jdbc.upsert
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -84,13 +87,17 @@ class CPARepository(val database: Database) {
 
     fun updateOrInsert(cpa: CpaDbEntry): String {
         transaction(database.db) {
-            CPA.upsert(CPA.id) {
+            cpa.cpa ?: throw IllegalArgumentException("Kan ikke sette null verdi for CPA i DB")
+            CPA.upsert(
+                CPA.id,
+                onUpdateExclude = listOf(CPA.lastUsed)
+            ) {
                 it[id] = cpa.id
-                it[CPA.cpa] = cpa.cpa ?: throw IllegalArgumentException("Kan ikke sette null verdi for CPA i DB")
+                it[CPA.cpa] = cpa.cpa
                 it[entryCreated] = cpa.createdDate
                 it[updated_date] = cpa.updatedDate
                 it[herId] = cpa.herId
-                it[lastUsed] = cpa.lastUsed
+                it[lastUsed] = null
             }
         }
         return cpa.id

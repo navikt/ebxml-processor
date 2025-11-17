@@ -1,6 +1,6 @@
 package no.nav.emottak.cpa.persistence.gammel
 
-import org.jetbrains.exposed.sql.Table
+import org.jetbrains.exposed.v1.core.Table
 
 object PARTNER : Table("PARTNER") {
     val partnerId = ulong("PARTNER_ID")

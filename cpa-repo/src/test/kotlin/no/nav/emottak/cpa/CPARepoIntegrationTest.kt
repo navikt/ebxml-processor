@@ -564,13 +564,21 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
     }
 
     @Test
-    fun `last used should be null after CPA update`() = cpaRepoTestApp {
+    fun `last used should not be null after CPA update`() = cpaRepoTestApp {
         val httpClient = createClient {
             install(ContentNegotiation) {
                 json()
             }
             installCpaRepoAuthentication()
         }
+
+        var response = httpClient.get("/cpa/nav:qass:31162")
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertTrue(
+            StringUtils.isNotBlank(response.bodyAsText()),
+            "Response can't be null or blank"
+        )
+
         // ValidateCpa sets the lastUsed timestamp
         runValidateCpa(
             httpClient,
@@ -588,16 +596,26 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         assertNotNull(cpaLastUsed)
         val timezone = ZoneId.of("Europe/Oslo")
         val today = LocalDateTime.ofInstant(Instant.now(), timezone)
-        val cpaLastUsedTimestamp = LocalDateTime.parse(cpaLastUsed, DateTimeFormatter.ISO_OFFSET_DATE_TIME)
-        assertEquals(today.dayOfYear, cpaLastUsedTimestamp.dayOfYear)
+        val cpaLastUsedTimestamp1 = LocalDateTime.parse(cpaLastUsed, DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+        assertEquals(today.dayOfYear, cpaLastUsedTimestamp1.dayOfYear)
 
-        // Update the CPA (resets the lastUsed timestamp)
+        // Update the CPA
         val updatedTimestamp = Instant.now()
         postCpaRequest(httpClient, updatedTimestamp, "nav-qass-31162.xml")
 
-        // Verify that lastUsed is null now
+        // Verify that lastUsed is not null, and is the same timestamp as previously
         lastUsedMap = getLastUsedMap(httpClient)
-        assertNull(lastUsedMap["nav:qass:31162"], "CPA 31162 should be null again after an update")
+        assertNotNull(lastUsedMap["nav:qass:31162"], "CPA 31162 should not be null after an update")
+        val cpaLastUsedTimestamp2 = LocalDateTime.parse(cpaLastUsed, DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+        assertEquals(cpaLastUsedTimestamp1, cpaLastUsedTimestamp2)
+
+        // Verify that we still can retrieve the CPA
+        response = httpClient.get("/cpa/nav:qass:31162")
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertTrue(
+            StringUtils.isNotBlank(response.bodyAsText()),
+            "Response can't be null or blank"
+        )
     }
 
     @Test

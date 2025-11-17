@@ -14,7 +14,7 @@ dependencyResolutionManagement {
     versionCatalogs {
         create("libs") {
             version("bouncycastle", "1.76")
-            version("exposed", "0.47.0")
+            version("exposed", "1.0.0-rc-3")
             version("ktor", "3.0.3")
             version("token-validation-ktor", "5.0.15")
             version("arrow", "1.2.4")
@@ -23,6 +23,7 @@ dependencyResolutionManagement {
             version("hoplite", "2.8.2")
             version("logback", "1.5.17")
             version("logstash", "8.0")
+            version("fasterxml-jackson", "2.18.2")
             version("emottak-utils", "0.3.5")
 
             library("bcpkix-jdk18on", "org.bouncycastle", "bcpkix-jdk18on").versionRef("bouncycastle")
@@ -64,6 +65,9 @@ dependencyResolutionManagement {
             library("arrow-suspendapp-ktor", "io.arrow-kt", "suspendapp-ktor").versionRef("suspendapp")
 
             library("kotlin-kafka", "io.github.nomisrev", "kotlin-kafka").versionRef("kotlin-kafka")
+
+            library("jackson-module-kotlin", "com.fasterxml.jackson.module", "jackson-module-kotlin").versionRef("fasterxml-jackson")
+            library("jackson-dataformat-yaml", "com.fasterxml.jackson.dataformat", "jackson-dataformat-yaml").versionRef("fasterxml-jackson")
 
             library("ebxml-protokoll", "no.nav.emottak:ebxml-protokoll:0.0.6")
             library("emottak-payload-xsd", "no.nav.emottak:emottak-payload-xsd:0.0.9")
