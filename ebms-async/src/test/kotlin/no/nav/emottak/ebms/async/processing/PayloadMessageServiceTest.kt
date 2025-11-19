@@ -55,6 +55,7 @@ class PayloadMessageServiceTest {
 
     @BeforeEach
     fun setUp() {
+        org.apache.xml.security.Init.init()
         clearAllMocks()
         cpaValidationService = mockk()
         processingService = mockk()

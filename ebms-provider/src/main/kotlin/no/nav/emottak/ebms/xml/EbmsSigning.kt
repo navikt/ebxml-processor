@@ -12,7 +12,6 @@ import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.getFirstChildElement
 import no.nav.emottak.util.signatur.SignatureException
 import org.apache.xml.security.algorithms.MessageDigestAlgorithm
-import org.apache.xml.security.c14n.Canonicalizer
 import org.apache.xml.security.exceptions.XMLSecurityException
 import org.apache.xml.security.signature.XMLSignature
 import org.apache.xml.security.transforms.Transforms
@@ -20,7 +19,6 @@ import org.apache.xml.security.transforms.params.XPathContainer
 import org.slf4j.LoggerFactory
 import org.w3c.dom.Document
 import org.w3c.dom.NodeList
-import java.io.ByteArrayOutputStream
 import java.security.PublicKey
 import java.security.cert.X509Certificate
 
@@ -114,13 +112,11 @@ class EbmsSigning(
     private fun getXPathTransform(document: Document): NodeList = XPathContainer(document).apply {
         setXPathNamespaceContext(SOAP_ENVELOPE_PREFIX, SOAPConstants.URI_NS_SOAP_1_1_ENVELOPE)
         setXPath(
-            (
-                "not(" +
-                    "ancestor-or-self::node()[@$SOAP_ENVELOPE_PREFIX:actor=\"urn:oasis:names:tc:ebxml-msg:actor:nextMSH\"]" +
-                    "|" +
-                    "ancestor-or-self::node()[@$SOAP_ENVELOPE_PREFIX:actor=\"${SOAPConstants.URI_SOAP_ACTOR_NEXT}\"]" +
-                    ")"
-                )
+            "not(" +
+                "ancestor-or-self::node()[@$SOAP_ENVELOPE_PREFIX:actor=\"urn:oasis:names:tc:ebxml-msg:actor:nextMSH\"]" +
+                "|" +
+                "ancestor-or-self::node()[@$SOAP_ENVELOPE_PREFIX:actor=\"${SOAPConstants.URI_SOAP_ACTOR_NEXT}\"]" +
+                ")"
         )
     }.getElementPlusReturns()
 
@@ -133,11 +129,4 @@ class EbmsSigning(
         }
         else -> this
     }
-}
-
-fun Document.toByteArray(): ByteArray {
-    val byteArrayOutputStream = ByteArrayOutputStream()
-    val canonicalizer = Canonicalizer.getInstance(Canonicalizer.ALGO_ID_C14N_OMIT_COMMENTS)
-    canonicalizer.canonicalizeSubtree(this, byteArrayOutputStream)
-    return byteArrayOutputStream.toByteArray()
 }

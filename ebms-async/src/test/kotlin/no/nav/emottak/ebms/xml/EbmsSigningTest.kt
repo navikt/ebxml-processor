@@ -1,5 +1,6 @@
 package no.nav.emottak.ebms.xml
 
+import no.nav.emottak.ebms.util.toByteArray
 import no.nav.emottak.ebms.validation.SignaturValidator
 import no.nav.emottak.message.model.EbmsDocument
 import no.nav.emottak.message.model.Payload

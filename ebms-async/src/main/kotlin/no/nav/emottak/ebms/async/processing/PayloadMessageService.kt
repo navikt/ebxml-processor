@@ -12,8 +12,8 @@ import no.nav.emottak.ebms.async.util.toKafkaHeaders
 import no.nav.emottak.ebms.eventmanager.EventManagerService
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
+import no.nav.emottak.ebms.util.toByteArray
 import no.nav.emottak.ebms.validation.CPAValidationService
-import no.nav.emottak.ebms.xml.toByteArray
 import no.nav.emottak.melding.feil.EbmsException
 import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.EbmsDocument

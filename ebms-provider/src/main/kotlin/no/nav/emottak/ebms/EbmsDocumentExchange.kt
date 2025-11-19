@@ -23,10 +23,10 @@ import io.ktor.utils.io.toByteArray
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import no.nav.emottak.constants.SMTPHeaders
+import no.nav.emottak.ebms.util.toByteArray
 import no.nav.emottak.ebms.validation.MimeHeaders
 import no.nav.emottak.ebms.validation.MimeValidationException
 import no.nav.emottak.ebms.validation.validateMimeSoapEnvelope
-import no.nav.emottak.ebms.xml.toByteArray
 import no.nav.emottak.message.model.DocumentType
 import no.nav.emottak.message.model.EbmsAttachment
 import no.nav.emottak.message.model.EbmsDocument
