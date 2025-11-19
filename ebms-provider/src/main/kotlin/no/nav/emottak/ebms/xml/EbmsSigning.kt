@@ -61,7 +61,11 @@ class EbmsSigning(
         val signature: XMLSignature = createSignature(document, signatureAlgorithm)
         document.appendSignature(signature)
         signature.addAttachmentResolver(attachments)
-        signature.addDocument("", createTransforms(document), hashFunction)
+        signature.addDocument(
+            "",
+            createTransforms(document),
+            hashFunction.getOrUseMinimumAllowedAlgorithm()
+        )
         attachments.forEach {
             signature.addDocument(
                 CID_PREFIX + it.contentId,
