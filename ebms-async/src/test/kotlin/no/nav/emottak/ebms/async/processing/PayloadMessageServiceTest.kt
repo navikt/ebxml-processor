@@ -508,9 +508,9 @@ class PayloadMessageServiceTest {
 
 fun createPayloadMessage() = PayloadMessage(
     requestId = Uuid.random().toString(),
-    messageId = "",
-    conversationId = "",
-    cpaId = "",
+    messageId = Uuid.random().toString(),
+    conversationId = Uuid.random().toString(),
+    cpaId = "123",
     addressing = createValidAddressing(),
     payload = EbmsAttachment(
         bytes = byteArrayOf(),

@@ -80,7 +80,6 @@ fun EbmsMessage.createAcknowledgementJaxB(): Acknowledgment =
 @OptIn(ExperimentalUuidApi::class)
 fun EbmsMessage.createMessageHeader(
     newAddressing: Addressing = this.addressing,
-    withAcknowledgmentElement: Boolean = false,
     withSyncReplyElement: Boolean = false,
     withAckRequestedElement: Boolean = false,
     withDuplicateEliminationElement: Boolean = false
@@ -131,7 +130,6 @@ fun EbmsMessage.createMessageHeader(
     return Header().apply {
         this.any.add(messageHeader)
         if (withSyncReplyElement) this.any.add(createSyncReplyElement())
-        if (withAcknowledgmentElement) this.any.add(createAcknowledgementJaxB())
         if (withAckRequestedElement) this.any.add(createAckRequestedElement())
     }
 }
