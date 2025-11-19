@@ -63,12 +63,14 @@ fun EbmsMessage.createMessageHeader(
     withDuplicateEliminationElement: Boolean = false
 ): Header {
     val messageData = MessageData().apply {
-        this.messageId = Uuid.random().toString()
-        this.refToMessageId = this@createMessageHeader.refToMessageId
+        this.messageId = this@createMessageHeader.messageId
+        if (this@createMessageHeader !is Acknowledgment) {
+            this.refToMessageId = this@createMessageHeader.refToMessageId
+        }
         this.timestamp = Date()
     }
     val from = From().apply {
-        this.role = this@createMessageHeader.addressing.from.role
+        this.role = newAddressing.from.role
         this.partyId.addAll(
             newAddressing.from.partyId.map {
                 PartyId().apply {
