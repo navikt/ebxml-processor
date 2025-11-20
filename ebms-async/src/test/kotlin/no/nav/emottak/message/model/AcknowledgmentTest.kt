@@ -1,11 +1,14 @@
 package no.nav.emottak.message.model
 
+import kotlinx.coroutines.runBlocking
 import no.nav.emottak.ebms.async.processing.createPayloadMessage
 import no.nav.emottak.message.ebxml.EbXMLConstants
 import no.nav.emottak.message.ebxml.ackRequested
 import no.nav.emottak.message.ebxml.acknowledgment
 import no.nav.emottak.message.ebxml.messageHeader
+import no.nav.emottak.message.xml.createDocument
 import no.nav.emottak.message.xml.xmlMarshaller
+import org.apache.xml.security.utils.Constants
 import org.junit.jupiter.api.Test
 import org.xmlsoap.schemas.soap.envelope.Envelope
 import kotlin.test.assertEquals
@@ -15,7 +18,17 @@ class AcknowledgmentTest {
 
     @Test
     fun `Acknowledgment from PayloadMessage has correct values set`() {
-        val payloadMessage = createPayloadMessage()
+        val payloadMessage = createPayloadMessage(
+            document = runBlocking {
+                this::class.java.classLoader
+                    .getResourceAsStream("signaltest/payloadmessage.xml")!!.readAllBytes().createDocument()
+            }
+        )
+        val signatureReferences = payloadMessage.document!!.getElementsByTagNameNS(
+            Constants.SignatureSpecNS,
+            EbXMLConstants.XMLDSIG_TAG_REFERENCE
+        )
+        assertEquals(2, signatureReferences.length, "There should be 2 Reference elements in the original PayloadMessage document")
 
         val acknowledgment = payloadMessage.createAcknowledgment()
         assertEquals(payloadMessage.messageId, acknowledgment.refToMessageId, "RefToMessageId should match original messageId")
@@ -43,5 +56,10 @@ class AcknowledgmentTest {
         assertEquals("2.0", acknowledgmentElement.version, "Version in Acknowledgment element should be '2.0'")
         assertEquals(true, acknowledgmentElement.isMustUnderstand, "MustUnderstand in Acknowledgment element should be true")
         assertNotNull(acknowledgmentElement.timestamp, "Timestamp in Acknowledgment element should not be null")
+        assertEquals(2, acknowledgmentElement.reference.size, "There should be 2 Reference elements in Acknowledgment element")
+
+        for (i in acknowledgmentElement.reference.indices) {
+            assertEquals(signatureReferences.item(i).attributes.getNamedItem("URI").nodeValue, acknowledgmentElement.reference[i].uri, "URI of Reference $i should match original")
+        }
     }
 }

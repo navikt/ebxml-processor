@@ -37,6 +37,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PerMessageCharacteristicsType
+import org.w3c.dom.Document
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
@@ -506,7 +507,7 @@ class PayloadMessageServiceTest {
     }
 }
 
-fun createPayloadMessage() = PayloadMessage(
+fun createPayloadMessage(document: Document? = null) = PayloadMessage(
     requestId = Uuid.random().toString(),
     messageId = Uuid.random().toString(),
     conversationId = Uuid.random().toString(),
@@ -516,7 +517,7 @@ fun createPayloadMessage() = PayloadMessage(
         bytes = byteArrayOf(),
         contentType = ""
     ),
-    document = null,
+    document = document,
     refToMessageId = null,
     duplicateElimination = true
 )

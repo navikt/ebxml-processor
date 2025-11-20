@@ -1,10 +1,12 @@
 package no.nav.emottak.message.model
 
+import no.nav.emottak.message.ebxml.EbXMLConstants
 import no.nav.emottak.utils.common.model.Addressing
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Acknowledgment
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.From
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.PartyId
 import org.w3c.dom.Document
+import org.w3c.dom.NodeList
 import java.time.Instant
 import java.util.Date
 
@@ -16,7 +18,8 @@ data class Acknowledgment(
     override val cpaId: String,
     override val addressing: Addressing,
     override val document: Document? = null,
-    override val sentAt: Instant? = null
+    override val sentAt: Instant? = null,
+    val referenceList: NodeList? = null
 ) : EbmsMessage() {
 
     override fun toEbmsDokument(): EbmsDocument {
@@ -24,7 +27,17 @@ data class Acknowledgment(
             createMessageHeader().apply {
                 this.any.add(createAcknowledgementElement())
             }
-        )
+        ).also {
+            val acknowledgmentElement = it.document
+                .getElementsByTagNameNS(EbXMLConstants.OASIS_EBXML_MSG_HEADER_XSD_NS_URI, "Acknowledgment")
+                .item(0)
+            for (i in 0 until (referenceList?.length ?: 0)) {
+                acknowledgmentElement
+                    .appendChild(
+                        it.document.importNode(referenceList?.item(i), true)
+                    )
+            }
+        }
     }
 
     fun createAcknowledgementElement(): Acknowledgment =
@@ -42,7 +55,6 @@ data class Acknowledgment(
                         }
                     }
                 )
-                this.role = this@Acknowledgment.addressing.from.role
             }
         }
 }
