@@ -55,6 +55,7 @@ dependencies {
     implementation(libs.emottak.payload.xsd)
     implementation(libs.emottak.utils)
     implementation(libs.ktor.serialization.kotlinx.json)
+    implementation(libs.jaxb.runtime)
     implementation(libs.bundles.logging)
     runtimeOnly("org.postgresql:postgresql:42.7.3")
 }
