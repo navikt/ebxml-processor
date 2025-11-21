@@ -7,6 +7,9 @@ object EbXMLConstants {
 
     const val OASIS_EBXML_MSG_HEADER_XSD_NS_URI = "http://www.oasis-open.org/committees/ebxml-msg/schema/msg-header-2_0.xsd"
     const val OASIS_EBXML_MSG_HEADER_TAG = "MessageHeader"
+
+    const val XMLDSIG_NS_URI = "http://www.w3.org/2000/09/xmldsig#"
+    const val XMLDSIG_TAG_REFERENCE = "Reference"
 }
 
 enum class PartyTypeEnum(val type: String) {

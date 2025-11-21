@@ -31,8 +31,6 @@ class EbmsSigning(
 
     private val canonicalizationMethodAlgorithm = Transforms.TRANSFORM_C14N_OMIT_COMMENTS
     private val SOAP_ENVELOPE_PREFIX = "SOAP-ENV"
-    private val SOAP_ENVELOPE = SOAPConstants.URI_NS_SOAP_1_1_ENVELOPE
-    private val SOAP_NEXT_ACTOR = SOAPConstants.URI_SOAP_ACTOR_NEXT
     private val logger = LoggerFactory.getLogger(this::class.java)
 
     init {
@@ -45,14 +43,9 @@ class EbmsSigning(
             document = ebmsDocument.document,
             attachments = ebmsDocument.attachments,
             publicCertificate = createX509Certificate(signatureDetails.certificate),
-            signatureAlgorithm = signatureDetails.signatureAlgorithm.getOrUseMinimumAllowedAlgorithm(),
-            hashFunction = signatureDetails.hashFunction.getOrUseMinimumAllowedAlgorithm()
+            signatureAlgorithm = signatureDetails.signatureAlgorithm,
+            hashFunction = signatureDetails.hashFunction
         )
-    }
-
-    @Throws(XMLSecurityException::class)
-    private fun createSignature(document: Document, signatureMethodAlgorithm: String): XMLSignature {
-        return XMLSignature(document, null, signatureMethodAlgorithm, canonicalizationMethodAlgorithm)
     }
 
     @Throws(XMLSecurityException::class)
@@ -64,20 +57,33 @@ class EbmsSigning(
         hashFunction: String
     ) {
         val signature: XMLSignature = createSignature(document, signatureAlgorithm)
-        appendSignature(document, signature)
-        addAttachmentResolver(signature, attachments)
+        document.appendSignature(signature)
+        signature.addAttachmentResolver(attachments)
+        signature.addDocument(
+            "",
+            createTransforms(document),
+            hashFunction.getOrUseMinimumAllowedAlgorithm()
+        )
         attachments.forEach {
             signature.addDocument(
                 CID_PREFIX + it.contentId,
                 null,
-                hashFunction
+                hashFunction.getOrUseMinimumAllowedAlgorithm()
             )
         }
-        signature.addDocument("", createTransforms(document), hashFunction)
         signature.addKeyInfo(getPublicCertFromKeyStore(publicCertificate))
         signature.addKeyInfo(publicCertificate)
         signature.sign(keyStore.getPrivateKey(publicCertificate.serialNumber))
     }
+
+    @Throws(XMLSecurityException::class)
+    private fun createSignature(document: Document, signatureMethodAlgorithm: String): XMLSignature =
+        XMLSignature(
+            document,
+            null,
+            signatureMethodAlgorithm.getOrUseMinimumAllowedAlgorithm(),
+            canonicalizationMethodAlgorithm
+        )
 
     private fun getPublicCertFromKeyStore(publicCertificate: X509Certificate): PublicKey =
         keyStore.getCertificate(publicCertificate.serialNumber)?.publicKey
@@ -87,34 +93,30 @@ class EbmsSigning(
                     "issuer <${publicCertificate.issuerX500Principal.name}> in keystore"
             )
 
-    private fun appendSignature(document: Document, signature: XMLSignature) {
-        val soapHeader = document.documentElement.getFirstChildElement()
-        soapHeader.appendChild(signature.element)
+    private fun Document.appendSignature(signature: XMLSignature) {
+        this.documentElement.getFirstChildElement().appendChild(signature.element)
     }
 
-    private fun addAttachmentResolver(signature: XMLSignature, attachments: List<EbmsAttachment>) {
-        val resolver = EbMSAttachmentResolver(attachments)
-        signature.signedInfo.addResourceResolver(resolver)
+    private fun XMLSignature.addAttachmentResolver(attachments: List<EbmsAttachment>) {
+        this.signedInfo.addResourceResolver(EbMSAttachmentResolver(attachments))
     }
 
     @Throws(XMLSecurityException::class)
-    private fun createTransforms(document: Document): Transforms {
-        val result = Transforms(document)
-        result.addTransform(Transforms.TRANSFORM_ENVELOPED_SIGNATURE)
-        result.addTransform(Transforms.TRANSFORM_XPATH, getXPathTransform(document))
-        result.addTransform(Transforms.TRANSFORM_C14N_OMIT_COMMENTS)
-        return result
+    private fun createTransforms(document: Document): Transforms = Transforms(document).apply {
+        addTransform(Transforms.TRANSFORM_ENVELOPED_SIGNATURE)
+        addTransform(Transforms.TRANSFORM_XPATH, getXPathTransform(document))
+        addTransform(Transforms.TRANSFORM_C14N_OMIT_COMMENTS)
     }
 
     @Throws(XMLSecurityException::class)
     private fun getXPathTransform(document: Document): NodeList = XPathContainer(document).apply {
-        setXPathNamespaceContext(SOAP_ENVELOPE_PREFIX, SOAP_ENVELOPE)
+        setXPathNamespaceContext(SOAP_ENVELOPE_PREFIX, SOAPConstants.URI_NS_SOAP_1_1_ENVELOPE)
         setXPath(
-            (
-                "not(ancestor-or-self::node()" +
-                    "[@$SOAP_ENVELOPE_PREFIX:actor=\"urn:oasis:names:tc:ebxml-msg:actor:nextMSH\"]|ancestor-or-self::node()" +
-                    "[@$SOAP_ENVELOPE_PREFIX:actor=\"$SOAP_NEXT_ACTOR\"])"
-                )
+            "not(" +
+                "ancestor-or-self::node()[@$SOAP_ENVELOPE_PREFIX:actor=\"urn:oasis:names:tc:ebxml-msg:actor:nextMSH\"]" +
+                "|" +
+                "ancestor-or-self::node()[@$SOAP_ENVELOPE_PREFIX:actor=\"${SOAPConstants.URI_SOAP_ACTOR_NEXT}\"]" +
+                ")"
         )
     }.getElementPlusReturns()
 
