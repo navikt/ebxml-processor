@@ -57,7 +57,7 @@ internal class HelseIDValidatorTest {
         val validator = HelseIdTokenValidator(ISSUER)
         HelseIdTokenValidator.SUPPORTED_SCOPES.forEach { scope ->
             HelseIdTokenValidator.SUPPORTED_AUDIENCE.forEach { aud ->
-                validateHomeMadeHelseId(validator, scope = scope, audience = aud)
+                validateHomeMadeHelseId(validator, scopes = listOf(scope), audiences = listOf(aud))
             }
         }
     }
@@ -108,8 +108,6 @@ internal class HelseIDValidatorTest {
         validateHomeMadeHelseId(
             validator,
             jwk = jwk,
-            scope = HelseIdTokenValidator.SUPPORTED_SCOPES.first(),
-            audience = HelseIdTokenValidator.SUPPORTED_AUDIENCE.first(),
             errMsg = "Token is not signed with an approved algorithm",
             algo = JWSAlgorithm.HS256
         )
@@ -119,9 +117,8 @@ internal class HelseIDValidatorTest {
     fun `validate helseID with wrong scope`() {
         validateHomeMadeHelseId(
             validator,
-            scope = "e-hacker:hackhack",
-            audience = HelseIdTokenValidator.SUPPORTED_AUDIENCE.first(),
-            "Token does not contain required scope"
+            scopes = listOf("e-hacker:hackhack"),
+            errMsg = "Token does not contain required scope"
         )
     }
 
@@ -129,9 +126,8 @@ internal class HelseIDValidatorTest {
     fun `validate helseID with missing audience`() {
         validateHomeMadeHelseId(
             validator,
-            scope = HelseIdTokenValidator.SUPPORTED_SCOPES.first(),
-            audience = "e-hacker:dr.evil",
-            "Token does not contain required audience"
+            audiences = listOf("e-hacker:dr.evil"),
+            errMsg = "Token does not contain required audience"
         )
     }
 
@@ -139,9 +135,7 @@ internal class HelseIDValidatorTest {
     fun `validate helseID with wrong issuer`() {
         validateHomeMadeHelseId(
             HelseIdTokenValidator("https://foo.bar"),
-            scope = HelseIdTokenValidator.SUPPORTED_SCOPES.first(),
-            audience = HelseIdTokenValidator.SUPPORTED_AUDIENCE.first(),
-            "Invalid issuer https://helseid-sts.test.nhn.no"
+            errMsg = "Invalid issuer https://helseid-sts.test.nhn.no"
         )
     }
 
@@ -150,8 +144,6 @@ internal class HelseIDValidatorTest {
     fun `validate helseID with right type in header`(type: JOSEObjectType) {
         validateHomeMadeHelseId(
             HelseIdTokenValidator("https://foo.bar"),
-            scope = HelseIdTokenValidator.SUPPORTED_SCOPES.first(),
-            audience = HelseIdTokenValidator.SUPPORTED_AUDIENCE.first(),
             type = type,
             errMsg = "Invalid issuer https://helseid-sts.test.nhn.no"
         )
@@ -161,10 +153,32 @@ internal class HelseIDValidatorTest {
     fun `validate helseID with wrong type in header`() {
         validateHomeMadeHelseId(
             HelseIdTokenValidator("https://foo.bar"),
-            scope = HelseIdTokenValidator.SUPPORTED_SCOPES.first(),
-            audience = HelseIdTokenValidator.SUPPORTED_AUDIENCE.first(),
             type = JOSEObjectType("foo"),
             errMsg = "Unsupported token type foo"
+        )
+    }
+
+    @Test
+    fun `validate helseID with multiple audiences`() {
+        validateHomeMadeHelseId(
+            validator,
+            audiences = listOf(
+                HelseIdTokenValidator.SUPPORTED_AUDIENCE.first(),
+                "one:audience:more"
+            ),
+            errMsg = "Token contains multiple audiences"
+        )
+    }
+
+    @Test
+    fun `validate helseID with multiple scopes`() {
+        validateHomeMadeHelseId(
+            validator,
+            scopes = listOf(
+                HelseIdTokenValidator.SUPPORTED_SCOPES.first(),
+                "one:scope:more"
+            ),
+            errMsg = "Token contains multiple scopes"
         )
     }
 
@@ -172,8 +186,6 @@ internal class HelseIDValidatorTest {
     fun `validate helseID with long message generation lag`() {
         validateHomeMadeHelseId(
             validator,
-            scope = HelseIdTokenValidator.SUPPORTED_SCOPES.first(),
-            audience = HelseIdTokenValidator.SUPPORTED_AUDIENCE.first(),
             messageGenerationLagSec = 20,
             errMsg = "Message generation time should be within 10 seconds after token issued time"
         )
@@ -182,8 +194,8 @@ internal class HelseIDValidatorTest {
     @Suppress("LongParameterList")
     private fun validateHomeMadeHelseId(
         validator: HelseIdTokenValidator,
-        scope: String,
-        audience: String,
+        scopes: List<String> = listOf(HelseIdTokenValidator.SUPPORTED_SCOPES.first()),
+        audiences: List<String> = listOf(HelseIdTokenValidator.SUPPORTED_AUDIENCE.first()),
         errMsg: String? = null,
         algo: JWSAlgorithm = JWSAlgorithm.RS256,
         type: JOSEObjectType = JOSEObjectType.JWT,
@@ -195,8 +207,8 @@ internal class HelseIDValidatorTest {
                 helseIDCreator.getToken(
                     alias = "docsigner",
                     pid = "01010000110",
-                    scope = scope,
-                    audience = audience,
+                    scopes = scopes,
+                    audiences = audiences,
                     algo = algo,
                     type = type
                 ).toByteArray()
@@ -204,8 +216,8 @@ internal class HelseIDValidatorTest {
                 helseIDCreator.getToken(
                     jwk = jwk,
                     pid = "01010000110",
-                    scope = scope,
-                    audience = audience,
+                    scopes = scopes,
+                    audiences = audiences,
                     algo = algo,
                     type = type
                 ).toByteArray()
