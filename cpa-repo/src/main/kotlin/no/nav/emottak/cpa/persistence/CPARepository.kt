@@ -3,13 +3,11 @@ package no.nav.emottak.cpa.persistence
 import no.nav.emottak.cpa.feil.CpaValidationException
 import no.nav.emottak.cpa.getPartnerPartyIdByType
 import no.nav.emottak.cpa.log
-import no.nav.emottak.cpa.xmlMarshaller
 import no.nav.emottak.message.ebxml.EbXMLConstants.ACKNOWLEDGMENT_ACTION
 import no.nav.emottak.message.ebxml.EbXMLConstants.EBMS_SERVICE_URI
 import no.nav.emottak.message.ebxml.EbXMLConstants.MESSAGE_ERROR_ACTION
 import no.nav.emottak.message.ebxml.PartyTypeEnum
 import no.nav.emottak.message.model.ProcessConfig
-import no.nav.emottak.utils.environment.isProdEnv
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
@@ -31,20 +29,12 @@ class CPARepository(val database: Database) {
     fun findCpa(cpaId: String): CollaborationProtocolAgreement? = findCpaAndLastUsed(cpaId).first
 
     fun findCpaAndLastUsed(cpaId: String): Pair<CollaborationProtocolAgreement?, Instant?> {
-        if (cpaId == "nav:qass:30823" && !isProdEnv()) {
-            return loadOverrideCPA()
-        }
         val resultRow = transaction(db = database.db) {
             CPA.selectAll().where {
                 CPA.id.eq(cpaId)
             }.firstOrNull()
         }
         return Pair(resultRow?.get(CPA.cpa), resultRow?.get(CPA.lastUsed))
-    }
-
-    private fun loadOverrideCPA(): Pair<CollaborationProtocolAgreement, Instant> {
-        val cpaString = String(object {}::class.java.classLoader.getResource("cpa/nav_qass_30823_modified.xml").readBytes())
-        return Pair(xmlMarshaller.unmarshal(cpaString, CollaborationProtocolAgreement::class.java), Instant.now())
     }
 
     fun findTimestampsCpaUpdated(idList: List<String>): Map<String, String> {
@@ -169,9 +159,6 @@ class CPARepository(val database: Database) {
     }
 
     fun updateCpaLastUsed(cpaId: String): Boolean {
-        if (cpaId == "nav:qass:30823" && !isProdEnv()) {
-            return true
-        }
         return 1 == transaction(database.db) {
             CPA.update({
                 CPA.id eq cpaId
