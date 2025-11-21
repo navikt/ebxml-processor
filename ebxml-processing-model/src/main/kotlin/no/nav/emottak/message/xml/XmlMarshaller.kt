@@ -1,5 +1,6 @@
 package no.nav.emottak.message.xml
 
+import com.sun.xml.bind.marshaller.NamespacePrefixMapper
 import org.w3c.dom.Document
 import org.w3c.dom.Node
 import org.xmlsoap.schemas.soap.envelope.Envelope
@@ -8,6 +9,7 @@ import java.io.ByteArrayOutputStream
 import java.io.StringWriter
 import javax.xml.bind.JAXBContext
 import javax.xml.bind.JAXBElement
+import javax.xml.bind.Marshaller
 import javax.xml.stream.XMLInputFactory
 
 val xmlMarshaller = XmlMarshaller()
@@ -23,12 +25,13 @@ class XmlMarshaller {
             org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ObjectFactory::class.java,
             org.xmlsoap.schemas.soap.envelope.ObjectFactory::class.java,
             org.w3._1999.xlink.ObjectFactory::class.java,
-            org.w3._2009.xmldsig11_.ObjectFactory::class.java,
-            no.kith.xmlstds.msghead._2006_05_24.ObjectFactory::class.java,
-            no.nav.tjeneste.ekstern.frikort.v1.types.ObjectFactory::class.java
+            org.w3._2009.xmldsig11_.ObjectFactory::class.java
         )
 
-        private val marshaller = jaxbContext.createMarshaller()
+        private val marshaller = jaxbContext.createMarshaller().apply {
+            setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true)
+            setProperty("com.sun.xml.bind.namespacePrefixMapper", EbXMLNamespacePrefixMapper())
+        }
         private val unmarshaller = jaxbContext.createUnmarshaller()
         private val marshlingMonitor = Any()
         private val unmarshlingMonitor = Any()
@@ -62,5 +65,22 @@ class XmlMarshaller {
             unmarshaller.unmarshal(document)
         }
         return if (unmarshalled is JAXBElement<*>) (unmarshalled as JAXBElement<T>).value else unmarshalled as T
+    }
+}
+
+class EbXMLNamespacePrefixMapper : NamespacePrefixMapper() {
+    private val namespaceMap = mapOf(
+        "http://www.oasis-open.org/committees/ebxml-msg/schema/msg-header-2_0.xsd" to "eb",
+        "http://www.oasis-open.org/committees/ebxml-cppa/schema/cpp-cpa-2_0.xsd" to "cppa",
+        "http://www.w3.org/2000/09/xmldsig#" to "ds",
+        "http://www.w3.org/1999/xlink" to "xlink",
+        "http://schemas.xmlsoap.org/soap/envelope/" to "SOAP"
+    )
+
+    override fun getPreferredPrefix(namespaceUri: String?, suggestion: String?, requirePrefix: Boolean): String? {
+        return namespaceMap[namespaceUri]
+            ?: suggestion?.takeIf { it.isNotEmpty() }
+            ?: namespaceUri?.let { "ns${it.hashCode().toUInt()}" }
+            ?: "ns0"
     }
 }
