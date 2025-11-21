@@ -22,7 +22,7 @@ jobs:
       contents: write
       id-token: write
     steps:
-      - uses: "actions/checkout@v5"
+      - uses: "actions/checkout@v6"
       - uses: "actions/setup-java@v5"
         with:
           java-version: "21"
@@ -66,7 +66,7 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: "actions/checkout@v5"
+      - uses: "actions/checkout@v6"
       - name: "Deploy to DEV"
         uses: "nais/deploy/actions/deploy@v2"
         env:

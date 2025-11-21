@@ -8,9 +8,9 @@ import no.nav.emottak.cpa.persistence.Database
 import no.nav.emottak.cpa.xmlMarshaller
 import no.nav.emottak.message.ebxml.PartyTypeEnum
 import org.flywaydb.core.Flyway
-import org.jetbrains.exposed.sql.deleteAll
-import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.v1.jdbc.deleteAll
+import org.jetbrains.exposed.v1.jdbc.insert
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 import org.testcontainers.containers.PostgreSQLContainer
 import java.time.Instant

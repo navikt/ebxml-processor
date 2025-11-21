@@ -7,6 +7,7 @@ import java.io.ByteArrayInputStream
 
 class SignaturVerifisering {
     init {
+        System.setProperty("org.apache.xml.security.ignoreLineBreaks", "true")
         org.apache.xml.security.Init.init()
     }
 

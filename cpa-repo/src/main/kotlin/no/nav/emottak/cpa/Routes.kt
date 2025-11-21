@@ -1,5 +1,6 @@
 package no.nav.emottak.cpa
 
+import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.authentication
 import io.ktor.server.plugins.BadRequestException
@@ -41,6 +42,7 @@ import no.nav.emottak.message.model.SignatureDetailsRequest
 import no.nav.emottak.message.model.ValidationRequest
 import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.util.createX509Certificate
+import no.nav.emottak.util.isToday
 import no.nav.emottak.util.marker
 import no.nav.emottak.utils.common.model.EbmsProcessing
 import no.nav.emottak.utils.environment.getEnvVar
@@ -66,7 +68,10 @@ fun Route.whoAmI(): Route = get("/whoami") {
 fun Route.getCPA(cpaRepository: CPARepository): Route = get("/cpa/{$CPA_ID}") {
     val cpaId = call.parameters[CPA_ID] ?: throw BadRequestException("Mangler $CPA_ID")
     val cpa = cpaRepository.findCpa(cpaId) ?: throw NotFoundException("Fant ikke CPA $CPA_ID")
-    call.respond(cpa.asText())
+    call.respondText(
+        contentType = ContentType.Text.Xml,
+        text = cpa.asText()
+    )
 }
 
 fun Route.deleteAllCPA(cpaRepository: CPARepository): Route = get("/cpa/deleteAll") {
@@ -142,7 +147,7 @@ fun Route.getTimeStamps(cpaRepository: CPARepository): Route = get("/cpa/timesta
     log.info("Timestamps")
     call.respond(
         HttpStatusCode.OK,
-        cpaRepository.findCpaTimestamps(
+        cpaRepository.findTimestampsCpaUpdated(
             withContext(Dispatchers.IO) {
                 return@withContext call.request.headers[CPA_IDS]
                     .let {
@@ -160,12 +165,20 @@ fun Route.getTimeStamps(cpaRepository: CPARepository): Route = get("/cpa/timesta
 fun Route.getTimeStampsLatest(cpaRepository: CPARepository) = get("/cpa/timestamps/latest") {
     log.info("Timestamplatest")
     val latestTimestamp = withContext(Dispatchers.IO) {
-        cpaRepository.findLatestUpdatedCpaTimestamp()
+        cpaRepository.findTimestampCpaLatestUpdated()
     }
     when (latestTimestamp) {
         null -> call.respond(HttpStatusCode.NotFound, "No timestamps found")
         else -> call.respond(HttpStatusCode.OK, latestTimestamp)
     }
+}
+
+fun Route.getTimeStampsLastUsed(cpaRepository: CPARepository): Route = get("/cpa/timestamps/last_used") {
+    log.info("Timestamps last_used")
+    call.respond(
+        HttpStatusCode.OK,
+        cpaRepository.findTimestampsCpaLastUsed()
+    )
 }
 
 fun Route.postCpa(cpaRepository: CPARepository) = post("/cpa") {
@@ -194,8 +207,11 @@ fun Route.validateCpa(
 
     try {
         log.info(validateRequest.marker(), "Validerer ebms mot CPA")
-        val cpa = cpaRepository.findCpa(validateRequest.cpaId)
-            ?: throw NotFoundException("Fant ikke CPA (${validateRequest.cpaId})")
+        val (cpa, lastUsed) = cpaRepository.findCpaAndLastUsed(validateRequest.cpaId)
+        if (cpa == null) throw NotFoundException("Fant ikke CPA (${validateRequest.cpaId})")
+        if (!lastUsed.isToday() && !cpaRepository.updateCpaLastUsed(validateRequest.cpaId)) {
+            log.warn(validateRequest.marker(), "Feilet med å oppdatere last_used for CPA '${validateRequest.cpaId}'")
+        }
         if (!validateRequest.isSignalMessage()) {
             cpa.validate(validateRequest)
         } // Delivery Failure
@@ -354,7 +370,7 @@ fun Routing.registerHealthEndpoints(
     }
     get("/internal/health/readiness") {
         runCatching {
-            cpaRepository.findLatestUpdatedCpaTimestamp()
+            cpaRepository.findTimestampCpaLatestUpdated()
         }.onSuccess {
             call.respond(HttpStatusCode.OK, "Readiness OK")
         }.onFailure {
