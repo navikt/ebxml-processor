@@ -56,8 +56,8 @@ dependencies {
     implementation(libs.emottak.payload.xsd)
     implementation(libs.emottak.utils)
     implementation("net.sf.saxon:Saxon-HE:12.7")
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.7.1-2")
-    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.7.1")
+    implementation(libs.jackson.module.kotlin)
+    implementation(libs.jackson.dataformat.yaml)
     runtimeOnly("net.java.dev.jna:jna:5.12.1")
 
     testImplementation(testLibs.junit.jupiter.api)

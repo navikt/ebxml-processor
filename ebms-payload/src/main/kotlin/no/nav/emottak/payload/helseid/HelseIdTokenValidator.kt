@@ -21,10 +21,10 @@ import no.nav.emottak.payload.configuration.config
 import no.nav.emottak.payload.helseid.util.OpenIdConfigProvider
 import no.nav.emottak.payload.helseid.util.XPathEvaluator
 import no.nav.emottak.payload.helseid.util.msgHeadNamespaceContext
+import no.nav.emottak.util.OSLO_ZONE
 import org.w3c.dom.Document
 import java.text.ParseException
 import java.time.Instant
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Base64
 import java.util.Date
@@ -124,8 +124,16 @@ class HelseIdTokenValidator(
         if (claims.audience.none { it in SUPPORTED_AUDIENCE }) {
             error("Token does not contain required audience")
         }
-        if (getStringArray(claims, "scope").none { it in SUPPORTED_SCOPES }) {
+        if (claims.audience.size > 1) {
+            error("Token contains multiple audiences")
+        }
+
+        val scopes = getStringArray(claims, "scope")
+        if (scopes.none { it in SUPPORTED_SCOPES }) {
             error("Token does not contain required scope")
+        }
+        if (scopes.size > 1) {
+            error("Token contains multiple scopes")
         }
     }
 
@@ -149,7 +157,6 @@ class HelseIdTokenValidator(
     private fun timePrefix(date: Date): String = DATE_FMT.format(date.toInstant())
 
     companion object {
-        private val OSLO_ZONE: ZoneId = ZoneId.of("Europe/Oslo")
         private val DATE_FMT: DateTimeFormatter =
             DateTimeFormatter
                 .ofPattern("EEE MMM dd HH:mm:ss zzz yyyy", Locale.US)
