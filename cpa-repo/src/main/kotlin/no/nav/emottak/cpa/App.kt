@@ -94,6 +94,7 @@ fun cpaApplicationModule(
             getCPA(cpaRepository)
             getTimeStamps(cpaRepository)
             getTimeStampsLatest(cpaRepository)
+            getTimeStampsLastUsed(cpaRepository)
             getCertificate(cpaRepository)
             signingCertificate(cpaRepository)
             getMessagingCharacteristics(cpaRepository)
