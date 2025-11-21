@@ -5,8 +5,10 @@ import no.nav.emottak.ebms.async.persistence.table.PayloadTable
 import no.nav.emottak.ebms.async.persistence.table.PayloadTable.contentId
 import no.nav.emottak.ebms.async.persistence.table.PayloadTable.referenceId
 import no.nav.emottak.message.model.AsyncPayload
-import org.jetbrains.exposed.sql.transactions.transaction
-import org.jetbrains.exposed.sql.upsert
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.jdbc.select
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.jetbrains.exposed.v1.jdbc.upsert
 import kotlin.uuid.Uuid
 import kotlin.uuid.toJavaUuid
 import kotlin.uuid.toKotlinUuid
