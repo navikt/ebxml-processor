@@ -5,7 +5,6 @@ import no.nav.emottak.message.xml.getDocumentBuilder
 import no.nav.emottak.message.xml.marshal
 import no.nav.emottak.utils.common.model.Addressing
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.AckRequested
-import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Acknowledgment
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.From
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Manifest
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageData
@@ -36,7 +35,6 @@ abstract class EbmsMessage {
     abstract val refToMessageId: String?
     abstract val document: Document?
     abstract val sentAt: Instant?
-    val mottatt: Instant = Instant.now()
     open fun toEbmsDokument(): EbmsDocument {
         return createEbmsDocument(createMessageHeader())
     }
@@ -57,41 +55,22 @@ abstract class EbmsMessage {
     }
 }
 
-fun EbmsMessage.createAcknowledgementJaxB(): Acknowledgment =
-    Acknowledgment().apply {
-        version = "2.0"
-        isMustUnderstand = true // Alltid
-        actor = "http://schemas.xmlsoap.org/soap/actor/next"
-        timestamp = Date.from(this@createAcknowledgementJaxB.mottatt)
-        refToMessageId = this@createAcknowledgementJaxB.messageId
-        from = From().apply {
-            this.partyId.addAll(
-                this@createAcknowledgementJaxB.addressing.from.partyId.map {
-                    PartyId().apply {
-                        this.value = it.value
-                        this.type = it.type
-                    }
-                }
-            )
-            this.role = this@createAcknowledgementJaxB.addressing.from.role
-        }
-    }
-
 @OptIn(ExperimentalUuidApi::class)
 fun EbmsMessage.createMessageHeader(
     newAddressing: Addressing = this.addressing,
-    withAcknowledgmentElement: Boolean = false,
     withSyncReplyElement: Boolean = false,
     withAckRequestedElement: Boolean = false,
     withDuplicateEliminationElement: Boolean = false
 ): Header {
     val messageData = MessageData().apply {
-        this.messageId = Uuid.random().toString()
-        this.refToMessageId = this@createMessageHeader.refToMessageId
+        this.messageId = this@createMessageHeader.messageId
+        if (this@createMessageHeader !is Acknowledgment) {
+            this.refToMessageId = this@createMessageHeader.refToMessageId
+        }
         this.timestamp = Date()
     }
     val from = From().apply {
-        this.role = this@createMessageHeader.addressing.from.role
+        this.role = newAddressing.from.role
         this.partyId.addAll(
             newAddressing.from.partyId.map {
                 PartyId().apply {
@@ -131,7 +110,6 @@ fun EbmsMessage.createMessageHeader(
     return Header().apply {
         this.any.add(messageHeader)
         if (withSyncReplyElement) this.any.add(createSyncReplyElement())
-        if (withAcknowledgmentElement) this.any.add(createAcknowledgementJaxB())
         if (withAckRequestedElement) this.any.add(createAckRequestedElement())
     }
 }
