@@ -25,11 +25,11 @@ data class MessageError(
 
     override fun toEbmsDokument(): EbmsDocument {
         val header = this.createMessageHeader(this.addressing.copy(action = EbXMLConstants.MESSAGE_ERROR_ACTION, service = EbXMLConstants.EBMS_SERVICE_URI))
-        return ObjectFactory().createEnvelope()!!.also {
-            it.header = header.also {
-                it.any.add(this.feil.asErrorList())
+        return ObjectFactory().createEnvelope()!!.apply {
+            this.header = header.apply {
+                this@apply.any.add(this@MessageError.feil.asErrorList())
             }
-            it.body = Body()
+            this.body = Body()
         }.let {
             xmlMarshaller.marshal(it)
         }.let {
@@ -43,9 +43,11 @@ fun List<Feil>.asErrorList(): ErrorList {
     if (this.isEmpty()) {
         throw IllegalArgumentException("(4.2.3 Kan ikke opprette ErrorList uten errors")
     }
-
     return this.map {
-        it.code.createEbxmlError(it.descriptionText, if (it.severity != null) SeverityType.fromValue(it.severity) else null)
+        it.code.createEbxmlError(
+            descriptionText = it.descriptionText,
+            severityType = if (it.severity != null) SeverityType.fromValue(it.severity) else null
+        )
     }.asErrorList()
 }
 
@@ -54,13 +56,12 @@ fun List<org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Error>.asErro
     if (this.isEmpty()) {
         throw IllegalArgumentException("(4.2.3 Kan ikke opprette ErrorList uten errors")
     }
-    val errorList = ErrorList()
-    errorList.error.addAll(this)
-    errorList.version = "2.0"
-    errorList.id
-    errorList.highestSeverity = this.sortedBy {
-        it.severity == SeverityType.ERROR
-    }.first().severity
-    errorList.isMustUnderstand = true
-    return errorList
+    return ErrorList().apply {
+        version = "2.0"
+        isMustUnderstand = true
+        highestSeverity = this@asErrorList.minByOrNull {
+            it.severity == SeverityType.ERROR
+        }!!.severity
+        error.addAll(this@asErrorList)
+    }
 }

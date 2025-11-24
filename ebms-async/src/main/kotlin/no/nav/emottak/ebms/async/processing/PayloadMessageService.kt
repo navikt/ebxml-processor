@@ -12,13 +12,13 @@ import no.nav.emottak.ebms.async.util.toKafkaHeaders
 import no.nav.emottak.ebms.eventmanager.EventManagerService
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
+import no.nav.emottak.ebms.util.toByteArray
 import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.melding.feil.EbmsException
 import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.EbmsDocument
 import no.nav.emottak.message.model.EmailAddress
 import no.nav.emottak.message.model.PayloadMessage
-import no.nav.emottak.message.xml.asByteArray
 import no.nav.emottak.util.marker
 import no.nav.emottak.util.signatur.SignatureException
 import no.nav.emottak.utils.common.parseOrGenerateUuid
@@ -125,7 +125,7 @@ class PayloadMessageService(
                 ) {
                     ebmsSignalProducer.publishMessage(
                         key = ebmsDocument.requestId,
-                        value = ebmsDocument.document.asByteArray(),
+                        value = ebmsDocument.document.toByteArray(),
                         headers = signalResponderEmails.toKafkaHeaders() + messageHeader.toKafkaHeaders()
                     )
                 }

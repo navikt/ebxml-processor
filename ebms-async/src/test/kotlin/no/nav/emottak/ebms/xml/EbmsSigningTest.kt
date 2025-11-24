@@ -1,10 +1,10 @@
 package no.nav.emottak.ebms.xml
 
+import no.nav.emottak.ebms.util.toByteArray
 import no.nav.emottak.ebms.validation.SignaturValidator
 import no.nav.emottak.message.model.EbmsDocument
 import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.SignatureDetails
-import no.nav.emottak.message.xml.asByteArray
 import no.nav.emottak.message.xml.getDocumentBuilder
 import no.nav.emottak.util.decodeBase64
 import no.nav.emottak.util.retrieveSignatureElement
@@ -35,7 +35,7 @@ class EbmsSigningTest {
 
         ebmsSigning.sign(ebmsDocument, signatureDetails())
 
-        println(String(document.asByteArray()))
+        println(String(document.toByteArray()))
 
         SignaturValidator.validate(signatureDetails(), ebmsDocument.document, ebmsDocument.attachments)
     }
@@ -54,7 +54,7 @@ class EbmsSigningTest {
 
         ebmsSigning.sign(ebmsDocument, signatureDetailsSHA1)
 
-        println(String(document.asByteArray()))
+        println(String(document.toByteArray()))
 
         SignaturValidator.validate(signatureDetailsSHA1, ebmsDocument.document, ebmsDocument.attachments)
 
@@ -77,7 +77,7 @@ class EbmsSigningTest {
             .getElementsByTagName("eb:PartyId")
             .item(0)
             .textContent = "Modified content"
-        println(String(document.asByteArray()))
+        println(String(document.toByteArray()))
 
         assertThrows<SignatureException> {
             SignaturValidator.validate(
@@ -98,7 +98,7 @@ class EbmsSigningTest {
 
         ebmsSigning.sign(ebmsDocument, signatureDetails())
 
-        println(String(document.asByteArray()))
+        println(String(document.toByteArray()))
 
         assertThrows<SignatureException> {
             SignaturValidator.validate(
