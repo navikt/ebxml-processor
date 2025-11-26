@@ -7,6 +7,7 @@ import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import io.mockk.coEvery
 import io.mockk.mockk
+import jakarta.xml.bind.JAXBElement
 import no.nav.emottak.cpa.decodeBase64Mime
 import no.nav.emottak.ebms.CpaRepoClient
 import no.nav.emottak.ebms.asHttpRequest
@@ -30,7 +31,6 @@ import org.junit.jupiter.api.Test
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ErrorList
 import org.xmlsoap.schemas.soap.envelope.Envelope
 import org.xmlsoap.schemas.soap.envelope.Fault
-import javax.xml.bind.JAXBElement
 
 class MimeValidationIT {
 
