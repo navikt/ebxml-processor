@@ -77,10 +77,15 @@ class EbXMLNamespacePrefixMapper : NamespacePrefixMapper() {
         "http://schemas.xmlsoap.org/soap/envelope/" to "SOAP"
     )
 
-    override fun getPreferredPrefix(namespaceUri: String?, suggestion: String?, requirePrefix: Boolean): String? {
+    private val assignedPrefixes = mutableMapOf<String, String>()
+    private var prefixCounter = 1
+
+    override fun getPreferredPrefix(namespaceUri: String?, suggestion: String?, requirePrefix: Boolean): String {
+        if (namespaceUri == null) return "ns0"
         return namespaceMap[namespaceUri]
-            ?: suggestion?.takeIf { it.isNotEmpty() }
-            ?: namespaceUri?.let { "ns${it.hashCode().toUInt()}" }
-            ?: "ns0"
+            ?: assignedPrefixes[namespaceUri]
+            ?: "ns${prefixCounter++}".also {
+                assignedPrefixes[namespaceUri] = it
+            }
     }
 }
