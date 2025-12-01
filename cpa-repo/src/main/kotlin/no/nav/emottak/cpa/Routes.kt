@@ -198,7 +198,7 @@ fun Route.postCpa(cpaRepository: CPARepository) = post("/cpa") {
 
 fun Route.validateCpa(
     cpaRepository: CPARepository,
-    partnerRepository: PartnerRepository,
+    partnerRepository: PartnerRepository?,
     eventRegistrationService: EventRegistrationService
 ) = post("/cpa/validate/{$REQUEST_ID}") {
     val validateRequest = call.receive(ValidationRequest::class)
@@ -236,7 +236,7 @@ fun Route.validateCpa(
             throw it
         }
 
-        val partnerId = runCatching { partnerRepository.findPartnerId(cpa.cpaid) }.getOrNull()
+        val partnerId = runCatching { partnerRepository?.findPartnerId(cpa.cpaid) }.getOrNull()
 
         call.respond(
             HttpStatusCode.OK,
