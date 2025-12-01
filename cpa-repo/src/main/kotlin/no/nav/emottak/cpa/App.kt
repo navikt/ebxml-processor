@@ -28,7 +28,6 @@ import no.nav.emottak.cpa.persistence.Database
 import no.nav.emottak.cpa.persistence.cpaDbConfig
 import no.nav.emottak.cpa.persistence.cpaMigrationConfig
 import no.nav.emottak.cpa.persistence.gammel.PartnerRepository
-import no.nav.emottak.cpa.persistence.oracleConfig
 import no.nav.emottak.cpa.util.EventRegistrationService
 import no.nav.emottak.cpa.util.EventRegistrationServiceImpl
 import no.nav.emottak.utils.environment.getEnvVar
@@ -52,10 +51,10 @@ fun main() {
         Netty,
         port = 8080,
         module = cpaApplicationModule(
-            cpaDbConfig.value,
-            cpaMigrationConfig.value,
-            oracleConfig.value,
-            eventRegistrationService
+            cpaDbConfig = cpaDbConfig.value,
+            cpaMigrationConfig = cpaMigrationConfig.value,
+            emottakDbConfig = null, // oracleConfig.value,
+            eventRegistrationService = eventRegistrationService
         )
     ).start(wait = true)
 }
