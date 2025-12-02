@@ -3,7 +3,7 @@ package no.nav.emottak.message.xml
 import jakarta.xml.bind.JAXBContext
 import jakarta.xml.bind.JAXBElement
 import jakarta.xml.bind.Marshaller
-import com.sun.xml.bind.marshaller.NamespacePrefixMapper
+import org.glassfish.jaxb.runtime.marshaller.NamespacePrefixMapper
 import org.w3c.dom.Document
 import org.w3c.dom.Node
 import org.xmlsoap.schemas.soap.envelope.Envelope
@@ -30,7 +30,7 @@ class XmlMarshaller {
 
         private val marshaller = jaxbContext.createMarshaller().apply {
             setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true)
-            setProperty("com.sun.xml.bind.namespacePrefixMapper", EbXMLNamespacePrefixMapper())
+            setProperty("org.glassfish.jaxb.namespacePrefixMapper", EbXMLNamespacePrefixMapper())
         }
         private val unmarshaller = jaxbContext.createUnmarshaller()
         private val marshlingMonitor = Any()
