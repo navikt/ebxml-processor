@@ -41,6 +41,11 @@ class MessageErrorTest {
         assertEquals(null, messageHeader.duplicateElimination, "DuplicateElimination should not be present in MessageError message")
         assertEquals(EbXMLConstants.EBMS_SERVICE_URI, messageHeader.service.value, "Service URI should match MessageError service URI")
         assertEquals(EbXMLConstants.MESSAGE_ERROR_ACTION, messageHeader.action, "Action should match MessageError action")
+        assertEquals(payloadMessage.description?.size, messageHeader.description.size, "Description length in MessageHeader should match original Description length")
+        for (i in payloadMessage.description!!.indices) {
+            assertEquals(payloadMessage.description!![i].lang, messageHeader.description[i].lang, "Description lang in MessageHeader should match original Description")
+            assertEquals(payloadMessage.description!![i].value, messageHeader.description[i].value, "Description value in MessageHeader should match original Description")
+        }
 
         val messageErrorElement = header.errorList()
         assertNotNull(messageErrorElement, "Acknowledgment element should be present in header")

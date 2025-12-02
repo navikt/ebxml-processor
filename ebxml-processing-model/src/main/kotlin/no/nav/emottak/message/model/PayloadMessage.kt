@@ -2,6 +2,7 @@ package no.nav.emottak.message.model
 
 import no.nav.emottak.message.ebxml.EbXMLConstants
 import no.nav.emottak.utils.common.model.Addressing
+import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Description
 import org.w3c.dom.Document
 import org.w3c.dom.NodeList
 import java.time.Instant
@@ -14,6 +15,7 @@ data class PayloadMessage(
     override val conversationId: String,
     override val cpaId: String,
     override val addressing: Addressing,
+    override val description: List<Description>? = emptyList(),
     val payload: EbmsAttachment,
     override val document: Document? = null,
     override val refToMessageId: String? = null,
@@ -44,6 +46,7 @@ data class PayloadMessage(
                 service = EbXMLConstants.EBMS_SERVICE_URI,
                 action = EbXMLConstants.ACKNOWLEDGMENT_ACTION
             ),
+            description = this.description,
             referenceList = this.document?.getSignatureReferenceNodeList()
         )
     }

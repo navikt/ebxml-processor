@@ -20,6 +20,9 @@
                 <eb:MessageId>7104acf8-21e9-4ee7-b894-d413a00a8881</eb:MessageId>
                 <eb:Timestamp>2023-08-29T10:56:50.3069479Z</eb:Timestamp>
             </eb:MessageData>
+            <eb:Description xml:lang="NO" >
+                {"MSH-system":"Medilink","MSH-versjon":"1.23.2434","fagsystem":"System X","fagsystem-versjon":"1.24.6565"}
+            </eb:Description>
         </eb:MessageHeader>
         <eb:AckRequested SOAP:actor="urn:oasis:names:tc:ebxml-msg:actor:toPartyMSH" SOAP:mustUnderstand="1"
                          eb:signed="true" eb:version="2.0"></eb:AckRequested>

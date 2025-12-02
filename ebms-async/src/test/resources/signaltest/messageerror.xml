@@ -22,6 +22,9 @@
                 <eb:Timestamp>2014-06-07T19:42:20Z</eb:Timestamp>
                 <eb:RefToMessageId>autotest_tc_2_2_15</eb:RefToMessageId>
             </eb:MessageData>
+            <eb:Description xml:lang="NO" >
+                {"MSH-system":"Medilink","MSH-versjon":"1.23.2434","fagsystem":"System X","fagsystem-versjon":"1.24.6565"}
+            </eb:Description>
         </eb:MessageHeader>
         <eb:ErrorList SOAP:mustUnderstand="1" eb:highestSeverity="Error" eb:version="2.0">
             <eb:Error eb:errorCode="ValueNotRecognized" eb:location="xpointer(//MessageHeader/CpaId)" eb:severity="Error">

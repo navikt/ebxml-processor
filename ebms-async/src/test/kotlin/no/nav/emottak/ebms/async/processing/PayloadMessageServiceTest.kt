@@ -37,6 +37,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PerMessageCharacteristicsType
+import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Description
 import org.w3c.dom.Document
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -513,6 +514,7 @@ fun createPayloadMessage(document: Document? = null) = PayloadMessage(
     conversationId = Uuid.random().toString(),
     cpaId = "123",
     addressing = createValidAddressing(),
+    description = createValidDescription(),
     payload = EbmsAttachment(
         bytes = byteArrayOf(),
         contentType = ""
@@ -521,6 +523,15 @@ fun createPayloadMessage(document: Document? = null) = PayloadMessage(
     refToMessageId = null,
     duplicateElimination = true
 )
+
+fun createValidDescription(): List<Description> {
+    val description = Description()
+    description.value = """
+        {"MSH-system":"Medilink","MSH-versjon":"1.23.2434"}
+        """
+    description.lang = "NO"
+    return listOf(description)
+}
 
 fun createValidAddressing() = Addressing(
     to = Party(

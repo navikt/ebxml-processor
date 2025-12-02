@@ -53,6 +53,7 @@ data class EbmsDocument(val requestId: String, val document: Document, val attac
                 messageHeader.conversationId,
                 messageHeader.cpaId!!,
                 messageHeader.addressing(),
+                messageHeader.description,
                 attachments.first(),
                 document,
                 messageHeader.messageData.refToMessageId,
@@ -71,6 +72,7 @@ data class EbmsDocument(val requestId: String, val document: Document, val attac
                     messageHeader.conversationId,
                     messageHeader.cpaId!!,
                     messageHeader.addressing(isRoleApplicable = false),
+                    messageHeader.description,
                     errorList,
                     document,
                     messageHeader.messageData.timestamp.toInstant()
@@ -85,6 +87,7 @@ data class EbmsDocument(val requestId: String, val document: Document, val attac
                     messageHeader.conversationId,
                     messageHeader.cpaId!!,
                     messageHeader.addressing(isRoleApplicable = false),
+                    messageHeader.description,
                     document,
                     messageHeader.messageData.timestamp.toInstant()
                 )

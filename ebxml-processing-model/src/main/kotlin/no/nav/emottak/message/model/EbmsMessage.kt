@@ -5,6 +5,7 @@ import no.nav.emottak.message.xml.getDocumentBuilder
 import no.nav.emottak.message.xml.marshal
 import no.nav.emottak.utils.common.model.Addressing
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.AckRequested
+import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Description
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.From
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Manifest
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageData
@@ -32,6 +33,7 @@ abstract class EbmsMessage {
     abstract val conversationId: String
     abstract val cpaId: String
     abstract val addressing: Addressing
+    abstract val description: List<Description>?
     abstract val refToMessageId: String?
     abstract val document: Document?
     abstract val sentAt: Instant?
@@ -50,6 +52,7 @@ abstract class EbmsMessage {
                 service = EbXMLConstants.EBMS_SERVICE_URI,
                 action = EbXMLConstants.MESSAGE_ERROR_ACTION
             ),
+            this.description ?: emptyList(),
             errorList
         )
     }
@@ -58,6 +61,7 @@ abstract class EbmsMessage {
 @OptIn(ExperimentalUuidApi::class)
 fun EbmsMessage.createMessageHeader(
     newAddressing: Addressing = this.addressing,
+    description: List<Description> = this.description ?: emptyList(),
     withSyncReplyElement: Boolean = false,
     withAckRequestedElement: Boolean = false,
     withDuplicateEliminationElement: Boolean = false
@@ -94,6 +98,7 @@ fun EbmsMessage.createMessageHeader(
     val messageHeader = MessageHeader().apply {
         this.from = from
         this.to = to
+        this.description.addAll(description)
         this.cpaId = this@createMessageHeader.cpaId
         this.conversationId = this@createMessageHeader.conversationId
         this.service = Service().apply {
