@@ -57,7 +57,6 @@ dependencies {
     implementation(libs.ktor.server.auth.jvm)
     implementation(libs.labai.jsr305x.annotations)
     implementation(libs.jakarta.xml.bind.api)
-    implementation(libs.jaxb.runtime)
     implementation(libs.hikari)
     implementation(libs.flyway.core)
     implementation(libs.bundles.exposed)
@@ -70,7 +69,7 @@ dependencies {
     implementation("com.sun.xml.messaging.saaj:saaj-impl:3.0.2")
     implementation(libs.emottak.payload.xsd)
     implementation(libs.emottak.utils)
-    // implementation("org.glassfish.jaxb:jaxb-runtime:4.0.3") // TODO: Latest. Krever at protokoll oppdateres
+    implementation(libs.jaxb.runtime)
     implementation(libs.ebxml.protokoll)
     implementation(libs.token.validation.ktor.v3)
     implementation(testLibs.postgresql)

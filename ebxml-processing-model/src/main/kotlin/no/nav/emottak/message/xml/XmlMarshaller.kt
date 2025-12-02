@@ -1,13 +1,13 @@
 package no.nav.emottak.message.xml
 
+import jakarta.xml.bind.JAXBContext
+import jakarta.xml.bind.JAXBElement
 import org.w3c.dom.Document
 import org.w3c.dom.Node
 import org.xmlsoap.schemas.soap.envelope.Envelope
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.StringWriter
-import javax.xml.bind.JAXBContext
-import javax.xml.bind.JAXBElement
 import javax.xml.stream.XMLInputFactory
 
 val xmlMarshaller = XmlMarshaller()
