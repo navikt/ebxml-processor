@@ -38,7 +38,18 @@ abstract class EbmsMessage {
     abstract val document: Document?
     abstract val sentAt: Instant?
     open fun toEbmsDokument(): EbmsDocument {
-        return createEbmsDocument(createMessageHeader())
+        return createEbmsDocument(createMessageHeader(description = createOutgoingDescription()))
+    }
+
+    open fun createOutgoingDescription(): List<Description> {
+        val descriptionValue = """
+        {"MSH-system":"${EbXMLConstants.MSH_SYSTEM}","MSH-versjon":"${EbXMLConstants.MSH_VERSJON}"}
+        """
+        val Description = Description().apply {
+            this.value = descriptionValue
+            this.lang = "NO"
+        }
+        return listOf(Description)
     }
 
     open fun createMessageError(errorList: List<Feil>): MessageError {
@@ -52,7 +63,7 @@ abstract class EbmsMessage {
                 service = EbXMLConstants.EBMS_SERVICE_URI,
                 action = EbXMLConstants.MESSAGE_ERROR_ACTION
             ),
-            this.description ?: emptyList(),
+            description = emptyList(),
             errorList
         )
     }

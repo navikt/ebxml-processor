@@ -26,7 +26,9 @@ data class Acknowledgment(
 
     override fun toEbmsDokument(): EbmsDocument {
         return createEbmsDocument(
-            createMessageHeader().apply {
+            createMessageHeader(
+                description = createOutgoingDescription()
+            ).apply {
                 this.any.add(createAcknowledgementElement())
             }
         ).also {

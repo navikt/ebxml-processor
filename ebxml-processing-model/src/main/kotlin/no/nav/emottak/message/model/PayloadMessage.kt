@@ -28,7 +28,8 @@ data class PayloadMessage(
         return createEbmsDocument(
             createMessageHeader(
                 withAckRequestedElement = ackRequested,
-                withDuplicateEliminationElement = duplicateElimination
+                withDuplicateEliminationElement = duplicateElimination,
+                description = createOutgoingDescription()
             ),
             this.payload
         )
@@ -46,7 +47,6 @@ data class PayloadMessage(
                 service = EbXMLConstants.EBMS_SERVICE_URI,
                 action = EbXMLConstants.ACKNOWLEDGMENT_ACTION
             ),
-            description = this.description,
             referenceList = this.document?.getSignatureReferenceNodeList()
         )
     }

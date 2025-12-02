@@ -10,6 +10,12 @@ object EbXMLConstants {
 
     const val XMLDSIG_NS_URI = "http://www.w3.org/2000/09/xmldsig#"
     const val XMLDSIG_TAG_REFERENCE = "Reference"
+
+    // Disse verdiene skal inkluderes i MessageHeader for utgående meldinger
+    // https://git.sarepta.ehelse.no/publisert/standarder/raw/master/kravdokument/OvervaakingMeldingsversjonerEbXML/HIS_1210_2018%20Overv%C3%A5kning%20av%20meldingsversjoner%20i%20ebXML%20-oppdatert.pdf
+    // Vurder å justere opp versjonsnummeret dersom vi gjør "signifikante endringer"
+    const val MSH_SYSTEM = "NAV EBMS"
+    const val MSH_VERSJON = "1.0.0"
 }
 
 enum class PartyTypeEnum(val type: String) {

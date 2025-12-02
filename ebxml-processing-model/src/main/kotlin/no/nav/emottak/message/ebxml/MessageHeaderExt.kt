@@ -52,9 +52,6 @@ fun MessageHeader.addressing(isRoleApplicable: Boolean = true) = Addressing(
     this.service.value!!,
     this.action
 )
-fun MessageHeader.mshSystem() = {
-    val json = this.description.firstOrNull()?.value ?: ""
-}
 
 // fun MessageHeader.toValidationRequest(): ValidationRequest =
 //     // TODO valider sertifikat
