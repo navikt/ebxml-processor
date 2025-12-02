@@ -1,7 +1,7 @@
 package no.nav.emottak.cpa
 
+import jakarta.xml.bind.JAXBContext
 import java.io.StringWriter
-import javax.xml.bind.JAXBContext
 import javax.xml.stream.XMLInputFactory
 
 val xmlMarshaller = XmlMarshaller()
