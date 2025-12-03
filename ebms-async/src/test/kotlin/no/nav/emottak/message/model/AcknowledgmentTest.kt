@@ -51,7 +51,7 @@ class AcknowledgmentTest {
         assertEquals(EbXMLConstants.ACKNOWLEDGMENT_ACTION, messageHeader.action, "Action should match acknowledgment action")
         val expectedDescription = """
         {"MSH-system":"NAV EBMS","MSH-versjon":"1.0.0"}
-        """
+        """.trimIndent()
         assertEquals(1, messageHeader.description.size, "MessageHeader should contain 1 Description")
         assertEquals("NO", messageHeader.description[0].lang, "Description lang in MessageHeader should be as expected")
         assertEquals(expectedDescription, messageHeader.description[0].value, "Description value in MessageHeader should be as expected")

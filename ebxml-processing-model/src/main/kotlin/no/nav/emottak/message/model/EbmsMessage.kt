@@ -45,11 +45,11 @@ abstract class EbmsMessage {
         val descriptionValue = """
         {"MSH-system":"${EbXMLConstants.MSH_SYSTEM}","MSH-versjon":"${EbXMLConstants.MSH_VERSJON}"}
         """
-        val Description = Description().apply {
+        val description = Description().apply {
             this.value = descriptionValue
             this.lang = "NO"
         }
-        return listOf(Description)
+        return listOf(description)
     }
 
     open fun createMessageError(errorList: List<Feil>): MessageError {
