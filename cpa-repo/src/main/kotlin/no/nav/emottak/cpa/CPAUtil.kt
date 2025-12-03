@@ -1,5 +1,6 @@
 package no.nav.emottak.cpa
 
+import jakarta.xml.bind.JAXBElement
 import no.nav.emottak.cpa.feil.CpaValidationException
 import no.nav.emottak.cpa.feil.SecurityException
 import no.nav.emottak.message.ebxml.EbXMLConstants.EBMS_SERVICE_URI
@@ -16,7 +17,6 @@ import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PartyInfo
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.ProtocolType
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.Transport
 import org.w3._2000._09.xmldsig_.X509DataType
-import javax.xml.bind.JAXBElement
 
 fun PartyInfo.getCertificateForEncryption(): ByteArray {
     // @TODO match role service action. ".first()" er ikke nok
