@@ -13,9 +13,13 @@ object EbXMLConstants {
 
     // Disse verdiene skal inkluderes i MessageHeader for utgående meldinger
     // https://git.sarepta.ehelse.no/publisert/standarder/raw/master/kravdokument/OvervaakingMeldingsversjonerEbXML/HIS_1210_2018%20Overv%C3%A5kning%20av%20meldingsversjoner%20i%20ebXML%20-oppdatert.pdf
-    // Vurder å justere opp versjonsnummeret dersom vi gjør "signifikante endringer"
     const val MSH_SYSTEM = "NAV EBMS"
-    const val MSH_VERSJON = "1.0.0"
+    val MSH_VERSJON = readVersionFromEnv()
+
+    private fun readVersionFromEnv(): String {
+        val imageFullname = System.getenv("NAIS_APP_IMAGE") ?: "myImage:1.0.0"
+        return imageFullname.substringAfterLast(":")
+    }
 }
 
 enum class PartyTypeEnum(val type: String) {
