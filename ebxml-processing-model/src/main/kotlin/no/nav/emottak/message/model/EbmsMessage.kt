@@ -44,7 +44,7 @@ abstract class EbmsMessage {
     open fun createOutgoingDescription(): List<Description> {
         val descriptionValue = """
         {"MSH-system":"${EbXMLConstants.MSH_SYSTEM}","MSH-versjon":"${EbXMLConstants.MSH_VERSJON}"}
-        """
+        """.trimIndent()
         val description = Description().apply {
             this.value = descriptionValue
             this.lang = "NO"
