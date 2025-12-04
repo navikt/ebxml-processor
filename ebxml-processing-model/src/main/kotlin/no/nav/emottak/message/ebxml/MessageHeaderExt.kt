@@ -28,6 +28,7 @@ fun MessageHeader.createResponseHeader(newAction: String?, newService: String?):
         it.partyId.addAll(this.from.partyId)
         it.role = this.from.role
     }
+    messageHeader.description.addAll(this.description)
     messageHeader.service = if (newService != null) Service().also { it.value = newService } else this.service
     messageHeader.action = newAction ?: this.action
     messageHeader.cpaId = this.cpaId
@@ -51,6 +52,7 @@ fun MessageHeader.addressing(isRoleApplicable: Boolean = true) = Addressing(
     this.service.value!!,
     this.action
 )
+
 // fun MessageHeader.toValidationRequest(): ValidationRequest =
 //     // TODO valider sertifikat
 //     ValidationRequest(
