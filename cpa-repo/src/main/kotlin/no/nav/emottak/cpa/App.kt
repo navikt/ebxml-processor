@@ -92,7 +92,9 @@ fun cpaApplicationModule(
                 validateCpa(cpaRepository, PartnerRepository(oracleDb), eventRegistrationService)
             }
             getCPA(cpaRepository)
+            getTimeStampsDeprecated()
             getTimeStamps(cpaRepository)
+            getTimeStampsLatestDeprecated()
             getTimeStampsLatest(cpaRepository)
             getTimeStampsLastUsed(cpaRepository)
             getCertificate(cpaRepository)

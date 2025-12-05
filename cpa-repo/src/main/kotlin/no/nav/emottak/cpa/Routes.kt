@@ -7,6 +7,7 @@ import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.plugins.NotFoundException
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
+import io.ktor.server.response.respondRedirect
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.Routing
@@ -16,7 +17,6 @@ import io.ktor.server.routing.post
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import no.nav.emottak.cpa.auth.AZURE_AD_AUTH
 import no.nav.emottak.cpa.feil.CpaValidationException
@@ -143,8 +143,13 @@ fun Route.deleteCpa(cpaRepository: CPARepository): Route = delete("/cpa/delete/{
     }
 }
 
-fun Route.getTimeStamps(cpaRepository: CPARepository): Route = get("/cpa/timestamps") {
-    log.info("Timestamps")
+fun Route.getTimeStampsDeprecated(): Route = get("/cpa/timestamps") {
+    log.warn("Timestamps last_updated (deprecated endpoint)")
+    call.respondRedirect("/cpa/timestamps/last_updated", permanent = true)
+}
+
+fun Route.getTimeStamps(cpaRepository: CPARepository): Route = get("/cpa/timestamps/last_updated") {
+    log.info("Timestamps last_updated")
     call.respond(
         HttpStatusCode.OK,
         cpaRepository.findTimestampsCpaUpdated(
@@ -162,8 +167,13 @@ fun Route.getTimeStamps(cpaRepository: CPARepository): Route = get("/cpa/timesta
     )
 }
 
-fun Route.getTimeStampsLatest(cpaRepository: CPARepository) = get("/cpa/timestamps/latest") {
-    log.info("Timestamplatest")
+fun Route.getTimeStampsLatestDeprecated() = get("/cpa/timestamps/latest") {
+    log.warn("Timestamps latest last_updated (deprecated endpoint)")
+    call.respondRedirect("/cpa/timestamps/last_updated/latest", permanent = true)
+}
+
+fun Route.getTimeStampsLatest(cpaRepository: CPARepository) = get("/cpa/timestamps/last_updated/latest") {
+    log.info("Timestamps latest last_updated")
     val latestTimestamp = withContext(Dispatchers.IO) {
         cpaRepository.findTimestampCpaLatestUpdated()
     }
