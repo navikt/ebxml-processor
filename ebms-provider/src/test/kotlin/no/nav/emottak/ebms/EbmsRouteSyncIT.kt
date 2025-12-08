@@ -1,6 +1,8 @@
 package no.nav.emottak.ebms
 
 import io.ktor.client.request.post
+import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.bodyAsText
 import io.ktor.client.statement.readRawBytes
 import io.ktor.http.Headers
 import io.ktor.http.HttpStatusCode
@@ -8,27 +10,33 @@ import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.install
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.response.respond
+import io.ktor.server.routing.Route
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
-import io.mockk.coEvery
-import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockkStatic
+import jakarta.xml.bind.JAXBException
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.model.signer
+import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
+import no.nav.emottak.ebms.util.EventRegistrationServiceFake
 import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.ebms.validation.MimeHeaders
-import no.nav.emottak.message.model.Direction
+import no.nav.emottak.message.ebxml.errorList
+import no.nav.emottak.message.ebxml.messageHeader
 import no.nav.emottak.message.model.EbmsDocument
 import no.nav.emottak.message.model.ErrorCode
 import no.nav.emottak.message.model.Feil
-import no.nav.emottak.message.model.PayloadMessage
+import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadProcessing
+import no.nav.emottak.message.model.PayloadResponse
+import no.nav.emottak.message.model.ProcessConfig
 import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.message.model.ValidationResult
+import no.nav.emottak.message.xml.xmlMarshaller
 import no.nav.emottak.util.decodeBase64
 import no.nav.emottak.utils.common.model.Addressing
 import no.nav.emottak.utils.common.model.EbmsProcessing
@@ -38,12 +46,33 @@ import no.nav.emottak.utils.common.model.SendInResponse
 import no.nav.emottak.utils.environment.getEnvVar
 import org.apache.xml.security.algorithms.MessageDigestAlgorithm
 import org.apache.xml.security.signature.XMLSignature
+import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
+import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ErrorList
+import org.xmlsoap.schemas.soap.envelope.Envelope
+import kotlin.test.assertContains
+import kotlin.test.assertEquals
 import kotlin.uuid.Uuid
 
 private const val SYNC_PATH = "/ebms/sync"
+private val mockProcessConfig = ProcessConfig(
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    false,
+    false,
+    "HarBorgerFrikort",
+    null
+)
 
-class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
+class EbmsRouteSyncIT {
+
+    val validMultipartRequest = validMultipartRequest()
+    val eventRegistrationService = EventRegistrationServiceFake()
 
     fun <T> testSyncApp(testBlock: suspend ApplicationTestBuilder.() -> T) = testApplication {
         val client = createClient {
@@ -53,21 +82,20 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
         }
         val cpaRepoClient = CpaRepoClient { client }
         val sendInClient = SendInClient { client }
+        val processingClient = PayloadProcessingClient { client }
+
+        mockkStatic(EbmsDocument::signer)
+        every {
+            any<EbmsDocument>().signer(any())
+        } returnsArgument(0)
+
         application {
             val cpaValidationService = CPAValidationService(cpaRepoClient)
-            coEvery {
-                processingService.processSyncIn(any(), any())
-            } answers {
-                Pair(it.invocation.args[0] as PayloadMessage, Direction.IN)
-            }
-            coEvery {
-                processingService.proccessSyncOut(any(), any())
-            } answers {
-                val incomingMessage = it.invocation.args[0] as PayloadMessage
-                incomingMessage
+            install(ContentNegotiation) {
+                json()
             }
             routing {
-                postEbmsSync(cpaValidationService, processingService, SendInService(sendInClient), eventRegistrationService)
+                postEbmsSync(cpaValidationService, ProcessingService(processingClient), SendInService(sendInClient), eventRegistrationService)
             }
         }
         externalServices {
@@ -77,20 +105,16 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
                 }
                 routing {
                     post("cpa/validate/6ae68a32-8b0e-4de2-baad-f4d841aacce1") {
-                        call.respond(ValidationResult(error = listOf(Feil(ErrorCode.SECURITY_FAILURE, "Signature Fail"))))
-                    }
-                    post("cpa/validate/{contentId}") {
+                        println("\n[CPA-REPO] RESPONDING TO /cpa/validate/6ae68a32-8b0e-4de2-baad-f4d841aacce1...\n")
                         call.respond(
                             ValidationResult(
-                                EbmsProcessing(),
-                                payloadProcessing = PayloadProcessing(
-                                    TestData.HarBorgerEgenandel.validSignatureDetails,
-                                    byteArrayOf(),
-                                    mockProcessConfig
+                                error = listOf(
+                                    Feil(ErrorCode.SECURITY_FAILURE, "Signature Fail")
                                 )
                             )
                         )
                     }
+                    cpaRepoPostOtherContentId()
                 }
             }
             hosts(getEnvVar("SEND_IN_URL", "http://ebms-send-in")) {
@@ -99,6 +123,7 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
                 }
                 routing {
                     post("/fagmelding/synkron") {
+                        println("\n[EBMS-SEND-IN] RESPONDING TO /fagmelding/synkron...\n")
                         call.respond(
                             SendInResponse(
                                 "e17eb03e-9e43-43fb-874c-1fde9a28c308",
@@ -111,81 +136,121 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
                     }
                 }
             }
+            hosts(getEnvVar("PAYLOAD_PROCESSOR_URL", "http://ebms-payload")) {
+                this.install(ContentNegotiation) {
+                    json()
+                }
+                routing {
+                    post("payload") {
+                        println("\n[EBMS-PAYLOAD] RESPONDING TO /payload...\n")
+                        call.respond(
+                            PayloadResponse(
+                                processedPayload = Payload(
+                                    bytes = "Test attachment content".toByteArray(),
+                                    contentType = "text/plain",
+                                    contentId = "attachment1"
+                                )
+                            )
+                        )
+                    }
+                }
+            }
         }
         testBlock()
     }
 
     @Test
+    fun `Feil på signature should answer with Feil Signal`() = testSyncApp {
+        val response = client.post(SYNC_PATH, validMultipartRequest.asHttpRequest())
+        val envelope = getEnvelope(response)
+        with(envelope.assertErrorAndGet().error.first()) {
+            Assertions.assertEquals("Signature Fail", this.description!!.value)
+            Assertions.assertEquals(
+                ErrorCode.SECURITY_FAILURE.value,
+                this.errorCode
+            )
+        }
+    }
+
+    @Test
+    fun `Valid payload request should trigger processing`() = testSyncApp {
+        val multipart = validMultipartRequest.modify(
+            validMultipartRequest.parts.first() to validMultipartRequest.parts.first().modify {
+                it.remove(MimeHeaders.CONTENT_ID)
+                it.append(MimeHeaders.CONTENT_ID, "<e491180e-eea6-41d6-ac5b-d232c9fb115f>")
+            }
+        )
+        externalServices {
+            hosts(getEnvVar("CPA_REPO_URL", "http://cpa-repo.team-emottak.svc.nais.local")) {
+                this.install(ContentNegotiation) {
+                    json()
+                }
+                routing {
+                    post("cpa/validate/e491180e-eea6-41d6-ac5b-d232c9fb115f") {
+                        println("\n[CPA-REPO] RESPONDING TO /cpa/validate/e491180e-eea6-41d6-ac5b-d232c9fb115f...\n")
+                        call.respond(
+                            ValidationResult(
+                                payloadProcessing = PayloadProcessing(
+                                    mockSignatureDetails(),
+                                    encryptionCertificate = byteArrayOf(),
+                                    mockProcessConfig
+                                )
+                            )
+                        )
+                    }
+                    cpaRepoPostOtherContentId()
+                }
+            }
+        }
+        val response = client.post(SYNC_PATH, multipart.asHttpRequest())
+        assertEquals(HttpStatusCode.OK, response.status)
+        // Should not be Envelope:
+        assertThrows<JAXBException> { getEnvelope(response) }
+    }
+
+    @Test
     fun `Valid FormItem payload request should trigger processing and validation on way out`() = testSyncApp {
-        mockkStatic(EbmsDocument::signer)
-        every {
-            any<EbmsDocument>().signer(any())
-        } returnsArgument(0)
         val multipart = TestData.HarBorgerEgenandel.harBorgerEgenandelFritakRequestWithFormItem
         val response = client.post(SYNC_PATH, multipart.asHttpRequest())
-        coVerify(exactly = 1) {
-            processingService.processSyncIn(any(), any())
-        }
         assert(response.status == HttpStatusCode.OK)
-        println(String(response.readRawBytes()))
+        // Should not be Envelope:
+        assertThrows<JAXBException> { getEnvelope(response) }
     }
 
     @Test
     fun `Valid payload request without start in Content-Type should trigger processing and validation on way out`() = testSyncApp {
-        mockkStatic(EbmsDocument::signer)
-        every {
-            any<EbmsDocument>().signer(any())
-        } returnsArgument(0)
         val multipart = TestData.HarBorgerEgenandel.harBorgerEgenandelFritakRequestWithFormItem
         multipart.headers.modify {
             it[MimeHeaders.CONTENT_TYPE] = TestData.HarBorgerEgenandel.MULTIPART_CONTENT_TYPE_WITHOUT_START
         }
         val response = client.post(SYNC_PATH, multipart.asHttpRequest())
-        coVerify(exactly = 1) {
-            processingService.processSyncIn(any(), any())
-        }
         assert(response.status == HttpStatusCode.OK)
-        println(String(response.readRawBytes()))
+        // Should not be Envelope:
+        assertThrows<JAXBException> { getEnvelope(response) }
     }
 
     @Test
     fun `Valid payload request without start in Content-Type and Content-Id on Soap part should trigger processing and validation on way out`() = testSyncApp {
-        mockkStatic(EbmsDocument::signer)
-        every {
-            any<EbmsDocument>().signer(any())
-        } returnsArgument(0)
         val multipart = TestData.HarBorgerEgenandel.harBorgerEgenandelFritakRequestWithoutBoundaryStartAndSoapPartContentId
 
         val response = client.post(SYNC_PATH, multipart.asHttpRequest())
-        coVerify(exactly = 1) {
-            processingService.processSyncIn(any(), any())
-        }
         assert(response.status == HttpStatusCode.OK)
-        println(String(response.readRawBytes()))
+        // Should not be Envelope:
+        assertThrows<JAXBException> { getEnvelope(response) }
     }
 
     @Test
     fun `Valid FileItem payload request should trigger processing and validation on way out`() = testSyncApp {
-        mockkStatic(EbmsDocument::signer)
-        every {
-            any<EbmsDocument>().signer(any())
-        } returnsArgument(0)
         val multipart = TestData.HarBorgerEgenandel.harBorgerEgenandelFritakRequestWithFileItem
         val response = client.post(SYNC_PATH, multipart.asHttpRequest())
-        coVerify(exactly = 1) {
-            processingService.processSyncIn(any(), any())
-        }
         assert(response.status == HttpStatusCode.OK)
-        println(String(response.readRawBytes()))
+        // Should not be Envelope:
+        assertThrows<JAXBException> { getEnvelope(response) }
     }
 
     @Test
     fun `Feilmelding fra fagsystemet må propageres til brukeren`() = testSyncApp {
         val soapFault = "<SOAP-ENV:Envelope xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\"><SOAP-ENV:Header/><SOAP-ENV:Body><SOAP-ENV:Fault><faultcode>SOAP-ENV:Server</faultcode><faultstring>Noe gikk galt i fagsystemet</faultstring></SOAP-ENV:Fault></SOAP-ENV:Body></SOAP-ENV:Envelope>"
-        mockkStatic(EbmsDocument::signer)
-        every {
-            any<EbmsDocument>().signer(any())
-        } returnsArgument(0)
         externalServices {
             hosts(getEnvVar("SEND_IN_URL", "http://ebms-send-in")) {
                 this.install(ContentNegotiation) {
@@ -193,6 +258,7 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
                 }
                 routing {
                     post("/fagmelding/synkron") {
+                        println("RESPONDERER PÅ /fagmelding/synkron...")
                         call.respond(
                             HttpStatusCode.BadRequest,
                             "Noe gikk galt i fagsystemet"
@@ -203,14 +269,46 @@ class EbmsRouteSyncIT : EbmsRoutFellesIT(SYNC_PATH) {
         }
         val multipart = TestData.HarBorgerEgenandel.harBorgerEgenandelFritakRequestWithFormItem
         val response = client.post(SYNC_PATH, multipart.asHttpRequest())
-        coVerify(exactly = 1) {
-            processingService.processSyncIn(any(), any())
-        }
-        assert(response.status == HttpStatusCode.InternalServerError)
-        assert(String(response.readRawBytes()) == soapFault)
-        println("----=_Part_" + System.currentTimeMillis() + "." + System.nanoTime())
-        println("----=_Part_" + Uuid.random().toString())
+
+        assertEquals(HttpStatusCode.InternalServerError, response.status)
+        assertEquals(soapFault, String(response.readRawBytes()))
     }
+
+    @Test
+    fun `Manglende Content-Type resulterer i SoapFault`() = testSyncApp {
+        val multipart = TestData.HarBorgerEgenandel.harBorgerEgenandelFritakRequestWithoutContentType
+        val response = client.post(SYNC_PATH, multipart.asHttpRequest())
+        assertEquals(HttpStatusCode.InternalServerError, response.status)
+        getEnvelope(response)
+        assertContains(response.bodyAsText(), "Content type is missing or wrong")
+    }
+}
+
+private fun mockSignatureDetails(): SignatureDetails =
+    SignatureDetails(
+        certificate = decodeBase64("MIIGKzCCBBOgAwIBAgILAZV/ETITzRpPW2AwDQYJKoZIhvcNAQELBQAwbjELMAkGA1UEBhMCTk8xGDAWBgNVBGEMD05UUk5PLTk4MzE2MzMyNzETMBEGA1UECgwKQnV5cGFzcyBBUzEwMC4GA1UEAwwnQnV5cGFzcyBDbGFzcyAzIFRlc3Q0IENBIEcyIFNUIEJ1c2luZXNzMB4XDTIyMDkyMjExMzQxN1oXDTI1MDkyMjIxNTkwMFowTzELMAkGA1UEBhMCTk8xEjAQBgNVBAoMCVNQRUFSRSBBUzESMBAGA1UEAwwJU1BFQVJFIEFTMRgwFgYDVQRhDA9OVFJOTy05OTM5NTQ4OTYwggGiMA0GCSqGSIb3DQEBAQUAA4IBjwAwggGKAoIBgQCwHoYUs81oVde0a8JgduNSSxeNaDs3kUleGjRApc+kz7tc7k386zXenFxnvIwNaVGdHVs3dN5O06h5QlG7rlFsxR+Btz6oFFwi/5WcAtDxJj4XRVL0evLXZY86D8TmAtMgdTQvRZ39jfPpkBW5kxIPi7DomS0/Bis2vsyy1AbrylnY2riNZYsTZLH6AjgJlWjoFDy2yO5qx8saanyj9sT5yBAZGBp5dg+QDKCxdpje1LT1uXh4Fp3/gHEaW+MO/a2/L28kMe7lYP87R30vIBg4282n7FNvwYAvAwcPOgvQ0hwqWq9liyWQoGDkwYlAaFRWhadyyLjSTA40l6/mg1GMkVwCUKn+0sUCRc8TT8rSXK6uq63aiFxcrR9tRm/V9/T4P+zeY9sXPAVqrt2gtfpIfMDBQ39dSzt50v/r/VkZVP9tvEt91+wiJrcOTDqRVXCO7st+/WOAvxU8kXTsQnjTx9dMorykEWVuUkK3xzKB0Weja5PE74fuWZygbjvMWi0CAwEAAaOCAWcwggFjMAkGA1UdEwQCMAAwHwYDVR0jBBgwFoAUp/67bFmIrXQuRl56aPnRu7/PtoswHQYDVR0OBBYEFB7a8hCXIYr++XhwkGB6dCyNclHhMA4GA1UdDwEB/wQEAwIGQDAfBgNVHSAEGDAWMAoGCGCEQgEaAQMCMAgGBgQAj3oBATBBBgNVHR8EOjA4MDagNKAyhjBodHRwOi8vY3JsLnRlc3Q0LmJ1eXBhc3NjYS5jb20vQlBDbDNDYUcyU1RCUy5jcmwwewYIKwYBBQUHAQEEbzBtMC0GCCsGAQUFBzABhiFodHRwOi8vb2NzcGJzLnRlc3Q0LmJ1eXBhc3NjYS5jb20wPAYIKwYBBQUHMAKGMGh0dHA6Ly9jcnQudGVzdDQuYnV5cGFzc2NhLmNvbS9CUENsM0NhRzJTVEJTLmNlcjAlBggrBgEFBQcBAwQZMBcwFQYIKwYBBQUHCwIwCQYHBACL7EkBAjANBgkqhkiG9w0BAQsFAAOCAgEAQt7zBJxFEFM8ph5kf7/ySxxPz4xP+CMlDcE47Ghs4angRR4mdACcG8GZ5kc4YXErHH/qKCo7vrULNg/Aj5k/bNJEcnM3OdfYvV0S2l/KK2nirRAB7Qi+5Ob7E7+cIMuXuKNsdxE38cjTk/geQyn6Ju+IAgFm8/Z4CLM3iYq25Iqq2bi4iqJZLEFFyQBa8lbDzX674npviavB+Oi4SScJZOtV+HwtV8GXKDfPB8SKIKjpAWF1sqijn3T45cLWDn87teaVtURCu+VrxWuvb48RJBPotf3JpHBzKeAQfOdxVLD2VuDI9EtC77ZvGWbY2ve9Va99pZ7z1iXLvXiqjcm+4AKNtjgnLcVBEYw1DZBM/0ZaRv2o4PK5mX/faGeA0zCQa1dd8BkkUW6AvLFHUR2QEwcbhd78PR5wtbqoA+C945HK6u74VDYlpMQSO5JtKdZlgoscuf4RRhPkDAPUkKtwcL3jO6ep4yr958xL+EVYd9tKpbmGArXwD9JlEkfURMi06iHXkQKiwEQ26hrNcd4snBjsvtqWm6A0BhGToLhXTYJNfTYZNh5CG10C7IzBGzFqwG+ZQmeu1RV4ltIiJQWn6NO32fFi5pSkfJ04O+W6hsaFiIMH7khgaGYdV32zfHP34Pj1sfjUoWmKIyU1J3gifWnidhZgFNx+senCTMBHYHU=".toByteArray()),
+        signatureAlgorithm = XMLSignature.ALGO_ID_SIGNATURE_RSA_SHA256,
+        hashFunction = MessageDigestAlgorithm.ALGO_ID_DIGEST_SHA256
+    )
+private fun Envelope.assertErrorAndGet(): ErrorList {
+    Assertions.assertNotNull(this.header!!.messageHeader())
+    Assertions.assertNotNull(this.header!!.errorList())
+    return this.header!!.errorList()!!
+}
+private suspend fun getEnvelope(response: HttpResponse) = xmlMarshaller.unmarshal(response.bodyAsText(), Envelope::class.java)
+
+private fun Route.cpaRepoPostOtherContentId(): Route = post("cpa/validate/{contentId}") {
+    println("\n[CPA-REPO] RESPONDING TO /cpa/validate/{contentId}...\n")
+    call.respond(
+        ValidationResult(
+            ebmsProcessing = EbmsProcessing(),
+            payloadProcessing = PayloadProcessing(
+                TestData.HarBorgerEgenandel.validSignatureDetails,
+                byteArrayOf(),
+                mockProcessConfig
+            )
+        )
+    )
 }
 
 internal class TestData {
@@ -279,6 +377,9 @@ ZWZEb2M+CiAgPC9uczpEb2N1bWVudD4KPC9uczpNc2dIZWFkPg=="""
             val validSoapMimeHeadersWithoutContentId = validSoapMimeHeaders.modify {
                 it.remove(MimeHeaders.CONTENT_ID)
             }
+            val validSoapMimeHeadersWithoutContentType = validSoapMimeHeaders.modify {
+                it.remove(MimeHeaders.CONTENT_TYPE)
+            }
 
             val validSoapAttachmentHeadersFormItem = Headers.build {
                 append(MimeHeaders.CONTENT_ID, "<attachmentId-3b407d6f-7efc-4ce9-99a6-868f04329e68>")
@@ -313,6 +414,14 @@ ZWZEb2M+CiAgPC9uczpEb2N1bWVudD4KPC9uczpNc2dIZWFkPg=="""
                 listOf(
                     Part(validSoapMimeHeaders, EBXML_PAYLOAD),
                     Part(validSoapAttachmentHeadersFileItem, FAGMELDING_PAYLOAD)
+                )
+            )
+
+            val harBorgerEgenandelFritakRequestWithoutContentType = MultipartRequest(
+                valid,
+                listOf(
+                    Part(validSoapMimeHeadersWithoutContentType, EBXML_PAYLOAD),
+                    Part(validSoapAttachmentHeadersFormItem, FAGMELDING_PAYLOAD)
                 )
             )
 
