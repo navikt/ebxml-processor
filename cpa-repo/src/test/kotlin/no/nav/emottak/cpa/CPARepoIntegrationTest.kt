@@ -17,6 +17,7 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
+import io.ktor.client.statement.request
 import io.ktor.http.ContentType.Application.Json
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
@@ -343,6 +344,20 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
     }
 
     @Test
+    fun `Henter latest updated timestamp (deprecated endpoint - redirected)`() = cpaRepoTestApp {
+        val httpClient = createClient {
+            install(ContentNegotiation) {
+                json()
+            }
+            installCpaRepoAuthentication()
+        }
+        val latestTimestamp = setupLatestTimestampsTest(httpClient)
+        val responseMedSiste = httpClient.get("/cpa/timestamps/latest")
+        assertEquals("/cpa/timestamps/last_updated/latest", responseMedSiste.request.url.encodedPath)
+        assertEquals(latestTimestamp.toString(), responseMedSiste.bodyAsText())
+    }
+
+    @Test
     fun `Henter latest updated timestamp`() = cpaRepoTestApp {
         val httpClient = createClient {
             install(ContentNegotiation) {
@@ -350,22 +365,24 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
             }
             installCpaRepoAuthentication()
         }
+        val latestTimestamp = setupLatestTimestampsTest(httpClient)
+        val responseMedSiste = httpClient.get("/cpa/timestamps/last_updated/latest")
+        assertEquals(latestTimestamp.toString(), responseMedSiste.bodyAsText())
+    }
 
-        // Oppdatér CPA 35065 med gårdagens dato
-        val updatedTimestamp1 = Instant.now().minus(1, ChronoUnit.DAYS).truncatedTo(ChronoUnit.SECONDS)
-        postCpaRequest(httpClient, updatedTimestamp1, "nav-qass-35065.xml")
+    @Test
+    fun `Henter timestamps map (deprecated endpoint - redirected)`() = cpaRepoTestApp {
+        val httpClient = createClient {
+            install(ContentNegotiation) {
+                json()
+            }
+            installCpaRepoAuthentication()
+        }
+        val updatedTimestamp = Instant.now().minus(1, ChronoUnit.DAYS).truncatedTo(ChronoUnit.SECONDS)
+        postCpaRequest(httpClient, updatedTimestamp, "nav-qass-35065.xml")
 
-        // Oppdatér CPA 31162 med dato forgårs
-        val updatedTimestamp2 = Instant.now().minus(2, ChronoUnit.DAYS).truncatedTo(ChronoUnit.SECONDS)
-        postCpaRequest(httpClient, updatedTimestamp2, "nav-qass-31162.xml")
-
-        // Slett den siste CPA'ene slik at vi kun har to CPA'er i databasen
-        val deleteResponse = httpClient.delete("/cpa/delete/multiple_channels_and_multiple_endpoints")
-        assertEquals(HttpStatusCode.OK, deleteResponse.status)
-
-        // Forvent at update-datoen til CPA 35065 blir returnert
-        val responseMedSiste = httpClient.get("/cpa/timestamps/latest")
-        assertEquals(updatedTimestamp1.toString(), responseMedSiste.bodyAsText())
+        val response = httpClient.get("/cpa/timestamps")
+        assertEquals("/cpa/timestamps/last_updated", response.request.url.encodedPath)
     }
 
     @Test
@@ -379,21 +396,22 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         val updatedTimestamp = Instant.now().minus(1, ChronoUnit.DAYS).truncatedTo(ChronoUnit.SECONDS)
         postCpaRequest(httpClient, updatedTimestamp, "nav-qass-35065.xml")
 
-        val responseMedAlle = httpClient.get("/cpa/timestamps").body<Map<String, String>>()
-        assertNotNull(responseMedAlle)
+        val response = httpClient.get("/cpa/timestamps/last_updated")
+        val responseMap = response.body<Map<String, String>>()
+        assertNotNull(responseMap)
         assertEquals(
             postgresTestSetup.timestamp.toString(),
-            responseMedAlle["nav:qass:31162"],
+            responseMap["nav:qass:31162"],
             "CPA 31162 skal ha timestamp fra postgresTestSetup"
         )
         assertEquals(
             updatedTimestamp.toString(),
-            responseMedAlle["nav:qass:35065"],
+            responseMap["nav:qass:35065"],
             "CPA 35065 skal ha timestamp satt av testen"
         )
         assertEquals(
             postgresTestSetup.timestamp.toString(),
-            responseMedAlle["multiple_channels_and_multiple_endpoints"],
+            responseMap["multiple_channels_and_multiple_endpoints"],
             "CPA multiple_channels_and_multiple_endpoints skal ha timestamp fra postgresTestSetup"
         )
     }
@@ -747,6 +765,22 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         }
         assertEquals(expectedStatusCode, postResponse.status, "Expected ${expectedStatusCode.description} status for validate")
         return postResponse
+    }
+
+    private suspend fun setupLatestTimestampsTest(httpClient: HttpClient): Instant {
+        // Oppdatér CPA 35065 med gårdagens dato
+        val updatedTimestamp1 = Instant.now().minus(1, ChronoUnit.DAYS).truncatedTo(ChronoUnit.SECONDS)
+        postCpaRequest(httpClient, updatedTimestamp1, "nav-qass-35065.xml")
+
+        // Oppdatér CPA 31162 med dato forgårs
+        val updatedTimestamp2 = Instant.now().minus(2, ChronoUnit.DAYS).truncatedTo(ChronoUnit.SECONDS)
+        postCpaRequest(httpClient, updatedTimestamp2, "nav-qass-31162.xml")
+
+        // Slett den siste CPA'en slik at vi kun har to CPA'er i databasen
+        val deleteResponse = httpClient.delete("/cpa/delete/multiple_channels_and_multiple_endpoints")
+        assertEquals(HttpStatusCode.OK, deleteResponse.status)
+
+        return updatedTimestamp1
     }
 
     private suspend fun getLastUsedMap(httpClient: HttpClient): Map<String, String?> {
