@@ -33,24 +33,3 @@ jobs:
           ORG_GRADLE_PROJECT_githubUser: x-access-token
           ORG_GRADLE_PROJECT_githubPassword: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: true   # keep the job alive so we can show the report
-      - name: Show KtLint reports
-        if: failure()               # only run when the previous step failed
-        shell: bash
-        run: |
-          echo "🔎 Searching for KtLint report files..."
-          REPORT_FILES=$(find . -type f \
-            -path "*/build/reports/ktlint/*/ktlintMainSourceSetCheck.txt")
-          if [[ -z "$REPORT_FILES" ]]; then
-            echo "No KtLint report files were found."
-            exit 0
-          fi
-          echo "Found $(echo "$REPORT_FILES" | wc -l) report(s)."
-          echo ""
-          # Loop over each file, print a header, then its contents.
-          while IFS= read -r file; do
-            echo "===== 📄 Report: $file ====="
-            cat "$file"
-            echo "===== End of $file ====="
-            echo ""
-          done <<<"$REPORT_FILES"

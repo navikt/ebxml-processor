@@ -151,7 +151,7 @@ private suspend fun getEbmsDocument(
         logger().error(
             call.request.headers.marker(),
             "Unable to transform request into EbmsDokument: ${ex.message} " +
-                    "Message-Id ${call.request.header(SMTPHeaders.MESSAGE_ID)}",
+                "Message-Id ${call.request.header(SMTPHeaders.MESSAGE_ID)}",
             ex
         )
         call.respond(
