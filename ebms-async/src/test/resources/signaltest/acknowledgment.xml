@@ -24,6 +24,9 @@
                 <eb:Timestamp>2025-01-24T10:42:58.7250721Z</eb:Timestamp>
                 <eb:RefToMessageId>20250124-114229-35564@qa.ebxml.nav.no</eb:RefToMessageId>
             </eb:MessageData>
+            <eb:Description xml:lang="NO" >
+                {"MSH-system":"Medilink","MSH-versjon":"1.23.2434","fagsystem":"System X","fagsystem-versjon":"1.24.6565"}
+            </eb:Description>
         </eb:MessageHeader>
         <eb:Acknowledgment xmlns:SOAP="http://schemas.xmlsoap.org/soap/envelope/" eb:version="2.0"
                            SOAP:mustUnderstand="true" SOAP:actor="urn:oasis:names:tc:ebxml-msg:actor:toPartyMSH"
