@@ -26,11 +26,6 @@ tasks {
     }
     ktlintCheck {
         dependsOn("ktlintFormat")
-        ktlint {
-            reporters {
-                reporter(org.jlleitschuh.gradle.ktlint.reporter.ReporterType.PLAIN)
-            }
-        }
     }
     build {
         dependsOn("ktlintCheck")
