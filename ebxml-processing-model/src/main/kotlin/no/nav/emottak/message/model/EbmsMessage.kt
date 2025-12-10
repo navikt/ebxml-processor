@@ -33,23 +33,11 @@ abstract class EbmsMessage {
     abstract val conversationId: String
     abstract val cpaId: String
     abstract val addressing: Addressing
-    abstract val description: List<Description>?
     abstract val refToMessageId: String?
     abstract val document: Document?
     abstract val sentAt: Instant?
     open fun toEbmsDokument(): EbmsDocument {
-        return createEbmsDocument(createMessageHeader(description = createOutgoingDescription()))
-    }
-
-    open fun createOutgoingDescription(): List<Description> {
-        val descriptionValue = """
-        {"MSH-system":"${EbXMLConstants.MSH_SYSTEM}","MSH-versjon":"${EbXMLConstants.MSH_VERSJON}"}
-        """.trimIndent()
-        val description = Description().apply {
-            this.value = descriptionValue
-            this.lang = "NO"
-        }
-        return listOf(description)
+        return createEbmsDocument(createMessageHeader())
     }
 
     open fun createMessageError(errorList: List<Feil>): MessageError {
@@ -63,7 +51,6 @@ abstract class EbmsMessage {
                 service = EbXMLConstants.EBMS_SERVICE_URI,
                 action = EbXMLConstants.MESSAGE_ERROR_ACTION
             ),
-            description = emptyList(),
             errorList
         )
     }
@@ -72,7 +59,6 @@ abstract class EbmsMessage {
 @OptIn(ExperimentalUuidApi::class)
 fun EbmsMessage.createMessageHeader(
     newAddressing: Addressing = this.addressing,
-    description: List<Description> = this.description ?: emptyList(),
     withSyncReplyElement: Boolean = false,
     withAckRequestedElement: Boolean = false,
     withDuplicateEliminationElement: Boolean = false
@@ -109,7 +95,7 @@ fun EbmsMessage.createMessageHeader(
     val messageHeader = MessageHeader().apply {
         this.from = from
         this.to = to
-        this.description.addAll(description)
+        this.description.addAll(createOutgoingDescription())
         this.cpaId = this@createMessageHeader.cpaId
         this.conversationId = this@createMessageHeader.conversationId
         this.service = Service().apply {
@@ -128,6 +114,17 @@ fun EbmsMessage.createMessageHeader(
         if (withSyncReplyElement) this.any.add(createSyncReplyElement())
         if (withAckRequestedElement) this.any.add(createAckRequestedElement())
     }
+}
+
+private fun createOutgoingDescription(): List<Description> {
+    val descriptionValue = """
+        {"MSH-system":"${EbXMLConstants.MSH_SYSTEM}","MSH-versjon":"${EbXMLConstants.MSH_VERSJON}"}
+    """.trimIndent()
+    val description = Description().apply {
+        this.value = descriptionValue
+        this.lang = "NO"
+    }
+    return listOf(description)
 }
 
 private fun createSyncReplyElement() = SyncReply().apply {

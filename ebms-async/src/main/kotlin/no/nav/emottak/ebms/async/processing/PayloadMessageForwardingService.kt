@@ -45,7 +45,6 @@ class PayloadMessageForwardingService(
                         conversationId = sendInResponse.conversationId,
                         cpaId = payloadMessage.cpaId,
                         addressing = sendInResponse.addressing,
-                        description = payloadMessage.description,
                         payload = Payload(sendInResponse.payload, ContentType.Application.Xml.toString()),
                         refToMessageId = payloadMessage.messageId,
                         duplicateElimination = payloadMessage.duplicateElimination,
