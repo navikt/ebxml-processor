@@ -17,6 +17,7 @@ import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import io.mockk.every
 import io.mockk.mockkStatic
+import jakarta.xml.bind.JAXBElement
 import jakarta.xml.bind.JAXBException
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.model.signer
@@ -51,9 +52,10 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ErrorList
 import org.xmlsoap.schemas.soap.envelope.Envelope
-import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.uuid.Uuid
+import org.xmlsoap.schemas.soap.envelope.Fault
 
 private const val SYNC_PATH = "/ebms/sync"
 private val mockProcessConfig = ProcessConfig(
@@ -160,9 +162,10 @@ class EbmsRouteSyncIT {
     }
 
     @Test
-    fun `Feil på signature should answer with Feil Signal`() = testSyncApp {
+    fun `Feil på signatur resulterer i Feil Signal`() = testSyncApp {
         val response = client.post(SYNC_PATH, validMultipartRequest.asHttpRequest())
         val envelope = getEnvelope(response)
+        println("ENVELOPE ser slik ut:\n${response.bodyAsText()}")
         with(envelope.assertErrorAndGet().error.first()) {
             Assertions.assertEquals("Signature Fail", this.description!!.value)
             Assertions.assertEquals(
@@ -173,7 +176,7 @@ class EbmsRouteSyncIT {
     }
 
     @Test
-    fun `Valid payload request should trigger processing`() = testSyncApp {
+    fun `Gyldig payload request skal trigge processering`() = testSyncApp {
         val multipart = validMultipartRequest.modify(
             validMultipartRequest.parts.first() to validMultipartRequest.parts.first().modify {
                 it.remove(MimeHeaders.CONTENT_ID)
@@ -209,7 +212,7 @@ class EbmsRouteSyncIT {
     }
 
     @Test
-    fun `Valid FormItem payload request should trigger processing and validation on way out`() = testSyncApp {
+    fun `Gyldig FormItem payload request skal trigge processering og validering på vei ut`() = testSyncApp {
         val multipart = TestData.HarBorgerEgenandel.harBorgerEgenandelFritakRequestWithFormItem
         val response = client.post(SYNC_PATH, multipart.asHttpRequest())
         assert(response.status == HttpStatusCode.OK)
@@ -218,7 +221,7 @@ class EbmsRouteSyncIT {
     }
 
     @Test
-    fun `Valid payload request without start in Content-Type should trigger processing and validation on way out`() = testSyncApp {
+    fun `Gyldig payload request uten start i Content-Type skal trigge processering og validering på vei ut`() = testSyncApp {
         val multipart = TestData.HarBorgerEgenandel.harBorgerEgenandelFritakRequestWithFormItem
         multipart.headers.modify {
             it[MimeHeaders.CONTENT_TYPE] = TestData.HarBorgerEgenandel.MULTIPART_CONTENT_TYPE_WITHOUT_START
@@ -230,9 +233,8 @@ class EbmsRouteSyncIT {
     }
 
     @Test
-    fun `Valid payload request without start in Content-Type and Content-Id on Soap part should trigger processing and validation on way out`() = testSyncApp {
+    fun `Gyldig payload request uten start i Content-Type og Content-Id i Soap part skal trigge processering og validering på vei ut`() = testSyncApp {
         val multipart = TestData.HarBorgerEgenandel.harBorgerEgenandelFritakRequestWithoutBoundaryStartAndSoapPartContentId
-
         val response = client.post(SYNC_PATH, multipart.asHttpRequest())
         assert(response.status == HttpStatusCode.OK)
         // Should not be Envelope:
@@ -240,7 +242,7 @@ class EbmsRouteSyncIT {
     }
 
     @Test
-    fun `Valid FileItem payload request should trigger processing and validation on way out`() = testSyncApp {
+    fun `Gyldig FileItem payload request skal trigge processering og validering på vei ut`() = testSyncApp {
         val multipart = TestData.HarBorgerEgenandel.harBorgerEgenandelFritakRequestWithFileItem
         val response = client.post(SYNC_PATH, multipart.asHttpRequest())
         assert(response.status == HttpStatusCode.OK)
@@ -274,13 +276,64 @@ class EbmsRouteSyncIT {
         assertEquals(soapFault, String(response.readRawBytes()))
     }
 
-    @Test
-    fun `Manglende Content-Type resulterer i SoapFault`() = testSyncApp {
-        val multipart = TestData.HarBorgerEgenandel.harBorgerEgenandelFritakRequestWithoutContentType
+    @Test // KRAV 5.5.2.1 validate MIME
+    fun `Manglende Content-Type i Soap-header resulterer i SoapFault`() = testSyncApp {
+        val multipart = TestData.HarBorgerEgenandel.harBorgerEgenandelFritakRequestWithoutSoapContentType
         val response = client.post(SYNC_PATH, multipart.asHttpRequest())
         assertEquals(HttpStatusCode.InternalServerError, response.status)
-        getEnvelope(response)
-        assertContains(response.bodyAsText(), "Content type is missing or wrong")
+        val faultString = getEnvelope(response).getFaultString()
+        assertNotNull(faultString, "Forventet å kunne hente ut faultString, men var null.")
+        assertEquals("Content type is missing or wrong ", faultString)
+    }
+
+    @Test // KRAV 5.5.2.1 validate MIME
+    fun `Content-Type text plain i Soap-header resulterer i SoapFault`() = testSyncApp {
+        val multipart = TestData.HarBorgerEgenandel.harBorgerEgenandelFritakRequestWithSoapContentTypeTextPlain
+        val response = client.post(SYNC_PATH, multipart.asHttpRequest())
+        assertEquals(HttpStatusCode.InternalServerError, response.status)
+        val faultString = getEnvelope(response).getFaultString()
+        assertNotNull(faultString, "Forventet å kunne hente ut faultString, men var null.")
+        assertEquals("Content type is missing or wrong ", faultString)
+    }
+
+    @Test // KRAV 5.5.2.3 Valideringsdokument
+    fun `Manglende Content-Transfer-Encoding i header resulterer i SoapFault`() = testSyncApp {
+        val multipart = TestData.HarBorgerEgenandel.harBorgerEgenandelFritakRequestWithoutSoapContentTransferEncoding
+        val response = client.post(SYNC_PATH, multipart.asHttpRequest())
+        assertEquals(HttpStatusCode.InternalServerError, response.status)
+        val faultString = getEnvelope(response).getFaultString()
+        assertNotNull(faultString, "Forventet å kunne hente ut faultString, men var null.")
+        assertEquals("Mandatory header Content-Transfer-Encoding is undefined", faultString)
+    }
+
+    @Test // KRAV 5.5.2.3 Valideringsdokument
+    fun `Ugyldig Content-Transfer-Encoding i header resulterer i SoapFault`() = testSyncApp {
+        val multipart = TestData.HarBorgerEgenandel.harBorgerEgenandelFritakRequestWithInvalidSoapContentTransferEncoding
+        val response = client.post(SYNC_PATH, multipart.asHttpRequest())
+        assertEquals(HttpStatusCode.InternalServerError, response.status)
+        val faultString = getEnvelope(response).getFaultString()
+        assertNotNull(faultString, "Forventet å kunne hente ut faultString, men var null.")
+        assertEquals("Unrecognised Content-Transfer-Encoding: base65", faultString)
+    }
+
+    @Test // Krav 5.5.2.4 Valideringsdokument
+    fun `Gyldig payload request uten Content-Id i Soap vedlegg resulterer i SoapFault`() = testSyncApp {
+        val multipart = TestData.HarBorgerEgenandel.harBorgerEgenandelFritakRequestWithoutSoapAttachmentContentId
+        val response = client.post(SYNC_PATH, multipart.asHttpRequest())
+        assertEquals(HttpStatusCode.InternalServerError, response.status)
+        val faultString = getEnvelope(response).getFaultString()
+        assertNotNull(faultString, "Forventet å kunne hente ut faultString, men var null.")
+        assertEquals("Content ID is missing or wrong on attachment", faultString)
+    }
+
+    @Test // Krav 5.5.2.4 Valideringsdokument
+    fun `Gyldig payload request med vedlegg i binary resulterer i SoapFault`() = testSyncApp {
+        val multipart = TestData.HarBorgerEgenandel.harBorgerEgenandelFritakRequestWithSoapAttachmentInBinary
+        val response = client.post(SYNC_PATH, multipart.asHttpRequest())
+        assertEquals(HttpStatusCode.InternalServerError, response.status)
+        val faultString = getEnvelope(response).getFaultString()
+        assertNotNull(faultString, "Forventet å kunne hente ut faultString, men var null.")
+        assertEquals("Feil content transfer encoding på kryptert content.", faultString)
     }
 }
 
@@ -290,12 +343,26 @@ private fun mockSignatureDetails(): SignatureDetails =
         signatureAlgorithm = XMLSignature.ALGO_ID_SIGNATURE_RSA_SHA256,
         hashFunction = MessageDigestAlgorithm.ALGO_ID_DIGEST_SHA256
     )
+private suspend fun getEnvelope(response: HttpResponse) = xmlMarshaller.unmarshal(response.bodyAsText(), Envelope::class.java)
 private fun Envelope.assertErrorAndGet(): ErrorList {
     Assertions.assertNotNull(this.header!!.messageHeader())
     Assertions.assertNotNull(this.header!!.errorList())
     return this.header!!.errorList()!!
 }
-private suspend fun getEnvelope(response: HttpResponse) = xmlMarshaller.unmarshal(response.bodyAsText(), Envelope::class.java)
+private fun Envelope.getFaultString(): String? {
+    val any = this.body.any?.firstOrNull() ?: return null
+    return when (any) {
+        is Fault -> return any.faultstring
+        is JAXBElement<*> -> {
+            val inner = any.value
+            if (inner is Fault) {
+                return inner.faultstring
+            }
+            else null
+        }
+        else -> null
+    }
+}
 
 private fun Route.cpaRepoPostOtherContentId(): Route = post("cpa/validate/{contentId}") {
     println("\n[CPA-REPO] RESPONDING TO /cpa/validate/{contentId}...\n")
@@ -377,6 +444,9 @@ ZWZEb2M+CiAgPC9uczpEb2N1bWVudD4KPC9uczpNc2dIZWFkPg=="""
             val validSoapMimeHeadersWithoutContentId = validSoapMimeHeaders.modify {
                 it.remove(MimeHeaders.CONTENT_ID)
             }
+            val validSoapMimeHeadersWithoutContentTransferEncoding = validSoapMimeHeaders.modify {
+                it.remove(MimeHeaders.CONTENT_TRANSFER_ENCODING)
+            }
             val validSoapMimeHeadersWithoutContentType = validSoapMimeHeaders.modify {
                 it.remove(MimeHeaders.CONTENT_TYPE)
             }
@@ -387,7 +457,9 @@ ZWZEb2M+CiAgPC9uczpEb2N1bWVudD4KPC9uczpNc2dIZWFkPg=="""
                 append(MimeHeaders.CONTENT_TYPE, """application/pkcs7-mime""")
                 append(MimeHeaders.CONTENT_DISPOSITION, "attachment")
             }
-
+            val validSoapAttachmentHeadersFileItemWithoutContentId = validSoapAttachmentHeadersFormItem.modify {
+                it.remove(MimeHeaders.CONTENT_ID)
+            }
             val validSoapAttachmentHeadersFileItem = validSoapAttachmentHeadersFormItem.modify {
                 it[MimeHeaders.CONTENT_DISPOSITION] = "attachment; filename=attachmentId-3b407d6f-7efc-4ce9-99a6-868f04329e68"
             }
@@ -399,6 +471,25 @@ ZWZEb2M+CiAgPC9uczpEb2N1bWVudD4KPC9uczpNc2dIZWFkPg=="""
                 listOf(
                     Part(validSoapMimeHeadersWithoutContentId, EBXML_PAYLOAD),
                     Part(validSoapAttachmentHeadersFormItem, FAGMELDING_PAYLOAD)
+                )
+            )
+            val harBorgerEgenandelFritakRequestWithoutSoapAttachmentContentId = MultipartRequest(
+                valid,
+                listOf(
+                    Part(validSoapMimeHeaders, EBXML_PAYLOAD),
+                    Part(validSoapAttachmentHeadersFileItemWithoutContentId, FAGMELDING_PAYLOAD)
+                )
+            )
+            val harBorgerEgenandelFritakRequestWithSoapAttachmentInBinary = MultipartRequest(
+                valid,
+                listOf(
+                    Part(validSoapMimeHeaders, EBXML_PAYLOAD),
+                    Part(
+                        validSoapAttachmentHeadersFormItem.modify {
+                            it[MimeHeaders.CONTENT_TRANSFER_ENCODING] = "binary"
+                        },
+                        FAGMELDING_PAYLOAD
+                    )
                 )
             )
 
@@ -417,10 +508,42 @@ ZWZEb2M+CiAgPC9uczpEb2N1bWVudD4KPC9uczpNc2dIZWFkPg=="""
                 )
             )
 
-            val harBorgerEgenandelFritakRequestWithoutContentType = MultipartRequest(
+            val harBorgerEgenandelFritakRequestWithoutSoapContentType = MultipartRequest(
                 valid,
                 listOf(
                     Part(validSoapMimeHeadersWithoutContentType, EBXML_PAYLOAD),
+                    Part(validSoapAttachmentHeadersFormItem, FAGMELDING_PAYLOAD)
+                )
+            )
+            val harBorgerEgenandelFritakRequestWithSoapContentTypeTextPlain = MultipartRequest(
+                valid,
+                listOf(
+                    Part(
+                        validSoapMimeHeaders.modify {
+                            it[MimeHeaders.CONTENT_TYPE] = "text/plain"
+                        },
+                        EBXML_PAYLOAD
+                    ),
+                    Part(validSoapAttachmentHeadersFormItem, FAGMELDING_PAYLOAD)
+                )
+            )
+
+            val harBorgerEgenandelFritakRequestWithoutSoapContentTransferEncoding = MultipartRequest(
+                valid,
+                listOf(
+                    Part(validSoapMimeHeadersWithoutContentTransferEncoding, EBXML_PAYLOAD),
+                    Part(validSoapAttachmentHeadersFormItem, FAGMELDING_PAYLOAD)
+                )
+            )
+            val harBorgerEgenandelFritakRequestWithInvalidSoapContentTransferEncoding = MultipartRequest(
+                valid,
+                listOf(
+                    Part(
+                        validSoapMimeHeaders.modify {
+                            it[MimeHeaders.CONTENT_TRANSFER_ENCODING] = "base65"
+                        },
+                        EBXML_PAYLOAD
+                    ),
                     Part(validSoapAttachmentHeadersFormItem, FAGMELDING_PAYLOAD)
                 )
             )
