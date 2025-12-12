@@ -52,10 +52,10 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ErrorList
 import org.xmlsoap.schemas.soap.envelope.Envelope
+import org.xmlsoap.schemas.soap.envelope.Fault
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.uuid.Uuid
-import org.xmlsoap.schemas.soap.envelope.Fault
 
 private const val SYNC_PATH = "/ebms/sync"
 private val mockProcessConfig = ProcessConfig(
@@ -352,13 +352,14 @@ private fun Envelope.assertErrorAndGet(): ErrorList {
 private fun Envelope.getFaultString(): String? {
     val any = this.body.any?.firstOrNull() ?: return null
     return when (any) {
-        is Fault -> return any.faultstring
+        is Fault -> any.faultstring
         is JAXBElement<*> -> {
             val inner = any.value
             if (inner is Fault) {
-                return inner.faultstring
+                inner.faultstring
+            } else {
+                null
             }
-            else null
         }
         else -> null
     }
