@@ -78,6 +78,7 @@ class EbmsRouteSyncIT {
 
     fun <T> testSyncApp(testBlock: suspend ApplicationTestBuilder.() -> T) = testApplication {
         val client = createClient {
+            expectSuccess = true
             install(io.ktor.client.plugins.contentnegotiation.ContentNegotiation) {
                 json()
             }
@@ -252,7 +253,7 @@ class EbmsRouteSyncIT {
 
     @Test
     fun `Feilmelding fra fagsystemet må propageres til brukeren`() = testSyncApp {
-        val soapFault = "<SOAP-ENV:Envelope xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\"><SOAP-ENV:Header/><SOAP-ENV:Body><SOAP-ENV:Fault><faultcode>SOAP-ENV:Server</faultcode><faultstring>Noe gikk galt i fagsystemet</faultstring></SOAP-ENV:Fault></SOAP-ENV:Body></SOAP-ENV:Envelope>"
+        val soapFault = "<SOAP-ENV:Envelope xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\"><SOAP-ENV:Header/><SOAP-ENV:Body><SOAP-ENV:Fault><faultcode>SOAP-ENV:Server</faultcode><faultstring>Client request(POST http://ebms-send-in/fagmelding/synkron) invalid: 400 Bad Request. Text: \"Noe gikk galt i fagsystemet\"</faultstring></SOAP-ENV:Fault></SOAP-ENV:Body></SOAP-ENV:Envelope>"
         externalServices {
             hosts(getEnvVar("SEND_IN_URL", "http://ebms-send-in")) {
                 this.install(ContentNegotiation) {
@@ -260,7 +261,7 @@ class EbmsRouteSyncIT {
                 }
                 routing {
                     post("/fagmelding/synkron") {
-                        println("RESPONDERER PÅ /fagmelding/synkron...")
+                        println("[EBMS-SEND-IN] RESPONDING BadRequest TO /fagmelding/synkron...")
                         call.respond(
                             HttpStatusCode.BadRequest,
                             "Noe gikk galt i fagsystemet"
@@ -296,7 +297,7 @@ class EbmsRouteSyncIT {
         assertEquals("Content type is missing or wrong ", faultString)
     }
 
-    @Test // KRAV 5.5.2.3 Valideringsdokument
+    @Test // KRAV 5.5.2.3 Validering av MIME-del med SOAP
     fun `Manglende Content-Transfer-Encoding i header resulterer i SoapFault`() = testSyncApp {
         val multipart = TestData.HarBorgerEgenandel.harBorgerEgenandelFritakRequestWithoutSoapContentTransferEncoding
         val response = client.post(SYNC_PATH, multipart.asHttpRequest())
@@ -306,7 +307,7 @@ class EbmsRouteSyncIT {
         assertEquals("Mandatory header Content-Transfer-Encoding is undefined", faultString)
     }
 
-    @Test // KRAV 5.5.2.3 Valideringsdokument
+    @Test // KRAV 5.5.2.3 Validering av MIME-del med SOAP
     fun `Ugyldig Content-Transfer-Encoding i header resulterer i SoapFault`() = testSyncApp {
         val multipart = TestData.HarBorgerEgenandel.harBorgerEgenandelFritakRequestWithInvalidSoapContentTransferEncoding
         val response = client.post(SYNC_PATH, multipart.asHttpRequest())
@@ -316,7 +317,7 @@ class EbmsRouteSyncIT {
         assertEquals("Unrecognised Content-Transfer-Encoding: base65", faultString)
     }
 
-    @Test // Krav 5.5.2.4 Valideringsdokument
+    @Test // Krav 5.5.2.4 Validering av MIME-del med kryptert innhold (attachment-del)
     fun `Gyldig payload request uten Content-Id i Soap vedlegg resulterer i SoapFault`() = testSyncApp {
         val multipart = TestData.HarBorgerEgenandel.harBorgerEgenandelFritakRequestWithoutSoapAttachmentContentId
         val response = client.post(SYNC_PATH, multipart.asHttpRequest())
@@ -326,14 +327,49 @@ class EbmsRouteSyncIT {
         assertEquals("Content ID is missing or wrong on attachment", faultString)
     }
 
-    @Test // Krav 5.5.2.4 Valideringsdokument
-    fun `Gyldig payload request med vedlegg i binary resulterer i SoapFault`() = testSyncApp {
+    @Test // Krav 5.5.2.4 Validering av MIME-del med kryptert innhold (attachment-del)
+    fun `Gyldig payload request med vedlegg content-type application pkcs7-mime, og vedlegg i binary, resulterer i SoapFault`() = testSyncApp {
         val multipart = TestData.HarBorgerEgenandel.harBorgerEgenandelFritakRequestWithSoapAttachmentInBinary
         val response = client.post(SYNC_PATH, multipart.asHttpRequest())
         assertEquals(HttpStatusCode.InternalServerError, response.status)
         val faultString = getEnvelope(response).getFaultString()
         assertNotNull(faultString, "Forventet å kunne hente ut faultString, men var null.")
         assertEquals("Feil content transfer encoding på kryptert content.", faultString)
+    }
+
+    @Test // Krav 5.5.2.4 Validering av MIME-del med kryptert innhold (attachment-del)
+    fun `Gyldig payload request med vedlegg content-type text xml, og vedlegg i binary, godtas`() = testSyncApp {
+        val multipart = TestData.HarBorgerEgenandel.harBorgerEgenandelFritakRequestWithSoapAttachmentInBinaryAndContentTypeTextXml
+        val response = client.post(SYNC_PATH, multipart.asHttpRequest())
+        assertEquals(HttpStatusCode.OK, response.status)
+    }
+
+    @Test
+    fun `Uforutsett feil fra EBMS-PAYLOAD må propageres til brukeren`() = testSyncApp {
+        externalServices {
+            hosts(getEnvVar("PAYLOAD_PROCESSOR_URL", "http://ebms-payload")) {
+                this.install(ContentNegotiation) {
+                    json()
+                }
+                routing {
+                    post("payload") {
+                        println("\n[EBMS-PAYLOAD] RESPONDING BadRequest TO /cpa/validate/{contentId}...\n")
+                        call.respond(
+                            status = HttpStatusCode.BadRequest,
+                            message = PayloadResponse(
+                                error = Feil(ErrorCode.UNKNOWN, "Noe gikk galt i ebms-payload", "Error")
+                            )
+                        )
+                    }
+                }
+            }
+        }
+        val multipart = TestData.HarBorgerEgenandel.harBorgerEgenandelFritakRequestWithFormItem
+        val response = client.post(SYNC_PATH, multipart.asHttpRequest())
+        assertEquals(HttpStatusCode.OK, response.status)
+        with(getEnvelope(response).assertErrorAndGet().error.first()) {
+            assertEquals("Processing has failed: Noe gikk galt i ebms-payload [Unknown]", this.description!!.value)
+        }
     }
 }
 
@@ -487,6 +523,19 @@ ZWZEb2M+CiAgPC9uczpEb2N1bWVudD4KPC9uczpNc2dIZWFkPg=="""
                     Part(validSoapMimeHeaders, EBXML_PAYLOAD),
                     Part(
                         validSoapAttachmentHeadersFormItem.modify {
+                            it[MimeHeaders.CONTENT_TRANSFER_ENCODING] = "binary"
+                        },
+                        FAGMELDING_PAYLOAD
+                    )
+                )
+            )
+            val harBorgerEgenandelFritakRequestWithSoapAttachmentInBinaryAndContentTypeTextXml = MultipartRequest(
+                valid,
+                listOf(
+                    Part(validSoapMimeHeaders, EBXML_PAYLOAD),
+                    Part(
+                        validSoapAttachmentHeadersFormItem.modify {
+                            it[MimeHeaders.CONTENT_TYPE] = """text/xml; charset="UTF-8"""
                             it[MimeHeaders.CONTENT_TRANSFER_ENCODING] = "binary"
                         },
                         FAGMELDING_PAYLOAD

@@ -49,18 +49,20 @@ class ProcessingService(private val httpClient: PayloadProcessingClient) {
                 "Processing failed: ${clientRequestException.message}",
                 clientRequestException
             )
+            val payloadError = runCatching { clientRequestException.response.body<PayloadResponse>().error }.getOrNull()
+            val errorMsg = "Processing has failed${payloadError?.let { ": ${it.descriptionText} [${it.code.value}]" } ?: ""}"
             when (clientRequestException.response.status) {
                 HttpStatusCode.BadRequest -> {
                     return Pair(
                         payloadMessage.convertToErrorActionMessage(
-                            clientRequestException.retrieveReturnableApprecResponse(direction).processedPayload!!,
+                            clientRequestException.retrieveReturnableApprecResponse(direction, errorMsg).processedPayload!!,
                             payloadProcessing.processConfig.errorAction!!
                         ),
                         Direction.OUT
                     )
                 }
 
-                else -> throw EbmsException("Processing has failed", exception = clientRequestException)
+                else -> throw EbmsException(errorMsg, exception = clientRequestException)
             }
         } catch (exception: Exception) {
             throw EbmsException("Processing has failed", exception = exception)
@@ -68,14 +70,15 @@ class ProcessingService(private val httpClient: PayloadProcessingClient) {
     }
 
     private suspend fun ClientRequestException.retrieveReturnableApprecResponse(
-        direction: Direction
+        direction: Direction,
+        errorMsg: String
     ): PayloadResponse = withContext(Dispatchers.IO) {
         this@retrieveReturnableApprecResponse.response.body<PayloadResponse?>().takeIf { payloadResponse ->
             payloadResponse != null &&
                 payloadResponse.apprec &&
                 payloadResponse.processedPayload != null &&
                 direction == Direction.IN
-        } ?: throw EbmsException("Processing has failed", exception = this@retrieveReturnableApprecResponse)
+        } ?: throw EbmsException(errorMsg, exception = this@retrieveReturnableApprecResponse)
     }
 
     suspend fun processSyncIn(

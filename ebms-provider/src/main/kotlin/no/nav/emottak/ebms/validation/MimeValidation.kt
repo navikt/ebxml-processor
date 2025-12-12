@@ -33,7 +33,7 @@ fun ApplicationRequest.validateMime() {
     }
 }
 
-// KRAV 5.5.2.2 validate MIME
+// KRAV 5.5.2.2  Validering av multipart-attributter
 fun ApplicationRequest.validateContentType() {
     val contentType = this.contentType()
     if (contentType == ContentType.Any) throw MimeValidationException("Content  type is undefined")
@@ -50,7 +50,7 @@ fun PartData.validateMimeSoapEnvelope() {
     this.headers.validateMimeSoapEnvelope()
 }
 
-// KRAV 5.5.2.3 Valideringsdokument
+// KRAV 5.5.2.3 Validering av MIME-del med SOAP
 fun Headers.validateMimeSoapEnvelope() {
     this[MimeHeaders.CONTENT_TYPE]?.let { ContentType.parse(it) }?.withoutParameters()
         .takeIf { it == ContentType.parse("text/xml") } ?: throw MimeValidationException("Content type is missing or wrong ")
@@ -60,9 +60,10 @@ fun Headers.validateMimeSoapEnvelope() {
     } ?: throw MimeValidationException("Mandatory header Content-Transfer-Encoding is undefined")
 }
 
-// Krav 5.5.2.4 Valideringsdokument
+// Krav 5.5.2.4 Validering av MIME-del med kryptert innhold (attachment-del)
 fun PartData.validateMimeAttachment() {
     this.contentType?.withoutParameters().takeIf {
+        // Frikortspørring kan ha annen Content-Type, derfor kastes ikke MimeValidationException:
         it == ContentType.parse("application/pkcs7-mime")
     }?.apply {
         this@validateMimeAttachment.headers[MimeHeaders.CONTENT_TRANSFER_ENCODING].takeIf { it == "base64" } ?: throw MimeValidationException("Feil content transfer encoding på kryptert content.")
@@ -70,7 +71,7 @@ fun PartData.validateMimeAttachment() {
     if (this@validateMimeAttachment.headers[MimeHeaders.CONTENT_ID].isNullOrEmpty()) throw MimeValidationException("Content ID is missing or wrong on attachment")
 }
 
-// KRAV 5.5.2.1 validate MIME
+// KRAV 5.5.2.1 Validering av MIME-header (toppnivå-entitet)
 fun Headers.validateMimeHeaders() {
     if (this[MimeHeaders.CONTENT_TYPE].isNullOrBlank() || this[MimeHeaders.CONTENT_TYPE] == "text/plain") {
         throw MimeValidationException("Content type is wrong <${this[MimeHeaders.CONTENT_TYPE]}")
