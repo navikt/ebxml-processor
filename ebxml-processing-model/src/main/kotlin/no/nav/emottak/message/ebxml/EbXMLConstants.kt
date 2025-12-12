@@ -10,6 +10,16 @@ object EbXMLConstants {
 
     const val XMLDSIG_NS_URI = "http://www.w3.org/2000/09/xmldsig#"
     const val XMLDSIG_TAG_REFERENCE = "Reference"
+
+    // Disse verdiene skal inkluderes i MessageHeader for utgående meldinger
+    // https://git.sarepta.ehelse.no/publisert/standarder/raw/master/kravdokument/OvervaakingMeldingsversjonerEbXML/HIS_1210_2018%20Overv%C3%A5kning%20av%20meldingsversjoner%20i%20ebXML%20-oppdatert.pdf
+    const val MSH_SYSTEM = "NAV EBMS"
+    val MSH_VERSJON = readVersionFromEnv()
+
+    private fun readVersionFromEnv(): String {
+        val imageFullname = System.getenv("NAIS_APP_IMAGE") ?: "myImage:1.0.0"
+        return imageFullname.substringAfterLast(":")
+    }
 }
 
 enum class PartyTypeEnum(val type: String) {

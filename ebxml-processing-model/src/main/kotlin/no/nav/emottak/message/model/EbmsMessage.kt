@@ -5,6 +5,7 @@ import no.nav.emottak.message.xml.getDocumentBuilder
 import no.nav.emottak.message.xml.marshal
 import no.nav.emottak.utils.common.model.Addressing
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.AckRequested
+import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Description
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.From
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Manifest
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageData
@@ -94,6 +95,7 @@ fun EbmsMessage.createMessageHeader(
     val messageHeader = MessageHeader().apply {
         this.from = from
         this.to = to
+        this.description.addAll(createOutgoingDescription())
         this.cpaId = this@createMessageHeader.cpaId
         this.conversationId = this@createMessageHeader.conversationId
         this.service = Service().apply {
@@ -112,6 +114,17 @@ fun EbmsMessage.createMessageHeader(
         if (withSyncReplyElement) this.any.add(createSyncReplyElement())
         if (withAckRequestedElement) this.any.add(createAckRequestedElement())
     }
+}
+
+private fun createOutgoingDescription(): List<Description> {
+    val descriptionValue = """
+        {"MSH-system":"${EbXMLConstants.MSH_SYSTEM}","MSH-versjon":"${EbXMLConstants.MSH_VERSJON}"}
+    """.trimIndent()
+    val description = Description().apply {
+        this.value = descriptionValue
+        this.lang = "NO"
+    }
+    return listOf(description)
 }
 
 private fun createSyncReplyElement() = SyncReply().apply {
