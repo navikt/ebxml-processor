@@ -7,7 +7,6 @@ import no.nav.emottak.message.ebxml.EbXMLConstants.EBMS_SERVICE_URI
 import no.nav.emottak.message.ebxml.PartyTypeEnum
 import no.nav.emottak.message.model.EmailAddress
 import no.nav.emottak.message.model.SignatureDetails
-import no.nav.emottak.message.model.ValidationRequest
 import no.nav.emottak.utils.common.model.PartyId
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.Certificate
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
@@ -74,15 +73,21 @@ private fun PartyInfo.getDefaultDeliveryChannel(
         ?: this.defaultMshChannelId as DeliveryChannel
 }
 
-fun PartyInfo.getReceiveEmailAddress(validateRequest: ValidationRequest): List<EmailAddress> {
-    val deliveryChannels = this.getReceiveDeliveryChannels(validateRequest.addressing.to.role, validateRequest.addressing.service, validateRequest.addressing.action)
-    return getReceiverEmailAddress(deliveryChannels)
-}
+fun PartyInfo.getSendEmailAddress(
+    fromRole: String,
+    service: String,
+    action: String
+): List<EmailAddress> = getReceiverEmailAddress(listOf(this.getSendDeliveryChannel(fromRole, service, action)))
 
-fun PartyInfo.getSignalEmailAddress(validateRequest: ValidationRequest): List<EmailAddress> {
-    val deliveryChannels = listOf(this.getDefaultDeliveryChannel(validateRequest.addressing.action))
-    return getReceiverEmailAddress(deliveryChannels)
-}
+fun PartyInfo.getReceiveEmailAddress(
+    toRole: String,
+    service: String,
+    action: String
+): List<EmailAddress> = getReceiverEmailAddress(this.getReceiveDeliveryChannels(toRole, service, action))
+
+fun PartyInfo.getSignalEmailAddress(
+    action: String
+): List<EmailAddress> = getReceiverEmailAddress(listOf(this.getDefaultDeliveryChannel(action)))
 
 private fun getReceiverEmailAddress(deliveryChannels: List<DeliveryChannel>): List<EmailAddress> {
     return deliveryChannels.filter {
