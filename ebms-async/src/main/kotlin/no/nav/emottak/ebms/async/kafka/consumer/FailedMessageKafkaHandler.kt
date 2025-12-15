@@ -15,11 +15,13 @@ import kotlinx.coroutines.flow.cancellable
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import no.nav.emottak.ebms.async.configuration.ErrorRetryPolicy
 import no.nav.emottak.ebms.async.configuration.KafkaErrorQueue
 import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.configuration.toProperties
 import no.nav.emottak.ebms.async.processing.MessageFilterService
 import no.nav.emottak.utils.config.Kafka
+import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.consumer.ConsumerRecords
 import org.apache.kafka.clients.consumer.KafkaConsumer
@@ -42,7 +44,8 @@ val logger = LoggerFactory.getLogger(FailedMessageKafkaHandler::class.java)
 
 class FailedMessageKafkaHandler(
     val kafkaErrorQueue: KafkaErrorQueue = config().kafkaErrorQueue,
-    kafka: Kafka = config().kafka
+    kafka: Kafka = config().kafka,
+    val errorRetryPolicy : ErrorRetryPolicy = config().errorRetryPolicy
 ) {
 
     val publisher = KafkaPublisher(
@@ -70,12 +73,15 @@ class FailedMessageKafkaHandler(
         record: ReceiverRecord<String, ByteArray>,
         key: String = record.key(),
         value: ByteArray = record.value(),
-        reason: String? = null
+        reason: String? = null,
+        advanceRetryTime: Boolean = true
     ) {
         if (reason != null) {
             record.addHeader(RETRY_REASON, reason)
         }
-        record.addHeader(RETRY_AFTER, getNextRetryTime(record))
+        if (advanceRetryTime) {
+            record.addHeader(RETRY_AFTER, getNextRetryTime(record))
+        }
         try {
             val metadata = publisher.publishScope {
                 publish(ProducerRecord(config().kafkaErrorQueue.topic, null, key, value, record.headers()))
@@ -88,45 +94,55 @@ class FailedMessageKafkaHandler(
         }
     }
 
-    suspend fun consumeRetryQueue( // TODO refine retry logic
+    suspend fun consumeRetryQueue(
         messageFilterService: MessageFilterService,
-        limit: Int = 10 // TODO default limit to offset
+        limit: Int = 10
     ) {
-        // TODO DefaultKafkaReceiver is too constrainted so need own impl for custom logic
-        val consumer: Flow<ReceiverRecord<String, ByteArray>> =
-            errorTopicKafkaReceiver.receive(kafkaErrorQueue.topic)
+        logger.info("Checking for messages in error queue")
+        val anyRecords = anyRecordsToConsume(kafkaErrorQueue.topic, config().kafka)
+        if (!anyRecords) {
+            logger.info("No records to process in error queue")
+            return
+        }
 
-        logger.debug("Reading from error queue")
         var counter = 0
-        var lastKey: String? = null
+        val processedKeys: MutableSet<String> = HashSet()
         CoroutineScope(Dispatchers.IO)
             .launch {
+                // TODO DefaultKafkaReceiver is too constrainted so need own impl for custom logic
+                val consumer: Flow<ReceiverRecord<String, ByteArray>> =
+                    errorTopicKafkaReceiver.receive(kafkaErrorQueue.topic)
                 consumer
                     .cancellable() // NOTE: cancellable() will ensure the flow is terminated before new items are emitted to collect { } if its job is cancelled, though flow builder and all implementations of SharedFlow are cancellable() by default.
                     .map { record ->
                         counter++
-                        if (lastKey != null) {
-                            if (lastKey == record.key()) {
-                                logger.info("End of queue reached")
-                                cancel("End of queue reached")
-                            }
+                        logger.info("Processing record: $counter, max is $limit, key: ${record.key()}, offset: ${record.offset()}")
+                        if (processedKeys.contains(record.key())) {
+                            logger.info("All messages retried, end of queue reached.")
+                            cancel("End of queue reached.")
+                            return@map
                         }
-                        lastKey = record.key()
+
+                        processedKeys.add(record.key())
                         if (counter > limit) {
                             logger.info("Kafka retryQueue Limit reached: $limit")
                             cancel("Limit reached")
                             return@map
                         }
+
                         record.offset.acknowledge()
-                        record.retryCounter()
                         val retryableAfter = DateTime.parse(
                             String(record.headers().lastHeader(RETRY_AFTER).value())
                         )
+                        logger.info("Record with key ${record.key()} is retryable after $retryableAfter.")
                         if (DateTime.now().isAfter(retryableAfter)) {
+                            logger.info("${record.key()} is being retried.")
+                            record.retryCounter()
                             messageFilterService.filterMessage(record)
+                            logger.info("${record.key()} has been retried.")
                         } else {
                             logger.info("${record.key()} is not retryable yet.")
-                            sendToRetry(record)
+                            sendToRetry(record, advanceRetryTime = false)
                         }
                         record.offset.commit()
                     }.collect()
@@ -134,18 +150,29 @@ class FailedMessageKafkaHandler(
     }
 
     fun getNextRetryTime(record: ReceiverRecord<String, ByteArray>): String {
-        if (record.headers().lastHeader(RETRY_AFTER) == null) {
-            return DateTime.now().toString()
+        val nextIntervalMinutes = errorRetryPolicy.nextIntervalMinutes(record.retryCount())
+        return DateTime.now().plusMinutes(nextIntervalMinutes).toString()
+    }
+
+    // Under test klarte vi å framprovosere en situasjon hvor headeren inneholdt en tekst
+    // som hverken ble oppfattet som blank eller lot seg parse som tall, derfor den omstendelige logikken her.
+    fun ReceiverRecord<String, ByteArray>.retryCount(): Int {
+        if (headers().lastHeader(RETRY_COUNT_HEADER) == null) {
+            return 0
         }
-        return DateTime.now().plusMinutes(5)
-            .toString() // TODO create retry strategy
+        val headerValue = String(headers().lastHeader(RETRY_COUNT_HEADER).value())
+        if (cannotReadInt(headerValue)) {
+            return 0
+        }
+        return headerValue.toInt()
+    }
+
+    private fun cannotReadInt(headerValue: String): Boolean {
+        return headerValue.isBlank() || headerValue.toIntOrNull() == null
     }
 
     fun ReceiverRecord<String, ByteArray>.retryCounter(): Int {
-        val lastHeader =
-            String((headers().lastHeader(RETRY_COUNT_HEADER)?.value() ?: "0".toByteArray()))
-                .takeIf { it.isNotBlank() } ?: "0"
-        val retryCounter = lastHeader.toInt() + (1)
+        val retryCounter = retryCount() + 1
         this.headers().add(
             RETRY_COUNT_HEADER,
             retryCounter.toString().toByteArray()
@@ -203,6 +230,26 @@ fun getRecords(
                 }
         }
         return recordList
+    }
+}
+
+fun anyRecordsToConsume(
+    topic: String,
+    kafka: Kafka
+): Boolean {
+    val properties = kafka.toProperties()
+    properties.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false")
+    properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, kafka.groupId)
+    properties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+    KafkaConsumer(
+        properties,
+        StringDeserializer(),
+        ByteArrayDeserializer()
+    ).use { consumer ->
+        val partitions = consumer.partitionsFor(topic).map { TopicPartition(it.topic(), it.partition()) }
+        consumer.assign(partitions)
+        val records = consumer.poll(Duration.ofMillis(1000))
+        return (!records.isEmpty)
     }
 }
 
