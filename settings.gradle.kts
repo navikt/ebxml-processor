@@ -124,6 +124,22 @@ dependencyResolutionManagement {
 
     repositories {
         mavenCentral()
+        exclusiveContent {
+            // emottak-payload-xsd depends on org.apache.cxf:cxf-rt-ws-security:4.1.4 which depends on opensaml-saml-impl:5.1.6
+            // This is not available in maven central
+            forRepository {
+                maven {
+                    name = "Shibboleth"
+                    url = uri("https://build.shibboleth.net/maven/releases/")
+                }
+            }
+            filter {
+                // Only allow specific group/artifact from Shibboleth
+                includeGroup("org.opensaml")
+                includeGroup("net.shibboleth")
+                // Add more includeGroup or includeModule as needed
+            }
+        }
         maven {
             name = "Ebxml protokoll"
             url = uri("https://maven.pkg.github.com/navikt/ebxml-protokoll")
