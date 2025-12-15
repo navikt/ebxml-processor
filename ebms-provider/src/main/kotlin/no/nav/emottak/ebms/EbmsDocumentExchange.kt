@@ -26,6 +26,7 @@ import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.util.toByteArray
 import no.nav.emottak.ebms.validation.MimeHeaders
 import no.nav.emottak.ebms.validation.MimeValidationException
+import no.nav.emottak.ebms.validation.validateMimeAttachment
 import no.nav.emottak.ebms.validation.validateMimeSoapEnvelope
 import no.nav.emottak.message.model.DocumentType
 import no.nav.emottak.message.model.EbmsAttachment
@@ -91,6 +92,7 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbmsDocument {
                         partData.payload(isBase64)
                     )
                 } else {
+                    partData.validateMimeAttachment()
                     attachments.add(
                         EbmsAttachment(
                             partData.payload(isBase64),
@@ -106,7 +108,7 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbmsDocument {
             EbmsDocument(
                 ebmsEnvelope.first.parseOrGenerateUuid().toString(),
                 withContext(Dispatchers.IO) {
-                    getDocumentBuilder().parse(ByteArrayInputStream(ebmsEnvelope!!.second))
+                    getDocumentBuilder().parse(ByteArrayInputStream(ebmsEnvelope.second))
                 },
                 attachments
             )

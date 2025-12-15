@@ -5,6 +5,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.header
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
+import io.ktor.server.routing.RoutingCall
 import io.ktor.server.routing.post
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.model.signer
@@ -13,7 +14,7 @@ import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.util.EventRegistrationService
 import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.ebms.validation.MimeValidationException
-import no.nav.emottak.ebms.validation.parseAsSoapFault
+import no.nav.emottak.ebms.validation.convertToSoapFault
 import no.nav.emottak.ebms.validation.validateMime
 import no.nav.emottak.melding.feil.EbmsException
 import no.nav.emottak.message.model.Direction
@@ -36,40 +37,7 @@ fun Route.postEbmsSync(
 ): Route = post("/ebms/sync") {
     log.info("Receiving synchronous request")
 
-    val ebmsDocument: EbmsDocument
-    val loggableHeaders = call.request.headers.retrieveLoggableHeaderPairs()
-    try {
-        call.request.validateMime()
-        ebmsDocument = call.receiveEbmsDokument()
-        log.info(ebmsDocument.messageHeader().marker(loggableHeaders), "Melding mottatt")
-
-        eventRegistrationService.registerEventMessageDetails(ebmsDocument)
-        eventRegistrationService.registerEvent(
-            EventType.MESSAGE_RECEIVED_VIA_HTTP,
-            ebmsDocument
-        )
-    } catch (ex: MimeValidationException) {
-        logger().error(
-            call.request.headers.marker(),
-            "Mime validation has failed: ${ex.message} Message-Id ${call.request.header(SMTPHeaders.MESSAGE_ID)}",
-            ex
-        )
-        call.respond(HttpStatusCode.InternalServerError, ex.parseAsSoapFault())
-        return@post
-    } catch (ex: Exception) {
-        logger().error(
-            call.request.headers.marker(),
-            "Unable to transform request into EbmsDokument: ${ex.message} " +
-                "Message-Id ${call.request.header(SMTPHeaders.MESSAGE_ID)}",
-            ex
-        )
-        call.respond(
-            HttpStatusCode.InternalServerError,
-            ex.parseAsSoapFault()
-        )
-        return@post
-    }
-
+    val ebmsDocument = getEbmsDocument(call, eventRegistrationService) ?: return@post
     val ebmsMessage = ebmsDocument.transform() as PayloadMessage
 
     var signingCertificate: SignatureDetails? = null
@@ -150,7 +118,47 @@ fun Route.postEbmsSync(
 
         call.respond(
             HttpStatusCode.InternalServerError,
-            ex.parseAsSoapFault()
+            ex.convertToSoapFault()
         )
     }
+}
+
+private suspend fun getEbmsDocument(
+    call: RoutingCall,
+    eventRegistrationService: EventRegistrationService
+): EbmsDocument? {
+    val ebmsDocument: EbmsDocument
+    val loggableHeaders = call.request.headers.retrieveLoggableHeaderPairs()
+    try {
+        call.request.validateMime()
+        ebmsDocument = call.receiveEbmsDokument()
+        log.info(ebmsDocument.messageHeader().marker(loggableHeaders), "Melding mottatt")
+
+        eventRegistrationService.registerEventMessageDetails(ebmsDocument)
+        eventRegistrationService.registerEvent(
+            EventType.MESSAGE_RECEIVED_VIA_HTTP,
+            ebmsDocument
+        )
+    } catch (ex: MimeValidationException) {
+        logger().error(
+            call.request.headers.marker(),
+            "Mime validation has failed: ${ex.message} Message-Id ${call.request.header(SMTPHeaders.MESSAGE_ID)}",
+            ex
+        )
+        call.respond(HttpStatusCode.InternalServerError, ex.convertToSoapFault())
+        return null
+    } catch (ex: Exception) {
+        logger().error(
+            call.request.headers.marker(),
+            "Unable to transform request into EbmsDokument: ${ex.message} " +
+                "Message-Id ${call.request.header(SMTPHeaders.MESSAGE_ID)}",
+            ex
+        )
+        call.respond(
+            HttpStatusCode.InternalServerError,
+            ex.convertToSoapFault()
+        )
+        return null
+    }
+    return ebmsDocument
 }

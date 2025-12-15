@@ -1,6 +1,6 @@
 package no.nav.emottak.ebms.async.kafka.consumer
 
-import io.github.nomisRev.kafka.Acks
+import io.github.nomisRev.kafka.Acks // TODO: Trygt å bytte ut med io.github.nomisRev.kafka.publisher.Acks?
 import io.github.nomisRev.kafka.publisher.KafkaPublisher
 import io.github.nomisRev.kafka.publisher.PublisherSettings
 import io.github.nomisRev.kafka.receiver.KafkaReceiver
@@ -29,9 +29,11 @@ import org.apache.kafka.common.serialization.ByteArrayDeserializer
 import org.apache.kafka.common.serialization.ByteArraySerializer
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
-import org.joda.time.DateTime
 import org.slf4j.LoggerFactory
 import java.time.Duration
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 import kotlin.time.Duration.Companion.seconds
 
 const val RETRY_COUNT_HEADER = "retryCount"
@@ -119,10 +121,11 @@ class FailedMessageKafkaHandler(
                         }
                         record.offset.acknowledge()
                         record.retryCounter()
-                        val retryableAfter = DateTime.parse(
-                            String(record.headers().lastHeader(RETRY_AFTER).value())
+                        val retryableAfter = ZonedDateTime.parse(
+                            String(record.headers().lastHeader(RETRY_AFTER).value()),
+                            dateTimeFormat
                         )
-                        if (DateTime.now().isAfter(retryableAfter)) {
+                        if (ZonedDateTime.now().isAfterTruncated(retryableAfter)) {
                             messageFilterService.filterMessage(record)
                         } else {
                             logger.info("${record.key()} is not retryable yet.")
@@ -135,10 +138,10 @@ class FailedMessageKafkaHandler(
 
     fun getNextRetryTime(record: ReceiverRecord<String, ByteArray>): String {
         if (record.headers().lastHeader(RETRY_AFTER) == null) {
-            return DateTime.now().toString()
+            return ZonedDateTime.now().toJodaString()
         }
-        return DateTime.now().plusMinutes(5)
-            .toString() // TODO create retry strategy
+        return ZonedDateTime.now().plusMinutes(5)
+            .toJodaString() // TODO create retry strategy
     }
 
     fun ReceiverRecord<String, ByteArray>.retryCounter(): Int {
@@ -238,4 +241,14 @@ fun ConsumerRecord<String, ByteArray>.asReceiverRecord(): ReceiverRecord<String,
         this,
         ReadOnlyOffset(this.offset(), TopicPartition(this.topic(), this.partition()))
     )
+}
+
+private val dateTimeFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
+
+private fun ZonedDateTime.toJodaString() = this.format(dateTimeFormat)
+
+private fun ZonedDateTime.isAfterTruncated(otherDateTime: ZonedDateTime): Boolean {
+    val thisDateTime = this.truncatedTo(ChronoUnit.MILLIS)
+    val otherTruncatedDateTime = otherDateTime.truncatedTo(ChronoUnit.MILLIS)
+    return thisDateTime.isAfter(otherTruncatedDateTime)
 }
