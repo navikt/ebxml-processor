@@ -14,7 +14,7 @@ import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.util.EventRegistrationService
 import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.ebms.validation.MimeValidationException
-import no.nav.emottak.ebms.validation.parseAsSoapFault
+import no.nav.emottak.ebms.validation.convertToSoapFault
 import no.nav.emottak.ebms.validation.validateMime
 import no.nav.emottak.melding.feil.EbmsException
 import no.nav.emottak.message.model.Direction
@@ -118,7 +118,7 @@ fun Route.postEbmsSync(
 
         call.respond(
             HttpStatusCode.InternalServerError,
-            ex.parseAsSoapFault()
+            ex.convertToSoapFault()
         )
     }
 }
@@ -145,7 +145,7 @@ private suspend fun getEbmsDocument(
             "Mime validation has failed: ${ex.message} Message-Id ${call.request.header(SMTPHeaders.MESSAGE_ID)}",
             ex
         )
-        call.respond(HttpStatusCode.InternalServerError, ex.parseAsSoapFault())
+        call.respond(HttpStatusCode.InternalServerError, ex.convertToSoapFault())
         return null
     } catch (ex: Exception) {
         logger().error(
@@ -156,7 +156,7 @@ private suspend fun getEbmsDocument(
         )
         call.respond(
             HttpStatusCode.InternalServerError,
-            ex.parseAsSoapFault()
+            ex.convertToSoapFault()
         )
         return null
     }

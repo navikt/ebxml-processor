@@ -3,7 +3,6 @@ package no.nav.emottak.ebms
 import io.ktor.client.request.post
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
-import io.ktor.client.statement.readRawBytes
 import io.ktor.http.Headers
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
@@ -48,6 +47,7 @@ import no.nav.emottak.utils.environment.getEnvVar
 import org.apache.xml.security.algorithms.MessageDigestAlgorithm
 import org.apache.xml.security.signature.XMLSignature
 import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ErrorList
@@ -73,6 +73,8 @@ private val mockProcessConfig = ProcessConfig(
 
 class EbmsRouteSyncIT {
 
+    var sendInClientFagmeldingSynkronCount = 0
+    var processingClientPayloadCount = 0
     val validMultipartRequest = validMultipartRequest()
     val eventRegistrationService = EventRegistrationServiceFake()
 
@@ -108,7 +110,6 @@ class EbmsRouteSyncIT {
                 }
                 routing {
                     post("cpa/validate/6ae68a32-8b0e-4de2-baad-f4d841aacce1") {
-                        println("\n[CPA-REPO] RESPONDING TO /cpa/validate/6ae68a32-8b0e-4de2-baad-f4d841aacce1...\n")
                         call.respond(
                             ValidationResult(
                                 error = listOf(
@@ -117,7 +118,7 @@ class EbmsRouteSyncIT {
                             )
                         )
                     }
-                    cpaRepoPostOtherContentId()
+                    cpaRepoValidateOtherContentId()
                 }
             }
             hosts(getEnvVar("SEND_IN_URL", "http://ebms-send-in")) {
@@ -126,7 +127,7 @@ class EbmsRouteSyncIT {
                 }
                 routing {
                     post("/fagmelding/synkron") {
-                        println("\n[EBMS-SEND-IN] RESPONDING TO /fagmelding/synkron...\n")
+                        sendInClientFagmeldingSynkronCount++
                         call.respond(
                             SendInResponse(
                                 "e17eb03e-9e43-43fb-874c-1fde9a28c308",
@@ -145,7 +146,7 @@ class EbmsRouteSyncIT {
                 }
                 routing {
                     post("payload") {
-                        println("\n[EBMS-PAYLOAD] RESPONDING TO /payload...\n")
+                        processingClientPayloadCount++
                         call.respond(
                             PayloadResponse(
                                 processedPayload = Payload(
@@ -166,7 +167,6 @@ class EbmsRouteSyncIT {
     fun `Feil på signatur resulterer i Feil Signal`() = testSyncApp {
         val response = client.post(SYNC_PATH, validMultipartRequest.asHttpRequest())
         val envelope = getEnvelope(response)
-        println("ENVELOPE ser slik ut:\n${response.bodyAsText()}")
         with(envelope.assertErrorAndGet().error.first()) {
             Assertions.assertEquals("Signature Fail", this.description!!.value)
             Assertions.assertEquals(
@@ -184,6 +184,7 @@ class EbmsRouteSyncIT {
                 it.append(MimeHeaders.CONTENT_ID, "<e491180e-eea6-41d6-ac5b-d232c9fb115f>")
             }
         )
+        var externalServiceCalledCount = 0
         externalServices {
             hosts(getEnvVar("CPA_REPO_URL", "http://cpa-repo.team-emottak.svc.nais.local")) {
                 this.install(ContentNegotiation) {
@@ -191,7 +192,7 @@ class EbmsRouteSyncIT {
                 }
                 routing {
                     post("cpa/validate/e491180e-eea6-41d6-ac5b-d232c9fb115f") {
-                        println("\n[CPA-REPO] RESPONDING TO /cpa/validate/e491180e-eea6-41d6-ac5b-d232c9fb115f...\n")
+                        externalServiceCalledCount++
                         call.respond(
                             ValidationResult(
                                 payloadProcessing = PayloadProcessing(
@@ -202,58 +203,51 @@ class EbmsRouteSyncIT {
                             )
                         )
                     }
-                    cpaRepoPostOtherContentId()
+                    cpaRepoValidateOtherContentId()
                 }
             }
         }
         val response = client.post(SYNC_PATH, multipart.asHttpRequest())
-        assertEquals(HttpStatusCode.OK, response.status)
-        // Should not be Envelope:
-        assertThrows<JAXBException> { getEnvelope(response) }
+        assertEquals(1, externalServiceCalledCount, "Forventet kall til externalService.")
+        assertNormalProcessingResponse(response)
     }
 
     @Test
-    fun `Gyldig FormItem payload request skal trigge processering og validering på vei ut`() = testSyncApp {
+    fun `Gyldig FormItem payload request skal trigge prosessering og validering på vei ut`() = testSyncApp {
         val multipart = TestData.HarBorgerEgenandel.harBorgerEgenandelFritakRequestWithFormItem
         val response = client.post(SYNC_PATH, multipart.asHttpRequest())
-        assert(response.status == HttpStatusCode.OK)
-        // Should not be Envelope:
-        assertThrows<JAXBException> { getEnvelope(response) }
+        assertNormalProcessingResponse(response)
     }
 
     @Test
-    fun `Gyldig payload request uten start i Content-Type skal trigge processering og validering på vei ut`() = testSyncApp {
+    fun `Gyldig payload request uten start i Content-Type skal trigge prosessering og validering på vei ut`() = testSyncApp {
         val multipart = TestData.HarBorgerEgenandel.harBorgerEgenandelFritakRequestWithFormItem
         multipart.headers.modify {
             it[MimeHeaders.CONTENT_TYPE] = TestData.HarBorgerEgenandel.MULTIPART_CONTENT_TYPE_WITHOUT_START
         }
         val response = client.post(SYNC_PATH, multipart.asHttpRequest())
-        assert(response.status == HttpStatusCode.OK)
-        // Should not be Envelope:
-        assertThrows<JAXBException> { getEnvelope(response) }
+        assertNormalProcessingResponse(response)
     }
 
     @Test
-    fun `Gyldig payload request uten start i Content-Type og Content-Id i Soap part skal trigge processering og validering på vei ut`() = testSyncApp {
+    fun `Gyldig payload request uten start i Content-Type og Content-Id i Soap part skal trigge prosessering og validering på vei ut`() = testSyncApp {
         val multipart = TestData.HarBorgerEgenandel.harBorgerEgenandelFritakRequestWithoutBoundaryStartAndSoapPartContentId
         val response = client.post(SYNC_PATH, multipart.asHttpRequest())
-        assert(response.status == HttpStatusCode.OK)
-        // Should not be Envelope:
-        assertThrows<JAXBException> { getEnvelope(response) }
+        assertNormalProcessingResponse(response)
     }
 
     @Test
-    fun `Gyldig FileItem payload request skal trigge processering og validering på vei ut`() = testSyncApp {
+    fun `Gyldig FileItem payload request skal trigge prosessering og validering på vei ut`() = testSyncApp {
         val multipart = TestData.HarBorgerEgenandel.harBorgerEgenandelFritakRequestWithFileItem
         val response = client.post(SYNC_PATH, multipart.asHttpRequest())
-        assert(response.status == HttpStatusCode.OK)
-        // Should not be Envelope:
-        assertThrows<JAXBException> { getEnvelope(response) }
+        assertNormalProcessingResponse(response)
     }
 
     @Test
     fun `Feilmelding fra fagsystemet må propageres til brukeren`() = testSyncApp {
-        val soapFault = "<SOAP-ENV:Envelope xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\"><SOAP-ENV:Header/><SOAP-ENV:Body><SOAP-ENV:Fault><faultcode>SOAP-ENV:Server</faultcode><faultstring>Client request(POST http://ebms-send-in/fagmelding/synkron) invalid: 400 Bad Request. Text: \"Noe gikk galt i fagsystemet\"</faultstring></SOAP-ENV:Fault></SOAP-ENV:Body></SOAP-ENV:Envelope>"
+        val errorMsg = "Noe gikk galt i fagsystemet"
+        val soapFault = "Client request(POST http://ebms-send-in/fagmelding/synkron) invalid: 400 Bad Request. Text: \"$errorMsg\""
+        var externalServiceCalledCount = 0
         externalServices {
             hosts(getEnvVar("SEND_IN_URL", "http://ebms-send-in")) {
                 this.install(ContentNegotiation) {
@@ -261,10 +255,10 @@ class EbmsRouteSyncIT {
                 }
                 routing {
                     post("/fagmelding/synkron") {
-                        println("[EBMS-SEND-IN] RESPONDING BadRequest TO /fagmelding/synkron...")
+                        externalServiceCalledCount++
                         call.respond(
                             HttpStatusCode.BadRequest,
-                            "Noe gikk galt i fagsystemet"
+                            errorMsg
                         )
                     }
                 }
@@ -272,9 +266,10 @@ class EbmsRouteSyncIT {
         }
         val multipart = TestData.HarBorgerEgenandel.harBorgerEgenandelFritakRequestWithFormItem
         val response = client.post(SYNC_PATH, multipart.asHttpRequest())
-
         assertEquals(HttpStatusCode.InternalServerError, response.status)
-        assertEquals(soapFault, String(response.readRawBytes()))
+        assertEquals(1, externalServiceCalledCount, "Forventet kall til externalService.")
+        val faultString = getEnvelope(response).getFaultString()
+        assertEquals(soapFault, faultString)
     }
 
     @Test // KRAV 5.5.2.1 validate MIME
@@ -345,7 +340,9 @@ class EbmsRouteSyncIT {
     }
 
     @Test
-    fun `Uforutsett feil fra EBMS-PAYLOAD må propageres til brukeren`() = testSyncApp {
+    fun `Feil fra EBMS-PAYLOAD må propageres til brukeren`() = testSyncApp {
+        val errorMsg = "Noe gikk galt i ebms-payload"
+        var externalServiceCalledCount = 0
         externalServices {
             hosts(getEnvVar("PAYLOAD_PROCESSOR_URL", "http://ebms-payload")) {
                 this.install(ContentNegotiation) {
@@ -353,11 +350,11 @@ class EbmsRouteSyncIT {
                 }
                 routing {
                     post("payload") {
-                        println("\n[EBMS-PAYLOAD] RESPONDING BadRequest TO /cpa/validate/{contentId}...\n")
+                        externalServiceCalledCount++
                         call.respond(
                             status = HttpStatusCode.BadRequest,
                             message = PayloadResponse(
-                                error = Feil(ErrorCode.UNKNOWN, "Noe gikk galt i ebms-payload", "Error")
+                                error = Feil(ErrorCode.UNKNOWN, errorMsg, "Error")
                             )
                         )
                     }
@@ -367,9 +364,32 @@ class EbmsRouteSyncIT {
         val multipart = TestData.HarBorgerEgenandel.harBorgerEgenandelFritakRequestWithFormItem
         val response = client.post(SYNC_PATH, multipart.asHttpRequest())
         assertEquals(HttpStatusCode.OK, response.status)
+        assertEquals(1, externalServiceCalledCount, "Forventet kall til externalService.")
         with(getEnvelope(response).assertErrorAndGet().error.first()) {
-            assertEquals("Processing has failed: Noe gikk galt i ebms-payload [Unknown]", this.description!!.value)
+            assertEquals("Processing has failed: Noe gikk galt i ebms-payload [${ErrorCode.UNKNOWN.value}]", this.description!!.value)
         }
+    }
+
+    @BeforeEach
+    fun resetCounters() {
+        sendInClientFagmeldingSynkronCount = 0
+        processingClientPayloadCount = 0
+    }
+
+    private suspend fun assertNormalProcessingResponse(response: HttpResponse) {
+        assert(response.status == HttpStatusCode.OK)
+        // Should not be Envelope:
+        assertThrows<JAXBException> { getEnvelope(response) }
+        assertEquals(
+            1,
+            sendInClientFagmeldingSynkronCount,
+            "Forventet 1 kall mot [ebms-send-in]/fagmelding/synkron."
+        )
+        assertEquals(
+            2,
+            processingClientPayloadCount,
+            "Forventet 2 kall mot [ebms-payload]/payload." // processSyncIn og processSyncOut
+        )
     }
 }
 
@@ -401,8 +421,7 @@ private fun Envelope.getFaultString(): String? {
     }
 }
 
-private fun Route.cpaRepoPostOtherContentId(): Route = post("cpa/validate/{contentId}") {
-    println("\n[CPA-REPO] RESPONDING TO /cpa/validate/{contentId}...\n")
+private fun Route.cpaRepoValidateOtherContentId(): Route = post("cpa/validate/{contentId}") {
     call.respond(
         ValidationResult(
             ebmsProcessing = EbmsProcessing(),

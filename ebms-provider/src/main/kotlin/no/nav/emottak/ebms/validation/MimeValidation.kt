@@ -74,13 +74,13 @@ fun PartData.validateMimeAttachment() {
 // KRAV 5.5.2.1 Validering av MIME-header (toppnivå-entitet)
 fun Headers.validateMimeHeaders() {
     if (this[MimeHeaders.CONTENT_TYPE].isNullOrBlank() || this[MimeHeaders.CONTENT_TYPE] == "text/plain") {
-        throw MimeValidationException("Content type is wrong <${this[MimeHeaders.CONTENT_TYPE]}")
+        throw MimeValidationException("Content type is wrong <${this[MimeHeaders.CONTENT_TYPE]}>")
     }
 }
 
 class MimeValidationException(message: String, cause: Throwable? = null) : Exception(message, cause)
 
-fun Exception.parseAsSoapFault(extraMessage: String? = null): String {
+fun Exception.convertToSoapFault(extraMessage: String? = null): String {
     val faultNs = QName(SOAPConstants.URI_NS_SOAP_ENVELOPE, "Server")
     val message: SOAPMessage = SOAPMessageFactory1_1Impl.newInstance().createMessage()
     val fault: SOAPFault = message.soapBody.addFault()
