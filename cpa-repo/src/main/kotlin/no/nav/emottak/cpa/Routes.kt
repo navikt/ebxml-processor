@@ -236,8 +236,19 @@ fun Route.validateCpa(
             validateRequest.addressing.action
         ) // Security Failure
 
-        val signalEmails = toParty.getSignalEmailAddress(validateRequest)
-        val receiverEmails = toParty.getReceiveEmailAddress(validateRequest)
+        val signalEmails = toParty.getSignalEmailAddress(
+            validateRequest.addressing.action
+        )
+        val receiverEmails = toParty.getReceiveEmailAddress(
+            toRole = validateRequest.addressing.to.role,
+            service = validateRequest.addressing.service,
+            action = validateRequest.addressing.action
+        )
+        val senderEmails = fromParty.getSendEmailAddress(
+            fromRole = validateRequest.addressing.from.role,
+            service = validateRequest.addressing.service,
+            action = validateRequest.addressing.action
+        )
 
         runCatching {
             createX509Certificate(signingCertificate.certificate).validate()
@@ -263,6 +274,7 @@ fun Route.validateCpa(
                 ),
                 signalEmails,
                 receiverEmails,
+                senderEmails,
                 partnerId
             )
         )

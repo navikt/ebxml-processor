@@ -79,6 +79,7 @@ data class ValidationResult(
     val payloadProcessing: PayloadProcessing? = null,
     val signalEmailAddress: List<EmailAddress> = emptyList(),
     val receiverEmailAddress: List<EmailAddress> = emptyList(),
+    val senderEmailAddress: List<EmailAddress> = emptyList(),
     val partnerId: Long? = null,
     val error: List<Feil>? = null
 ) {
