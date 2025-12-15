@@ -33,7 +33,6 @@ import org.slf4j.LoggerFactory
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
-import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 import kotlin.time.toJavaDuration
 
@@ -43,7 +42,6 @@ const val RETRY_REASON = "retryReason"
 
 val logger = LoggerFactory.getLogger(FailedMessageKafkaHandler::class.java)
 
-@OptIn(ExperimentalTime::class)
 class FailedMessageKafkaHandler(
     val kafkaErrorQueue: KafkaErrorQueue = config().kafkaErrorQueue,
     kafka: Kafka = config().kafka

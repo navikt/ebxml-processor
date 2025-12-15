@@ -34,7 +34,7 @@ tasks {
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().all {
     compilerOptions {
-        freeCompilerArgs = listOf("-opt-in=kotlin.uuid.ExperimentalUuidApi")
+        optIn.add("kotlin.uuid.ExperimentalUuidApi")
     }
 }
 
