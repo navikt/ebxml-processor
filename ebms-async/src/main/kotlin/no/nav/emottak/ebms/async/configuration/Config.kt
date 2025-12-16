@@ -36,15 +36,15 @@ data class KafkaErrorQueue(
 )
 
 data class ErrorRetryPolicy(
-    val processIntervalSeconds: Int,      // Reading/processing error queue starts every X seconds
-    val maxMessagesToProcess: Int,        // Each scheduled processing will read maximum X messages from error queue
+    val processIntervalSeconds: Int, // Reading/processing error queue starts every X seconds
+    val maxMessagesToProcess: Int, // Each scheduled processing will read maximum X messages from error queue
     val retryIntervalsMinutes: List<Int>, // Minutes to wait between first group of retries, then second group, third, etc.
-    val retriesPerInterval: List<Int>     // Number of retries in group 1, 2 etc.
+    val retriesPerInterval: List<Int> // Number of retries in group 1, 2 etc.
     // If retriesPerInterval is e.g. [3, 3, 23] and retryIntervalsMinutes is [5, 15, 60, 60*24],
     // then the first 3 retries occurs 5/10/15 minutes after first failure, the next 3 retries 30/45/60 minutes after first failure,
     // the next 23 retries 2-24 hours after first failure, and any retries after that will occur every 24 hours after the previous retry.
 ) {
-    fun nextIntervalMinutes(retriesPerformed : Int) : Int {
+    fun nextIntervalMinutes(retriesPerformed: Int): Int {
         var intervalIndex = findIntervalIndex(retriesPerformed)
         if (intervalIndex > retryIntervalsMinutes.lastIndex) {
             intervalIndex = retryIntervalsMinutes.lastIndex
@@ -52,7 +52,7 @@ data class ErrorRetryPolicy(
         return retryIntervalsMinutes[intervalIndex]
     }
 
-    private fun findIntervalIndex(retriesPerformed: Int) : Int {
+    private fun findIntervalIndex(retriesPerformed: Int): Int {
         var i = 0
         var limit = 0
         while (i < retriesPerInterval.size) {

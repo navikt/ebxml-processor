@@ -45,7 +45,7 @@ val logger = LoggerFactory.getLogger(FailedMessageKafkaHandler::class.java)
 class FailedMessageKafkaHandler(
     val kafkaErrorQueue: KafkaErrorQueue = config().kafkaErrorQueue,
     kafka: Kafka = config().kafka,
-    val errorRetryPolicy : ErrorRetryPolicy = config().errorRetryPolicy
+    val errorRetryPolicy: ErrorRetryPolicy = config().errorRetryPolicy
 ) {
 
     val publisher = KafkaPublisher(

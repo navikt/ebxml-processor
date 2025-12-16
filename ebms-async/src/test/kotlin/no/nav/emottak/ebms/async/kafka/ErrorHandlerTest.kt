@@ -5,6 +5,7 @@ import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
+import no.nav.emottak.ebms.async.configuration.ErrorRetryPolicy
 import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
 import no.nav.emottak.ebms.async.kafka.consumer.RETRY_COUNT_HEADER
@@ -30,8 +31,10 @@ class ErrorHandlerTest {
                     bootstrapServers = KafkaTestContainer.kafkaContainer.bootstrapServers
                 )
 
+            // Set retry after 0 minutes, to force immediate retry
             val errorHandler = FailedMessageKafkaHandler(
-                kafka = testcontainerKafkaConfig
+                kafka = testcontainerKafkaConfig,
+                errorRetryPolicy = ErrorRetryPolicy(1, 10, listOf(0), listOf(2))
             )
             val messageFilterService = mockk<MessageFilterService>()
             val processedMessages = ArrayList<ReceiverRecord<String, ByteArray>>()

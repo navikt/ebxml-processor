@@ -7,7 +7,6 @@ import no.nav.emottak.ebms.async.persistence.Database
 import no.nav.security.mock.oauth2.MockOAuth2Server
 import org.testcontainers.containers.PostgreSQLContainer
 import java.io.File
-import java.nio.file.Paths
 
 const val START_MOCK_OAUTH = true
 const val MOCK_OAUTH_PORT = 3344
@@ -21,14 +20,13 @@ const val POSTGRES_TEST_PW = "test"
 const val POSTGRES_JDBCURL_STORAGE = "/tmp/postgres_jdbcurl.txt" // use this to avoid needing to copy URL from this process' log to clients
 
 fun main() {
-
-    var mockOAuth2Server : MockOAuth2Server? = null
+    var mockOAuth2Server: MockOAuth2Server? = null
     if (START_MOCK_OAUTH) {
         println("=== Starting MOCK Auth server ==")
         mockOAuth2Server = MockOAuth2Server().also { it.start(port = MOCK_OAUTH_PORT) }
     }
 
-    var ebmsProviderDbContainer : PostgreSQLContainer<Nothing>? = null
+    var ebmsProviderDbContainer: PostgreSQLContainer<Nothing>? = null
     if (START_POSTGRES) {
         println("=== Starting Postgres ==")
         // Make flyway find the migration scripts, see Database.kt

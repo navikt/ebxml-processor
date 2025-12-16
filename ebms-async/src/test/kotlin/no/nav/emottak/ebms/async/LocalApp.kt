@@ -8,10 +8,16 @@ import arrow.continuations.ktor.server
 import arrow.core.raise.result
 import arrow.fx.coroutines.resourceScope
 import io.github.nomisRev.kafka.receiver.ReceiverRecord
-import io.ktor.server.netty.*
-import io.ktor.utils.io.*
+import io.ktor.server.netty.Netty
+import io.ktor.utils.io.CancellationException
 import kotlinx.coroutines.awaitCancellation
-import no.nav.emottak.ebms.*
+import no.nav.emottak.ebms.CpaRepoClient
+import no.nav.emottak.ebms.EBMS_PAYLOAD_SCOPE
+import no.nav.emottak.ebms.EBMS_SEND_IN_SCOPE
+import no.nav.emottak.ebms.EventManagerClient
+import no.nav.emottak.ebms.PayloadProcessingClient
+import no.nav.emottak.ebms.SendInClient
+import no.nav.emottak.ebms.SmtpTransportClient
 import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
 import no.nav.emottak.ebms.async.kafka.consumer.RETRY_COUNT_HEADER
@@ -24,16 +30,25 @@ import no.nav.emottak.ebms.async.processing.PayloadMessageForwardingService
 import no.nav.emottak.ebms.async.processing.PayloadMessageService
 import no.nav.emottak.ebms.async.processing.SignalMessageService
 import no.nav.emottak.ebms.async.util.EventRegistrationServiceFake
+import no.nav.emottak.ebms.defaultHttpClient
 import no.nav.emottak.ebms.eventmanager.EventManagerService
 import no.nav.emottak.ebms.processing.ProcessingService
+import no.nav.emottak.ebms.scopedAuthHttpClient
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.CPAValidationService
-import no.nav.emottak.message.model.*
+import no.nav.emottak.message.model.AsyncPayload
+import no.nav.emottak.message.model.MessagingCharacteristicsRequest
+import no.nav.emottak.message.model.MessagingCharacteristicsResponse
+import no.nav.emottak.message.model.PayloadProcessing
+import no.nav.emottak.message.model.ProcessConfig
+import no.nav.emottak.message.model.SignatureDetails
+import no.nav.emottak.message.model.ValidationRequest
+import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.utils.common.model.DuplicateCheckRequest
 import no.nav.emottak.utils.common.model.DuplicateCheckResponse
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PerMessageCharacteristicsType
 import org.slf4j.LoggerFactory
-import java.util.*
+import java.util.Timer
 import kotlin.uuid.Uuid
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.async.LocalApp")
@@ -187,9 +202,7 @@ fun main() = SuspendApp {
         }
 
     println(" ************ All setup done ")
-
 }
-
 
 const val TESTMESSAGE_FAIL_HEADER = "numberOfTimesToFail"
 
@@ -216,7 +229,7 @@ class DummyMessageFilterService(
             val r = retried.value().decodeToString().toIntOrNull()
             if (f != null && r != null) {
                 if (r <= f) {
-                    println("--Set to fail again, number of times to fail: ${f}, number of retries now: ${r}")
+                    println("--Set to fail again, number of times to fail: $f, number of retries now: $r")
                     payloadMessageService.failedMessageQueue.sendToRetry(
                         record = record,
                         reason = "Test message set to fail again"
@@ -224,10 +237,11 @@ class DummyMessageFilterService(
                     return
                 }
             }
-        } else println("--Retry/fail headers not found, not failing")
+        } else {
+            println("--Retry/fail headers not found, not failing")
+        }
         println("--Record simulated/processed OK")
     }
-
 }
 
 class DummyCpaRepoClient : CpaRepoClient(defaultHttpClient()) {
@@ -268,5 +282,3 @@ class DummySmtpTransportClient : SmtpTransportClient(defaultHttpClient()) {
         return listOf(AsyncPayload(referenceId, "contentId1", "text/plain", "Payload test content 1".toByteArray()))
     }
 }
-
-

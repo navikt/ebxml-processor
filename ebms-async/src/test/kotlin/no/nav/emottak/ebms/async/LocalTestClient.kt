@@ -34,8 +34,10 @@ class LocalTestClient {
         val topic = "team-emottak.ebxml.retry"
         val key = Uuid.random().toString()
         val value = readClasspathFile("testPayload.xml")!!
-        val headers = listOf(RecordHeader(RETRY_AFTER, DateTime.now().toString().toByteArray(StandardCharsets.UTF_8)),
-            RecordHeader(TESTMESSAGE_FAIL_HEADER, "1".toByteArray(StandardCharsets.UTF_8)))
+        val headers = listOf(
+            RecordHeader(RETRY_AFTER, DateTime.now().toString().toByteArray(StandardCharsets.UTF_8)),
+            RecordHeader(TESTMESSAGE_FAIL_HEADER, "1".toByteArray(StandardCharsets.UTF_8))
+        )
 
         sendMessage(topic, key, value, headers)
     }
