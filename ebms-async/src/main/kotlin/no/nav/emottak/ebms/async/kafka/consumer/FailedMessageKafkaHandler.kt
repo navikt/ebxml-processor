@@ -34,6 +34,8 @@ import org.apache.kafka.common.serialization.StringSerializer
 import org.joda.time.DateTime
 import org.slf4j.LoggerFactory
 import java.time.Duration
+import java.util.Properties
+import kotlin.collections.map
 import kotlin.time.Duration.Companion.seconds
 
 const val RETRY_COUNT_HEADER = "retryCount"
@@ -69,6 +71,22 @@ class FailedMessageKafkaHandler(
         )
     )
 
+    // Set up a consumer only used to check if there are any messages in the error queue, NOT committing the read offset
+    val pollerConsumer = KafkaConsumer(
+        getPollerProperties(kafka.toProperties(), kafka.groupId),
+        StringDeserializer(),
+        ByteArrayDeserializer()
+    ).also { consumer ->
+        val partitions = consumer.partitionsFor(kafkaErrorQueue.topic).map { TopicPartition(it.topic(), it.partition()) }
+        consumer.assign(partitions)
+    }
+
+    fun getPollerProperties(properties: Properties, groupId: String): Properties {
+        properties.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false")
+        properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, groupId)
+        return properties
+    }
+
     suspend fun sendToRetry(
         record: ReceiverRecord<String, ByteArray>,
         key: String = record.key(),
@@ -99,9 +117,8 @@ class FailedMessageKafkaHandler(
         limit: Int = 10
     ) {
         logger.info("Checking for messages in error queue")
-        val anyRecords = anyRecordsToConsume(kafkaErrorQueue.topic, config().kafka)
+        val anyRecords = anyRecordsToConsume(pollerConsumer)
         if (!anyRecords) {
-            logger.info("No records to process in error queue")
             return
         }
 
@@ -154,23 +171,6 @@ class FailedMessageKafkaHandler(
         return DateTime.now().plusMinutes(nextIntervalMinutes).toString()
     }
 
-    // Under test klarte vi å framprovosere en situasjon hvor headeren inneholdt en tekst
-    // som hverken ble oppfattet som blank eller lot seg parse som tall, derfor den omstendelige logikken her.
-    fun ReceiverRecord<String, ByteArray>.retryCount(): Int {
-        if (headers().lastHeader(RETRY_COUNT_HEADER) == null) {
-            return 0
-        }
-        val headerValue = String(headers().lastHeader(RETRY_COUNT_HEADER).value())
-        if (cannotReadInt(headerValue)) {
-            return 0
-        }
-        return headerValue.toInt()
-    }
-
-    private fun cannotReadInt(headerValue: String): Boolean {
-        return headerValue.isBlank() || headerValue.toIntOrNull() == null
-    }
-
     fun ReceiverRecord<String, ByteArray>.retryCounter(): Int {
         val retryCounter = retryCount() + 1
         this.headers().add(
@@ -179,6 +179,22 @@ class FailedMessageKafkaHandler(
         )
         return retryCounter
     }
+}
+
+// Under test klarte vi å framprovosere en situasjon hvor headeren inneholdt en tekst
+// som hverken ble oppfattet som blank eller lot seg parse som tall, derfor den omstendelige logikken her.
+fun ReceiverRecord<String, ByteArray>.retryCount(): Int {
+    if (headers().lastHeader(RETRY_COUNT_HEADER) == null) {
+        return 0
+    }
+    val headerValue = String(headers().lastHeader(RETRY_COUNT_HEADER).value())
+    if (cannotReadInt(headerValue)) {
+        return 0
+    }
+    return headerValue.toInt()
+}
+private fun cannotReadInt(headerValue: String): Boolean {
+    return headerValue.isBlank() || headerValue.toIntOrNull() == null
 }
 
 fun ReceiverRecord<String, ByteArray>.addHeader(key: String, value: String) {
@@ -234,23 +250,11 @@ fun getRecords(
 }
 
 fun anyRecordsToConsume(
-    topic: String,
-    kafka: Kafka
+    pollerConsumer: KafkaConsumer<String, ByteArray>
 ): Boolean {
-    val properties = kafka.toProperties()
-    properties.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false")
-    properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, kafka.groupId)
-    properties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
-    KafkaConsumer(
-        properties,
-        StringDeserializer(),
-        ByteArrayDeserializer()
-    ).use { consumer ->
-        val partitions = consumer.partitionsFor(topic).map { TopicPartition(it.topic(), it.partition()) }
-        consumer.assign(partitions)
-        val records = consumer.poll(Duration.ofMillis(1000))
-        return (!records.isEmpty)
-    }
+    val records = pollerConsumer.poll(Duration.ofMillis(1000))
+    logger.info("${records.count()} records to process in error queue")
+    return (!records.isEmpty)
 }
 
 fun KafkaConsumer<String, ByteArray>.seekFromExactOffset(

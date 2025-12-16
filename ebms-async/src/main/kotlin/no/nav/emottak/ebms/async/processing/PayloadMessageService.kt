@@ -5,6 +5,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
+import no.nav.emottak.ebms.async.kafka.consumer.retryCount
 import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
 import no.nav.emottak.ebms.async.log
 import no.nav.emottak.ebms.async.util.EventRegistrationService
@@ -53,17 +54,26 @@ class PayloadMessageService(
                         returnMessageError(ebmsPayloadMessage, exception)
                     }.onFailure {
                         log.error(ebmsPayloadMessage.marker(), "Failed to return MessageError", exception)
+                        // TODO her antar vi at vi ALDRI skal gi opp, så denne sendes til retry uansett hvor mange ganger den er rekjørt
                         sendToRetry(record = record, exceptionReason = "Failed to return MessageError: ${exception.message ?: "Unknown error"}")
                     }
                 }
                 is SignatureException -> {
                     log.error(ebmsPayloadMessage.marker(), exception.message, exception)
+                    // TODO her sjekker vi om denne er rekjørt max antall ganger,
+                    // isåfall lager vi en EbmsException og sender MessageError tilbake, som i blokka ovenfor
                     sendToRetry(record = record, exceptionReason = exception.message)
                 }
                 else -> {
                     log.error(ebmsPayloadMessage.marker(), exception.message ?: "Unknown error", exception)
+                    // TODO 1 her sjekker vi om denne er rekjørt max antall ganger,
+                    // isåfall lager vi en EbmsException og sender MessageError tilbake, som i blokka ovenfor
+                    // TODO 2 antar at vi ikke skal kaste exception på nytt ved rekjøring, derfor sjekker vi om den er rekjørt
+                    val retriedAlready = record.retryCount()
                     sendToRetry(record = record, exceptionReason = exception.message ?: "Unknown error")
-                    throw exception
+                    if (retriedAlready == 0) {
+                        throw exception
+                    }
                 }
             }
         }
