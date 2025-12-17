@@ -1,7 +1,6 @@
 package no.nav.emottak.ebms.async.processing
 
 import io.github.nomisRev.kafka.receiver.ReceiverRecord
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
@@ -26,6 +25,8 @@ import no.nav.emottak.utils.common.parseOrGenerateUuid
 import no.nav.emottak.utils.kafka.model.EventDataType
 import no.nav.emottak.utils.kafka.model.EventType
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PerMessageCharacteristicsType
+import java.time.Duration
+import java.time.Instant
 
 class PayloadMessageService(
     val cpaValidationService: CPAValidationService,
@@ -54,28 +55,77 @@ class PayloadMessageService(
                         returnMessageError(ebmsPayloadMessage, exception)
                     }.onFailure {
                         log.error(ebmsPayloadMessage.marker(), "Failed to return MessageError", exception)
-                        // TODO her antar vi at vi ALDRI skal gi opp, så denne sendes til retry uansett hvor mange ganger den er rekjørt
-                        sendToRetry(record = record, exceptionReason = "Failed to return MessageError: ${exception.message ?: "Unknown error"}")
+                        // NB: Her sendes SELVE MELDINGEN til rekjøring, mens det er FEILMELDINGEN som feiler.
+                        sendToRetryIfShouldBeRetried(record = record, payloadMessage = ebmsPayloadMessage, exception = exception, reason = "Failed to return MessageError: ${exception.message ?: "Unknown error"}")
                     }
                 }
                 is SignatureException -> {
                     log.error(ebmsPayloadMessage.marker(), exception.message, exception)
-                    // TODO her sjekker vi om denne er rekjørt max antall ganger,
-                    // isåfall lager vi en EbmsException og sender MessageError tilbake, som i blokka ovenfor
-                    sendToRetry(record = record, exceptionReason = exception.message)
+                    sendToRetryIfShouldBeRetried(record = record, payloadMessage = ebmsPayloadMessage, exception = exception, reason = exception.message)
                 }
                 else -> {
                     log.error(ebmsPayloadMessage.marker(), exception.message ?: "Unknown error", exception)
-                    // TODO 1 her sjekker vi om denne er rekjørt max antall ganger,
-                    // isåfall lager vi en EbmsException og sender MessageError tilbake, som i blokka ovenfor
-                    // TODO 2 antar at vi ikke skal kaste exception på nytt ved rekjøring, derfor sjekker vi om den er rekjørt
                     val retriedAlready = record.retryCount()
-                    sendToRetry(record = record, exceptionReason = exception.message ?: "Unknown error")
+                    sendToRetryIfShouldBeRetried(record = record, payloadMessage = ebmsPayloadMessage, exception = exception, reason = exception.message ?: "Unknown error")
                     if (retriedAlready == 0) {
                         throw exception
                     }
                 }
             }
+        }
+    }
+
+    // TODO under construction/experimentation, might be moved to a separate class
+    private suspend fun sendToRetryIfShouldBeRetried(
+        record: ReceiverRecord<String, ByteArray>,
+        payloadMessage: PayloadMessage,
+        exception: Throwable,
+        reason: String
+    ) {
+        // TODO this function should implement the rules for retrying messages
+        // The exact reason why the message failed may be found in the exception
+        // The time-to-live / expiry may be found from the message itself
+        // The number of retries already done (if any) may be found from the record (headers)
+        val retriedAlready = record.retryCount()
+        val errorType = exception::class.simpleName ?: "Unknown error"
+        val sentAt = payloadMessage.sentAt
+        var shouldRetry = false
+        var decisionReason = ""
+
+        // Error situations:
+        //   Exception subtypes:
+        //     CertificateValidationException
+        //     CpaValidationException (errors during CPA processing)
+        //     SecurityException (errors getting sec/signature props)
+        //   CPA validation failure (incl signature)
+        //   ProcessingService.processMessage results in error, incl retrieveReturnableApprecResponse returns null
+        // Todo consider if any of these should have specific rules, for now we treat all equally
+
+        // Until we have a TTL/expiry, use sentAt
+        val maxTimeToLive = Duration.ofMinutes(30) // TODO config ?
+        if (sentAt != null) {
+            val timeSinceSent = Duration.between(sentAt, Instant.now())
+            if (timeSinceSent.compareTo(maxTimeToLive) <= 0) {
+                shouldRetry = true
+                decisionReason = "Not expired yet, max time to live is $maxTimeToLive, time since sent is $timeSinceSent"
+            } else {
+                decisionReason = "Expired, max time to live is $maxTimeToLive, time since sent is $timeSinceSent"
+            }
+        } else {
+            // Fallback if we do not have sentAt
+            val maxRetries = 10 // TODO config ?
+            if (retriedAlready < maxRetries) {
+                shouldRetry = true
+                decisionReason = "More retries OK, max number is $maxRetries, already retried $retriedAlready times"
+            } else {
+                decisionReason = "Retried too many times, max number is $maxRetries, already retried $retriedAlready times"
+            }
+        }
+        if (shouldRetry) {
+            sendToRetry(record, reason)
+            log.info("Schedule retry for failing payload sent at $sentAt, error type: $errorType, reason: $reason, retries already performed: $retriedAlready. Decision reason: $decisionReason")
+        } else {
+            log.info("No retry for failing payload sent at $sentAt, error type: $errorType, reason: $reason, retries already performed: $retriedAlready. Decision reason: $decisionReason")
         }
     }
 
