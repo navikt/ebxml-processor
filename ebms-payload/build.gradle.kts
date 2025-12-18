@@ -48,7 +48,6 @@ dependencies {
     implementation(libs.hoplite.core)
     implementation(libs.hoplite.hocon)
     implementation(libs.ebxml.protokoll)
-    implementation(libs.emottak.payload.xsd)
     implementation(libs.jakarta.xml.bind.api)
     implementation(libs.jaxb.runtime)
     implementation(libs.bundles.logging)
