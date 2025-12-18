@@ -107,9 +107,9 @@ class PayloadMessageService(
             val timeSinceSent = Duration.between(sentAt, Instant.now())
             if (timeSinceSent.compareTo(maxTimeToLive) <= 0) {
                 shouldRetry = true
-                decisionReason = "Not expired yet, max time to live is $maxTimeToLive, time since sent is $timeSinceSent"
+                decisionReason = "Not expired yet, max time to live is ${maxTimeToLive.toHours()} hours, time since sent is ${timeSinceSent.toHours()} hours"
             } else {
-                decisionReason = "Expired, max time to live is $maxTimeToLive, time since sent is $timeSinceSent"
+                decisionReason = "Expired, max time to live is ${maxTimeToLive.toHours()} hours, time since sent is ${timeSinceSent.toHours()} hours"
             }
         } else {
             // Fallback if we do not have sentAt

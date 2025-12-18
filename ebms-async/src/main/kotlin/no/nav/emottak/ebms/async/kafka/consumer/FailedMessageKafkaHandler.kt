@@ -42,6 +42,11 @@ const val RETRY_COUNT_HEADER = "retryCount"
 const val RETRY_AFTER = "retryableAfter"
 const val RETRY_REASON = "retryReason"
 
+// Dette flagget er i utgangspunktet satt på for å dummy-prosessere alle gamle meldinger i feilkøen ved oppstart i DEV (ca 3000)
+// men kan evt brukes også i vanlig kjøring, siden det ignorerer meldinger eldre enn 1 uke
+const val IGNORE_OLD_MESSAGES = true
+const val AGE_DAYS_TO_IGNORE = 7
+
 val logger = LoggerFactory.getLogger(FailedMessageKafkaHandler::class.java)
 
 class FailedMessageKafkaHandler(
@@ -66,7 +71,7 @@ class FailedMessageKafkaHandler(
             keyDeserializer = StringDeserializer(),
             valueDeserializer = ByteArrayDeserializer(),
             groupId = kafka.groupId,
-            pollTimeout = 10.seconds,
+            pollTimeout = 1.seconds,
             properties = kafka.toProperties()
         )
     )
@@ -133,7 +138,6 @@ class FailedMessageKafkaHandler(
                     .cancellable() // NOTE: cancellable() will ensure the flow is terminated before new items are emitted to collect { } if its job is cancelled, though flow builder and all implementations of SharedFlow are cancellable() by default.
                     .map { record ->
                         counter++
-                        logger.info("Processing record: $counter, max is $limit, key: ${record.key()}, offset: ${record.offset()}")
                         if (processedKeys.contains(record.key())) {
                             logger.info("All messages retried, end of queue reached.")
                             cancel("End of queue reached.")
@@ -147,12 +151,15 @@ class FailedMessageKafkaHandler(
                             return@map
                         }
 
+                        logger.info("Processing record: $counter, max is $limit, key: ${record.key()}, offset: ${record.offset()}")
                         record.offset.acknowledge()
                         val retryableAfter = DateTime.parse(
                             String(record.headers().lastHeader(RETRY_AFTER).value())
                         )
                         logger.info("Record with key ${record.key()} is retryable after $retryableAfter.")
-                        if (DateTime.now().isAfter(retryableAfter)) {
+                        if (IGNORE_OLD_MESSAGES && DateTime.now().minusDays(AGE_DAYS_TO_IGNORE).isAfter(retryableAfter)) {
+                            logger.info("${record.key()} is too old, ignoring.")
+                        } else if (DateTime.now().isAfter(retryableAfter)) {
                             logger.info("${record.key()} is being retried.")
                             record.retryCounter()
                             messageFilterService.filterMessage(record)
