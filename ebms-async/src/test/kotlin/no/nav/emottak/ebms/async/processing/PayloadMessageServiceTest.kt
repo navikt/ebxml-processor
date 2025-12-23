@@ -33,6 +33,7 @@ import no.nav.emottak.utils.common.model.Party
 import no.nav.emottak.utils.common.model.PartyId
 import no.nav.emottak.utils.kafka.model.EventType
 import org.apache.kafka.clients.producer.RecordMetadata
+import org.apache.kafka.common.header.Headers
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -70,6 +71,10 @@ class PayloadMessageServiceTest {
         every {
             any<EbmsDocument>().signer(any())
         } returnsArgument(0)
+//        mockkStatic(ReceiverRecord<String, ByteArray>::headers)
+//        every {
+//            any<ReceiverRecord<String, ByteArray>>().headers()
+//        } returnsArgument(0)
     }
 
     private fun initService(enableSignalProducer: Boolean = true, enableRetryQueue: Boolean = true) {
@@ -92,7 +97,7 @@ class PayloadMessageServiceTest {
         initService()
         val (payloadMessage, ebmsMessageSlots, fakeResult) = setupMocks(PerMessageCharacteristicsType.ALWAYS, true)
 
-        service.process(mockk<ReceiverRecord<String, ByteArray>>(), payloadMessage)
+        service.process(setupReceiverRecordWithoutRetryCountMock(), payloadMessage)
 
         coVerify(exactly = 1) { cpaValidationService.getDuplicateEliminationStrategy(payloadMessage) }
         coVerify(exactly = 1) { eventManagerService.isDuplicateMessage(payloadMessage) }
@@ -126,7 +131,7 @@ class PayloadMessageServiceTest {
             direction = Direction.IN
         )
 
-        service.process(mockk<ReceiverRecord<String, ByteArray>>(), payloadMessage)
+        service.process(setupReceiverRecordWithoutRetryCountMock(), payloadMessage)
 
         coVerify(exactly = 1) { eventManagerService.isDuplicateMessage(payloadMessage) }
         coVerify(exactly = 2) { eventRegistrationService.registerEventMessageDetails(any()) }
@@ -161,7 +166,7 @@ class PayloadMessageServiceTest {
             direction = Direction.OUT
         )
 
-        service.process(mockk<ReceiverRecord<String, ByteArray>>(), payloadMessage)
+        service.process(setupReceiverRecordWithoutRetryCountMock(), payloadMessage)
 
         coVerify(exactly = 1) { eventManagerService.isDuplicateMessage(payloadMessage) }
         coVerify(exactly = 2) { eventRegistrationService.registerEventMessageDetails(any()) }
@@ -196,7 +201,7 @@ class PayloadMessageServiceTest {
             processAsyncThrowsEbmsException = true
         )
 
-        service.process(mockk<ReceiverRecord<String, ByteArray>>(), payloadMessage)
+        service.process(setupReceiverRecordWithoutRetryCountMock(), payloadMessage)
 
         coVerify(exactly = 1) { eventManagerService.isDuplicateMessage(payloadMessage) }
         coVerify(exactly = 2) { eventRegistrationService.registerEventMessageDetails(any()) }
@@ -336,7 +341,7 @@ class PayloadMessageServiceTest {
         initService(enableSignalProducer = false)
         val (payloadMessage, ebmsMessageSlots, _) = setupMocks(PerMessageCharacteristicsType.ALWAYS, true)
 
-        service.process(mockk<ReceiverRecord<String, ByteArray>>(), payloadMessage)
+        service.process(setupReceiverRecordWithoutRetryCountMock(), payloadMessage)
 
         coVerify(exactly = 1) { cpaValidationService.getDuplicateEliminationStrategy(payloadMessage) }
         coVerify(exactly = 1) { eventManagerService.isDuplicateMessage(payloadMessage) }
@@ -489,6 +494,14 @@ class PayloadMessageServiceTest {
             )
         } coAnswers { lambdaSlot.captured() }
         return Triple(payloadMessage, ebmsMessageSlots, fakeResult)
+    }
+
+    private fun setupReceiverRecordWithoutRetryCountMock(): ReceiverRecord<String, ByteArray> {
+        val receiverRecord = mockk<ReceiverRecord<String, ByteArray>>(relaxed = true)
+        val headers = mockk<Headers>()
+        coEvery { headers.lastHeader(any()) } returns null
+        coEvery { receiverRecord.headers() } returns headers
+        return receiverRecord
     }
 
     private fun setupReceiverRecordAndFailedMessageQueueMock(): ReceiverRecord<String, ByteArray> {

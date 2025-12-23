@@ -43,7 +43,9 @@ class PayloadMessageService(
         ebmsPayloadMessage: PayloadMessage
     ) {
         runCatching {
-            when (isDuplicateMessage(ebmsPayloadMessage)) {
+            val isDuplicate = isDuplicateMessage(ebmsPayloadMessage)
+            val isRetry = record.retryCount() > 0
+            when (isDuplicate && !isRetry) {
                 true -> log.info(ebmsPayloadMessage.marker(), "Got duplicate payload message with reference <${ebmsPayloadMessage.requestId}>")
                 false -> processPayloadMessage(ebmsPayloadMessage)
             }

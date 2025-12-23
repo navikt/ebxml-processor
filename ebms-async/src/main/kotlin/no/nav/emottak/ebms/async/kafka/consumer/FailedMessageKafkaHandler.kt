@@ -34,6 +34,7 @@ import org.apache.kafka.common.serialization.StringSerializer
 import org.joda.time.DateTime
 import org.slf4j.LoggerFactory
 import java.time.Duration
+import java.time.LocalDateTime
 import java.util.Properties
 import kotlin.collections.map
 import kotlin.time.Duration.Companion.seconds
@@ -117,11 +118,14 @@ class FailedMessageKafkaHandler(
         }
     }
 
+    var loggingId = 0
     suspend fun consumeRetryQueue(
         messageFilterService: MessageFilterService,
         limit: Int = 10
     ) {
-        logger.info("Checking for messages in error queue")
+        loggingId++
+        val startupTime = LocalDateTime.now()
+        logger.info("Checking for messages in error queue, run id: $loggingId with startup time: $startupTime.")
         val anyRecords = anyRecordsToConsume(pollerConsumer)
         if (!anyRecords) {
             return
@@ -139,19 +143,19 @@ class FailedMessageKafkaHandler(
                     .map { record ->
                         counter++
                         if (processedKeys.contains(record.key())) {
-                            logger.info("All messages retried, end of queue reached.")
+                            logger.info("All messages retried, end of queue reached, run id: $loggingId with startup time: $startupTime.")
                             cancel("End of queue reached.")
                             return@map
                         }
 
                         processedKeys.add(record.key())
                         if (counter > limit) {
-                            logger.info("Kafka retryQueue Limit reached: $limit")
+                            logger.info("Kafka retryQueue Limit reached: $limit, run id: $loggingId with startup time: $startupTime.")
                             cancel("Limit reached")
                             return@map
                         }
 
-                        logger.info("Processing record: $counter, max is $limit, key: ${record.key()}, offset: ${record.offset()}")
+                        logger.info("Processing record: $counter, max is $limit, key: ${record.key()}, offset: ${record.offset()}, run id: $loggingId with startup time: $startupTime.")
                         record.offset.acknowledge()
                         val retryableAfter = DateTime.parse(
                             String(record.headers().lastHeader(RETRY_AFTER).value())
