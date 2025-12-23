@@ -39,18 +39,18 @@ import kotlin.uuid.Uuid
 
 const val AZURE_AD_AUTH = "AZURE_AD"
 
-class CpaRepoClient(clientProvider: () -> HttpClient) {
+open class CpaRepoClient(clientProvider: () -> HttpClient) {
     private var httpClient = clientProvider.invoke()
     private val cpaRepoEndpoint = getEnvVar("CPA_REPO_URL", "http://cpa-repo.team-emottak.svc.nais.local")
 
-    suspend fun postValidate(requestId: String, validationRequest: ValidationRequest): ValidationResult {
+    open suspend fun postValidate(requestId: String, validationRequest: ValidationRequest): ValidationResult {
         return httpClient.post("$cpaRepoEndpoint/cpa/validate/$requestId") {
             setBody(validationRequest)
             contentType(Json)
         }.body()
     }
 
-    suspend fun getMessagingCharacteristics(request: MessagingCharacteristicsRequest): MessagingCharacteristicsResponse {
+    open suspend fun getMessagingCharacteristics(request: MessagingCharacteristicsRequest): MessagingCharacteristicsResponse {
         log.debug("Sending messaging characteristics request: $request")
         val response = httpClient.post("$cpaRepoEndpoint/cpa/messagingCharacteristics") {
             setBody(request)
@@ -92,11 +92,11 @@ class SendInClient(clientProvider: () -> HttpClient) {
     }
 }
 
-class SmtpTransportClient(clientProvider: () -> HttpClient) {
+open class SmtpTransportClient(clientProvider: () -> HttpClient) {
     private var httpClient = clientProvider.invoke()
     private val smtpTransportEndpoint = getEnvVar("SMTP_TRANSPORT_URL", "http://smtp-transport")
 
-    suspend fun getPayload(referenceId: Uuid): List<AsyncPayload> {
+    open suspend fun getPayload(referenceId: Uuid): List<AsyncPayload> {
         val payloadUri = "$smtpTransportEndpoint/api/payloads/$referenceId"
         val response = httpClient.get(payloadUri) {
             contentType(ContentType.Application.Json)
@@ -110,11 +110,11 @@ class SmtpTransportClient(clientProvider: () -> HttpClient) {
     }
 }
 
-class EventManagerClient(clientProvider: () -> HttpClient) {
+open class EventManagerClient(clientProvider: () -> HttpClient) {
     private var httpClient = clientProvider.invoke()
     private val eventManagerUrl = getEnvVar("EVENT_MANAGER_URL", "http://emottak-event-manager")
 
-    suspend fun duplicateCheck(duplicateCheckRequest: DuplicateCheckRequest): DuplicateCheckResponse {
+    open suspend fun duplicateCheck(duplicateCheckRequest: DuplicateCheckRequest): DuplicateCheckResponse {
         val duplicateCheckUri = "$eventManagerUrl/message-details/duplicate-check"
 
         log.debug("Sending duplicate check request: $duplicateCheckRequest")

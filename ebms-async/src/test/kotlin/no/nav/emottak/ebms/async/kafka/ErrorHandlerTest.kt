@@ -5,6 +5,7 @@ import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
+import no.nav.emottak.ebms.async.configuration.ErrorRetryPolicy
 import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
 import no.nav.emottak.ebms.async.kafka.consumer.RETRY_COUNT_HEADER
@@ -14,6 +15,7 @@ import no.nav.emottak.ebms.async.processing.MessageFilterService
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
+import java.lang.Thread.sleep
 
 class ErrorHandlerTest {
 
@@ -30,14 +32,21 @@ class ErrorHandlerTest {
                     bootstrapServers = KafkaTestContainer.kafkaContainer.bootstrapServers
                 )
 
+            // Set retry after 0 minutes, to force immediate retry
             val errorHandler = FailedMessageKafkaHandler(
-                kafka = testcontainerKafkaConfig
+                kafka = testcontainerKafkaConfig,
+                errorRetryPolicy = ErrorRetryPolicy(1, 10, listOf(0), listOf(2))
             )
             val messageFilterService = mockk<MessageFilterService>()
             val processedMessages = ArrayList<ReceiverRecord<String, ByteArray>>()
             coEvery {
                 messageFilterService.filterMessage(any())
             } coAnswers { processedMessages.add(firstArg<ReceiverRecord<String, ByteArray>>()) }
+
+            // Need to consume once to get offsets right
+            launch {
+                errorHandler.consumeRetryQueue(messageFilterService)
+            }.join()
 
             errorHandler
                 .sendToRetry(
@@ -47,6 +56,10 @@ class ErrorHandlerTest {
             launch {
                 errorHandler.consumeRetryQueue(messageFilterService)
             }.join()
+
+            // The above consume-method creates coroutines that seem to not necessarily be finished after the join
+            if (processedMessages.isEmpty()) sleep(500)
+
             val writtenRecord = getRecord(config().kafkaErrorQueue.topic, testcontainerKafkaConfig, 0, 1)
             assert(writtenRecord?.key() == "test-message")
             assert(processedMessages.isNotEmpty())
