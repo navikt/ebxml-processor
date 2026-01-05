@@ -18,6 +18,6 @@ tasks {
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().all {
     compilerOptions {
         jvmTarget = JvmTarget.JVM_21
-        freeCompilerArgs = listOf("-opt-in=kotlin.uuid.ExperimentalUuidApi")
+        optIn.add("kotlin.uuid.ExperimentalUuidApi")
     }
 }

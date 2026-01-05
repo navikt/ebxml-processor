@@ -29,10 +29,12 @@ import org.apache.kafka.common.serialization.ByteArrayDeserializer
 import org.apache.kafka.common.serialization.ByteArraySerializer
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
-import org.joda.time.DateTime
 import org.slf4j.LoggerFactory
-import java.time.Duration
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
+import kotlin.time.toJavaDuration
 
 const val RETRY_COUNT_HEADER = "retryCount"
 const val RETRY_AFTER = "retryableAfter"
@@ -119,10 +121,9 @@ class FailedMessageKafkaHandler(
                         }
                         record.offset.acknowledge()
                         record.retryCounter()
-                        val retryableAfter = DateTime.parse(
-                            String(record.headers().lastHeader(RETRY_AFTER).value())
-                        )
-                        if (DateTime.now().isAfter(retryableAfter)) {
+                        val retryableAfter = Instant.parse(String(record.headers().lastHeader(RETRY_AFTER).value()))
+
+                        if (Clock.System.now() > retryableAfter) {
                             messageFilterService.filterMessage(record)
                         } else {
                             logger.info("${record.key()} is not retryable yet.")
@@ -135,9 +136,9 @@ class FailedMessageKafkaHandler(
 
     fun getNextRetryTime(record: ReceiverRecord<String, ByteArray>): String {
         if (record.headers().lastHeader(RETRY_AFTER) == null) {
-            return DateTime.now().toString()
+            return Clock.System.now().toString()
         }
-        return DateTime.now().plusMinutes(5)
+        return Clock.System.now().plus(5.minutes)
             .toString() // TODO create retry strategy
     }
 
@@ -194,7 +195,7 @@ fun getRecords(
         // Collect
         val recordList = ArrayList<ReceiverRecord<String, ByteArray>>()
         for (i in 0..requestedRecords) {
-            val kafkaRecords: ConsumerRecords<String, ByteArray> = consumer.poll(Duration.ofSeconds(1))
+            val kafkaRecords: ConsumerRecords<String, ByteArray> = consumer.poll(1.seconds.toJavaDuration())
             if (kafkaRecords.isEmpty) break
             kafkaRecords
                 .filterNotNull()
