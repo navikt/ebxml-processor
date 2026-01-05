@@ -33,8 +33,7 @@ fun ApplicationRequest.validateMime() {
     }
 }
 
-// KRAV 5.5.2.2 validate MIME
-
+// KRAV 5.5.2.2  Validering av multipart-attributter
 fun ApplicationRequest.validateContentType() {
     val contentType = this.contentType()
     if (contentType == ContentType.Any) throw MimeValidationException("Content  type is undefined")
@@ -43,7 +42,7 @@ fun ApplicationRequest.validateContentType() {
     if (contentType.withoutParameters() != ContentType.parse("multipart/related")) throw MimeValidationException("Content type should be multipart/related")
     contentType.parameter("boundary") ?: throw MimeValidationException("Boundary is mandatory on multipart related content")
     // start blir den første element hvis undefined contentType.parameter("start") ?: throw MimeValidationException("Start on multipart request not defined")
-    // norsk helsenet spec sier at type bør vare altid text/xml men det er andre som ikke fyller det.
+    // Norsk Helsenett spec sier at type alltid bør være text/xml, men det er andre som ikke fyller det.
     if (contentType.parameter("type") != null && contentType.parameter("type") != "text/xml") throw MimeValidationException("Type of multipart related should be text/xml")
 }
 
@@ -51,7 +50,7 @@ fun PartData.validateMimeSoapEnvelope() {
     this.headers.validateMimeSoapEnvelope()
 }
 
-// KRAV 5.5.2.3 Valideringsdokument
+// KRAV 5.5.2.3 Validering av MIME-del med SOAP
 fun Headers.validateMimeSoapEnvelope() {
     this[MimeHeaders.CONTENT_TYPE]?.let { ContentType.parse(it) }?.withoutParameters()
         .takeIf { it == ContentType.parse("text/xml") } ?: throw MimeValidationException("Content type is missing or wrong ")
@@ -61,26 +60,28 @@ fun Headers.validateMimeSoapEnvelope() {
     } ?: throw MimeValidationException("Mandatory header Content-Transfer-Encoding is undefined")
 }
 
-// Krav 5.5.2.4 Valideringsdokument
+// Krav 5.5.2.4 Validering av MIME-del med kryptert innhold (attachment-del)
 fun PartData.validateMimeAttachment() {
     this.contentType?.withoutParameters().takeIf {
+        // Frikortspørring kan ha annen Content-Type, derfor kastes ikke MimeValidationException:
         it == ContentType.parse("application/pkcs7-mime")
     }?.apply {
         this@validateMimeAttachment.headers[MimeHeaders.CONTENT_TRANSFER_ENCODING].takeIf { it == "base64" } ?: throw MimeValidationException("Feil content transfer encoding på kryptert content.")
     }
+    if (this@validateMimeAttachment.headers[MimeHeaders.CONTENT_ID].isNullOrEmpty()) throw MimeValidationException("Content ID is missing or wrong on attachment")
 }
 
-// KRAV 5.5.2.1 validate MIME
+// KRAV 5.5.2.1 Validering av MIME-header (toppnivå-entitet)
 fun Headers.validateMimeHeaders() {
     if (this[MimeHeaders.CONTENT_TYPE].isNullOrBlank() || this[MimeHeaders.CONTENT_TYPE] == "text/plain") {
-        throw MimeValidationException("Content type is wrong <${this[MimeHeaders.CONTENT_TYPE]}")
+        throw MimeValidationException("Content type is wrong <${this[MimeHeaders.CONTENT_TYPE]}>")
     }
 }
 
 class MimeValidationException(message: String, cause: Throwable? = null) : Exception(message, cause)
 
-fun Exception.parseAsSoapFault(extraMessage: String? = null): String {
-    val faultNs: QName = QName(SOAPConstants.URI_NS_SOAP_ENVELOPE, "Server")
+fun Exception.convertToSoapFault(extraMessage: String? = null): String {
+    val faultNs = QName(SOAPConstants.URI_NS_SOAP_ENVELOPE, "Server")
     val message: SOAPMessage = SOAPMessageFactory1_1Impl.newInstance().createMessage()
     val fault: SOAPFault = message.soapBody.addFault()
     fault.setFaultCode(faultNs)
