@@ -157,15 +157,11 @@ class FailedMessageKafkaHandler(
 
                         logger.info("Processing record: $counter, max is $limit, key: ${record.key()}, offset: ${record.offset()}, run id: $loggingId with startup time: $startupTime.")
                         record.offset.acknowledge()
+                        record.retryCounter()
                         val retryableAfter = DateTime.parse(
                             String(record.headers().lastHeader(RETRY_AFTER).value())
                         )
-                        logger.info("Record with key ${record.key()} is retryable after $retryableAfter.")
-                        if (IGNORE_OLD_MESSAGES && DateTime.now().minusDays(AGE_DAYS_TO_IGNORE).isAfter(retryableAfter)) {
-                            logger.info("${record.key()} is too old, ignoring.")
-                        } else if (DateTime.now().isAfter(retryableAfter)) {
-                            logger.info("${record.key()} is being retried.")
-                            record.retryCounter()
+                        if (DateTime.now().isAfter(retryableAfter)) {
                             messageFilterService.filterMessage(record)
                             logger.info("${record.key()} has been retried.")
                         } else {
