@@ -289,6 +289,30 @@ fun Routing.retryErrors(
         )
     }
 
+fun Routing.rerun(
+    messageFilterService: MessageFilterService,
+    failedMessageQueue: FailedMessageKafkaHandler
+): Route =
+    get("/api/rerun/{$KAFKA_OFFSET}") {
+        if (!config().kafkaErrorQueue.active) {
+            call.respondText(status = HttpStatusCode.ServiceUnavailable, text = "Retry not active.")
+            return@get
+        }
+        val offsetParam = (call.parameters[KAFKA_OFFSET])?.toLong()
+        if (offsetParam == null) {
+            call.respondText(status = HttpStatusCode.BadRequest, text = "Must specify offset of message to rerun.")
+            return@get
+        }
+        failedMessageQueue.forceRetryFailedMessage(
+            messageFilterService,
+            offset = offsetParam
+        )
+        call.respondText(
+            status = HttpStatusCode.OK,
+            text = "Message with offset ${call.parameters[KAFKA_OFFSET]} has been re-run"
+        )
+    }
+
 const val KAFKA_OFFSET = "offset"
 
 fun Route.simulateError(

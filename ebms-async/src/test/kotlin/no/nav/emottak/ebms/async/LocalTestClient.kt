@@ -5,9 +5,9 @@ import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.header.Header
 import org.apache.kafka.common.header.internals.RecordHeader
-import org.joda.time.DateTime
 import java.io.InputStream
 import java.nio.charset.StandardCharsets
+import java.time.LocalDateTime
 import java.util.Properties
 import kotlin.uuid.Uuid
 
@@ -35,7 +35,7 @@ class LocalTestClient {
         val key = Uuid.random().toString()
         val value = readClasspathFile("testPayload.xml")!!
         val headers = listOf(
-            RecordHeader(RETRY_AFTER, DateTime.now().toString().toByteArray(StandardCharsets.UTF_8)),
+            RecordHeader(RETRY_AFTER, LocalDateTime.now().toString().toByteArray(StandardCharsets.UTF_8)),
             RecordHeader(TESTMESSAGE_FAIL_HEADER, "1".toByteArray(StandardCharsets.UTF_8))
         )
 
