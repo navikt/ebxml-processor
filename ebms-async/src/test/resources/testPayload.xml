@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SOAP:Envelope xmlns:eb="http://www.oasis-open.org/committees/ebxml-msg/schema/msg-header-2_0.xsd" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:SOAP="http://schemas.xmlsoap.org/soap/envelope/">
+    <SOAP:Header>
+        <eb:MessageHeader SOAP:mustUnderstand="1" eb:version="2.0">
+            <eb:From>
+                <eb:PartyId eb:type="commonname">DIPS test</eb:PartyId>
+                <eb:PartyId eb:type="orgnummer">979543883</eb:PartyId>
+                <eb:PartyId eb:type="DN">CN=DIPS test,O=DIPS AS,C=NO</eb:PartyId>
+                <eb:Role>Fordringshaver</eb:Role>
+            </eb:From>
+            <eb:To>
+                <eb:PartyId eb:type="commonname">ARBEIDS- OG VELFERDSETATEN TEST</eb:PartyId>
+                <eb:PartyId eb:type="orgnummer">889640782</eb:PartyId>
+                <eb:PartyId eb:type="DN">CN=ARBEIDS- OG VELFERDSETATEN TEST,O=ARBEIDS- OG VELFERDSETATEN,C=NO</eb:PartyId>
+                <eb:Role>Ytelsesutbetaler</eb:Role>
+            </eb:To>
+            <eb:CPAId>nav:qass:34961</eb:CPAId>
+            <eb:ConversationId>0d316303-9691-42e0-9c6e-88fe083bcfee</eb:ConversationId>
+            <eb:Service eb:type="string">Inntektsforesporsel</eb:Service>
+            <eb:Action>Foresporsel</eb:Action>
+            <eb:MessageData>
+                <eb:MessageId>5fe14424-ee4f-43ff-87a1-2236605ec109</eb:MessageId>
+                <eb:Timestamp>2025-12-04T14:00:20</eb:Timestamp>
+            </eb:MessageData>
+            <eb:DuplicateElimination />
+            <eb:Description xml:lang="NO">{"MSH-system":"CFC","MSH-versjon":"7.8.25","fagsystem":"CFC Azure dev"}</eb:Description>
+        </eb:MessageHeader>
+        <eb:AckRequested SOAP:actor="urn:oasis:names:tc:ebxml-msg:actor:toPartyMSH" SOAP:mustUnderstand="1" eb:signed="true" eb:version="2.0"> </eb:AckRequested>
+        <Signature xmlns="http://www.w3.org/2000/09/xmldsig#"><SignedInfo><CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315" /><SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256" /><Reference URI=""><Transforms><Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature" /><Transform Algorithm="http://www.w3.org/TR/1999/REC-xpath-19991116"><XPath xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">not(ancestor-or-self::node()[@SOAP-ENV:actor="urn:oasis:names:tc:ebxml-msg:actor:nextMSH"] | ancestor-or-self::node()[@SOAP-ENV:actor="http://schemas.xmlsoap.org/soap/actor/next"])</XPath></Transform><Transform Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315" /></Transforms><DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256" /><DigestValue>kY7dLo9zCqHISPVUPfI04nLm/1IgvgFUkwJ/bhcqcYI=</DigestValue></Reference><Reference URI="cid:ref1"><DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256" /><DigestValue>h0/71oVVoeTwIfDVtQ1V803R2qIB2z5iK4O1lGSPwX4=</DigestValue></Reference></SignedInfo><SignatureValue>UagmekKdVcCsSWAwnJfumuR4Hpv7P70HuYrk0Hb6QIuIgLJkIUivKXPbJ4VN8tRpOXWMjfChpChcrqmuUlF8dleqs605ySJWKp92lJkFQFy3p+kJJECc19afcT0O/7/Ip7LVZoIG6mk1GPVZQ+Z01IcMPzs6BC7dMHKxh4TrANq0UVCKavXLj//nTRPZ4UOAlPRF6hCMGq49I0LJqhLDqKusCKxCa9xs2a+7ojJzSF6MfhIGt0ICG2ks8+wUdcTZnmYfQkj3Xwc6pZboG5eL6gBGXYWLx3lwsdwuz+ROVea/i6HT1KhoSrKLpKRRaFsu2rPB6OIZEBogtINX9hFNh7NG8HH7lMCGUN56m1fKDTJqm1sFd0QZwGHipEqy6wOOqM2M2vH2gmT9wls3L1Cra2MQsBNq36b2joDyxT6yWWifFNV4fl6vkgEMPBtiZOM3wyK3ZYoQQ1L3wAIu44TcI7GMyd2szJ0vOfVXlLadEwNzIx9iow/0jW72BY7a07pK</SignatureValue><KeyInfo><X509Data><X509Certificate>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</X509Certificate></X509Data></KeyInfo></Signature></SOAP:Header>
+    <SOAP:Body>
+        <eb:Manifest eb:version="2.0">
+            <eb:Reference xlink:href="cid:ref1" xlink:type="simple" />
+        </eb:Manifest>
+    </SOAP:Body>
+</SOAP:Envelope>
