@@ -295,7 +295,7 @@ fun Routing.rerun(
 ): Route =
     get("/api/rerun/{$KAFKA_OFFSET}") {
         if (!config().kafkaErrorQueue.active) {
-            call.respondText(status = HttpStatusCode.ServiceUnavailable, text = "Retry not active.")
+            call.respondText(status = HttpStatusCode.ServiceUnavailable, text = "Retry queue not active.")
             return@get
         }
         val offsetParam = (call.parameters[KAFKA_OFFSET])?.toLong()
@@ -319,6 +319,10 @@ fun Route.simulateError(
     failedMessageQueue: FailedMessageKafkaHandler
 ): Route =
     get("/api/forceretry/{$KAFKA_OFFSET}") {
+        if (!config().kafkaErrorQueue.active) {
+            call.respondText(status = HttpStatusCode.ServiceUnavailable, text = "Retry queue not active.")
+            return@get
+        }
         CoroutineScope(Dispatchers.IO).launch() {
             if (config().kafkaErrorQueue.active) {
                 val record = getRecord(
@@ -331,6 +335,10 @@ fun Route.simulateError(
                 failedMessageQueue.sendToRetry(
                     record = record ?: throw Exception("No Record found. Offset: ${call.parameters[KAFKA_OFFSET]}"),
                     reason = "Simulated Error"
+                )
+                call.respondText(
+                    status = HttpStatusCode.OK,
+                    text = "Payload message with offset ${call.parameters[KAFKA_OFFSET]} has been added to retry queue"
                 )
             }
         }

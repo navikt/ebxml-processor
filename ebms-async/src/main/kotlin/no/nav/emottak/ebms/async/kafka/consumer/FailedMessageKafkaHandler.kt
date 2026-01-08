@@ -25,6 +25,8 @@ import org.apache.kafka.common.serialization.StringSerializer
 import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.time.LocalDateTime
+import java.time.ZoneOffset
+import java.time.ZonedDateTime
 import java.util.Properties
 import kotlin.collections.map
 
@@ -87,6 +89,7 @@ class FailedMessageKafkaHandler(
         reason: String? = null,
         advanceRetryTime: Boolean = true
     ) {
+        logger.info("Sending message to retry queue with reason: $reason")
         if (reason != null) {
             record.addHeader(RETRY_REASON, reason)
         }
@@ -127,9 +130,7 @@ class FailedMessageKafkaHandler(
         messageFilterService: MessageFilterService,
         limit: Int = 10
     ) {
-        logger.info("Checking for messages in error queue")
-        println("Consumer pos in 0: " + pollerConsumer.position(TopicPartition(kafkaErrorQueue.topic, 0)))
-        println("Cons group: " + pollerConsumer.groupMetadata())
+        logger.info("Checking for messages in error queue, current offset " + pollerConsumer.position(TopicPartition(kafkaErrorQueue.topic, 0)))
         val records = getRecordsToConsume(pollerConsumer, limit)
         if (records.isEmpty()) {
             logger.info("No records to process in error queue")
@@ -152,7 +153,9 @@ class FailedMessageKafkaHandler(
             val retryableAfter = LocalDateTime.parse(
                 String(record.headers().lastHeader(RETRY_AFTER).value())
             )
-            logger.info("Record with key ${record.key()} is retryable after $retryableAfter.")
+            // LocalDateTime logges OK lokalt, men får UTC-verdi på server. Sett eksplisitt timezone på det som logges
+            val retryableAfterWithLocalTimezone = ZonedDateTime.of(retryableAfter, ZoneOffset.systemDefault())
+            logger.info("Record with key ${record.key()} is retryable after $retryableAfterWithLocalTimezone.")
             val offsetToCommit = record.offset() + 1
             if (IGNORE_OLD_MESSAGES && LocalDateTime.now().minusDays(AGE_DAYS_TO_IGNORE).isAfter(retryableAfter)) {
                 logger.info("${record.key()} is too old, ignoring.")
