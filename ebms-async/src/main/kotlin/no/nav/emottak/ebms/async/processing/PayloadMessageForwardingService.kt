@@ -1,13 +1,14 @@
 package no.nav.emottak.ebms.async.processing
 
 import io.ktor.http.ContentType
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
 import no.nav.emottak.ebms.async.log
 import no.nav.emottak.ebms.async.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.async.util.EventRegistrationService
+import no.nav.emottak.ebms.async.util.receiverAddressToKafkaHeader
+import no.nav.emottak.ebms.async.util.senderAddressToKafkaHeader
 import no.nav.emottak.ebms.async.util.toKafkaHeaders
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
@@ -74,7 +75,11 @@ class PayloadMessageForwardingService(
             signedEbmsDocument.messageHeader().messageData.messageId,
             signedEbmsDocument.attachments
         )
-        sendResponseToTopic(signedEbmsDocument, validationResult.receiverEmailAddress)
+        sendResponseToTopic(
+            signedEbmsDocument,
+            validationResult.receiverEmailAddress,
+            validationResult.senderEmailAddress
+        )
         log.info(processedMessage.marker(), "Payload message response returned successfully")
     }
 
@@ -103,7 +108,11 @@ class PayloadMessageForwardingService(
         }
     }
 
-    private suspend fun sendResponseToTopic(signedEbmsDocument: EbmsDocument, receiverEmailAddress: List<EmailAddress>) {
+    private suspend fun sendResponseToTopic(
+        signedEbmsDocument: EbmsDocument,
+        receiverEmailAddress: List<EmailAddress>,
+        senderEmailAddress: List<EmailAddress>
+    ) {
         eventRegistrationService.runWithEvent(
             successEvent = EventType.MESSAGE_PLACED_IN_QUEUE,
             failEvent = EventType.ERROR_WHILE_STORING_MESSAGE_IN_QUEUE,
@@ -116,7 +125,9 @@ class PayloadMessageForwardingService(
             ebmsPayloadProducer.publishMessage(
                 key = signedEbmsDocument.requestId,
                 value = signedEbmsDocument.document.toByteArray(),
-                headers = receiverEmailAddress.toKafkaHeaders() + signedEbmsDocument.messageHeader().toKafkaHeaders()
+                headers = receiverEmailAddress.receiverAddressToKafkaHeader() +
+                    senderEmailAddress.senderAddressToKafkaHeader() +
+                    signedEbmsDocument.messageHeader().toKafkaHeaders()
             )
         }
     }

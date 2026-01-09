@@ -47,6 +47,33 @@ class CPAUtilTest {
     }
 
     @Test
+    fun `Hent epostadresser fra CPA`() {
+        val cpa = TestUtil.createValidTestCPA()
+
+        val fromParty = cpa.getPartyInfoByTypeAndID("HER", "79768")
+        val senderEmails = fromParty.getSendEmailAddress(
+            "KontrollUtbetaler",
+            "BehandlerKrav",
+            "Svarmelding"
+        )
+
+        val toParty = cpa.getPartyInfoByTypeAndID("HER", "8141253")
+        val signalEmails = toParty.getSignalEmailAddress("MessageError")
+        val receiverEmails = toParty.getReceiveEmailAddress(
+            "Behandler",
+            "BehandlerKrav",
+            "Svarmelding"
+        )
+
+        assertEquals(1, signalEmails.size, "signal recipient emails not found")
+        assertEquals("mailto://example@example.com", signalEmails.first().emailAddress)
+        assertEquals(1, senderEmails.size, "message sender emails not found")
+        assertEquals("mailto://example2@example.com", senderEmails.first().emailAddress)
+        assertEquals(1, receiverEmails.size, "message receiver emails not found")
+        assertEquals("mailto://example@example.com", receiverEmails.first().emailAddress)
+    }
+
+    @Test
     fun `Hent partyInfo med feil type og korrekt ID`() {
         val cpa = TestUtil.createValidTestCPA()
         val type = "orgnummer"
