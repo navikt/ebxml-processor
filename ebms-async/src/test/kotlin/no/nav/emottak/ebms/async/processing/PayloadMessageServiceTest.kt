@@ -39,8 +39,6 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PerMessageCharacteristicsType
 import org.w3c.dom.Document
-import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.uuid.Uuid
 
@@ -299,16 +297,14 @@ class PayloadMessageServiceTest {
     }
 
     @Test
-    fun `process should send to retry and rethrow Exception if its not EbmsException nor SignatureException`() = runBlocking {
+    fun `process should send to retry if its not EbmsException nor SignatureException`() = runBlocking {
         initService()
         val (payloadMessage, ebmsMessageSlots, fakeResult) = setupMocks(
             PerMessageCharacteristicsType.PER_MESSAGE,
             false,
             validateOutgoingThrowsException = true
         )
-        val resultException = assertFailsWith<Exception> {
-            service.process(setupReceiverRecordAndFailedMessageQueueMock(), payloadMessage)
-        }
+        service.process(setupReceiverRecordAndFailedMessageQueueMock(), payloadMessage)
 
         coVerify(exactly = 1) { eventManagerService.isDuplicateMessage(payloadMessage) }
         coVerify(exactly = 2) { eventRegistrationService.registerEventMessageDetails(any()) }
@@ -333,7 +329,6 @@ class PayloadMessageServiceTest {
         assertTrue(fakeResult.isSuccess)
         coVerify(exactly = 0) { ebmsSignalProducer.publishMessage(key = any(), value = any(), headers = any()) }
         coVerify(exactly = 1) { failedMessageQueue.sendToRetry(any(), any(), any(), any()) }
-        assertEquals("Unexpected exception", resultException.message)
     }
 
     @Test

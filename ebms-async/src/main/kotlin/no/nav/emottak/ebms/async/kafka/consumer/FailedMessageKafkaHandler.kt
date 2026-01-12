@@ -158,7 +158,7 @@ class FailedMessageKafkaHandler(
             logger.info("Record with key ${record.key()} is retryable after $retryableAfterWithLocalTimezone.")
             val offsetToCommit = record.offset() + 1
             if (IGNORE_OLD_MESSAGES && LocalDateTime.now().minusDays(AGE_DAYS_TO_IGNORE).isAfter(retryableAfter)) {
-                logger.info("${record.key()} is too old, ignoring.")
+                logger.info("${record.key()} is too old, ignoring. This should only happen during DEV, when we want to process all messages in the queue.")
             } else if (LocalDateTime.now().isAfter(retryableAfter)) {
                 logger.info("${record.key()} is being retried.")
                 record.asReceiverRecord().retryCounter()

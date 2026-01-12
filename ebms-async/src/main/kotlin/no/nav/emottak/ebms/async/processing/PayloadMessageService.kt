@@ -17,6 +17,7 @@ import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.melding.feil.EbmsException
 import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.EbmsDocument
+import no.nav.emottak.message.model.EbmsMessage
 import no.nav.emottak.message.model.EmailAddress
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.util.marker
@@ -67,11 +68,7 @@ class PayloadMessageService(
                 }
                 else -> {
                     log.error(ebmsPayloadMessage.marker(), exception.message ?: "Unknown error", exception)
-                    val retriedAlready = record.retryCount()
                     sendToRetryIfShouldBeRetried(record = record, payloadMessage = ebmsPayloadMessage, exception = exception, reason = exception.message ?: "Unknown error")
-                    if (retriedAlready == 0) {
-                        throw exception
-                    }
                 }
             }
         }
@@ -104,7 +101,7 @@ class PayloadMessageService(
         // Todo consider if any of these should have specific rules, for now we treat all equally
 
         // Until we have a TTL/expiry, use sentAt
-        val maxTimeToLive = Duration.ofMinutes(30) // TODO config ?
+        val maxTimeToLive = Duration.ofMinutes(300) // TODO config ?
         if (sentAt != null) {
             val timeSinceSent = Duration.between(sentAt, Instant.now())
             if (timeSinceSent.compareTo(maxTimeToLive) <= 0) {
@@ -128,6 +125,7 @@ class PayloadMessageService(
             log.info("Schedule retry for failing payload sent at $sentAt, error type: $errorType, reason: $reason, retries already performed: $retriedAlready. Decision reason: $decisionReason")
         } else {
             log.info("No retry for failing payload sent at $sentAt, error type: $errorType, reason: $reason, retries already performed: $retriedAlready. Decision reason: $decisionReason")
+            returnMessageError(payloadMessage, EbmsException(decisionReason, exception = exception))
         }
     }
 
@@ -154,7 +152,7 @@ class PayloadMessageService(
         log.info(acknowledgment.marker(), "Acknowledgment returned")
     }
 
-    private suspend fun returnMessageError(ebmsPayloadMessage: PayloadMessage, ebmsException: EbmsException) {
+    suspend fun returnMessageError(ebmsPayloadMessage: EbmsMessage, ebmsException: EbmsException) {
         val messageError = ebmsPayloadMessage.createMessageError(ebmsException.feil).also {
             eventRegistrationService.registerEventMessageDetails(it)
         }
