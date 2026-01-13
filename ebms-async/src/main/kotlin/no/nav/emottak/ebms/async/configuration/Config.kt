@@ -33,7 +33,8 @@ data class Config(
 data class KafkaErrorQueue(
     val active: Boolean,
     val topic: String,
-    val initOffset: String
+    val initOffset: String,
+    val defaultRetryTtlSeconds: Long? = null
 )
 
 data class ErrorRetryPolicy(

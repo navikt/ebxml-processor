@@ -57,6 +57,21 @@ data class EbmsDocument(val requestId: String, val document: Document, val attac
                 document,
                 messageHeader.messageData.refToMessageId,
                 messageHeader.messageData.timestamp.toInstant(),
+                timeToLiveSeconds = try {
+                    val md = messageHeader.messageData
+                    val prop = try { md::class.java.getMethod("getTimeToLive") } catch (_: NoSuchMethodException) {
+                        try { md::class.java.getMethod("timeToLive") } catch (_: NoSuchMethodException) { null }
+                    }
+                    val raw = prop?.invoke(md)
+                    when (raw) {
+                        is Number -> raw.toLong()
+                        is java.time.Duration -> raw.seconds
+                        is String -> raw.toLongOrNull()
+                        else -> null
+                    }
+                } catch (_: Exception) {
+                    null
+                },
                 messageHeader.duplicateElimination != null
             )
 

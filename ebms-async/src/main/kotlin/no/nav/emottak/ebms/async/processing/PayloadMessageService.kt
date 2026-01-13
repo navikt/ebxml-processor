@@ -101,14 +101,25 @@ class PayloadMessageService(
         // Todo consider if any of these should have specific rules, for now we treat all equally
 
         // Until we have a TTL/expiry, use sentAt
-        val maxTimeToLive = Duration.ofMinutes(300) // TODO config ?
-        if (sentAt != null) {
-            val timeSinceSent = Duration.between(sentAt, Instant.now())
-            if (timeSinceSent.compareTo(maxTimeToLive) <= 0) {
+        // Prefer explicit ebXML TimeToLive when present on the message; fall back to default retry window (1 week)
+        val defaultRetryWindow = config().kafkaErrorQueue.defaultRetryTtlSeconds?.let { Duration.ofSeconds(it) } ?: Duration.ofDays(7)
+
+        if (sentAt != null && payloadMessage.timeToLiveSeconds != null) {
+            val ttl = payloadMessage.timeToLiveSeconds!!
+            val expiry = sentAt.plusSeconds(ttl)
+            if (Instant.now().isBefore(expiry) || Instant.now().equals(expiry)) {
                 shouldRetry = true
-                decisionReason = "Not expired yet, max time to live is ${maxTimeToLive.toHours()} hours, time since sent is ${timeSinceSent.toHours()} hours"
+                decisionReason = "Within ebXML TimeToLive (expires at $expiry)"
             } else {
-                decisionReason = "Expired, max time to live is ${maxTimeToLive.toHours()} hours, time since sent is ${timeSinceSent.toHours()} hours"
+                decisionReason = "ebXML TimeToLive expired at $expiry"
+            }
+        } else if (sentAt != null) {
+            val timeSinceSent = Duration.between(sentAt, Instant.now())
+            if (timeSinceSent.compareTo(defaultRetryWindow) <= 0) {
+                shouldRetry = true
+                decisionReason = "Not expired yet, default retry window is ${defaultRetryWindow.toHours()} hours, time since sent is ${timeSinceSent.toHours()} hours"
+            } else {
+                decisionReason = "Expired, default retry window is ${defaultRetryWindow.toHours()} hours, time since sent is ${timeSinceSent.toHours()} hours"
             }
         } else {
             // Fallback if we do not have sentAt
@@ -125,7 +136,12 @@ class PayloadMessageService(
             log.info("Schedule retry for failing payload sent at $sentAt, error type: $errorType, reason: $reason, retries already performed: $retriedAlready. Decision reason: $decisionReason")
         } else {
             log.info("No retry for failing payload sent at $sentAt, error type: $errorType, reason: $reason, retries already performed: $retriedAlready. Decision reason: $decisionReason")
-            returnMessageError(payloadMessage, EbmsException(decisionReason, exception = exception))
+            // If TTL explicitly expired, return a MessageError with TIME_TO_LIVE_EXPIRED; otherwise use generic decision reason
+            if (payloadMessage.timeToLiveSeconds != null && sentAt != null) {
+                returnMessageError(payloadMessage, EbmsException("TimeToLive expired", errorCode = no.nav.emottak.message.model.ErrorCode.TIME_TO_LIVE_EXPIRED, exception = exception))
+            } else {
+                returnMessageError(payloadMessage, EbmsException(decisionReason, exception = exception))
+            }
         }
     }
 
