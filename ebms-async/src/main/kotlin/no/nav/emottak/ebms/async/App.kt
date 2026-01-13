@@ -260,6 +260,7 @@ fun Application.ebmsProviderModule(
             simulateError(failedMessageQueue)
         }
         retryErrors(messageFilterService, failedMessageQueue)
+        rerun(messageFilterService, failedMessageQueue)
         pauseRetries(pauseRetryErrorsTimerFlag)
         resumeRetries(pauseRetryErrorsTimerFlag)
         authenticate(AZURE_AD_AUTH) {
