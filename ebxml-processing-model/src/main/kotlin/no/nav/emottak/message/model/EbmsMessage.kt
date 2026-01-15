@@ -42,16 +42,17 @@ abstract class EbmsMessage {
 
     open fun createMessageError(errorList: List<Feil>): MessageError {
         return MessageError(
-            requestId,
-            Uuid.random().toString(),
-            this.messageId,
-            this.conversationId,
-            this.cpaId,
-            this.addressing.replyTo(
+            requestId = requestId,
+            messageId = Uuid.random().toString(),
+            refToMessageId = this.messageId,
+            conversationId = this.conversationId,
+            cpaId = this.cpaId,
+            addressing = this.addressing.replyTo(
                 service = EbXMLConstants.EBMS_SERVICE_URI,
                 action = EbXMLConstants.MESSAGE_ERROR_ACTION
             ),
-            errorList
+            feil = errorList,
+            sentAt = Instant.now()
         )
     }
 }
