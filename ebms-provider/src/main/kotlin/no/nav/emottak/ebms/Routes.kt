@@ -27,7 +27,6 @@ import no.nav.emottak.util.marker
 import no.nav.emottak.util.retrieveLoggableHeaderPairs
 import no.nav.emottak.utils.kafka.model.EventType
 import no.nav.emottak.utils.serialization.toEventDataJson
-import kotlin.uuid.Uuid
 
 fun Route.postEbmsSync(
     cpaValidationService: CPAValidationService,
@@ -50,15 +49,15 @@ fun Route.postEbmsSync(
                     .let { processedMessage ->
                         when (processedMessage.second) {
                             Direction.IN -> {
-                                sendInService.sendIn(processedMessage.first, partnerId).let {
+                                sendInService.sendIn(processedMessage.first, partnerId).let { sendInResponse ->
                                     PayloadMessage(
-                                        requestId = Uuid.random().toString(),
-                                        messageId = Uuid.random().toString(),
-                                        conversationId = it.conversationId,
+                                        requestId = sendInResponse.requestId,
+                                        messageId = sendInResponse.messageId,
+                                        conversationId = sendInResponse.conversationId,
                                         cpaId = ebmsMessage.cpaId,
-                                        addressing = it.addressing,
-                                        payload = Payload(it.payload, ContentType.Application.Xml.toString()),
-                                        refToMessageId = it.messageId,
+                                        addressing = sendInResponse.addressing,
+                                        payload = Payload(sendInResponse.payload, ContentType.Application.Xml.toString()),
+                                        refToMessageId = ebmsMessage.messageId,
                                         duplicateElimination = ebmsMessage.duplicateElimination
                                     )
                                 }
