@@ -26,7 +26,6 @@ import no.nav.emottak.utils.common.parseOrGenerateUuid
 import no.nav.emottak.utils.kafka.model.EventDataType
 import no.nav.emottak.utils.kafka.model.EventType
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PerMessageCharacteristicsType
-import java.time.Duration
 import java.time.Instant
 
 class PayloadMessageService(
@@ -90,6 +89,7 @@ class PayloadMessageService(
         val sentAt = payloadMessage.sentAt
         var shouldRetry = false
         var decisionReason = ""
+        val ttl = payloadMessage.timeToLive
 
         // Error situations:
         //   Exception subtypes:
@@ -100,49 +100,33 @@ class PayloadMessageService(
         //   ProcessingService.processMessage results in error, incl retrieveReturnableApprecResponse returns null
         // Todo consider if any of these should have specific rules, for now we treat all equally
 
-        // Until we have a TTL/expiry, use sentAt
-        // Prefer explicit ebXML TimeToLive when present on the message; fall back to default retry window (1 week)
-        val defaultRetryWindow = config().kafkaErrorQueue.defaultRetryTtlSeconds?.let { Duration.ofSeconds(it) } ?: Duration.ofDays(7)
-
-        if (sentAt != null && payloadMessage.timeToLiveSeconds != null) {
-            val ttl = payloadMessage.timeToLiveSeconds!!
-            val expiry = sentAt.plusSeconds(ttl)
-            if (Instant.now().isBefore(expiry) || Instant.now().equals(expiry)) {
-                shouldRetry = true
-                decisionReason = "Within ebXML TimeToLive (expires at $expiry)"
-            } else {
-                decisionReason = "ebXML TimeToLive expired at $expiry"
-            }
-        } else if (sentAt != null) {
-            val timeSinceSent = Duration.between(sentAt, Instant.now())
-            if (timeSinceSent.compareTo(defaultRetryWindow) <= 0) {
-                shouldRetry = true
-                decisionReason = "Not expired yet, default retry window is ${defaultRetryWindow.toHours()} hours, time since sent is ${timeSinceSent.toHours()} hours"
-            } else {
-                decisionReason = "Expired, default retry window is ${defaultRetryWindow.toHours()} hours, time since sent is ${timeSinceSent.toHours()} hours"
-            }
+        if (isExpired(ttl)) {
+            decisionReason = "ebXML TimeToLive expired at $ttl"
         } else {
-            // Fallback if we do not have sentAt
-            val maxRetries = 10 // TODO config ?
-            if (retriedAlready < maxRetries) {
-                shouldRetry = true
-                decisionReason = "More retries OK, max number is $maxRetries, already retried $retriedAlready times"
+            shouldRetry = true
+            decisionReason = if (ttl != null) {
+                "Within ebXML TimeToLive (expires at $ttl)"
             } else {
-                decisionReason = "Retried too many times, max number is $maxRetries, already retried $retriedAlready times"
+                "More retries OK, already retried $retriedAlready times"
             }
         }
+
         if (shouldRetry) {
             sendToRetry(record, reason)
             log.info("Schedule retry for failing payload sent at $sentAt, error type: $errorType, reason: $reason, retries already performed: $retriedAlready. Decision reason: $decisionReason")
         } else {
             log.info("No retry for failing payload sent at $sentAt, error type: $errorType, reason: $reason, retries already performed: $retriedAlready. Decision reason: $decisionReason")
             // If TTL explicitly expired, return a MessageError with TIME_TO_LIVE_EXPIRED; otherwise use generic decision reason
-            if (payloadMessage.timeToLiveSeconds != null && sentAt != null) {
+            if (ttl != null) {
                 returnMessageError(payloadMessage, EbmsException("TimeToLive expired", errorCode = no.nav.emottak.message.model.ErrorCode.TIME_TO_LIVE_EXPIRED, exception = exception))
             } else {
                 returnMessageError(payloadMessage, EbmsException(decisionReason, exception = exception))
             }
         }
+    }
+
+    private fun isExpired(ttl: Instant?): Boolean {
+        return ttl?.let { Instant.now().isAfter(it) } ?: false
     }
 
     private suspend fun processPayloadMessage(ebmsPayloadMessage: PayloadMessage) {
