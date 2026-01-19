@@ -44,6 +44,7 @@ data class PayloadMessage(
                 service = EbXMLConstants.EBMS_SERVICE_URI,
                 action = EbXMLConstants.ACKNOWLEDGMENT_ACTION
             ),
+            sentAt = Instant.now(),
             referenceList = this.document?.getSignatureReferenceNodeList()
         )
     }
