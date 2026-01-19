@@ -27,13 +27,20 @@ data class Config(
     val kafkaPayloadProducer: KafkaPayloadProducer,
     val kafkaErrorQueue: KafkaErrorQueue,
     val signering: List<KeyStoreConfiguration>,
-    val errorRetryPolicy: ErrorRetryPolicy
+    val errorRetryPolicy: ErrorRetryPolicy,
+    val responseResendPolicy: ResponseResendPolicy
 )
 
 data class KafkaErrorQueue(
     val active: Boolean,
     val topic: String,
     val initOffset: String
+)
+
+data class ResponseResendPolicy(
+    val processIntervalSeconds: Int, // Reading/processing starts every X seconds
+    val resendIntervalMinutes: Int, // Minutes to wait for Ack before resending
+    val maxResends: Int // Max number of resends
 )
 
 data class ErrorRetryPolicy(

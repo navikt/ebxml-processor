@@ -25,6 +25,7 @@ import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
 import no.nav.emottak.ebms.async.persistence.Database
 import no.nav.emottak.ebms.async.persistence.PayloadRepositoryTest.Companion.ebmsProviderDbContainer
 import no.nav.emottak.ebms.async.persistence.repository.PayloadRepository
+import no.nav.emottak.ebms.async.persistence.repository.ResponseAckRepository
 import no.nav.emottak.ebms.async.processing.MessageFilterService
 import no.nav.emottak.ebms.async.processing.PayloadMessageForwardingService
 import no.nav.emottak.ebms.async.processing.PayloadMessageService
@@ -95,6 +96,8 @@ fun main() = SuspendApp {
     println(" ************ Setting up services ")
     val failedMessageQueue = FailedMessageKafkaHandler()
 
+    val responseAckRepository = ResponseAckRepository(database, config.responseResendPolicy.resendIntervalMinutes, config.responseResendPolicy.maxResends)
+
     val processingService = ProcessingService(
         httpClient = PayloadProcessingClient(scopedAuthHttpClient(EBMS_PAYLOAD_SCOPE))
     )
@@ -127,7 +130,8 @@ fun main() = SuspendApp {
         processingService = processingService,
         payloadRepository = payloadRepository,
         ebmsPayloadProducer = ebmsPayloadProducer,
-        eventRegistrationService = eventRegistrationService
+        eventRegistrationService = eventRegistrationService,
+        responseAckRepository = responseAckRepository
     )
 
     val payloadMessageService = PayloadMessageService(
@@ -142,7 +146,8 @@ fun main() = SuspendApp {
 
     val signalMessageService = SignalMessageService(
         cpaValidationService = cpaValidationService,
-        eventRegistrationService = eventRegistrationService
+        eventRegistrationService = eventRegistrationService,
+        responseAckRepository = responseAckRepository
     )
 
     val messageFilterService = DummyMessageFilterService(
@@ -154,6 +159,7 @@ fun main() = SuspendApp {
 
     val retryErrorsTimer = Timer("RetryErrorsTask", false)
     var pauseRetryErrorsTimerFlag = PauseRetryErrorsTimerFlag()
+    val responseResendTimer = Timer("ResponseResendTask", false)
 
     println(" ************ Setting up Netty at 8080 ")
 
@@ -173,6 +179,12 @@ fun main() = SuspendApp {
                 messageFilterService = messageFilterService,
                 failedMessageQueue = failedMessageQueue,
                 pauseRetryErrorsTimerFlag = pauseRetryErrorsTimerFlag
+            )
+            launchResponseResendTask(
+                config = config,
+                responseResendTimer = responseResendTimer,
+                responseAckRepository = responseAckRepository,
+                payloadMessageForwardingService = payloadMessageForwardingService
             )
 
             server(

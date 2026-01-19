@@ -4,6 +4,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
+import no.nav.emottak.ebms.async.persistence.repository.ResponseAckRepository
 import no.nav.emottak.ebms.async.util.EventRegistrationServiceFake
 import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.message.model.Acknowledgment
@@ -19,8 +20,9 @@ import kotlin.uuid.Uuid
 class SignalMessageServiceTest {
 
     val cpaValidationService = mockk<CPAValidationService>()
+    val responseAckRepository = mockk<ResponseAckRepository>()
     val eventRegistrationService = EventRegistrationServiceFake()
-    val signalMessageService = SignalMessageService(cpaValidationService, eventRegistrationService)
+    val signalMessageService = SignalMessageService(cpaValidationService, eventRegistrationService, responseAckRepository)
 
     @Test
     fun `Acknowledgment message processed successfully`() {
@@ -37,6 +39,7 @@ class SignalMessageServiceTest {
         ).transform() as Acknowledgment
 
         coEvery { cpaValidationService.validateIncomingMessage(acknowledgment) } returns mockk(relaxed = true)
+        coEvery { responseAckRepository.registerAckForMessage(any()) } returns mockk(relaxed = true)
 
         runBlocking {
             signalMessageService.processSignal(requestId, acknowledgment)
@@ -44,6 +47,7 @@ class SignalMessageServiceTest {
 
         coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(acknowledgment) }
         coVerify(exactly = 1) { signalMessageService.processAcknowledgment(acknowledgment) }
+        coVerify(exactly = 1) { responseAckRepository.registerAckForMessage(acknowledgment.refToMessageId) }
     }
 
     @Test

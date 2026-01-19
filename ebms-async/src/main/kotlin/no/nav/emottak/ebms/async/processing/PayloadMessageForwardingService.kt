@@ -1,13 +1,15 @@
 package no.nav.emottak.ebms.async.processing
 
 import io.ktor.http.ContentType
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
 import no.nav.emottak.ebms.async.log
 import no.nav.emottak.ebms.async.persistence.repository.PayloadRepository
+import no.nav.emottak.ebms.async.persistence.repository.ResponseAckRepository
+import no.nav.emottak.ebms.async.persistence.repository.ResponseMessageNeedingAck
 import no.nav.emottak.ebms.async.util.EventRegistrationService
+import no.nav.emottak.ebms.async.util.toAddressKafkaHeader
 import no.nav.emottak.ebms.async.util.toKafkaHeaders
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
@@ -23,6 +25,8 @@ import no.nav.emottak.util.marker
 import no.nav.emottak.utils.common.parseOrGenerateUuid
 import no.nav.emottak.utils.kafka.model.EventDataType
 import no.nav.emottak.utils.kafka.model.EventType
+import org.apache.kafka.common.header.Header
+import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
 import kotlin.uuid.Uuid
 
 class PayloadMessageForwardingService(
@@ -31,7 +35,8 @@ class PayloadMessageForwardingService(
     val processingService: ProcessingService,
     val payloadRepository: PayloadRepository,
     val ebmsPayloadProducer: EbmsMessageProducer,
-    val eventRegistrationService: EventRegistrationService
+    val eventRegistrationService: EventRegistrationService,
+    val responseAckRepository: ResponseAckRepository
 ) {
 
     suspend fun forwardMessageWithSyncResponse(payloadMessage: PayloadMessage) {
@@ -60,6 +65,7 @@ class PayloadMessageForwardingService(
         }
     }
 
+    // Used to send OUT a response from NAV
     suspend fun returnMessageResponse(payloadMessage: PayloadMessage) {
         val validationResult = cpaValidationService.validateOutgoingMessage(payloadMessage)
         val processedMessage = processingService.proccessSyncOut(
@@ -74,8 +80,17 @@ class PayloadMessageForwardingService(
             signedEbmsDocument.messageHeader().messageData.messageId,
             signedEbmsDocument.attachments
         )
-        sendResponseToTopic(signedEbmsDocument, validationResult.receiverEmailAddress)
+        sendResponseToPayloadTopic(signedEbmsDocument, validationResult.receiverEmailAddress)
+        if (processedMessage.ackRequested) {
+            storeResponseNeedingAck(signedEbmsDocument, validationResult.receiverEmailAddress)
+        }
         log.info(processedMessage.marker(), "Payload message response returned successfully")
+    }
+
+    // This resend function is to be used from RPA processing
+    suspend fun resendMessageResponse(response: ResponseMessageNeedingAck) {
+        resendResponseToPayloadTopic(response)
+        log.info("Payload message response resent successfully")
     }
 
     suspend fun savePayloadsToDatabase(
@@ -103,7 +118,7 @@ class PayloadMessageForwardingService(
         }
     }
 
-    private suspend fun sendResponseToTopic(signedEbmsDocument: EbmsDocument, receiverEmailAddress: List<EmailAddress>) {
+    private suspend fun sendResponseToPayloadTopic(signedEbmsDocument: EbmsDocument, receiverEmailAddress: List<EmailAddress>) {
         eventRegistrationService.runWithEvent(
             successEvent = EventType.MESSAGE_PLACED_IN_QUEUE,
             failEvent = EventType.ERROR_WHILE_STORING_MESSAGE_IN_QUEUE,
@@ -116,8 +131,47 @@ class PayloadMessageForwardingService(
             ebmsPayloadProducer.publishMessage(
                 key = signedEbmsDocument.requestId,
                 value = signedEbmsDocument.document.toByteArray(),
-                headers = receiverEmailAddress.toKafkaHeaders() + signedEbmsDocument.messageHeader().toKafkaHeaders()
+                headers = buildPayloadHeaders(signedEbmsDocument.messageHeader(), receiverEmailAddress)
             )
         }
+    }
+
+    private fun buildPayloadHeaders(
+        messageHeader: MessageHeader,
+        receiverEmailAddressAsObjects: List<EmailAddress>? = null,
+        receiverEmailAddressAsStrings: List<String>? = null
+    ): MutableList<Header> {
+        val headers = mutableListOf<Header>()
+        if (receiverEmailAddressAsObjects != null) {
+            headers.addAll(receiverEmailAddressAsObjects.toKafkaHeaders())
+        }
+        if (receiverEmailAddressAsStrings != null) {
+            headers.addAll(toAddressKafkaHeader(receiverEmailAddressAsStrings))
+        }
+        headers.addAll(messageHeader.toKafkaHeaders())
+        return headers
+    }
+
+    // The given record/message will be like produced by sendResponseToPayloadTopic, just use its key, value and headers
+    private suspend fun resendResponseToPayloadTopic(response: ResponseMessageNeedingAck) {
+        eventRegistrationService.runWithEvent(
+            successEvent = EventType.MESSAGE_PLACED_IN_QUEUE,
+            failEvent = EventType.ERROR_WHILE_STORING_MESSAGE_IN_QUEUE,
+            requestId = response.requestId.parseOrGenerateUuid(),
+            messageId = response.messageId,
+            eventData = Json.encodeToString(
+                mapOf(EventDataType.QUEUE_NAME.value to config().kafkaPayloadProducer.topic)
+            )
+        ) {
+            ebmsPayloadProducer.publishMessage(
+                key = response.requestId,
+                value = response.messageContent,
+                headers = buildPayloadHeaders(response.messageHeader, null, response.emailAddressList)
+            )
+        }
+    }
+
+    private fun storeResponseNeedingAck(ebmsDocument: EbmsDocument, receiverEmailAddress: List<EmailAddress>) {
+        responseAckRepository.storeResponse(ebmsDocument.requestId, ebmsDocument.messageHeader(), ebmsDocument.document.toByteArray(), receiverEmailAddress)
     }
 }
