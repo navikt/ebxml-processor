@@ -186,9 +186,12 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         assertNotNull(validationResult)
 
         assertNotNull(validationResult.error)
-        assertEquals(validationResult.error?.size, 1)
-        assertEquals(validationResult.error?.first()?.code, ErrorCode.DELIVERY_FAILURE)
-        assertEquals(validationResult.error?.first()?.descriptionText, "Action EgenandelForesporsel matcher ikke service HarBorgerEgenandelFritak for sending party NAV")
+        assertEquals(1, validationResult.error?.size)
+        assertEquals(ErrorCode.DELIVERY_FAILURE, validationResult.error?.first()?.code)
+        assertEquals(
+            "Action EgenandelForesporsel matcher ikke service HarBorgerEgenandelFritak for sending party NAV",
+            validationResult.error?.first()?.descriptionText, "Forventet feilmelding matcher ikke"
+        )
     }
 
     @Test
