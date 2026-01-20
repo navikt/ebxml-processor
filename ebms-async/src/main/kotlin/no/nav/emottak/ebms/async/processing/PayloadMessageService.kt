@@ -108,7 +108,11 @@ class PayloadMessageService(
             log.info("Schedule retry for failing payload sent at $sentAt, error type: $errorType, reason: $reason, retries already performed: $retriedAlready. Decision reason: $decisionReason")
         } else {
             log.info("No retry for failing payload sent at $sentAt, error type: $errorType, reason: $reason, retries already performed: $retriedAlready. Decision reason: $decisionReason")
-            returnMessageError(payloadMessage, EbmsException(decisionReason, exception = exception))
+            try {
+                returnMessageError(payloadMessage, EbmsException(decisionReason, exception = exception))
+            } catch (exception: Exception) {
+                log.error("Error while returning error message for failed payload message with id ${record.key()}", exception)
+            }
         }
     }
 
