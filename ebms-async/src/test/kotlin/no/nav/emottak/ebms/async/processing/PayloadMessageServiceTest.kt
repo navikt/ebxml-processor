@@ -69,10 +69,6 @@ class PayloadMessageServiceTest {
         every {
             any<EbmsDocument>().signer(any())
         } returnsArgument(0)
-//        mockkStatic(ReceiverRecord<String, ByteArray>::headers)
-//        every {
-//            any<ReceiverRecord<String, ByteArray>>().headers()
-//        } returnsArgument(0)
     }
 
     private fun initService(enableSignalProducer: Boolean = true, enableRetryQueue: Boolean = true) {

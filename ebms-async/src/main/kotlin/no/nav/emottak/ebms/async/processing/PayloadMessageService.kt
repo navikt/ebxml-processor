@@ -59,7 +59,7 @@ class PayloadMessageService(
                     }.onFailure {
                         log.error(ebmsPayloadMessage.marker(), "Failed to return MessageError", exception)
                         // NB: Her sendes SELVE MELDINGEN til rekjøring, mens det er FEILMELDINGEN som feiler.
-                        // Dette blir feil. Vi kan rett og seltt ikke ha retry på MessageError
+                        // Dette blir feil. Vi kan rett og slett ikke ha retry på MessageError
                         // Legger IKKE melding på sendToRetryIfShouldBeRetried(record = record, payloadMessage = ebmsPayloadMessage, exception = exception, reason = "Failed to return MessageError: ${exception.message ?: "Unknown error"}")
                     }
                 }
