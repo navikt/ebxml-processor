@@ -260,7 +260,7 @@ class PayloadMessageServiceTest {
     }
 
     @Test
-    fun `process should send to retry if processPayloadMessage throws EbmsException and returnMessageError throws Exception`() = runBlocking {
+    fun `process should NOT send to retry if processPayloadMessage throws EbmsException and returnMessageError throws Exception`() = runBlocking {
         initService()
         val (payloadMessage, ebmsMessageSlots, fakeResult) = setupMocks(
             PerMessageCharacteristicsType.PER_MESSAGE,
@@ -293,7 +293,7 @@ class PayloadMessageServiceTest {
         }
         assertTrue(fakeResult.isSuccess)
         coVerify(exactly = 0) { ebmsSignalProducer.publishMessage(key = any(), value = any(), headers = any()) }
-        coVerify(exactly = 1) { failedMessageQueue.sendToRetry(any(), any(), any(), any()) }
+        coVerify(exactly = 0) { failedMessageQueue.sendToRetry(any(), any(), any(), any()) }
     }
 
     @Test
