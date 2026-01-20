@@ -136,6 +136,27 @@ class ResponseAckRepositoryTest {
         Assertions.assertEquals(0, responses.size)
     }
 
+    @Test
+    fun `Perform entire process`() {
+        val requestId = "theRequestId"
+        val payload = "theContent"
+        val messageHeader = readMessageHeaderFromTestFile("signaltest/acknowledgment.xml")
+        val messageId = messageHeader.messageData.messageId
+        val email1 = "ab@cd.com"
+        val email2 = "xy@cd.com"
+        val emailList = listOf(EmailAddress(email1, EndpointTypeType.RESPONSE), EmailAddress(email2, EndpointTypeType.RESPONSE))
+        responseAckRepository.storeResponse(requestId, messageHeader, payload.toByteArray(), emailList)
+
+        // max resends is set to 2 in the test setup
+        // The first 2 times we search, we find the pending response, and marks that we have resent it. The 3rd time we do not find it.
+        var responses = responseAckRepository.findResponsesToResend(Instant.now())
+        responseAckRepository.markResent(responses[0])
+        responses = responseAckRepository.findResponsesToResend(Instant.now())
+        responseAckRepository.markResent(responses[0])
+        responses = responseAckRepository.findResponsesToResend(Instant.now())
+        Assertions.assertEquals(0, responses.size)
+    }
+
     private fun readMessageHeaderFromTestFile(fileName: String): MessageHeader {
         val testMessage = String(this::class.java.classLoader
                 .getResourceAsStream(fileName)!!.readAllBytes())
