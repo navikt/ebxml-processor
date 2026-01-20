@@ -21,7 +21,6 @@ import no.nav.emottak.message.model.EbmsMessage
 import no.nav.emottak.message.model.EmailAddress
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.util.marker
-import no.nav.emottak.util.signatur.SignatureException
 import no.nav.emottak.utils.common.parseOrGenerateUuid
 import no.nav.emottak.utils.kafka.model.EventDataType
 import no.nav.emottak.utils.kafka.model.EventType
@@ -52,26 +51,9 @@ class PayloadMessageService(
             }
             returnAcknowledgment(ebmsPayloadMessage)
         }.onFailure { exception ->
-            when (exception) {
-                is EbmsException -> {
-                    runCatching {
-                        returnMessageError(ebmsPayloadMessage, exception)
-                    }.onFailure {
-                        log.error(ebmsPayloadMessage.marker(), "Failed to return MessageError", exception)
-                        // NB: Her sendes SELVE MELDINGEN til rekjøring, mens det er FEILMELDINGEN som feiler.
-                        // Dette blir feil. Vi kan rett og slett ikke ha retry på MessageError
-                        // Legger IKKE melding på sendToRetryIfShouldBeRetried(record = record, payloadMessage = ebmsPayloadMessage, exception = exception, reason = "Failed to return MessageError: ${exception.message ?: "Unknown error"}")
-                    }
-                }
-                is SignatureException -> {
-                    log.error(ebmsPayloadMessage.marker(), exception.message, exception)
-                    sendToRetryIfShouldBeRetried(record = record, payloadMessage = ebmsPayloadMessage, exception = exception, reason = exception.message)
-                }
-                else -> {
-                    log.error(ebmsPayloadMessage.marker(), exception.message ?: "Unknown error", exception)
-                    sendToRetryIfShouldBeRetried(record = record, payloadMessage = ebmsPayloadMessage, exception = exception, reason = exception.message ?: "Unknown error")
-                }
-            }
+            // TODO handle some errors by sending to retry, some by returning error message
+            log.error(ebmsPayloadMessage.marker(), exception.message ?: "Message processing error", exception)
+            sendToRetryIfShouldBeRetried(record = record, payloadMessage = ebmsPayloadMessage, exception = exception, reason = exception.message ?: "Unknown error")
         }
     }
 

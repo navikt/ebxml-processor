@@ -24,7 +24,6 @@ import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.EbmsAttachment
 import no.nav.emottak.message.model.EbmsDocument
 import no.nav.emottak.message.model.EbmsMessage
-import no.nav.emottak.message.model.MessageError
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.util.signatur.SignatureException
@@ -187,7 +186,7 @@ class PayloadMessageServiceTest {
     }
 
     @Test
-    fun `process should return error message if EbmsException is thrown`() = runBlocking {
+    fun `process should send to retry if EbmsException is thrown`() = runBlocking {
         initService()
         val (payloadMessage, ebmsMessageSlots, fakeResult) = setupMocks(
             PerMessageCharacteristicsType.PER_MESSAGE,
@@ -195,18 +194,17 @@ class PayloadMessageServiceTest {
             processAsyncThrowsEbmsException = true
         )
 
-        service.process(setupReceiverRecordWithoutRetryCountMock(), payloadMessage)
+        service.process(setupReceiverRecordAndFailedMessageQueueMock(), payloadMessage)
 
         coVerify(exactly = 1) { eventManagerService.isDuplicateMessage(payloadMessage) }
-        coVerify(exactly = 2) { eventRegistrationService.registerEventMessageDetails(any()) }
+        coVerify(exactly = 1) { eventRegistrationService.registerEventMessageDetails(any()) }
         assertType<PayloadMessage>(ebmsMessageSlots, 0)
-        assertType<MessageError>(ebmsMessageSlots, 1)
         coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(payloadMessage) }
         coVerify(exactly = 1) { processingService.processAsync(payloadMessage, any()) }
         coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithSyncResponse(payloadMessage) }
         coVerify(exactly = 0) { payloadMessageForwardingService.returnMessageResponse(payloadMessage) }
-        coVerify(exactly = 1) { cpaValidationService.validateOutgoingMessage(any()) }
-        coVerify(exactly = 1) {
+        coVerify(exactly = 0) { cpaValidationService.validateOutgoingMessage(any()) }
+        coVerify(exactly = 0) {
             eventRegistrationService.runWithEvent(
                 EventType.MESSAGE_PLACED_IN_QUEUE,
                 EventType.ERROR_WHILE_STORING_MESSAGE_IN_QUEUE,
@@ -217,8 +215,8 @@ class PayloadMessageServiceTest {
                 any()
             )
         }
-        assertTrue(fakeResult.isSuccess)
-        coVerify(exactly = 1) { ebmsSignalProducer.publishMessage(key = any(), value = any(), headers = any()) }
+        coVerify(exactly = 0) { ebmsSignalProducer.publishMessage(key = any(), value = any(), headers = any()) }
+        coVerify(exactly = 1) { failedMessageQueue.sendToRetry(any(), any(), any(), any()) }
     }
 
     @Test
@@ -253,43 +251,6 @@ class PayloadMessageServiceTest {
         }
         coVerify(exactly = 0) { ebmsSignalProducer.publishMessage(key = any(), value = any(), headers = any()) }
         coVerify(exactly = 1) { failedMessageQueue.sendToRetry(any(), any(), any(), any()) }
-    }
-
-    @Test
-    fun `process should NOT send to retry if processPayloadMessage throws EbmsException and returnMessageError throws Exception`() = runBlocking {
-        initService()
-        val (payloadMessage, ebmsMessageSlots, fakeResult) = setupMocks(
-            PerMessageCharacteristicsType.PER_MESSAGE,
-            false,
-            processAsyncThrowsEbmsException = true,
-            validateOutgoingThrowsException = true
-        )
-
-        service.process(setupReceiverRecordAndFailedMessageQueueMock(), payloadMessage)
-
-        coVerify(exactly = 1) { eventManagerService.isDuplicateMessage(payloadMessage) }
-        coVerify(exactly = 2) { eventRegistrationService.registerEventMessageDetails(any()) }
-        assertType<PayloadMessage>(ebmsMessageSlots, 0)
-        assertType<MessageError>(ebmsMessageSlots, 1)
-        coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(payloadMessage) }
-        coVerify(exactly = 1) { processingService.processAsync(payloadMessage, any()) }
-        coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithSyncResponse(payloadMessage) }
-        coVerify(exactly = 0) { payloadMessageForwardingService.returnMessageResponse(payloadMessage) }
-        coVerify(exactly = 1) { cpaValidationService.validateOutgoingMessage(any()) }
-        coVerify(exactly = 0) {
-            eventRegistrationService.runWithEvent(
-                EventType.MESSAGE_PLACED_IN_QUEUE,
-                EventType.ERROR_WHILE_STORING_MESSAGE_IN_QUEUE,
-                any(),
-                any(),
-                any(),
-                any(),
-                any()
-            )
-        }
-        assertTrue(fakeResult.isSuccess)
-        coVerify(exactly = 0) { ebmsSignalProducer.publishMessage(key = any(), value = any(), headers = any()) }
-        coVerify(exactly = 0) { failedMessageQueue.sendToRetry(any(), any(), any(), any()) }
     }
 
     @Test
