@@ -46,7 +46,7 @@ class PayloadMessageForwardingService(
                 sendInService.sendIn(payloadMessage).let { sendInResponse ->
                     PayloadMessage(
                         requestId = sendInResponse.requestId,
-                        messageId = Uuid.random().toString(),
+                        messageId = sendInResponse.messageId,
                         conversationId = sendInResponse.conversationId,
                         cpaId = payloadMessage.cpaId,
                         addressing = sendInResponse.addressing,
