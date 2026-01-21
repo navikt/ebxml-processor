@@ -4,10 +4,12 @@ import org.jetbrains.exposed.v1.core.Column
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.javatime.timestamp
 import java.time.Instant
+import java.util.UUID
 
-object ResponseAckTable : Table("responseack") {
-    val messageId: Column<String> = varchar("message_id", 256)
-    val requestId: Column<String> = varchar("request_id", 256)
+
+object ResponseAckTable : Table("message_pending_ack") {
+    val messageId: Column<UUID> = uuid("message_id")
+    val requestId: Column<UUID> = uuid("request_id")
     val ackReceived: Column<Boolean> = bool("ack_received")
     val messageHeader: Column<String> = text("header")
     val messageContent: Column<ByteArray> = binary("content")

@@ -17,6 +17,7 @@ import org.testcontainers.containers.PostgreSQLContainer
 import org.xmlsoap.schemas.soap.envelope.Envelope
 import java.sql.DriverManager
 import java.time.Instant
+import kotlin.uuid.Uuid
 
 class ResponseAckRepositoryTest {
     companion object {
@@ -49,7 +50,7 @@ class ResponseAckRepositoryTest {
 
         DriverManager.getConnection(jdbcUrl, username, password).use { connection ->
             connection.createStatement().use { statement ->
-                statement.execute("DELETE FROM responseack")
+                statement.execute("DELETE FROM message_pending_ack")
             }
         }
     }
@@ -58,7 +59,7 @@ class ResponseAckRepositoryTest {
 
     @Test
     fun `Write ResponseAck and read back`() {
-        val requestId = "theRequestId"
+        val requestId = Uuid.random()
         val payload = "theContent"
         val messageHeader = readMessageHeaderFromTestFile("signaltest/acknowledgment.xml")
         val messageId = messageHeader.messageData.messageId
@@ -87,7 +88,7 @@ class ResponseAckRepositoryTest {
 
     @Test
     fun `Verify markResent`() {
-        val requestId = "theRequestId"
+        val requestId = Uuid.random()
         val payload = "theContent"
         val messageHeader = readMessageHeaderFromTestFile("signaltest/acknowledgment.xml")
         val email1 = "ab@cd.com"
@@ -111,7 +112,7 @@ class ResponseAckRepositoryTest {
 
     @Test
     fun `Verify registerAckForMessage`() {
-        val requestId = "theRequestId"
+        val requestId = Uuid.random()
         val payload = "theContent"
         val messageHeader = readMessageHeaderFromTestFile("signaltest/acknowledgment.xml")
         val messageId = messageHeader.messageData.messageId
@@ -133,7 +134,7 @@ class ResponseAckRepositoryTest {
 
     @Test
     fun `Perform entire process`() {
-        val requestId = "theRequestId"
+        val requestId = Uuid.random()
         val payload = "theContent"
         val messageHeader = readMessageHeaderFromTestFile("signaltest/acknowledgment.xml")
         val messageId = messageHeader.messageData.messageId

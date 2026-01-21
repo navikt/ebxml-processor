@@ -172,6 +172,6 @@ class PayloadMessageForwardingService(
     }
 
     private fun storeResponseNeedingAck(ebmsDocument: EbmsDocument, receiverEmailAddress: List<EmailAddress>) {
-        responseAckRepository.storeResponse(ebmsDocument.requestId, ebmsDocument.messageHeader(), ebmsDocument.document.toByteArray(), receiverEmailAddress)
+        responseAckRepository.storeResponse(ebmsDocument.requestId.parseOrGenerateUuid(), ebmsDocument.messageHeader(), ebmsDocument.document.toByteArray(), receiverEmailAddress)
     }
 }

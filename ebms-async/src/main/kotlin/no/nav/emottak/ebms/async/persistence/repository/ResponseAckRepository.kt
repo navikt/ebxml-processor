@@ -13,6 +13,8 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.update
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
 import java.time.Instant
+import kotlin.uuid.Uuid
+import kotlin.uuid.toJavaUuid
 
 // Entity representing a Response Message, whether it has been acknowledged, and any resend history
 data class ResponseMessageNeedingAck(
@@ -38,15 +40,15 @@ class ResponseAckRepository(
     val maxResends: Int
 ) {
 
-    fun storeResponse(id: String, header: MessageHeader, content: ByteArray, receiverEmailAddress: List<EmailAddress>) {
+    fun storeResponse(id: Uuid, header: MessageHeader, content: ByteArray, receiverEmailAddress: List<EmailAddress>) {
         val addressListAsStringList: List<String> = receiverEmailAddress.map { a -> a.emailAddress }
         val addressesAsString = addressListAsStringList.joinToString(",")
         val now = Instant.now()
         transaction(database.db) {
             ResponseAckTable
                 .insert {
-                    it[messageId] = header.messageData.messageId
-                    it[requestId] = id
+                    it[messageId] = Uuid.parse(header.messageData.messageId).toJavaUuid()
+                    it[requestId] = id.toJavaUuid()
                     it[ackReceived] = false
                     it[messageHeader] = xmlMarshaller.marshal(header)
                     it[messageContent] = content
@@ -61,8 +63,9 @@ class ResponseAckRepository(
     // Set last resent = now, and increase reset-count for response with given message id
     fun markResent(response: ResponseMessageNeedingAck) {
         transaction(database.db) {
+            val messageIdAsUuid = Uuid.parse(response.messageId).toJavaUuid()
             ResponseAckTable
-                .update(where = { ResponseAckTable.messageId.eq(response.messageId) }) {
+                .update(where = { ResponseAckTable.messageId.eq(messageIdAsUuid) }) {
                     it[lastSent] = Instant.now()
                     it[resentCount] = response.resentCount + 1
                 }
@@ -71,9 +74,10 @@ class ResponseAckRepository(
 
     // Set ackReceived for response with given message id
     fun registerAckForMessage(messageId: String) {
+        val messageIdAsUuid = Uuid.parse(messageId).toJavaUuid()
         transaction(database.db) {
             ResponseAckTable
-                .update(where = { ResponseAckTable.messageId.eq(messageId) }) {
+                .update(where = { ResponseAckTable.messageId.eq(messageIdAsUuid) }) {
                     it[ackReceived] = true
                 }
         }
@@ -95,8 +99,8 @@ class ResponseAckRepository(
                 }
                 .map {
                     ResponseMessageNeedingAck(
-                        it[ResponseAckTable.messageId],
-                        it[ResponseAckTable.requestId],
+                        it[ResponseAckTable.messageId].toString(),
+                        it[ResponseAckTable.requestId].toString(),
                         it[ResponseAckTable.ackReceived],
                         xmlMarshaller.unmarshal(it[ResponseAckTable.messageHeader], MessageHeader::class.java),
                         it[ResponseAckTable.messageContent],

@@ -1,7 +1,7 @@
-CREATE TABLE responseack
+CREATE TABLE message_pending_ack
 (
-    message_id          VARCHAR(256)        NOT NULL PRIMARY KEY,
-    request_id          VARCHAR(256)        NOT NULL,
+    message_id          UUID                NOT NULL PRIMARY KEY,
+    request_id          UUID                NOT NULL,
     ack_received        BOOLEAN             NOT NULL,
     header              TEXT                NOT NULL,
     content             BYTEA		        NOT NULL,
