@@ -52,6 +52,11 @@ class EventRegistrationServiceFake : EventRegistrationService {
         requestId: String,
         eventData: String
     ) {
-        log.debug("Registering event $eventType for validationRequest: $validationRequest and eventData: $eventData")
+        log.debug(
+            "Registering event {} for validationRequest: {} and eventData: {}",
+            eventType,
+            validationRequest,
+            eventData
+        )
     }
 }
