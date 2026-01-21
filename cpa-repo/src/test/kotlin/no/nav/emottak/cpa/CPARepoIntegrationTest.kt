@@ -190,7 +190,8 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         assertEquals(ErrorCode.DELIVERY_FAILURE, validationResult.error?.first()?.code)
         assertEquals(
             "Action EgenandelForesporsel matcher ikke service HarBorgerEgenandelFritak for sending party NAV",
-            validationResult.error?.first()?.descriptionText, "Forventet feilmelding matcher ikke"
+            validationResult.error?.first()?.descriptionText,
+            "Forventet feilmelding matcher ikke"
         )
     }
 
