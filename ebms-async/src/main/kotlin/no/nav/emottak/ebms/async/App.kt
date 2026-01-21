@@ -221,19 +221,21 @@ fun CoroutineScope.launchErrorRetryTask(
     failedMessageQueue: FailedMessageKafkaHandler,
     pauseRetryErrorsTimerFlag: PauseRetryErrorsTimerFlag
 ) {
-    if (config.kafkaErrorQueue.active) {
-        retryErrorsTimer.scheduleAtFixedRate(delay = 5000L, period = TimeUnit.SECONDS.toMillis(config.errorRetryPolicy.processIntervalSeconds.toLong())) {
-            launch(Dispatchers.IO) {
-                log.info("=== RetryErrorsTask starting...")
-                if (pauseRetryErrorsTimerFlag.paused) {
-                    log.info("Retry task is paused.")
-                } else {
-                    failedMessageQueue.consumeRetryQueue(
-                        messageFilterService,
-                        config.errorRetryPolicy.maxMessagesToProcess
-                    )
-                }
+    if (config.kafkaErrorQueue.active) return
+
+    retryErrorsTimer.scheduleAtFixedRate(delay = 5000L, period = TimeUnit.SECONDS.toMillis(config.errorRetryPolicy.processIntervalSeconds.toLong())) {
+        launch(Dispatchers.IO) {
+            log.info("=== RetryErrorsTask starting...")
+
+            if (pauseRetryErrorsTimerFlag.paused) {
+                log.info("Retry task is paused.")
+                return@launch
             }
+
+            failedMessageQueue.consumeRetryQueue(
+                messageFilterService,
+                config.errorRetryPolicy.maxMessagesToProcess
+            )
         }
     }
 }
