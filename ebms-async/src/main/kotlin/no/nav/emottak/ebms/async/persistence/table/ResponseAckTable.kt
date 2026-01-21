@@ -6,7 +6,6 @@ import org.jetbrains.exposed.v1.javatime.timestamp
 import java.time.Instant
 import java.util.UUID
 
-
 object ResponseAckTable : Table("message_pending_ack") {
     val messageId: Column<UUID> = uuid("message_id")
     val requestId: Column<UUID> = uuid("request_id")
