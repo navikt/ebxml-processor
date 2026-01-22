@@ -29,7 +29,7 @@ class NinResolverTest {
     @Test
     fun `validate with OK helseID token`() {
         val myId = "01010000110"
-        val validToken = buildToken(myId, listOf(VALID_AUDIENCE),listOf(VALID_SCOPE))
+        val validToken = buildToken(myId, listOf(VALID_AUDIENCE), listOf(VALID_SCOPE))
 
         val resolver = NinResolver()
         val id = resolver.resolve(Base64.getEncoder().encodeToString(validToken.toByteArray()), Instant.now())
@@ -38,7 +38,7 @@ class NinResolverTest {
 
     @Test
     fun `validate with failing helseID token`() {
-        val token = buildToken("whateverId", listOf("whatever_audience"),listOf(VALID_SCOPE))
+        val token = buildToken("whateverId", listOf("whatever_audience"), listOf(VALID_SCOPE))
 
         val resolver = NinResolver()
         assertFailsWith(IllegalStateException::class, "Token does not contain required audience") {
