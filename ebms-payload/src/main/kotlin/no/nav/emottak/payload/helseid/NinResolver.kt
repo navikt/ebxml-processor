@@ -1,37 +1,25 @@
 package no.nav.emottak.payload.helseid
 
-import no.nav.emottak.crypto.KeyStoreManager
-import no.nav.emottak.payload.configuration.config
-import no.nav.emottak.payload.defaultHttpClient
 import no.nav.emottak.payload.helseid.util.msgHeadNamespaceContext
-import no.nav.emottak.payload.ocspstatus.OcspStatusService
-import org.slf4j.LoggerFactory
-import org.slf4j.Marker
 import org.w3c.dom.Document
-import java.security.cert.X509Certificate
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 
 class NinResolver(
-    private val tokenValidator: HelseIdTokenValidator = HelseIdTokenValidator(),
-    private val ocspStatusService: OcspStatusService = OcspStatusService(
-        defaultHttpClient().invoke(),
-        KeyStoreManager(*config().signering.map { it.resolveKeyStoreConfiguration() }.toTypedArray())
-    )
+    private val tokenValidator: HelseIdTokenValidator = HelseIdTokenValidator()
 ) {
-    private val log = LoggerFactory.getLogger(NinResolver::class.java)
+    fun resolve(token: String, messageGenerationDate: Instant): String? {
+        return tokenValidator.getValidatedNin(token, messageGenerationDate)
+    }
 
-    suspend fun resolve(marker: Marker, document: Document, certificate: X509Certificate): String? {
+    fun resolve(document: Document): String? {
         val token = tokenValidator.getHelseIdTokenFromDocument(document)
 
-        val nin = token?.let {
-            runCatching {
-                tokenValidator.getValidatedNin(it, parseDateOrThrow(extractGeneratedDate(document)))
-            }.onFailure { log.error(marker, "HelseID validation failed", it) }.getOrNull()
+        if (token == null) {
+            throw RuntimeException("No HelseID token found in document")
         }
-
-        return nin ?: ocspStatusService.getOCSPStatus(certificate).fnr
+        return resolve(token, parseDateOrThrow(extractGeneratedDate(document)))
     }
 
     private fun extractGeneratedDate(document: Document): String? {
