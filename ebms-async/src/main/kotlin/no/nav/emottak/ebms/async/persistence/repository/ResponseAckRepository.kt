@@ -13,6 +13,7 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.update
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
 import java.time.Instant
+import java.util.UUID
 import kotlin.uuid.Uuid
 import kotlin.uuid.toJavaUuid
 
@@ -74,7 +75,13 @@ class ResponseAckRepository(
 
     // Set ackReceived for response with given message id
     fun registerAckForMessage(messageId: String) {
-        val messageIdAsUuid = Uuid.parse(messageId).toJavaUuid()
+        var messageIdAsUuid: UUID? = null
+        try {
+            // Kan få acks med annet enn UUID, så lenge gamle emottak er i live. Disse trenger vi ikke gjøre noe med.
+            messageIdAsUuid = Uuid.parse(messageId).toJavaUuid()
+        } catch (e: Exception) {
+            return
+        }
         transaction(database.db) {
             ResponseAckTable
                 .update(where = { ResponseAckTable.messageId.eq(messageIdAsUuid) }) {
