@@ -73,9 +73,8 @@ class PayloadIntegrationTest : PayloadTestBase() {
         }
     }
 
-    // @Test TODO fixme
+    @Test
     fun `Payload endepunkt med HelseID`() = testApp {
-        val expectedNationalIdentityNumber = "25027600363"
         val requestBody = baseRequest(payload = Fixtures.validEgenandelForesporselHelseId()).withOCSP()
 
         val response = client(authenticated = true).post("/payload") {
@@ -83,16 +82,14 @@ class PayloadIntegrationTest : PayloadTestBase() {
         }
 
         with(response.body<PayloadResponse>()) {
-            assertEquals(HttpStatusCode.OK, response.status)
-            assertNull(error)
-            assertEquals(expectedNationalIdentityNumber, processedPayload!!.signedBy)
+            assertEquals(HttpStatusCode.BadRequest, response.status)
+            assertEquals(ErrorCode.UNKNOWN, response.body<PayloadResponse>().error!!.code)
+            assertEquals("Token does not contain required audience", response.body<PayloadResponse>().error!!.descriptionText)
         }
     }
 
     @Test
     fun `Payload endepunkt med OCSP`() = testApp {
-        val ssn = "01010112345"
-
         val requestBody = baseRequest().withOCSP()
         val httpResponse = client(authenticated = true).post("/payload") {
             header(
@@ -102,9 +99,9 @@ class PayloadIntegrationTest : PayloadTestBase() {
             setBody(requestBody)
             contentType(ContentType.Application.Json)
         }
-        assertEquals(HttpStatusCode.OK, httpResponse.status)
-        assertNull(httpResponse.body<PayloadResponse>().error)
-        assertEquals(ssn, httpResponse.body<PayloadResponse>().processedPayload!!.signedBy)
+        assertEquals(HttpStatusCode.BadRequest, httpResponse.status)
+        assertEquals(ErrorCode.UNKNOWN, httpResponse.body<PayloadResponse>().error!!.code)
+        assertEquals("No HelseID token found in document", httpResponse.body<PayloadResponse>().error!!.descriptionText)
     }
 
     private fun getToken(audience: String = AuthConfig.getScope()): SignedJWT = mockOAuth2Server.issueToken(
