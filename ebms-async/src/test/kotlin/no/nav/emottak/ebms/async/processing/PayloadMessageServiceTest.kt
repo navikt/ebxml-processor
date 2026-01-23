@@ -10,6 +10,7 @@ import io.mockk.just
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.slot
+import io.mockk.spyk
 import kotlinx.coroutines.runBlocking
 import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
 import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
@@ -33,11 +34,13 @@ import no.nav.emottak.utils.common.model.PartyId
 import no.nav.emottak.utils.kafka.model.EventType
 import org.apache.kafka.clients.producer.RecordMetadata
 import org.apache.kafka.common.header.Headers
+import org.apache.kafka.common.header.internals.RecordHeader
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PerMessageCharacteristicsType
 import org.w3c.dom.Document
+import java.time.Instant
 import kotlin.test.assertFalse
 import kotlin.uuid.Uuid
 
@@ -397,6 +400,142 @@ class PayloadMessageServiceTest {
 
         assertFalse(result)
     }
+
+    @Test
+    fun `isExpired returns true for past ttl`() {
+        initService()
+        val past = Instant.now().minusSeconds(60)
+        kotlin.test.assertTrue(service.isExpired(past))
+    }
+
+    @Test
+    fun `isExpired returns false for future ttl`() {
+        initService()
+        val future = Instant.now().plusSeconds(60)
+        assertFalse(service.isExpired(future))
+    }
+
+    @Test
+    fun `isExpired returns true for now instant as well`() {
+        initService()
+        val now = java.time.Instant.now()
+        // isExpired uses Instant.now() internally, so passing a captured now should be considered expired (<= nowAtCall)
+        assertTrue(service.isExpired(now))
+    }
+
+    @Test
+    fun `decideRetry returns TTL_EXPIRED when ttl is in past`() {
+        initService()
+        val past = java.time.Instant.now().minusSeconds(10)
+        val (decision, reason) = service.decideRetry(ttl = past, retriedAlready = 0, maxRetries = 5)
+        kotlin.test.assertEquals(PayloadMessageService.RetryDecision.TTL_EXPIRED, decision)
+        kotlin.test.assertTrue(reason.contains("TimeToLive expired"))
+    }
+
+    @Test
+    fun `decideRetry returns MAX_RETRIES_EXCEEDED when retriedAlready is at least maxRetries`() {
+        initService()
+        val (decision, reason) = service.decideRetry(ttl = null, retriedAlready = 3, maxRetries = 3)
+        kotlin.test.assertEquals(PayloadMessageService.RetryDecision.MAX_RETRIES_EXCEEDED, decision)
+        kotlin.test.assertTrue(reason.contains("Retried too many times"))
+    }
+
+    @Test
+    fun `decideRetry returns RETRY when ttl is present and not expired`() {
+        initService()
+        val future = java.time.Instant.now().plusSeconds(3600)
+        val (decision, reason) = service.decideRetry(ttl = future, retriedAlready = 1, maxRetries = 5)
+        kotlin.test.assertEquals(PayloadMessageService.RetryDecision.RETRY, decision)
+        kotlin.test.assertTrue(reason.contains("Within ebXML TimeToLive"))
+    }
+
+    @Test
+    fun `decideRetry returns RETRY when ttl is null and retried less than max`() {
+        initService()
+        val (decision, reason) = service.decideRetry(ttl = null, retriedAlready = 0, maxRetries = 5)
+        kotlin.test.assertEquals(PayloadMessageService.RetryDecision.RETRY, decision)
+        kotlin.test.assertTrue(reason.contains("No ebXML TimeToLive"))
+    }
+
+    @Test
+    fun `sendToRetryIfShouldBeRetried does not retry when ttl expired and returns MessageError`() = runBlocking {
+        initService()
+        val receiverRecord = mockk<ReceiverRecord<String, ByteArray>>(relaxed = true)
+        val headers = mockk<Headers>()
+        every { receiverRecord.headers() } returns headers
+        every { headers.lastHeader("retryCount") } returns null
+
+        val payload = createPayloadMessageWithTtl(Instant.now().minusSeconds(10))
+
+        coEvery { cpaValidationService.validateOutgoingMessage(any()) } returns mockk(relaxed = true)
+        coEvery { eventRegistrationService.registerEventMessageDetails(any()) } just Runs
+
+        val spyService = spyk(service)
+        coEvery { spyService.returnMessageError(any(), any()) } just Runs
+
+        spyService.sendToRetryIfShouldBeRetried(receiverRecord, payload, EbmsException("fail"), "reason")
+
+        coVerify(exactly = 0) { spyService.sendToRetry(any(), any()) }
+        coVerify { spyService.returnMessageError(any(), any()) }
+    }
+
+    @Test
+    fun `sendToRetryIfShouldBeRetried retries when ttl in future`() = runBlocking {
+        initService()
+        val receiverRecord = mockk<ReceiverRecord<String, ByteArray>>(relaxed = true)
+        val headers2 = mockk<Headers>()
+        every { receiverRecord.headers() } returns headers2
+        every { headers2.lastHeader("retryCount") } returns RecordHeader("retryCount", "1".toByteArray())
+
+        val payload = createPayloadMessageWithTtl(Instant.now().plusSeconds(3600))
+
+        val spyService = spyk(service)
+        coEvery { spyService.returnMessageError(any(), any()) } just Runs
+        coEvery { spyService.sendToRetry(any(), any()) } just Runs
+
+        spyService.sendToRetryIfShouldBeRetried(receiverRecord, payload, EbmsException("fail"), "reason")
+
+        coVerify(exactly = 1) { spyService.sendToRetry(any(), any()) }
+    }
+
+    @Test
+    fun `sendToRetryIfShouldBeRetried retries when ttl is null`() = runBlocking {
+        initService()
+        val receiverRecord = mockk<ReceiverRecord<String, ByteArray>>(relaxed = true)
+        val headers3 = mockk<Headers>()
+        every { receiverRecord.headers() } returns headers3
+        every { headers3.lastHeader("retryCount") } returns null
+
+        val payload = createPayloadMessageWithTtl(null)
+
+        val spyService = spyk(service)
+        coEvery { spyService.returnMessageError(any(), any()) } just Runs
+        coEvery { spyService.sendToRetry(any(), any()) } just Runs
+
+        spyService.sendToRetryIfShouldBeRetried(receiverRecord, payload, EbmsException("fail"), "reason")
+
+        coVerify(exactly = 1) { spyService.sendToRetry(any(), any()) }
+    }
+
+    private fun createPayloadMessageWithTtl(ttl: Instant?) = PayloadMessage(
+        requestId = Uuid.random().toString(),
+        messageId = Uuid.random().toString(),
+        conversationId = Uuid.random().toString(),
+        cpaId = "cpa",
+        addressing = Addressing(
+            to = Party(listOf(PartyId(type = "t", value = "v")), role = "r"),
+            from = Party(listOf(PartyId(type = "t2", value = "v2")), role = "r2"),
+            service = "s",
+            action = "a"
+        ),
+        payload = EbmsAttachment(bytes = byteArrayOf(), contentType = ""),
+        document = null,
+        refToMessageId = null,
+        sentAt = Instant.now(),
+        timeToLive = ttl,
+        duplicateElimination = false,
+        ackRequested = false
+    )
 
     private fun setupMocks(
         duplicateEliminationStrategy: PerMessageCharacteristicsType,

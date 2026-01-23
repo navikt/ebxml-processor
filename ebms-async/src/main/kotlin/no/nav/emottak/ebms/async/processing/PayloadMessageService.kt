@@ -25,7 +25,6 @@ import no.nav.emottak.utils.common.parseOrGenerateUuid
 import no.nav.emottak.utils.kafka.model.EventDataType
 import no.nav.emottak.utils.kafka.model.EventType
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PerMessageCharacteristicsType
-import java.time.Duration
 import java.time.Instant
 
 class PayloadMessageService(
@@ -58,7 +57,7 @@ class PayloadMessageService(
     }
 
     // TODO under construction/experimentation, might be moved to a separate class
-    private suspend fun sendToRetryIfShouldBeRetried(
+    internal suspend fun sendToRetryIfShouldBeRetried(
         record: ReceiverRecord<String, ByteArray>,
         payloadMessage: PayloadMessage,
         exception: Throwable,
@@ -71,8 +70,7 @@ class PayloadMessageService(
         val retriedAlready = record.retryCount()
         val errorType = exception::class.simpleName ?: "Unknown error"
         val sentAt = payloadMessage.sentAt
-        var shouldRetry = false
-        var decisionReason = ""
+        val ttl = payloadMessage.timeToLive
 
         // Error situations:
         //   Exception subtypes:
@@ -83,37 +81,45 @@ class PayloadMessageService(
         //   ProcessingService.processMessage results in error, incl retrieveReturnableApprecResponse returns null
         // Todo consider if any of these should have specific rules, for now we treat all equally
 
-        // Until we have a TTL/expiry, use sentAt
-        val maxTimeToLive = Duration.ofMinutes(300) // TODO config ?
-        if (sentAt != null) {
-            val timeSinceSent = Duration.between(sentAt, Instant.now())
-            if (timeSinceSent.compareTo(maxTimeToLive) <= 0) {
-                shouldRetry = true
-                decisionReason = "Not expired yet, max time to live is ${maxTimeToLive.toHours()} hours, time since sent is ${timeSinceSent.toHours()} hours"
-            } else {
-                decisionReason = "Expired, max time to live is ${maxTimeToLive.toHours()} hours, time since sent is ${timeSinceSent.toHours()} hours"
+        val cfgMaxRetries = 10
+
+        val (decision, decisionReason) = decideRetry(ttl = ttl, retriedAlready = retriedAlready, maxRetries = cfgMaxRetries)
+
+        when (decision) {
+            RetryDecision.RETRY -> {
+                sendToRetry(record, reason)
+                log.info("Schedule retry for failing payload sent at ${sentAt ?: "unknown"}, error type: $errorType, reason: $reason, retries already performed: $retriedAlready. Decision reason: $decisionReason")
             }
-        } else {
-            // Fallback if we do not have sentAt
-            val maxRetries = 10 // TODO config ?
-            if (retriedAlready < maxRetries) {
-                shouldRetry = true
-                decisionReason = "More retries OK, max number is $maxRetries, already retried $retriedAlready times"
-            } else {
-                decisionReason = "Retried too many times, max number is $maxRetries, already retried $retriedAlready times"
+            RetryDecision.TTL_EXPIRED -> {
+                log.info("No retry for failing payload sent at ${sentAt ?: "unknown"}, error type: $errorType, reason: $reason, retries already performed: $retriedAlready. Decision reason: $decisionReason")
+                returnMessageError(payloadMessage, EbmsException("TimeToLive expired", errorCode = no.nav.emottak.message.model.ErrorCode.TIME_TO_LIVE_EXPIRED, exception = exception))
             }
-        }
-        if (shouldRetry) {
-            sendToRetry(record, reason)
-            log.info("Schedule retry for failing payload sent at $sentAt, error type: $errorType, reason: $reason, retries already performed: $retriedAlready. Decision reason: $decisionReason")
-        } else {
-            log.info("No retry for failing payload sent at $sentAt, error type: $errorType, reason: $reason, retries already performed: $retriedAlready. Decision reason: $decisionReason")
-            try {
+            RetryDecision.MAX_RETRIES_EXCEEDED -> {
+                log.info("No retry for failing payload sent at ${sentAt ?: "unknown"}, error type: $errorType, reason: $reason, retries already performed: $retriedAlready. Decision reason: $decisionReason")
                 returnMessageError(payloadMessage, EbmsException(decisionReason, exception = exception))
-            } catch (exception: Exception) {
-                log.error("Error while returning error message for failed payload message with id ${record.key()}", exception)
             }
         }
+    }
+
+    internal fun decideRetry(ttl: Instant?, retriedAlready: Int, maxRetries: Int): Pair<RetryDecision, String> {
+        if (ttl != null && isExpired(ttl)) {
+            return RetryDecision.TTL_EXPIRED to "ebXML TimeToLive expired at $ttl"
+        }
+        if (retriedAlready >= maxRetries) {
+            return RetryDecision.MAX_RETRIES_EXCEEDED to "Retried too many times, max number is $maxRetries, already retried $retriedAlready times"
+        }
+        val reason = if (ttl != null) {
+            "Within ebXML TimeToLive (expires at $ttl), already retried $retriedAlready times"
+        } else {
+            "No ebXML TimeToLive but more retries OK, already retried $retriedAlready times"
+        }
+        return RetryDecision.RETRY to reason
+    }
+
+    internal enum class RetryDecision { RETRY, TTL_EXPIRED, MAX_RETRIES_EXCEEDED }
+
+    internal fun isExpired(ttl: Instant): Boolean {
+        return ttl <= Instant.now()
     }
 
     private suspend fun processPayloadMessage(ebmsPayloadMessage: PayloadMessage) {
@@ -182,7 +188,7 @@ class PayloadMessageService(
         }
     }
 
-    private suspend fun sendToRetry(record: ReceiverRecord<String, ByteArray>, exceptionReason: String) {
+    internal suspend fun sendToRetry(record: ReceiverRecord<String, ByteArray>, exceptionReason: String) {
         if (config().kafkaSignalProducer.active && config().kafkaPayloadProducer.active && config().kafkaErrorQueue.active) {
             failedMessageQueue.sendToRetry(
                 record = record,
