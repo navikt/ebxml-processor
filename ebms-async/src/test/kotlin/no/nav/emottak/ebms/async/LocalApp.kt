@@ -98,7 +98,6 @@ fun main() = SuspendApp {
     val processingService = ProcessingService(
         httpClient = PayloadProcessingClient(scopedAuthHttpClient(EBMS_PAYLOAD_SCOPE))
     )
-    // todo should be configured to not validate signatures, is hardcoded to NEVER do it here
     val cpaValidationService = CPAValidationService(
         httpClient = DummyCpaRepoClient()
     )
