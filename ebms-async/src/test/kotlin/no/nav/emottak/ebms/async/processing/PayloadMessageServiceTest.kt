@@ -401,7 +401,6 @@ class PayloadMessageServiceTest {
         assertFalse(result)
     }
 
-
     @Test
     fun `isExpired returns true for past ttl`() {
         initService()
