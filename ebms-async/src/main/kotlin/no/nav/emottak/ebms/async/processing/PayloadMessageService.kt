@@ -118,7 +118,7 @@ class PayloadMessageService(
         }
     }
 
-    private fun decideRetry(ttl: Instant?, retriedAlready: Int, maxRetries: Int): Pair<RetryDecision, String> {
+    internal fun decideRetry(ttl: Instant?, retriedAlready: Int, maxRetries: Int): Pair<RetryDecision, String> {
         if (ttl != null && isExpired(ttl)) {
             return RetryDecision.TTL_EXPIRED to "ebXML TimeToLive expired at $ttl"
         }
@@ -133,7 +133,7 @@ class PayloadMessageService(
         return RetryDecision.RETRY to reason
     }
 
-    private enum class RetryDecision { RETRY, TTL_EXPIRED, MAX_RETRIES_EXCEEDED }
+    internal enum class RetryDecision { RETRY, TTL_EXPIRED, MAX_RETRIES_EXCEEDED }
 
     internal fun isExpired(ttl: Instant): Boolean {
         return ttl <= Instant.now()
