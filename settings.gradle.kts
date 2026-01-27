@@ -13,19 +13,38 @@ dependencyResolutionManagement {
 
     versionCatalogs {
         create("libs") {
+            version("kotlin-logging", "7.0.3")
+            version("schema-kenerator-serialization", "2.5.0")
+            version("kotlinx-serialization", "1.9.0")
+            version("ktor-swagger-ui", "5.4.0")
+            version("ktor-openapi", "5.4.0")
+            version("nimbus-jwt", "9.31")
+            version("arrow", "2.0.1")
             version("bouncycastle", "1.76")
             version("exposed", "1.0.0-rc-3")
             version("ktor", "3.0.3")
             version("token-validation-ktor", "5.0.15")
             version("arrow", "1.2.4")
+            version("jwt", "4.4.0")
             version("suspendapp", "0.5.0")
             version("kotlin-kafka", "0.4.1")
             version("hoplite", "2.8.2")
             version("logback", "1.5.17")
             version("logstash", "8.0")
             version("fasterxml-jackson", "2.18.2")
+            version("adapter-model", "0.0.3")
             version("emottak-utils", "0.3.5")
+            version("prometheus", "1.12.4")
 
+            library("edi-adapter-model", "no.nav.helsemelding", "edi-adapter-model").versionRef("adapter-model")
+            library("kotlin-logging", "io.github.oshai", "kotlin-logging-jvm").versionRef("kotlin-logging")
+            library("schema-kenerator-serialization", "io.github.smiley4", "schema-kenerator-serialization").versionRef("schema-kenerator-serialization")
+            library("ktor-swagger-ui", "io.github.smiley4", "ktor-swagger-ui").versionRef("ktor-swagger-ui")
+            library("ktor-openapi", "io.github.smiley4", "ktor-openapi").versionRef("ktor-openapi")
+            library("ktor-client-logging", "io.ktor", "ktor-client-logging").versionRef("ktor")
+            library("nimbus-jwt", "com.nimbusds", "nimbus-jose-jwt").versionRef("nimbus-jwt")
+            library("jwt", "com.auth0", "java-jwt").versionRef("jwt")
+            library("arrow-functions", "io.arrow-kt", "arrow-functions").versionRef("arrow")
             library("bcpkix-jdk18on", "org.bouncycastle", "bcpkix-jdk18on").versionRef("bouncycastle")
             library("bcprov-jdk18on", "org.bouncycastle", "bcprov-jdk18on").versionRef("bouncycastle")
             library("apache-santuario", "org.apache.santuario:xmlsec:3.0.5")
@@ -50,7 +69,6 @@ dependencyResolutionManagement {
             library("ktor-server-auth-jvm", "io.ktor", "ktor-server-auth-jvm").versionRef("ktor")
 
             library("ktor-server-metrics-micrometer", "io.ktor", "ktor-server-metrics-micrometer").versionRef("ktor")
-            library("micrometer-registry-prometheus", "io.micrometer:micrometer-registry-prometheus:1.14.2")
 
             library("logback-classic", "ch.qos.logback", "logback-classic").versionRef("logback")
             library("logback-logstash", "net.logstash.logback", "logstash-logback-encoder").versionRef("logstash")
@@ -81,6 +99,12 @@ dependencyResolutionManagement {
             library("jakarta.xml.ws-api", "jakarta.xml.ws:jakarta.xml.ws-api:2.3.3")
             library("ojdbc8", "com.oracle.ojdbc:ojdbc8:19.3.0.0")
             library("guava", "com.google.guava:guava:33.4.0-jre")
+            library(
+                "micrometer-registry-prometheus",
+                "io.micrometer",
+                "micrometer-registry-prometheus"
+            ).versionRef("prometheus")
+            library("kotlinx-serialization-json", "org.jetbrains.kotlinx", "kotlinx-serialization-json").versionRef("kotlinx-serialization")
 
             bundle("prometheus", listOf("ktor-server-metrics-micrometer", "micrometer-registry-prometheus"))
             bundle("bouncycastle", listOf("bcpkix-jdk18on", "bcprov-jdk18on"))
@@ -89,6 +113,12 @@ dependencyResolutionManagement {
         }
 
         create("testLibs") {
+            version("turbine", "1.2.0")
+            version("testcontainers", "1.18.1")
+            version("ktor", "3.3.1")
+            version("mock-oauth2", "2.1.2")
+            version("kotest-extensions", "2.0.2")
+            version("arrow", "2.0.0")
             version("junit", "5.9.2")
             version("hamcrest", "2.2")
             version("mockk", "1.13.10")
@@ -96,12 +126,25 @@ dependencyResolutionManagement {
             version("xmlunit", "2.9.1")
             version("ktor-server-test", "3.0.3")
             version("kotest", "5.9.1")
+            version("edi-adapter-model", "0.0.3")
 
+            library("edi-adapter-model", "no.nav.helsemelding", "edi-adapter-model").versionRef("edi-adapter-model")
+            library("turbine", "app.cash.turbine", "turbine").versionRef("turbine")
+            library("testcontainers", "org.testcontainers", "testcontainers").versionRef("testcontainers")
+            library("testcontainers-postgresql", "org.testcontainers", "postgresql").versionRef("testcontainers")
+            library("ktor-client-mock", "io.ktor", "ktor-client-mock").versionRef("ktor")
+            library("mock-oauth2-server", "no.nav.security", "mock-oauth2-server").versionRef("mock-oauth2")
+            library(
+                "kotest-extensions-testcontainers",
+                "io.kotest.extensions",
+                "kotest-extensions-testcontainers"
+            ).versionRef("kotest-extensions")
+            library("kotest-extensions-jvm", "io.kotest", "kotest-extensions-jvm").versionRef("kotest")
+            library("kotest-assertions-arrow", "io.kotest.extensions", "kotest-assertions-arrow").versionRef("arrow")
             library("ktor-server-test-host", "io.ktor", "ktor-server-test-host").versionRef("ktor-server-test")
             library("junit-jupiter-api", "org.junit.jupiter", "junit-jupiter-api").versionRef("junit")
             library("junit-jupiter-engine", "org.junit.jupiter", "junit-jupiter-engine").versionRef("junit")
             library("junit-jupiter-params", "org.junit.jupiter", "junit-jupiter-params").versionRef("junit")
-            library("mock-oauth2-server", "no.nav.security:mock-oauth2-server:2.1.2")
 
             library("hamcrest", "org.hamcrest", "hamcrest").versionRef("hamcrest")
 
@@ -157,6 +200,14 @@ dependencyResolutionManagement {
             }
         }
         maven {
+            name = "Nav edi-adapter"
+            url = uri("https://maven.pkg.github.com/navikt/helsemelding-edi-adapter")
+            credentials {
+                username = "token"
+                password = System.getenv("GITHUB_TOKEN")
+            }
+        }
+        maven {
             name = "Nav token-support"
             url = uri("https://maven.pkg.github.com/navikt/token-support")
             credentials {
@@ -172,7 +223,15 @@ dependencyResolutionManagement {
                 password = System.getenv("GITHUB_TOKEN")
             }
         }
+        maven {
+            name = "Nav edi-adapter"
+            url = uri("https://maven.pkg.github.com/navikt/helsemelding-edi-adapter")
+            credentials {
+                username = "token"
+                password = System.getenv("GITHUB_TOKEN")
+            }
+        }
     }
 }
 
-include("felles", "ebxml-processing-model", "cpa-repo", "ebms-provider", "ebms-payload", "ebms-async")
+include("felles", "ebxml-processing-model", "cpa-repo", "ebms-provider", "ebms-payload", "ebms-async", "edi-adapter")
