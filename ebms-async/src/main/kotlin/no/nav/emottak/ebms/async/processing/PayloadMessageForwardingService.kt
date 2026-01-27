@@ -1,7 +1,6 @@
 package no.nav.emottak.ebms.async.processing
 
 import io.ktor.http.ContentType
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
@@ -41,7 +40,7 @@ class PayloadMessageForwardingService(
                 sendInService.sendIn(payloadMessage).let { sendInResponse ->
                     PayloadMessage(
                         requestId = sendInResponse.requestId,
-                        messageId = Uuid.random().toString(),
+                        messageId = sendInResponse.messageId,
                         conversationId = sendInResponse.conversationId,
                         cpaId = payloadMessage.cpaId,
                         addressing = sendInResponse.addressing,

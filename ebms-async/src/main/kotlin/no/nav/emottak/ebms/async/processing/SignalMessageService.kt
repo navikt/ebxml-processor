@@ -1,6 +1,5 @@
 package no.nav.emottak.ebms.async.processing
 
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import no.nav.emottak.ebms.async.log
 import no.nav.emottak.ebms.async.util.EventRegistrationService

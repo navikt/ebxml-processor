@@ -12,6 +12,7 @@ import org.apache.xml.security.utils.Constants
 import org.junit.jupiter.api.Test
 import org.xmlsoap.schemas.soap.envelope.Envelope
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 
 class AcknowledgmentTest {
@@ -44,6 +45,7 @@ class AcknowledgmentTest {
         val messageHeader = header.messageHeader()
         assertEquals(payloadMessage.cpaId, messageHeader.cpaId, "CPAId in MessageHeader should match original CPAId")
         assertEquals(acknowledgment.messageId, messageHeader.messageData.messageId, "MessageId in MessageHeader should match acknowledgment messageId")
+        assertNotEquals(payloadMessage.messageId, messageHeader.messageData.messageId, "Acknowledgment MessageId should not match original messageId")
         assertEquals(null, messageHeader.messageData.refToMessageId, "RefToMessageId in MessageHeader should not be set for acknowledgment message")
         assertEquals(payloadMessage.conversationId, messageHeader.conversationId, "ConversationId in MessageHeader should match original ConversationId")
         assertEquals(null, messageHeader.duplicateElimination, "DuplicateElimination should not be present in acknowledgment message")

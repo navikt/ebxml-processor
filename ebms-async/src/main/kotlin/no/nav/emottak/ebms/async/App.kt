@@ -11,6 +11,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.auth.authenticate
 import io.ktor.server.netty.Netty
+import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.Routing
@@ -33,6 +34,7 @@ import no.nav.emottak.ebms.PayloadProcessingClient
 import no.nav.emottak.ebms.SMTP_TRANSPORT_SCOPE
 import no.nav.emottak.ebms.SendInClient
 import no.nav.emottak.ebms.SmtpTransportClient
+import no.nav.emottak.ebms.StatusResponse
 import no.nav.emottak.ebms.async.configuration.Config
 import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
@@ -64,6 +66,9 @@ import no.nav.emottak.utils.environment.isProdEnv
 import no.nav.emottak.utils.kafka.client.EventPublisherClient
 import no.nav.emottak.utils.kafka.service.EventLoggingService
 import org.slf4j.LoggerFactory
+import java.util.Timer
+import java.util.concurrent.TimeUnit
+import kotlin.concurrent.scheduleAtFixedRate
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.async.App")
 
@@ -129,6 +134,9 @@ fun main() = SuspendApp {
         eventRegistrationService = eventRegistrationService
     )
 
+    val retryErrorsTimer = Timer("RetryErrorsTask", false)
+    val pauseRetryErrorsTimerFlag = PauseRetryErrorsTimerFlag()
+
     result {
         resourceScope {
             launchSignalReceiver(
@@ -139,6 +147,13 @@ fun main() = SuspendApp {
                 config = config,
                 messageFilterService = messageFilterService
             )
+            launchErrorRetryTask(
+                config = config,
+                retryErrorsTimer = retryErrorsTimer,
+                messageFilterService = messageFilterService,
+                failedMessageQueue = failedMessageQueue,
+                pauseRetryErrorsTimerFlag = pauseRetryErrorsTimerFlag
+            )
 
             server(
                 Netty,
@@ -148,7 +163,8 @@ fun main() = SuspendApp {
                         payloadRepository = payloadRepository,
                         messageFilterService = messageFilterService,
                         eventRegistrationService = eventRegistrationService,
-                        failedMessageQueue = failedMessageQueue
+                        failedMessageQueue = failedMessageQueue,
+                        pauseRetryErrorsTimerFlag = pauseRetryErrorsTimerFlag
                     )
                 }
             ).also { it.engineConfig.maxChunkSize = 100000 }
@@ -164,7 +180,11 @@ fun main() = SuspendApp {
         }
 }
 
-private fun CoroutineScope.launchPayloadReceiver(
+class PauseRetryErrorsTimerFlag {
+    var paused = false
+}
+
+fun CoroutineScope.launchPayloadReceiver(
     config: Config,
     messageFilterService: MessageFilterService
 ) {
@@ -179,7 +199,7 @@ private fun CoroutineScope.launchPayloadReceiver(
     }
 }
 
-private fun CoroutineScope.launchSignalReceiver(
+fun CoroutineScope.launchSignalReceiver(
     config: Config,
     messageFilterService: MessageFilterService
 ) {
@@ -194,11 +214,38 @@ private fun CoroutineScope.launchSignalReceiver(
     }
 }
 
+fun CoroutineScope.launchErrorRetryTask(
+    config: Config,
+    retryErrorsTimer: Timer,
+    messageFilterService: MessageFilterService,
+    failedMessageQueue: FailedMessageKafkaHandler,
+    pauseRetryErrorsTimerFlag: PauseRetryErrorsTimerFlag
+) {
+    if (config.kafkaErrorQueue.active) return
+
+    retryErrorsTimer.scheduleAtFixedRate(delay = 5000L, period = TimeUnit.SECONDS.toMillis(config.errorRetryPolicy.processIntervalSeconds.toLong())) {
+        launch(Dispatchers.IO) {
+            log.info("=== RetryErrorsTask starting...")
+
+            if (pauseRetryErrorsTimerFlag.paused) {
+                log.info("Retry task is paused.")
+                return@launch
+            }
+
+            failedMessageQueue.consumeRetryQueue(
+                messageFilterService,
+                config.errorRetryPolicy.maxMessagesToProcess
+            )
+        }
+    }
+}
+
 fun Application.ebmsProviderModule(
     payloadRepository: PayloadRepository,
     messageFilterService: MessageFilterService,
     eventRegistrationService: EventRegistrationService,
-    failedMessageQueue: FailedMessageKafkaHandler
+    failedMessageQueue: FailedMessageKafkaHandler,
+    pauseRetryErrorsTimerFlag: PauseRetryErrorsTimerFlag
 ) {
     val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
 
@@ -215,6 +262,9 @@ fun Application.ebmsProviderModule(
             simulateError(failedMessageQueue)
         }
         retryErrors(messageFilterService, failedMessageQueue)
+        rerun(messageFilterService, failedMessageQueue)
+        pauseRetries(pauseRetryErrorsTimerFlag)
+        resumeRetries(pauseRetryErrorsTimerFlag)
         authenticate(AZURE_AD_AUTH) {
             getPayloads(payloadRepository, eventRegistrationService)
         }
@@ -242,12 +292,40 @@ fun Routing.retryErrors(
         )
     }
 
+fun Routing.rerun(
+    messageFilterService: MessageFilterService,
+    failedMessageQueue: FailedMessageKafkaHandler
+): Route =
+    get("/api/rerun/{$KAFKA_OFFSET}") {
+        if (!config().kafkaErrorQueue.active) {
+            call.respondText(status = HttpStatusCode.ServiceUnavailable, text = "Retry queue not active.")
+            return@get
+        }
+        val offsetParam = (call.parameters[KAFKA_OFFSET])?.toLong()
+        if (offsetParam == null) {
+            call.respondText(status = HttpStatusCode.BadRequest, text = "Must specify offset of message to rerun.")
+            return@get
+        }
+        failedMessageQueue.forceRetryFailedMessage(
+            messageFilterService,
+            offset = offsetParam
+        )
+        call.respondText(
+            status = HttpStatusCode.OK,
+            text = "Message with offset ${call.parameters[KAFKA_OFFSET]} has been re-run"
+        )
+    }
+
 const val KAFKA_OFFSET = "offset"
 
 fun Route.simulateError(
     failedMessageQueue: FailedMessageKafkaHandler
 ): Route =
     get("/api/forceretry/{$KAFKA_OFFSET}") {
+        if (!config().kafkaErrorQueue.active) {
+            call.respondText(status = HttpStatusCode.ServiceUnavailable, text = "Retry queue not active.")
+            return@get
+        }
         CoroutineScope(Dispatchers.IO).launch() {
             if (config().kafkaErrorQueue.active) {
                 val record = getRecord(
@@ -261,6 +339,32 @@ fun Route.simulateError(
                     record = record ?: throw Exception("No Record found. Offset: ${call.parameters[KAFKA_OFFSET]}"),
                     reason = "Simulated Error"
                 )
+                call.respondText(
+                    status = HttpStatusCode.OK,
+                    text = "Payload message with offset ${call.parameters[KAFKA_OFFSET]} has been added to retry queue"
+                )
             }
         }
+    }
+
+fun Route.pauseRetries(
+    pauseRetryErrorsTimerFlag: PauseRetryErrorsTimerFlag
+): Route =
+    get("/api/pauseretry") {
+        CoroutineScope(Dispatchers.IO).launch() {
+            pauseRetryErrorsTimerFlag.paused = true
+        }
+        log.info("Pausing retry task.")
+        call.respond(StatusResponse("Error retries are PAUSED"))
+    }
+
+fun Route.resumeRetries(
+    pauseRetryErrorsTimerFlag: PauseRetryErrorsTimerFlag
+): Route =
+    get("/api/resumeretry") {
+        CoroutineScope(Dispatchers.IO).launch() {
+            pauseRetryErrorsTimerFlag.paused = false
+        }
+        log.info("Resuming retry task.")
+        call.respond(StatusResponse("Error retries are RESUMED"))
     }

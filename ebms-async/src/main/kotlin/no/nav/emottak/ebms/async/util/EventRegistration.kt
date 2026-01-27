@@ -1,6 +1,5 @@
 package no.nav.emottak.ebms.async.util
 
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import no.nav.emottak.ebms.async.log
 import no.nav.emottak.message.model.AsyncPayload
@@ -71,7 +70,7 @@ class EventRegistrationServiceImpl(
                 action = ebmsMessage.addressing.action,
                 sentAt = ebmsMessage.sentAt
             )
-            log.debug("Publishing message details: $ebmsMessageDetail")
+            log.debug("Publishing message details: {}", ebmsMessageDetail)
 
             eventLoggingService.logMessageDetails(ebmsMessageDetail)
             log.debug("Message details published successfully")

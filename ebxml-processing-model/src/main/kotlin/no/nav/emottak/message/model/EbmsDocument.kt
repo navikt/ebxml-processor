@@ -57,6 +57,7 @@ data class EbmsDocument(val requestId: String, val document: Document, val attac
                 document,
                 messageHeader.messageData.refToMessageId,
                 messageHeader.messageData.timestamp.toInstant(),
+                messageHeader.messageData.timeToLive?.toInstant(),
                 messageHeader.duplicateElimination != null
             )
 
