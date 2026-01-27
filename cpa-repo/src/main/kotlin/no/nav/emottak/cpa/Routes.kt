@@ -268,7 +268,7 @@ fun Route.validateCpa(
         )
 
         val eventData = Json.encodeToString(
-            mapOf(EventDataType.SENDER_NAME to fromParty.partyName)
+            mapOf(EventDataType.SENDER_NAME.value to fromParty.partyName)
         )
 
         eventRegistrationService.registerEvent(
