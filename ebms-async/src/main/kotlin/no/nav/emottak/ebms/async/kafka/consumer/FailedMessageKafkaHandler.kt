@@ -5,6 +5,7 @@ import io.github.nomisRev.kafka.publisher.KafkaPublisher
 import io.github.nomisRev.kafka.publisher.PublisherSettings
 import io.github.nomisRev.kafka.receiver.Offset
 import io.github.nomisRev.kafka.receiver.ReceiverRecord
+import kotlinx.datetime.toLocalDateTime
 import no.nav.emottak.ebms.async.configuration.ErrorRetryPolicy
 import no.nav.emottak.ebms.async.configuration.KafkaErrorQueue
 import no.nav.emottak.ebms.async.configuration.config
@@ -24,10 +25,13 @@ import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
 import org.slf4j.LoggerFactory
 import java.time.Duration
+import java.time.Instant
 import java.time.LocalDateTime
+import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.util.Properties
+import java.util.TimeZone
 import kotlin.collections.map
 
 const val RETRY_COUNT_HEADER = "retryCount"
@@ -150,9 +154,8 @@ class FailedMessageKafkaHandler(
             }
 
             logger.info("Processing record: $counter, max is $limit, key: ${record.key()}, offset: ${record.offset()}")
-            val retryableAfter = LocalDateTime.parse(
-                String(record.headers().lastHeader(RETRY_AFTER).value())
-            )
+            val retryableAfter = parseRetryAfterHeader(record)
+
             // LocalDateTime logges OK lokalt, men får UTC-verdi på server. Sett eksplisitt timezone på det som logges
             val retryableAfterWithLocalTimezone = ZonedDateTime.of(retryableAfter, ZoneOffset.systemDefault())
             logger.info("Record with key ${record.key()} is retryable after $retryableAfterWithLocalTimezone.")
@@ -175,6 +178,17 @@ class FailedMessageKafkaHandler(
                 )
             pollerConsumer.commitSync(offsets)
             logger.info("Committed offset $offsetToCommit for record with key ${record.key()}")
+        }
+    }
+
+    // Ser ut som vi av og til får soneløse timestamp-strenger, av og til med sone. Må prøve å håndtere begge...
+    private fun parseRetryAfterHeader(record: ConsumerRecord<String, ByteArray>): LocalDateTime {
+        val header = String(record.headers().lastHeader(RETRY_AFTER).value())
+        try {
+            return LocalDateTime.parse(header)
+        } catch (e: Exception) {
+            val instant = Instant.parse(header)
+            return LocalDateTime.ofInstant(instant, ZoneId.systemDefault())
         }
     }
 
