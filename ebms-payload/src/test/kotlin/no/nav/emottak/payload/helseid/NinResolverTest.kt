@@ -2,13 +2,19 @@ package no.nav.emottak.payload.helseid
 
 import com.nimbusds.jose.JOSEObjectType
 import com.nimbusds.jose.JWSAlgorithm
+import io.mockk.coEvery
+import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import no.nav.emottak.payload.helseid.testutils.HelseIDCreator
 import no.nav.emottak.payload.helseid.testutils.ResourceUtil
 import no.nav.emottak.payload.helseid.testutils.XMLUtil
+import no.nav.emottak.payload.ocspstatus.OcspStatusService
+import no.nav.emottak.payload.ocspstatus.SertifikatInfo
 import org.junit.jupiter.api.Test
+import java.security.cert.X509Certificate
 import java.time.Instant
 import java.util.Base64
+import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
 class NinResolverTest {
@@ -51,12 +57,20 @@ class NinResolverTest {
         val doc = XMLUtil.createDocument(
             Base64.getDecoder().decode(ResourceUtil.getStringClasspathResource("helseid/testdata/m1.with.attachment.not.helseid.b64"))
         )
+        val mockCertificate = mockk<X509Certificate>()
+        val mockInfo = mockk<SertifikatInfo>()
+        val mockOcspStatusService = mockk<OcspStatusService>()
+        coEvery {
+            mockInfo.fnr
+        }.returns("theFnr")
+        coEvery {
+            mockOcspStatusService.getOCSPStatus(mockCertificate)
+        }.returns(mockInfo)
 
-        val resolver = NinResolver()
-        assertFailsWith(RuntimeException::class, "No HelseID token found in document") {
-            runBlocking {
-                resolver.resolve(doc)
-            }
+        val resolver = NinResolver(ocspStatusService = mockOcspStatusService)
+        runBlocking {
+            val resolved = resolver.resolve(doc, mockCertificate)
+            assertEquals("theFnr", resolved)
         }
     }
 }

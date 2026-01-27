@@ -90,6 +90,8 @@ class PayloadIntegrationTest : PayloadTestBase() {
 
     @Test
     fun `Payload endepunkt med OCSP`() = testApp {
+        val ssn = "01010112345"
+
         val requestBody = baseRequest().withOCSP()
         val httpResponse = client(authenticated = true).post("/payload") {
             header(
@@ -99,9 +101,9 @@ class PayloadIntegrationTest : PayloadTestBase() {
             setBody(requestBody)
             contentType(ContentType.Application.Json)
         }
-        assertEquals(HttpStatusCode.BadRequest, httpResponse.status)
-        assertEquals(ErrorCode.UNKNOWN, httpResponse.body<PayloadResponse>().error!!.code)
-        assertEquals("No HelseID token found in document", httpResponse.body<PayloadResponse>().error!!.descriptionText)
+        assertEquals(HttpStatusCode.OK, httpResponse.status)
+        assertNull(httpResponse.body<PayloadResponse>().error)
+        assertEquals(ssn, httpResponse.body<PayloadResponse>().processedPayload!!.signedBy)
     }
 
     private fun getToken(audience: String = AuthConfig.getScope()): SignedJWT = mockOAuth2Server.issueToken(

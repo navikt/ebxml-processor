@@ -17,6 +17,7 @@ import no.nav.emottak.util.createDocument
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.getByteArrayFromDocument
 import no.nav.emottak.util.marker
+import no.nav.emottak.util.retrieveSignatureElement
 import no.nav.emottak.util.signatur.SignaturVerifisering
 import no.nav.emottak.utils.kafka.model.EventDataType
 import no.nav.emottak.utils.kafka.model.EventType
@@ -88,7 +89,11 @@ class Processor(
             log.debug(marker, "Validating for payload in validateOcsp flow")
             val domDocument = createDocument(ByteArrayInputStream(payload.bytes))
 
-            var signedByFnr: String? = ninResolver.resolve(domDocument)
+            val xmlSignature = domDocument.retrieveSignatureElement()
+
+            val certificateFromSignature = xmlSignature.keyInfo.x509Certificate
+
+            var signedByFnr: String? = ninResolver.resolve(domDocument, certificateFromSignature)
 
             log.debug(marker, "Validating OCSP for payload: Step 5 copy")
             payload.copy(signedBy = signedByFnr).also {
