@@ -44,10 +44,10 @@ data class ResponseResendPolicy(
 )
 
 data class ErrorRetryPolicy(
-    val processIntervalSeconds: Int, // Reading/processing error queue starts every X seconds
-    val maxMessagesToProcess: Int, // Each scheduled processing will read maximum X messages from error queue
-    val retryIntervalsMinutes: List<Int>, // Minutes to wait between first group of retries, then second group, third, etc.
-    val retriesPerInterval: List<Int> // Number of retries in group 1, 2 etc.
+    val processIntervalSeconds: Int,
+    val maxMessagesToProcess: Int,
+    val retryIntervalsMinutes: List<Int>,
+    val retriesPerInterval: List<Int>
     // If retriesPerInterval is e.g. [3, 3, 23] and retryIntervalsMinutes is [5, 15, 60, 60*24],
     // then the first 3 retries occurs 5/10/15 minutes after first failure, the next 3 retries 30/45/60 minutes after first failure,
     // the next 23 retries 2-24 hours after first failure, and any retries after that will occur every 24 hours after the previous retry.
