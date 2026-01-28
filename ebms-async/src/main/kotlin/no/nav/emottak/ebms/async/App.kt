@@ -233,7 +233,7 @@ fun CoroutineScope.launchErrorRetryTask(
     failedMessageQueue: FailedMessageKafkaHandler,
     pauseRetryErrorsTimerFlag: PauseRetryErrorsTimerFlag
 ) {
-    if (config.kafkaErrorQueue.active) return
+    if (!config.kafkaErrorQueue.active) return
 
     retryErrorsTimer.scheduleAtFixedRate(delay = 5000L, period = TimeUnit.SECONDS.toMillis(config.errorRetryPolicy.processIntervalSeconds.toLong())) {
         launch(Dispatchers.IO) {
