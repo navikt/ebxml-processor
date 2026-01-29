@@ -1,9 +1,4 @@
-package no.nav.emottak.config
-
-/* Config-modeller som deles mellom:
-    - ebms-provider
-    - ebms-async
- */
+package no.nav.emottak.ebms.async.configuration
 
 data class KafkaSignalReceiver(
     val active: Boolean,
@@ -23,4 +18,10 @@ data class KafkaPayloadReceiver(
 data class KafkaPayloadProducer(
     val active: Boolean,
     val topic: String
+)
+
+data class KafkaErrorQueue(
+    val active: Boolean,
+    val topic: String,
+    val initOffset: String
 )
