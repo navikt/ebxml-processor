@@ -8,6 +8,8 @@ import no.nav.emottak.ebms.async.kafka.consumer.retryCount
 import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
 import no.nav.emottak.ebms.async.log
 import no.nav.emottak.ebms.async.util.EventRegistrationService
+import no.nav.emottak.ebms.async.util.receiverAddressToKafkaHeader
+import no.nav.emottak.ebms.async.util.senderAddressToKafkaHeader
 import no.nav.emottak.ebms.async.util.toKafkaHeaders
 import no.nav.emottak.ebms.eventmanager.EventManagerService
 import no.nav.emottak.ebms.model.signer
@@ -139,8 +141,9 @@ class PayloadMessageService(
         }
         val validationResult = cpaValidationService.validateOutgoingMessage(acknowledgment)
         sendResponseToTopic(
-            acknowledgment.toEbmsDokument().signer(validationResult.payloadProcessing!!.signingCertificate),
-            validationResult.signalEmailAddress
+            ebmsDocument = acknowledgment.toEbmsDokument().signer(validationResult.payloadProcessing!!.signingCertificate),
+            signalResponderEmails = validationResult.signalEmailAddress,
+            signalSenderEmails = validationResult.senderEmailAddress
         )
         log.info(acknowledgment.marker(), "Acknowledgment returned")
     }
@@ -155,14 +158,19 @@ class PayloadMessageService(
             log.warn(messageError.marker(), "Could not find signing certificate for outgoing MessageError")
         } else {
             sendResponseToTopic(
-                messageError.toEbmsDokument().signer(signingCertificate),
-                validationResult.signalEmailAddress
+                ebmsDocument = messageError.toEbmsDokument().signer(signingCertificate),
+                signalResponderEmails = validationResult.signalEmailAddress,
+                signalSenderEmails = validationResult.senderEmailAddress
             )
             log.warn(messageError.marker(), "MessageError returned", ebmsException)
         }
     }
 
-    private suspend fun sendResponseToTopic(ebmsDocument: EbmsDocument, signalResponderEmails: List<EmailAddress>) {
+    private suspend fun sendResponseToTopic(
+        ebmsDocument: EbmsDocument,
+        signalResponderEmails: List<EmailAddress>,
+        signalSenderEmails: List<EmailAddress>
+    ) {
         if (config().kafkaSignalProducer.active) {
             val messageHeader = ebmsDocument.messageHeader()
             try {
@@ -179,7 +187,9 @@ class PayloadMessageService(
                     ebmsSignalProducer.publishMessage(
                         key = ebmsDocument.requestId,
                         value = ebmsDocument.document.toByteArray(),
-                        headers = signalResponderEmails.toKafkaHeaders() + messageHeader.toKafkaHeaders()
+                        headers = signalResponderEmails.receiverAddressToKafkaHeader() +
+                            signalSenderEmails.senderAddressToKafkaHeader() +
+                            messageHeader.toKafkaHeaders()
                     )
                 }
             } catch (e: Exception) {
