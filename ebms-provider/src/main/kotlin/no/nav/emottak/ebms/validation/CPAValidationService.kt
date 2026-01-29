@@ -4,7 +4,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import no.nav.emottak.ebms.CpaRepoClient
 import no.nav.emottak.ebms.model.validateSignature
-import no.nav.emottak.melding.feil.EbmsException
+import no.nav.emottak.message.exception.EbmsException
 import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.Direction.IN
 import no.nav.emottak.message.model.Direction.OUT

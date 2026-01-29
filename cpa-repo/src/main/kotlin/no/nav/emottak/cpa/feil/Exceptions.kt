@@ -1,6 +1,6 @@
 package no.nav.emottak.cpa.feil
 
-import no.nav.emottak.melding.feil.EbmsException
+import no.nav.emottak.message.exception.EbmsException
 import no.nav.emottak.message.model.ErrorCode
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.SeverityType
 
