@@ -62,11 +62,11 @@ open class CpaRepoClient(clientProvider: () -> HttpClient) {
     }
 }
 
-class PayloadProcessingClient(clientProvider: () -> HttpClient) {
+open class PayloadProcessingClient(clientProvider: () -> HttpClient) {
     private var httpClient = clientProvider.invoke()
     private val payloadProcessorEndpoint = getEnvVar("PAYLOAD_PROCESSOR_URL", "http://ebms-payload")
 
-    suspend fun postPayloadRequest(payloadRequest: PayloadRequest): PayloadResponse {
+    open suspend fun postPayloadRequest(payloadRequest: PayloadRequest): PayloadResponse {
         return httpClient.post("$payloadProcessorEndpoint/payload") {
             setBody(payloadRequest)
             contentType(ContentType.Application.Json)
@@ -74,11 +74,11 @@ class PayloadProcessingClient(clientProvider: () -> HttpClient) {
     }
 }
 
-class SendInClient(clientProvider: () -> HttpClient) {
+open class SendInClient(clientProvider: () -> HttpClient) {
     private var httpClient = clientProvider.invoke()
     private val sendInEndpoint = getEnvVar("SEND_IN_URL", "http://ebms-send-in")
 
-    suspend fun postSendIn(sendInRequest: SendInRequest): SendInResponse {
+    open suspend fun postSendIn(sendInRequest: SendInRequest): SendInResponse {
         val response = httpClient.post("$sendInEndpoint/fagmelding/synkron") {
             setBody(sendInRequest)
             contentType(ContentType.Application.Json)

@@ -45,6 +45,7 @@ import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
 import no.nav.emottak.ebms.async.persistence.Database
 import no.nav.emottak.ebms.async.persistence.ebmsDbConfig
 import no.nav.emottak.ebms.async.persistence.ebmsMigrationConfig
+import no.nav.emottak.ebms.async.persistence.repository.MessagePendingAckRepository
 import no.nav.emottak.ebms.async.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.async.processing.MessageFilterService
 import no.nav.emottak.ebms.async.processing.PayloadMessageForwardingService
@@ -79,6 +80,8 @@ fun main() = SuspendApp {
 
     val config = config()
 
+    val messagePendingAckRepository = MessagePendingAckRepository(database, config.messageResendPolicy.resendIntervalMinutes, config.messageResendPolicy.maxResends)
+
     val failedMessageQueue = FailedMessageKafkaHandler()
 
     val processingService = ProcessingService(
@@ -109,7 +112,8 @@ fun main() = SuspendApp {
         processingService = processingService,
         payloadRepository = payloadRepository,
         ebmsPayloadProducer = ebmsPayloadProducer,
-        eventRegistrationService = eventRegistrationService
+        eventRegistrationService = eventRegistrationService,
+        messagePendingAckRepository = messagePendingAckRepository
     )
 
     val payloadMessageService = PayloadMessageService(
@@ -124,7 +128,8 @@ fun main() = SuspendApp {
 
     val signalMessageService = SignalMessageService(
         cpaValidationService = cpaValidationService,
-        eventRegistrationService = eventRegistrationService
+        eventRegistrationService = eventRegistrationService,
+        messagePendingAckRepository = messagePendingAckRepository
     )
 
     val messageFilterService = MessageFilterService(
@@ -136,6 +141,7 @@ fun main() = SuspendApp {
 
     val retryErrorsTimer = Timer("RetryErrorsTask", false)
     val pauseRetryErrorsTimerFlag = PauseRetryErrorsTimerFlag()
+    val messageResendTimer = Timer("MessageResendTask", false)
 
     result {
         resourceScope {
@@ -153,6 +159,12 @@ fun main() = SuspendApp {
                 messageFilterService = messageFilterService,
                 failedMessageQueue = failedMessageQueue,
                 pauseRetryErrorsTimerFlag = pauseRetryErrorsTimerFlag
+            )
+            launchMesssageResendTask(
+                config = config,
+                messageResendTimer = messageResendTimer,
+                messagePendingAckRepository = messagePendingAckRepository,
+                payloadMessageForwardingService = payloadMessageForwardingService
             )
 
             server(
@@ -236,6 +248,25 @@ fun CoroutineScope.launchErrorRetryTask(
                 messageFilterService,
                 config.errorRetryPolicy.maxMessagesToProcess
             )
+        }
+    }
+}
+
+fun CoroutineScope.launchMesssageResendTask(
+    config: Config,
+    messageResendTimer: Timer,
+    messagePendingAckRepository: MessagePendingAckRepository,
+    payloadMessageForwardingService: PayloadMessageForwardingService
+) {
+    messageResendTimer.scheduleAtFixedRate(delay = 5000L, period = TimeUnit.SECONDS.toMillis(config.messageResendPolicy.processIntervalSeconds.toLong())) {
+        launch(Dispatchers.IO) {
+            log.info("=== MessageResendTask starting...")
+            val messagesToResend = messagePendingAckRepository.findMessagesToResend()
+            log.info("Found ${messagesToResend.size} messages to be resent because of missing Ack")
+            for (message in messagesToResend) {
+                payloadMessageForwardingService.resendMessage(message)
+                messagePendingAckRepository.markResent(message)
+            }
         }
     }
 }

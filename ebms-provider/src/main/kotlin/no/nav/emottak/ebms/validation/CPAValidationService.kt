@@ -20,7 +20,7 @@ import org.slf4j.LoggerFactory
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.validation.CPAValidationService")
 
-class CPAValidationService(val httpClient: CpaRepoClient) {
+open class CPAValidationService(val httpClient: CpaRepoClient) {
 
     suspend fun validateIncomingMessage(message: EbmsMessage): ValidationResult =
         getValidationResult(IN, message).also {
@@ -72,7 +72,7 @@ class CPAValidationService(val httpClient: CpaRepoClient) {
         return validationResult
     }
 
-    private fun validateResult(validationResult: ValidationResult, message: EbmsMessage, checkSignature: Boolean): ValidationResult {
+    open fun validateResult(validationResult: ValidationResult, message: EbmsMessage, checkSignature: Boolean): ValidationResult {
         if (!validationResult.valid()) throw EbmsException(validationResult.error!!)
         if (checkSignature) {
             runCatching {

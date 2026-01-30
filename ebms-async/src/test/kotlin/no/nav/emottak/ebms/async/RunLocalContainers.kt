@@ -11,13 +11,21 @@ import java.io.File
 const val START_MOCK_OAUTH = true
 const val MOCK_OAUTH_PORT = 3344
 
+// store config in local files to avoid needing to copy URLs etc from this process' log to clients
+// EDIT THIS to match some directory on your local machine
+fun localTmp(subpath: String): String {
+    if (File("/tmp").isDirectory()) return "/tmp" + subpath
+    if (File("c:/tmp").isDirectory()) return "c:/tmp" + subpath
+    throw RuntimeException("Could not find a suitable directory to store config in, fix the code and restart this process !!")
+}
+
 const val START_KAFKA = true
-const val KAFKA_BROKERS_STORAGE = "/tmp/kafka_brokers.txt" // use this to avoid needing to copy URL from this process' log to clients
+const val KAFKA_BROKERS_STORAGE = "/kafka_brokers.txt"
 
 const val START_POSTGRES = true
 const val POSTGRES_TEST_USER = "emottak-ebms-db-admin"
 const val POSTGRES_TEST_PW = "test"
-const val POSTGRES_JDBCURL_STORAGE = "/tmp/postgres_jdbcurl.txt" // use this to avoid needing to copy URL from this process' log to clients
+const val POSTGRES_JDBCURL_STORAGE = "/postgres_jdbcurl.txt"
 
 fun main() {
     var mockOAuth2Server: MockOAuth2Server? = null
@@ -38,9 +46,7 @@ fun main() {
         println("=== Creating DB tables ==")
         database.migrate(database.dataSource)
 
-        if (POSTGRES_JDBCURL_STORAGE != null) {
-            File(POSTGRES_JDBCURL_STORAGE).writeText(ebmsProviderDbContainer.jdbcUrl)
-        }
+        File(localTmp(POSTGRES_JDBCURL_STORAGE)).writeText(ebmsProviderDbContainer.jdbcUrl)
     }
 
     if (START_KAFKA) {
@@ -55,33 +61,32 @@ fun main() {
         KafkaTestContainer.createTopic(config().kafkaSignalReceiver.topic)
         KafkaTestContainer.createTopic(config().kafkaErrorQueue.topic)
 
-        if (KAFKA_BROKERS_STORAGE != null) {
-            File(KAFKA_BROKERS_STORAGE).writeText(KafkaTestContainer.bootstrapServers)
-        }
+        File(localTmp(KAFKA_BROKERS_STORAGE)).writeText(KafkaTestContainer.bootstrapServers)
     }
 
+    // NEED TO CLOSE THIS PROPERLY IN ORDER TO CLEAN UP AND BE ABLE TO START IT AGAIN
     println("=== Running test servers until someone writes stop<return> in this window ==")
     if (START_MOCK_OAUTH) println("=== OAuth2 URL: ${mockOAuth2Server?.baseUrl()}")
     if (START_POSTGRES) println("=== DB URL: ${ebmsProviderDbContainer?.jdbcUrl}")
     if (START_KAFKA) println("=== Kafka URL: ${KafkaTestContainer.bootstrapServers}")
-//    Thread.sleep(1000000000)
     var stopped = false
     while (!stopped) {
         print("Type 'stop' and <return> to stop >")
         val line = readln()
-        stopped = line == "stop"
+        stopped = (line == "stop")
     }
 
     KafkaTestContainer.stop()
+    ebmsProviderDbContainer?.stop()
     mockOAuth2Server?.shutdown()
 }
 
 fun getRunningKafkaBrokerUrl(): String {
-    return File(KAFKA_BROKERS_STORAGE).readText(Charsets.UTF_8)
+    return File(localTmp(KAFKA_BROKERS_STORAGE)).readText(Charsets.UTF_8)
 }
 
 fun getRunningPostgresConfiguration(): HikariConfig {
-    val currentUrl = File(POSTGRES_JDBCURL_STORAGE).readText(Charsets.UTF_8)
+    val currentUrl = File(localTmp(POSTGRES_JDBCURL_STORAGE)).readText(Charsets.UTF_8)
     return HikariConfig().apply {
         jdbcUrl = currentUrl
         username = POSTGRES_TEST_USER

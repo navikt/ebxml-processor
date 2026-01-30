@@ -1,0 +1,37 @@
+<mh:MsgInfo>
+      <mh:Type DN="Svar på forespørsel om egenandel" V="EgenandelSvar"/>
+      <mh:MIGversion>v1.2 2006-05-24</mh:MIGversion>
+      <mh:GenDate>2024-02-12T14:04:02.541+01:00</mh:GenDate>
+      <mh:MsgId>22a46f21-33c6-4324-8e46-b704a59b5658</mh:MsgId>
+      <mh:Ack DN="Nei" V="N"/>
+      <mh:ConversationRef>
+         <mh:RefToParent>e17eb03e-9e43-43fb-874c-1fde9a28c308</mh:RefToParent>
+         <mh:RefToConversation>e17eb03e-9e43-43fb-874c-1fde9a28c308</mh:RefToConversation>
+      </mh:ConversationRef>
+      <mh:Sender>
+         <mh:Organisation>
+            <mh:OrganisationName>NAV</mh:OrganisationName>
+            <mh:Ident>
+               <mh:Id>889640782</mh:Id>
+               <mh:TypeId DN="Organisasjonsnummeret i Enhetsregisteret" S="2.16.578.1.12.4.1.1.9051" V="ENH"/>
+            </mh:Ident>
+            <mh:Ident>
+               <mh:Id>79768</mh:Id>
+               <mh:TypeId DN="Identifikator fra Helsetjenesteenhetsregisteret (HER-id)" S="2.16.578.1.12.4.1.1.9051" V="HER"/>
+            </mh:Ident>
+         </mh:Organisation>
+      </mh:Sender>
+      <mh:Receiver>
+         <mh:Organisation>
+            <mh:OrganisationName>TEST A1 Haugerud</mh:OrganisationName>
+            <mh:Ident>
+               <mh:Id>984886136</mh:Id>
+               <mh:TypeId DN="Organisasjonsnummeret i Enhetsregister" S="2.16.578.1.12.4.1.1.9051" V="ENH"/>
+            </mh:Ident>
+            <mh:Ident>
+               <mh:Id>8090595</mh:Id>
+               <mh:TypeId DN="HER-id" S="2.16.578.1.12.4.1.1.9051" V="HER"/>
+            </mh:Ident>
+         </mh:Organisation>
+      </mh:Receiver>
+   </mh:MsgInfo>

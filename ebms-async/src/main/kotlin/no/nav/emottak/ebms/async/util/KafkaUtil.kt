@@ -20,6 +20,13 @@ fun List<EmailAddress>.toKafkaHeaders(): List<Header> = listOf(
     )
 )
 
+fun toAddressKafkaHeader(emailAddresses: List<String>): List<Header> = listOf(
+    RecordHeader(
+        EMAIL_ADDRESSES,
+        emailAddresses.joinToString(",").toByteArray()
+    )
+)
+
 fun MessageHeader.toKafkaHeaders(): List<Header> =
     mapOf(
         EBXML_SERVICE_HEADER to this.service.value,
