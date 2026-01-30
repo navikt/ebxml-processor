@@ -20,14 +20,14 @@ import no.nav.emottak.utils.kafka.model.EventType
 import org.w3c.dom.Document
 import kotlin.uuid.Uuid
 
-class MessageFilterService(
+open class MessageFilterService(
     val payloadMessageService: PayloadMessageService,
     val signalMessageService: SignalMessageService,
     val smtpTransportClient: SmtpTransportClient,
     val eventRegistrationService: EventRegistrationService
 ) {
 
-    suspend fun filterMessage(record: ReceiverRecord<String, ByteArray>) {
+    open suspend fun filterMessage(record: ReceiverRecord<String, ByteArray>) {
         val ebmsMessage = createEbmsDocument(
             requestId = record.key(),
             document = record.value().createDocument()
