@@ -1,4 +1,5 @@
 name: "PROD: Separate build and deploy to prod"
+run-name: "Deploying ${{ inputs.project }} to PROD"
 on:
   workflow_dispatch:
     inputs:
