@@ -93,11 +93,19 @@ class PayloadMessageService(
             }
             RetryDecision.TTL_EXPIRED -> {
                 log.info("No retry for failing payload sent at ${sentAt ?: "unknown"}, error type: $errorType, reason: $reason, retries already performed: $retriedAlready. Decision reason: $decisionReason")
-                returnMessageError(payloadMessage, EbmsException("TimeToLive expired", errorCode = ErrorCode.TIME_TO_LIVE_EXPIRED, exception = exception))
+                try {
+                    returnMessageError(payloadMessage, EbmsException("TimeToLive expired", errorCode = ErrorCode.TIME_TO_LIVE_EXPIRED, exception = exception))
+                } catch (e: Exception) {
+                    log.error("Failed to return Message error for payload message ${payloadMessage.requestId}, sender WILL NOT BE NOTIFIED that the message has NOT been processed OK", e)
+                }
             }
             RetryDecision.MAX_RETRIES_EXCEEDED -> {
                 log.info("No retry for failing payload sent at ${sentAt ?: "unknown"}, error type: $errorType, reason: $reason, retries already performed: $retriedAlready. Decision reason: $decisionReason")
-                returnMessageError(payloadMessage, EbmsException(decisionReason, exception = exception))
+                try {
+                    returnMessageError(payloadMessage, EbmsException(decisionReason, exception = exception))
+                } catch (e: Exception) {
+                    log.error("Failed to return Message error for payload message ${payloadMessage.requestId}, sender WILL NOT BE NOTIFIED that the message has NOT been processed OK", e)
+                }
             }
         }
     }
@@ -152,15 +160,11 @@ class PayloadMessageService(
         }
         val validationResult = cpaValidationService.validateOutgoingMessage(messageError)
         val signingCertificate = validationResult.payloadProcessing?.signingCertificate
-        if (signingCertificate == null) {
-            log.warn(messageError.marker(), "Could not find signing certificate for outgoing MessageError")
-        } else {
-            sendResponseToTopic(
-                messageError.toEbmsDokument().signer(signingCertificate),
-                validationResult.signalEmailAddress
-            )
-            log.warn(messageError.marker(), "MessageError returned", ebmsException)
-        }
+        sendResponseToTopic(
+            messageError.toEbmsDokument().signer(signingCertificate!!),
+            validationResult.signalEmailAddress
+        )
+        log.warn(messageError.marker(), "MessageError returned", ebmsException)
     }
 
     private suspend fun sendResponseToTopic(ebmsDocument: EbmsDocument, signalResponderEmails: List<EmailAddress>) {

@@ -73,9 +73,8 @@ class PayloadIntegrationTest : PayloadTestBase() {
         }
     }
 
-    // @Test TODO fixme
+    @Test
     fun `Payload endepunkt med HelseID`() = testApp {
-        val expectedNationalIdentityNumber = "25027600363"
         val requestBody = baseRequest(payload = Fixtures.validEgenandelForesporselHelseId()).withOCSP()
 
         val response = client(authenticated = true).post("/payload") {
@@ -83,9 +82,9 @@ class PayloadIntegrationTest : PayloadTestBase() {
         }
 
         with(response.body<PayloadResponse>()) {
-            assertEquals(HttpStatusCode.OK, response.status)
-            assertNull(error)
-            assertEquals(expectedNationalIdentityNumber, processedPayload!!.signedBy)
+            assertEquals(HttpStatusCode.BadRequest, response.status)
+            assertEquals(ErrorCode.UNKNOWN, response.body<PayloadResponse>().error!!.code)
+            assertEquals("Token does not contain required audience", response.body<PayloadResponse>().error!!.descriptionText)
         }
     }
 

@@ -24,9 +24,9 @@ import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
 import org.slf4j.LoggerFactory
 import java.time.Duration
+import java.time.Instant
 import java.time.LocalDateTime
-import java.time.ZoneOffset
-import java.time.ZonedDateTime
+import java.time.ZoneId
 import java.util.Properties
 import kotlin.collections.map
 
@@ -36,7 +36,7 @@ const val RETRY_REASON = "retryReason"
 
 // Dette flagget er i utgangspunktet satt på for å dummy-prosessere alle gamle meldinger i feilkøen ved oppstart i DEV (ca 3000)
 // men kan evt brukes også i vanlig kjøring, siden det ignorerer meldinger eldre enn 1 uke
-const val IGNORE_OLD_MESSAGES = true
+const val IGNORE_OLD_MESSAGES = false
 const val AGE_DAYS_TO_IGNORE = 7L
 
 val logger = LoggerFactory.getLogger(FailedMessageKafkaHandler::class.java)
@@ -150,12 +150,9 @@ class FailedMessageKafkaHandler(
             }
 
             logger.info("Processing record: $counter, max is $limit, key: ${record.key()}, offset: ${record.offset()}")
-            val retryableAfter = LocalDateTime.parse(
-                String(record.headers().lastHeader(RETRY_AFTER).value())
-            )
-            // LocalDateTime logges OK lokalt, men får UTC-verdi på server. Sett eksplisitt timezone på det som logges
-            val retryableAfterWithLocalTimezone = ZonedDateTime.of(retryableAfter, ZoneOffset.systemDefault())
-            logger.info("Record with key ${record.key()} is retryable after $retryableAfterWithLocalTimezone.")
+            val retryableAfter = parseNextRetryHeader(record)
+
+            logger.info("Record with key ${record.key()} is retryable after $retryableAfter.")
             val offsetToCommit = record.offset() + 1
             if (IGNORE_OLD_MESSAGES && LocalDateTime.now().minusDays(AGE_DAYS_TO_IGNORE).isAfter(retryableAfter)) {
                 logger.info("${record.key()} is too old, ignoring. This should only happen during DEV, when we want to process all messages in the queue.")
@@ -175,6 +172,18 @@ class FailedMessageKafkaHandler(
                 )
             pollerConsumer.commitSync(offsets)
             logger.info("Committed offset $offsetToCommit for record with key ${record.key()}")
+        }
+    }
+
+    // Så lenge parseNextRetryHeader() og getNextRetryTime() er i sync mht. timestamp-formatet, skal parsing gå bra.
+    // Vi har imidlertid erfart at man kan finne "gamle" meldinger på feilkø, med annet format - sikreste er å takle begge.
+    private fun parseNextRetryHeader(record: ConsumerRecord<String, ByteArray>): LocalDateTime {
+        val header = String(record.headers().lastHeader(RETRY_AFTER).value())
+        try {
+            return LocalDateTime.parse(header)
+        } catch (e: Exception) {
+            val instant = Instant.parse(header)
+            return LocalDateTime.ofInstant(instant, ZoneId.systemDefault())
         }
     }
 
