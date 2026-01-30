@@ -1,7 +1,7 @@
 package no.nav.emottak.ebms.async.persistence
 
 import no.nav.emottak.ebms.async.ebmsPostgres
-import no.nav.emottak.ebms.async.persistence.repository.ResponseAckRepository
+import no.nav.emottak.ebms.async.persistence.repository.MessagePendingAckRepository
 import no.nav.emottak.ebms.async.testConfiguration
 import no.nav.emottak.message.ebxml.messageHeader
 import no.nav.emottak.message.model.EmailAddress
@@ -19,9 +19,9 @@ import java.sql.DriverManager
 import java.time.Instant
 import kotlin.uuid.Uuid
 
-class ResponseAckRepositoryTest {
+class MessagePendingAckRepositoryTest {
     companion object {
-        lateinit var responseAckRepository: ResponseAckRepository
+        lateinit var messagePendingAckRepository: MessagePendingAckRepository
         lateinit var ebmsProviderDbContainer: PostgreSQLContainer<Nothing>
         lateinit var ebmsProviderDb: Database
 
@@ -32,7 +32,7 @@ class ResponseAckRepositoryTest {
             ebmsProviderDbContainer.start()
             ebmsProviderDb = Database(ebmsProviderDbContainer.testConfiguration())
             ebmsProviderDb.migrate(ebmsProviderDb.dataSource)
-            responseAckRepository = ResponseAckRepository(ebmsProviderDb, 5, 2)
+            messagePendingAckRepository = MessagePendingAckRepository(ebmsProviderDb, 5, 2)
         }
 
         @JvmStatic
@@ -58,7 +58,7 @@ class ResponseAckRepositoryTest {
     private val xmlMarshaller = XmlMarshaller()
 
     @Test
-    fun `Write ResponseAck and read back`() {
+    fun `Write MessagePendingAck and read back`() {
         val requestId = Uuid.random()
         val payload = "theContent"
         val messageHeader = readMessageHeaderFromTestFile("signaltest/acknowledgment.xml")
@@ -66,24 +66,24 @@ class ResponseAckRepositoryTest {
         val email1 = "ab@cd.com"
         val email2 = "xy@cd.com"
         val emailList = listOf(EmailAddress(email1, EndpointTypeType.RESPONSE), EmailAddress(email2, EndpointTypeType.RESPONSE))
-        responseAckRepository.storeResponse(requestId, messageHeader, payload.toByteArray(), emailList)
+        messagePendingAckRepository.storeMessagePendingAck(requestId, messageHeader, payload.toByteArray(), emailList)
 
-        // No response to be resent before 12 hours is passed
-        var responses = responseAckRepository.findResponsesToResend()
-        Assertions.assertEquals(0, responses.size)
+        // No message to be resent before 12 hours is passed
+        var messages = messagePendingAckRepository.findMessagesToResend()
+        Assertions.assertEquals(0, messages.size)
 
         // Read again but with specified cutoff, like it would be if the insert was more than 12 hours ago
-        responses = responseAckRepository.findResponsesToResend(Instant.now())
-        Assertions.assertEquals(1, responses.size)
+        messages = messagePendingAckRepository.findMessagesToResend(Instant.now())
+        Assertions.assertEquals(1, messages.size)
 
-        Assertions.assertEquals(messageId, responses[0].messageId)
-        Assertions.assertEquals(false, responses[0].ackReceived)
-        Assertions.assertEquals(xmlMarshaller.marshal(messageHeader), xmlMarshaller.marshal(responses[0].messageHeader))
-        Assertions.assertEquals(payload, String(responses[0].messageContent))
-        Assertions.assertEquals(listOf(email1, email2), responses[0].emailAddressList)
-        Assertions.assertTrue { responses[0].firstSent.isBefore(Instant.now()) }
-        Assertions.assertTrue { responses[0].lastSent.isBefore(Instant.now()) }
-        Assertions.assertEquals(0, responses[0].resentCount)
+        Assertions.assertEquals(messageId, messages[0].messageId)
+        Assertions.assertEquals(false, messages[0].ackReceived)
+        Assertions.assertEquals(xmlMarshaller.marshal(messageHeader), xmlMarshaller.marshal(messages[0].messageHeader))
+        Assertions.assertEquals(payload, String(messages[0].messageContent))
+        Assertions.assertEquals(listOf(email1, email2), messages[0].emailAddressList)
+        Assertions.assertTrue { messages[0].firstSent.isBefore(Instant.now()) }
+        Assertions.assertTrue { messages[0].lastSent.isBefore(Instant.now()) }
+        Assertions.assertEquals(0, messages[0].resentCount)
     }
 
     @Test
@@ -94,20 +94,20 @@ class ResponseAckRepositoryTest {
         val email1 = "ab@cd.com"
         val email2 = "xy@cd.com"
         val emailList = listOf(EmailAddress(email1, EndpointTypeType.RESPONSE), EmailAddress(email2, EndpointTypeType.RESPONSE))
-        responseAckRepository.storeResponse(requestId, messageHeader, payload.toByteArray(), emailList)
+        messagePendingAckRepository.storeMessagePendingAck(requestId, messageHeader, payload.toByteArray(), emailList)
 
         val afterCreation = Instant.now()
-        var responses = responseAckRepository.findResponsesToResend(Instant.now())
-        Assertions.assertTrue { responses[0].lastSent.isBefore(afterCreation) }
-        Assertions.assertEquals(0, responses[0].resentCount)
+        var messages = messagePendingAckRepository.findMessagesToResend(Instant.now())
+        Assertions.assertTrue { messages[0].lastSent.isBefore(afterCreation) }
+        Assertions.assertEquals(0, messages[0].resentCount)
 
-        // Mark that we have resent the response once.
+        // Mark that we have resent the message once.
         // This should update counter and last_sent timestamp
-        responseAckRepository.markResent(responses[0])
+        messagePendingAckRepository.markResent(messages[0])
 
-        responses = responseAckRepository.findResponsesToResend(Instant.now())
-        Assertions.assertTrue { responses[0].lastSent.isAfter(afterCreation) }
-        Assertions.assertEquals(1, responses[0].resentCount)
+        messages = messagePendingAckRepository.findMessagesToResend(Instant.now())
+        Assertions.assertTrue { messages[0].lastSent.isAfter(afterCreation) }
+        Assertions.assertEquals(1, messages[0].resentCount)
     }
 
     @Test
@@ -119,17 +119,17 @@ class ResponseAckRepositoryTest {
         val email1 = "ab@cd.com"
         val email2 = "xy@cd.com"
         val emailList = listOf(EmailAddress(email1, EndpointTypeType.RESPONSE), EmailAddress(email2, EndpointTypeType.RESPONSE))
-        responseAckRepository.storeResponse(requestId, messageHeader, payload.toByteArray(), emailList)
+        messagePendingAckRepository.storeMessagePendingAck(requestId, messageHeader, payload.toByteArray(), emailList)
 
-        var responses = responseAckRepository.findResponsesToResend(Instant.now())
-        Assertions.assertEquals(false, responses[0].ackReceived)
+        var messages = messagePendingAckRepository.findMessagesToResend(Instant.now())
+        Assertions.assertEquals(false, messages[0].ackReceived)
 
-        // Mark that we have received an Ack for the response.
+        // Mark that we have received an Ack for the message.
         // This should set the ack_received flag to true, so it is not returned by find() anymore
-        responseAckRepository.registerAckForMessage(messageId)
+        messagePendingAckRepository.registerAckForMessage(messageId)
 
-        responses = responseAckRepository.findResponsesToResend(Instant.now())
-        Assertions.assertEquals(0, responses.size)
+        messages = messagePendingAckRepository.findMessagesToResend(Instant.now())
+        Assertions.assertEquals(0, messages.size)
     }
 
     @Test
@@ -141,16 +141,16 @@ class ResponseAckRepositoryTest {
         val email1 = "ab@cd.com"
         val email2 = "xy@cd.com"
         val emailList = listOf(EmailAddress(email1, EndpointTypeType.RESPONSE), EmailAddress(email2, EndpointTypeType.RESPONSE))
-        responseAckRepository.storeResponse(requestId, messageHeader, payload.toByteArray(), emailList)
+        messagePendingAckRepository.storeMessagePendingAck(requestId, messageHeader, payload.toByteArray(), emailList)
 
         // max resends is set to 2 in the test setup
-        // The first 2 times we search, we find the pending response, and marks that we have resent it. The 3rd time we do not find it.
-        var responses = responseAckRepository.findResponsesToResend(Instant.now())
-        responseAckRepository.markResent(responses[0])
-        responses = responseAckRepository.findResponsesToResend(Instant.now())
-        responseAckRepository.markResent(responses[0])
-        responses = responseAckRepository.findResponsesToResend(Instant.now())
-        Assertions.assertEquals(0, responses.size)
+        // The first 2 times we search, we find the pending message, and marks that we have resent it. The 3rd time we do not find it.
+        var messages = messagePendingAckRepository.findMessagesToResend(Instant.now())
+        messagePendingAckRepository.markResent(messages[0])
+        messages = messagePendingAckRepository.findMessagesToResend(Instant.now())
+        messagePendingAckRepository.markResent(messages[0])
+        messages = messagePendingAckRepository.findMessagesToResend(Instant.now())
+        Assertions.assertEquals(0, messages.size)
     }
 
     private fun readMessageHeaderFromTestFile(fileName: String): MessageHeader {

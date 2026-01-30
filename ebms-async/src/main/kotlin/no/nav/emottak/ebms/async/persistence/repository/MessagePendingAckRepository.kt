@@ -1,7 +1,7 @@
 package no.nav.emottak.ebms.async.persistence.repository
 
 import no.nav.emottak.ebms.async.persistence.Database
-import no.nav.emottak.ebms.async.persistence.table.ResponseAckTable
+import no.nav.emottak.ebms.async.persistence.table.MessagePendingAckTable
 import no.nav.emottak.message.model.EmailAddress
 import no.nav.emottak.message.xml.xmlMarshaller
 import org.jetbrains.exposed.v1.core.and
@@ -17,15 +17,15 @@ import java.util.UUID
 import kotlin.uuid.Uuid
 import kotlin.uuid.toJavaUuid
 
-// Entity representing a Response Message, whether it has been acknowledged, and any resend history
-data class ResponseMessageNeedingAck(
-    // Message ID for response message, will be the value of refToMessageId for the corresponding Acknowledgment
+// Entity representing an outgoing Message, whether it has been acknowledged, and any resend history
+data class MessagePendingAck(
+    // Message ID for message, will be the value of refToMessageId for the corresponding Acknowledgment
     val messageId: String,
     // ID used as key on Kafka topics
     val requestId: String,
     // Flag indicating whether an Ack has been received or not
     val ackReceived: Boolean = false,
-    // Response message contents (needed for resend): header, contents, address
+    // Message contents (needed for resend): header, contents, address
     val messageHeader: MessageHeader,
     val messageContent: ByteArray,
     val emailAddressList: List<String> = emptyList(),
@@ -35,18 +35,18 @@ data class ResponseMessageNeedingAck(
     val resentCount: Int = 0
 )
 
-class ResponseAckRepository(
+class MessagePendingAckRepository(
     private val database: Database,
     val resendIntervalMinutes: Int,
     val maxResends: Int
 ) {
 
-    fun storeResponse(id: Uuid, header: MessageHeader, content: ByteArray, receiverEmailAddress: List<EmailAddress>) {
+    fun storeMessagePendingAck(id: Uuid, header: MessageHeader, content: ByteArray, receiverEmailAddress: List<EmailAddress>) {
         val addressListAsStringList: List<String> = receiverEmailAddress.map { a -> a.emailAddress }
         val addressesAsString = addressListAsStringList.joinToString(",")
         val now = Instant.now()
         transaction(database.db) {
-            ResponseAckTable
+            MessagePendingAckTable
                 .insert {
                     it[messageId] = Uuid.parse(header.messageData.messageId).toJavaUuid()
                     it[requestId] = id.toJavaUuid()
@@ -61,19 +61,19 @@ class ResponseAckRepository(
         }
     }
 
-    // Set last resent = now, and increase reset-count for response with given message id
-    fun markResent(response: ResponseMessageNeedingAck) {
+    // Set last resent = now, and increase reset-count for message with given message id
+    fun markResent(message: MessagePendingAck) {
         transaction(database.db) {
-            val messageIdAsUuid = Uuid.parse(response.messageId).toJavaUuid()
-            ResponseAckTable
-                .update(where = { ResponseAckTable.messageId.eq(messageIdAsUuid) }) {
+            val messageIdAsUuid = Uuid.parse(message.messageId).toJavaUuid()
+            MessagePendingAckTable
+                .update(where = { MessagePendingAckTable.messageId.eq(messageIdAsUuid) }) {
                     it[lastSent] = Instant.now()
-                    it[resentCount] = response.resentCount + 1
+                    it[resentCount] = message.resentCount + 1
                 }
         }
     }
 
-    // Set ackReceived for response with given message id
+    // Set ackReceived for message with given message id
     fun registerAckForMessage(messageId: String) {
         var messageIdAsUuid: UUID? = null
         try {
@@ -83,38 +83,38 @@ class ResponseAckRepository(
             return
         }
         transaction(database.db) {
-            ResponseAckTable
-                .update(where = { ResponseAckTable.messageId.eq(messageIdAsUuid) }) {
+            MessagePendingAckTable
+                .update(where = { MessagePendingAckTable.messageId.eq(messageIdAsUuid) }) {
                     it[ackReceived] = true
                 }
         }
     }
 
-    // Responses that have not received Ack, not been given up (due to max resends), and was last sent before cutoff
-    fun findResponsesToResend(cutoffTime: Instant? = null): List<ResponseMessageNeedingAck> {
+    // Messages that have not received Ack, not been given up (due to max resends), and was last sent before cutoff
+    fun findMessagesToResend(cutoffTime: Instant? = null): List<MessagePendingAck> {
         var lastSentCutoff = Instant.now().minusSeconds((60 * resendIntervalMinutes).toLong())
         if (cutoffTime != null) {
             lastSentCutoff = cutoffTime
         }
         return transaction(database.db) {
-            ResponseAckTable
-                .select(ResponseAckTable.columns)
+            MessagePendingAckTable
+                .select(MessagePendingAckTable.columns)
                 .where {
-                    ResponseAckTable.ackReceived.eq(false)
-                        .and(ResponseAckTable.resentCount.less(maxResends))
-                        .and(ResponseAckTable.lastSent.less(lastSentCutoff))
+                    MessagePendingAckTable.ackReceived.eq(false)
+                        .and(MessagePendingAckTable.resentCount.less(maxResends))
+                        .and(MessagePendingAckTable.lastSent.less(lastSentCutoff))
                 }
                 .map {
-                    ResponseMessageNeedingAck(
-                        it[ResponseAckTable.messageId].toString(),
-                        it[ResponseAckTable.requestId].toString(),
-                        it[ResponseAckTable.ackReceived],
-                        xmlMarshaller.unmarshal(it[ResponseAckTable.messageHeader], MessageHeader::class.java),
-                        it[ResponseAckTable.messageContent],
-                        it[ResponseAckTable.emailAddressList].split(","),
-                        it[ResponseAckTable.firstSent],
-                        it[ResponseAckTable.lastSent],
-                        it[ResponseAckTable.resentCount]
+                    MessagePendingAck(
+                        it[MessagePendingAckTable.messageId].toString(),
+                        it[MessagePendingAckTable.requestId].toString(),
+                        it[MessagePendingAckTable.ackReceived],
+                        xmlMarshaller.unmarshal(it[MessagePendingAckTable.messageHeader], MessageHeader::class.java),
+                        it[MessagePendingAckTable.messageContent],
+                        it[MessagePendingAckTable.emailAddressList].split(","),
+                        it[MessagePendingAckTable.firstSent],
+                        it[MessagePendingAckTable.lastSent],
+                        it[MessagePendingAckTable.resentCount]
                     )
                 }
         }

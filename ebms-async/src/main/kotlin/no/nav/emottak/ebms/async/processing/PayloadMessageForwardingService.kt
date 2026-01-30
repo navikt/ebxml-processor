@@ -5,9 +5,9 @@ import kotlinx.serialization.json.Json
 import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
 import no.nav.emottak.ebms.async.log
+import no.nav.emottak.ebms.async.persistence.repository.MessagePendingAck
+import no.nav.emottak.ebms.async.persistence.repository.MessagePendingAckRepository
 import no.nav.emottak.ebms.async.persistence.repository.PayloadRepository
-import no.nav.emottak.ebms.async.persistence.repository.ResponseAckRepository
-import no.nav.emottak.ebms.async.persistence.repository.ResponseMessageNeedingAck
 import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.ebms.async.util.toAddressKafkaHeader
 import no.nav.emottak.ebms.async.util.toKafkaHeaders
@@ -36,7 +36,7 @@ class PayloadMessageForwardingService(
     val payloadRepository: PayloadRepository,
     val ebmsPayloadProducer: EbmsMessageProducer,
     val eventRegistrationService: EventRegistrationService,
-    val responseAckRepository: ResponseAckRepository
+    val messagePendingAckRepository: MessagePendingAckRepository
 ) {
 
     suspend fun forwardMessageWithSyncResponse(payloadMessage: PayloadMessage) {
@@ -80,17 +80,17 @@ class PayloadMessageForwardingService(
             signedEbmsDocument.messageHeader().messageData.messageId,
             signedEbmsDocument.attachments
         )
-        sendResponseToPayloadTopic(signedEbmsDocument, validationResult.receiverEmailAddress)
+        sendMessageResponseToPayloadTopic(signedEbmsDocument, validationResult.receiverEmailAddress)
         if (processedMessage.ackRequested) {
-            storeResponseNeedingAck(signedEbmsDocument, validationResult.receiverEmailAddress)
+            storeMessagePendingAck(signedEbmsDocument, validationResult.receiverEmailAddress)
         }
         log.info(processedMessage.marker(), "Payload message response returned successfully")
     }
 
-    // This resend function is to be used from RPA processing
-    suspend fun resendMessageResponse(response: ResponseMessageNeedingAck) {
-        resendResponseToPayloadTopic(response)
-        log.info("Payload message response resent successfully")
+    // This resend function is to be used from Resend processing
+    suspend fun resendMessage(message: MessagePendingAck) {
+        resendMessageToPayloadTopic(message)
+        log.info("Payload message resent successfully")
     }
 
     suspend fun savePayloadsToDatabase(
@@ -118,7 +118,7 @@ class PayloadMessageForwardingService(
         }
     }
 
-    private suspend fun sendResponseToPayloadTopic(signedEbmsDocument: EbmsDocument, receiverEmailAddress: List<EmailAddress>) {
+    private suspend fun sendMessageResponseToPayloadTopic(signedEbmsDocument: EbmsDocument, receiverEmailAddress: List<EmailAddress>) {
         eventRegistrationService.runWithEvent(
             successEvent = EventType.MESSAGE_PLACED_IN_QUEUE,
             failEvent = EventType.ERROR_WHILE_STORING_MESSAGE_IN_QUEUE,
@@ -152,26 +152,26 @@ class PayloadMessageForwardingService(
         return headers
     }
 
-    // The given record/message will be like produced by sendResponseToPayloadTopic, just use its key, value and headers
-    private suspend fun resendResponseToPayloadTopic(response: ResponseMessageNeedingAck) {
+    // The given record/message will be like the one produced by sendMessageResponseToPayloadTopic, just use its key, value and headers
+    private suspend fun resendMessageToPayloadTopic(message: MessagePendingAck) {
         eventRegistrationService.runWithEvent(
             successEvent = EventType.MESSAGE_PLACED_IN_QUEUE,
             failEvent = EventType.ERROR_WHILE_STORING_MESSAGE_IN_QUEUE,
-            requestId = response.requestId.parseOrGenerateUuid(),
-            messageId = response.messageId,
+            requestId = message.requestId.parseOrGenerateUuid(),
+            messageId = message.messageId,
             eventData = Json.encodeToString(
                 mapOf(EventDataType.QUEUE_NAME.value to config().kafkaPayloadProducer.topic)
             )
         ) {
             ebmsPayloadProducer.publishMessage(
-                key = response.requestId,
-                value = response.messageContent,
-                headers = buildPayloadHeaders(response.messageHeader, null, response.emailAddressList)
+                key = message.requestId,
+                value = message.messageContent,
+                headers = buildPayloadHeaders(message.messageHeader, null, message.emailAddressList)
             )
         }
     }
 
-    private fun storeResponseNeedingAck(ebmsDocument: EbmsDocument, receiverEmailAddress: List<EmailAddress>) {
-        responseAckRepository.storeResponse(Uuid.parse(ebmsDocument.requestId), ebmsDocument.messageHeader(), ebmsDocument.document.toByteArray(), receiverEmailAddress)
+    private fun storeMessagePendingAck(ebmsDocument: EbmsDocument, receiverEmailAddress: List<EmailAddress>) {
+        messagePendingAckRepository.storeMessagePendingAck(Uuid.parse(ebmsDocument.requestId), ebmsDocument.messageHeader(), ebmsDocument.document.toByteArray(), receiverEmailAddress)
     }
 }

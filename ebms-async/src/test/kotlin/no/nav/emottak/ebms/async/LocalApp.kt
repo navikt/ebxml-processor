@@ -10,10 +10,12 @@ import arrow.fx.coroutines.resourceScope
 import io.github.nomisRev.kafka.receiver.ReceiverRecord
 import io.ktor.server.netty.Netty
 import io.ktor.utils.io.CancellationException
+import io.mockk.Runs
+import io.mockk.every
+import io.mockk.just
+import io.mockk.mockkObject
 import kotlinx.coroutines.awaitCancellation
 import no.nav.emottak.ebms.CpaRepoClient
-import no.nav.emottak.ebms.EBMS_PAYLOAD_SCOPE
-import no.nav.emottak.ebms.EBMS_SEND_IN_SCOPE
 import no.nav.emottak.ebms.EventManagerClient
 import no.nav.emottak.ebms.PayloadProcessingClient
 import no.nav.emottak.ebms.SendInClient
@@ -24,8 +26,8 @@ import no.nav.emottak.ebms.async.kafka.consumer.RETRY_COUNT_HEADER
 import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
 import no.nav.emottak.ebms.async.persistence.Database
 import no.nav.emottak.ebms.async.persistence.PayloadRepositoryTest.Companion.ebmsProviderDbContainer
+import no.nav.emottak.ebms.async.persistence.repository.MessagePendingAckRepository
 import no.nav.emottak.ebms.async.persistence.repository.PayloadRepository
-import no.nav.emottak.ebms.async.persistence.repository.ResponseAckRepository
 import no.nav.emottak.ebms.async.processing.MessageFilterService
 import no.nav.emottak.ebms.async.processing.PayloadMessageForwardingService
 import no.nav.emottak.ebms.async.processing.PayloadMessageService
@@ -34,21 +36,28 @@ import no.nav.emottak.ebms.async.util.EventRegistrationServiceFake
 import no.nav.emottak.ebms.defaultHttpClient
 import no.nav.emottak.ebms.eventmanager.EventManagerService
 import no.nav.emottak.ebms.processing.ProcessingService
-import no.nav.emottak.ebms.scopedAuthHttpClient
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.CPAValidationService
+import no.nav.emottak.ebms.xml.ebmsSigning
 import no.nav.emottak.message.model.AsyncPayload
+import no.nav.emottak.message.model.EbmsMessage
 import no.nav.emottak.message.model.MessagingCharacteristicsRequest
 import no.nav.emottak.message.model.MessagingCharacteristicsResponse
 import no.nav.emottak.message.model.PayloadProcessing
+import no.nav.emottak.message.model.PayloadRequest
+import no.nav.emottak.message.model.PayloadResponse
 import no.nav.emottak.message.model.ProcessConfig
 import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.message.model.ValidationRequest
 import no.nav.emottak.message.model.ValidationResult
+import no.nav.emottak.utils.common.model.Addressing
 import no.nav.emottak.utils.common.model.DuplicateCheckRequest
 import no.nav.emottak.utils.common.model.DuplicateCheckResponse
+import no.nav.emottak.utils.common.model.SendInRequest
+import no.nav.emottak.utils.common.model.SendInResponse
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PerMessageCharacteristicsType
 import org.slf4j.LoggerFactory
+import java.io.InputStream
 import java.util.Timer
 import kotlin.uuid.Uuid
 
@@ -58,17 +67,11 @@ fun main() = SuspendApp {
     /*
     This App is intended to run locally, using a Postgres DB and Kafka running in local containers (e.g. as started by RunLocalContainers).
     It is supposed to contain the same setup as the production App, with dummy services wherever needed for the current run/test.
-    So far it has been used to test retry-logic, in this way:
+    SIt has been used to test retry-logic, in this way:
     - start RunLocalContainers.main() in the IDE. Wait for local Kafka etc to be ready
     - start this App in the IDE. It should run according to its setup, using local DB and Kafka
     - run LocalTestClient.main() in the IDE, let it produce messages on local Kafka or whatever input you need for your test
      */
-
-//    println(" ************ Setting up local database ")
-//    val ebmsProviderDbContainer = ebmsPostgres()
-//    ebmsProviderDbContainer.start()
-//    val database = Database(ebmsProviderDbContainer.testConfiguration())
-//    database.migrate(database.dataSource)
 
     // Use the config corresponding to Local containers
     val database = Database(getRunningPostgresConfiguration())
@@ -76,7 +79,6 @@ fun main() = SuspendApp {
 
     val payloadRepository = PayloadRepository(database)
 
-    // Use the config corresponding to Local containers
     val kafkaUrl = getRunningKafkaBrokerUrl()
     println(" ************ Setting up to use local Kafka with URL: " + kafkaUrl)
     System.setProperty("KAFKA_BROKERS", kafkaUrl)
@@ -84,44 +86,49 @@ fun main() = SuspendApp {
     println(" ************ Setting up standard config ")
     System.setProperty("EBMS_RETRY_QUEUE", "true")
     System.setProperty("EBMS_PAYLOAD_RECEIVER", "true")
+    System.setProperty("EBMS_SIGNAL_PRODUCER", "true")
+    // NOTE: payload production is always done, regardless of setting !!
+    // Set up scheduled processes to run more often than default, so testing is faster
     System.setProperty("RETRY_PROCESS_INTERVAL_SECONDS", "60")
     System.setProperty("RETRY_INTERVALS_MINUTES", "2,2,3,3")
+    System.setProperty("RESEND_PROCESS_INTERVAL_SECONDS", "60")
+    System.setProperty("RESEND_INTERVAL_MINUTES", "2")
     val config = config()
     println(" ************ config.kafkaErrorQueue.active: " + config.kafkaErrorQueue.active)
     println(" ************ config.kafkaPayloadReceiver.active: " + config.kafkaPayloadReceiver.active)
     println(" ************ config.errorRetryPolicy.processIntervalSeconds: " + config.errorRetryPolicy.processIntervalSeconds)
     println(" ************ config.errorRetryPolicy.retriesPerInterval: " + config.errorRetryPolicy.retriesPerInterval)
     println(" ************ config.errorRetryPolicy.retryIntervalsMinutes: " + config.errorRetryPolicy.retryIntervalsMinutes)
+    println(" ************ config.messageResendPolicy.processIntervalSeconds: " + config.messageResendPolicy.processIntervalSeconds)
+    println(" ************ config.messageResendPolicy.resendIntervalMinutes: " + config.messageResendPolicy.resendIntervalMinutes)
 
     println(" ************ Setting up services ")
     val failedMessageQueue = FailedMessageKafkaHandler()
 
-    val responseAckRepository = ResponseAckRepository(database, config.responseResendPolicy.resendIntervalMinutes, config.responseResendPolicy.maxResends)
+    val messagePendingAckRepository = MessagePendingAckRepository(database, config.messageResendPolicy.resendIntervalMinutes, config.messageResendPolicy.maxResends)
 
+    // ebmsSigning er en Singleton brukt til å signere. Vi bare returnerer input-dokumentet, dvs det vil bli lagret/sendt uten signatur
+    mockkObject(ebmsSigning)
+    every { ebmsSigning.sign(any(), any()) } just Runs
+
+    // Se dummy-implementasjoner lenger ned, kan tunes til ønsket oppførsel
     val processingService = ProcessingService(
-        httpClient = PayloadProcessingClient(scopedAuthHttpClient(EBMS_PAYLOAD_SCOPE))
+        httpClient = DummyPayloadProcessingClient()
     )
-    val cpaValidationService = CPAValidationService(
+    val cpaValidationService = CPAValidationServiceWithoutSignatureValidation(
         httpClient = DummyCpaRepoClient()
     )
     val sendInService = SendInService(
-        httpClient = SendInClient(scopedAuthHttpClient(EBMS_SEND_IN_SCOPE))
+        httpClient = DummySendInClient()
     )
+    val smtpTransportClient = DummySmtpTransportClient()
+    val eventManagerService = EventManagerService(
+        DummyEventManagerClient()
+    )
+    val eventRegistrationService = EventRegistrationServiceFake()
 
     val ebmsSignalProducer = EbmsMessageProducer(config.kafkaSignalProducer.topic, config.kafka)
     val ebmsPayloadProducer = EbmsMessageProducer(config.kafkaPayloadProducer.topic, config.kafka)
-
-//    val smtpTransportClient = SmtpTransportClient(scopedAuthHttpClient(SMTP_TRANSPORT_SCOPE))
-    val smtpTransportClient = DummySmtpTransportClient()
-
-    val eventManagerService = EventManagerService(
-//        EventManagerClient(scopedAuthHttpClient(EVENT_MANAGER_SCOPE))
-        DummyEventManagerClient()
-    )
-//    val eventRegistrationService = EventRegistrationServiceImpl(
-//        EventLoggingService(config().eventLogging, EventPublisherClient(config().kafka))
-//    )
-    val eventRegistrationService = EventRegistrationServiceFake()
 
     val payloadMessageForwardingService = PayloadMessageForwardingService(
         sendInService = sendInService,
@@ -130,7 +137,7 @@ fun main() = SuspendApp {
         payloadRepository = payloadRepository,
         ebmsPayloadProducer = ebmsPayloadProducer,
         eventRegistrationService = eventRegistrationService,
-        responseAckRepository = responseAckRepository
+        messagePendingAckRepository = messagePendingAckRepository
     )
 
     val payloadMessageService = PayloadMessageService(
@@ -146,10 +153,10 @@ fun main() = SuspendApp {
     val signalMessageService = SignalMessageService(
         cpaValidationService = cpaValidationService,
         eventRegistrationService = eventRegistrationService,
-        responseAckRepository = responseAckRepository
+        messagePendingAckRepository = messagePendingAckRepository
     )
 
-    val messageFilterService = DummyMessageFilterService(
+    val messageFilterService = MessageFilterService(
         payloadMessageService = payloadMessageService,
         signalMessageService = signalMessageService,
         smtpTransportClient = smtpTransportClient,
@@ -158,7 +165,7 @@ fun main() = SuspendApp {
 
     val retryErrorsTimer = Timer("RetryErrorsTask", false)
     var pauseRetryErrorsTimerFlag = PauseRetryErrorsTimerFlag()
-    val responseResendTimer = Timer("ResponseResendTask", false)
+    val messageResendTimer = Timer("MessageResendTask", false)
 
     println(" ************ Setting up Netty at 8080 ")
 
@@ -179,10 +186,10 @@ fun main() = SuspendApp {
                 failedMessageQueue = failedMessageQueue,
                 pauseRetryErrorsTimerFlag = pauseRetryErrorsTimerFlag
             )
-            launchResponseResendTask(
+            launchMesssageResendTask(
                 config = config,
-                responseResendTimer = responseResendTimer,
-                responseAckRepository = responseAckRepository,
+                messageResendTimer = messageResendTimer,
+                messagePendingAckRepository = messagePendingAckRepository,
                 payloadMessageForwardingService = payloadMessageForwardingService
             )
 
@@ -215,11 +222,22 @@ fun main() = SuspendApp {
     println(" ************ All setup done ")
 }
 
-const val TESTMESSAGE_FAIL_HEADER = "numberOfTimesToFail"
+class CPAValidationServiceWithoutSignatureValidation(
+    httpClient: CpaRepoClient
+) : CPAValidationService(httpClient) {
+    override fun validateResult(
+        validationResult: ValidationResult,
+        message: EbmsMessage,
+        checkSignature: Boolean
+    ): ValidationResult {
+        return super.validateResult(validationResult, message, false)
+    }
+}
 
 // Dummy impl that accepts any message and simulates processing it OK, unless it has headers that define
 // how many times it should simulate failure before it succeeds.
 // In that case it will fail until the needed number of retries has been executed.
+const val TESTMESSAGE_FAIL_HEADER = "numberOfTimesToFail"
 class DummyMessageFilterService(
     payloadMessageService: PayloadMessageService,
     signalMessageService: SignalMessageService,
@@ -255,6 +273,7 @@ class DummyMessageFilterService(
     }
 }
 
+// Dummy CPA repo that returns processing flags with everything turned off
 class DummyCpaRepoClient : CpaRepoClient(defaultHttpClient()) {
     override suspend fun postValidate(
         requestId: String,
@@ -282,14 +301,47 @@ class DummyCpaRepoClient : CpaRepoClient(defaultHttpClient()) {
     }
 }
 
+// Dummy payload processing that just passes the input payload through
+class DummyPayloadProcessingClient() : PayloadProcessingClient(defaultHttpClient()) {
+    override suspend fun postPayloadRequest(payloadRequest: PayloadRequest): PayloadResponse {
+        println("DummyPayloadProcessingClient: postPayloadRequest called with payloadRequest: $payloadRequest")
+        return PayloadResponse(payloadRequest.payload)
+    }
+}
+
+// Dummy Sendin processing that builds a hard coded with reversed from/to addresses from the request
+class DummySendInClient() : SendInClient(defaultHttpClient()) {
+    override suspend fun postSendIn(sendInRequest: SendInRequest): SendInResponse {
+        println("DummySendInClient: postSendIn called with sendInRequest: $sendInRequest")
+        var responsePayload = readClasspathFile("xml/harBorgerEgenandelFritakResponseFagmelding.xml")
+        if (responsePayload == null) responsePayload = ""
+        val responseMessageId = "22a46f21-33c6-4324-8e46-b704a59b5658"
+        val responseConversationId = "17eb03e-9e43-43fb-874c-1fde9a28c308"
+        val responseRequestId = "11111111-2222-3333-4444-555555555555"
+        val service = "Inntektsforesporsel"
+        val action = "InntektInformasjon"
+        val addressing = Addressing(sendInRequest.addressing.from, sendInRequest.addressing.to, service, action)
+        return SendInResponse(responseMessageId, responseConversationId, addressing, responsePayload.toByteArray(), responseRequestId)
+    }
+}
+
+// Dummy duplcate check always returning FALSE
 class DummyEventManagerClient : EventManagerClient(defaultHttpClient()) {
     override suspend fun duplicateCheck(duplicateCheckRequest: DuplicateCheckRequest): DuplicateCheckResponse {
+        println("DummyEventManagerClient: duplicateCheck called with duplicateCheckRequest: $duplicateCheckRequest")
         return DuplicateCheckResponse("dummyId", false)
     }
 }
 
+// Dummy SMTP transport client that always returns a hard coded payload
 class DummySmtpTransportClient : SmtpTransportClient(defaultHttpClient()) {
     override suspend fun getPayload(referenceId: Uuid): List<AsyncPayload> {
+        println("DummySmtpTransportClient: getPayload called with referenceId: $referenceId")
         return listOf(AsyncPayload(referenceId, "contentId1", "text/plain", "Payload test content 1".toByteArray()))
     }
+}
+
+fun readClasspathFile(fileName: String): String? {
+    val inputStream: InputStream? = DummySendInClient::class.java.getResourceAsStream("/$fileName")
+    return inputStream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }
 }
