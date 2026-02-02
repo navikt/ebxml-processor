@@ -23,6 +23,10 @@ class Database(
                 if (getEnvVar("NAIS_CLUSTER_NAME", "local") == "local") {
                     it.locations("filesystem:src/main/resources/db/migration")
                 }
+                // When running in IDE, CWD is the project root (not module root)
+                if (getEnvVar("NAIS_CLUSTER_NAME", "local") == "test") {
+                    it.locations("filesystem:ebms-async/src/main/resources/db/migration")
+                }
             }
             .load()
             .migrate()

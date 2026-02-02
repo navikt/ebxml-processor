@@ -26,13 +26,44 @@ data class Config(
     val kafkaPayloadReceiver: KafkaPayloadReceiver,
     val kafkaPayloadProducer: KafkaPayloadProducer,
     val kafkaErrorQueue: KafkaErrorQueue,
-    val signering: List<KeyStoreConfiguration>
+    val signering: List<KeyStoreConfiguration>,
+    val errorRetryPolicy: ErrorRetryPolicy
 )
 
 data class KafkaErrorQueue(
     val active: Boolean,
-    val topic: String
+    val topic: String,
+    val initOffset: String
 )
+
+data class ErrorRetryPolicy(
+    val processIntervalSeconds: Int,
+    val maxMessagesToProcess: Int,
+    val retryIntervalsMinutes: List<Int>,
+    val retriesPerInterval: List<Int>
+    // If retriesPerInterval is e.g. [3, 3, 23] and retryIntervalsMinutes is [5, 15, 60, 60*24],
+    // then the first 3 retries occurs 5/10/15 minutes after first failure, the next 3 retries 30/45/60 minutes after first failure,
+    // the next 23 retries 2-24 hours after first failure, and any retries after that will occur every 24 hours after the previous retry.
+) {
+    fun nextIntervalMinutes(retriesPerformed: Int): Int {
+        var intervalIndex = findIntervalIndex(retriesPerformed)
+        if (intervalIndex > retryIntervalsMinutes.lastIndex) {
+            intervalIndex = retryIntervalsMinutes.lastIndex
+        }
+        return retryIntervalsMinutes[intervalIndex]
+    }
+
+    private fun findIntervalIndex(retriesPerformed: Int): Int {
+        var i = 0
+        var limit = 0
+        while (i < retriesPerInterval.size) {
+            limit = limit + retriesPerInterval[i]
+            if (retriesPerformed < limit) return i
+            i++
+        }
+        return retryIntervalsMinutes.size
+    }
+}
 
 fun Kafka.toProperties() = Properties()
     .apply {
