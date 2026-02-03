@@ -3,7 +3,7 @@ package no.nav.emottak.cpa.databasetest.setup
 import com.zaxxer.hikari.HikariConfig
 import no.nav.emottak.cpa.persistence.Database
 import org.flywaydb.core.Flyway
-import org.testcontainers.containers.OracleContainer
+import org.testcontainers.oracle.OracleContainer
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
@@ -13,7 +13,7 @@ class OracleTestSetup {
 
     fun initialize(): Database {
         timestamp = Instant.now().truncatedTo(ChronoUnit.SECONDS)
-        val oracleContainer = OracleContainer("gvenzl/oracle-xe:21-slim-faststart")
+        val oracleContainer = OracleContainer("gvenzl/oracle-free:23.5-slim-faststart")
             .apply {
                 withDatabaseName("testDB")
                 withUsername("testUser")
