@@ -25,9 +25,15 @@ data class Config(
     val kafkaSignalProducer: KafkaSignalProducer,
     val kafkaPayloadReceiver: KafkaPayloadReceiver,
     val kafkaPayloadProducer: KafkaPayloadProducer,
+    val kafkaSendInProducer: KafkaSendInProducer,
     val kafkaErrorQueue: KafkaErrorQueue,
     val signering: List<KeyStoreConfiguration>,
     val errorRetryPolicy: ErrorRetryPolicy
+)
+
+data class KafkaSendInProducer(
+    val active: Boolean,
+    val topic: String
 )
 
 data class KafkaErrorQueue(

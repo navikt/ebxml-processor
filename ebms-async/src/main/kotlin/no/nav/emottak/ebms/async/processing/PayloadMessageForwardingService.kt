@@ -30,6 +30,7 @@ class PayloadMessageForwardingService(
     val processingService: ProcessingService,
     val payloadRepository: PayloadRepository,
     val ebmsPayloadProducer: EbmsMessageProducer,
+    val ebmsSendInProducer: EbmsMessageProducer,
     val eventRegistrationService: EventRegistrationService
 ) {
 
@@ -37,26 +38,37 @@ class PayloadMessageForwardingService(
         when (val service = payloadMessage.addressing.service) {
             "HarBorgerFrikortMengde", "Inntektsforesporsel" -> {
                 log.debug(payloadMessage.marker(), "Starting SendIn for $service")
-                sendInService.sendIn(payloadMessage).let { sendInResponse ->
-                    PayloadMessage(
-                        requestId = sendInResponse.requestId,
-                        messageId = sendInResponse.messageId,
-                        conversationId = sendInResponse.conversationId,
-                        cpaId = payloadMessage.cpaId,
-                        addressing = sendInResponse.addressing,
-                        payload = Payload(sendInResponse.payload, ContentType.Application.Xml.toString()),
-                        refToMessageId = payloadMessage.messageId,
-                        duplicateElimination = payloadMessage.duplicateElimination,
-                        ackRequested = true
+                if (config().kafkaSendInProducer.active) {
+                    ebmsSendInProducer.publishMessage(
+                        key = payloadMessage.requestId,
+                        value = payloadMessage.toEbmsDokument().document.toByteArray(),
+                        headers = payloadMessage.toEbmsDokument().messageHeader().toKafkaHeaders()
                     )
-                }.let { payloadMessageResponse ->
-                    returnMessageResponse(payloadMessageResponse)
+                    log.info(payloadMessage.marker(), "Sent payload to SendIn Kafka topic")
+                } else {
+                    sendInService.sendIn(payloadMessage).let { sendInResponse ->
+                        PayloadMessage(
+                            requestId = sendInResponse.requestId,
+                            messageId = sendInResponse.messageId,
+                            conversationId = sendInResponse.conversationId,
+                            cpaId = payloadMessage.cpaId,
+                            addressing = sendInResponse.addressing,
+                            payload = Payload(sendInResponse.payload, ContentType.Application.Xml.toString()),
+                            refToMessageId = payloadMessage.messageId,
+                            duplicateElimination = payloadMessage.duplicateElimination,
+                            ackRequested = true
+                        ).also {
+                            processResponse(it)
+                        }
+                    }
                 }
             }
-            else -> {
-                log.debug(payloadMessage.marker(), "Skipping SendIn for $service")
-            }
         }
+    }
+
+    suspend fun processResponse(payloadMessage: PayloadMessage) {
+        eventRegistrationService.registerEventMessageDetails(payloadMessage)
+        returnMessageResponse(payloadMessage)
     }
 
     suspend fun returnMessageResponse(payloadMessage: PayloadMessage) {
