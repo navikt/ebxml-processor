@@ -40,12 +40,11 @@ spec:
   replicas:
     scalingStrategy:
       cpu:
-        thresholdPercentage: 25
+        thresholdPercentage: 40
     min: 4
     max: 12
   resources:
     limits:
-      cpu: "1000m"
       memory: "512Mi"
     requests:
       cpu: "100m"

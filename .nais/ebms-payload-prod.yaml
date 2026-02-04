@@ -45,7 +45,7 @@ spec:
       memory: "1024Mi"
     requests:
       cpu: "200m"
-      memory: "256Mi"
+      memory: "768Mi"
   ingresses:
     - "https://ebms-payload-fss.intern.nav.no"
   accessPolicy:
