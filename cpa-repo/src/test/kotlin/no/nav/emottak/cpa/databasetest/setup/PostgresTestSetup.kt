@@ -22,7 +22,7 @@ class PostgresTestSetup {
 
     fun initialize(): Database {
         timestamp = Instant.now().truncatedTo(ChronoUnit.SECONDS)
-        val postgresContainer = PostgreSQLContainer<Nothing>("postgres:14").apply {
+        val postgresContainer = PostgreSQLContainer<Nothing>("postgres:15").apply {
             withUsername("$CPA_DB_NAME-admin")
             withReuse(true)
             withLabel("app-navn", "cpa-repo")

@@ -79,7 +79,7 @@ dependencies {
     testImplementation(libs.ktor.client.content.negotiation)
     testImplementation(testLibs.ktor.server.test.host)
     testRuntimeOnly(libs.ojdbc8)
-    testImplementation("org.testcontainers:oracle-xe:1.19.4")
+    testImplementation("org.testcontainers:oracle-free:1.20.0")
     testImplementation(kotlin("test"))
 
     runtimeOnly("org.postgresql:postgresql:42.7.3")
