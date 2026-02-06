@@ -20,7 +20,7 @@ abstract class PostgresTest {
 
         @JvmStatic
         @AfterAll
-        fun shutdownContainers() {
+        fun tearDown() {
             postgresTestSetup.postgresContainer.stop()
         }
     }

@@ -24,7 +24,7 @@ abstract class PostgresOracleTest {
 
         @JvmStatic
         @AfterAll
-        fun shutdownContainers() {
+        fun tearDown() {
             postgresTestSetup.postgresContainer.stop()
             oracleTestSetup.oracleContainer.stop()
         }
