@@ -17,6 +17,7 @@ import org.testcontainers.containers.PostgreSQLContainer
 import org.xmlsoap.schemas.soap.envelope.Envelope
 import java.sql.DriverManager
 import java.time.Instant
+import kotlin.time.Duration.Companion.minutes
 import kotlin.uuid.Uuid
 
 class MessagePendingAckRepositoryTest {
@@ -32,7 +33,7 @@ class MessagePendingAckRepositoryTest {
             ebmsProviderDbContainer.start()
             ebmsProviderDb = Database(ebmsProviderDbContainer.testConfiguration())
             ebmsProviderDb.migrate(ebmsProviderDb.dataSource)
-            messagePendingAckRepository = MessagePendingAckRepository(ebmsProviderDb, 5, 2)
+            messagePendingAckRepository = MessagePendingAckRepository(ebmsProviderDb, 5.minutes, 2)
         }
 
         @JvmStatic

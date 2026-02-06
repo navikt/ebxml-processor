@@ -58,7 +58,6 @@ import no.nav.emottak.utils.common.model.SendInResponse
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PerMessageCharacteristicsType
 import org.slf4j.LoggerFactory
 import java.io.InputStream
-import java.util.Timer
 import kotlin.uuid.Uuid
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.async.LocalApp")
@@ -67,7 +66,7 @@ fun main() = SuspendApp {
     /*
     This App is intended to run locally, using a Postgres DB and Kafka running in local containers (e.g. as started by RunLocalContainers).
     It is supposed to contain the same setup as the production App, with dummy services wherever needed for the current run/test.
-    SIt has been used to test retry-logic, in this way:
+    It has been used to test retry-logic, in this way:
     - start RunLocalContainers.main() in the IDE. Wait for local Kafka etc to be ready
     - start this App in the IDE. It should run according to its setup, using local DB and Kafka
     - run LocalTestClient.main() in the IDE, let it produce messages on local Kafka or whatever input you need for your test
@@ -89,23 +88,23 @@ fun main() = SuspendApp {
     System.setProperty("EBMS_SIGNAL_PRODUCER", "true")
     // NOTE: payload production is always done, regardless of setting !!
     // Set up scheduled processes to run more often than default, so testing is faster
-    System.setProperty("RETRY_PROCESS_INTERVAL_SECONDS", "60")
-    System.setProperty("RETRY_INTERVALS_MINUTES", "2,2,3,3")
-    System.setProperty("RESEND_PROCESS_INTERVAL_SECONDS", "60")
-    System.setProperty("RESEND_INTERVAL_MINUTES", "2")
+    System.setProperty("RETRY_PROCESS_INTERVAL", "1m")
+    System.setProperty("RETRY_INTERVALS", "2m,2m,3m,3m")
+    System.setProperty("RESEND_PROCESS_INTERVAL", "1m")
+    System.setProperty("RESEND_INTERVAL", "2m")
     val config = config()
     println(" ************ config.kafkaErrorQueue.active: " + config.kafkaErrorQueue.active)
     println(" ************ config.kafkaPayloadReceiver.active: " + config.kafkaPayloadReceiver.active)
-    println(" ************ config.errorRetryPolicy.processIntervalSeconds: " + config.errorRetryPolicy.processIntervalSeconds)
+    println(" ************ config.errorRetryPolicy.processInterval: " + config.errorRetryPolicy.processInterval)
     println(" ************ config.errorRetryPolicy.retriesPerInterval: " + config.errorRetryPolicy.retriesPerInterval)
-    println(" ************ config.errorRetryPolicy.retryIntervalsMinutes: " + config.errorRetryPolicy.retryIntervalsMinutes)
-    println(" ************ config.messageResendPolicy.processIntervalSeconds: " + config.messageResendPolicy.processIntervalSeconds)
-    println(" ************ config.messageResendPolicy.resendIntervalMinutes: " + config.messageResendPolicy.resendIntervalMinutes)
+    println(" ************ config.errorRetryPolicy.retryIntervals: " + config.errorRetryPolicy.retryIntervals)
+    println(" ************ config.messageResendPolicy.processInterval: " + config.messageResendPolicy.processInterval)
+    println(" ************ config.messageResendPolicy.resendInterval: " + config.messageResendPolicy.resendInterval)
 
     println(" ************ Setting up services ")
     val failedMessageQueue = FailedMessageKafkaHandler()
 
-    val messagePendingAckRepository = MessagePendingAckRepository(database, config.messageResendPolicy.resendIntervalMinutes, config.messageResendPolicy.maxResends)
+    val messagePendingAckRepository = MessagePendingAckRepository(database, config.messageResendPolicy.resendInterval, config.messageResendPolicy.maxResends)
 
     // ebmsSigning er en Singleton brukt til å signere. Vi bare returnerer input-dokumentet, dvs det vil bli lagret/sendt uten signatur
     mockkObject(ebmsSigning)
@@ -163,9 +162,7 @@ fun main() = SuspendApp {
         eventRegistrationService = eventRegistrationService
     )
 
-    val retryErrorsTimer = Timer("RetryErrorsTask", false)
     var pauseRetryErrorsTimerFlag = PauseRetryErrorsTimerFlag()
-    val messageResendTimer = Timer("MessageResendTask", false)
 
     println(" ************ Setting up Netty at 8080 ")
 
@@ -181,14 +178,12 @@ fun main() = SuspendApp {
             )
             launchErrorRetryTask(
                 config = config,
-                retryErrorsTimer = retryErrorsTimer,
                 messageFilterService = messageFilterService,
                 failedMessageQueue = failedMessageQueue,
                 pauseRetryErrorsTimerFlag = pauseRetryErrorsTimerFlag
             )
             launchMesssageResendTask(
                 config = config,
-                messageResendTimer = messageResendTimer,
                 messagePendingAckRepository = messagePendingAckRepository,
                 payloadMessageForwardingService = payloadMessageForwardingService
             )
@@ -212,7 +207,6 @@ fun main() = SuspendApp {
     }
         .onFailure { error ->
             ebmsProviderDbContainer.stop()
-            retryErrorsTimer.cancel()
             when (error) {
                 is CancellationException -> {} // expected behaviour - normal shutdown
                 else -> log.error("Unexpected shutdown initiated", error)

@@ -14,6 +14,7 @@ import org.jetbrains.exposed.v1.jdbc.update
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
 import java.time.Instant
 import java.util.UUID
+import kotlin.time.Duration
 import kotlin.uuid.Uuid
 import kotlin.uuid.toJavaUuid
 
@@ -37,7 +38,7 @@ data class MessagePendingAck(
 
 class MessagePendingAckRepository(
     private val database: Database,
-    val resendIntervalMinutes: Int,
+    val resendInterval: Duration,
     val maxResends: Int
 ) {
 
@@ -92,7 +93,7 @@ class MessagePendingAckRepository(
 
     // Messages that have not received Ack, not been given up (due to max resends), and was last sent before cutoff
     fun findMessagesToResend(cutoffTime: Instant? = null): List<MessagePendingAck> {
-        var lastSentCutoff = Instant.now().minusSeconds((60 * resendIntervalMinutes).toLong())
+        var lastSentCutoff = Instant.now().minusSeconds(resendInterval.inWholeSeconds)
         if (cutoffTime != null) {
             lastSentCutoff = cutoffTime
         }
