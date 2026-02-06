@@ -10,17 +10,17 @@ import java.time.temporal.ChronoUnit
 class OracleTestSetup {
     lateinit var timestamp: Instant
     var isInitialized = false
+    val oracleContainer = OracleContainer("gvenzl/oracle-free:23.5-slim-faststart")
+        .apply {
+            withDatabaseName("testDB")
+            withUsername("testUser")
+            withPassword("testPassword")
+            withReuse(true)
+        }
 
     fun initialize(): Database {
         timestamp = Instant.now().truncatedTo(ChronoUnit.SECONDS)
-        val oracleContainer = OracleContainer("gvenzl/oracle-free:23.5-slim-faststart")
-            .apply {
-                withDatabaseName("testDB")
-                withUsername("testUser")
-                withPassword("testPassword")
-                withReuse(true)
-                start()
-            }
+        oracleContainer.start()
 
         val hikariConfig = HikariConfig().apply {
             jdbcUrl = oracleContainer.jdbcUrl
