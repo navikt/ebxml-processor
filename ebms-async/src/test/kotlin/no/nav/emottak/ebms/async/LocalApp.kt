@@ -107,7 +107,7 @@ fun main() = SuspendApp {
 
     val ebmsSignalProducer = EbmsMessageProducer(config.kafkaSignalProducer.topic, config.kafka)
     val ebmsPayloadProducer = EbmsMessageProducer(config.kafkaPayloadProducer.topic, config.kafka)
-    val ebmsSendInProducer = EbmsMessageProducer(config.kafkaEbmsSendInProducer.topic, config.kafka)
+    val ebmsInProducer = EbmsMessageProducer(config.kafkaEbmsInProducer.topic, config.kafka)
 
 //    val smtpTransportClient = SmtpTransportClient(scopedAuthHttpClient(SMTP_TRANSPORT_SCOPE))
     val smtpTransportClient = DummySmtpTransportClient()
@@ -127,7 +127,7 @@ fun main() = SuspendApp {
         processingService = processingService,
         payloadRepository = payloadRepository,
         ebmsPayloadProducer = ebmsPayloadProducer,
-        ebmsSendInProducer = ebmsSendInProducer,
+        ebmsInProducer = ebmsInProducer,
         eventRegistrationService = eventRegistrationService
     )
 

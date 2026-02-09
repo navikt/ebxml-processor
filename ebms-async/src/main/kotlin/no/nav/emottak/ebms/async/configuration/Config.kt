@@ -25,14 +25,14 @@ data class Config(
     val kafkaSignalProducer: KafkaSignalProducer,
     val kafkaPayloadReceiver: KafkaPayloadReceiver,
     val kafkaPayloadProducer: KafkaPayloadProducer,
-    val kafkaEbmsSendInProducer: KafkaEbmsSendInProducer,
+    val kafkaEbmsInProducer: KafkaEbmsInProducer,
     val kafkaErrorQueue: KafkaErrorQueue,
     val kafkaEbmsSendOutReceiver: KafkaEbmsSendOutReceiver,
     val signering: List<KeyStoreConfiguration>,
     val errorRetryPolicy: ErrorRetryPolicy
 )
 
-data class KafkaEbmsSendInProducer(
+data class KafkaEbmsInProducer(
     val active: Boolean,
     val topic: String
 )
