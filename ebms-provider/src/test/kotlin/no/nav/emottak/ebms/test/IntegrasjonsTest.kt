@@ -103,6 +103,7 @@ open class EndToEndTest {
         fun tearDown() {
             ebmsProviderServer.stop()
             cpaRepoServer.stop()
+            cpaRepoDbContainer.stop()
         }
     }
 }
