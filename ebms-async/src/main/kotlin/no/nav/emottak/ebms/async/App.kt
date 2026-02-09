@@ -209,10 +209,10 @@ fun CoroutineScope.launchEbmsInResponseReceiver(
     config: Config,
     payloadMessageForwardingService: PayloadMessageForwardingService
 ) {
-    if (config.kafkaEbmsSendOutReceiver.active) {
+    if (config.kafkaEbmsOutReceiver.active) {
         launch(Dispatchers.IO) {
             no.nav.emottak.ebms.async.kafka.consumer.startSendOutResponseReceiver(
-                config.kafkaEbmsSendOutReceiver.topic,
+                config.kafkaEbmsOutReceiver.topic,
                 config.kafka,
                 payloadMessageForwardingService
             )

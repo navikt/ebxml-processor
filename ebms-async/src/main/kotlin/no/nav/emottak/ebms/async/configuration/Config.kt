@@ -27,7 +27,7 @@ data class Config(
     val kafkaPayloadProducer: KafkaPayloadProducer,
     val kafkaEbmsInProducer: KafkaEbmsInProducer,
     val kafkaErrorQueue: KafkaErrorQueue,
-    val kafkaEbmsSendOutReceiver: KafkaEbmsSendOutReceiver,
+    val kafkaEbmsOutReceiver: KafkaEbmsOutReceiver,
     val signering: List<KeyStoreConfiguration>,
     val errorRetryPolicy: ErrorRetryPolicy
 )
@@ -43,7 +43,7 @@ data class KafkaErrorQueue(
     val initOffset: String
 )
 
-data class KafkaEbmsSendOutReceiver(
+data class KafkaEbmsOutReceiver(
     val active: Boolean,
     val topic: String
 )
