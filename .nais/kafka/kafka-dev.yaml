@@ -115,5 +115,5 @@ spec:
   pool: nav-prod
   acl:
     - team: team-emottak
-      application: send-in-send-out
+      application: ebms-async
       access: read   # read, write, readwrite
