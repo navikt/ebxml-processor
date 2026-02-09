@@ -149,6 +149,10 @@ fun main() = SuspendApp {
                 config = config,
                 messageFilterService = messageFilterService
             )
+            launchSendInResponseReceiver(
+                config = config,
+                payloadMessageForwardingService = payloadMessageForwardingService
+            )
             launchErrorRetryTask(
                 config = config,
                 retryErrorsTimer = retryErrorsTimer,
@@ -196,6 +200,21 @@ fun CoroutineScope.launchPayloadReceiver(
                 config.kafkaPayloadReceiver.topic,
                 config.kafka,
                 messageFilterService
+            )
+        }
+    }
+}
+
+fun CoroutineScope.launchSendInResponseReceiver(
+    config: Config,
+    payloadMessageForwardingService: PayloadMessageForwardingService
+) {
+    if (config.kafkaEbmsSendOutReceiver.active) {
+        launch(Dispatchers.IO) {
+            no.nav.emottak.ebms.async.kafka.consumer.startSendOutResponseReceiver(
+                config.kafkaEbmsSendOutReceiver.topic,
+                config.kafka,
+                payloadMessageForwardingService
             )
         }
     }

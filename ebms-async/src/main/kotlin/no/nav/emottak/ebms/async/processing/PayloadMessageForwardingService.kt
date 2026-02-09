@@ -34,11 +34,12 @@ class PayloadMessageForwardingService(
     val eventRegistrationService: EventRegistrationService
 ) {
 
+    // TODO: is this the correct spot?
     suspend fun forwardMessageWithSyncResponse(payloadMessage: PayloadMessage) {
         when (val service = payloadMessage.addressing.service) {
             "HarBorgerFrikortMengde", "Inntektsforesporsel" -> {
                 log.debug(payloadMessage.marker(), "Starting SendIn for $service")
-                if (config().kafkaSendInProducer.active) {
+                if (config().kafkaEbmsSendInProducer.active) {
                     ebmsSendInProducer.publishMessage(
                         key = payloadMessage.requestId,
                         value = payloadMessage.toEbmsDokument().document.toByteArray(),
