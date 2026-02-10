@@ -39,6 +39,7 @@ import no.nav.emottak.ebms.async.configuration.Config
 import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
 import no.nav.emottak.ebms.async.kafka.consumer.getRecord
+import no.nav.emottak.ebms.async.kafka.consumer.startEbmsOutPayloadReceiver
 import no.nav.emottak.ebms.async.kafka.consumer.startPayloadReceiver
 import no.nav.emottak.ebms.async.kafka.consumer.startSignalReceiver
 import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
@@ -93,7 +94,7 @@ fun main() = SuspendApp {
 
     val ebmsSignalProducer = EbmsMessageProducer(config.kafkaSignalProducer.topic, config.kafka)
     val ebmsPayloadProducer = EbmsMessageProducer(config.kafkaPayloadProducer.topic, config.kafka)
-    val ebmsInProducer = EbmsMessageProducer(config.kafkaEbmsInProducer.topic, config.kafka)
+    val ebmsInPayloadProducer = EbmsMessageProducer(config.kafkaEbmsInPayloadProducer.topic, config.kafka)
 
     val smtpTransportClient = SmtpTransportClient(scopedAuthHttpClient(SMTP_TRANSPORT_SCOPE))
 
@@ -110,7 +111,7 @@ fun main() = SuspendApp {
         processingService = processingService,
         payloadRepository = payloadRepository,
         ebmsPayloadProducer = ebmsPayloadProducer,
-        ebmsInProducer = ebmsInProducer,
+        ebmsInPayloadProducer = ebmsInPayloadProducer,
         eventRegistrationService = eventRegistrationService
     )
 
@@ -149,7 +150,7 @@ fun main() = SuspendApp {
                 config = config,
                 messageFilterService = messageFilterService
             )
-            launchEbmsInResponseReceiver(
+            launchEbmsOutPayloadReceiver(
                 config = config,
                 payloadMessageForwardingService = payloadMessageForwardingService
             )
@@ -205,14 +206,14 @@ fun CoroutineScope.launchPayloadReceiver(
     }
 }
 
-fun CoroutineScope.launchEbmsInResponseReceiver(
+fun CoroutineScope.launchEbmsOutPayloadReceiver(
     config: Config,
     payloadMessageForwardingService: PayloadMessageForwardingService
 ) {
-    if (config.kafkaEbmsOutReceiver.active) {
+    if (config.kafkaEbmsOutPayloadReceiver.active) {
         launch(Dispatchers.IO) {
-            no.nav.emottak.ebms.async.kafka.consumer.startSendOutResponseReceiver(
-                config.kafkaEbmsOutReceiver.topic,
+            startEbmsOutPayloadReceiver(
+                config.kafkaEbmsOutPayloadReceiver.topic,
                 config.kafka,
                 payloadMessageForwardingService
             )

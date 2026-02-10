@@ -85,3 +85,41 @@ spec:
     - access: read
       application: emottak-kafka-manager
       team: team-emottak
+
+---
+
+apiVersion: kafka.nais.io/v1
+kind: Topic
+metadata:
+  name: ebms.out.payload
+  namespace: team-emottak
+  labels:
+    team: team-emottak
+spec:
+  pool: nav-dev
+  acl:
+    - team: team-emottak
+      application: ebms-send-in
+      access: write
+    - team: team-emottak
+      application: ebms-async
+      access: read
+
+---
+
+apiVersion: kafka.nais.io/v1
+kind: Topic
+metadata:
+  name: ebms.in.payload
+  namespace: team-emottak
+  labels:
+    team: team-emottak
+spec:
+  pool: nav-dev
+  acl:
+    - team: team-emottak
+      application: ebms-send-in
+      access: read
+    - team: team-emottak
+      application: ebms-async
+      access: write

@@ -1,5 +1,7 @@
 package no.nav.emottak.ebms.async.configuration
 
+import no.nav.emottak.config.KafkaEbmsInPayloadProducer
+import no.nav.emottak.config.KafkaEbmsOutPayloadReceiver
 import no.nav.emottak.config.KafkaPayloadProducer
 import no.nav.emottak.config.KafkaPayloadReceiver
 import no.nav.emottak.config.KafkaSignalProducer
@@ -25,27 +27,17 @@ data class Config(
     val kafkaSignalProducer: KafkaSignalProducer,
     val kafkaPayloadReceiver: KafkaPayloadReceiver,
     val kafkaPayloadProducer: KafkaPayloadProducer,
-    val kafkaEbmsInProducer: KafkaEbmsInProducer,
+    val kafkaEbmsInPayloadProducer: KafkaEbmsInPayloadProducer,
     val kafkaErrorQueue: KafkaErrorQueue,
-    val kafkaEbmsOutReceiver: KafkaEbmsOutReceiver,
+    val kafkaEbmsOutPayloadReceiver: KafkaEbmsOutPayloadReceiver,
     val signering: List<KeyStoreConfiguration>,
     val errorRetryPolicy: ErrorRetryPolicy
-)
-
-data class KafkaEbmsInProducer(
-    val active: Boolean,
-    val topic: String
 )
 
 data class KafkaErrorQueue(
     val active: Boolean,
     val topic: String,
     val initOffset: String
-)
-
-data class KafkaEbmsOutReceiver(
-    val active: Boolean,
-    val topic: String
 )
 
 data class ErrorRetryPolicy(

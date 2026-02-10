@@ -30,7 +30,7 @@ class PayloadMessageForwardingService(
     val processingService: ProcessingService,
     val payloadRepository: PayloadRepository,
     val ebmsPayloadProducer: EbmsMessageProducer,
-    val ebmsInProducer: EbmsMessageProducer,
+    val ebmsInPayloadProducer: EbmsMessageProducer,
     val eventRegistrationService: EventRegistrationService
 ) {
 
@@ -39,8 +39,8 @@ class PayloadMessageForwardingService(
         when (val service = payloadMessage.addressing.service) {
             "HarBorgerFrikortMengde", "Inntektsforesporsel" -> {
                 log.debug(payloadMessage.marker(), "Starting SendIn for $service")
-                if (config().kafkaEbmsInProducer.active) {
-                    ebmsInProducer.publishMessage(
+                if (config().kafkaEbmsInPayloadProducer.active) {
+                    ebmsInPayloadProducer.publishMessage(
                         key = payloadMessage.requestId,
                         value = payloadMessage.toEbmsDokument().document.toByteArray(),
                         headers = payloadMessage.toEbmsDokument().messageHeader().toKafkaHeaders()

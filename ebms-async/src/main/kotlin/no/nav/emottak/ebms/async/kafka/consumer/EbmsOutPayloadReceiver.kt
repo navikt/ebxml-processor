@@ -16,7 +16,7 @@ import org.apache.kafka.common.serialization.ByteArrayDeserializer
 import org.apache.kafka.common.serialization.StringDeserializer
 import kotlin.time.Duration.Companion.seconds
 
-suspend fun startSendOutResponseReceiver(
+suspend fun startEbmsOutPayloadReceiver(
     topic: String,
     kafka: Kafka,
     payloadMessageForwardingService: PayloadMessageForwardingService
