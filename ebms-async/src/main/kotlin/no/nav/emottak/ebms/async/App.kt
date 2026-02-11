@@ -152,7 +152,7 @@ fun main() = SuspendApp {
             )
             launchEbmsOutPayloadReceiver(
                 config = config,
-                payloadMessageForwardingService = payloadMessageForwardingService
+                messageFilterService = messageFilterService
             )
             launchErrorRetryTask(
                 config = config,
@@ -208,14 +208,14 @@ fun CoroutineScope.launchPayloadReceiver(
 
 fun CoroutineScope.launchEbmsOutPayloadReceiver(
     config: Config,
-    payloadMessageForwardingService: PayloadMessageForwardingService
+    messageFilterService: MessageFilterService
 ) {
     if (config.kafkaEbmsOutPayloadReceiver.active) {
         launch(Dispatchers.IO) {
             startEbmsOutPayloadReceiver(
                 config.kafkaEbmsOutPayloadReceiver.topic,
                 config.kafka,
-                payloadMessageForwardingService
+                messageFilterService
             )
         }
     }

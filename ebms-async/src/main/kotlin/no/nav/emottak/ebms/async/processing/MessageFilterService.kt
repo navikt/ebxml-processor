@@ -4,6 +4,8 @@ import io.github.nomisRev.kafka.receiver.ReceiverRecord
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import no.nav.emottak.ebms.SmtpTransportClient
+import no.nav.emottak.ebms.async.kafka.consumer.EBMS_OUT_PAYLOAD_SOURCE
+import no.nav.emottak.ebms.async.kafka.consumer.MESSAGE_SOURCE_HEADER
 import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.message.model.Acknowledgment
 import no.nav.emottak.message.model.DocumentType
@@ -28,9 +30,11 @@ open class MessageFilterService(
 ) {
 
     open suspend fun filterMessage(record: ReceiverRecord<String, ByteArray>) {
+        val isOutboundResponse = record.isFromEbmsOutPayload()
         val ebmsMessage = createEbmsDocument(
             requestId = record.key(),
-            document = record.value().createDocument()
+            document = record.value().createDocument(),
+            skipPayloadRetrieval = isOutboundResponse
         )
         eventRegistrationService.registerEvent(
             eventType = EventType.MESSAGE_READ_FROM_QUEUE,
@@ -40,20 +44,23 @@ open class MessageFilterService(
                 mapOf(EventDataType.QUEUE_NAME.value to record.topic())
             )
         )
-        when (ebmsMessage) {
-            is PayloadMessage -> payloadMessageService.process(record, ebmsMessage)
-            is Acknowledgment -> signalMessageService.processSignal(record.key(), ebmsMessage)
-            is MessageError -> signalMessageService.processSignal(record.key(), ebmsMessage)
+        when {
+            ebmsMessage is PayloadMessage && isOutboundResponse -> payloadMessageService.processOutboundResponse(record, ebmsMessage)
+            ebmsMessage is PayloadMessage -> payloadMessageService.process(record, ebmsMessage)
+            ebmsMessage is Acknowledgment -> signalMessageService.processSignal(record.key(), ebmsMessage)
+            ebmsMessage is MessageError -> signalMessageService.processSignal(record.key(), ebmsMessage)
         }
     }
 
+    // TODO skipPayloadRetrieval because payload should already be here from first trip
     private suspend fun createEbmsDocument(
         requestId: String,
-        document: Document
+        document: Document,
+        skipPayloadRetrieval: Boolean = false
     ): EbmsMessage = EbmsDocument(
         requestId = requestId,
         document = document,
-        attachments = if (document.documentType() == DocumentType.PAYLOAD) {
+        attachments = if (!skipPayloadRetrieval && document.documentType() == DocumentType.PAYLOAD) {
             retrievePayloads(requestId.parseOrGenerateUuid())
         } else {
             emptyList()
@@ -77,4 +84,8 @@ open class MessageFilterService(
                 }
             }
     }
+}
+
+private fun ReceiverRecord<String, ByteArray>.isFromEbmsOutPayload(): Boolean {
+    return headers().lastHeader(MESSAGE_SOURCE_HEADER)?.let { String(it.value()) } == EBMS_OUT_PAYLOAD_SOURCE
 }

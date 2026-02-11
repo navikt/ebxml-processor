@@ -56,6 +56,21 @@ class PayloadMessageService(
         }
     }
 
+    suspend fun processOutboundResponse(
+        record: ReceiverRecord<String, ByteArray>,
+        ebmsPayloadMessage: PayloadMessage
+    ) {
+        runCatching {
+            log.info(ebmsPayloadMessage.marker(), "Got outbound response message with reference <${ebmsPayloadMessage.requestId}>")
+            // TODO processing what to do
+            // sendToRetryIfShouldBeRetried(record, ebmsPayloadMessage)
+            // payloadMessageForwardingService.processResponse(ebmsPayloadMessage)
+        }.onFailure { exception ->
+            log.error(ebmsPayloadMessage.marker(), exception.message ?: "Outbound response processing error", exception)
+            sendToRetryIfShouldBeRetried(record = record, payloadMessage = ebmsPayloadMessage, exception = exception, reason = exception.message ?: "Unknown error")
+        }
+    }
+
     // TODO under construction/experimentation, might be moved to a separate class
     internal suspend fun sendToRetryIfShouldBeRetried(
         record: ReceiverRecord<String, ByteArray>,

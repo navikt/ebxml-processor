@@ -7,19 +7,20 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.map
 import no.nav.emottak.ebms.async.configuration.toProperties
 import no.nav.emottak.ebms.async.log
-import no.nav.emottak.ebms.async.processing.PayloadMessageForwardingService
-import no.nav.emottak.message.model.EbmsDocument
-import no.nav.emottak.message.model.PayloadMessage
-import no.nav.emottak.message.xml.createDocument
+import no.nav.emottak.ebms.async.processing.MessageFilterService
 import no.nav.emottak.utils.config.Kafka
 import org.apache.kafka.common.serialization.ByteArrayDeserializer
 import org.apache.kafka.common.serialization.StringDeserializer
 import kotlin.time.Duration.Companion.seconds
 
+// TODO not sure if needed or there is an existing way
+const val MESSAGE_SOURCE_HEADER = "messageSource"
+const val EBMS_OUT_PAYLOAD_SOURCE = "ebms-out-payload"
+
 suspend fun startEbmsOutPayloadReceiver(
     topic: String,
     kafka: Kafka,
-    payloadMessageForwardingService: PayloadMessageForwardingService
+    messageFilterService: MessageFilterService
 ) {
     log.info("Starting SendOut response receiver on topic $topic")
     val receiverSettings: ReceiverSettings<String, ByteArray> =
@@ -36,22 +37,8 @@ suspend fun startEbmsOutPayloadReceiver(
     KafkaReceiver(receiverSettings)
         .receive(topic)
         .map { record ->
-            runCatching {
-                val document = record.value().createDocument()
-                val ebmsMessage = EbmsDocument(
-                    requestId = record.key(),
-                    document = document,
-                    attachments = emptyList()
-                ).transform()
-
-                if (ebmsMessage is PayloadMessage) {
-                    payloadMessageForwardingService.processResponse(ebmsMessage)
-                } else {
-                    log.warn("Received message on SendOut response topic was not a PayloadMessage: ${ebmsMessage::class.simpleName}")
-                }
-            }.onFailure {
-                log.error("Error processing SendOut response", it)
-            }
+            record.addHeader(MESSAGE_SOURCE_HEADER, EBMS_OUT_PAYLOAD_SOURCE)
+            messageFilterService.filterMessage(record)
             record.offset.acknowledge()
         }.collect()
 }
