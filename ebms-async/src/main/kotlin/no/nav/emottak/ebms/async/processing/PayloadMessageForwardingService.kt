@@ -49,30 +49,13 @@ class PayloadMessageForwardingService(
                         refToMessageId = payloadMessage.messageId,
                         duplicateElimination = payloadMessage.duplicateElimination,
                         ackRequested = true
-                    ).also {
-                        processResponse(it)
-                    }
+                    )
+                }.let { payloadMessageResponse ->
+                    returnMessageResponse(payloadMessageResponse)
                 }
             }
-        }
-    }
-
-    suspend fun processResponse(payloadMessage: PayloadMessage) {
-        eventRegistrationService.registerEventMessageDetails(payloadMessage)
-        // TODO this needs proper handling (check for payload content)
-        try {
-            returnMessageResponse(payloadMessage)
-        } catch (e: Exception) {
-            if (config().kafkaEbmsInPayloadProducer.active) {
-                log.warn(payloadMessage.marker(), "Response processing failed, falling back to async path via ebms.in.payload", e)
-                ebmsInPayloadProducer.publishMessage(
-                    key = payloadMessage.requestId,
-                    value = payloadMessage.toEbmsDokument().document.toByteArray(),
-                    headers = payloadMessage.toEbmsDokument().messageHeader().toKafkaHeaders()
-                )
-                log.info(payloadMessage.marker(), "Sent payload to ebms.in.payload as fallback")
-            } else {
-                throw e
+            else -> {
+                log.debug(payloadMessage.marker(), "Skipping SendIn for $service")
             }
         }
     }
