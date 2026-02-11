@@ -63,6 +63,8 @@ class PayloadMessageService(
         runCatching {
             log.info(ebmsPayloadMessage.marker(), "Got outbound response message with reference <${ebmsPayloadMessage.requestId}>")
             // TODO processing what to do
+            // should go to process(since it already has funtionality)
+
             // sendToRetryIfShouldBeRetried(record, ebmsPayloadMessage)
             // payloadMessageForwardingService.processResponse(ebmsPayloadMessage)
         }.onFailure { exception ->
@@ -151,7 +153,7 @@ class PayloadMessageService(
         val validationResult = cpaValidationService.validateIncomingMessage(ebmsPayloadMessage)
         val (processedPayload, direction) = processingService.processAsync(ebmsPayloadMessage, validationResult.payloadProcessing)
         when (direction) {
-            Direction.IN -> payloadMessageForwardingService.forwardMessageWithSyncResponse(processedPayload)
+            Direction.IN -> payloadMessageForwardingService.forwardMessageWithAsyncResponse(processedPayload)
             Direction.OUT -> payloadMessageForwardingService.returnMessageResponse(processedPayload)
         }
     }

@@ -60,6 +60,24 @@ class PayloadMessageForwardingService(
         }
     }
 
+    suspend fun forwardMessageWithAsyncResponse(payloadMessage: PayloadMessage) {
+        if (config().kafkaEbmsInPayloadProducer.active) {
+            ebmsInPayloadProducer.publishMessage(
+                key = payloadMessage.requestId,
+                value = payloadMessage.toEbmsDokument().document.toByteArray(),
+                headers = payloadMessage.toEbmsDokument().messageHeader().toKafkaHeaders()
+            )
+            log.info(payloadMessage.marker(), "Sent processed message to ebms.in.payload")
+        } else {
+            log.warn(payloadMessage.marker(), "Kafka producer for ebms.in.payload is not active, skipping sending message to topic")
+        }
+    }
+
+    // TODO AsyncReturn this is where the return comes in? maybe not needed
+    suspend fun returnMessageResponseAsync(payloadMessage: PayloadMessage) {
+        log.warn("Returning message response async is not implemented yet")
+    }
+
     suspend fun returnMessageResponse(payloadMessage: PayloadMessage) {
         val validationResult = cpaValidationService.validateOutgoingMessage(payloadMessage)
         val processedMessage = processingService.proccessSyncOut(
