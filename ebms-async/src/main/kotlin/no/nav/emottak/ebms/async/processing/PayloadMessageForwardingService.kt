@@ -34,33 +34,23 @@ class PayloadMessageForwardingService(
     val eventRegistrationService: EventRegistrationService
 ) {
 
-    // TODO: is this the correct spot?
     suspend fun forwardMessageWithSyncResponse(payloadMessage: PayloadMessage) {
         when (val service = payloadMessage.addressing.service) {
             "HarBorgerFrikortMengde", "Inntektsforesporsel" -> {
                 log.debug(payloadMessage.marker(), "Starting SendIn for $service")
-                if (config().kafkaEbmsInPayloadProducer.active) {
-                    ebmsInPayloadProducer.publishMessage(
-                        key = payloadMessage.requestId,
-                        value = payloadMessage.toEbmsDokument().document.toByteArray(),
-                        headers = payloadMessage.toEbmsDokument().messageHeader().toKafkaHeaders()
-                    )
-                    log.info(payloadMessage.marker(), "Sent payload to SendIn Kafka topic")
-                } else {
-                    sendInService.sendIn(payloadMessage).let { sendInResponse ->
-                        PayloadMessage(
-                            requestId = sendInResponse.requestId,
-                            messageId = sendInResponse.messageId,
-                            conversationId = sendInResponse.conversationId,
-                            cpaId = payloadMessage.cpaId,
-                            addressing = sendInResponse.addressing,
-                            payload = Payload(sendInResponse.payload, ContentType.Application.Xml.toString()),
-                            refToMessageId = payloadMessage.messageId,
-                            duplicateElimination = payloadMessage.duplicateElimination,
-                            ackRequested = true
-                        ).also {
-                            processResponse(it)
-                        }
+                sendInService.sendIn(payloadMessage).let { sendInResponse ->
+                    PayloadMessage(
+                        requestId = sendInResponse.requestId,
+                        messageId = sendInResponse.messageId,
+                        conversationId = sendInResponse.conversationId,
+                        cpaId = payloadMessage.cpaId,
+                        addressing = sendInResponse.addressing,
+                        payload = Payload(sendInResponse.payload, ContentType.Application.Xml.toString()),
+                        refToMessageId = payloadMessage.messageId,
+                        duplicateElimination = payloadMessage.duplicateElimination,
+                        ackRequested = true
+                    ).also {
+                        processResponse(it)
                     }
                 }
             }
@@ -69,7 +59,22 @@ class PayloadMessageForwardingService(
 
     suspend fun processResponse(payloadMessage: PayloadMessage) {
         eventRegistrationService.registerEventMessageDetails(payloadMessage)
-        returnMessageResponse(payloadMessage)
+        // TODO this needs proper handling (check for payload content)
+        try {
+            returnMessageResponse(payloadMessage)
+        } catch (e: Exception) {
+            if (config().kafkaEbmsInPayloadProducer.active) {
+                log.warn(payloadMessage.marker(), "Response processing failed, falling back to async path via ebms.in.payload", e)
+                ebmsInPayloadProducer.publishMessage(
+                    key = payloadMessage.requestId,
+                    value = payloadMessage.toEbmsDokument().document.toByteArray(),
+                    headers = payloadMessage.toEbmsDokument().messageHeader().toKafkaHeaders()
+                )
+                log.info(payloadMessage.marker(), "Sent payload to ebms.in.payload as fallback")
+            } else {
+                throw e
+            }
+        }
     }
 
     suspend fun returnMessageResponse(payloadMessage: PayloadMessage) {
