@@ -132,13 +132,13 @@ class PayloadMessageService(
 
     private suspend fun processPayloadMessage(ebmsPayloadMessage: PayloadMessage) {
         log.info(ebmsPayloadMessage.marker(), "Got payload message with reference <${ebmsPayloadMessage.requestId}>")
-        eventRegistrationService.registerEventMessageDetails(ebmsPayloadMessage)
         val validationResult = cpaValidationService.validateIncomingMessage(ebmsPayloadMessage)
         val (processedPayload, direction) = processingService.processAsync(ebmsPayloadMessage, validationResult.payloadProcessing)
         when (direction) {
             Direction.IN -> payloadMessageForwardingService.forwardMessageWithSyncResponse(processedPayload)
             Direction.OUT -> payloadMessageForwardingService.returnMessageResponse(processedPayload)
         }
+        eventRegistrationService.registerEventMessageDetails(ebmsPayloadMessage)
     }
 
     private suspend fun returnAcknowledgment(ebmsPayloadMessage: PayloadMessage) {

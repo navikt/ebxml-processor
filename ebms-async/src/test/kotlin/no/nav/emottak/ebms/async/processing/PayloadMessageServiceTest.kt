@@ -200,12 +200,11 @@ class PayloadMessageServiceTest {
         service.process(setupReceiverRecordAndFailedMessageQueueMock(), payloadMessage)
 
         coVerify(exactly = 1) { eventManagerService.isDuplicateMessage(payloadMessage) }
-        coVerify(exactly = 1) { eventRegistrationService.registerEventMessageDetails(any()) }
-        assertType<PayloadMessage>(ebmsMessageSlots, 0)
         coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(payloadMessage) }
         coVerify(exactly = 1) { processingService.processAsync(payloadMessage, any()) }
         coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithSyncResponse(payloadMessage) }
         coVerify(exactly = 0) { payloadMessageForwardingService.returnMessageResponse(payloadMessage) }
+        coVerify(exactly = 0) { eventRegistrationService.registerEventMessageDetails(any()) }
         coVerify(exactly = 0) { cpaValidationService.validateOutgoingMessage(any()) }
         coVerify(exactly = 0) {
             eventRegistrationService.runWithEvent(
@@ -234,12 +233,11 @@ class PayloadMessageServiceTest {
         service.process(setupReceiverRecordAndFailedMessageQueueMock(), payloadMessage)
 
         coVerify(exactly = 1) { eventManagerService.isDuplicateMessage(payloadMessage) }
-        coVerify(exactly = 1) { eventRegistrationService.registerEventMessageDetails(any()) }
-        assertType<PayloadMessage>(ebmsMessageSlots, 0)
         coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(payloadMessage) }
         coVerify(exactly = 1) { processingService.processAsync(payloadMessage, any()) }
         coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithSyncResponse(payloadMessage) }
         coVerify(exactly = 0) { payloadMessageForwardingService.returnMessageResponse(payloadMessage) }
+        coVerify(exactly = 0) { eventRegistrationService.registerEventMessageDetails(any()) }
         coVerify(exactly = 0) { cpaValidationService.validateOutgoingMessage(any()) }
         coVerify(exactly = 0) {
             eventRegistrationService.runWithEvent(
@@ -331,12 +329,11 @@ class PayloadMessageServiceTest {
         service.process(setupReceiverRecordAndFailedMessageQueueMock(), payloadMessage)
 
         coVerify(exactly = 1) { eventManagerService.isDuplicateMessage(payloadMessage) }
-        coVerify(exactly = 1) { eventRegistrationService.registerEventMessageDetails(any()) }
-        assertType<PayloadMessage>(ebmsMessageSlots, 0)
         coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(payloadMessage) }
         coVerify(exactly = 1) { processingService.processAsync(payloadMessage, any()) }
         coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithSyncResponse(payloadMessage) }
         coVerify(exactly = 0) { payloadMessageForwardingService.returnMessageResponse(payloadMessage) }
+        coVerify(exactly = 0) { eventRegistrationService.registerEventMessageDetails(any()) }
         coVerify(exactly = 0) { cpaValidationService.validateOutgoingMessage(any()) }
         coVerify(exactly = 0) {
             eventRegistrationService.runWithEvent(
