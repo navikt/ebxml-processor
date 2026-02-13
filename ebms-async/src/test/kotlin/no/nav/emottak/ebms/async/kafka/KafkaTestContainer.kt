@@ -3,11 +3,11 @@ package no.nav.emottak.ebms.async.kafka
 import org.apache.kafka.clients.admin.AdminClient
 import org.apache.kafka.clients.admin.AdminClientConfig
 import org.apache.kafka.clients.admin.NewTopic
-import org.testcontainers.containers.KafkaContainer
+import org.testcontainers.kafka.ConfluentKafkaContainer
 import org.testcontainers.utility.DockerImageName
 
 object KafkaTestContainer {
-    val kafkaContainer: KafkaContainer = KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.5.0"))
+    val kafkaContainer: ConfluentKafkaContainer = ConfluentKafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.5.0"))
 
     val bootstrapServers: String
         get() = kafkaContainer.bootstrapServers

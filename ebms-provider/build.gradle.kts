@@ -80,7 +80,7 @@ dependencies {
     testImplementation(testLibs.mockk.dsl.jvm)
     testImplementation(libs.apache.santuario)
     testImplementation(libs.hikari)
-    testImplementation(testLibs.postgresql)
+    testImplementation(testLibs.testcontainers.postgresql)
     testRuntimeOnly(testLibs.junit.jupiter.engine)
 }
 
