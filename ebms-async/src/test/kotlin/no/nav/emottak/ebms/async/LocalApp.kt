@@ -24,6 +24,7 @@ import no.nav.emottak.ebms.async.kafka.consumer.RETRY_COUNT_HEADER
 import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
 import no.nav.emottak.ebms.async.persistence.Database
 import no.nav.emottak.ebms.async.persistence.PayloadRepositoryTest.Companion.ebmsProviderDbContainer
+import no.nav.emottak.ebms.async.persistence.repository.MessageReceivedRepository
 import no.nav.emottak.ebms.async.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.async.processing.MessageFilterService
 import no.nav.emottak.ebms.async.processing.PayloadMessageForwardingService
@@ -31,7 +32,6 @@ import no.nav.emottak.ebms.async.processing.PayloadMessageService
 import no.nav.emottak.ebms.async.processing.SignalMessageService
 import no.nav.emottak.ebms.async.util.EventRegistrationServiceFake
 import no.nav.emottak.ebms.defaultHttpClient
-import no.nav.emottak.ebms.eventmanager.EventManagerService
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.scopedAuthHttpClient
 import no.nav.emottak.ebms.sendin.SendInService
@@ -74,6 +74,7 @@ fun main() = SuspendApp {
     println(" ************ Setting up to use local DB with URL: " + database.dataSource.jdbcUrl)
 
     val payloadRepository = PayloadRepository(database)
+    val messageReceivedRepository = MessageReceivedRepository(database)
 
     // Use the config corresponding to Local containers
     val kafkaUrl = getRunningKafkaBrokerUrl()
@@ -108,16 +109,8 @@ fun main() = SuspendApp {
     val ebmsSignalProducer = EbmsMessageProducer(config.kafkaSignalProducer.topic, config.kafka)
     val ebmsPayloadProducer = EbmsMessageProducer(config.kafkaPayloadProducer.topic, config.kafka)
 
-//    val smtpTransportClient = SmtpTransportClient(scopedAuthHttpClient(SMTP_TRANSPORT_SCOPE))
     val smtpTransportClient = DummySmtpTransportClient()
 
-    val eventManagerService = EventManagerService(
-//        EventManagerClient(scopedAuthHttpClient(EVENT_MANAGER_SCOPE))
-        DummyEventManagerClient()
-    )
-//    val eventRegistrationService = EventRegistrationServiceImpl(
-//        EventLoggingService(config().eventLogging, EventPublisherClient(config().kafka))
-//    )
     val eventRegistrationService = EventRegistrationServiceFake()
 
     val payloadMessageForwardingService = PayloadMessageForwardingService(
@@ -135,7 +128,7 @@ fun main() = SuspendApp {
         ebmsSignalProducer = ebmsSignalProducer,
         payloadMessageForwardingService = payloadMessageForwardingService,
         eventRegistrationService = eventRegistrationService,
-        eventManagerService = eventManagerService,
+        messageReceivedRepository = messageReceivedRepository,
         failedMessageQueue = failedMessageQueue
     )
 
