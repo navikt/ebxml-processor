@@ -7,9 +7,9 @@ import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
 import no.nav.emottak.ebms.async.kafka.consumer.retryCount
 import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
 import no.nav.emottak.ebms.async.log
+import no.nav.emottak.ebms.async.persistence.repository.MessageReceivedRepository
 import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.ebms.async.util.toKafkaHeaders
-import no.nav.emottak.ebms.eventmanager.EventManagerService
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.util.toByteArray
@@ -33,7 +33,7 @@ class PayloadMessageService(
     val ebmsSignalProducer: EbmsMessageProducer,
     val payloadMessageForwardingService: PayloadMessageForwardingService,
     val eventRegistrationService: EventRegistrationService,
-    val eventManagerService: EventManagerService,
+    val messageReceivedRepository: MessageReceivedRepository,
     val failedMessageQueue: FailedMessageKafkaHandler
 ) {
 
@@ -48,6 +48,7 @@ class PayloadMessageService(
                 true -> log.info(ebmsPayloadMessage.marker(), "Got duplicate payload message with reference <${ebmsPayloadMessage.requestId}>")
                 false -> processPayloadMessage(ebmsPayloadMessage)
             }
+            messageReceivedRepository.updateOrInsert(ebmsPayloadMessage)
             returnAcknowledgment(ebmsPayloadMessage)
         }.onFailure { exception ->
             // TODO handle some errors by sending to retry, some by returning error message
@@ -210,14 +211,14 @@ class PayloadMessageService(
         }
 
         if (duplicateEliminationStrategy == PerMessageCharacteristicsType.ALWAYS) {
-            return eventManagerService.isDuplicateMessage(ebmsPayloadMessage)
+            return messageReceivedRepository.isDuplicateMessage(ebmsPayloadMessage)
         }
 
         if (
             duplicateEliminationStrategy == PerMessageCharacteristicsType.PER_MESSAGE &&
             ebmsPayloadMessage.duplicateElimination
         ) {
-            return eventManagerService.isDuplicateMessage(ebmsPayloadMessage)
+            return messageReceivedRepository.isDuplicateMessage(ebmsPayloadMessage)
         }
         return false
     }
