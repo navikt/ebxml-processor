@@ -65,7 +65,6 @@ dependencies {
     implementation(libs.ktor.serialization.kotlinx.json)
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.cio)
-    implementation(testLibs.postgresql)
     implementation(libs.ktor.server.auth.jvm)
     implementation(libs.token.validation.ktor.v3)
     implementation(libs.ktor.client.auth)
@@ -79,7 +78,8 @@ dependencies {
     testImplementation(libs.ktor.client.content.negotiation)
     testImplementation(testLibs.ktor.server.test.host)
     testRuntimeOnly(libs.ojdbc8)
-    testImplementation("org.testcontainers:oracle-free:1.20.0")
+    testImplementation(testLibs.testcontainers.postgresql)
+    testImplementation(testLibs.testcontainers.oracle)
     testImplementation(kotlin("test"))
 
     runtimeOnly("org.postgresql:postgresql:42.7.3")

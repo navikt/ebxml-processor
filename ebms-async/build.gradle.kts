@@ -74,7 +74,6 @@ dependencies {
     implementation(libs.jaxb.runtime)
     implementation(libs.ebxml.protokoll)
     implementation(libs.token.validation.ktor.v3)
-    implementation(testLibs.postgresql)
     implementation("no.nav:vault-jdbc:1.3.10")
 
     testImplementation(project(":cpa-repo"))
@@ -85,7 +84,8 @@ dependencies {
     testImplementation(testLibs.mockk.jvm)
     testImplementation(testLibs.mockk.dsl.jvm)
     testImplementation(libs.apache.santuario)
-    testImplementation("org.testcontainers:kafka:1.19.0")
+    testImplementation(testLibs.testcontainers.postgresql)
+    testImplementation(testLibs.testcontainers.kafka)
     testRuntimeOnly(testLibs.junit.jupiter.engine)
 }
 
