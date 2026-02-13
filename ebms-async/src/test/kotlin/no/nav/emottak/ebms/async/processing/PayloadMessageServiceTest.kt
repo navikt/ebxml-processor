@@ -135,7 +135,8 @@ class PayloadMessageServiceTest {
         assertType<Acknowledgment>(ebmsMessageSlots, 1)
         coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(payloadMessage) }
         coVerify(exactly = 1) { processingService.processAsync(payloadMessage, any()) }
-        coVerify(exactly = 1) { payloadMessageForwardingService.forwardMessageWithSyncResponse(payloadMessage) }
+        coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithSyncResponse(payloadMessage) }
+        coVerify(exactly = 1) { payloadMessageForwardingService.forwardMessageWithAsyncResponse(payloadMessage) }
         coVerify(exactly = 0) { payloadMessageForwardingService.returnMessageResponse(payloadMessage) }
         coVerify(exactly = 1) { cpaValidationService.validateOutgoingMessage(any()) }
         coVerify(exactly = 1) {
@@ -272,7 +273,8 @@ class PayloadMessageServiceTest {
         assertType<Acknowledgment>(ebmsMessageSlots, 1)
         coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(payloadMessage) }
         coVerify(exactly = 1) { processingService.processAsync(payloadMessage, any()) }
-        coVerify(exactly = 1) { payloadMessageForwardingService.forwardMessageWithSyncResponse(payloadMessage) }
+        coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithSyncResponse(payloadMessage) }
+        coVerify(exactly = 1) { payloadMessageForwardingService.forwardMessageWithAsyncResponse(payloadMessage) }
         coVerify(exactly = 0) { payloadMessageForwardingService.returnMessageResponse(payloadMessage) }
         coVerify(exactly = 1) { cpaValidationService.validateOutgoingMessage(any()) }
         coVerify(exactly = 0) {
@@ -570,6 +572,7 @@ class PayloadMessageServiceTest {
         }
 
         coEvery { payloadMessageForwardingService.forwardMessageWithSyncResponse(any()) } just Runs
+        coEvery { payloadMessageForwardingService.forwardMessageWithAsyncResponse(any()) } just Runs
         coEvery { payloadMessageForwardingService.returnMessageResponse(any()) } just Runs
         coEvery { eventRegistrationService.registerEventMessageDetails(capture(ebmsMessageSlots)) } returns Unit
         coEvery { ebmsSignalProducer.publishMessage(any(), any(), any()) } returns fakeResult
