@@ -61,12 +61,8 @@ class PayloadMessageService(
         ebmsPayloadMessage: PayloadMessage
     ) {
         runCatching {
-            log.info(ebmsPayloadMessage.marker(), "Got outbound response message with reference <${ebmsPayloadMessage.requestId}>")
-            // TODO processing what to do
-            // should go to process(since it already has funtionality)
-
-            // sendToRetryIfShouldBeRetried(record, ebmsPayloadMessage)
-            // payloadMessageForwardingService.processResponse(ebmsPayloadMessage)
+            log.info(ebmsPayloadMessage.marker(), "Got outbound response message from ebms.out.payload with reference <${ebmsPayloadMessage.requestId}>")
+            payloadMessageForwardingService.returnMessageResponse(ebmsPayloadMessage)
         }.onFailure { exception ->
             log.error(ebmsPayloadMessage.marker(), exception.message ?: "Outbound response processing error", exception)
             sendToRetryIfShouldBeRetried(record = record, payloadMessage = ebmsPayloadMessage, exception = exception, reason = exception.message ?: "Unknown error")

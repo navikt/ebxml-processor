@@ -73,11 +73,6 @@ class PayloadMessageForwardingService(
         }
     }
 
-    // TODO AsyncReturn this is where the return comes in? maybe not needed
-    suspend fun returnMessageResponseAsync(payloadMessage: PayloadMessage) {
-        log.warn("Returning message response async is not implemented yet")
-    }
-
     suspend fun returnMessageResponse(payloadMessage: PayloadMessage) {
         val validationResult = cpaValidationService.validateOutgoingMessage(payloadMessage)
         val processedMessage = processingService.proccessSyncOut(
