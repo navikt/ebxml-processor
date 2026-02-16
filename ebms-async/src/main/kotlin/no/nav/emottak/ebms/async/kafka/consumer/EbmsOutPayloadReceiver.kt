@@ -22,7 +22,7 @@ suspend fun startEbmsOutPayloadReceiver(
     kafka: Kafka,
     messageFilterService: MessageFilterService
 ) {
-    log.info("Starting SendOut response receiver on topic $topic")
+    log.info("Starting EbmsOutPayload receiver on topic $topic")
     val receiverSettings: ReceiverSettings<String, ByteArray> =
         ReceiverSettings(
             bootstrapServers = kafka.bootstrapServers,
