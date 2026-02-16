@@ -46,6 +46,7 @@ import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
 import no.nav.emottak.ebms.async.persistence.Database
 import no.nav.emottak.ebms.async.persistence.ebmsDbConfig
 import no.nav.emottak.ebms.async.persistence.ebmsMigrationConfig
+import no.nav.emottak.ebms.async.persistence.repository.MessagePendingAckRepository
 import no.nav.emottak.ebms.async.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.async.processing.MessageFilterService
 import no.nav.emottak.ebms.async.processing.PayloadMessageForwardingService
@@ -67,9 +68,7 @@ import no.nav.emottak.utils.environment.isProdEnv
 import no.nav.emottak.utils.kafka.client.EventPublisherClient
 import no.nav.emottak.utils.kafka.service.EventLoggingService
 import org.slf4j.LoggerFactory
-import java.util.Timer
-import java.util.concurrent.TimeUnit
-import kotlin.concurrent.scheduleAtFixedRate
+import kotlin.concurrent.timer
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.async.App")
 
@@ -79,6 +78,8 @@ fun main() = SuspendApp {
     val payloadRepository = PayloadRepository(database)
 
     val config = config()
+
+    val messagePendingAckRepository = MessagePendingAckRepository(database, config.messageResendPolicy.resendInterval, config.messageResendPolicy.maxResends)
 
     val failedMessageQueue = FailedMessageKafkaHandler()
 
@@ -112,7 +113,8 @@ fun main() = SuspendApp {
         payloadRepository = payloadRepository,
         ebmsPayloadProducer = ebmsPayloadProducer,
         ebmsInPayloadProducer = ebmsInPayloadProducer,
-        eventRegistrationService = eventRegistrationService
+        eventRegistrationService = eventRegistrationService,
+        messagePendingAckRepository = messagePendingAckRepository
     )
 
     val payloadMessageService = PayloadMessageService(
@@ -127,7 +129,8 @@ fun main() = SuspendApp {
 
     val signalMessageService = SignalMessageService(
         cpaValidationService = cpaValidationService,
-        eventRegistrationService = eventRegistrationService
+        eventRegistrationService = eventRegistrationService,
+        messagePendingAckRepository = messagePendingAckRepository
     )
 
     val messageFilterService = MessageFilterService(
@@ -137,7 +140,6 @@ fun main() = SuspendApp {
         eventRegistrationService = eventRegistrationService
     )
 
-    val retryErrorsTimer = Timer("RetryErrorsTask", false)
     val pauseRetryErrorsTimerFlag = PauseRetryErrorsTimerFlag()
 
     result {
@@ -156,10 +158,14 @@ fun main() = SuspendApp {
             )
             launchErrorRetryTask(
                 config = config,
-                retryErrorsTimer = retryErrorsTimer,
                 messageFilterService = messageFilterService,
                 failedMessageQueue = failedMessageQueue,
                 pauseRetryErrorsTimerFlag = pauseRetryErrorsTimerFlag
+            )
+            launchMesssageResendTask(
+                config = config,
+                messagePendingAckRepository = messagePendingAckRepository,
+                payloadMessageForwardingService = payloadMessageForwardingService
             )
 
             server(
@@ -238,26 +244,60 @@ fun CoroutineScope.launchSignalReceiver(
 
 fun CoroutineScope.launchErrorRetryTask(
     config: Config,
-    retryErrorsTimer: Timer,
     messageFilterService: MessageFilterService,
     failedMessageQueue: FailedMessageKafkaHandler,
     pauseRetryErrorsTimerFlag: PauseRetryErrorsTimerFlag
 ) {
     if (!config.kafkaErrorQueue.active) return
 
-    retryErrorsTimer.scheduleAtFixedRate(delay = 5000L, period = TimeUnit.SECONDS.toMillis(config.errorRetryPolicy.processIntervalSeconds.toLong())) {
+    timer(
+        name = "Retry Errors Timer",
+        initialDelay = 5000L,
+        period = config.errorRetryPolicy.processInterval.inWholeMilliseconds,
+        daemon = true
+    ) {
         launch(Dispatchers.IO) {
             log.info("=== RetryErrorsTask starting...")
+            try {
+                if (pauseRetryErrorsTimerFlag.paused) {
+                    log.info("Retry task is paused.")
+                    return@launch
+                }
 
-            if (pauseRetryErrorsTimerFlag.paused) {
-                log.info("Retry task is paused.")
-                return@launch
+                failedMessageQueue.consumeRetryQueue(
+                    messageFilterService,
+                    config.errorRetryPolicy.maxMessagesToProcess
+                )
+            } catch (e: Exception) {
+                log.error("RetryErrorsTask failed", e)
             }
+        }
+    }
+}
 
-            failedMessageQueue.consumeRetryQueue(
-                messageFilterService,
-                config.errorRetryPolicy.maxMessagesToProcess
-            )
+fun CoroutineScope.launchMesssageResendTask(
+    config: Config,
+    messagePendingAckRepository: MessagePendingAckRepository,
+    payloadMessageForwardingService: PayloadMessageForwardingService
+) {
+    timer(
+        name = "Resend Messages Timer",
+        initialDelay = 5000L,
+        period = config.messageResendPolicy.processInterval.inWholeMilliseconds,
+        daemon = true
+    ) {
+        launch(Dispatchers.IO) {
+            log.info("=== MessageResendTask starting...")
+            try {
+                val messagesToResend = messagePendingAckRepository.findMessagesToResend()
+                log.info("Found ${messagesToResend.size} messages to be resent because of missing Ack")
+                for (message in messagesToResend) {
+                    payloadMessageForwardingService.resendMessage(message)
+                    messagePendingAckRepository.markResent(message)
+                }
+            } catch (e: Exception) {
+                log.error("MessageResendTask failed", e)
+            }
         }
     }
 }

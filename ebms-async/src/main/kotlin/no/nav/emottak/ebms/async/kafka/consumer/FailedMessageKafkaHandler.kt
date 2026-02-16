@@ -61,7 +61,7 @@ class FailedMessageKafkaHandler(
     // We get into troubles with committing if we use the same groupid as the receivers used to listen on the message topics.
     val groupIdForRetry = kafka.groupId + "-retry"
     val pollerConsumer = KafkaConsumer(
-        getPollerProperties(kafka.toProperties(), groupIdForRetry, config().errorRetryPolicy.processIntervalSeconds.toLong()),
+        getPollerProperties(kafka.toProperties(), groupIdForRetry, config().errorRetryPolicy.processInterval.inWholeSeconds),
         StringDeserializer(),
         ByteArrayDeserializer()
     ).also { c ->
@@ -188,8 +188,8 @@ class FailedMessageKafkaHandler(
     }
 
     fun getNextRetryTime(record: ReceiverRecord<String, ByteArray>): String {
-        val nextIntervalMinutes = errorRetryPolicy.nextIntervalMinutes(record.retryCount())
-        return LocalDateTime.now().plusMinutes(nextIntervalMinutes.toLong()).toString()
+        val nextInterval = errorRetryPolicy.nextInterval(record.retryCount())
+        return LocalDateTime.now().plusMinutes(nextInterval.inWholeMinutes).toString()
     }
 
     fun ReceiverRecord<String, ByteArray>.retryCounter(): Int {
