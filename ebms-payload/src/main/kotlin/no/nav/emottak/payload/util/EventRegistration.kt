@@ -33,7 +33,8 @@ class EventRegistrationServiceImpl(
                 requestId = payloadRequest.requestId.parseOrGenerateUuid(),
                 contentId = payloadRequest.payload.contentId,
                 messageId = payloadRequest.messageId,
-                eventData = eventData
+                eventData = eventData,
+                conversationId = payloadRequest.conversationId
             )
             log.debug("Registering event: {}", event)
 
@@ -51,6 +52,11 @@ class EventRegistrationServiceFake : EventRegistrationService {
         payloadRequest: PayloadRequest,
         eventData: String
     ) {
-        log.debug("Registering event $eventType for validationRequest: $payloadRequest and eventData: $eventData")
+        log.debug(
+            "Registering event {} for validationRequest: {} and eventData: {}",
+            eventType,
+            payloadRequest,
+            eventData
+        )
     }
 }
