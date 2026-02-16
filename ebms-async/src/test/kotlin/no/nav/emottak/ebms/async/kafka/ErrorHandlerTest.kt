@@ -15,6 +15,8 @@ import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 class ErrorHandlerTest {
 
@@ -38,7 +40,7 @@ class ErrorHandlerTest {
             // Set retry after 0 minutes, to force immediate retry
             val errorHandler = FailedMessageKafkaHandler(
                 kafka = testcontainerKafkaConfig,
-                errorRetryPolicy = ErrorRetryPolicy(1, 10, listOf(0), listOf(2))
+                errorRetryPolicy = ErrorRetryPolicy(1.seconds, 10, listOf(0.minutes), listOf(2))
             )
             val processedMessages = ArrayList<ReceiverRecord<String, ByteArray>>()
             val messageFilterService = DummyMessageFilterService(errorHandler, processedMessages)
