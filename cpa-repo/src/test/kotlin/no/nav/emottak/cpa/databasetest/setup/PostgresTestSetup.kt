@@ -19,18 +19,15 @@ import java.time.temporal.ChronoUnit
 class PostgresTestSetup {
     lateinit var timestamp: Instant
     var isInitialized = false
+    val postgresContainer = PostgreSQLContainer<Nothing>("postgres:15").apply {
+        withUsername("$CPA_DB_NAME-admin")
+        withReuse(true)
+        withLabel("app-navn", "cpa-repo")
+    }
 
     fun initialize(): Database {
         timestamp = Instant.now().truncatedTo(ChronoUnit.SECONDS)
-        val postgresContainer = PostgreSQLContainer<Nothing>("postgres:14").apply {
-            withUsername("$CPA_DB_NAME-admin")
-            withReuse(true)
-            withLabel("app-navn", "cpa-repo")
-            start()
-            println(
-                "Databasen er startet opp, portnummer: $firstMappedPort, jdbcUrl: jdbc:postgresql://localhost:$firstMappedPort/test, credentials: test og test"
-            )
-        }
+        postgresContainer.start()
 
         val hikariConfig = HikariConfig().apply {
             jdbcUrl = postgresContainer.jdbcUrl

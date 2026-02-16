@@ -2,6 +2,7 @@ package no.nav.emottak.cpa.databasetest
 
 import no.nav.emottak.cpa.databasetest.setup.PostgresTestSetup
 import no.nav.emottak.cpa.persistence.Database
+import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
 import java.time.Instant
@@ -15,6 +16,12 @@ abstract class PostgresTest {
         @BeforeAll
         fun initializeDatabases() {
             postgres = postgresTestSetup.initialize()
+        }
+
+        @JvmStatic
+        @AfterAll
+        fun tearDown() {
+            postgresTestSetup.postgresContainer.stop()
         }
     }
 

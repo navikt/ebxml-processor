@@ -8,7 +8,6 @@ import io.ktor.server.testing.testApplication
 import io.mockk.coEvery
 import io.mockk.mockk
 import jakarta.xml.bind.JAXBElement
-import no.nav.emottak.cpa.decodeBase64Mime
 import no.nav.emottak.ebms.CpaRepoClient
 import no.nav.emottak.ebms.asHttpRequest
 import no.nav.emottak.ebms.modify
@@ -60,8 +59,6 @@ class MimeValidationIT {
             }
         )
         val response = client.post("/ebms/sync", wrongHeader.asHttpRequest())
-        val responseText = response.bodyAsText()
-        println(responseText.decodeBase64Mime())
         val envelope = xmlMarshaller.unmarshal(response.bodyAsText(), Envelope::class.java)
         with(envelope.assertFaultAndGet()) {
             assertEquals(

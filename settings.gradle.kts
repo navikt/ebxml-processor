@@ -92,7 +92,7 @@ dependencyResolutionManagement {
             version("junit", "5.9.2")
             version("hamcrest", "2.2")
             version("mockk", "1.13.10")
-            version("testPostgres", "1.18.0")
+            version("testcontainers", "1.21.4")
             version("xmlunit", "2.9.1")
             version("ktor-server-test", "3.0.3")
             version("kotest", "5.9.1")
@@ -108,7 +108,9 @@ dependencyResolutionManagement {
             library("mockk-jvm", "io.mockk", "mockk-jvm").versionRef("mockk")
             library("mockk-dsl-jvm", "io.mockk", "mockk-dsl-jvm").versionRef("mockk")
 
-            library("postgresql", "org.testcontainers", "postgresql").versionRef("testPostgres")
+            library("testcontainers-postgresql", "org.testcontainers", "postgresql").versionRef("testcontainers")
+            library("testcontainers-kafka", "org.testcontainers", "kafka").versionRef("testcontainers")
+            library("testcontainers-oracle", "org.testcontainers", "oracle-free").versionRef("testcontainers")
 
             library("xmlunit-core", "org.xmlunit", "xmlunit-core").versionRef("xmlunit")
             library("xmlunit-matchers", "org.xmlunit", "xmlunit-matchers").versionRef("xmlunit")
