@@ -122,7 +122,7 @@ spec:
     - name: NHN_CLIENT_AUDIENCE
       value: "https://helseid-sts.test.nhn.no"
     - name: NHN_CLIENT_SCOPE
-      value: "nhn:msh/api"
+      value: "nhn:cp-api/access-v2-dpop"
     - name: NHN_CLIENT_GRANT_TYPE
       value: "client_credentials"
     - name: NHN_CLIENT_ASSERTION_TYPE
