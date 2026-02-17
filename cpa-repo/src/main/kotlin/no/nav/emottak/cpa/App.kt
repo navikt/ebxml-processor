@@ -93,6 +93,7 @@ fun cpaApplicationModule(
             getCertificate(cpaRepository)
             signingCertificate(cpaRepository)
             getMessagingCharacteristics(cpaRepository)
+            getAdresseregisterData()
             registerHealthEndpoints(appMicrometerRegistry, cpaRepository)
 
             if (canInitAuthenticatedRoutes().also { log.info("INIT AZURE ENDPOINTS: [$it]") }) {

@@ -1,5 +1,8 @@
 package no.nav.emottak.cpa
 
+import io.ktor.client.request.get
+import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.authentication
@@ -18,6 +21,7 @@ import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import no.nav.emottak.cpa.AR.httpClient
 import no.nav.emottak.cpa.auth.AZURE_AD_AUTH
 import no.nav.emottak.cpa.feil.CpaValidationException
 import no.nav.emottak.cpa.feil.MultiplePartnerException
@@ -370,6 +374,35 @@ fun Route.getMessagingCharacteristics(cpaRepository: CPARepository) =
 
         call.respond(response)
     }
+
+fun Route.getAdresseregisterData() =
+
+    // eksempel : https://cpapi.test.grunndata.nhn.no/CommunicationParty/8141819
+    get("/cpa/adresseregister/her/{$HER_ID}") {
+        val herId = call.parameters[HER_ID] ?: throw BadRequestException("Mangler $HER_ID")
+
+        call.respond(herId)
+    }
+
+suspend fun fetchCommunicationParty(herId: String) {
+    val client = httpClient()
+
+    // NHN Testmiljø URL (eksempel)
+    val baseUrl = "https://api.test.nhn.no/v2/ar/CommunicationParty"
+
+    try {
+        val response: HttpResponse = client.get("$baseUrl/$herId")
+        if (response.status == HttpStatusCode.OK) {
+            println("Data mottatt: ${response.bodyAsText()}")
+        } else {
+            println("Feil ved oppslag: ${response.status}")
+        }
+    } catch (e: Exception) {
+        println("Kunne ikke koble til Adresseregisteret: ${e.message}")
+    } finally {
+        client.close()
+    }
+}
 
 fun Routing.registerHealthEndpoints(
     collectorRegistry: PrometheusMeterRegistry,
