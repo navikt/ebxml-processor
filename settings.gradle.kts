@@ -25,7 +25,9 @@ dependencyResolutionManagement {
             version("logstash", "8.0")
             version("fasterxml-jackson", "2.18.2")
             version("emottak-utils", "0.3.5")
+            version("jwt", "4.4.0")
 
+            library("jwt", "com.auth0", "java-jwt").versionRef("jwt")
             library("bcpkix-jdk18on", "org.bouncycastle", "bcpkix-jdk18on").versionRef("bouncycastle")
             library("bcprov-jdk18on", "org.bouncycastle", "bcprov-jdk18on").versionRef("bouncycastle")
             library("apache-santuario", "org.apache.santuario:xmlsec:3.0.5")

@@ -731,6 +731,22 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         isLenient = true
     }
 
+    @Test
+    fun `Get adresseregister data with herid should return herid`() = cpaRepoTestApp {
+        val httpClient = createClient {
+            install(ContentNegotiation) {
+                json()
+            }
+        }
+
+        val response = httpClient.get("/cpa/adresseregister/her/12345")
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertTrue(
+            StringUtils.isNotBlank(response.bodyAsText()),
+            "Response can't be null or blank"
+        )
+    }
+
     private fun loadTestCPA(cpaName: String): CollaborationProtocolAgreement {
         val testCpaString = String(this::class.java.classLoader.getResource("cpa/$cpaName").readBytes())
         return xmlMarshaller.unmarshal(testCpaString, CollaborationProtocolAgreement::class.java)

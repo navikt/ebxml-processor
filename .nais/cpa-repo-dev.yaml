@@ -106,3 +106,5 @@ spec:
       value: /secrets/oracle/creds
     - name: ORACLE_CONFIG_SECRET_PATH
       value: /secrets/oracle/config
+    - name: ADRESSE_REGISTER_URL
+      value: https://cpapi.test.grunndata.nhn.no/CommunicationParty/
