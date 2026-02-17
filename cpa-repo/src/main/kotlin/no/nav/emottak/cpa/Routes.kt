@@ -1,5 +1,6 @@
 package no.nav.emottak.cpa
 
+import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
@@ -21,8 +22,8 @@ import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
-import no.nav.emottak.cpa.AR.httpClient
 import no.nav.emottak.cpa.auth.AZURE_AD_AUTH
+import no.nav.emottak.cpa.configuration.config
 import no.nav.emottak.cpa.feil.CpaValidationException
 import no.nav.emottak.cpa.feil.MultiplePartnerException
 import no.nav.emottak.cpa.feil.PartnerNotFoundException
@@ -375,32 +376,32 @@ fun Route.getMessagingCharacteristics(cpaRepository: CPARepository) =
         call.respond(response)
     }
 
-fun Route.getAdresseregisterData() =
+fun Route.getAdresseregisterData(httpClient: HttpClient) =
 
-    // eksempel : https://cpapi.test.grunndata.nhn.no/CommunicationParty/8141819
     get("/cpa/adresseregister/her/{$HER_ID}") {
         val herId = call.parameters[HER_ID] ?: throw BadRequestException("Mangler $HER_ID")
+
+        try {
+            httpClient.fetchCommunicationParty(herId)
+        } catch (ex: Exception) {
+            log.error("Error while fetching communication party <$herId>", ex)
+        }
 
         call.respond(herId)
     }
 
-suspend fun fetchCommunicationParty(herId: String) {
-    val client = httpClient()
-
-    // NHN Testmiljø URL (eksempel)
-    val baseUrl = "https://api.test.nhn.no/v2/ar/CommunicationParty"
+suspend fun HttpClient.fetchCommunicationParty(herId: String) {
+    val baseUrl = config().nhn.adresseregisterApiBaseUrl
 
     try {
-        val response: HttpResponse = client.get("$baseUrl/$herId")
+        val response: HttpResponse = this.get("$baseUrl/$herId")
         if (response.status == HttpStatusCode.OK) {
-            println("Data mottatt: ${response.bodyAsText()}")
+            log.info("Data mottatt: ${response.bodyAsText()}")
         } else {
-            println("Feil ved oppslag: ${response.status}")
+            log.warn("Feil ved oppslag: ${response.status}")
         }
     } catch (e: Exception) {
-        println("Kunne ikke koble til Adresseregisteret: ${e.message}")
-    } finally {
-        client.close()
+        log.error("Kunne ikke koble til Adresseregisteret: ${e.message}")
     }
 }
 

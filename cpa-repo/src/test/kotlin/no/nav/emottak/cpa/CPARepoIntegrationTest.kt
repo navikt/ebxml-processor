@@ -84,7 +84,8 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
                 postgres.dataSource,
                 postgres.dataSource,
                 oracle.dataSource,
-                eventRegistrationService
+                eventRegistrationService,
+                HttpClient(getFakeNhnAdresseregisterEngine())
             )
         )
         testBlock()

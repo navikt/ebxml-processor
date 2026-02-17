@@ -78,6 +78,7 @@ dependencies {
     testImplementation(testLibs.junit.jupiter.api)
     testImplementation(testLibs.bundles.kotest)
     testImplementation(libs.ktor.client.content.negotiation)
+    testImplementation(testLibs.ktor.client.mock)
     testImplementation(testLibs.ktor.server.test.host)
     testRuntimeOnly(libs.ojdbc8)
     testImplementation(testLibs.testcontainers.postgresql)

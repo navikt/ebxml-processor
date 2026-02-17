@@ -1,4 +1,4 @@
-package no.nav.emottak.cpa.AR
+package no.nav.emottak.cpa.nhn.adresseregisteret
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
