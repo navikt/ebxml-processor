@@ -1,4 +1,4 @@
-package no.nav.emottak.cpa.AR
+package no.nav.emottak.cpa.nhn.adresseregisteret
 
 import io.ktor.client.plugins.api.createClientPlugin
 import io.ktor.http.HttpHeaders.Authorization

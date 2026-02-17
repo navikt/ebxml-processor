@@ -104,6 +104,7 @@ dependencyResolutionManagement {
             library("junit-jupiter-engine", "org.junit.jupiter", "junit-jupiter-engine").versionRef("junit")
             library("junit-jupiter-params", "org.junit.jupiter", "junit-jupiter-params").versionRef("junit")
             library("mock-oauth2-server", "no.nav.security:mock-oauth2-server:2.1.2")
+            library("ktor-client-mock", "io.ktor", "ktor-client-mock").versionRef("ktor-server-test")
 
             library("hamcrest", "org.hamcrest", "hamcrest").versionRef("hamcrest")
 

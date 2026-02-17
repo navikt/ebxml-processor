@@ -40,7 +40,7 @@ data class NhnOAuth(
 }
 
 data class Nhn(
-    val baseUrl: URI,
+    val adresseregisterApiBaseUrl: URI,
     val keyPairPath: KeyPairPath
 ) {
     @JvmInline

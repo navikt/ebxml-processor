@@ -1,4 +1,4 @@
-package no.nav.emottak.cpa.AR
+package no.nav.emottak.cpa.nhn.adresseregisteret
 
 import com.nimbusds.oauth2.sdk.Scope
 import com.nimbusds.oauth2.sdk.token.DPoPAccessToken
