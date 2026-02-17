@@ -45,11 +45,10 @@ spec:
     max: 1
   resources:
     limits:
-      cpu: "1000m"
-      memory: "1024Mi"
+      memory: "512Mi"
     requests:
       cpu: "100m"
-      memory: "256Mi"
+      memory: "512Mi"
   ingresses:
     - "https://ebms-async-fss.intern.dev.nav.no"
   vault:
