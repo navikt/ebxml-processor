@@ -58,7 +58,8 @@ class SignalMessageService(
                     mapOf(
                         EventDataType.ERROR_MESSAGE to "${error.code}: ${error.descriptionText}"
                     )
-                )
+                ),
+                conversationId = messageError.conversationId
             )
         }
     }
