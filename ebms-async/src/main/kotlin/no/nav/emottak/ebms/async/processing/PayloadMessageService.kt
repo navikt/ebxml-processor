@@ -185,7 +185,7 @@ class PayloadMessageService(
                     successEvent = EventType.MESSAGE_PLACED_IN_QUEUE,
                     failEvent = EventType.ERROR_WHILE_STORING_MESSAGE_IN_QUEUE,
                     requestId = ebmsDocument.requestId.parseOrGenerateUuid(),
-                    messageId = ebmsDocument.messageHeader().messageData.messageId ?: "",
+                    messageId = messageHeader.messageData.messageId ?: "",
                     eventData = Json.encodeToString(
                         mapOf(EventDataType.QUEUE_NAME.value to config().kafkaSignalProducer.topic)
                     ),

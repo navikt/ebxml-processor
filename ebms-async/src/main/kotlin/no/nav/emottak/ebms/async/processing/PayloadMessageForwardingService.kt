@@ -124,7 +124,8 @@ class PayloadMessageForwardingService(
     private suspend fun sendMessageResponseToPayloadTopic(
         signedEbmsDocument: EbmsDocument,
         receiverEmailAddress: List<EmailAddress>,
-        conversationId: String) {
+        conversationId: String
+    ) {
         eventRegistrationService.runWithEvent(
             successEvent = EventType.MESSAGE_PLACED_IN_QUEUE,
             failEvent = EventType.ERROR_WHILE_STORING_MESSAGE_IN_QUEUE,
