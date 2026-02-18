@@ -1,6 +1,6 @@
 package no.nav.emottak.ebms.async.kafka.consumer
 
-import io.github.nomisRev.kafka.Acks
+import io.github.nomisRev.kafka.publisher.Acks
 import io.github.nomisRev.kafka.publisher.KafkaPublisher
 import io.github.nomisRev.kafka.publisher.PublisherSettings
 import io.github.nomisRev.kafka.receiver.Offset
@@ -22,6 +22,7 @@ import org.apache.kafka.common.serialization.ByteArrayDeserializer
 import org.apache.kafka.common.serialization.ByteArraySerializer
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
+import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.time.Instant
@@ -39,7 +40,7 @@ const val RETRY_REASON = "retryReason"
 const val IGNORE_OLD_MESSAGES = false
 const val AGE_DAYS_TO_IGNORE = 7L
 
-val logger = LoggerFactory.getLogger(FailedMessageKafkaHandler::class.java)
+val logger: Logger = LoggerFactory.getLogger(FailedMessageKafkaHandler::class.java)
 
 class FailedMessageKafkaHandler(
     val kafkaErrorQueue: KafkaErrorQueue = config().kafkaErrorQueue,
