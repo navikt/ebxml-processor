@@ -104,7 +104,9 @@ spec:
     - team: team-emottak
       application: ebms-async
       access: read
-
+    - access: read
+      application: emottak-kafka-manager
+      team: team-emottak
 ---
 
 apiVersion: kafka.nais.io/v1
@@ -123,3 +125,6 @@ spec:
     - team: team-emottak
       application: ebms-async
       access: write
+    - access: read
+      application: emottak-kafka-manager
+      team: team-emottak
