@@ -22,6 +22,8 @@ import no.nav.emottak.message.model.EmailAddress
 import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.util.marker
+import no.nav.emottak.utils.common.model.EbmsProcessing
+import no.nav.emottak.utils.common.model.SendInRequest
 import no.nav.emottak.utils.common.parseOrGenerateUuid
 import no.nav.emottak.utils.kafka.model.EventDataType
 import no.nav.emottak.utils.kafka.model.EventType
@@ -66,16 +68,35 @@ class PayloadMessageForwardingService(
         }
     }
 
-    suspend fun forwardMessageWithAsyncResponse(payloadMessage: PayloadMessage) {
-        if (config().kafkaEbmsInPayloadProducer.active) {
-            ebmsInPayloadProducer.publishMessage(
-                key = payloadMessage.requestId,
-                value = payloadMessage.toEbmsDokument().document.toByteArray(),
-                headers = payloadMessage.toEbmsDokument().messageHeader().toKafkaHeaders()
-            )
-            log.info(payloadMessage.marker(), "Sent processed message to ebms.in.payload")
-        } else {
+    suspend fun forwardMessageWithAsyncResponse(payloadMessage: PayloadMessage, partnerId: Long? = null) {
+        if (!config().kafkaEbmsInPayloadProducer.active) {
             log.warn(payloadMessage.marker(), "Kafka producer for ebms.in.payload is not active, skipping sending message to topic")
+            return
+        }
+        val sendInRequest = SendInRequest(
+            messageId = payloadMessage.messageId,
+            conversationId = payloadMessage.conversationId,
+            payloadId = payloadMessage.payload.contentId,
+            payload = payloadMessage.payload.bytes,
+            addressing = payloadMessage.addressing,
+            cpaId = payloadMessage.cpaId,
+            ebmsProcessing = EbmsProcessing(),
+            signedOf = payloadMessage.payload.signedBy,
+            requestId = payloadMessage.requestId,
+            partnerId = partnerId
+        )
+        val key = payloadMessage.requestId
+        val value = Json.encodeToString<SendInRequest>(sendInRequest).toByteArray()
+
+        log.debug(payloadMessage.marker(), "Preparing to send SendInRequest to ebms.in.payload: key={}, valueSize={}, service={}, action={}", key, value.size, payloadMessage.addressing.service, payloadMessage.addressing.action)
+
+        ebmsInPayloadProducer.publishMessage(
+            key = key,
+            value = value
+        ).onSuccess {
+            log.info(payloadMessage.marker(), "Sent processed message to ebms.in.payload: key=$key, partition=${it.partition()}, offset=${it.offset()}")
+        }.onFailure {
+            log.error(payloadMessage.marker(), "Failed to send message to ebms.in.payload: key=$key", it)
         }
     }
 
