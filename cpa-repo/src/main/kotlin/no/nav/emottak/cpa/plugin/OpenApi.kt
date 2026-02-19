@@ -1,4 +1,4 @@
-package no.nav.helsemelding.ediadapter.server.plugin
+package no.nav.emottak.cpa.plugin
 
 import io.github.smiley4.ktoropenapi.OpenApi
 import io.github.smiley4.ktoropenapi.config.ExampleEncoder
@@ -18,9 +18,9 @@ fun Application.configureOpenApi() {
             encoder(ExampleEncoder.kotlinx(json))
         }
         info {
-            title = "EDI 2.0 Adapter API"
+            title = "NHN Adapter API"
             version = "1.0.0"
-            description = "Wrapper for EDI 2.0 Messages API"
+            description = "Wrapper for NHN Messages API"
         }
         pathFilter = { _, url -> url.firstOrNull() == "api" }
         outputFormat = JSON

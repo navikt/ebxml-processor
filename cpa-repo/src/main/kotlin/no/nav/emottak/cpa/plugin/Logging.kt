@@ -1,4 +1,4 @@
-package no.nav.helsemelding.ediadapter.server.plugin
+package no.nav.emottak.cpa.plugin
 
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
@@ -8,6 +8,8 @@ import io.ktor.server.request.httpMethod
 import io.ktor.server.request.path
 import org.slf4j.LoggerFactory
 import org.slf4j.event.Level
+import kotlin.text.startsWith
+import kotlin.text.trimIndent
 
 fun Application.configureCallLogging() {
     val logger = LoggerFactory.getLogger("CallLogging")
