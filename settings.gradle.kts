@@ -99,11 +99,13 @@ dependencyResolutionManagement {
             library("jakarta.xml.ws-api", "jakarta.xml.ws:jakarta.xml.ws-api:2.3.3")
             library("ojdbc8", "com.oracle.ojdbc:ojdbc8:19.3.0.0")
             library("guava", "com.google.guava:guava:33.4.0-jre")
-            library(
+            /*library(
                 "micrometer-registry-prometheus",
                 "io.micrometer",
                 "micrometer-registry-prometheus"
-            ).versionRef("prometheus")
+            ).versionRef("prometheus")*/
+
+            library("micrometer-registry-prometheus", "io.micrometer:micrometer-registry-prometheus:1.14.2")
             library("kotlinx-serialization-json", "org.jetbrains.kotlinx", "kotlinx-serialization-json").versionRef("kotlinx-serialization")
 
             bundle("prometheus", listOf("ktor-server-metrics-micrometer", "micrometer-registry-prometheus"))
@@ -223,15 +225,7 @@ dependencyResolutionManagement {
                 password = System.getenv("GITHUB_TOKEN")
             }
         }
-        maven {
-            name = "Nav edi-adapter"
-            url = uri("https://maven.pkg.github.com/navikt/helsemelding-edi-adapter")
-            credentials {
-                username = "token"
-                password = System.getenv("GITHUB_TOKEN")
-            }
-        }
     }
 }
 
-include("felles", "ebxml-processing-model", "cpa-repo", "ebms-provider", "ebms-payload", "ebms-async", "edi-adapter")
+include("felles", "ebxml-processing-model", "cpa-repo", "ebms-provider", "ebms-payload", "ebms-async")
