@@ -1,10 +1,10 @@
-package no.nav.helsemelding.ediadapter.server
+package no.nav.emottak.cpa
 
 import arrow.core.memoize
 import com.sksamuel.hoplite.ConfigLoader
 import com.sksamuel.hoplite.ExperimentalHoplite
 import com.sksamuel.hoplite.addResourceSource
-import no.nav.helsemelding.ediadapter.server.config.Config
+import no.nav.emottak.cpa.config.Config
 
 @OptIn(ExperimentalHoplite::class)
 val config: () -> Config = {
