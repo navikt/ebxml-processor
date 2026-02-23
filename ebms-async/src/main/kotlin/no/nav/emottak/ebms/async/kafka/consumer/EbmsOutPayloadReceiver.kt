@@ -30,7 +30,7 @@ suspend fun startEbmsOutPayloadReceiver(
             keyDeserializer = StringDeserializer(),
             valueDeserializer = ByteArrayDeserializer(),
             groupId = kafka.groupId,
-            autoOffsetReset = AutoOffsetReset.Latest,
+            autoOffsetReset = AutoOffsetReset.Earliest,
             commitStrategy = CommitStrategy.ByTime(5.seconds),
             pollTimeout = 10.seconds,
             properties = kafka.toProperties()
