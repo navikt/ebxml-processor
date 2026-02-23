@@ -1,6 +1,7 @@
 package no.nav.emottak.ebms.async.kafka.consumer
 
 import io.github.nomisRev.kafka.receiver.AutoOffsetReset
+import io.github.nomisRev.kafka.receiver.CommitStrategy
 import io.github.nomisRev.kafka.receiver.KafkaReceiver
 import io.github.nomisRev.kafka.receiver.ReceiverSettings
 import kotlinx.coroutines.flow.collect
@@ -30,6 +31,7 @@ suspend fun startEbmsOutPayloadReceiver(
             valueDeserializer = ByteArrayDeserializer(),
             groupId = kafka.groupId,
             autoOffsetReset = AutoOffsetReset.Latest,
+            commitStrategy = CommitStrategy.ByTime(5.seconds),
             pollTimeout = 10.seconds,
             properties = kafka.toProperties()
         )
