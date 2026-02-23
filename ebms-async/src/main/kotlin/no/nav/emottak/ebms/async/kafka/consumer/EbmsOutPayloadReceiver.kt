@@ -4,24 +4,25 @@ import io.github.nomisRev.kafka.receiver.AutoOffsetReset
 import io.github.nomisRev.kafka.receiver.CommitStrategy
 import io.github.nomisRev.kafka.receiver.KafkaReceiver
 import io.github.nomisRev.kafka.receiver.ReceiverSettings
+import io.ktor.http.ContentType
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.json.Json
 import no.nav.emottak.ebms.async.configuration.toProperties
 import no.nav.emottak.ebms.async.log
-import no.nav.emottak.ebms.async.processing.MessageFilterService
+import no.nav.emottak.ebms.async.processing.PayloadMessageService
+import no.nav.emottak.message.model.Payload
+import no.nav.emottak.message.model.PayloadMessage
+import no.nav.emottak.utils.common.model.SendInResponse
 import no.nav.emottak.utils.config.Kafka
 import org.apache.kafka.common.serialization.ByteArrayDeserializer
 import org.apache.kafka.common.serialization.StringDeserializer
 import kotlin.time.Duration.Companion.seconds
 
-// TODO not sure if needed or there is an existing way
-const val MESSAGE_SOURCE_HEADER = "messageSource"
-const val EBMS_OUT_PAYLOAD_SOURCE = "ebms-out-payload"
-
 suspend fun startEbmsOutPayloadReceiver(
     topic: String,
     kafka: Kafka,
-    messageFilterService: MessageFilterService
+    payloadMessageService: PayloadMessageService
 ) {
     log.info("Starting EbmsOutPayload receiver on topic $topic")
     val receiverSettings: ReceiverSettings<String, ByteArray> =
@@ -39,8 +40,21 @@ suspend fun startEbmsOutPayloadReceiver(
     KafkaReceiver(receiverSettings)
         .receive(topic)
         .map { record ->
-            record.addHeader(MESSAGE_SOURCE_HEADER, EBMS_OUT_PAYLOAD_SOURCE)
-            messageFilterService.filterMessage(record)
+            val sendInResponse = Json.decodeFromString<SendInResponse>(record.value().decodeToString())
+            val cpaId = record.headers().lastHeader("cpaId")?.let { String(it.value()) } ?: ""
+            val refToMessageId = record.headers().lastHeader("refToMessageId")?.let { String(it.value()) }
+            val payloadMessage = PayloadMessage(
+                requestId = sendInResponse.requestId,
+                messageId = sendInResponse.messageId,
+                conversationId = sendInResponse.conversationId,
+                cpaId = cpaId,
+                addressing = sendInResponse.addressing,
+                payload = Payload(sendInResponse.payload, ContentType.Application.Xml.toString()),
+                refToMessageId = refToMessageId,
+                duplicateElimination = false,
+                ackRequested = true
+            )
+            payloadMessageService.processOutboundResponse(record, payloadMessage)
             record.offset.acknowledge()
         }.collect()
 }
