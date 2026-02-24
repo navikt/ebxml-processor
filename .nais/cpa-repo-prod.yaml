@@ -44,11 +44,10 @@ spec:
     max: 4
   resources:
     limits:
-      cpu: "1000m"
       memory: "512Mi"
     requests:
       cpu: "100m"
-      memory: "256Mi"
+      memory: "512Mi"
   ingresses:
     - "https://cpa-repo-fss.intern.nav.no"
     #- "https://cpa-repo.prod-fss-pub.nais.io"
