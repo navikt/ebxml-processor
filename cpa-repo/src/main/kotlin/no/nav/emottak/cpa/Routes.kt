@@ -401,7 +401,7 @@ suspend fun HttpClient.fetchCommunicationParty(herId: String) {
             log.warn("Feil ved oppslag: ${response.status}")
         }
     } catch (e: Exception) {
-        log.error("Kunne ikke koble til Adresseregisteret: ${e.message}", e)
+        log.error("Kunne ikke koble til $baseUrl: ${e.message}", e)
     }
 }
 
