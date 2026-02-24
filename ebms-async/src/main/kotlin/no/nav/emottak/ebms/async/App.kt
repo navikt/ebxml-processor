@@ -70,13 +70,13 @@ import kotlin.concurrent.timer
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.async.App")
 
 fun main() = SuspendApp {
+    val config = config()
+
     val database = Database(ebmsDbConfig.value)
     database.migrate(ebmsMigrationConfig.value)
     val payloadRepository = PayloadRepository(database)
     val messageReceivedRepository = MessageReceivedRepository(database)
     val messagePendingAckRepository = MessagePendingAckRepository(database, config.messageResendPolicy.resendInterval, config.messageResendPolicy.maxResends)
-
-    val config = config()
 
     val failedMessageQueue = FailedMessageKafkaHandler()
 
