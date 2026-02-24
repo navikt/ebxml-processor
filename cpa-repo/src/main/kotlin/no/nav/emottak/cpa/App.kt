@@ -21,7 +21,7 @@ import kotlinx.coroutines.runBlocking
 import no.nav.emottak.cpa.auth.AZURE_AD_AUTH
 import no.nav.emottak.cpa.auth.AuthConfig
 import no.nav.emottak.cpa.configuration.config
-import no.nav.emottak.cpa.nhn.adresseregisteret.httpClient
+import no.nav.emottak.cpa.nhn.adresseregisteret.nhnArHttpClient
 import no.nav.emottak.cpa.persistence.CPARepository
 import no.nav.emottak.cpa.persistence.Database
 import no.nav.emottak.cpa.persistence.cpaDbConfig
@@ -41,7 +41,7 @@ fun main() {
     val kafkaPublisherClient = EventPublisherClient(config().kafka)
     val eventLoggingService = EventLoggingService(config().eventLogging, kafkaPublisherClient)
     val eventRegistrationService = EventRegistrationServiceImpl(eventLoggingService)
-    val adresseregisterClient = httpClient()
+    val adresseregisterClient = nhnArHttpClient()
 
     embeddedServer(
         Netty,

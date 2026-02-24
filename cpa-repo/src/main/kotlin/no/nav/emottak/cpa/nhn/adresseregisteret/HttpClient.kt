@@ -40,7 +40,7 @@ private fun httpClient(
     }
 }
 
-fun httpClient(): HttpClient {
+fun nhnArHttpClient(): HttpClient {
     val config = config()
 
     val dpopJwtProvider = DpopJwtProvider(config)
