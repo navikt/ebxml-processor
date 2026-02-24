@@ -1,9 +1,5 @@
 package no.nav.emottak.ebms.async.configuration
 
-import no.nav.emottak.config.KafkaPayloadProducer
-import no.nav.emottak.config.KafkaPayloadReceiver
-import no.nav.emottak.config.KafkaSignalProducer
-import no.nav.emottak.config.KafkaSignalReceiver
 import no.nav.emottak.util.KeyStoreConfiguration
 import no.nav.emottak.utils.config.EventLogging
 import no.nav.emottak.utils.config.Kafka
@@ -30,12 +26,6 @@ data class Config(
     val signering: List<KeyStoreConfiguration>,
     val errorRetryPolicy: ErrorRetryPolicy,
     val messageResendPolicy: MessageResendPolicy
-)
-
-data class KafkaErrorQueue(
-    val active: Boolean,
-    val topic: String,
-    val initOffset: String
 )
 
 data class MessageResendPolicy(

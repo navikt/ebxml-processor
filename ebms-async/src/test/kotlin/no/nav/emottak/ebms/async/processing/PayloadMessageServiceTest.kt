@@ -19,7 +19,7 @@ import no.nav.emottak.ebms.eventmanager.EventManagerService
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.validation.CPAValidationService
-import no.nav.emottak.melding.feil.EbmsException
+import no.nav.emottak.message.exception.EbmsException
 import no.nav.emottak.message.model.Acknowledgment
 import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.EbmsAttachment

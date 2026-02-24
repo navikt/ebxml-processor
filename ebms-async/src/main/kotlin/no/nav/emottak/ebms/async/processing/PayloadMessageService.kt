@@ -14,11 +14,12 @@ import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.util.toByteArray
 import no.nav.emottak.ebms.validation.CPAValidationService
-import no.nav.emottak.melding.feil.EbmsException
+import no.nav.emottak.message.exception.EbmsException
 import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.EbmsDocument
 import no.nav.emottak.message.model.EbmsMessage
 import no.nav.emottak.message.model.EmailAddress
+import no.nav.emottak.message.model.ErrorCode
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.util.marker
 import no.nav.emottak.utils.common.parseOrGenerateUuid
@@ -93,7 +94,7 @@ class PayloadMessageService(
             RetryDecision.TTL_EXPIRED -> {
                 log.info("No retry for failing payload sent at ${sentAt ?: "unknown"}, error type: $errorType, reason: $reason, retries already performed: $retriedAlready. Decision reason: $decisionReason")
                 try {
-                    returnMessageError(payloadMessage, EbmsException("TimeToLive expired", errorCode = no.nav.emottak.message.model.ErrorCode.TIME_TO_LIVE_EXPIRED, exception = exception))
+                    returnMessageError(payloadMessage, EbmsException("TimeToLive expired", errorCode = ErrorCode.TIME_TO_LIVE_EXPIRED, exception = exception))
                 } catch (e: Exception) {
                     log.error("Failed to return Message error for payload message ${payloadMessage.requestId}, sender WILL NOT BE NOTIFIED that the message has NOT been processed OK", e)
                 }
