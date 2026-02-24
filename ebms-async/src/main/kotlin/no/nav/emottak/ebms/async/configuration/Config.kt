@@ -17,6 +17,7 @@ import org.apache.kafka.common.config.SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG
 import org.apache.kafka.common.config.SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG
 import org.apache.kafka.common.config.SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG
 import java.util.Properties
+import kotlin.time.Duration
 
 data class Config(
     val kafka: Kafka,
@@ -27,7 +28,8 @@ data class Config(
     val kafkaPayloadProducer: KafkaPayloadProducer,
     val kafkaErrorQueue: KafkaErrorQueue,
     val signering: List<KeyStoreConfiguration>,
-    val errorRetryPolicy: ErrorRetryPolicy
+    val errorRetryPolicy: ErrorRetryPolicy,
+    val messageResendPolicy: MessageResendPolicy
 )
 
 data class KafkaErrorQueue(
@@ -36,21 +38,27 @@ data class KafkaErrorQueue(
     val initOffset: String
 )
 
+data class MessageResendPolicy(
+    val processInterval: Duration, // Reading/processing starts every X seconds
+    val resendInterval: Duration, // Minutes to wait for Ack before resending
+    val maxResends: Int // Max number of resends
+)
+
 data class ErrorRetryPolicy(
-    val processIntervalSeconds: Int,
+    val processInterval: Duration,
     val maxMessagesToProcess: Int,
-    val retryIntervalsMinutes: List<Int>,
+    val retryIntervals: List<Duration>,
     val retriesPerInterval: List<Int>
-    // If retriesPerInterval is e.g. [3, 3, 23] and retryIntervalsMinutes is [5, 15, 60, 60*24],
+    // If retriesPerInterval is e.g. [3, 3, 23] and retryIntervalsMinutes is [5m, 15m, 1h, 24h],
     // then the first 3 retries occurs 5/10/15 minutes after first failure, the next 3 retries 30/45/60 minutes after first failure,
     // the next 23 retries 2-24 hours after first failure, and any retries after that will occur every 24 hours after the previous retry.
 ) {
-    fun nextIntervalMinutes(retriesPerformed: Int): Int {
+    fun nextInterval(retriesPerformed: Int): Duration {
         var intervalIndex = findIntervalIndex(retriesPerformed)
-        if (intervalIndex > retryIntervalsMinutes.lastIndex) {
-            intervalIndex = retryIntervalsMinutes.lastIndex
+        if (intervalIndex > retryIntervals.lastIndex) {
+            intervalIndex = retryIntervals.lastIndex
         }
-        return retryIntervalsMinutes[intervalIndex]
+        return retryIntervals[intervalIndex]
     }
 
     private fun findIntervalIndex(retriesPerformed: Int): Int {
@@ -61,7 +69,7 @@ data class ErrorRetryPolicy(
             if (retriesPerformed < limit) return i
             i++
         }
-        return retryIntervalsMinutes.size
+        return retryIntervals.size
     }
 }
 
