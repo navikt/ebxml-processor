@@ -31,7 +31,6 @@ dependencies {
     implementation(libs.emottak.utils)
     implementation(libs.ebxml.protokoll)
     implementation(libs.guava)
-    api("dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-jvm:2.3.8")
     implementation(libs.flyway.core)
     implementation(libs.ktor.serialization.kotlinx.json)
     implementation(libs.apache.santuario)

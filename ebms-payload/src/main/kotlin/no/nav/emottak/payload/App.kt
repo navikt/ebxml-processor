@@ -1,6 +1,5 @@
 package no.nav.emottak.payload
 
-import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorRuntime
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.serialization.kotlinx.json.json
@@ -29,10 +28,6 @@ import java.net.URL
 
 internal val log = LoggerFactory.getLogger("no.nav.emottak.payload")
 fun main() {
-    if (getEnvVar("NAIS_CLUSTER_NAME", "local") != "prod-fss") {
-        DecoroutinatorRuntime.load()
-    }
-
     val kafkaPublisherClient = EventPublisherClient(config().kafka)
     val eventLoggingService = EventLoggingService(config().eventLogging, kafkaPublisherClient)
     val eventRegistrationService = EventRegistrationServiceImpl(eventLoggingService)

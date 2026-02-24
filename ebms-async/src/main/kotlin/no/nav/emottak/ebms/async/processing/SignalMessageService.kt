@@ -2,6 +2,7 @@ package no.nav.emottak.ebms.async.processing
 
 import kotlinx.serialization.json.Json
 import no.nav.emottak.ebms.async.log
+import no.nav.emottak.ebms.async.persistence.repository.MessagePendingAckRepository
 import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.message.exception.EbmsException
@@ -15,7 +16,8 @@ import no.nav.emottak.utils.kafka.model.EventType
 
 class SignalMessageService(
     val cpaValidationService: CPAValidationService,
-    val eventRegistrationService: EventRegistrationService
+    val eventRegistrationService: EventRegistrationService,
+    val messagePendingAckRepository: MessagePendingAckRepository
 ) {
 
     suspend fun processSignal(requestId: String, ebxmlSignalMessage: EbmsMessage) {
@@ -40,6 +42,7 @@ class SignalMessageService(
     suspend fun processAcknowledgment(acknowledgment: Acknowledgment) {
         cpaValidationService.validateIncomingMessage(acknowledgment)
         log.info(acknowledgment.marker(), "Got acknowledgment with requestId <${acknowledgment.requestId}>")
+        messagePendingAckRepository.registerAckForMessage(acknowledgment.refToMessageId)
     }
 
     suspend fun processMessageError(messageError: MessageError) {
