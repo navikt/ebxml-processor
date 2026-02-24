@@ -35,7 +35,7 @@ private fun httpClient(
         loadTokens = { dpopTokenUtil.obtainDpopTokens() }
     }
     defaultRequest {
-        url("https://api.test.nhn.no/v2/ar/CommunicationParty")
+        url("https://cpapi.test.grunndata.nhn.no/api/v1/communicationparty")
         header(Accept, "application/json")
     }
 }
