@@ -28,8 +28,6 @@ import no.nav.emottak.ebms.AZURE_AD_AUTH
 import no.nav.emottak.ebms.CpaRepoClient
 import no.nav.emottak.ebms.EBMS_PAYLOAD_SCOPE
 import no.nav.emottak.ebms.EBMS_SEND_IN_SCOPE
-import no.nav.emottak.ebms.EVENT_MANAGER_SCOPE
-import no.nav.emottak.ebms.EventManagerClient
 import no.nav.emottak.ebms.PayloadProcessingClient
 import no.nav.emottak.ebms.SMTP_TRANSPORT_SCOPE
 import no.nav.emottak.ebms.SendInClient
@@ -46,6 +44,7 @@ import no.nav.emottak.ebms.async.persistence.Database
 import no.nav.emottak.ebms.async.persistence.ebmsDbConfig
 import no.nav.emottak.ebms.async.persistence.ebmsMigrationConfig
 import no.nav.emottak.ebms.async.persistence.repository.MessagePendingAckRepository
+import no.nav.emottak.ebms.async.persistence.repository.MessageReceivedRepository
 import no.nav.emottak.ebms.async.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.async.processing.MessageFilterService
 import no.nav.emottak.ebms.async.processing.PayloadMessageForwardingService
@@ -54,7 +53,6 @@ import no.nav.emottak.ebms.async.processing.SignalMessageService
 import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.ebms.async.util.EventRegistrationServiceImpl
 import no.nav.emottak.ebms.defaultHttpClient
-import no.nav.emottak.ebms.eventmanager.EventManagerService
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.registerHealthEndpoints
 import no.nav.emottak.ebms.registerNavCheckStatus
@@ -72,12 +70,12 @@ import kotlin.concurrent.timer
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.async.App")
 
 fun main() = SuspendApp {
+    val config = config()
+
     val database = Database(ebmsDbConfig.value)
     database.migrate(ebmsMigrationConfig.value)
     val payloadRepository = PayloadRepository(database)
-
-    val config = config()
-
+    val messageReceivedRepository = MessageReceivedRepository(database)
     val messagePendingAckRepository = MessagePendingAckRepository(database, config.messageResendPolicy.resendInterval, config.messageResendPolicy.maxResends)
 
     val failedMessageQueue = FailedMessageKafkaHandler()
@@ -97,9 +95,6 @@ fun main() = SuspendApp {
 
     val smtpTransportClient = SmtpTransportClient(scopedAuthHttpClient(SMTP_TRANSPORT_SCOPE))
 
-    val eventManagerService = EventManagerService(
-        EventManagerClient(scopedAuthHttpClient(EVENT_MANAGER_SCOPE))
-    )
     val eventRegistrationService = EventRegistrationServiceImpl(
         EventLoggingService(config().eventLogging, EventPublisherClient(config().kafka))
     )
@@ -120,7 +115,7 @@ fun main() = SuspendApp {
         ebmsSignalProducer = ebmsSignalProducer,
         payloadMessageForwardingService = payloadMessageForwardingService,
         eventRegistrationService = eventRegistrationService,
-        eventManagerService = eventManagerService,
+        messageReceivedRepository = messageReceivedRepository,
         failedMessageQueue = failedMessageQueue
     )
 
@@ -235,7 +230,7 @@ fun CoroutineScope.launchErrorRetryTask(
         daemon = true
     ) {
         launch(Dispatchers.IO) {
-            log.info("=== RetryErrorsTask starting...")
+            log.debug("=== RetryErrorsTask starting...")
             try {
                 if (pauseRetryErrorsTimerFlag.paused) {
                     log.info("Retry task is paused.")

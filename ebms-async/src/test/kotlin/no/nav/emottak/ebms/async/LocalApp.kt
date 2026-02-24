@@ -27,6 +27,7 @@ import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
 import no.nav.emottak.ebms.async.persistence.Database
 import no.nav.emottak.ebms.async.persistence.PayloadRepositoryTest.Companion.ebmsProviderDbContainer
 import no.nav.emottak.ebms.async.persistence.repository.MessagePendingAckRepository
+import no.nav.emottak.ebms.async.persistence.repository.MessageReceivedRepository
 import no.nav.emottak.ebms.async.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.async.processing.MessageFilterService
 import no.nav.emottak.ebms.async.processing.PayloadMessageForwardingService
@@ -34,7 +35,6 @@ import no.nav.emottak.ebms.async.processing.PayloadMessageService
 import no.nav.emottak.ebms.async.processing.SignalMessageService
 import no.nav.emottak.ebms.async.util.EventRegistrationServiceFake
 import no.nav.emottak.ebms.defaultHttpClient
-import no.nav.emottak.ebms.eventmanager.EventManagerService
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.CPAValidationService
@@ -77,6 +77,7 @@ fun main() = SuspendApp {
     println(" ************ Setting up to use local DB with URL: " + database.dataSource.jdbcUrl)
 
     val payloadRepository = PayloadRepository(database)
+    val messageReceivedRepository = MessageReceivedRepository(database)
 
     val kafkaUrl = getRunningKafkaBrokerUrl()
     println(" ************ Setting up to use local Kafka with URL: " + kafkaUrl)
@@ -121,9 +122,7 @@ fun main() = SuspendApp {
         httpClient = DummySendInClient()
     )
     val smtpTransportClient = DummySmtpTransportClient()
-    val eventManagerService = EventManagerService(
-        DummyEventManagerClient()
-    )
+
     val eventRegistrationService = EventRegistrationServiceFake()
 
     val ebmsSignalProducer = EbmsMessageProducer(config.kafkaSignalProducer.topic, config.kafka)
@@ -145,7 +144,7 @@ fun main() = SuspendApp {
         ebmsSignalProducer = ebmsSignalProducer,
         payloadMessageForwardingService = payloadMessageForwardingService,
         eventRegistrationService = eventRegistrationService,
-        eventManagerService = eventManagerService,
+        messageReceivedRepository = messageReceivedRepository,
         failedMessageQueue = failedMessageQueue
     )
 
