@@ -13,17 +13,11 @@ import io.ktor.client.request.HttpRequestData
 import io.ktor.client.request.HttpResponseData
 import io.ktor.client.request.get
 import io.ktor.client.request.header
-import io.ktor.client.request.post
-import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
-import io.ktor.http.ContentType.Application.Json
 import io.ktor.http.HttpHeaders.Authorization
-import io.ktor.http.HttpStatusCode.Companion.BadRequest
-import io.ktor.http.HttpStatusCode.Companion.InternalServerError
+import io.ktor.http.HttpStatusCode.Companion.NotFound
 import io.ktor.http.HttpStatusCode.Companion.OK
-import io.ktor.http.HttpStatusCode.Companion.UnsupportedMediaType
-import io.ktor.http.contentType
 import io.ktor.http.fullPath
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.auth.Authentication
@@ -61,165 +55,49 @@ class RoutesSpec : StringSpec(
             mockOAuth2Server = MockOAuth2Server().also { it.start(port = 3344) }
         }
 
-        "GET /CommunicationParties with single receiver her id returns EDI response" {
+        "GET /CommunicationParties with request herid returns Response" {
             val ediClient = fakeEdiClient {
-                it.url.fullPath shouldBe "/CommunicationParties?ReceiverHerIds=1"
-                respond("""[{"id":"100", "receiverHerId": "1"}]""")
+                it.url.fullPath shouldBe "/api/v1/CommunicationParties/1"
+                respond("""[{"herId": "1"}]""")
             }
 
             testApplication {
                 installExternalRoutes(ediClient)
 
-                val response = client.get("/api/v1/CommunicationParties?receiverHerIds=1")
+                val response = client.get("/api/v1/CommunicationParties/1")
 
                 response.status shouldBe OK
-                response.bodyAsText() shouldBe """[{"id":"100", "receiverHerId": "1"}]"""
+                response.bodyAsText() shouldBe """[{"herId": "1"}]"""
             }
         }
 
-        "GET /CommunicationParties with multiple receiver her ids returns EDI response" {
-            val ediClient = fakeEdiClient {
-                it.url.fullPath shouldBe "/CommunicationParties?ReceiverHerIds=1&ReceiverHerIds=2"
-                respond("""[{"id":"100", "receiverHerId": "1"}, {"id":"200", "receiverHerId": "2"}]""")
-            }
+        "GET /CommunicationParties without request herid returns Response" {
 
-            testApplication {
-                installExternalRoutes(ediClient)
-
-                val response = client.get("/api/v1/CommunicationParties?receiverHerIds=1&receiverHerIds=2")
-
-                response.status shouldBe OK
-                response.bodyAsText() shouldBe """[{"id":"100", "receiverHerId": "1"}, {"id":"200", "receiverHerId": "2"}]"""
-            }
-        }
-
-        "GET /communicationparties with receiver her id and sender her id returns EDI response" {
-            val ediClient = fakeEdiClient {
-                it.url.fullPath shouldBe "/CommunicationParties?ReceiverHerIds=1&SenderHerId=2"
-                respond("""[{"id":"100", "receiverHerId": "1"}]""")
-            }
-
-            testApplication {
-                installExternalRoutes(ediClient)
-
-                val response = client.get("/api/v1/CommunicationParties?receiverHerIds=1&senderHerId=2")
-
-                response.status shouldBe OK
-                response.bodyAsText() shouldBe """[{"id":"100", "receiverHerId": "1"}]"""
-            }
-        }
-
-        "GET /communicationparties with receiver her id and business document id returns EDI response" {
-            val ediClient = fakeEdiClient {
-                it.url.fullPath shouldBe "/CommunicationParties?ReceiverHerIds=1&BusinessDocumentId=10"
-                respond("""[{"id":"100", "receiverHerId": "1"}]""")
-            }
-
-            testApplication {
-                installExternalRoutes(ediClient)
-
-                val response = client.get("/api/v1/CommunicationParties?receiverHerIds=1&businessDocumentId=10")
-
-                response.status shouldBe OK
-                log.info { "$response.bodyAsText()" }
-                response.bodyAsText() shouldBe """[{"id":"100", "receiverHerId": "1"}]"""
-            }
-        }
-
-        "GET /communicationparties with blank receiver her id returns 400" {
             val ediClient = fakeEdiClient { error("Should not be called") }
 
             testApplication {
                 installExternalRoutes(ediClient)
 
-                val response = client.get("/api/v1/CommunicationParties?receiverHerIds=")
-                response.status shouldBe BadRequest
-                response.bodyAsText() shouldContain "Receiver her ids"
+                val response = client.get("/api/v1/CommunicationParties/")
+
+                response.status shouldBe NotFound
+                response.bodyAsText() shouldContain ""
             }
         }
 
-        "GET /communicationparties without receiver her id returns 400" {
-            val ediClient = fakeEdiClient { error("Should not be called") }
-
-            testApplication {
-                installExternalRoutes(ediClient)
-
-                val response = client.get("/api/v1/CommunicationParties")
-
-                response.status shouldBe BadRequest
-                response.bodyAsText() shouldContain "Receiver her ids"
-            }
-        }
-
-        "POST /CommunicationParties with empty body returns 415" {
-            testApplication {
-                installExternalRoutes(fakeEdiClient { error("Should not be called") })
-
-                val response = client.post("/api/v1/CommunicationParties") {
-                    contentType(Json)
-                    setBody("")
-                }
-
-                response.status shouldBe UnsupportedMediaType
-            }
-        }
-
-        "POST /CommunicationParties without body returns 415" {
-            testApplication {
-                installExternalRoutes(fakeEdiClient { error("Should not be called") })
-
-                val response = client.post("/api/v1/CommunicationParties")
-                response.status shouldBe UnsupportedMediaType
-            }
-        }
-
-        "POST /CommunicationParties with invalid body (json) returns 400" {
-            testApplication {
-                installExternalRoutes(fakeEdiClient { error("Should not be called") })
-
-                val response = client.post("/api/v1/CommunicationParties") {
-                    contentType(Json)
-                    setBody("{ not-valid-json }")
-                }
-
-                response.status shouldBe BadRequest
-            }
-        }
-
-        "POST /CommunicationParties returns 500 on unexpected exception" {
-            val ediClient = fakeEdiClient { throw RuntimeException("boom") }
-
-            testApplication {
-                installExternalRoutes(ediClient)
-
-                val response = client.post("/api/v1/CommunicationParties") {
-                    contentType(Json)
-                    setBody(
-                        """{
-                            "businessDocument":  ${base64EncodedDocument()},
-                            "contentType": "application/xml",
-                            "contentTransferEncoding": "base64"
-                        }"""
-                    )
-                }
-
-                response.status shouldBe InternalServerError
-            }
-        }
-
-        "GET /CommunicationParties returns EDI response with authentication" {
+        "GET /CommunicationParties returns EDI response with authentication" { // OK
             val ediClient = fakeEdiClient {
-                it.url.fullPath shouldBe "/CommunicationParties?ReceiverHerIds=1"
-                respond("""[{"id":"100", "receiverHerId": "1"}]""")
+                it.url.fullPath shouldBe "/api/v1/CommunicationParties/1"
+                respond("""[{"herId": "1"}]""")
             }
 
             testApplication {
                 installExternalRoutes(ediClient, useAuthentication = true)
 
-                val response = client.getWithAuth("/api/v1/CommunicationParties?receiverHerIds=1", getToken)
+                val response = client.getWithAuth("/api/v1/CommunicationParties/1", getToken)
 
                 response.status shouldBe OK
-                response.bodyAsText() shouldBe """[{"id":"100", "receiverHerId": "1"}]"""
+                response.bodyAsText() shouldBe """[{"herId": "1"}]"""
             }
         }
     }

@@ -2,63 +2,50 @@ package no.nav.emottak.cpa.plugin
 
 import io.github.smiley4.ktoropenapi.config.RouteConfig
 import io.ktor.http.HttpStatusCode.Companion.BadRequest
-import io.ktor.http.HttpStatusCode.Companion.Created
 import io.ktor.http.HttpStatusCode.Companion.InternalServerError
+import io.ktor.http.HttpStatusCode.Companion.NotFound
 import io.ktor.http.HttpStatusCode.Companion.OK
-import no.nav.emottak.cpa.model.Message
-import no.nav.helsemelding.ediadapter.model.EbXmlInfo
-import no.nav.helsemelding.ediadapter.model.Metadata
-import no.nav.helsemelding.ediadapter.model.OrderBy
-import no.nav.helsemelding.ediadapter.model.PostMessageRequest
-import kotlin.time.Instant
-import kotlin.uuid.Uuid
+import no.nav.emottak.cpa.model.CommunityPartyResponse
+import no.nav.emottak.cpa.model.EncryptionCertificate
+import no.nav.emottak.cpa.model.OrganizationDetails
+import no.nav.emottak.cpa.model.SignCertificate
 
 object MessagesApi {
 
     /* =============================================================
-     * GET /messages
+     * GET /CommunicationParties/{herId}
      * ============================================================= */
 
-    const val GET_MESSAGES = "/CommunicationParties"
+    const val GET_HERID = "/CommunicationParties/{herId}"
 
-    val getMessagesDocs: RouteConfig.() -> Unit = {
-        summary = "Get a list of unread messages"
-        description = "Get a list of unread messages using the given query parameters"
+    val getHerIdDocs: RouteConfig.() -> Unit = {
+        summary = "Get a profile of a partner"
+        description = "Get partner information sush as, edi address, certificates and partty name"
 
         request {
-            queryParameter<List<Int>>("receiverHerIds") {
-                description = "List of receiver HER IDs"
+            pathParameter<String>("herId") {
+                description = "Her id to the partner"
                 required = true
 
-                example("Multiple receivers") {
+                example("Her ID") {
                     summary = "Multiple receiver HER IDs"
                     description = "At least one receiver HER ID is required"
-                    value = listOf(8142520, 8142521)
+                    value = "39"
                 }
             }
 
-            queryParameter<Int>("senderHerId") {
-                description = "Sender HER ID"
+            queryParameter<Int>("herId") {
+                description = "Request HER ID"
 
-                example("Sender HER ID") {
+                example("HER ID") {
                     summary = "Sender filter"
-                    description = "Filter messages by sender HER ID"
-                    value = 8142519
-                }
-            }
-
-            queryParameter<String>("businessDocumentId") {
-                description = "Business document UUID"
-
-                example("Business document ID") {
-                    summary = "Document filter"
-                    description = "Filter messages by business document ID"
-                    value = "cc169595-bbf0-11dd-9ca9-117f241b4a68"
+                    description = "HER ID"
+                    value = 59
                 }
             }
 
             queryParameter<Boolean>("includeMetadata") {
-                description = "Whether to include message metadata (default: false)"
+                description = "Whether to include metadata (default: false)"
 
                 example("Default") {
                     summary = "Exclude metadata"
@@ -72,84 +59,77 @@ object MessagesApi {
                     value = true
                 }
             }
-
-            queryParameter<Int>("messagesToFetch") {
-                description = "Number of messages to fetch (1–100, default: 10)"
-
-                example("Default") {
-                    summary = "Default value"
-                    description = "Fetch default number of messages"
-                    value = 10
-                }
-
-                example("Maximum") {
-                    summary = "Maximum value"
-                    description = "Fetch the maximum allowed number of messages"
-                    value = 100
-                }
-            }
-
-            queryParameter<OrderBy>("orderBy") {
-                description = "Message ordering (default: ASC)"
-
-                example("Ascending") {
-                    summary = "Ascending order"
-                    description = "Oldest messages first"
-                    value = OrderBy.ASC
-                }
-
-                example("Descending") {
-                    summary = "Descending order"
-                    description = "Newest messages first"
-                    value = OrderBy.DESC
-                }
-            }
         }
 
         response {
             OK to {
                 description = """
-                    Messages retrieved successfully.
+                    HerId retrieved successfully.
                     Response fields depend on `includeMetadata`.
                 """.trimIndent()
 
-                body<List<no.nav.helsemelding.ediadapter.model.Message>> {
-                    example("Without metadata") {
-                        summary = "Messages without metadata"
+                body<CommunityPartyResponse> {
+                    example("herId status") {
                         value = listOf(
-                            Message(
-                                id = Uuid.parse("733be787-0ad0-475a-98b7-00512caa9ccb"),
-                                receiverHerId = 8142520
+                            CommunityPartyResponse(
+                                herId = 100262,
+                                name = "Sykehus HF",
+                                parentOrganizationNumber = "983971709",
+                                organizationDetails = OrganizationDetails(
+                                    organizationNumber = "987654321",
+                                    name = "Fysikalsk medisin og rehabilitering"
+                                ),
+                                email = "ihf@bestill-hos-kundesenter.nhn.no",
+                                EncryptionCertificate(
+                                    thumbprint = "test by a string",
+                                    validFrom = "2023-07-06T08:57:01.429Z",
+                                    validTo = "2026-07-06T08:57:01.429Z"
+                                ),
+                                signCertificate = SignCertificate(
+                                    thumbprint = "test by a string",
+                                    validFrom = "2023-07-06T08:57:01.429Z",
+                                    validTo = "2026-07-06T08:57:01.429Z"
+                                )
                             ),
-                            Message(
-                                id = Uuid.parse("68e60a2b-5990-408c-b99b-089d8657d6ed"),
-                                receiverHerId = 8142520
-                            )
-                        )
-                    }
-
-                    example("With metadata") {
-                        summary = "Messages with metadata"
-                        value = listOf(
-                            Message(
-                                id = Uuid.parse("733be787-0ad0-475a-98b7-00512caa9ccb"),
-                                contentType = "application/xml",
-                                receiverHerId = 8142520,
-                                senderHerId = 8142519,
-                                businessDocumentId = "cc169595-bbf0-11dd-9ca9-117f241b4a68",
-                                businessDocumentGenDate = Instant.parse("2008-11-26T19:31:17.281Z"),
-                                isAppRec = false,
-                                sourceSystem = "helsemelding EDI 2.0 edi-adapter, v1.0" // TODO
+                            CommunityPartyResponse(
+                                herId = 59,
+                                name = "St. Olavs hospital HF",
+                                parentOrganizationNumber = "883974832",
+                                organizationDetails = OrganizationDetails(
+                                    organizationNumber = "883974832",
+                                    name = "Fysioterapi"
+                                ),
+                                email = "helseplattformen@testedi.nhn.no",
+                                EncryptionCertificate(
+                                    thumbprint = "test by a string",
+                                    validFrom = "2023-08-29T08:57:01.429Z",
+                                    validTo = "2026-08-29T08:57:01.429Z"
+                                ),
+                                signCertificate = SignCertificate(
+                                    thumbprint = "test by a string",
+                                    validFrom = "2023-08-29T08:57:01.429Z",
+                                    validTo = "2026-08-29T08:57:01.429Z"
+                                )
                             ),
-                            Message(
-                                id = Uuid.parse("68e60a2b-5990-408c-b99b-089d8657d6ed"),
-                                contentType = "application/xml",
-                                receiverHerId = 8142520,
-                                senderHerId = 8142519,
-                                businessDocumentId = "cc169595-bbf0-11dd-9ca9-117f241b4a68",
-                                businessDocumentGenDate = Instant.parse("2008-11-26T19:31:17.281Z"),
-                                isAppRec = false,
-                                sourceSystem = "helsemelding EDI 2.0 edi-adapter, v1.0" // TODO
+                            CommunityPartyResponse(
+                                herId = 39,
+                                name = "Sykehuset Telemark HF",
+                                parentOrganizationNumber = "983975267",
+                                organizationDetails = OrganizationDetails(
+                                    organizationNumber = "983975267",
+                                    name = "SYKEHUSET TELEMARK HF TEST"
+                                ),
+                                email = "test-sthf@edi.nhn.no",
+                                EncryptionCertificate(
+                                    thumbprint = "test by a string",
+                                    validFrom = "2023-07-06T08:57:01.429Z",
+                                    validTo = "2026-07-06T08:57:01.429Z"
+                                ),
+                                signCertificate = SignCertificate(
+                                    thumbprint = "test by a string",
+                                    validFrom = "2023-07-06T08:57:01.429Z",
+                                    validTo = "2026-07-06T08:57:01.429Z"
+                                )
                             )
                         )
                     }
@@ -158,98 +138,30 @@ object MessagesApi {
 
             BadRequest to {
                 description =
-                    "Bad request. Required query parameter `receiverHerIds` is missing."
+                    "Bad request. Required query parameter `herId` is missing."
 
                 body<String> {
-                    example("Missing receiverHerIds") {
+                    example("Missing herId") {
                         summary = "receiverHerIds missing"
                         description =
-                            "The mandatory query parameter `receiverHerIds` was not provided."
-                        value = "Receiver her ids are missing"
+                            "The mandatory query parameter `herId` was not provided."
+                        value = "Receiver her id are missing"
                     }
                 }
             }
 
-            InternalServerError to {
-                description = "Unexpected server error"
-            }
-        }
-    }
-
-    /* =============================================================
-     * POST /messages
-     * ============================================================= */
-
-    const val POST_MESSAGE = "/CommunicationParties"
-
-    val postMessageDocs: RouteConfig.() -> Unit = {
-        summary = "Post a new message"
-        description =
-            "Submits a new message with a business document to one or more receivers."
-
-        request {
-            body<PostMessageRequest> {
-                required = true
-
-                example("Post message with ebXML overrides") {
-                    value = PostMessageRequest(
-                        businessDocument =
-                        "PHhtbD48RG9jdW1lbnQ+Li4uPC9Eb2N1bWVudD4=",
-                        contentType = "application/xml",
-                        contentTransferEncoding = "base64",
-                        ebXmlOverrides = EbXmlInfo(
-                            cpaId = "string",
-                            conversationId = "string",
-                            service = "string",
-                            serviceType = "string",
-                            action = "string",
-                            useSenderLevel1HerId = true,
-                            receiverRole = "string",
-                            applicationName = "EPJ Front",
-                            applicationVersion = "18.0.8",
-                            middlewareName = "string",
-                            middlewareVersion = "string",
-                            compressPayload = true
-                        ),
-                        receiverHerIdsSubset = listOf(0)
-                    )
-                }
-            }
-        }
-
-        response {
-            Created to {
-                description = "Message created successfully"
-
-                body<no.nav.helsemelding.ediadapter.model.Metadata> {
-                    example("Message metadata") {
-                        value = Metadata(
-                            id = Uuid.parse("733be787-0ad0-475a-98b7-00512caa9ccb"),
-                            location =
-                            "https://example.com/communicationparties/733be787-0ad0-475a-98b7-00512caa9ccb"
-                        )
-                    }
-                }
-            }
-
-            BadRequest to {
-                description = "Invalid request payload"
+            NotFound to {
+                description = "HerId not found"
 
                 body<String> {
-                    example("Bad request") {
-                        value = "Invalid message payload"
+                    example("Not found") {
+                        value = "HerId not found"
                     }
                 }
             }
 
             InternalServerError to {
                 description = "Internal server error"
-
-                body<String> {
-                    example("Internal error") {
-                        value = "Internal server error"
-                    }
-                }
             }
         }
     }

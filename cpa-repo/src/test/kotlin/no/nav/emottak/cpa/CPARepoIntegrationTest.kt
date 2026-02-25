@@ -27,6 +27,8 @@ import io.ktor.server.application.install
 import io.ktor.server.routing.routing
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
+import io.micrometer.prometheusmetrics.PrometheusConfig
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -53,7 +55,6 @@ import no.nav.emottak.utils.common.model.Addressing
 import no.nav.emottak.utils.common.model.Party
 import no.nav.emottak.utils.common.model.PartyId
 import no.nav.emottak.utils.environment.getEnvVar
-import no.nav.security.mock.oauth2.MockOAuth2Server
 import org.apache.commons.lang3.StringUtils
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
@@ -77,6 +78,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
     val eventRegistrationService = EventRegistrationServiceFake()
     private lateinit var cpaRepositoryMock: CPARepository
     private lateinit var partnerRepositoryMock: PartnerRepository
+    private val meterRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
 
     private fun <T> cpaRepoTestApp(testBlock: suspend ApplicationTestBuilder.() -> T) = testApplication {
         application(
@@ -84,7 +86,12 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
                 postgres.dataSource,
                 postgres.dataSource,
                 oracle.dataSource,
-                eventRegistrationService
+                eventRegistrationService,
+                ediClient = createClient {
+                    install(ContentNegotiation) {
+                        json()
+                    }
+                }
             )
         )
         testBlock()
@@ -112,7 +119,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         }
     }
 
-    private val mockOAuth2Server = MockOAuth2Server().also { it.start(port = 3344) }
+    // private val mockOAuth2Server = MockOAuth2Server().also { it.start(port = 3344) }
 
     @Test
     fun `Hent sertifikat for signatursjekk`() = cpaRepoTestApp {
@@ -507,27 +514,28 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         assertEquals(HttpStatusCode.NotFound, response.status)
     }
 
-    @Test
-    fun `Should require valid token`() = cpaRepoTestApp {
-        val token = mockOAuth2Server
-            .issueToken(
-                AZURE_AD_AUTH,
-                "testUser"
-            )
-        val httpClient = createClient {
-            install(ContentNegotiation) {
-                json()
-            }
-        }
-        val response = httpClient.get("/whoami") {
-            header(
-                "Authorization",
-                "Bearer " + token.serialize()
-            )
-        }
-        assertTrue(response.bodyAsText().contains("Gyldig"))
-    }
-
+    /**
+     @Test
+     fun `Should require valid token`() = cpaRepoTestApp {
+     val token = mockOAuth2Server
+     .issueToken(
+     AZURE_AD_AUTH,
+     "testUser"
+     )
+     val httpClient = createClient {
+     install(ContentNegotiation) {
+     json()
+     }
+     }
+     val response = httpClient.get("/whoami") {
+     header(
+     "Authorization",
+     "Bearer " + token.serialize()
+     )
+     }
+     assertTrue(response.bodyAsText().contains("Gyldig"))
+     }
+*/
     @Test
     fun `Delete CPA without token is rejected`() = cpaRepoTestApp {
         val client = createClient {

@@ -11,6 +11,8 @@ import io.ktor.server.engine.ApplicationEngine
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.testing.testApplication
+import io.micrometer.prometheusmetrics.PrometheusConfig
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import io.mockk.clearAllMocks
 import kotlinx.coroutines.runBlocking
 import no.nav.emottak.constants.SMTPHeaders
@@ -75,6 +77,7 @@ open class EndToEndTest {
             cpaValidationService = CPAValidationService(cpaClient)
 
             val sendInClient = SendInClient(scopedAuthHttpClient(EBMS_SEND_IN_SCOPE))
+            val meterRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
             sendInService = SendInService(sendInClient)
 
             cpaRepoServer = embeddedServer(
@@ -84,7 +87,8 @@ open class EndToEndTest {
                     cpaRepoDb.dataSource,
                     cpaRepoDb.dataSource,
                     cpaRepoDb.dataSource,
-                    cpaEventRegistrationService
+                    cpaEventRegistrationService,
+                    defaultHttpClient().invoke()
                 )
             ).also {
                 it.start()

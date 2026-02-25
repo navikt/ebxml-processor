@@ -7,6 +7,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import no.nav.emottak.cpa.databasetest.PostgresOracleTest
 import no.nav.emottak.cpa.persistence.gammel.PARTNER_CPA
 import no.nav.emottak.cpa.util.EventRegistrationServiceFake
@@ -20,6 +21,7 @@ import kotlin.test.assertEquals
 
 @Disabled
 class PartnerIntegrationTest : PostgresOracleTest() {
+    private lateinit var meterRegistry: PrometheusMeterRegistry
 
     @BeforeTest
     fun prepareTestData() {
@@ -43,7 +45,12 @@ class PartnerIntegrationTest : PostgresOracleTest() {
                 postgres.dataSource,
                 postgres.dataSource,
                 oracle.dataSource,
-                eventRegistrationService
+                eventRegistrationService,
+                ediClient = createClient {
+                    install(ContentNegotiation) {
+                        json()
+                    }
+                }
             )
         )
         testBlock()

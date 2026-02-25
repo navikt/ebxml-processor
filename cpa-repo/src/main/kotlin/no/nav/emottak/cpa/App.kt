@@ -1,5 +1,8 @@
 package no.nav.emottak.cpa
 
+import arrow.continuations.SuspendApp
+import arrow.core.raise.result
+import arrow.fx.coroutines.resourceScope
 import com.github.dockerjava.zerodep.shaded.org.apache.commons.codec.binary.Base64
 import com.zaxxer.hikari.HikariConfig
 import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorRuntime
@@ -19,6 +22,8 @@ import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.routing.routing
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.runBlocking
 import no.nav.emottak.cpa.auth.AZURE_AD_AUTH
 import no.nav.emottak.cpa.auth.AuthConfig
@@ -29,6 +34,9 @@ import no.nav.emottak.cpa.persistence.cpaDbConfig
 import no.nav.emottak.cpa.persistence.cpaMigrationConfig
 import no.nav.emottak.cpa.persistence.gammel.PartnerRepository
 import no.nav.emottak.cpa.persistence.oracleConfig
+import no.nav.emottak.cpa.plugin.configureCallLogging
+import no.nav.emottak.cpa.plugin.configureOpenApi
+import no.nav.emottak.cpa.plugin.configureRoutes
 import no.nav.emottak.cpa.util.EventRegistrationService
 import no.nav.emottak.cpa.util.EventRegistrationServiceImpl
 import no.nav.emottak.utils.environment.getEnvVar
@@ -39,7 +47,7 @@ import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProt
 import org.slf4j.LoggerFactory
 
 internal val log = LoggerFactory.getLogger("no.nav.emottak.cpa.App")
-fun main() {
+fun main() = SuspendApp {
     if (getEnvVar("NAIS_CLUSTER_NAME", "local") != "prod-fss") {
         DecoroutinatorRuntime.load()
     }
@@ -47,24 +55,37 @@ fun main() {
     val kafkaPublisherClient = EventPublisherClient(config().kafka)
     val eventLoggingService = EventLoggingService(config().eventLogging, kafkaPublisherClient)
     val eventRegistrationService = EventRegistrationServiceImpl(eventLoggingService)
+    result {
+        resourceScope {
+            log.info("Starting server.............")
+            val deps = dependencies()
+            log.info(" Dependencies are read........")
+            embeddedServer(
+                Netty,
+                port = 8080,
+                module = cpaApplicationModule(
+                    cpaDbConfig.value,
+                    cpaMigrationConfig.value,
+                    oracleConfig.value,
+                    eventRegistrationService,
+                    deps.httpClient
+                )
+            )
 
-    embeddedServer(
-        Netty,
-        port = 8080,
-        module = cpaApplicationModule(
-            cpaDbConfig.value,
-            cpaMigrationConfig.value,
-            oracleConfig.value,
-            eventRegistrationService
-        )
-    ).start(wait = true)
+            awaitCancellation()
+        }
+    }
+        .onFailure { error -> if (error !is CancellationException) logError(error) }
 }
+
+private fun logError(t: Throwable) = log.error("Shutdown edi-adapter due to: ${t.stackTraceToString()}")
 
 fun cpaApplicationModule(
     cpaDbConfig: HikariConfig,
     cpaMigrationConfig: HikariConfig,
     emottakDbConfig: HikariConfig? = null,
-    eventRegistrationService: EventRegistrationService
+    eventRegistrationService: EventRegistrationService,
+    ediClient: HttpClient
 ): Application.() -> Unit {
     return {
         val database = Database(cpaDbConfig)
@@ -101,7 +122,12 @@ fun cpaApplicationModule(
             signingCertificate(cpaRepository)
             getMessagingCharacteristics(cpaRepository)
             registerHealthEndpoints(appMicrometerRegistry, cpaRepository)
-
+            // configureMetrics(appMicrometerRegistry)
+            // TODO: need it configureAuthentication()
+            configureRoutes(ediClient, appMicrometerRegistry)
+            configureCallLogging()
+            configureOpenApi()
+            // configureContentNegotiation()
             if (canInitAuthenticatedRoutes().also { log.info("INIT AZURE ENDPOINTS: [$it]") }) {
                 authenticate(AZURE_AD_AUTH) {
                     whoAmI()
