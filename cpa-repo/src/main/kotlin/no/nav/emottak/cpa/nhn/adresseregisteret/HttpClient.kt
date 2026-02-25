@@ -14,7 +14,6 @@ import no.nav.emottak.utils.environment.getEnvVar
 import java.net.InetSocketAddress
 import java.net.Proxy
 import java.net.URI
-import java.net.URL
 
 private val httpProxyUrl = getEnvVar("HTTP_PROXY", "")
 
