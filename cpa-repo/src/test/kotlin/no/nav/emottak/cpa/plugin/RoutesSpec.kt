@@ -55,6 +55,10 @@ class RoutesSpec : StringSpec(
             mockOAuth2Server = MockOAuth2Server().also { it.start(port = 3344) }
         }
 
+        afterSpec {
+            mockOAuth2Server.shutdown()
+        }
+
         "GET /CommunicationParties with request herid returns Response" {
             val ediClient = fakeEdiClient {
                 it.url.fullPath shouldBe "/api/v1/CommunicationParties/1"

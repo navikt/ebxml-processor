@@ -86,10 +86,8 @@ dependencies {
     implementation(testLibs.postgresql)
     implementation(libs.token.validation.ktor.v3)
     implementation(libs.emottak.utils)
-    implementation(libs.edi.adapter.model)
 
     testRuntimeOnly(testLibs.junit.jupiter.engine)
-    testImplementation(libs.edi.adapter.model)
     testImplementation(testLibs.mock.oauth2.server)
     testImplementation(testLibs.mockk.jvm)
     testImplementation(testLibs.mockk.dsl.jvm)

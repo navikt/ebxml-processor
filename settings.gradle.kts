@@ -32,11 +32,9 @@ dependencyResolutionManagement {
             version("logback", "1.5.17")
             version("logstash", "8.0")
             version("fasterxml-jackson", "2.18.2")
-            version("adapter-model", "0.0.3")
             version("emottak-utils", "0.3.5")
             version("prometheus", "1.12.4")
 
-            library("edi-adapter-model", "no.nav.helsemelding", "edi-adapter-model").versionRef("adapter-model")
             library("kotlin-logging", "io.github.oshai", "kotlin-logging-jvm").versionRef("kotlin-logging")
             library("schema-kenerator-serialization", "io.github.smiley4", "schema-kenerator-serialization").versionRef("schema-kenerator-serialization")
             library("ktor-swagger-ui", "io.github.smiley4", "ktor-swagger-ui").versionRef("ktor-swagger-ui")
@@ -128,9 +126,7 @@ dependencyResolutionManagement {
             version("xmlunit", "2.9.1")
             version("ktor-server-test", "3.0.3")
             version("kotest", "5.9.1")
-            version("edi-adapter-model", "0.0.3")
 
-            library("edi-adapter-model", "no.nav.helsemelding", "edi-adapter-model").versionRef("edi-adapter-model")
             library("turbine", "app.cash.turbine", "turbine").versionRef("turbine")
             library("testcontainers", "org.testcontainers", "testcontainers").versionRef("testcontainers")
             library("testcontainers-postgresql", "org.testcontainers", "postgresql").versionRef("testcontainers")
@@ -196,14 +192,6 @@ dependencyResolutionManagement {
         maven {
             name = "Emottak payload format"
             url = uri("https://maven.pkg.github.com/navikt/emottak-payload-xsd")
-            credentials {
-                username = "token"
-                password = System.getenv("GITHUB_TOKEN")
-            }
-        }
-        maven {
-            name = "Nav edi-adapter"
-            url = uri("https://maven.pkg.github.com/navikt/helsemelding-edi-adapter")
             credentials {
                 username = "token"
                 password = System.getenv("GITHUB_TOKEN")

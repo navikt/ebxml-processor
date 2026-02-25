@@ -55,6 +55,7 @@ import no.nav.emottak.utils.common.model.Addressing
 import no.nav.emottak.utils.common.model.Party
 import no.nav.emottak.utils.common.model.PartyId
 import no.nav.emottak.utils.environment.getEnvVar
+import no.nav.security.mock.oauth2.MockOAuth2Server
 import org.apache.commons.lang3.StringUtils
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
@@ -119,7 +120,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         }
     }
 
-    // private val mockOAuth2Server = MockOAuth2Server().also { it.start(port = 3344) }
+    private val mockOAuth2Server = MockOAuth2Server().also { it.start(port = 3344) }
 
     @Test
     fun `Hent sertifikat for signatursjekk`() = cpaRepoTestApp {
@@ -514,28 +515,27 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         assertEquals(HttpStatusCode.NotFound, response.status)
     }
 
-    /**
-     @Test
-     fun `Should require valid token`() = cpaRepoTestApp {
-     val token = mockOAuth2Server
-     .issueToken(
-     AZURE_AD_AUTH,
-     "testUser"
-     )
-     val httpClient = createClient {
-     install(ContentNegotiation) {
-     json()
-     }
-     }
-     val response = httpClient.get("/whoami") {
-     header(
-     "Authorization",
-     "Bearer " + token.serialize()
-     )
-     }
-     assertTrue(response.bodyAsText().contains("Gyldig"))
-     }
-*/
+    @Test
+    fun `Should require valid token`() = cpaRepoTestApp {
+        val token = mockOAuth2Server
+            .issueToken(
+                AZURE_AD_AUTH,
+                "testUser"
+            )
+        val httpClient = createClient {
+            install(ContentNegotiation) {
+                json()
+            }
+        }
+        val response = httpClient.get("/whoami") {
+            header(
+                "Authorization",
+                "Bearer " + token.serialize()
+            )
+        }
+        assertTrue(response.bodyAsText().contains("Gyldig"))
+    }
+
     @Test
     fun `Delete CPA without token is rejected`() = cpaRepoTestApp {
         val client = createClient {
