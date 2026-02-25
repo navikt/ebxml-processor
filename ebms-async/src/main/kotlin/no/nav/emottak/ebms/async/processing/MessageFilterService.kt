@@ -29,32 +29,31 @@ open class MessageFilterService(
 ) {
 
     open suspend fun filterMessage(record: ReceiverRecord<String, ByteArray>) {
-        val sendInResponse = runCatching {
+        val jsonResponse = runCatching {
             Json.decodeFromString<SendInResponse>(record.value().decodeToString())
         }.getOrNull()
 
-        if (sendInResponse != null) {
+        val ebmsMessage: EbmsMessage = if (jsonResponse != null) {
             val cpaId = record.headers().lastHeader("cpaId")?.let { String(it.value()) } ?: ""
             val refToMessageId = record.headers().lastHeader("refToMessageId")?.let { String(it.value()) }
-            val payloadMessage = PayloadMessage(
-                requestId = sendInResponse.requestId,
-                messageId = sendInResponse.messageId,
-                conversationId = sendInResponse.conversationId,
+            PayloadMessage(
+                requestId = jsonResponse.requestId,
+                messageId = jsonResponse.messageId,
+                conversationId = jsonResponse.conversationId,
                 cpaId = cpaId,
-                addressing = sendInResponse.addressing,
-                payload = Payload(sendInResponse.payload, ContentType.Application.Xml.toString()),
+                addressing = jsonResponse.addressing,
+                payload = Payload(jsonResponse.payload, ContentType.Application.Xml.toString()),
                 refToMessageId = refToMessageId,
                 duplicateElimination = false,
                 ackRequested = true
             )
-            payloadMessageService.processOutboundResponse(record, payloadMessage)
-            return
+        } else {
+            createEbmsDocument(
+                requestId = record.key(),
+                document = record.value().createDocument()
+            )
         }
 
-        val ebmsMessage = createEbmsDocument(
-            requestId = record.key(),
-            document = record.value().createDocument()
-        )
         eventRegistrationService.registerEvent(
             eventType = EventType.MESSAGE_READ_FROM_QUEUE,
             requestId = ebmsMessage.requestId.parseOrGenerateUuid(),
