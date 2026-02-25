@@ -5,7 +5,7 @@ import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 
-fun getFakeNhnAdresseregisterEngine(content: String = ""): MockEngine =
+fun getFakeNhnAdresseregisterEngine(content: String = "test"): MockEngine =
     MockEngine { _ ->
         respond(
             content = content,

@@ -381,27 +381,30 @@ fun Route.getAdresseregisterData(httpClient: HttpClient) =
     get("/cpa/adresseregister/her/{$HER_ID}") {
         val herId = call.parameters[HER_ID] ?: throw BadRequestException("Mangler $HER_ID")
 
-        try {
+        val response = try {
             httpClient.fetchCommunicationParty(herId)
         } catch (ex: Exception) {
             log.error("Error while fetching communication party <$herId>", ex)
+            ex.localizedMessage
         }
 
-        call.respond(herId)
+        call.respond(response)
     }
 
-suspend fun HttpClient.fetchCommunicationParty(herId: String) {
+suspend fun HttpClient.fetchCommunicationParty(herId: String): String {
     val baseUrl = config().nhn.adresseregisterApiBaseUrl
 
-    try {
+    return try {
         val response: HttpResponse = this.get("$baseUrl/$herId")
         if (response.status == HttpStatusCode.OK) {
             log.info("Data mottatt: ${response.bodyAsText()}")
         } else {
             log.warn("Feil ved oppslag: ${response.status}")
         }
+        response.bodyAsText()
     } catch (e: Exception) {
-        log.error("Kunne ikke koble til $baseUrl: ${e.message}", e)
+        log.error("Kunne ikke koble til $baseUrl: ${e.localizedMessage}", e)
+        e.localizedMessage
     }
 }
 
