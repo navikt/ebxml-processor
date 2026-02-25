@@ -51,6 +51,9 @@ spec:
   ingresses:
     - "https://cpa-repo-fss.intern.dev.nav.no"
     - "https://cpa-repo.dev-fss-pub.nais.io"
+  filesFrom:
+    - secret: emottak-ar-klient-secret
+      mountPath: /var/run/secrets/emottak-ar-klient-secret
   vault:
     enabled: true
     paths:
@@ -106,3 +109,21 @@ spec:
       value: /secrets/oracle/creds
     - name: ORACLE_CONFIG_SECRET_PATH
       value: /secrets/oracle/config
+    - name: ADRESSE_REGISTER_URL
+      value: https://cpapi.test.grunndata.nhn.no/api/v1/communicationparty
+    - name: NHN_KEYPAIR_PATH
+      value: "/var/run/secrets/emottak-ar-klient-secret/key"
+    - name: NHN_TOKEN_ENDPOINT
+      value: "https://helseid-sts.test.nhn.no/connect/token"
+    - name: NHN_CLIENT_KEY_ID
+      value: "xMd3Jezu0PaRNBIxUZK8j8wBh7N7Bc6c-9MOt5AchbU"
+    - name: NHN_CLIENT_ID
+      value: "ab926758-4a6f-41fa-9c69-9ae1dd095662"
+    - name: NHN_CLIENT_AUDIENCE
+      value: "https://helseid-sts.test.nhn.no"
+    - name: NHN_CLIENT_SCOPE
+      value: "nhn:cp-api/access-v2-dpop"
+    - name: NHN_CLIENT_GRANT_TYPE
+      value: "client_credentials"
+    - name: NHN_CLIENT_ASSERTION_TYPE
+      value: "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
