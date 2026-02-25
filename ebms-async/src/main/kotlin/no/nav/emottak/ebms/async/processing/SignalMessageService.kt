@@ -41,6 +41,13 @@ class SignalMessageService(
 
     suspend fun processAcknowledgment(acknowledgment: Acknowledgment) {
         cpaValidationService.validateIncomingMessage(acknowledgment)
+        if (acknowledgment.addressing.from.role == "Not applicable") {
+            eventRegistrationService.registerEvent(
+                eventType = EventType.MESSAGEFLOW_COMPLETED,
+                conversationId = acknowledgment.conversationId,
+                requestId = acknowledgment.requestId.parseOrGenerateUuid()
+            )
+        }
         log.info(acknowledgment.marker(), "Got acknowledgment with requestId <${acknowledgment.requestId}>")
         messagePendingAckRepository.registerAckForMessage(acknowledgment.refToMessageId)
     }
