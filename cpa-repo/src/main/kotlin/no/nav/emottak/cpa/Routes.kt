@@ -381,14 +381,14 @@ fun Route.getAdresseregisterData(httpClient: HttpClient) =
     get("/cpa/adresseregister/her/{$HER_ID}") {
         val herId = call.parameters[HER_ID] ?: throw BadRequestException("Mangler $HER_ID")
 
-        val response = try {
-            httpClient.fetchCommunicationParty(herId)
+        val (response, contentType) = try {
+            httpClient.fetchCommunicationParty(herId) to ContentType.Application.Json
         } catch (ex: Exception) {
             log.error("Error while fetching communication party <$herId>", ex)
-            ex.localizedMessage
+            ex.localizedMessage to ContentType.Text.Plain
         }
 
-        call.respond(response)
+        call.respondText(response, contentType)
     }
 
 suspend fun HttpClient.fetchCommunicationParty(herId: String): String {
