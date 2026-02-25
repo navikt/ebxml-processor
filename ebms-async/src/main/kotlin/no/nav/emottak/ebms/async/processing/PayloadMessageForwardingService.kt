@@ -78,9 +78,10 @@ class PayloadMessageForwardingService(
         savePayloadsToDatabase(
             signedEbmsDocument.requestId.parseOrGenerateUuid(),
             signedEbmsDocument.messageHeader().messageData.messageId,
+            payloadMessage.conversationId,
             signedEbmsDocument.attachments
         )
-        sendMessageResponseToPayloadTopic(signedEbmsDocument, validationResult.receiverEmailAddress)
+        sendMessageResponseToPayloadTopic(signedEbmsDocument, validationResult.receiverEmailAddress, payloadMessage.conversationId)
         if (processedMessage.ackRequested) {
             storeMessagePendingAck(signedEbmsDocument, validationResult.receiverEmailAddress)
         }
@@ -96,6 +97,7 @@ class PayloadMessageForwardingService(
     suspend fun savePayloadsToDatabase(
         requestId: Uuid,
         messageId: String,
+        conversationId: String,
         attachments: List<Payload>
     ) {
         attachments.forEach { payload ->
@@ -111,14 +113,19 @@ class PayloadMessageForwardingService(
                 failEvent = EventType.ERROR_WHILE_SAVING_PAYLOAD_INTO_DATABASE,
                 requestId = asyncPayload.referenceId,
                 contentId = asyncPayload.contentId,
-                messageId = messageId
+                messageId = messageId,
+                conversationId = conversationId
             ) {
                 payloadRepository.updateOrInsert(asyncPayload)
             }
         }
     }
 
-    private suspend fun sendMessageResponseToPayloadTopic(signedEbmsDocument: EbmsDocument, receiverEmailAddress: List<EmailAddress>) {
+    private suspend fun sendMessageResponseToPayloadTopic(
+        signedEbmsDocument: EbmsDocument,
+        receiverEmailAddress: List<EmailAddress>,
+        conversationId: String
+    ) {
         eventRegistrationService.runWithEvent(
             successEvent = EventType.MESSAGE_PLACED_IN_QUEUE,
             failEvent = EventType.ERROR_WHILE_STORING_MESSAGE_IN_QUEUE,
@@ -126,7 +133,8 @@ class PayloadMessageForwardingService(
             messageId = signedEbmsDocument.messageHeader().messageData.messageId ?: "",
             eventData = Json.encodeToString(
                 mapOf(EventDataType.QUEUE_NAME.value to config().kafkaPayloadProducer.topic)
-            )
+            ),
+            conversationId = conversationId
         ) {
             ebmsPayloadProducer.publishMessage(
                 key = signedEbmsDocument.requestId,

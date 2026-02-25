@@ -46,7 +46,17 @@ class PayloadMessageService(
             val isRetry = record.retryCount() > 0
             when (isDuplicate && !isRetry) {
                 true -> log.info(ebmsPayloadMessage.marker(), "Got duplicate payload message with reference <${ebmsPayloadMessage.requestId}>")
-                false -> processPayloadMessage(ebmsPayloadMessage)
+                false -> {
+                    if (isRetry) {
+                        eventRegistrationService.registerEvent(
+                            eventType = EventType.RETRY_TRIGGED,
+                            requestId = ebmsPayloadMessage.requestId.parseOrGenerateUuid(),
+                            messageId = ebmsPayloadMessage.messageId,
+                            conversationId = ebmsPayloadMessage.conversationId
+                        )
+                    }
+                    processPayloadMessage(ebmsPayloadMessage)
+                }
             }
             returnAcknowledgment(ebmsPayloadMessage)
         }.onFailure { exception ->
@@ -175,10 +185,11 @@ class PayloadMessageService(
                     successEvent = EventType.MESSAGE_PLACED_IN_QUEUE,
                     failEvent = EventType.ERROR_WHILE_STORING_MESSAGE_IN_QUEUE,
                     requestId = ebmsDocument.requestId.parseOrGenerateUuid(),
-                    messageId = ebmsDocument.messageHeader().messageData.messageId ?: "",
+                    messageId = messageHeader.messageData.messageId ?: "",
                     eventData = Json.encodeToString(
                         mapOf(EventDataType.QUEUE_NAME.value to config().kafkaSignalProducer.topic)
-                    )
+                    ),
+                    conversationId = ebmsDocument.getConversationId()
                 ) {
                     ebmsSignalProducer.publishMessage(
                         key = ebmsDocument.requestId,

@@ -33,7 +33,8 @@ class EventRegistrationServiceImpl(
                 requestId = requestId.parseOrGenerateUuid(),
                 contentId = "",
                 messageId = validationRequest.messageId,
-                eventData = eventData
+                eventData = eventData,
+                conversationId = validationRequest.conversationId
             )
             log.debug("Registering event: {}", event)
 

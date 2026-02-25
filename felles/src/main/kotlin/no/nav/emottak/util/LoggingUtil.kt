@@ -21,7 +21,9 @@ import no.nav.emottak.utils.common.constants.LogFields.TO_ROLE
 import no.nav.emottak.utils.common.constants.LogFields.X_MAILER
 import no.nav.emottak.utils.common.constants.LogFields.X_REQUEST_ID
 import no.nav.emottak.utils.common.model.SendInRequest
+import no.nav.emottak.utils.kafka.model.Event
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
+import kotlin.uuid.ExperimentalUuidApi
 
 fun Header.marker(): LogstashMarker = Markers.appendEntries(
     mapOf(
@@ -69,6 +71,14 @@ fun EbmsMessage.marker(loggableHeaderPairs: Map<String, String> = emptyMap()): L
         FROM_ROLE to this.addressing.from.role,
         TO_PARTY to (this.addressing.to.partyId.firstOrNull()?.type + ":" + this.addressing.to.partyId.firstOrNull()?.value),
         FROM_PARTY to (this.addressing.from.partyId.firstOrNull()?.type + ":" + this.addressing.from.partyId.firstOrNull()?.value)
+    ) + loggableHeaderPairs
+)
+
+@OptIn(ExperimentalUuidApi::class)
+fun Event.marker(loggableHeaderPairs: Map<String, String> = emptyMap()): LogstashMarker = Markers.appendEntries(
+    mapOf(
+        X_REQUEST_ID to this.requestId,
+        MESSAGE_ID to this.messageId
     ) + loggableHeaderPairs
 )
 

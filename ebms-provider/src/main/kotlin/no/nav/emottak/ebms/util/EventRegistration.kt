@@ -45,15 +45,16 @@ class EventRegistrationServiceImpl(
 
         try {
             val requestId = ebmsDocument.requestId.parseOrGenerateUuid()
-
+            val ebmsMessage = ebmsDocument.transform()
             val event = Event(
                 eventType = eventType,
                 requestId = requestId,
                 contentId = "",
-                messageId = ebmsDocument.transform().messageId,
-                eventData = eventData
+                messageId = ebmsMessage.messageId,
+                eventData = eventData,
+                conversationId = ebmsMessage.conversationId
             )
-            log.debug("Publishing event: $event")
+            log.debug("Publishing event: {}", event)
 
             eventLoggingService.logEvent(event)
             log.debug("Event published successfully")
@@ -86,7 +87,7 @@ class EventRegistrationServiceImpl(
                 action = ebmsMessage.addressing.action,
                 sentAt = ebmsMessage.sentAt
             )
-            log.debug("Publishing message details: $ebmsMessageDetail")
+            log.debug("Publishing message details: {}", ebmsMessageDetail)
 
             eventLoggingService.logMessageDetails(ebmsMessageDetail)
             log.debug("Message details published successfully")
@@ -102,14 +103,14 @@ class EventRegistrationServiceFake : EventRegistrationService {
         ebmsDocument: EbmsDocument,
         eventData: String
     ) {
-        log.debug("Registering event $eventType for ebmsDocument: $ebmsDocument and eventData: $eventData")
+        log.debug("Registering event {} for ebmsDocument: {} and eventData: {}", eventType, ebmsDocument, eventData)
     }
 
     override suspend fun registerEventMessageDetails(ebmsDocument: EbmsDocument) {
-        log.debug("Registering message details for ebmsDocument: $ebmsDocument")
+        log.debug("Registering message details for ebmsDocument: {}", ebmsDocument)
     }
 
     override suspend fun registerEventMessageDetails(ebmsMessage: EbmsMessage) {
-        log.debug("Registering message details for ebmsDocument: $ebmsMessage")
+        log.debug("Registering message details for ebmsDocument: {}", ebmsMessage)
     }
 }
