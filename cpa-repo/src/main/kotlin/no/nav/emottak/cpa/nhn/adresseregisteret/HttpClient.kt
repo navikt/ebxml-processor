@@ -10,9 +10,13 @@ import io.ktor.http.HttpHeaders.Accept
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import no.nav.emottak.cpa.configuration.config
+import no.nav.emottak.utils.environment.getEnvVar
+import java.net.InetSocketAddress
+import java.net.Proxy
+import java.net.URI
+import java.net.URL
 
-private const val API_VERSION = "api-version"
-private const val NHN_SOURCE_SYSTEM = "nhn-source-system"
+private val httpProxyUrl = getEnvVar("HTTP_PROXY", "")
 
 private fun httpTokenClient(): HttpClient =
     HttpClient(CIO) {
@@ -20,6 +24,11 @@ private fun httpTokenClient(): HttpClient =
             connectTimeoutMillis = 2000
         }
         install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
+        engine {
+            if (httpProxyUrl.isNotBlank()) {
+                proxy = Proxy(Proxy.Type.HTTP, InetSocketAddress(URI(httpProxyUrl).host, URI(httpProxyUrl).port))
+            }
+        }
     }
 
 private fun httpClient(
@@ -37,6 +46,11 @@ private fun httpClient(
     defaultRequest {
         url("https://cpapi.internett.test.grunndata.nhn.no/api/v1/communicationparty")
         header(Accept, "application/json")
+    }
+    engine {
+        if (httpProxyUrl.isNotBlank()) {
+            proxy = Proxy(Proxy.Type.HTTP, InetSocketAddress(URI(httpProxyUrl).host, URI(httpProxyUrl).port))
+        }
     }
 }
 
