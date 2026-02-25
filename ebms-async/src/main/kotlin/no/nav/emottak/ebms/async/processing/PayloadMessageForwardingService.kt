@@ -41,7 +41,7 @@ class PayloadMessageForwardingService(
 
     suspend fun forwardMessageWithSyncResponse(payloadMessage: PayloadMessage) {
         when (val service = payloadMessage.addressing.service) {
-            "HarBorgerFrikortMengde", "Inntektsforesporsel" -> {
+            "HarBorgerFrikortMengde", "Inntektsforesporsel", "Trekkopplysning" -> {
                 log.debug(payloadMessage.marker(), "Starting SendIn for $service")
                 sendInService.sendIn(payloadMessage).let { sendInResponse ->
                     PayloadMessage(
