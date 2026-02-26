@@ -16,7 +16,8 @@ import io.ktor.serialization.kotlinx.json.json
 import io.micrometer.prometheusmetrics.PrometheusConfig.DEFAULT
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import kotlinx.serialization.json.Json
-import no.nav.emottak.cpa.config.Config
+import no.nav.emottak.cpa.configuration.EdiNhnConfig
+import no.nav.emottak.cpa.configuration.config
 import no.nav.emottak.cpa.plugin.DpopAuth
 import no.nav.emottak.cpa.util.DpopJwtProvider
 import no.nav.emottak.cpa.util.DpopTokenUtil
@@ -44,7 +45,7 @@ suspend fun ResourceScope.httpClientEngine(): HttpClientEngine =
 suspend fun ResourceScope.httpTokenClientEngine(): HttpClientEngine =
     install({ CIO.create() }) { e, _: ExitCase -> e.close().also { log.info("Closed http token client engine") } }
 
-fun httpTokenClient(config: Config, clientEngine: HttpClientEngine): HttpClient =
+fun httpTokenClient(config: EdiNhnConfig, clientEngine: HttpClientEngine): HttpClient =
     HttpClient(clientEngine) {
         install(HttpTimeout) {
             connectTimeoutMillis = config.httpTokenClient.connectionTimeout.value
@@ -56,7 +57,7 @@ val API_VERSION = "api-version"
 val NHN_SOURCE_SYSTEM = "nhn-source-system"
 
 fun httpClient(
-    config: Config,
+    config: EdiNhnConfig,
     jwtProvider: DpopJwtProvider,
     dpopTokenUtil: DpopTokenUtil,
     clientEngine: HttpClientEngine
@@ -82,7 +83,7 @@ fun httpClient(
 }
 
 suspend fun ResourceScope.dependencies(): Dependencies = awaitAll {
-    val config = config()
+    val config = config().nhnConfig
 
     val metricsRegistry = async { metricsRegistry() }
     val httpTokenClientEngine = async { httpTokenClientEngine() }

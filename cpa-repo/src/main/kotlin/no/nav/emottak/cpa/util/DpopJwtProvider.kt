@@ -18,7 +18,7 @@ import io.ktor.http.HttpMethod.Companion.Post
 import net.minidev.json.JSONObject
 import net.minidev.json.parser.JSONParser
 import net.minidev.json.parser.JSONParser.MODE_PERMISSIVE
-import no.nav.emottak.cpa.config.Config
+import no.nav.emottak.cpa.configuration.EdiNhnConfig
 import java.io.File
 import java.net.URI
 import java.security.MessageDigest.getInstance
@@ -32,7 +32,7 @@ private const val HTU_CLAIM_NAME = "htu"
 private const val ATH_CLAIM_NAME = "ath"
 
 class DpopJwtProvider(
-    private val config: Config
+    private val config: EdiNhnConfig
 ) {
     fun dpopProofWithoutNonce(): String =
         dpopProof(

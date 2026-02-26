@@ -28,7 +28,7 @@ import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.TestApplicationBuilder
 import io.ktor.server.testing.testApplication
 import no.nav.emottak.cpa.auth.AuthConfig.Companion.getTokenSupportConfig
-import no.nav.emottak.cpa.config
+import no.nav.emottak.cpa.configuration.config
 import no.nav.security.mock.oauth2.MockOAuth2Server
 import no.nav.security.token.support.v3.tokenValidationSupport
 import kotlin.io.encoding.Base64
@@ -43,7 +43,7 @@ class RoutesSpec : StringSpec(
 
         val getToken: (String) -> SignedJWT = { audience: String ->
             mockOAuth2Server.issueToken(
-                issuerId = config().azureAuth.issuer.value,
+                issuerId = config().nhnConfig.azureAuth.issuer.value,
                 audience = audience,
                 subject = "testUser"
             )
@@ -122,7 +122,7 @@ private fun TestApplicationBuilder.installExternalRoutes(
         json()
     }
 
-    val issuer = config().azureAuth.issuer.value
+    val issuer = config().nhnConfig.azureAuth.issuer.value
 
     if (useAuthentication) {
         install(Authentication) {
@@ -160,7 +160,7 @@ private fun fakeEdiClient(
 private suspend fun HttpClient.getWithAuth(
     url: String,
     getToken: (String) -> SignedJWT,
-    audience: String = config().azureAuth.appScope.value
+    audience: String = config().nhnConfig.azureAuth.appScope.value
 ): HttpResponse =
     get(url) {
         header(

@@ -21,7 +21,7 @@ import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import no.nav.emottak.cpa.HeridError
-import no.nav.emottak.cpa.config
+import no.nav.emottak.cpa.configuration.config
 import no.nav.emottak.cpa.herId
 import no.nav.emottak.cpa.plugin.MessagesApi.GET_HERID
 import no.nav.emottak.cpa.plugin.MessagesApi.getHerIdDocs
@@ -38,7 +38,7 @@ fun Application.configureRoutes(
         swaggerRoutes()
         internalRoutes(registry)
 
-        authenticate(config().azureAuth.issuer.value) {
+        authenticate(config().nhnConfig.azureAuth.issuer.value) {
             externalRoutes(ediClient)
         }
     }

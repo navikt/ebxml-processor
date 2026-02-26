@@ -13,13 +13,13 @@ import io.ktor.http.ContentType.Application.FormUrlEncoded
 import io.ktor.http.Parameters
 import io.ktor.http.contentType
 import io.ktor.http.formUrlEncode
-import no.nav.emottak.cpa.config.Config
+import no.nav.emottak.cpa.configuration.EdiNhnConfig
 import no.nav.emottak.cpa.model.DpopTokens
 import no.nav.emottak.cpa.model.TokenInfo
 import no.nav.emottak.cpa.model.toDpopTokens
 
 class DpopTokenUtil(
-    private val config: Config,
+    private val config: EdiNhnConfig,
     private val jwtProvider: DpopJwtProvider,
     private val httpTokenClient: HttpClient
 ) {
