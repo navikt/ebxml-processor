@@ -34,9 +34,6 @@ import no.nav.emottak.cpa.persistence.cpaDbConfig
 import no.nav.emottak.cpa.persistence.cpaMigrationConfig
 import no.nav.emottak.cpa.persistence.gammel.PartnerRepository
 import no.nav.emottak.cpa.persistence.oracleConfig
-import no.nav.emottak.cpa.plugin.configureCallLogging
-import no.nav.emottak.cpa.plugin.configureOpenApi
-import no.nav.emottak.cpa.plugin.configureRoutes
 import no.nav.emottak.cpa.util.EventRegistrationService
 import no.nav.emottak.cpa.util.EventRegistrationServiceImpl
 import no.nav.emottak.utils.environment.getEnvVar
@@ -57,9 +54,6 @@ fun main() = SuspendApp {
     val eventRegistrationService = EventRegistrationServiceImpl(eventLoggingService)
     result {
         resourceScope {
-            log.info("Starting server.............")
-            val deps = dependencies()
-            log.info(" Dependencies are read........")
             embeddedServer(
                 Netty,
                 port = 8080,
@@ -67,8 +61,7 @@ fun main() = SuspendApp {
                     cpaDbConfig.value,
                     cpaMigrationConfig.value,
                     oracleConfig.value,
-                    eventRegistrationService,
-                    deps.httpClient
+                    eventRegistrationService
                 )
             )
 
@@ -84,8 +77,7 @@ fun cpaApplicationModule(
     cpaDbConfig: HikariConfig,
     cpaMigrationConfig: HikariConfig,
     emottakDbConfig: HikariConfig? = null,
-    eventRegistrationService: EventRegistrationService,
-    ediClient: HttpClient
+    eventRegistrationService: EventRegistrationService
 ): Application.() -> Unit {
     return {
         val database = Database(cpaDbConfig)
@@ -118,15 +110,15 @@ fun cpaApplicationModule(
             getTimeStampsLatestDeprecated()
             getTimeStampsLatest(cpaRepository)
             getTimeStampsLastUsed(cpaRepository)
-            getCertificate(cpaRepository)
-            signingCertificate(cpaRepository)
-            getMessagingCharacteristics(cpaRepository)
-            registerHealthEndpoints(appMicrometerRegistry, cpaRepository)
-            // configureMetrics(appMicrometerRegistry)
-            // TODO: need it configureAuthentication()
-            configureRoutes(ediClient, appMicrometerRegistry)
-            configureCallLogging()
-            configureOpenApi()
+//            getCertificate(cpaRepository)
+//            signingCertificate(cpaRepository)
+//            getMessagingCharacteristics(cpaRepository)
+//            registerHealthEndpoints(appMicrometerRegistry, cpaRepository)
+//            // configureMetrics(appMicrometerRegistry)
+//            // TODO: need it configureAuthentication()
+//            configureRoutes(ediClient, appMicrometerRegistry)
+//            configureCallLogging()
+//            configureOpenApi()
             // configureContentNegotiation()
             if (canInitAuthenticatedRoutes().also { log.info("INIT AZURE ENDPOINTS: [$it]") }) {
                 authenticate(AZURE_AD_AUTH) {

@@ -87,8 +87,7 @@ open class EndToEndTest {
                     cpaRepoDb.dataSource,
                     cpaRepoDb.dataSource,
                     cpaRepoDb.dataSource,
-                    cpaEventRegistrationService,
-                    defaultHttpClient().invoke()
+                    cpaEventRegistrationService
                 )
             ).also {
                 it.start()

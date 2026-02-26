@@ -87,12 +87,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
                 postgres.dataSource,
                 postgres.dataSource,
                 oracle.dataSource,
-                eventRegistrationService,
-                ediClient = createClient {
-                    install(ContentNegotiation) {
-                        json()
-                    }
-                }
+                eventRegistrationService
             )
         )
         testBlock()
