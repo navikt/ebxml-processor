@@ -1,6 +1,6 @@
 package no.nav.emottak.cpa.model
 
-import java.util.Date;
+import java.util.Date
 
 data class CurrentSigningCertificat(
     val thumbprint: String,

@@ -111,6 +111,8 @@ spec:
       value: /secrets/oracle/config
     - name: ADRESSE_REGISTER_URL
       value: https://cpapi.internett.test.grunndata.nhn.no/api/v1/communicationparty
+    - name: ADRESSE_REGISTER_CERTIFICATE_URL
+      value: https://cpapi.internett.test.grunndata.nhn.no/api/v1/certificate
     - name: NHN_KEYPAIR_PATH
       value: "/var/run/secrets/emottak-ar-klient-secret/key"
     - name: NHN_TOKEN_ENDPOINT

@@ -46,6 +46,10 @@ private fun httpClient(
         url("https://cpapi.internett.test.grunndata.nhn.no/api/v1/communicationparty")
         header(Accept, "application/json")
     }
+    defaultRequest {
+        url("https://cpapi.internett.test.grunndata.nhn.no/api/v1/certificate")
+        header(Accept, "application/json")
+    }
     engine {
         if (httpProxyUrl.isNotBlank()) {
             proxy = Proxy(Proxy.Type.HTTP, InetSocketAddress(URI(httpProxyUrl).host, URI(httpProxyUrl).port))

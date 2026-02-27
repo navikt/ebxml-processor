@@ -408,6 +408,37 @@ suspend fun HttpClient.fetchCommunicationParty(herId: String): String {
     }
 }
 
+fun Route.getARCertificate(httpClient: HttpClient) =
+
+    get("/cpa/adresseregister/certificate/her/{$HER_ID}") {
+        val herId = call.parameters[HER_ID] ?: throw BadRequestException("Mangler $HER_ID")
+
+        val (response, contentType) = try {
+            httpClient.fetchARCertificate(herId) to ContentType.Application.Json
+        } catch (ex: Exception) {
+            log.error("Error while fetching communication party <$herId>", ex)
+            ex.localizedMessage to ContentType.Text.Plain
+        }
+
+        call.respondText(response, contentType)
+    }
+suspend fun HttpClient.fetchARCertificate(herId: String): String {
+    val baseUrl = config().nhn.adresseregisterApiCertificateBaseUrl
+
+    return try {
+        val response: HttpResponse = this.get("$baseUrl/$herId")
+        if (response.status == HttpStatusCode.OK) {
+            log.info("Data mottatt: ${response.bodyAsText()}")
+        } else {
+            log.warn("Feil ved oppslag: ${response.status}")
+        }
+        response.bodyAsText()
+    } catch (e: Exception) {
+        log.error("Kunne ikke koble til $baseUrl: ${e.localizedMessage}", e)
+        e.localizedMessage
+    }
+}
+
 fun Routing.registerHealthEndpoints(
     collectorRegistry: PrometheusMeterRegistry,
     cpaRepository: CPARepository
