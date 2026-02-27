@@ -10,6 +10,7 @@ import kotlinx.coroutines.runBlocking
 import no.nav.emottak.ebms.SmtpTransportClient
 import no.nav.emottak.ebms.async.util.EventRegistrationServiceFake
 import no.nav.emottak.message.model.AsyncPayload
+import org.apache.kafka.common.header.internals.RecordHeaders
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -45,6 +46,7 @@ class MessageFilterServiceTest {
 
         every { record.key() } returns Uuid.random().toString()
         every { record.value() } returns message!!.readAllBytes()
+        every { record.headers() } returns RecordHeaders()
 
         val exception = assertThrows<RuntimeException> {
             runBlocking {
@@ -64,6 +66,7 @@ class MessageFilterServiceTest {
         every { record.key() } returns Uuid.random().toString()
         every { record.value() } returns message!!.readAllBytes()
         every { record.topic() } returns "topic"
+        every { record.headers() } returns RecordHeaders()
         coEvery { smtpTransportClient.getPayload(any()) } returns listOf(createAsyncPayload())
 
         runBlocking {
@@ -85,6 +88,7 @@ class MessageFilterServiceTest {
         every { record.key() } returns Uuid.random().toString()
         every { record.value() } returns message!!.readAllBytes()
         every { record.topic() } returns "topic"
+        every { record.headers() } returns RecordHeaders()
 
         runBlocking {
             messageFilterService.filterMessage(record)

@@ -56,6 +56,19 @@ class PayloadMessageService(
         }
     }
 
+    suspend fun processOutboundResponse(
+        record: ReceiverRecord<String, ByteArray>,
+        ebmsPayloadMessage: PayloadMessage
+    ) {
+        runCatching {
+            log.info(ebmsPayloadMessage.marker(), "Got outbound response message from ebms.out.payload with reference <${ebmsPayloadMessage.requestId}>")
+            payloadMessageForwardingService.returnMessageResponse(ebmsPayloadMessage)
+        }.onFailure { exception ->
+            log.error(ebmsPayloadMessage.marker(), exception.message ?: "Outbound response processing error", exception)
+            sendToRetryIfShouldBeRetried(record = record, payloadMessage = ebmsPayloadMessage, exception = exception, reason = exception.message ?: "Unknown error")
+        }
+    }
+
     // TODO under construction/experimentation, might be moved to a separate class
     internal suspend fun sendToRetryIfShouldBeRetried(
         record: ReceiverRecord<String, ByteArray>,
@@ -136,7 +149,7 @@ class PayloadMessageService(
         val validationResult = cpaValidationService.validateIncomingMessage(ebmsPayloadMessage)
         val (processedPayload, direction) = processingService.processAsync(ebmsPayloadMessage, validationResult.payloadProcessing)
         when (direction) {
-            Direction.IN -> payloadMessageForwardingService.forwardMessageWithSyncResponse(processedPayload)
+            Direction.IN -> payloadMessageForwardingService.forwardMessageWithAsyncResponse(processedPayload, validationResult.partnerId)
             Direction.OUT -> payloadMessageForwardingService.returnMessageResponse(processedPayload)
         }
     }

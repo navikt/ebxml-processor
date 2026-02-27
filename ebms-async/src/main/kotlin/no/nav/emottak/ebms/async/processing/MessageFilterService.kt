@@ -1,7 +1,7 @@
 package no.nav.emottak.ebms.async.processing
 
 import io.github.nomisRev.kafka.receiver.ReceiverRecord
-import kotlinx.serialization.encodeToString
+import io.ktor.http.ContentType
 import kotlinx.serialization.json.Json
 import no.nav.emottak.ebms.SmtpTransportClient
 import no.nav.emottak.ebms.async.util.EventRegistrationService
@@ -14,6 +14,7 @@ import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.model.documentType
 import no.nav.emottak.message.xml.createDocument
+import no.nav.emottak.utils.common.model.SendInResponse
 import no.nav.emottak.utils.common.parseOrGenerateUuid
 import no.nav.emottak.utils.kafka.model.EventDataType
 import no.nav.emottak.utils.kafka.model.EventType
@@ -28,10 +29,31 @@ open class MessageFilterService(
 ) {
 
     open suspend fun filterMessage(record: ReceiverRecord<String, ByteArray>) {
-        val ebmsMessage = createEbmsDocument(
-            requestId = record.key(),
-            document = record.value().createDocument()
-        )
+        val jsonResponse = runCatching {
+            Json.decodeFromString<SendInResponse>(record.value().decodeToString())
+        }.getOrNull()
+
+        val ebmsMessage: EbmsMessage = if (jsonResponse != null) {
+            val cpaId = record.headers().lastHeader("cpaId")?.let { String(it.value()) } ?: ""
+            val refToMessageId = record.headers().lastHeader("refToMessageId")?.let { String(it.value()) }
+            PayloadMessage(
+                requestId = jsonResponse.requestId,
+                messageId = jsonResponse.messageId,
+                conversationId = jsonResponse.conversationId,
+                cpaId = cpaId,
+                addressing = jsonResponse.addressing,
+                payload = Payload(jsonResponse.payload, ContentType.Application.Xml.toString()),
+                refToMessageId = refToMessageId,
+                duplicateElimination = false,
+                ackRequested = true
+            )
+        } else {
+            createEbmsDocument(
+                requestId = record.key(),
+                document = record.value().createDocument()
+            )
+        }
+
         eventRegistrationService.registerEvent(
             eventType = EventType.MESSAGE_READ_FROM_QUEUE,
             requestId = ebmsMessage.requestId.parseOrGenerateUuid(),
