@@ -100,6 +100,8 @@ fun cpaApplicationModule(
             if (adresseregisterClient != null) {
                 getAdresseregisterData(adresseregisterClient)
                 getARCertificate(adresseregisterClient)
+                getARCertificateEncryption(adresseregisterClient)
+                getARCertificateSigning(adresseregisterClient)
             }
             registerHealthEndpoints(appMicrometerRegistry, cpaRepository)
 

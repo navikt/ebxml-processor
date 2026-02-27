@@ -422,6 +422,36 @@ fun Route.getARCertificate(httpClient: HttpClient) =
 
         call.respondText(response, contentType)
     }
+
+fun Route.getARCertificateEncryption(httpClient: HttpClient) =
+
+    get("/cpa/adresseregister/certificate/her/{$HER_ID}/encryption") {
+        val herId = call.parameters[HER_ID] ?: throw BadRequestException("Mangler $HER_ID")
+
+        val (response, contentType) = try {
+            httpClient.fetchARCertificate(herId) to ContentType.Application.Json
+        } catch (ex: Exception) {
+            log.error("Error while fetching communication party <$herId>", ex)
+            ex.localizedMessage to ContentType.Text.Plain
+        }
+
+        call.respondText(response, contentType)
+    }
+
+fun Route.getARCertificateSigning(httpClient: HttpClient) =
+
+    get("/cpa/adresseregister/certificate/her/{$HER_ID}/signing") {
+        val herId = call.parameters[HER_ID] ?: throw BadRequestException("Mangler $HER_ID")
+
+        val (response, contentType) = try {
+            httpClient.fetchARCertificate(herId) to ContentType.Application.Json
+        } catch (ex: Exception) {
+            log.error("Error while fetching communication party <$herId>", ex)
+            ex.localizedMessage to ContentType.Text.Plain
+        }
+
+        call.respondText(response, contentType)
+    }
 suspend fun HttpClient.fetchARCertificate(herId: String): String {
     val baseUrl = config().nhn.adresseregisterApiCertificateBaseUrl
 

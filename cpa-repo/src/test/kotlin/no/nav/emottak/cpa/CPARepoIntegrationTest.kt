@@ -764,6 +764,37 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         )
     }
 
+    @Test
+    fun `Get encryption certificates from AR with herid should return encryption certificates to the partner`() = cpaRepoTestApp {
+        val httpClient = createClient {
+            install(ContentNegotiation) {
+                json()
+            }
+        }
+
+        val response = httpClient.get("/cpa/adresseregister/certificate/her/1/encryption")
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertTrue(
+            StringUtils.isNotBlank(response.bodyAsText()),
+            "Response can't be null or blank"
+        )
+    }
+
+    @Test
+    fun `Get Signing certificates from AR with herid should return signing certificates to the partner`() = cpaRepoTestApp {
+        val httpClient = createClient {
+            install(ContentNegotiation) {
+                json()
+            }
+        }
+
+        val response = httpClient.get("/cpa/adresseregister/certificate/her/1/signing")
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertTrue(
+            StringUtils.isNotBlank(response.bodyAsText()),
+            "Response can't be null or blank"
+        )
+    }
     private fun loadTestCPA(cpaName: String): CollaborationProtocolAgreement {
         val testCpaString = String(this::class.java.classLoader.getResource("cpa/$cpaName").readBytes())
         return xmlMarshaller.unmarshal(testCpaString, CollaborationProtocolAgreement::class.java)
