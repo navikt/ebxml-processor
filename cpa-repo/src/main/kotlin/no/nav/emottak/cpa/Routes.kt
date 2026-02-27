@@ -1,5 +1,9 @@
 package no.nav.emottak.cpa
 
+import io.ktor.client.HttpClient
+import io.ktor.client.request.get
+import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.authentication
@@ -19,6 +23,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import no.nav.emottak.cpa.auth.AZURE_AD_AUTH
+import no.nav.emottak.cpa.configuration.config
 import no.nav.emottak.cpa.feil.CpaValidationException
 import no.nav.emottak.cpa.feil.MultiplePartnerException
 import no.nav.emottak.cpa.feil.PartnerNotFoundException
@@ -370,6 +375,99 @@ fun Route.getMessagingCharacteristics(cpaRepository: CPARepository) =
 
         call.respond(response)
     }
+
+fun Route.getAdresseregisterData(httpClient: HttpClient) =
+
+    get("/cpa/adresseregister/her/{$HER_ID}") {
+        val herId = call.parameters[HER_ID] ?: throw BadRequestException("Mangler $HER_ID")
+
+        val (response, contentType) = try {
+            httpClient.fetchCommunicationParty(herId) to ContentType.Application.Json
+        } catch (ex: Exception) {
+            log.error("Error while fetching communication party <$herId>", ex)
+            ex.localizedMessage to ContentType.Text.Plain
+        }
+
+        call.respondText(response, contentType)
+    }
+
+suspend fun HttpClient.fetchCommunicationParty(herId: String): String {
+    val baseUrl = config().nhn.adresseregisterApiBaseUrl
+
+    return try {
+        val response: HttpResponse = this.get("$baseUrl/$herId")
+        if (response.status == HttpStatusCode.OK) {
+            log.info("Data mottatt: ${response.bodyAsText()}")
+        } else {
+            log.warn("Feil ved oppslag: ${response.status}")
+        }
+        response.bodyAsText()
+    } catch (e: Exception) {
+        log.error("Kunne ikke koble til $baseUrl: ${e.localizedMessage}", e)
+        e.localizedMessage
+    }
+}
+
+fun Route.getARCertificate(httpClient: HttpClient) =
+
+    get("/cpa/adresseregister/certificate/her/{$HER_ID}") {
+        val herId = call.parameters[HER_ID] ?: throw BadRequestException("Mangler $HER_ID")
+
+        val (response, contentType) = try {
+            httpClient.fetchARCertificate(herId) to ContentType.Application.Json
+        } catch (ex: Exception) {
+            log.error("Error while fetching communication party <$herId>", ex)
+            ex.localizedMessage to ContentType.Text.Plain
+        }
+
+        call.respondText(response, contentType)
+    }
+
+fun Route.getARCertificateEncryption(httpClient: HttpClient) =
+
+    get("/cpa/adresseregister/certificate/her/{$HER_ID}/encryption") {
+        val herId = call.parameters[HER_ID] ?: throw BadRequestException("Mangler $HER_ID")
+
+        val (response, contentType) = try {
+            httpClient.fetchARCertificate(herId) to ContentType.Application.Json
+        } catch (ex: Exception) {
+            log.error("Error while fetching communication party <$herId>", ex)
+            ex.localizedMessage to ContentType.Text.Plain
+        }
+
+        call.respondText(response, contentType)
+    }
+
+fun Route.getARCertificateSigning(httpClient: HttpClient) =
+
+    get("/cpa/adresseregister/certificate/her/{$HER_ID}/signing") {
+        val herId = call.parameters[HER_ID] ?: throw BadRequestException("Mangler $HER_ID")
+
+        val (response, contentType) = try {
+            httpClient.fetchARCertificate(herId) to ContentType.Application.Json
+        } catch (ex: Exception) {
+            log.error("Error while fetching communication party <$herId>", ex)
+            ex.localizedMessage to ContentType.Text.Plain
+        }
+
+        call.respondText(response, contentType)
+    }
+suspend fun HttpClient.fetchARCertificate(herId: String): String {
+    val baseUrl = config().nhn.adresseregisterApiCertificateBaseUrl
+
+    return try {
+        val response: HttpResponse = this.get("$baseUrl/$herId")
+        if (response.status == HttpStatusCode.OK) {
+            log.info("Data mottatt: ${response.bodyAsText()}")
+        } else {
+            log.warn("Feil ved oppslag: ${response.status}")
+        }
+        response.bodyAsText()
+    } catch (e: Exception) {
+        log.error("Kunne ikke koble til $baseUrl: ${e.localizedMessage}", e)
+        e.localizedMessage
+    }
+}
 
 fun Routing.registerHealthEndpoints(
     collectorRegistry: PrometheusMeterRegistry,

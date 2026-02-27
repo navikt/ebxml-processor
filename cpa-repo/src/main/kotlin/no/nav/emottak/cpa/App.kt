@@ -21,6 +21,7 @@ import kotlinx.coroutines.runBlocking
 import no.nav.emottak.cpa.auth.AZURE_AD_AUTH
 import no.nav.emottak.cpa.auth.AuthConfig
 import no.nav.emottak.cpa.configuration.config
+import no.nav.emottak.cpa.nhn.adresseregisteret.nhnArHttpClient
 import no.nav.emottak.cpa.persistence.CPARepository
 import no.nav.emottak.cpa.persistence.Database
 import no.nav.emottak.cpa.persistence.cpaDbConfig
@@ -40,6 +41,7 @@ fun main() {
     val kafkaPublisherClient = EventPublisherClient(config().kafka)
     val eventLoggingService = EventLoggingService(config().eventLogging, kafkaPublisherClient)
     val eventRegistrationService = EventRegistrationServiceImpl(eventLoggingService)
+    val adresseregisterClient = nhnArHttpClient()
 
     embeddedServer(
         Netty,
@@ -48,7 +50,8 @@ fun main() {
             cpaDbConfig.value,
             cpaMigrationConfig.value,
             oracleConfig.value,
-            eventRegistrationService
+            eventRegistrationService,
+            adresseregisterClient
         )
     ).start(wait = true)
 }
@@ -57,7 +60,8 @@ fun cpaApplicationModule(
     cpaDbConfig: HikariConfig,
     cpaMigrationConfig: HikariConfig,
     emottakDbConfig: HikariConfig? = null,
-    eventRegistrationService: EventRegistrationService
+    eventRegistrationService: EventRegistrationService,
+    adresseregisterClient: HttpClient?
 ): Application.() -> Unit {
     return {
         val database = Database(cpaDbConfig)
@@ -93,6 +97,12 @@ fun cpaApplicationModule(
             getCertificate(cpaRepository)
             signingCertificate(cpaRepository)
             getMessagingCharacteristics(cpaRepository)
+            if (adresseregisterClient != null) {
+                getAdresseregisterData(adresseregisterClient)
+                getARCertificate(adresseregisterClient)
+                getARCertificateEncryption(adresseregisterClient)
+                getARCertificateSigning(adresseregisterClient)
+            }
             registerHealthEndpoints(appMicrometerRegistry, cpaRepository)
 
             if (canInitAuthenticatedRoutes().also { log.info("INIT AZURE ENDPOINTS: [$it]") }) {
