@@ -66,6 +66,7 @@ import no.nav.emottak.ebms.registerRootEndpoint
 import no.nav.emottak.ebms.scopedAuthHttpClient
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.CPAValidationService
+import no.nav.emottak.message.model.Direction
 import no.nav.emottak.utils.environment.isProdEnv
 import no.nav.emottak.utils.kafka.client.EventPublisherClient
 import no.nav.emottak.utils.kafka.service.EventLoggingService
@@ -408,9 +409,10 @@ fun Route.simulateError(
                         .copy(groupId = "ebms-provider-retry"),
                     (call.parameters[KAFKA_OFFSET])?.toLong() ?: 0
                 )
-                failedMessageQueue.sendToRetryInbound(
+                failedMessageQueue.sendToRetryQueue(
                     record = record ?: throw Exception("No Record found. Offset: ${call.parameters[KAFKA_OFFSET]}"),
-                    reason = "Simulated Error"
+                    reason = "Simulated Error",
+                    direction = Direction.IN
                 )
                 call.respondText(
                     status = HttpStatusCode.OK,

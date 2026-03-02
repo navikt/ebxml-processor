@@ -42,6 +42,7 @@ import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.ebms.xml.ebmsSigning
 import no.nav.emottak.message.model.AsyncPayload
+import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.EbmsMessage
 import no.nav.emottak.message.model.MessagingCharacteristicsRequest
 import no.nav.emottak.message.model.MessagingCharacteristicsResponse
@@ -266,9 +267,10 @@ class DummyMessageFilterService(
             if (f != null && r != null) {
                 if (r <= f) {
                     println("--Set to fail again, number of times to fail: $f, number of retries now: $r")
-                    payloadMessageService.retryService.failedMessageQueue.sendToRetryInbound(
+                    payloadMessageService.retryService.failedMessageQueue.sendToRetryQueue(
                         record = record,
-                        reason = "Test message set to fail again"
+                        reason = "Test message set to fail again",
+                        direction = Direction.IN
                     )
                     return
                 }

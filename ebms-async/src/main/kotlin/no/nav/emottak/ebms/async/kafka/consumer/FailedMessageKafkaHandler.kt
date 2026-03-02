@@ -10,6 +10,7 @@ import no.nav.emottak.ebms.async.configuration.KafkaErrorQueue
 import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.configuration.toProperties
 import no.nav.emottak.ebms.async.processing.MessageFilterService
+import no.nav.emottak.message.model.Direction
 import no.nav.emottak.utils.config.Kafka
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -82,40 +83,36 @@ class FailedMessageKafkaHandler(
         return properties
     }
 
-    suspend fun sendToRetryOutbound(
+    suspend fun sendToRetryQueue(
         record: ReceiverRecord<String, ByteArray>,
         key: String = record.key(),
         value: ByteArray = record.value(),
         reason: String? = null,
-        advanceRetryTime: Boolean = true
+        advanceRetryTime: Boolean = true,
+        direction: Direction
     ) {
-        val topic = config().kafkaErrorQueueOut.topic // TODO Implementation
-        logger.info("Sending message to $topic queue with reason: $reason")
-    }
+        val topic = when (direction) {
+            Direction.IN -> config().kafkaErrorQueue.topic
+            Direction.OUT -> config().kafkaErrorQueueOut.topic
+        }
 
-    suspend fun sendToRetryInbound(
-        record: ReceiverRecord<String, ByteArray>,
-        key: String = record.key(),
-        value: ByteArray = record.value(),
-        reason: String? = null,
-        advanceRetryTime: Boolean = true
-    ) {
-        logger.info("Sending message to retry queue with reason: $reason")
+        logger.info("Sending message to $topic queue with reason: $reason")
         if (reason != null) {
             record.addHeader(RETRY_REASON, reason)
         }
         if (advanceRetryTime) {
             record.addHeader(RETRY_AFTER, getNextRetryTime(record))
         }
+
         try {
             val metadata = publisher.publishScope {
-                publish(ProducerRecord(config().kafkaErrorQueue.topic, null, key, value, record.headers()))
+                publish(ProducerRecord(topic, null, key, value, record.headers()))
             }
             logger.info("Offset on metadata: " + metadata.offset())
             logger.info("Result " + metadata.partition() + " timestamp " + metadata.timestamp())
-            logger.info("Message sent successfully to topic ${kafkaErrorQueue.topic}")
+            logger.info("Message sent successfully to topic $topic")
         } catch (e: Exception) {
-            logger.info("Failed to send message to ${kafkaErrorQueue.topic} : ${e.message}")
+            logger.info("Failed to send message to $topic : ${e.message}")
         }
     }
 
@@ -174,7 +171,7 @@ class FailedMessageKafkaHandler(
                 logger.info("${record.key()} has been retried.")
             } else {
                 logger.info("${record.key()} is not retryable yet.")
-                sendToRetryInbound(record.asReceiverRecord(), advanceRetryTime = false)
+                sendToRetryQueue(record.asReceiverRecord(), advanceRetryTime = false, direction = Direction.IN)
             }
             val offsets: Map<TopicPartition?, OffsetAndMetadata?> =
                 mapOf(
