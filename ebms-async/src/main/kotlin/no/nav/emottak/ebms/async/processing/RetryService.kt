@@ -67,7 +67,6 @@ class RetryService(
         } else {
             sendToRetryOut(record, reason)
         }
-
     }
 
     internal fun decideRetry(ttl: Instant?, retriedAlready: Int, maxRetries: Int): Pair<RetryDecision, String> {
