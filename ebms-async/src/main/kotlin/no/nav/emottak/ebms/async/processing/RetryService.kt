@@ -9,6 +9,7 @@ import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.melding.feil.EbmsException
+import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.EbmsDocument
 import no.nav.emottak.message.model.EbmsMessage
 import no.nav.emottak.message.model.EmailAddress
@@ -27,39 +28,46 @@ class RetryService(
         record: ReceiverRecord<String, ByteArray>,
         payloadMessage: PayloadMessage,
         exception: Throwable,
-        reason: String
+        reason: String,
+        direction: Direction
     ) {
-        val retriedAlready = record.retryCount()
-        val errorType = exception::class.simpleName ?: "Unknown error"
-        val sentAt = payloadMessage.sentAt
-        val ttl = payloadMessage.timeToLive
+        // TODO what to reuse, maxRetries?
+        if (direction == Direction.IN) {
+            val retriedAlready = record.retryCount()
+            val errorType = exception::class.simpleName ?: "Unknown error"
+            val sentAt = payloadMessage.sentAt
+            val ttl = payloadMessage.timeToLive
 
-        val cfgMaxRetries = 10
+            val cfgMaxRetries = 10
 
-        val (decision, decisionReason) = decideRetry(ttl = ttl, retriedAlready = retriedAlready, maxRetries = cfgMaxRetries)
+            val (decision, decisionReason) = decideRetry(ttl = ttl, retriedAlready = retriedAlready, maxRetries = cfgMaxRetries)
 
-        when (decision) {
-            RetryDecision.RETRY -> {
-                sendToRetry(record, reason)
-                log.info("Schedule retry for failing payload sent at ${sentAt ?: "unknown"}, error type: $errorType, reason: $reason, retries already performed: $retriedAlready. Decision reason: $decisionReason")
-            }
-            RetryDecision.TTL_EXPIRED -> {
-                log.info("No retry for failing payload sent at ${sentAt ?: "unknown"}, error type: $errorType, reason: $reason, retries already performed: $retriedAlready. Decision reason: $decisionReason")
-                try {
-                    returnMessageError(payloadMessage, EbmsException("TimeToLive expired", errorCode = no.nav.emottak.message.model.ErrorCode.TIME_TO_LIVE_EXPIRED, exception = exception))
-                } catch (e: Exception) {
-                    log.error("Failed to return Message error for payload message ${payloadMessage.requestId}, sender WILL NOT BE NOTIFIED that the message has NOT been processed OK", e)
+            when (decision) {
+                RetryDecision.RETRY -> {
+                    sendToRetryIn(record, reason)
+                    log.info("Schedule retry for failing payload sent at ${sentAt ?: "unknown"}, error type: $errorType, reason: $reason, retries already performed: $retriedAlready. Decision reason: $decisionReason")
+                }
+                RetryDecision.TTL_EXPIRED -> {
+                    log.info("No retry for failing payload sent at ${sentAt ?: "unknown"}, error type: $errorType, reason: $reason, retries already performed: $retriedAlready. Decision reason: $decisionReason")
+                    try {
+                        returnMessageError(payloadMessage, EbmsException("TimeToLive expired", errorCode = no.nav.emottak.message.model.ErrorCode.TIME_TO_LIVE_EXPIRED, exception = exception))
+                    } catch (e: Exception) {
+                        log.error("Failed to return Message error for payload message ${payloadMessage.requestId}, sender WILL NOT BE NOTIFIED that the message has NOT been processed OK", e)
+                    }
+                }
+                RetryDecision.MAX_RETRIES_EXCEEDED -> {
+                    log.info("No retry for failing payload sent at ${sentAt ?: "unknown"}, error type: $errorType, reason: $reason, retries already performed: $retriedAlready. Decision reason: $decisionReason")
+                    try {
+                        returnMessageError(payloadMessage, EbmsException(decisionReason, exception = exception))
+                    } catch (e: Exception) {
+                        log.error("Failed to return Message error for payload message ${payloadMessage.requestId}, sender WILL NOT BE NOTIFIED that the message has NOT been processed OK", e)
+                    }
                 }
             }
-            RetryDecision.MAX_RETRIES_EXCEEDED -> {
-                log.info("No retry for failing payload sent at ${sentAt ?: "unknown"}, error type: $errorType, reason: $reason, retries already performed: $retriedAlready. Decision reason: $decisionReason")
-                try {
-                    returnMessageError(payloadMessage, EbmsException(decisionReason, exception = exception))
-                } catch (e: Exception) {
-                    log.error("Failed to return Message error for payload message ${payloadMessage.requestId}, sender WILL NOT BE NOTIFIED that the message has NOT been processed OK", e)
-                }
-            }
+        } else {
+            sendToRetryOut(record, reason)
         }
+
     }
 
     internal fun decideRetry(ttl: Instant?, retriedAlready: Int, maxRetries: Int): Pair<RetryDecision, String> {
@@ -96,8 +104,7 @@ class RetryService(
         log.warn(messageError.marker(), "MessageError returned", ebmsException)
     }
 
-
-    internal suspend fun sendToRetry(record: ReceiverRecord<String, ByteArray>, exceptionReason: String) {
+    internal suspend fun sendToRetryIn(record: ReceiverRecord<String, ByteArray>, exceptionReason: String) {
         if (config().kafkaSignalProducer.active && config().kafkaPayloadProducer.active && config().kafkaErrorQueue.active) {
             failedMessageQueue.sendToRetry(
                 record = record,
@@ -105,5 +112,17 @@ class RetryService(
             )
         }
     }
-}
 
+    internal suspend fun sendToRetryOut(record: ReceiverRecord<String, ByteArray>, exceptionReason: String) {
+        // TODO other queue
+        log.warn("Sending message to retry queue with reason: $exceptionReason")
+        /*
+        if (config().kafkaSignalProducer.active && config().kafkaPayloadProducer.active && config().kafkaErrorQueue.active) {
+            failedMessageQueue.sendToRetry(
+                record = record,
+                reason = exceptionReason
+            )
+        }
+        */
+    }
+}

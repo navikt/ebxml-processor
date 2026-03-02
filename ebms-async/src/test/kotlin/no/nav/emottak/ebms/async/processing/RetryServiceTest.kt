@@ -119,7 +119,7 @@ class RetryServiceTest {
     }
 
     @Test
-    fun `sendToRetryIfShouldBeRetried does not retry when ttl expired and returns MessageError`() = runBlocking {
+    fun `sendToRetryInIfShouldBeRetried does not retry when ttl expired and returns MessageError`() = runBlocking {
         val receiverRecord = mockk<ReceiverRecord<String, ByteArray>>(relaxed = true)
         val headers = mockk<Headers>()
         every { receiverRecord.headers() } returns headers
@@ -135,12 +135,12 @@ class RetryServiceTest {
 
         spyService.sendToRetryIfShouldBeRetried(receiverRecord, payload, EbmsException("fail"), "reason")
 
-        coVerify(exactly = 0) { spyService.sendToRetry(any(), any()) }
+        coVerify(exactly = 0) { spyService.sendToRetryIn(any(), any()) }
         coVerify { spyService.returnMessageError(any(), any()) }
     }
 
     @Test
-    fun `sendToRetryIfShouldBeRetried retries when ttl in future`() = runBlocking {
+    fun `sendToRetryInIfShouldBeRetried retries when ttl in future`() = runBlocking {
         val receiverRecord = mockk<ReceiverRecord<String, ByteArray>>(relaxed = true)
         val headers2 = mockk<Headers>()
         every { receiverRecord.headers() } returns headers2
@@ -150,15 +150,15 @@ class RetryServiceTest {
 
         val spyService = spyk(retryService)
         coEvery { spyService.returnMessageError(any(), any()) } just Runs
-        coEvery { spyService.sendToRetry(any(), any()) } just Runs
+        coEvery { spyService.sendToRetryIn(any(), any()) } just Runs
 
         spyService.sendToRetryIfShouldBeRetried(receiverRecord, payload, EbmsException("fail"), "reason")
 
-        coVerify(exactly = 1) { spyService.sendToRetry(any(), any()) }
+        coVerify(exactly = 1) { spyService.sendToRetryIn(any(), any()) }
     }
 
     @Test
-    fun `sendToRetryIfShouldBeRetried retries when ttl is null`() = runBlocking {
+    fun `sendToRetryInIfShouldBeRetried retries when ttl is null`() = runBlocking {
         val receiverRecord = mockk<ReceiverRecord<String, ByteArray>>(relaxed = true)
         val headers3 = mockk<Headers>()
         every { receiverRecord.headers() } returns headers3
@@ -168,11 +168,11 @@ class RetryServiceTest {
 
         val spyService = spyk(retryService)
         coEvery { spyService.returnMessageError(any(), any()) } just Runs
-        coEvery { spyService.sendToRetry(any(), any()) } just Runs
+        coEvery { spyService.sendToRetryIn(any(), any()) } just Runs
 
         spyService.sendToRetryIfShouldBeRetried(receiverRecord, payload, EbmsException("fail"), "reason")
 
-        coVerify(exactly = 1) { spyService.sendToRetry(any(), any()) }
+        coVerify(exactly = 1) { spyService.sendToRetryIn(any(), any()) }
     }
 
     private fun createPayloadMessageWithTtl(ttl: Instant?) = PayloadMessage(
