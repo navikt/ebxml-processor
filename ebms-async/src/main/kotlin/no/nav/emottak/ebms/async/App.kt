@@ -51,7 +51,9 @@ import no.nav.emottak.ebms.async.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.async.processing.MessageFilterService
 import no.nav.emottak.ebms.async.processing.PayloadMessageForwardingService
 import no.nav.emottak.ebms.async.processing.PayloadMessageService
+import no.nav.emottak.ebms.async.processing.RetryService
 import no.nav.emottak.ebms.async.processing.SignalMessageService
+import no.nav.emottak.ebms.async.processing.sendSignalResponseToTopic
 import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.ebms.async.util.EventRegistrationServiceImpl
 import no.nav.emottak.ebms.defaultHttpClient
@@ -117,6 +119,15 @@ fun main() = SuspendApp {
         messagePendingAckRepository = messagePendingAckRepository
     )
 
+    val retryService = RetryService(
+        cpaValidationService = cpaValidationService,
+        eventRegistrationService = eventRegistrationService,
+        failedMessageQueue = failedMessageQueue,
+        signalSender = { ebmsDocument, signalResponderEmails ->
+            sendSignalResponseToTopic(ebmsSignalProducer, eventRegistrationService, ebmsDocument, signalResponderEmails)
+        }
+    )
+
     val payloadMessageService = PayloadMessageService(
         cpaValidationService = cpaValidationService,
         processingService = processingService,
@@ -124,7 +135,7 @@ fun main() = SuspendApp {
         payloadMessageForwardingService = payloadMessageForwardingService,
         eventRegistrationService = eventRegistrationService,
         eventManagerService = eventManagerService,
-        failedMessageQueue = failedMessageQueue
+        retryService = retryService
     )
 
     val signalMessageService = SignalMessageService(
