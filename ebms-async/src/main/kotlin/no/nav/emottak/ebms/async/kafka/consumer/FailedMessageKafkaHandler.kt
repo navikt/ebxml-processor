@@ -82,7 +82,18 @@ class FailedMessageKafkaHandler(
         return properties
     }
 
-    suspend fun sendToRetry(
+    suspend fun sendToRetryOutbound(
+        record: ReceiverRecord<String, ByteArray>,
+        key: String = record.key(),
+        value: ByteArray = record.value(),
+        reason: String? = null,
+        advanceRetryTime: Boolean = true
+    ) {
+        val topic = config().kafkaErrorQueueOut.topic // TODO Implementation
+        logger.info("Sending message to $topic queue with reason: $reason")
+    }
+
+    suspend fun sendToRetryInbound(
         record: ReceiverRecord<String, ByteArray>,
         key: String = record.key(),
         value: ByteArray = record.value(),
@@ -163,7 +174,7 @@ class FailedMessageKafkaHandler(
                 logger.info("${record.key()} has been retried.")
             } else {
                 logger.info("${record.key()} is not retryable yet.")
-                sendToRetry(record.asReceiverRecord(), advanceRetryTime = false)
+                sendToRetryInbound(record.asReceiverRecord(), advanceRetryTime = false)
             }
             val offsets: Map<TopicPartition?, OffsetAndMetadata?> =
                 mapOf(

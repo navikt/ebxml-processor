@@ -34,7 +34,7 @@ class ErrorHandlerTest {
                 )
 
             // This test seems to have problems with the startup,
-            // so the consumer offset is initialised (after the  sendToRetry() ?) with 1 instead of 0.
+            // so the consumer offset is initialised (after the  sendToRetryInbound() ?) with 1 instead of 0.
             // Need to override this by explicitly setting to earliest offset
             System.setProperty("RETRY_INIT_OFFSET", "earliest")
             // Set retry after 0 minutes, to force immediate retry
@@ -45,14 +45,14 @@ class ErrorHandlerTest {
             val processedMessages = ArrayList<ReceiverRecord<String, ByteArray>>()
             val messageFilterService = DummyMessageFilterService(errorHandler, processedMessages)
 
-            errorHandler.sendToRetry(newRecord("test-message"))
+            errorHandler.sendToRetryInbound(newRecord("test-message"))
             val record1 = getRecordFromErrorQueueAtOffset(testcontainerKafkaConfig, 0)
             assertTrue(record1?.key() == "test-message", "Melding sendt til feilhåndtering ligger på feilkø med offset 0")
 
             errorHandler.consumeRetryQueue(messageFilterService)
             assertTrue(processedMessages.size == 1, "Etter prosessering av feilkø er meldingen prosessert av MessageFilterService")
 
-            errorHandler.sendToRetry(newRecord("failingAtFirstRetry"))
+            errorHandler.sendToRetryInbound(newRecord("failingAtFirstRetry"))
             val record2 = getRecordFromErrorQueueAtOffset(testcontainerKafkaConfig, 1)
             assertTrue(record2?.key() == "failingAtFirstRetry", "Melding som vil feile ligger på feilkø med offset 1")
 
@@ -100,7 +100,7 @@ class ErrorHandlerTest {
                 val r = retried.value().decodeToString().toIntOrNull()
                 if (r != null && r < retries) {
                     println("--Failing message {$r+1} time with requestId: ${record.key()} and offset ${record.offset()}")
-                    kafkaErrorHandler.sendToRetry(
+                    kafkaErrorHandler.sendToRetryInbound(
                         record = record,
                         reason = "Test message set to fail again"
                     )

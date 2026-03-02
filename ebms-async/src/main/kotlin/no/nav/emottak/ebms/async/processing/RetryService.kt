@@ -105,23 +105,22 @@ class RetryService(
 
     internal suspend fun sendToRetryIn(record: ReceiverRecord<String, ByteArray>, exceptionReason: String) {
         if (config().kafkaSignalProducer.active && config().kafkaPayloadProducer.active && config().kafkaErrorQueue.active) {
-            failedMessageQueue.sendToRetry(
+            failedMessageQueue.sendToRetryInbound(
                 record = record,
                 reason = exceptionReason
             )
         }
     }
 
+    // TODO
     internal suspend fun sendToRetryOut(record: ReceiverRecord<String, ByteArray>, exceptionReason: String) {
-        // TODO other queue
-        log.warn("Sending message to retry queue with reason: $exceptionReason")
-        /*
+        log.warn("Sending message to retry out queue with reason: $exceptionReason")
+        // TODO check if all of them needed
         if (config().kafkaSignalProducer.active && config().kafkaPayloadProducer.active && config().kafkaErrorQueue.active) {
-            failedMessageQueue.sendToRetry(
+            failedMessageQueue.sendToRetryOutbound(
                 record = record,
                 reason = exceptionReason
             )
         }
-        */
     }
 }
