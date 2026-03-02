@@ -16,6 +16,7 @@ import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.melding.feil.EbmsException
+import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.EbmsAttachment
 import no.nav.emottak.message.model.EbmsDocument
 import no.nav.emottak.message.model.PayloadMessage
@@ -133,7 +134,7 @@ class RetryServiceTest {
         val spyService = spyk(retryService)
         coEvery { spyService.returnMessageError(any(), any()) } just Runs
 
-        spyService.sendToRetryIfShouldBeRetried(receiverRecord, payload, EbmsException("fail"), "reason")
+        spyService.sendToRetryIfShouldBeRetried(receiverRecord, payload, EbmsException("fail"), "reason", Direction.IN)
 
         coVerify(exactly = 0) { spyService.sendToRetryIn(any(), any()) }
         coVerify { spyService.returnMessageError(any(), any()) }
@@ -152,7 +153,7 @@ class RetryServiceTest {
         coEvery { spyService.returnMessageError(any(), any()) } just Runs
         coEvery { spyService.sendToRetryIn(any(), any()) } just Runs
 
-        spyService.sendToRetryIfShouldBeRetried(receiverRecord, payload, EbmsException("fail"), "reason")
+        spyService.sendToRetryIfShouldBeRetried(receiverRecord, payload, EbmsException("fail"), "reason", Direction.IN)
 
         coVerify(exactly = 1) { spyService.sendToRetryIn(any(), any()) }
     }
@@ -170,7 +171,7 @@ class RetryServiceTest {
         coEvery { spyService.returnMessageError(any(), any()) } just Runs
         coEvery { spyService.sendToRetryIn(any(), any()) } just Runs
 
-        spyService.sendToRetryIfShouldBeRetried(receiverRecord, payload, EbmsException("fail"), "reason")
+        spyService.sendToRetryIfShouldBeRetried(receiverRecord, payload, EbmsException("fail"), "reason", Direction.IN)
 
         coVerify(exactly = 1) { spyService.sendToRetryIn(any(), any()) }
     }

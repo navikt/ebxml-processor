@@ -216,7 +216,7 @@ class PayloadMessageServiceTest {
             )
         }
         coVerify(exactly = 0) { ebmsSignalProducer.publishMessage(key = any(), value = any(), headers = any()) }
-        coVerify(exactly = 1) { retryService.sendToRetryIfShouldBeRetried(any(), any(), any(), any()) }
+        coVerify(exactly = 1) { retryService.sendToRetryIfShouldBeRetried(any(), any(), any(), any(), any()) }
     }
 
     @Test
@@ -250,7 +250,7 @@ class PayloadMessageServiceTest {
             )
         }
         coVerify(exactly = 0) { ebmsSignalProducer.publishMessage(key = any(), value = any(), headers = any()) }
-        coVerify(exactly = 1) { retryService.sendToRetryIfShouldBeRetried(any(), any(), any(), any()) }
+        coVerify(exactly = 1) { retryService.sendToRetryIfShouldBeRetried(any(), any(), any(), any(), any()) }
     }
 
     @Test
@@ -286,7 +286,7 @@ class PayloadMessageServiceTest {
         }
         assertTrue(fakeResult.isSuccess)
         coVerify(exactly = 0) { ebmsSignalProducer.publishMessage(key = any(), value = any(), headers = any()) }
-        coVerify(exactly = 1) { retryService.sendToRetryIfShouldBeRetried(any(), any(), any(), any()) }
+        coVerify(exactly = 1) { retryService.sendToRetryIfShouldBeRetried(any(), any(), any(), any(), any()) }
     }
 
     @Test
@@ -348,7 +348,7 @@ class PayloadMessageServiceTest {
             )
         }
         coVerify(exactly = 0) { ebmsSignalProducer.publishMessage(key = any(), value = any(), headers = any()) }
-        coVerify(exactly = 1) { retryService.sendToRetryIfShouldBeRetried(any(), any(), any(), any()) }
+        coVerify(exactly = 1) { retryService.sendToRetryIfShouldBeRetried(any(), any(), any(), any(), any()) }
     }
 
     @Test
@@ -462,7 +462,7 @@ class PayloadMessageServiceTest {
         val receiverRecord = mockk<ReceiverRecord<String, ByteArray>>(relaxed = true)
         coEvery { receiverRecord.key() } returns "key"
         coEvery { receiverRecord.value() } returns "value".toByteArray()
-        coEvery { retryService.sendToRetryIfShouldBeRetried(any(), any(), any(), any()) } just Runs
+        coEvery { retryService.sendToRetryIfShouldBeRetried(any(), any(), any(), any(), any()) } just Runs
         return receiverRecord
     }
 
