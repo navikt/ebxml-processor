@@ -2,8 +2,9 @@ package no.nav.emottak.cpa.model
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+
 @Serializable
-data class CurrentEncryptionCertificate(
+data class CurrentSigningCertificate(
     @SerialName("thumbprint")
     val thumbprint: String,
 

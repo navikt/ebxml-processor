@@ -1,9 +1,31 @@
 package no.nav.emottak.cpa.model
 
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class CommunicationParty(
-    val name: String,
-    val parentOrganizationNumber: String,
-    val email: String,
-    val currentSigningCertificat: CurrentSigningCertificat,
-    val currentEncryptionCertificate: CurrentEncryptionCertificate
+    @SerialName("herId")
+    val herId: Int,
+
+    @SerialName("displayName")
+    val displayName: String,
+
+    @SerialName("organizationDetails")
+    val organizationDetails: OrganizationDetails,
+
+    @SerialName("ediAddress")
+    val ediAddress: String,
+
+    @SerialName("currentSigningCertificate")
+    val currentSigningCertificate: CurrentSigningCertificate,
+
+    @SerialName("currentEncryptionCertificate")
+    val currentEncryptionCertificate: CurrentEncryptionCertificate,
+
+    @SerialName("validFrom")
+    val validFrom: String,
+
+    @SerialName("validTo")
+    val validTo: String
 )

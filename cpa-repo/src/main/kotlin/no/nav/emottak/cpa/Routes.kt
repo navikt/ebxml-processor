@@ -1,6 +1,7 @@
 package no.nav.emottak.cpa
 
 import io.ktor.client.HttpClient
+import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
@@ -23,10 +24,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import no.nav.emottak.cpa.auth.AZURE_AD_AUTH
-import no.nav.emottak.cpa.configuration.config
 import no.nav.emottak.cpa.feil.CpaValidationException
 import no.nav.emottak.cpa.feil.MultiplePartnerException
 import no.nav.emottak.cpa.feil.PartnerNotFoundException
+import no.nav.emottak.cpa.model.CommunicationParty
+import no.nav.emottak.cpa.model.EncryptCertficate
+import no.nav.emottak.cpa.model.Signing
 import no.nav.emottak.cpa.persistence.CPARepository
 import no.nav.emottak.cpa.persistence.gammel.PartnerRepository
 import no.nav.emottak.cpa.util.EventRegistrationService
@@ -388,11 +391,41 @@ fun Route.getAdresseregisterData(httpClient: HttpClient) =
             ex.localizedMessage to ContentType.Text.Plain
         }
 
-        call.respondText(response, contentType)
+        call.respondText(Json.encodeToString(CommunicationParty.serializer(), response as CommunicationParty), contentType)
     }
 
-suspend fun HttpClient.fetchCommunicationParty(herId: String): String {
-    val baseUrl = config().nhn.adresseregisterApiBaseUrl
+fun Route.getARSignCertificate(httpClient: HttpClient) =
+
+    get("/cpa/adresseregister/her/{$HER_ID}/signing") {
+        val herId = call.parameters[HER_ID] ?: throw BadRequestException("Mangler $HER_ID")
+
+        val (response, contentType) = try {
+            httpClient.fetchARSignCertificate(herId) to ContentType.Application.Json
+        } catch (ex: Exception) {
+            log.error("Error while fetching communication party <$herId>", ex)
+            ex.localizedMessage to ContentType.Text.Plain
+        }
+
+        call.respondText(Json.encodeToString(Signing.serializer(), response as Signing), contentType)
+    }
+
+fun Route.getAREncryptCertificate(httpClient: HttpClient) =
+
+    get("/cpa/adresseregister/her/{$HER_ID}/encryption") {
+        val herId = call.parameters[HER_ID] ?: throw BadRequestException("Mangler $HER_ID")
+
+        val (response, contentType) = try {
+            httpClient.fetchAREncryptCertificate(herId) to ContentType.Application.Json
+        } catch (ex: Exception) {
+            log.error("Error while fetching communication party <$herId>", ex)
+            ex.localizedMessage to ContentType.Text.Plain
+        }
+
+        call.respondText(Json.encodeToString(EncryptCertficate.serializer(), response as EncryptCertficate), contentType)
+    }
+
+suspend fun HttpClient.fetchCommunicationParty(herId: String): CommunicationParty {
+    val baseUrl = "https://cpa-repo-fss.intern.dev.nav.no/cpa/adresseregister/her" // config().nhn.adresseregisterApiCertificateBaseUrl
 
     return try {
         val response: HttpResponse = this.get("$baseUrl/$herId")
@@ -401,71 +434,52 @@ suspend fun HttpClient.fetchCommunicationParty(herId: String): String {
         } else {
             log.warn("Feil ved oppslag: ${response.status}")
         }
-        response.bodyAsText()
+
+        val communicationParty = response.body<CommunicationParty>()
+        log.info("${communicationParty.validTo}")
+        communicationParty
     } catch (e: Exception) {
         log.error("Kunne ikke koble til $baseUrl: ${e.localizedMessage}", e)
         e.localizedMessage
+        throw e
     }
 }
 
-fun Route.getARCertificate(httpClient: HttpClient) =
-
-    get("/cpa/adresseregister/certificate/her/{$HER_ID}") {
-        val herId = call.parameters[HER_ID] ?: throw BadRequestException("Mangler $HER_ID")
-
-        val (response, contentType) = try {
-            httpClient.fetchARCertificate(herId) to ContentType.Application.Json
-        } catch (ex: Exception) {
-            log.error("Error while fetching communication party <$herId>", ex)
-            ex.localizedMessage to ContentType.Text.Plain
-        }
-
-        call.respondText(response, contentType)
-    }
-
-fun Route.getARCertificateEncryption(httpClient: HttpClient) =
-
-    get("/cpa/adresseregister/certificate/her/{$HER_ID}/encryption") {
-        val herId = call.parameters[HER_ID] ?: throw BadRequestException("Mangler $HER_ID")
-
-        val (response, contentType) = try {
-            httpClient.fetchARCertificate(herId) to ContentType.Application.Json
-        } catch (ex: Exception) {
-            log.error("Error while fetching communication party <$herId>", ex)
-            ex.localizedMessage to ContentType.Text.Plain
-        }
-
-        call.respondText(response, contentType)
-    }
-
-fun Route.getARCertificateSigning(httpClient: HttpClient) =
-
-    get("/cpa/adresseregister/certificate/her/{$HER_ID}/signing") {
-        val herId = call.parameters[HER_ID] ?: throw BadRequestException("Mangler $HER_ID")
-
-        val (response, contentType) = try {
-            httpClient.fetchARCertificate(herId) to ContentType.Application.Json
-        } catch (ex: Exception) {
-            log.error("Error while fetching communication party <$herId>", ex)
-            ex.localizedMessage to ContentType.Text.Plain
-        }
-
-        call.respondText(response, contentType)
-    }
-suspend fun HttpClient.fetchARCertificate(herId: String): String {
-    val baseUrl = config().nhn.adresseregisterApiCertificateBaseUrl
+suspend fun HttpClient.fetchARSignCertificate(herId: String): Signing {
+    val baseUrl = "https://cpa-repo-fss.intern.dev.nav.no/cpa/adresseregister/her/$herId/signing" // TODO config().nhn.adresseregisterApiCertificateBaseUrl
 
     return try {
-        val response: HttpResponse = this.get("$baseUrl/$herId")
+        val response: HttpResponse = this.get("$baseUrl")
+        if (response.status == HttpStatusCode.OK) {
+            log.info("Data mottatt: ${response.bodyAsText()}")
+        } else {
+            log.warn("Feil ved oppslag: Connect to $$baseUrl --> ${response.status} ")
+        }
+
+        response.body<Signing>()
+    } catch (e: Exception) {
+        log.error("Kunne ikke koble til $baseUrl: ${e.localizedMessage}", e)
+        e.localizedMessage
+        throw e
+    }
+}
+
+suspend fun HttpClient.fetchAREncryptCertificate(herId: String): EncryptCertficate {
+    val baseUrl = "https://cpa-repo-fss.intern.dev.nav.no/cpa/adresseregister/her" // TODO config().nhn.adresseregisterApiCertificateBaseUrl
+
+    return try {
+        val response: HttpResponse = this.get("$baseUrl/$herId/encryption")
         if (response.status == HttpStatusCode.OK) {
             log.info("Data mottatt: ${response.bodyAsText()}")
         } else {
             log.warn("Feil ved oppslag: ${response.status}")
         }
-        response.bodyAsText()
+
+        response.body<EncryptCertficate>()
     } catch (e: Exception) {
         log.error("Kunne ikke koble til $baseUrl: ${e.localizedMessage}", e)
         e.localizedMessage
+        throw e
     }
 }
 

@@ -99,9 +99,8 @@ fun cpaApplicationModule(
             getMessagingCharacteristics(cpaRepository)
             if (adresseregisterClient != null) {
                 getAdresseregisterData(adresseregisterClient)
-                getARCertificate(adresseregisterClient)
-                getARCertificateEncryption(adresseregisterClient)
-                getARCertificateSigning(adresseregisterClient)
+                getARSignCertificate(adresseregisterClient)
+                getAREncryptCertificate(adresseregisterClient)
             }
             registerHealthEndpoints(appMicrometerRegistry, cpaRepository)
 
