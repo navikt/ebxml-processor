@@ -2,6 +2,7 @@ package no.nav.emottak.cpa.util
 
 import no.nav.emottak.cpa.log
 import no.nav.emottak.message.model.ValidationRequest
+import no.nav.emottak.util.marker
 import no.nav.emottak.utils.common.parseOrGenerateUuid
 import no.nav.emottak.utils.kafka.model.Event
 import no.nav.emottak.utils.kafka.model.EventType
@@ -25,23 +26,31 @@ class EventRegistrationServiceImpl(
         requestId: String,
         eventData: String
     ) {
-        log.debug("Registering event for requestId: $requestId")
+        when (validationRequest.addressing.service) {
+            "HarBorgerEgenandelFritak", "HarBorgerFrikort" -> {
+                log.debug(validationRequest.marker(), "Skipping event persistence")
+                return
+            }
+            else -> {
+                log.debug("Registering event for requestId: $requestId")
 
-        try {
-            val event = Event(
-                eventType = eventType,
-                requestId = requestId.parseOrGenerateUuid(),
-                contentId = "",
-                messageId = validationRequest.messageId,
-                eventData = eventData,
-                conversationId = validationRequest.conversationId
-            )
-            log.debug("Registering event: {}", event)
+                try {
+                    val event = Event(
+                        eventType = eventType,
+                        requestId = requestId.parseOrGenerateUuid(),
+                        contentId = "",
+                        messageId = validationRequest.messageId,
+                        eventData = eventData,
+                        conversationId = validationRequest.conversationId
+                    )
+                    log.debug("Registering event: {}", event)
 
-            eventLoggingService.logEvent(event)
-            log.debug("Event is registered successfully")
-        } catch (e: Exception) {
-            log.error("Error while registering event: ${e.message}", e)
+                    eventLoggingService.logEvent(event)
+                    log.debug("Event is registered successfully")
+                } catch (e: Exception) {
+                    log.error("Error while registering event: ${e.message}", e)
+                }
+            }
         }
     }
 }
