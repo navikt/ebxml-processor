@@ -38,7 +38,6 @@ import org.junit.jupiter.api.Test
 import org.testcontainers.containers.PostgreSQLContainer
 import no.nav.emottak.cpa.persistence.Database as CpaDatabase
 import no.nav.emottak.cpa.util.EventRegistrationServiceFake as CpaEventRegistrationServiceFake
-import no.nav.emottak.ebms.util.EventRegistrationServiceFake as EbmsEventRegistrationServiceFake
 
 open class EndToEndTest {
     companion object {
@@ -47,7 +46,6 @@ open class EndToEndTest {
         val mockOAuth2Server = MockOAuth2Server().also { it.start(port = 3344) }
         val ebmsProviderUrl = "http://localhost:$portnoEbmsProvider"
         val cpaRepoUrl = "http://localhost:$portnoCpaRepo"
-        val ebmsEventRegistrationService = EbmsEventRegistrationServiceFake()
         val cpaEventRegistrationService = CpaEventRegistrationServiceFake()
 
         // TODO Start mailserver og payload processor
@@ -92,7 +90,7 @@ open class EndToEndTest {
             ebmsProviderServer = embeddedServer(
                 Netty,
                 port = portnoEbmsProvider,
-                module = { ebmsProviderModule(cpaValidationService, processingService, sendInService, ebmsEventRegistrationService) }
+                module = { ebmsProviderModule(cpaValidationService, processingService, sendInService) }
             ).also {
                 it.start()
             }.engine
@@ -112,7 +110,7 @@ class IntegrasjonsTest : EndToEndTest() {
 
     @Test
     fun basicEndpointTest() = testApplication {
-        application { ebmsProviderModule(cpaValidationService, processingService, sendInService, ebmsEventRegistrationService) }
+        application { ebmsProviderModule(cpaValidationService, processingService, sendInService) }
         val response = client.get("/")
         Assertions.assertEquals(HttpStatusCode.OK, response.status)
         Assertions.assertEquals("{\"status\":\"Hello\"}", response.bodyAsText())
