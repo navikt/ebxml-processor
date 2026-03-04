@@ -12,6 +12,8 @@ import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.util.marker
+import no.nav.emottak.utils.common.parseOrGenerateUuid
+import no.nav.emottak.utils.kafka.model.EventType
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PerMessageCharacteristicsType
 
 class PayloadMessageService(
