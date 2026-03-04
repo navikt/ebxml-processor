@@ -59,7 +59,9 @@ data class ErrorRetryPolicy(
     val processInterval: Duration,
     val maxMessagesToProcess: Int,
     val retryIntervals: List<Duration>,
-    val retriesPerInterval: List<Int>
+    val retriesPerInterval: List<Int>,
+    val maxRetriesIn: Int,
+    val maxRetriesOut: Int
     // If retriesPerInterval is e.g. [3, 3, 23] and retryIntervalsMinutes is [5m, 15m, 1h, 24h],
     // then the first 3 retries occurs 5/10/15 minutes after first failure, the next 3 retries 30/45/60 minutes after first failure,
     // the next 23 retries 2-24 hours after first failure, and any retries after that will occur every 24 hours after the previous retry.

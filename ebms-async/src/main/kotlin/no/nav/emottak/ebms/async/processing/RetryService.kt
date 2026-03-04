@@ -34,19 +34,17 @@ class RetryService(
         // TODO what to reuse, maxRetries?
 
         val retriedAlready = record.retryCount()
-        val cfgMaxRetries = 10
         val errorType = exception::class.simpleName ?: "Unknown error"
         val sentAt = payloadMessage.sentAt
 
         when (direction) {
-
             Direction.IN -> {
                 val ttl = payloadMessage.timeToLive
 
                 val (decision, decisionReason) = decideRetry(
                     ttl = ttl,
                     retriedAlready = retriedAlready,
-                    maxRetries = cfgMaxRetries
+                    maxRetries = config().errorRetryPolicy.maxRetriesIn
                 )
 
                 val logMsg = "Failing payload sent at ${sentAt ?: "unknown"}, error type: $errorType, reason: $reason, retries already performed: $retriedAlready. Decision reason: $decisionReason"
@@ -76,7 +74,7 @@ class RetryService(
             }
 
             Direction.OUT -> {
-                if (retriedAlready >= cfgMaxRetries) {
+                if (retriedAlready >= config().errorRetryPolicy.maxRetriesOut) {
                     val logMsg = "Failing payload sent at ${sentAt ?: "unknown"}, error type: $errorType, reason: $reason, retries already performed: $retriedAlready. Decision reason: Max retries exceeded"
                     log.info("No retry: $logMsg")
                 } else {
