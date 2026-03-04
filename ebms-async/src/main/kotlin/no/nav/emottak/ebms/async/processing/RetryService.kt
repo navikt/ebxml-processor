@@ -32,40 +32,57 @@ class RetryService(
         direction: Direction
     ) {
         // TODO what to reuse, maxRetries?
-        if (direction == Direction.IN) {
-            val retriedAlready = record.retryCount()
-            val errorType = exception::class.simpleName ?: "Unknown error"
-            val sentAt = payloadMessage.sentAt
-            val ttl = payloadMessage.timeToLive
 
-            val cfgMaxRetries = 10
+        val retriedAlready = record.retryCount()
+        val cfgMaxRetries = 10
+        val errorType = exception::class.simpleName ?: "Unknown error"
+        val sentAt = payloadMessage.sentAt
 
-            val (decision, decisionReason) = decideRetry(ttl = ttl, retriedAlready = retriedAlready, maxRetries = cfgMaxRetries)
+        when (direction) {
 
-            when (decision) {
-                RetryDecision.RETRY -> {
-                    sendToRetryIn(record, reason)
-                    log.info("Schedule retry for failing payload sent at ${sentAt ?: "unknown"}, error type: $errorType, reason: $reason, retries already performed: $retriedAlready. Decision reason: $decisionReason")
-                }
-                RetryDecision.TTL_EXPIRED -> {
-                    log.info("No retry for failing payload sent at ${sentAt ?: "unknown"}, error type: $errorType, reason: $reason, retries already performed: $retriedAlready. Decision reason: $decisionReason")
-                    try {
-                        returnMessageError(payloadMessage, EbmsException("TimeToLive expired", errorCode = no.nav.emottak.message.model.ErrorCode.TIME_TO_LIVE_EXPIRED, exception = exception))
-                    } catch (e: Exception) {
-                        log.error("Failed to return Message error for payload message ${payloadMessage.requestId}, sender WILL NOT BE NOTIFIED that the message has NOT been processed OK", e)
+            Direction.IN -> {
+                val ttl = payloadMessage.timeToLive
+
+                val (decision, decisionReason) = decideRetry(
+                    ttl = ttl,
+                    retriedAlready = retriedAlready,
+                    maxRetries = cfgMaxRetries
+                )
+
+                val logMsg = "Failing payload sent at ${sentAt ?: "unknown"}, error type: $errorType, reason: $reason, retries already performed: $retriedAlready. Decision reason: $decisionReason"
+
+                if (decision == RetryDecision.RETRY) {
+                    sendToRetryIn(record, reason, direction)
+                    log.info("Schedule retry: $logMsg")
+                } else {
+                    log.info("No retry: $logMsg")
+                    val ebmsException = when (decision) {
+                        RetryDecision.TTL_EXPIRED -> EbmsException(
+                            "TimeToLive expired",
+                            errorCode = no.nav.emottak.message.model.ErrorCode.TIME_TO_LIVE_EXPIRED,
+                            exception = exception
+                        )
+                        else -> EbmsException(decisionReason, exception = exception)
                     }
-                }
-                RetryDecision.MAX_RETRIES_EXCEEDED -> {
-                    log.info("No retry for failing payload sent at ${sentAt ?: "unknown"}, error type: $errorType, reason: $reason, retries already performed: $retriedAlready. Decision reason: $decisionReason")
                     try {
-                        returnMessageError(payloadMessage, EbmsException(decisionReason, exception = exception))
+                        returnMessageError(payloadMessage, ebmsException)
                     } catch (e: Exception) {
-                        log.error("Failed to return Message error for payload message ${payloadMessage.requestId}, sender WILL NOT BE NOTIFIED that the message has NOT been processed OK", e)
+                        log.error(
+                            "Failed to return Message error for payload message ${payloadMessage.requestId}, sender WILL NOT BE NOTIFIED that the message has NOT been processed OK",
+                            e
+                        )
                     }
                 }
             }
-        } else {
-            sendToRetryOut(record, reason)
+
+            Direction.OUT -> {
+                if (retriedAlready >= cfgMaxRetries) {
+                    val logMsg = "Failing payload sent at ${sentAt ?: "unknown"}, error type: $errorType, reason: $reason, retries already performed: $retriedAlready. Decision reason: Max retries exceeded"
+                    log.info("No retry: $logMsg")
+                } else {
+                    sendToRetryOut(record, reason, direction)
+                }
+            }
         }
     }
 
@@ -103,23 +120,24 @@ class RetryService(
         log.warn(messageError.marker(), "MessageError returned", ebmsException)
     }
 
-    internal suspend fun sendToRetryIn(record: ReceiverRecord<String, ByteArray>, exceptionReason: String) {
+    internal suspend fun sendToRetryIn(record: ReceiverRecord<String, ByteArray>, exceptionReason: String, direction: Direction) {
+        // TODO are there cases where these are not set to active? testing?
         if (config().kafkaSignalProducer.active && config().kafkaPayloadProducer.active && config().kafkaErrorQueue.active) {
             failedMessageQueue.sendToRetryQueue(
                 record = record,
                 reason = exceptionReason,
-                direction = Direction.IN
+                direction = direction
             )
         }
     }
 
-    internal suspend fun sendToRetryOut(record: ReceiverRecord<String, ByteArray>, exceptionReason: String) {
+    internal suspend fun sendToRetryOut(record: ReceiverRecord<String, ByteArray>, exceptionReason: String, direction: Direction) {
         log.warn("Sending message to retry out queue with reason: $exceptionReason")
         if (config().kafkaErrorQueueOut.active) {
             failedMessageQueue.sendToRetryQueue(
                 record = record,
                 reason = exceptionReason,
-                direction = Direction.OUT
+                direction = direction
             )
         }
     }
