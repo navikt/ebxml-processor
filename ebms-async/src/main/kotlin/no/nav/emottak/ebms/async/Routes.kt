@@ -49,6 +49,7 @@ fun Route.getPayloads(
                 EventType.ERROR_WHILE_READING_PAYLOAD_FROM_DATABASE,
                 requestId = referenceId,
                 eventData = Exception("Payload not found for reference ID $referenceId").toEventDataJson()
+                // conversationId ikke tilgjengelig
             )
         } else {
             call.respond(HttpStatusCode.OK, listOfPayloads)
@@ -57,6 +58,7 @@ fun Route.getPayloads(
                 eventRegistrationService.registerEvent(
                     EventType.PAYLOAD_READ_FROM_DATABASE,
                     it
+                    // conversationId ikke tilgjengelig
                 )
             }
         }
@@ -71,6 +73,7 @@ fun Route.getPayloads(
             EventType.ERROR_WHILE_READING_PAYLOAD_FROM_DATABASE,
             requestId = referenceId,
             eventData = ex.toEventDataJson()
+            // conversationId ikke tilgjengelig
         )
     }
     return@get
