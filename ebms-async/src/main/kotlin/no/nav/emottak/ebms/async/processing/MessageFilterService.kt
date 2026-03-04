@@ -60,7 +60,8 @@ open class MessageFilterService(
             messageId = ebmsMessage.messageId,
             eventData = Json.encodeToString(
                 mapOf(EventDataType.QUEUE_NAME.value to record.topic())
-            )
+            ),
+            conversationId = ebmsMessage.conversationId
         )
         when (ebmsMessage) {
             is PayloadMessage -> payloadMessageService.process(record, ebmsMessage)
@@ -90,6 +91,7 @@ open class MessageFilterService(
                     failEvent = EventType.ERROR_WHILE_RECEIVING_PAYLOAD_VIA_HTTP,
                     requestId = reference,
                     contentId = it.contentId
+                    // conversationId ikke tilgjengelig
                 ) {
                     Payload(
                         bytes = it.content,

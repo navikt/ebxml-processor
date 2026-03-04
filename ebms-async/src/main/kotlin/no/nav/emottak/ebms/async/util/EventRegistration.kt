@@ -5,6 +5,7 @@ import no.nav.emottak.ebms.async.log
 import no.nav.emottak.message.model.AsyncPayload
 import no.nav.emottak.message.model.EbmsMessage
 import no.nav.emottak.message.model.PayloadMessage
+import no.nav.emottak.util.marker
 import no.nav.emottak.utils.common.parseOrGenerateUuid
 import no.nav.emottak.utils.kafka.model.EbmsMessageDetail
 import no.nav.emottak.utils.kafka.model.Event
@@ -20,13 +21,15 @@ interface EventRegistrationService {
     suspend fun registerEvent(
         eventType: EventType,
         payloadMessage: PayloadMessage,
-        eventData: String = "{}"
+        eventData: String = "{}",
+        conversationId: String? = null
     )
 
     suspend fun registerEvent(
         eventType: EventType,
         asyncPayload: AsyncPayload,
-        eventData: String = "{}"
+        eventData: String = "{}",
+        conversationId: String? = null
     )
 
     suspend fun registerEvent(
@@ -34,7 +37,8 @@ interface EventRegistrationService {
         requestId: Uuid,
         contentId: String = "",
         messageId: String = "",
-        eventData: String = "{}"
+        eventData: String = "{}",
+        conversationId: String? = null
     )
 
     suspend fun <T> runWithEvent(
@@ -44,6 +48,7 @@ interface EventRegistrationService {
         contentId: String = "",
         messageId: String = "",
         eventData: String = "{}",
+        conversationId: String? = null,
         function: suspend () -> T
     ): T
 }
@@ -53,7 +58,7 @@ class EventRegistrationServiceImpl(
 ) : EventRegistrationService {
 
     override suspend fun registerEventMessageDetails(ebmsMessage: EbmsMessage) {
-        log.debug("Registering message with requestId: ${ebmsMessage.requestId}")
+        log.debug(ebmsMessage.marker(), "Registering message with requestId: ${ebmsMessage.requestId}")
 
         try {
             val ebmsMessageDetail = EbmsMessageDetail(
@@ -70,19 +75,20 @@ class EventRegistrationServiceImpl(
                 action = ebmsMessage.addressing.action,
                 sentAt = ebmsMessage.sentAt
             )
-            log.debug("Publishing message details: {}", ebmsMessageDetail)
+            log.debug(ebmsMessage.marker(), "Publishing message details: {}", ebmsMessageDetail)
 
             eventLoggingService.logMessageDetails(ebmsMessageDetail)
-            log.debug("Message details published successfully")
+            log.debug(ebmsMessage.marker(), "Message details published successfully")
         } catch (e: Exception) {
-            log.error("Error while registering message details: ${e.message}", e)
+            log.error(ebmsMessage.marker(), "Error while registering message details: ${e.message}", e)
         }
     }
 
     override suspend fun registerEvent(
         eventType: EventType,
         payloadMessage: PayloadMessage,
-        eventData: String
+        eventData: String,
+        conversationId: String?
     ) {
         registerEvent(
             Event(
@@ -90,7 +96,8 @@ class EventRegistrationServiceImpl(
                 requestId = payloadMessage.requestId.parseOrGenerateUuid(),
                 contentId = payloadMessage.payload.contentId,
                 messageId = payloadMessage.messageId,
-                eventData = eventData
+                eventData = eventData,
+                conversationId = conversationId
             )
         )
     }
@@ -98,7 +105,8 @@ class EventRegistrationServiceImpl(
     override suspend fun registerEvent(
         eventType: EventType,
         asyncPayload: AsyncPayload,
-        eventData: String
+        eventData: String,
+        conversationId: String?
     ) {
         registerEvent(
             Event(
@@ -106,7 +114,8 @@ class EventRegistrationServiceImpl(
                 requestId = asyncPayload.referenceId,
                 contentId = asyncPayload.contentId,
                 messageId = "",
-                eventData = eventData
+                eventData = eventData,
+                conversationId = conversationId
             )
         )
     }
@@ -116,7 +125,8 @@ class EventRegistrationServiceImpl(
         requestId: Uuid,
         contentId: String,
         messageId: String,
-        eventData: String
+        eventData: String,
+        conversationId: String?
     ) {
         registerEvent(
             Event(
@@ -124,7 +134,8 @@ class EventRegistrationServiceImpl(
                 requestId = requestId,
                 contentId = contentId,
                 messageId = messageId,
-                eventData = eventData
+                eventData = eventData,
+                conversationId = conversationId
             )
         )
     }
@@ -136,6 +147,7 @@ class EventRegistrationServiceImpl(
         contentId: String,
         messageId: String,
         eventData: String,
+        conversationId: String?,
         function: suspend () -> T
     ): T {
         return runCatching {
@@ -146,7 +158,8 @@ class EventRegistrationServiceImpl(
                 requestId = requestId,
                 contentId = contentId,
                 messageId = messageId,
-                eventData = eventData
+                eventData = eventData,
+                conversationId = conversationId
             )
         }.onFailure {
             val updatedEventData = Json.encodeToString(
@@ -158,41 +171,56 @@ class EventRegistrationServiceImpl(
                 requestId = requestId,
                 contentId = contentId,
                 messageId = messageId,
-                eventData = updatedEventData
+                eventData = updatedEventData,
+                conversationId = conversationId
             )
         }.getOrThrow()
     }
 
     private suspend fun registerEvent(event: Event) {
         try {
-            log.debug("Registering event: {}", event)
+            log.debug(event.marker(), "Registering event: {}", event)
             eventLoggingService.logEvent(event)
-            log.debug("Event is registered successfully")
+            log.debug(event.marker(), "Event is registered successfully")
         } catch (e: Exception) {
-            log.error("Error while registering event: ${e.message}", e)
+            log.error(event.marker(), "Error while registering event: ${e.message}", e)
         }
     }
 }
 
 class EventRegistrationServiceFake : EventRegistrationService {
     override suspend fun registerEventMessageDetails(ebmsMessage: EbmsMessage) {
-        log.debug("Registering message details for ebmsDocument: $ebmsMessage")
+        log.debug("Registering message details for ebmsDocument: {}", ebmsMessage)
     }
 
     override suspend fun registerEvent(
         eventType: EventType,
         payloadMessage: PayloadMessage,
-        eventData: String
+        eventData: String,
+        conversationId: String?
     ) {
-        log.debug("Registering event $eventType for payloadMessage: $payloadMessage and eventData: $eventData")
+        log.debug(
+            "Registering event {} for payloadMessage: {}, conversationId: {} and eventData: {}",
+            eventType,
+            payloadMessage,
+            conversationId,
+            eventData
+        )
     }
 
     override suspend fun registerEvent(
         eventType: EventType,
         asyncPayload: AsyncPayload,
-        eventData: String
+        eventData: String,
+        conversationId: String?
     ) {
-        log.debug("Registering event $eventType for asyncPayload: $asyncPayload and eventData: $eventData")
+        log.debug(
+            "Registering event {} for asyncPayload: {}, conversationId: {} and eventData: {}",
+            eventType,
+            asyncPayload,
+            conversationId,
+            eventData
+        )
     }
 
     override suspend fun registerEvent(
@@ -200,9 +228,16 @@ class EventRegistrationServiceFake : EventRegistrationService {
         requestId: Uuid,
         contentId: String,
         messageId: String,
-        eventData: String
+        eventData: String,
+        conversationId: String?
     ) {
-        log.debug("Registering event $eventType for requestId: $requestId and eventData: $eventData")
+        log.debug(
+            "Registering event {} for requestId: {}, conversationId: {} and eventData: {}",
+            eventType,
+            requestId,
+            conversationId,
+            eventData
+        )
     }
 
     override suspend fun <T> runWithEvent(
@@ -212,9 +247,17 @@ class EventRegistrationServiceFake : EventRegistrationService {
         contentId: String,
         messageId: String,
         eventData: String,
+        conversationId: String?,
         function: suspend () -> T
     ): T {
-        log.debug("Registering events $successEvent and $failEvent for requestId: $requestId and eventData: $eventData")
+        log.debug(
+            "Registering events {} and {} for requestId: {}, conversationId: {} and eventData: {}",
+            successEvent,
+            failEvent,
+            requestId,
+            conversationId,
+            eventData
+        )
         return function.invoke()
     }
 }

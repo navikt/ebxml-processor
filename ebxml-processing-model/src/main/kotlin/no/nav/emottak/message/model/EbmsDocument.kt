@@ -94,6 +94,12 @@ data class EbmsDocument(val requestId: String, val document: Document, val attac
             else -> throw RuntimeException("Unrecognized message type ${documentType()}")
         }
     }
+
+    fun getConversationId(): String {
+        val header = envelope.value.header!!
+        val messageHeader = header.messageHeader()
+        return messageHeader.conversationId
+    }
 }
 
 enum class DocumentType {
