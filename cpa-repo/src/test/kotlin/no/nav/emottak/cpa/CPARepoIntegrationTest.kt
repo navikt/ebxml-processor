@@ -38,6 +38,7 @@ import no.nav.emottak.cpa.databasetest.PostgresOracleTest
 import no.nav.emottak.cpa.persistence.CPARepository
 import no.nav.emottak.cpa.persistence.gammel.PartnerRepository
 import no.nav.emottak.cpa.util.EventRegistrationServiceFake
+import no.nav.emottak.cpa.model.CommunicationParty
 import no.nav.emottak.message.model.Direction.IN
 import no.nav.emottak.message.model.EmailAddress
 import no.nav.emottak.message.model.ErrorCode
@@ -741,35 +742,35 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
     val LENIENT_JSON_PARSER = Json {
         isLenient = true
     }
-//
-//    @Test
-//    fun `Get adresseregister data with herid should return the partner's data`() = cpaRepoTestApp {
-//        val httpClient = createClient {
-//            install(ContentNegotiation) {
-//                json()
-//            }
-//        }
-//
-//        val response = httpClient.get("/cpa/adresseregister/her/1")
-//
-//        val cp = response.body<CommunicationParty>()
-//        log.info("displayName: ${cp.displayName}")
-//        log.info("herId: ${cp.herId}")
-//        log.info("organization Parent: ${cp.organizationDetails.organizationNumber}")
-//        log.info("organization Partner: ${cp.organizationDetails.organizationNumber}")
-//        log.info("validFrom: ${cp.validFrom}")
-//        log.info("validTo: ${cp.validTo}")
-//        log.info("SigningCertificate: ${cp.currentSigningCertificate.thumbprint}")
-//        log.info("EncryptionCertificate: ${cp.currentEncryptionCertificate.thumbprint}")
-//        log.info("ediAddress: ${cp.ediAddress}")
-//
-//        assertEquals(HttpStatusCode.OK, response.status)
-//        assertTrue(
-//            StringUtils.isNotBlank(response.bodyAsText()),
-//            "Response can't be null or blank"
-//        )
-//    }
-//
+
+    @Test
+    fun `Get adresseregister data with herid should return the partner's data`() = cpaRepoTestApp {
+        val httpClient = createClient {
+            install(ContentNegotiation) {
+                json()
+            }
+        }
+
+        val response = httpClient.get("/cpa/adresseregister/her/1")
+
+        val cp = response.body<CommunicationParty>()
+        log.info("displayName: ${cp.displayName}")
+        log.info("herId: ${cp.herId}")
+        log.info("organization Parent: ${cp.organizationDetails.organizationNumber}")
+        log.info("organization Partner: ${cp.organizationDetails.organizationNumber}")
+        log.info("validFrom: ${cp.validFrom}")
+        log.info("validTo: ${cp.validTo}")
+        log.info("SigningCertificate: ${cp.currentSigningCertificate.thumbprint}")
+        log.info("EncryptionCertificate: ${cp.currentEncryptionCertificate.thumbprint}")
+        log.info("ediAddress: ${cp.ediAddress}")
+
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertTrue(
+            StringUtils.isNotBlank(response.bodyAsText()),
+            "Response can't be null or blank"
+        )
+    }
+
 //    @Test
 //    fun `Get the signing certificate from AR with herId should return signing certificate information`() = cpaRepoTestApp {
 //        val httpClient = createClient {
