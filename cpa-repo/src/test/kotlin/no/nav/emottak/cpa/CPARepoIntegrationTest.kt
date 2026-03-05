@@ -35,10 +35,10 @@ import kotlinx.serialization.json.Json
 import no.nav.emottak.cpa.auth.AZURE_AD_AUTH
 import no.nav.emottak.cpa.auth.AuthConfig
 import no.nav.emottak.cpa.databasetest.PostgresOracleTest
+import no.nav.emottak.cpa.model.CommunicationParty
 import no.nav.emottak.cpa.persistence.CPARepository
 import no.nav.emottak.cpa.persistence.gammel.PartnerRepository
 import no.nav.emottak.cpa.util.EventRegistrationServiceFake
-import no.nav.emottak.cpa.model.CommunicationParty
 import no.nav.emottak.message.model.Direction.IN
 import no.nav.emottak.message.model.EmailAddress
 import no.nav.emottak.message.model.ErrorCode
