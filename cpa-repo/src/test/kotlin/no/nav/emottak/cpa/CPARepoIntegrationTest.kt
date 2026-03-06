@@ -743,6 +743,27 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
     }
 
     @Test
+    fun `Get adresseregisteret`() = cpaRepoTestApp {
+        val httpClient = createClient {
+            install(ContentNegotiation) {
+                json()
+            }
+        }
+        val url = "/cpa/adresseregister/her/1"
+        val response = httpClient.get(url)
+        val communicationParty = response.body<CommunicationParty>()
+
+        log.info("herId: ${communicationParty.herId}")
+        log.info("displayName: ${communicationParty.displayName}")
+        log.info("organizationNumber: ${communicationParty.organizationDetails?.organizationNumber}")
+        log.info("ediAddress: ${communicationParty.ediAddress}")
+        log.info("Partner validFrom: ${communicationParty.validFrom}")
+        log.info("Partner validTo: ${communicationParty.validTo}")
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertTrue(response.bodyAsText().isNotBlank())
+    }
+
+    @Test
     fun `Get adresseregister data with herid should return the partner's data`() = cpaRepoTestApp {
         val httpClient = HttpClient(getFakeNhnAdresseregisterEngine()) {
             install(ContentNegotiation) {

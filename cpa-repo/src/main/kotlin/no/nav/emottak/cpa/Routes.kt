@@ -382,30 +382,51 @@ fun Route.getAdresseregisterData(httpClient: HttpClient) =
 
     get("/cpa/adresseregister/her/{$HER_ID}") {
         val herId = call.parameters[HER_ID] ?: throw BadRequestException("Mangler $HER_ID")
-
-        val (response, contentType) = try {
-            httpClient.fetchCommunicationParty(herId) to ContentType.Application.Json
+        try {
+            val communicationParty = httpClient.fetchCommunicationParty(herId)
+            // Ktor bruker ContentNegotiation til å serialisere Certificate-objektet automatisk
+            call.respond(HttpStatusCode.OK, communicationParty)
         } catch (ex: Exception) {
             log.error("Error while fetching communication party <$herId>", ex)
-            ex.localizedMessage to ContentType.Text.Plain
+            // Ved feil returnerer du ren tekst og en passende feilkode
+            call.respondText(ex.localizedMessage, ContentType.Text.Plain, HttpStatusCode.InternalServerError)
         }
+        /**
+         val (response, contentType) = try {
+         httpClient.fetchCommunicationParty(herId) to ContentType.Application.Json
+         } catch (ex: Exception) {
+         log.error("Error while fetching communication party <$herId>", ex)
+         ex.localizedMessage to ContentType.Text.Plain
+         }
 
-        call.respondText(Json.encodeToString(CommunicationParty.serializer(), response as CommunicationParty), contentType)
+         call.respondText(Json.encodeToString(CommunicationParty.serializer(), response as CommunicationParty), contentType)
+         */
     }
 
 fun Route.getARSignCertificate(httpClient: HttpClient) =
 
     get("/cpa/adresseregister/her/{$HER_ID}/signing") {
         val herId = call.parameters[HER_ID] ?: throw BadRequestException("Mangler $HER_ID")
-
-        val (response, contentType) = try {
-            httpClient.fetchARSignCertificate(herId) to ContentType.Application.Json
+        // ContentNegotiation
+        try {
+            val certificate = httpClient.fetchAREncryptCertificate(herId)
+            // Ktor bruker ContentNegotiation til å serialisere Certificate-objektet automatisk
+            call.respond(HttpStatusCode.OK, certificate)
         } catch (ex: Exception) {
             log.error("Error while fetching communication party <$herId>", ex)
-            ex.localizedMessage to ContentType.Text.Plain
+            // Ved feil returnerer du ren tekst og en passende feilkode
+            call.respondText(ex.localizedMessage, ContentType.Text.Plain, HttpStatusCode.InternalServerError)
         }
+        /**
+         val (response, contentType) = try {
+         httpClient.fetchARSignCertificate(herId) to ContentType.Application.Json
+         } catch (ex: Exception) {
+         log.error("Error while fetching communication party <$herId>", ex)
+         ex.localizedMessage to ContentType.Text.Plain
+         }
 
-        call.respondText(Json.encodeToString(Certificate.serializer(), response as Certificate), contentType)
+         call.respondText(Json.encodeToString(Certificate.serializer(), response as Certificate), contentType)
+         */
     }
 
 fun Route.getAREncryptCertificate(httpClient: HttpClient) =
@@ -413,19 +434,34 @@ fun Route.getAREncryptCertificate(httpClient: HttpClient) =
     get("/cpa/adresseregister/her/{$HER_ID}/encryption") {
         val herId = call.parameters[HER_ID] ?: throw BadRequestException("Mangler $HER_ID")
 
-        val (response, contentType) = try {
-            httpClient.fetchAREncryptCertificate(herId) to ContentType.Application.Json
+        // No ContentNegotiation
+        try {
+            val certificate = httpClient.fetchAREncryptCertificate(herId)
+            call.respond(certificate) // Ktor håndterer Content-Type automatisk med ContentNegotiation
         } catch (ex: Exception) {
             log.error("Error while fetching communication party <$herId>", ex)
-            ex.localizedMessage to ContentType.Text.Plain
+            call.respondText(
+                ex.localizedMessage,
+                ContentType.Text.Plain,
+                HttpStatusCode.InternalServerError
+            )
         }
+        /**
+         val (response, contentType) = try {
+         httpClient.fetchAREncryptCertificate(herId) to ContentType.Application.Json
+         } catch (ex: Exception) {
+         log.error("Error while fetching communication party <$herId>", ex)
+         ex.localizedMessage to ContentType.Text.Plain
+         }
 
-        call.respondText(Json.encodeToString(Certificate.serializer(), response as Certificate), contentType)
+         call.respondText(Json.encodeToString(Certificate.serializer(), response as Certificate), contentType)
+         */
     }
 
 suspend fun HttpClient.fetchCommunicationParty(herId: String): CommunicationParty {
     val baseUrl = "https://cpa-repo-fss.intern.dev.nav.no/cpa/adresseregister/her" // config().nhn.adresseregisterApiCertificateBaseUrl
 
+    log.info("###################   Route CommunicationParty test ##################")
     return try {
         val response: HttpResponse = this.get("$baseUrl/$herId")
         if (response.status == HttpStatusCode.OK) {
