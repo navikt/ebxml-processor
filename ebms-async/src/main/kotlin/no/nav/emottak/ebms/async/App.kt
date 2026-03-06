@@ -39,6 +39,7 @@ import no.nav.emottak.ebms.async.configuration.Config
 import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
 import no.nav.emottak.ebms.async.kafka.consumer.getRecord
+import no.nav.emottak.ebms.async.kafka.consumer.startEbmsOutPayloadReceiver
 import no.nav.emottak.ebms.async.kafka.consumer.startPayloadReceiver
 import no.nav.emottak.ebms.async.kafka.consumer.startSignalReceiver
 import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
@@ -50,7 +51,9 @@ import no.nav.emottak.ebms.async.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.async.processing.MessageFilterService
 import no.nav.emottak.ebms.async.processing.PayloadMessageForwardingService
 import no.nav.emottak.ebms.async.processing.PayloadMessageService
+import no.nav.emottak.ebms.async.processing.RetryService
 import no.nav.emottak.ebms.async.processing.SignalMessageService
+import no.nav.emottak.ebms.async.processing.sendSignalResponseToTopic
 import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.ebms.async.util.EventRegistrationServiceImpl
 import no.nav.emottak.ebms.defaultHttpClient
@@ -63,6 +66,7 @@ import no.nav.emottak.ebms.registerRootEndpoint
 import no.nav.emottak.ebms.scopedAuthHttpClient
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.CPAValidationService
+import no.nav.emottak.message.model.Direction
 import no.nav.emottak.utils.environment.isProdEnv
 import no.nav.emottak.utils.kafka.client.EventPublisherClient
 import no.nav.emottak.utils.kafka.service.EventLoggingService
@@ -94,6 +98,7 @@ fun main() = SuspendApp {
 
     val ebmsSignalProducer = EbmsMessageProducer(config.kafkaSignalProducer.topic, config.kafka)
     val ebmsPayloadProducer = EbmsMessageProducer(config.kafkaPayloadProducer.topic, config.kafka)
+    val ebmsInPayloadProducer = EbmsMessageProducer(config.kafkaEbmsInPayloadProducer.topic, config.kafka)
 
     val smtpTransportClient = SmtpTransportClient(scopedAuthHttpClient(SMTP_TRANSPORT_SCOPE))
 
@@ -110,8 +115,18 @@ fun main() = SuspendApp {
         processingService = processingService,
         payloadRepository = payloadRepository,
         ebmsPayloadProducer = ebmsPayloadProducer,
+        ebmsInPayloadProducer = ebmsInPayloadProducer,
         eventRegistrationService = eventRegistrationService,
         messagePendingAckRepository = messagePendingAckRepository
+    )
+
+    val retryService = RetryService(
+        cpaValidationService = cpaValidationService,
+        eventRegistrationService = eventRegistrationService,
+        failedMessageQueue = failedMessageQueue,
+        signalSender = { ebmsDocument, signalResponderEmails ->
+            sendSignalResponseToTopic(ebmsSignalProducer, eventRegistrationService, ebmsDocument, signalResponderEmails)
+        }
     )
 
     val payloadMessageService = PayloadMessageService(
@@ -121,7 +136,7 @@ fun main() = SuspendApp {
         payloadMessageForwardingService = payloadMessageForwardingService,
         eventRegistrationService = eventRegistrationService,
         eventManagerService = eventManagerService,
-        failedMessageQueue = failedMessageQueue
+        retryService = retryService
     )
 
     val signalMessageService = SignalMessageService(
@@ -148,6 +163,10 @@ fun main() = SuspendApp {
             launchPayloadReceiver(
                 config = config,
                 messageFilterService = messageFilterService
+            )
+            launchEbmsOutPayloadReceiver(
+                config = config,
+                payloadMessageService = payloadMessageService
             )
             launchErrorRetryTask(
                 config = config,
@@ -200,6 +219,21 @@ fun CoroutineScope.launchPayloadReceiver(
                 config.kafkaPayloadReceiver.topic,
                 config.kafka,
                 messageFilterService
+            )
+        }
+    }
+}
+
+fun CoroutineScope.launchEbmsOutPayloadReceiver(
+    config: Config,
+    payloadMessageService: PayloadMessageService
+) {
+    if (config.kafkaEbmsOutPayloadReceiver.active) {
+        launch(Dispatchers.IO) {
+            startEbmsOutPayloadReceiver(
+                config.kafkaEbmsOutPayloadReceiver.topic,
+                config.kafka,
+                payloadMessageService
             )
         }
     }
@@ -375,9 +409,10 @@ fun Route.simulateError(
                         .copy(groupId = "ebms-provider-retry"),
                     (call.parameters[KAFKA_OFFSET])?.toLong() ?: 0
                 )
-                failedMessageQueue.sendToRetry(
+                failedMessageQueue.sendToRetryQueue(
                     record = record ?: throw Exception("No Record found. Offset: ${call.parameters[KAFKA_OFFSET]}"),
-                    reason = "Simulated Error"
+                    reason = "Simulated Error",
+                    direction = Direction.IN
                 )
                 call.respondText(
                     status = HttpStatusCode.OK,

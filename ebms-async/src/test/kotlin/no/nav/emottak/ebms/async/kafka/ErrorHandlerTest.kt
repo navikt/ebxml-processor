@@ -10,6 +10,7 @@ import no.nav.emottak.ebms.async.kafka.consumer.RETRY_COUNT_HEADER
 import no.nav.emottak.ebms.async.kafka.consumer.asReceiverRecord
 import no.nav.emottak.ebms.async.kafka.consumer.getRecord
 import no.nav.emottak.ebms.async.processing.MessageFilterService
+import no.nav.emottak.message.model.Direction
 import no.nav.emottak.utils.config.Kafka
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.junit.jupiter.api.AfterEach
@@ -34,25 +35,25 @@ class ErrorHandlerTest {
                 )
 
             // This test seems to have problems with the startup,
-            // so the consumer offset is initialised (after the  sendToRetry() ?) with 1 instead of 0.
+            // so the consumer offset is initialised (after the  sendToRetryQueue() ?) with 1 instead of 0.
             // Need to override this by explicitly setting to earliest offset
             System.setProperty("RETRY_INIT_OFFSET", "earliest")
             // Set retry after 0 minutes, to force immediate retry
             val errorHandler = FailedMessageKafkaHandler(
                 kafka = testcontainerKafkaConfig,
-                errorRetryPolicy = ErrorRetryPolicy(1.seconds, 10, listOf(0.minutes), listOf(2))
+                errorRetryPolicy = ErrorRetryPolicy(1.seconds, 10, listOf(0.minutes), listOf(2), maxRetriesIn = 10, maxRetriesOut = 10)
             )
             val processedMessages = ArrayList<ReceiverRecord<String, ByteArray>>()
             val messageFilterService = DummyMessageFilterService(errorHandler, processedMessages)
 
-            errorHandler.sendToRetry(newRecord("test-message"))
+            errorHandler.sendToRetryQueue(newRecord("test-message"), direction = Direction.IN)
             val record1 = getRecordFromErrorQueueAtOffset(testcontainerKafkaConfig, 0)
             assertTrue(record1?.key() == "test-message", "Melding sendt til feilhåndtering ligger på feilkø med offset 0")
 
             errorHandler.consumeRetryQueue(messageFilterService)
             assertTrue(processedMessages.size == 1, "Etter prosessering av feilkø er meldingen prosessert av MessageFilterService")
 
-            errorHandler.sendToRetry(newRecord("failingAtFirstRetry"))
+            errorHandler.sendToRetryQueue(newRecord("failingAtFirstRetry"), direction = Direction.IN)
             val record2 = getRecordFromErrorQueueAtOffset(testcontainerKafkaConfig, 1)
             assertTrue(record2?.key() == "failingAtFirstRetry", "Melding som vil feile ligger på feilkø med offset 1")
 
@@ -100,9 +101,10 @@ class ErrorHandlerTest {
                 val r = retried.value().decodeToString().toIntOrNull()
                 if (r != null && r < retries) {
                     println("--Failing message {$r+1} time with requestId: ${record.key()} and offset ${record.offset()}")
-                    kafkaErrorHandler.sendToRetry(
+                    kafkaErrorHandler.sendToRetryQueue(
                         record = record,
-                        reason = "Test message set to fail again"
+                        reason = "Test message set to fail again",
+                        direction = Direction.IN
                     )
                     return
                 }
