@@ -30,6 +30,7 @@ data class Config(
     val kafkaPayloadProducer: KafkaPayloadProducer,
     val kafkaEbmsInPayloadProducer: KafkaEbmsInPayloadProducer,
     val kafkaErrorQueue: KafkaErrorQueue,
+    val kafkaErrorQueueOut: KafkaErrorQueueOut,
     val kafkaEbmsOutPayloadReceiver: KafkaEbmsOutPayloadReceiver,
     val signering: List<KeyStoreConfiguration>,
     val errorRetryPolicy: ErrorRetryPolicy,
@@ -37,6 +38,12 @@ data class Config(
 )
 
 data class KafkaErrorQueue(
+    val active: Boolean,
+    val topic: String,
+    val initOffset: String
+)
+
+data class KafkaErrorQueueOut(
     val active: Boolean,
     val topic: String,
     val initOffset: String
