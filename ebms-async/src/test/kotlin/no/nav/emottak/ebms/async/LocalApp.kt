@@ -127,6 +127,7 @@ fun main() = SuspendApp {
 
     val ebmsSignalProducer = EbmsMessageProducer(config.kafkaSignalProducer.topic, config.kafka)
     val ebmsPayloadProducer = EbmsMessageProducer(config.kafkaPayloadProducer.topic, config.kafka)
+    val ebmsInPayloadProducer = EbmsMessageProducer(config.kafkaEbmsInPayloadProducer.topic, config.kafka)
 
     val payloadMessageForwardingService = PayloadMessageForwardingService(
         sendInService = sendInService,
@@ -134,6 +135,7 @@ fun main() = SuspendApp {
         processingService = processingService,
         payloadRepository = payloadRepository,
         ebmsPayloadProducer = ebmsPayloadProducer,
+        ebmsInPayloadProducer = ebmsInPayloadProducer,
         eventRegistrationService = eventRegistrationService,
         messagePendingAckRepository = messagePendingAckRepository
     )
