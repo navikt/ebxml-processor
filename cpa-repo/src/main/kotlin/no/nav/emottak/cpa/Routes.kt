@@ -267,15 +267,13 @@ fun Route.validateCpa(
             )
         )
 
-        val eventData = Json.encodeToString(
-            mapOf(EventDataType.SENDER_NAME.value to fromParty.partyName)
-        )
-
         eventRegistrationService.registerEvent(
             EventType.MESSAGE_VALIDATED_AGAINST_CPA,
             validateRequest,
             requestId,
-            eventData
+            Json.encodeToString(
+                mapOf(EventDataType.SENDER_NAME.value to fromParty.partyName)
+            )
         )
     } catch (ebmsEx: EbmsException) {
         eventRegistrationService.registerEvent(
