@@ -97,7 +97,7 @@ class PayloadMessageForwardingService(
             log.info(payloadMessage.marker(), "Sent processed message to ebms.in.payload: key=$key, partition=${it.partition()}, offset=${it.offset()}")
         }.onFailure {
             log.error(payloadMessage.marker(), "Failed to send message to ebms.in.payload: key=$key", it)
-        }
+        }.getOrThrow()
     }
 
     // Used to send OUT a response from NAV
@@ -175,7 +175,7 @@ class PayloadMessageForwardingService(
                 key = signedEbmsDocument.requestId,
                 value = signedEbmsDocument.document.toByteArray(),
                 headers = buildPayloadHeaders(signedEbmsDocument.messageHeader(), receiverEmailAddress)
-            )
+            ).getOrThrow()
         }
     }
 
@@ -210,7 +210,7 @@ class PayloadMessageForwardingService(
                 key = message.requestId,
                 value = message.messageContent,
                 headers = buildPayloadHeaders(message.messageHeader, null, message.emailAddressList)
-            )
+            ).getOrThrow()
         }
     }
 

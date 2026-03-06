@@ -100,6 +100,8 @@ spec:
       value: "true"
     - name: EBMS_RETRY_QUEUE
       value: "true"
+    - name: EBMS_RETRY_OUT_QUEUE
+      value: "true"
     - name: VAULT_JDBC_URL
       value: jdbc:postgresql://A01DBVL037.adeo.no:5432/
     - name: CPA_REPO_URL
