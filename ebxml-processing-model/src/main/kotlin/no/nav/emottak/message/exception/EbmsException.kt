@@ -1,4 +1,4 @@
-package no.nav.emottak.melding.feil
+package no.nav.emottak.message.exception
 
 import no.nav.emottak.message.model.ErrorCode
 import no.nav.emottak.message.model.Feil
