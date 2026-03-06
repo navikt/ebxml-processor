@@ -24,3 +24,13 @@ data class KafkaPayloadProducer(
     val active: Boolean,
     val topic: String
 )
+
+data class KafkaEbmsInPayloadProducer(
+    val active: Boolean,
+    val topic: String
+)
+
+data class KafkaEbmsOutPayloadReceiver(
+    val active: Boolean,
+    val topic: String
+)

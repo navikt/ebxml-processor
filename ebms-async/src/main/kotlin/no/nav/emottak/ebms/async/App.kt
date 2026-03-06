@@ -39,6 +39,7 @@ import no.nav.emottak.ebms.async.configuration.Config
 import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
 import no.nav.emottak.ebms.async.kafka.consumer.getRecord
+import no.nav.emottak.ebms.async.kafka.consumer.startEbmsOutPayloadReceiver
 import no.nav.emottak.ebms.async.kafka.consumer.startPayloadReceiver
 import no.nav.emottak.ebms.async.kafka.consumer.startSignalReceiver
 import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
@@ -94,6 +95,7 @@ fun main() = SuspendApp {
 
     val ebmsSignalProducer = EbmsMessageProducer(config.kafkaSignalProducer.topic, config.kafka)
     val ebmsPayloadProducer = EbmsMessageProducer(config.kafkaPayloadProducer.topic, config.kafka)
+    val ebmsInPayloadProducer = EbmsMessageProducer(config.kafkaEbmsInPayloadProducer.topic, config.kafka)
 
     val smtpTransportClient = SmtpTransportClient(scopedAuthHttpClient(SMTP_TRANSPORT_SCOPE))
 
@@ -110,6 +112,7 @@ fun main() = SuspendApp {
         processingService = processingService,
         payloadRepository = payloadRepository,
         ebmsPayloadProducer = ebmsPayloadProducer,
+        ebmsInPayloadProducer = ebmsInPayloadProducer,
         eventRegistrationService = eventRegistrationService,
         messagePendingAckRepository = messagePendingAckRepository
     )
@@ -148,6 +151,10 @@ fun main() = SuspendApp {
             launchPayloadReceiver(
                 config = config,
                 messageFilterService = messageFilterService
+            )
+            launchEbmsOutPayloadReceiver(
+                config = config,
+                payloadMessageService = payloadMessageService
             )
             launchErrorRetryTask(
                 config = config,
@@ -200,6 +207,21 @@ fun CoroutineScope.launchPayloadReceiver(
                 config.kafkaPayloadReceiver.topic,
                 config.kafka,
                 messageFilterService
+            )
+        }
+    }
+}
+
+fun CoroutineScope.launchEbmsOutPayloadReceiver(
+    config: Config,
+    payloadMessageService: PayloadMessageService
+) {
+    if (config.kafkaEbmsOutPayloadReceiver.active) {
+        launch(Dispatchers.IO) {
+            startEbmsOutPayloadReceiver(
+                config.kafkaEbmsOutPayloadReceiver.topic,
+                config.kafka,
+                payloadMessageService
             )
         }
     }
