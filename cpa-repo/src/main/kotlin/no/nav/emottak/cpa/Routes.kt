@@ -27,9 +27,8 @@ import no.nav.emottak.cpa.auth.AZURE_AD_AUTH
 import no.nav.emottak.cpa.feil.CpaValidationException
 import no.nav.emottak.cpa.feil.MultiplePartnerException
 import no.nav.emottak.cpa.feil.PartnerNotFoundException
+import no.nav.emottak.cpa.model.Certificate
 import no.nav.emottak.cpa.model.CommunicationParty
-import no.nav.emottak.cpa.model.EncryptCertficate
-import no.nav.emottak.cpa.model.Signing
 import no.nav.emottak.cpa.persistence.CPARepository
 import no.nav.emottak.cpa.persistence.gammel.PartnerRepository
 import no.nav.emottak.cpa.util.EventRegistrationService
@@ -406,7 +405,7 @@ fun Route.getARSignCertificate(httpClient: HttpClient) =
             ex.localizedMessage to ContentType.Text.Plain
         }
 
-        call.respondText(Json.encodeToString(Signing.serializer(), response as Signing), contentType)
+        call.respondText(Json.encodeToString(Certificate.serializer(), response as Certificate), contentType)
     }
 
 fun Route.getAREncryptCertificate(httpClient: HttpClient) =
@@ -421,7 +420,7 @@ fun Route.getAREncryptCertificate(httpClient: HttpClient) =
             ex.localizedMessage to ContentType.Text.Plain
         }
 
-        call.respondText(Json.encodeToString(EncryptCertficate.serializer(), response as EncryptCertficate), contentType)
+        call.respondText(Json.encodeToString(Certificate.serializer(), response as Certificate), contentType)
     }
 
 suspend fun HttpClient.fetchCommunicationParty(herId: String): CommunicationParty {
@@ -445,7 +444,7 @@ suspend fun HttpClient.fetchCommunicationParty(herId: String): CommunicationPart
     }
 }
 
-suspend fun HttpClient.fetchARSignCertificate(herId: String): Signing {
+suspend fun HttpClient.fetchARSignCertificate(herId: String): Certificate {
     val baseUrl = "https://cpa-repo-fss.intern.dev.nav.no/cpa/adresseregister/her/$herId/signing" // TODO config().nhn.adresseregisterApiCertificateBaseUrl
 
     return try {
@@ -456,7 +455,7 @@ suspend fun HttpClient.fetchARSignCertificate(herId: String): Signing {
             log.warn("Feil ved oppslag: Connect to $$baseUrl --> ${response.status} ")
         }
 
-        response.body<Signing>()
+        response.body<Certificate>()
     } catch (e: Exception) {
         log.error("Kunne ikke koble til $baseUrl: ${e.localizedMessage}", e)
         e.localizedMessage
@@ -464,7 +463,7 @@ suspend fun HttpClient.fetchARSignCertificate(herId: String): Signing {
     }
 }
 
-suspend fun HttpClient.fetchAREncryptCertificate(herId: String): EncryptCertficate {
+suspend fun HttpClient.fetchAREncryptCertificate(herId: String): Certificate {
     val baseUrl = "https://cpa-repo-fss.intern.dev.nav.no/cpa/adresseregister/her" // TODO config().nhn.adresseregisterApiCertificateBaseUrl
 
     return try {
@@ -475,7 +474,7 @@ suspend fun HttpClient.fetchAREncryptCertificate(herId: String): EncryptCertfica
             log.warn("Feil ved oppslag: ${response.status}")
         }
 
-        response.body<EncryptCertficate>()
+        response.body<Certificate>()
     } catch (e: Exception) {
         log.error("Kunne ikke koble til $baseUrl: ${e.localizedMessage}", e)
         e.localizedMessage
