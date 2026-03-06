@@ -27,38 +27,10 @@ open class MessageFilterService(
 ) {
 
     open suspend fun filterMessage(record: ReceiverRecord<String, ByteArray>) {
-        /*
-        val jsonResponse = runCatching {
-            Json.decodeFromString<SendInResponse>(record.value().decodeToString())
-        }.getOrNull()
-         */
-
         val ebmsMessage = createEbmsDocument(
             requestId = record.key(),
             document = record.value().createDocument()
         )
-/*
-        val ebmsMessage: EbmsMessage = if (jsonResponse != null) {
-            val cpaId = record.headers().lastHeader("cpaId")?.let { String(it.value()) } ?: ""
-            val refToMessageId = record.headers().lastHeader("refToMessageId")?.let { String(it.value()) }
-            PayloadMessage(
-                requestId = jsonResponse.requestId,
-                messageId = jsonResponse.messageId,
-                conversationId = jsonResponse.conversationId,
-                cpaId = cpaId,
-                addressing = jsonResponse.addressing,
-                payload = Payload(jsonResponse.payload, ContentType.Application.Xml.toString()),
-                refToMessageId = refToMessageId,
-                duplicateElimination = false,
-                ackRequested = true
-            )
-        } else {
-            createEbmsDocument(
-                requestId = record.key(),
-                document = record.value().createDocument()
-            )
-        }
-*/
         eventRegistrationService.registerEvent(
             eventType = EventType.MESSAGE_READ_FROM_QUEUE,
             requestId = ebmsMessage.requestId.parseOrGenerateUuid(),
