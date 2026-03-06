@@ -111,6 +111,7 @@ class PayloadMessageServiceTest {
                 any(),
                 any(),
                 any(),
+                any(),
                 any()
             )
         }
@@ -143,6 +144,7 @@ class PayloadMessageServiceTest {
             eventRegistrationService.runWithEvent(
                 EventType.MESSAGE_PLACED_IN_QUEUE,
                 EventType.ERROR_WHILE_STORING_MESSAGE_IN_QUEUE,
+                any(),
                 any(),
                 any(),
                 any(),
@@ -182,6 +184,7 @@ class PayloadMessageServiceTest {
                 any(),
                 any(),
                 any(),
+                any(),
                 any()
             )
         }
@@ -192,7 +195,7 @@ class PayloadMessageServiceTest {
     @Test
     fun `process should send to retry if EbmsException is thrown`() = runBlocking {
         initService()
-        val (payloadMessage, ebmsMessageSlots, fakeResult) = setupMocks(
+        val (payloadMessage, ebmsMessageSlots, _) = setupMocks(
             PerMessageCharacteristicsType.PER_MESSAGE,
             false,
             processAsyncThrowsEbmsException = true
@@ -212,6 +215,7 @@ class PayloadMessageServiceTest {
             eventRegistrationService.runWithEvent(
                 EventType.MESSAGE_PLACED_IN_QUEUE,
                 EventType.ERROR_WHILE_STORING_MESSAGE_IN_QUEUE,
+                any(),
                 any(),
                 any(),
                 any(),
@@ -246,6 +250,7 @@ class PayloadMessageServiceTest {
             eventRegistrationService.runWithEvent(
                 EventType.MESSAGE_PLACED_IN_QUEUE,
                 EventType.ERROR_WHILE_STORING_MESSAGE_IN_QUEUE,
+                any(),
                 any(),
                 any(),
                 any(),
@@ -285,6 +290,7 @@ class PayloadMessageServiceTest {
                 any(),
                 any(),
                 any(),
+                any(),
                 any()
             )
         }
@@ -311,6 +317,7 @@ class PayloadMessageServiceTest {
             eventRegistrationService.runWithEvent(
                 EventType.MESSAGE_PLACED_IN_QUEUE,
                 EventType.ERROR_WHILE_STORING_MESSAGE_IN_QUEUE,
+                any(),
                 any(),
                 any(),
                 any(),
@@ -344,6 +351,7 @@ class PayloadMessageServiceTest {
             eventRegistrationService.runWithEvent(
                 EventType.MESSAGE_PLACED_IN_QUEUE,
                 EventType.ERROR_WHILE_STORING_MESSAGE_IN_QUEUE,
+                any(),
                 any(),
                 any(),
                 any(),
@@ -420,7 +428,7 @@ class PayloadMessageServiceTest {
     @Test
     fun `isExpired returns true for now instant as well`() {
         initService()
-        val now = java.time.Instant.now()
+        val now = Instant.now()
         // isExpired uses Instant.now() internally, so passing a captured now should be considered expired (<= nowAtCall)
         assertTrue(service.isExpired(now))
     }
@@ -428,7 +436,7 @@ class PayloadMessageServiceTest {
     @Test
     fun `decideRetry returns TTL_EXPIRED when ttl is in past`() {
         initService()
-        val past = java.time.Instant.now().minusSeconds(10)
+        val past = Instant.now().minusSeconds(10)
         val (decision, reason) = service.decideRetry(ttl = past, retriedAlready = 0, maxRetries = 5)
         kotlin.test.assertEquals(PayloadMessageService.RetryDecision.TTL_EXPIRED, decision)
         kotlin.test.assertTrue(reason.contains("TimeToLive expired"))
@@ -445,7 +453,7 @@ class PayloadMessageServiceTest {
     @Test
     fun `decideRetry returns RETRY when ttl is present and not expired`() {
         initService()
-        val future = java.time.Instant.now().plusSeconds(3600)
+        val future = Instant.now().plusSeconds(3600)
         val (decision, reason) = service.decideRetry(ttl = future, retriedAlready = 1, maxRetries = 5)
         kotlin.test.assertEquals(PayloadMessageService.RetryDecision.RETRY, decision)
         kotlin.test.assertTrue(reason.contains("Within ebXML TimeToLive"))
@@ -580,6 +588,7 @@ class PayloadMessageServiceTest {
             eventRegistrationService.runWithEvent<Result<RecordMetadata>>(
                 EventType.MESSAGE_PLACED_IN_QUEUE,
                 EventType.ERROR_WHILE_STORING_MESSAGE_IN_QUEUE,
+                any(),
                 any(),
                 any(),
                 any(),

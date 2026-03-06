@@ -24,7 +24,7 @@ dependencyResolutionManagement {
             version("logback", "1.5.17")
             version("logstash", "8.0")
             version("fasterxml-jackson", "2.18.2")
-            version("emottak-utils", "0.3.5")
+            version("emottak-utils", "0.3.6")
 
             library("bcpkix-jdk18on", "org.bouncycastle", "bcpkix-jdk18on").versionRef("bouncycastle")
             library("bcprov-jdk18on", "org.bouncycastle", "bcprov-jdk18on").versionRef("bouncycastle")
