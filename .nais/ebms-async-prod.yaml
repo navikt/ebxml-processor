@@ -94,7 +94,13 @@ spec:
       value: "true"
     - name: EBMS_PAYLOAD_PRODUCER
       value: "true"
+    - name: EBMS_IN_PAYLOAD_PRODUCER
+      value: "true"
+    - name: EBMS_OUT_PAYLOAD_RECEIVER
+      value: "true"
     - name: EBMS_RETRY_QUEUE
+      value: "true"
+    - name: EBMS_RETRY_OUT_QUEUE
       value: "true"
     - name: VAULT_JDBC_URL
       value: jdbc:postgresql://A01DBVL037.adeo.no:5432/

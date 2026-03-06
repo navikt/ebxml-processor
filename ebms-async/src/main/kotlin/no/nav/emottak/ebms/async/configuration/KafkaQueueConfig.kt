@@ -25,3 +25,13 @@ data class KafkaErrorQueue(
     val topic: String,
     val initOffset: String
 )
+
+data class KafkaEbmsInPayloadProducer(
+    val active: Boolean,
+    val topic: String
+)
+
+data class KafkaEbmsOutPayloadReceiver(
+    val active: Boolean,
+    val topic: String
+)
