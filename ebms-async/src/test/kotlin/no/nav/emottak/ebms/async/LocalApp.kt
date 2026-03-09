@@ -267,7 +267,7 @@ class DummyMessageFilterService(
             if (f != null && r != null) {
                 if (r <= f) {
                     println("--Set to fail again, number of times to fail: $f, number of retries now: $r")
-                    payloadMessageService.retryService.failedMessageQueue.sendToRetryQueue(
+                    payloadMessageService.retryService.failedMessageQueue.sendToRetry(
                         record = record,
                         reason = "Test message set to fail again",
                         direction = Direction.IN

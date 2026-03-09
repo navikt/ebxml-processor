@@ -123,7 +123,7 @@ class RetryService(
     internal suspend fun sendToRetryIn(record: ReceiverRecord<String, ByteArray>, exceptionReason: String, direction: Direction) {
         // TODO are there cases where these are not set to active? testing?
         if (config().kafkaSignalProducer.active && config().kafkaPayloadProducer.active && config().kafkaErrorQueue.active) {
-            failedMessageQueue.sendToRetryQueue(
+            failedMessageQueue.sendToRetry(
                 record = record,
                 reason = exceptionReason,
                 direction = direction
@@ -134,7 +134,7 @@ class RetryService(
     internal suspend fun sendToRetryOut(record: ReceiverRecord<String, ByteArray>, exceptionReason: String, direction: Direction) {
         log.warn("Sending message to retry out queue with reason: $exceptionReason")
         if (config().kafkaErrorQueueOut.active) {
-            failedMessageQueue.sendToRetryQueue(
+            failedMessageQueue.sendToRetry(
                 record = record,
                 reason = exceptionReason,
                 direction = direction

@@ -409,7 +409,7 @@ fun Route.simulateError(
                         .copy(groupId = "ebms-provider-retry"),
                     (call.parameters[KAFKA_OFFSET])?.toLong() ?: 0
                 )
-                failedMessageQueue.sendToRetryQueue(
+                failedMessageQueue.sendToRetry(
                     record = record ?: throw Exception("No Record found. Offset: ${call.parameters[KAFKA_OFFSET]}"),
                     reason = "Simulated Error",
                     direction = Direction.IN

@@ -63,7 +63,7 @@ class KafkaIntegrationTest {
                 kafka = kafkaConfig.kafka
             )!!
             runBlocking {
-                failedMessageQueue.sendToRetryQueue(
+                failedMessageQueue.sendToRetry(
                     record,
                     direction = Direction.IN
                 )
