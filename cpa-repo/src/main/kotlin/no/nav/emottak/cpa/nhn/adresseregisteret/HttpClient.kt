@@ -37,7 +37,7 @@ private fun httpClient(
     install(HttpTimeout) {
         connectTimeoutMillis = 3000
     }
-    install(ContentNegotiation) { json() }
+    install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
     install(DpopAuth) {
         dpopJwtProvider = jwtProvider
         loadTokens = { dpopTokenUtil.obtainDpopTokens() }
