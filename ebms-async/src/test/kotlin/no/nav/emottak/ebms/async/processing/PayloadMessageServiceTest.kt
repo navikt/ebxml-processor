@@ -17,7 +17,7 @@ import no.nav.emottak.ebms.eventmanager.EventManagerService
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.validation.CPAValidationService
-import no.nav.emottak.melding.feil.EbmsException
+import no.nav.emottak.message.exception.EbmsException
 import no.nav.emottak.message.model.Acknowledgment
 import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.EbmsAttachment
@@ -132,8 +132,8 @@ class PayloadMessageServiceTest {
         assertType<Acknowledgment>(ebmsMessageSlots, 1)
         coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(payloadMessage) }
         coVerify(exactly = 1) { processingService.processAsync(payloadMessage, any()) }
-        coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithSyncResponse(payloadMessage) }
-        coVerify(exactly = 1) { payloadMessageForwardingService.forwardMessageWithAsyncResponse(payloadMessage, any()) }
+        coVerify(exactly = 1) { payloadMessageForwardingService.forwardMessageWithSyncResponse(payloadMessage) }
+        coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithAsyncResponse(payloadMessage, any()) }
         coVerify(exactly = 0) { payloadMessageForwardingService.returnMessageResponse(payloadMessage) }
         coVerify(exactly = 1) { cpaValidationService.validateOutgoingMessage(any()) }
         coVerify(exactly = 1) {
@@ -274,8 +274,8 @@ class PayloadMessageServiceTest {
         assertType<Acknowledgment>(ebmsMessageSlots, 1)
         coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(payloadMessage) }
         coVerify(exactly = 1) { processingService.processAsync(payloadMessage, any()) }
-        coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithSyncResponse(payloadMessage) }
-        coVerify(exactly = 1) { payloadMessageForwardingService.forwardMessageWithAsyncResponse(payloadMessage, any()) }
+        coVerify(exactly = 1) { payloadMessageForwardingService.forwardMessageWithSyncResponse(payloadMessage) }
+        coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithAsyncResponse(payloadMessage, any()) }
         coVerify(exactly = 0) { payloadMessageForwardingService.returnMessageResponse(payloadMessage) }
         coVerify(exactly = 1) { cpaValidationService.validateOutgoingMessage(any()) }
         coVerify(exactly = 0) {

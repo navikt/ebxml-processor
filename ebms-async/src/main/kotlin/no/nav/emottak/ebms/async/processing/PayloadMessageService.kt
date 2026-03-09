@@ -64,7 +64,7 @@ class PayloadMessageService(
             payloadMessageForwardingService.returnMessageResponse(ebmsPayloadMessage)
         }.onFailure { exception ->
             log.error(ebmsPayloadMessage.marker(), exception.message ?: "Outbound response processing error", exception)
-            retryService.sendToRetryIfShouldBeRetried(record = record, payloadMessage = ebmsPayloadMessage, exception = exception, reason = exception.message ?: "Unknown error", Direction.OUT)
+            //retryService.sendToRetryIfShouldBeRetried(record = record, payloadMessage = ebmsPayloadMessage, exception = exception, reason = exception.message ?: "Unknown error", Direction.OUT)
         }
     }
 
@@ -74,7 +74,8 @@ class PayloadMessageService(
         val validationResult = cpaValidationService.validateIncomingMessage(ebmsPayloadMessage)
         val (processedPayload, direction) = processingService.processAsync(ebmsPayloadMessage, validationResult.payloadProcessing)
         when (direction) {
-            Direction.IN -> payloadMessageForwardingService.forwardMessageWithAsyncResponse(processedPayload, validationResult.partnerId)
+            Direction.IN -> payloadMessageForwardingService.forwardMessageWithSyncResponse(processedPayload)
+//            Direction.IN -> payloadMessageForwardingService.forwardMessageWithAsyncResponse(processedPayload, validationResult.partnerId)
             Direction.OUT -> payloadMessageForwardingService.returnMessageResponse(processedPayload)
         }
     }
