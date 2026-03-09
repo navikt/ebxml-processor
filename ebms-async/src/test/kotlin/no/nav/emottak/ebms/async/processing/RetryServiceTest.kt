@@ -15,7 +15,7 @@ import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
 import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.validation.CPAValidationService
-import no.nav.emottak.melding.feil.EbmsException
+import no.nav.emottak.message.exception.EbmsException
 import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.EbmsAttachment
 import no.nav.emottak.message.model.EbmsDocument
