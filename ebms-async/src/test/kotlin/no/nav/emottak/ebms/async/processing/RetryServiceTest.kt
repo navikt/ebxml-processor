@@ -136,7 +136,7 @@ class RetryServiceTest {
 
         spyService.sendToRetryIfShouldBeRetried(receiverRecord, payload, EbmsException("fail"), "reason", Direction.IN)
 
-        coVerify(exactly = 0) { spyService.sendToRetryIn(any(), any(), any()) }
+        coVerify(exactly = 0) { spyService.sendToRetryIn(any(), any()) }
         coVerify { spyService.returnMessageError(any(), any()) }
     }
 
@@ -151,11 +151,11 @@ class RetryServiceTest {
 
         val spyService = spyk(retryService)
         coEvery { spyService.returnMessageError(any(), any()) } just Runs
-        coEvery { spyService.sendToRetryIn(any(), any(), any()) } just Runs
+        coEvery { spyService.sendToRetryIn(any(), any()) } just Runs
 
         spyService.sendToRetryIfShouldBeRetried(receiverRecord, payload, EbmsException("fail"), "reason", Direction.IN)
 
-        coVerify(exactly = 1) { spyService.sendToRetryIn(any(), any(), any()) }
+        coVerify(exactly = 1) { spyService.sendToRetryIn(any(), any()) }
     }
 
     @Test
@@ -169,11 +169,11 @@ class RetryServiceTest {
 
         val spyService = spyk(retryService)
         coEvery { spyService.returnMessageError(any(), any()) } just Runs
-        coEvery { spyService.sendToRetryIn(any(), any(), any()) } just Runs
+        coEvery { spyService.sendToRetryIn(any(), any()) } just Runs
 
         spyService.sendToRetryIfShouldBeRetried(receiverRecord, payload, EbmsException("fail"), "reason", Direction.IN)
 
-        coVerify(exactly = 1) { spyService.sendToRetryIn(any(), any(), any()) }
+        coVerify(exactly = 1) { spyService.sendToRetryIn(any(), any()) }
     }
 
     private fun createPayloadMessageWithTtl(ttl: Instant?) = PayloadMessage(

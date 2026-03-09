@@ -24,66 +24,65 @@ class RetryService(
     val signalSender: suspend (EbmsDocument, List<EmailAddress>) -> Unit
 ) {
 
+
+    internal suspend fun incomingRetryEval(
+        record: ReceiverRecord<String, ByteArray>,
+        payloadMessage: PayloadMessage,
+        exception: Throwable,
+        retryReason: String = exception.message?: "Unknown error",
+    ) {
+        sendToRetryIfShouldBeRetried(record, payloadMessage, exception, retryReason, Direction.IN)
+    }
+
+    internal suspend fun outgoingRetryEval(
+        record: ReceiverRecord<String, ByteArray>,
+        payloadMessage: PayloadMessage,
+        exception: Throwable,
+        retryReason: String = exception.message?: "Unknown error",
+    ) {
+        sendToRetryIfShouldBeRetried(record, payloadMessage, exception, retryReason, Direction.OUT)
+    }
+
     internal suspend fun sendToRetryIfShouldBeRetried(
         record: ReceiverRecord<String, ByteArray>,
         payloadMessage: PayloadMessage,
         exception: Throwable,
-        reason: String,
+        retryReason: String,
         direction: Direction
     ) {
-        // TODO what to reuse, maxRetries?
-
         val retriedAlready = record.retryCount()
-        val errorType = exception::class.simpleName ?: "Unknown error"
-        val sentAt = payloadMessage.sentAt
-
-        when (direction) {
-            Direction.IN -> {
-                val ttl = payloadMessage.timeToLive
-
-                val (decision, decisionReason) = decideRetry(
-                    ttl = ttl,
-                    retriedAlready = retriedAlready,
-                    maxRetries = config().errorRetryPolicy.maxRetriesIn
+        val (decision, reason) = decideRetry(
+            ttl = payloadMessage.timeToLive,
+            retriedAlready = retriedAlready,
+            maxRetries = when(direction) {
+                Direction.IN -> config().errorRetryPolicyIncoming.maxRetries
+                Direction.OUT -> config().errorRetryPolicyOutgoing.maxRetries
+            }
+        )
+        when (decision) {
+            RetryDecision.RETRY -> {
+                sendToRetry(record,retryReason, direction)
+            }
+            RetryDecision.TTL_EXPIRED ->
+                returnMessageError(
+                    payloadMessage,
+                    EbmsException(
+                        "TimeToLive expired",
+                        errorCode = no.nav.emottak.message.model.ErrorCode.TIME_TO_LIVE_EXPIRED,
+                        exception = exception
+                    )
                 )
-
-                val logMsg = "Failing payload sent at ${sentAt ?: "unknown"}, error type: $errorType, reason: $reason, retries already performed: $retriedAlready. Decision reason: $decisionReason"
-
-                if (decision == RetryDecision.RETRY) {
-                    sendToRetryIn(record, reason, direction)
-                    log.info("Schedule retry: $logMsg")
-                } else {
-                    log.info("No retry: $logMsg")
-                    val ebmsException = when (decision) {
-                        RetryDecision.TTL_EXPIRED -> EbmsException(
-                            "TimeToLive expired",
-                            errorCode = no.nav.emottak.message.model.ErrorCode.TIME_TO_LIVE_EXPIRED,
-                            exception = exception
-                        )
-                        else -> EbmsException(decisionReason, exception = exception)
-                    }
-                    try {
-                        returnMessageError(payloadMessage, ebmsException)
-                    } catch (e: Exception) {
-                        log.error(
-                            "Failed to return Message error for payload message ${payloadMessage.requestId}, sender WILL NOT BE NOTIFIED that the message has NOT been processed OK",
-                            e
-                        )
-                    }
-                }
-            }
-
-            // TODO: resolved a comment without intention - yes, only a question if we want to have separate requirements
-
-            Direction.OUT -> {
-                if (retriedAlready >= config().errorRetryPolicy.maxRetriesOut) {
-                    val logMsg = "Failing payload sent at ${sentAt ?: "unknown"}, error type: $errorType, reason: $reason, retries already performed: $retriedAlready. Decision reason: Max retries exceeded"
-                    log.info("No retry: $logMsg")
-                } else {
-                    sendToRetryOut(record, reason, direction)
-                }
-            }
+            RetryDecision.MAX_RETRIES_EXCEEDED ->
+                returnMessageError(
+                    payloadMessage,
+                    EbmsException(
+                        "Max Retries expired",
+                        errorCode = no.nav.emottak.message.model.ErrorCode.DELIVERY_FAILURE,
+                        exception = exception
+                    )
+                )
         }
+        log.info("Decision [$decision]:\n" + "Failing payload sent at ${payloadMessage.sentAt ?: "unknown"}, error type: ${exception::class.simpleName ?: "Unknown error"}, reason: $retryReason, retries already performed: $retriedAlready. Decision reason: $reason")
     }
 
     internal fun decideRetry(ttl: Instant?, retriedAlready: Int, maxRetries: Int): Pair<RetryDecision, String> {
@@ -120,24 +119,43 @@ class RetryService(
         log.warn(messageError.marker(), "MessageError returned", ebmsException)
     }
 
-    internal suspend fun sendToRetryIn(record: ReceiverRecord<String, ByteArray>, exceptionReason: String, direction: Direction) {
-        // TODO are there cases where these are not set to active? testing?
-        if (config().kafkaSignalProducer.active && config().kafkaPayloadProducer.active && config().kafkaErrorQueue.active) {
+    internal suspend fun sendToRetry(
+        record: ReceiverRecord<String, ByteArray>,
+        exceptionReason: String,
+        direction: Direction
+    ) {
+        when (direction) {
+            Direction.OUT -> failedMessageQueue.sendToRetryQueueOutgoing(record, exceptionReason)
+            Direction.IN -> failedMessageQueue.sendToRetryQueueIncoming(record, exceptionReason)
+        }
+    }
+
+
+    internal suspend fun sendToRetryIn(
+        record: ReceiverRecord<String, ByteArray>,
+        exceptionReason: String
+    ) {
+
+
+        if (config().kafkaErrorQueue.active) {
             failedMessageQueue.sendToRetry(
                 record = record,
                 reason = exceptionReason,
-                direction = direction
+                direction = Direction.IN
             )
         }
     }
 
-    internal suspend fun sendToRetryOut(record: ReceiverRecord<String, ByteArray>, exceptionReason: String, direction: Direction) {
+    internal suspend fun sendToRetryOut(
+        record: ReceiverRecord<String, ByteArray>,
+        exceptionReason: String,
+    ) {
         log.warn("Sending message to retry out queue with reason: $exceptionReason")
         if (config().kafkaErrorQueueOut.active) {
             failedMessageQueue.sendToRetry(
                 record = record,
                 reason = exceptionReason,
-                direction = direction
+                direction = Direction.OUT
             )
         }
     }
