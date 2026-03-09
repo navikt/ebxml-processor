@@ -24,12 +24,11 @@ class RetryService(
     val signalSender: suspend (EbmsDocument, List<EmailAddress>) -> Unit
 ) {
 
-
     internal suspend fun incomingRetryEval(
         record: ReceiverRecord<String, ByteArray>,
         payloadMessage: PayloadMessage,
         exception: Throwable,
-        retryReason: String = exception.message?: "Unknown error",
+        retryReason: String = exception.message ?: "Unknown error"
     ) {
         sendToRetryIfShouldBeRetried(record, payloadMessage, exception, retryReason, Direction.IN)
     }
@@ -38,7 +37,7 @@ class RetryService(
         record: ReceiverRecord<String, ByteArray>,
         payloadMessage: PayloadMessage,
         exception: Throwable,
-        retryReason: String = exception.message?: "Unknown error",
+        retryReason: String = exception.message ?: "Unknown error"
     ) {
         sendToRetryIfShouldBeRetried(record, payloadMessage, exception, retryReason, Direction.OUT)
     }
@@ -54,14 +53,14 @@ class RetryService(
         val (decision, reason) = decideRetry(
             ttl = payloadMessage.timeToLive,
             retriedAlready = retriedAlready,
-            maxRetries = when(direction) {
+            maxRetries = when (direction) {
                 Direction.IN -> config().errorRetryPolicyIncoming.maxRetries
                 Direction.OUT -> config().errorRetryPolicyOutgoing.maxRetries
             }
         )
         when (decision) {
             RetryDecision.RETRY -> {
-                sendToRetry(record,retryReason, direction)
+                sendToRetry(record, retryReason, direction)
             }
             RetryDecision.TTL_EXPIRED ->
                 returnMessageError(
@@ -130,13 +129,10 @@ class RetryService(
         }
     }
 
-
     internal suspend fun sendToRetryIn(
         record: ReceiverRecord<String, ByteArray>,
         exceptionReason: String
     ) {
-
-
         if (config().kafkaErrorQueue.active) {
             failedMessageQueue.sendToRetry(
                 record = record,
@@ -148,7 +144,7 @@ class RetryService(
 
     internal suspend fun sendToRetryOut(
         record: ReceiverRecord<String, ByteArray>,
-        exceptionReason: String,
+        exceptionReason: String
     ) {
         log.warn("Sending message to retry out queue with reason: $exceptionReason")
         if (config().kafkaErrorQueueOut.active) {

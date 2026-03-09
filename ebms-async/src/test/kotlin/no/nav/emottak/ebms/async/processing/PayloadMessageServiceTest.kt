@@ -9,6 +9,7 @@ import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.mockkStatic
+import io.mockk.runs
 import io.mockk.slot
 import kotlinx.coroutines.runBlocking
 import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
@@ -62,6 +63,15 @@ class PayloadMessageServiceTest {
         eventRegistrationService = mockk<EventRegistrationService>()
         eventManagerService = mockk<EventManagerService>()
         retryService = mockk<RetryService>()
+        coEvery {
+            retryService.incomingRetryEval(any(), any(), any(), any())
+        } just runs
+        coEvery {
+            retryService.sendToRetryIn(any(), any())
+        } just runs
+        coEvery {
+            retryService.sendToRetryOut(any(), any())
+        } just runs
 
         mockkStatic(EbmsDocument::signer)
         every {
@@ -220,7 +230,7 @@ class PayloadMessageServiceTest {
             )
         }
         coVerify(exactly = 0) { ebmsSignalProducer.publishMessage(key = any(), value = any(), headers = any()) }
-        coVerify(exactly = 1) { retryService.sendToRetryIfShouldBeRetried(any(), any(), any(), any(), any()) }
+        coVerify(exactly = 1) { retryService.incomingRetryEval(any(), any(), any(), any()) }
     }
 
     @Test
@@ -255,7 +265,7 @@ class PayloadMessageServiceTest {
             )
         }
         coVerify(exactly = 0) { ebmsSignalProducer.publishMessage(key = any(), value = any(), headers = any()) }
-        coVerify(exactly = 1) { retryService.sendToRetryIfShouldBeRetried(any(), any(), any(), any(), any()) }
+        coVerify(exactly = 1) { retryService.incomingRetryEval(any(), any(), any(), any()) }
     }
 
     @Test
@@ -292,7 +302,7 @@ class PayloadMessageServiceTest {
         }
         assertTrue(fakeResult.isSuccess)
         coVerify(exactly = 0) { ebmsSignalProducer.publishMessage(key = any(), value = any(), headers = any()) }
-        coVerify(exactly = 1) { retryService.sendToRetryIfShouldBeRetried(any(), any(), any(), any(), any()) }
+        coVerify(exactly = 1) { retryService.incomingRetryEval(any(), any(), any(), any()) }
     }
 
     @Test
@@ -356,7 +366,7 @@ class PayloadMessageServiceTest {
             )
         }
         coVerify(exactly = 0) { ebmsSignalProducer.publishMessage(key = any(), value = any(), headers = any()) }
-        coVerify(exactly = 1) { retryService.sendToRetryIfShouldBeRetried(any(), any(), any(), any(), any()) }
+        coVerify(exactly = 1) { retryService.incomingRetryEval(any(), any(), any(), any()) }
     }
 
     @Test

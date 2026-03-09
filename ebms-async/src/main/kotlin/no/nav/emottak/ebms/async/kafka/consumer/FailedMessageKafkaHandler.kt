@@ -91,35 +91,27 @@ class FailedMessageKafkaHandler(
 
     suspend fun sendToRetryQueueIncoming(
         record: ReceiverRecord<String, ByteArray>,
-        key: String = record.key(),
-        value: ByteArray = record.value(),
         reason: String? = null,
-        advanceRetryTime: Boolean = true,
+        advanceRetryTime: Boolean = true
     ) {
         sendToRetry(
             record,
-            key,
-            value,
-            reason,
-            advanceRetryTime,
-            Direction.IN,
+            reason = reason,
+            advanceRetryTime = advanceRetryTime,
+            direction = Direction.IN
         )
     }
 
     suspend fun sendToRetryQueueOutgoing(
         record: ReceiverRecord<String, ByteArray>,
-        key: String = record.key(),
-        value: ByteArray = record.value(),
         reason: String? = null,
-        advanceRetryTime: Boolean = true,
+        advanceRetryTime: Boolean = true
     ) {
         sendToRetry(
             record,
-            key,
-            value,
-            reason,
-            advanceRetryTime,
-            Direction.OUT,
+            reason = reason,
+            advanceRetryTime = advanceRetryTime,
+            direction = Direction.OUT
         )
     }
 
@@ -131,13 +123,12 @@ class FailedMessageKafkaHandler(
         advanceRetryTime: Boolean = true,
         direction: Direction
     ) {
-
         logger.info(
             "Sending message to ${
-                when (direction) {
-                    Direction.IN -> config().kafkaErrorQueue.topic
-                    Direction.OUT -> config().kafkaErrorQueueOut.topic
-                }
+            when (direction) {
+                Direction.IN -> config().kafkaErrorQueue.topic
+                Direction.OUT -> config().kafkaErrorQueueOut.topic
+            }
             } queue with reason: $reason"
         )
         if (reason != null) {
@@ -153,7 +144,11 @@ class FailedMessageKafkaHandler(
                         when (direction) {
                             Direction.IN -> config().kafkaErrorQueue.topic
                             Direction.OUT -> config().kafkaErrorQueueOut.topic
-                        }, null, key, value, record.headers()
+                        },
+                        null,
+                        key,
+                        value,
+                        record.headers()
                     )
                 )
             }
@@ -161,19 +156,19 @@ class FailedMessageKafkaHandler(
             logger.info("Result " + metadata.partition() + " timestamp " + metadata.timestamp())
             logger.info(
                 "Message sent successfully to topic ${
-                    when (direction) {
-                        Direction.IN -> config().kafkaErrorQueue.topic
-                        Direction.OUT -> config().kafkaErrorQueueOut.topic
-                    }
+                when (direction) {
+                    Direction.IN -> config().kafkaErrorQueue.topic
+                    Direction.OUT -> config().kafkaErrorQueueOut.topic
+                }
                 }"
             )
         } catch (e: Exception) {
             logger.info(
                 "Failed to send message to ${
-                    when (direction) {
-                        Direction.IN -> config().kafkaErrorQueue.topic
-                        Direction.OUT -> config().kafkaErrorQueueOut.topic
-                    }
+                when (direction) {
+                    Direction.IN -> config().kafkaErrorQueue.topic
+                    Direction.OUT -> config().kafkaErrorQueueOut.topic
+                }
                 } : ${e.message}"
             )
         }
@@ -246,7 +241,7 @@ class FailedMessageKafkaHandler(
             val offsets: Map<TopicPartition?, OffsetAndMetadata?> =
                 mapOf(
                     TopicPartition(record.topic(), record.partition())
-                            to OffsetAndMetadata(offsetToCommit)
+                        to OffsetAndMetadata(offsetToCommit)
                 )
             pollerConsumer.commitSync(offsets)
             logger.info("Committed offset $offsetToCommit for record with key ${record.key()}")
