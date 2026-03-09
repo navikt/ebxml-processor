@@ -26,31 +26,29 @@ class EventRegistrationServiceImpl(
         requestId: String,
         eventData: String
     ) {
+        log.debug(validationRequest.marker(), "Registering event for requestId: $requestId")
         when (validationRequest.addressing.service) {
             "HarBorgerEgenandelFritak", "HarBorgerFrikort" -> {
                 log.debug(validationRequest.marker(), "Skipping event persistence")
                 return
             }
-            else -> {
-                log.debug("Registering event for requestId: $requestId")
+        }
 
-                try {
-                    val event = Event(
-                        eventType = eventType,
-                        requestId = requestId.parseOrGenerateUuid(),
-                        contentId = "",
-                        messageId = validationRequest.messageId,
-                        eventData = eventData,
-                        conversationId = validationRequest.conversationId
-                    )
-                    log.debug("Registering event: {}", event)
+        try {
+            val event = Event(
+                eventType = eventType,
+                requestId = requestId.parseOrGenerateUuid(),
+                contentId = "",
+                messageId = validationRequest.messageId,
+                eventData = eventData,
+                conversationId = validationRequest.conversationId
+            )
+            log.debug("Registering event: {}", event)
 
-                    eventLoggingService.logEvent(event)
-                    log.debug("Event is registered successfully")
-                } catch (e: Exception) {
-                    log.error("Error while registering event: ${e.message}", e)
-                }
-            }
+            eventLoggingService.logEvent(event)
+            log.debug("Event is registered successfully")
+        } catch (e: Exception) {
+            log.error("Error while registering event: ${e.message}", e)
         }
     }
 }
