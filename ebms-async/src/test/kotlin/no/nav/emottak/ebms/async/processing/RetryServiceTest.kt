@@ -159,7 +159,7 @@ class RetryServiceTest {
 
         spyService.sendToRetryIfShouldBeRetried(receiverRecord, payload, EbmsException("fail"), "reason", Direction.IN)
 
-        coVerify(exactly = 1) { spyService.sendToRetry(any(), any(), any()) }
+        coVerify(exactly = 1) { failedMessageQueue.sendToRetryQueueIncoming(any(), any()) }
     }
 
     @Test
@@ -176,8 +176,7 @@ class RetryServiceTest {
         coEvery { spyService.incomingRetryEval(any(), any(), any()) } just Runs
 
         spyService.sendToRetryIfShouldBeRetried(receiverRecord, payload, EbmsException("fail"), "reason", Direction.IN)
-
-        coVerify(exactly = 1) { spyService.sendToRetry(any(), any(), any()) }
+        coVerify(exactly = 1) { failedMessageQueue.sendToRetryQueueIncoming(any(), any()) }
     }
 
     private fun createPayloadMessageWithTtl(ttl: Instant?) = PayloadMessage(

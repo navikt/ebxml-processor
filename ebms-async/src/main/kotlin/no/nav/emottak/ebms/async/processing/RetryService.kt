@@ -60,7 +60,10 @@ class RetryService(
         )
         when (decision) {
             RetryDecision.RETRY -> {
-                sendToRetry(record, retryReason, direction)
+                when (direction) {
+                    Direction.OUT -> failedMessageQueue.sendToRetryQueueOutgoing(record, retryReason)
+                    Direction.IN -> failedMessageQueue.sendToRetryQueueIncoming(record, retryReason)
+                }
             }
             RetryDecision.TTL_EXPIRED ->
                 returnMessageError(
@@ -116,17 +119,6 @@ class RetryService(
             validationResult.signalEmailAddress
         )
         log.warn(messageError.marker(), "MessageError returned", ebmsException)
-    }
-
-    internal suspend fun sendToRetry(
-        record: ReceiverRecord<String, ByteArray>,
-        exceptionReason: String,
-        direction: Direction
-    ) {
-        when (direction) {
-            Direction.OUT -> failedMessageQueue.sendToRetryQueueOutgoing(record, exceptionReason)
-            Direction.IN -> failedMessageQueue.sendToRetryQueueIncoming(record, exceptionReason)
-        }
     }
 
     internal suspend fun sendToRetryIn(
