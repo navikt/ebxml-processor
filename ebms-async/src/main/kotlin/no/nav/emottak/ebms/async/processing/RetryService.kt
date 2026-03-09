@@ -73,6 +73,8 @@ class RetryService(
                 }
             }
 
+            // TODO: resolved a comment without intention - yes, only a question if we want to have separate requirements
+
             Direction.OUT -> {
                 if (retriedAlready >= config().errorRetryPolicy.maxRetriesOut) {
                     val logMsg = "Failing payload sent at ${sentAt ?: "unknown"}, error type: $errorType, reason: $reason, retries already performed: $retriedAlready. Decision reason: Max retries exceeded"

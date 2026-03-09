@@ -104,7 +104,6 @@ class FailedMessageKafkaHandler(
         if (advanceRetryTime) {
             record.addHeader(RETRY_AFTER, getNextRetryTime(record))
         }
-
         try {
             val metadata = publisher.publishScope {
                 publish(ProducerRecord(topic, null, key, value, record.headers()))
