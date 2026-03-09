@@ -14,7 +14,7 @@ import no.nav.emottak.cpa.model.OrganizationDetails
 fun getFakeNhnAdresseregisterEngine(): MockEngine =
     MockEngine { request ->
         val responseBody = when {
-            request.url.encodedPath.endsWith("/cpa/adresseregister/her/1") -> {
+            request.url.encodedPath.endsWith("/api/v1/communicationparty/1") -> {
                 var communicationParty = CommunicationParty(
                     79768,
                     "NAV IKT",
@@ -25,7 +25,7 @@ fun getFakeNhnAdresseregisterEngine(): MockEngine =
                 )
                 Json.encodeToString(communicationParty)
             }
-            request.url.encodedPath.contains("/cpa/adresseregister/her/1/signing") -> {
+            request.url.encodedPath.contains("/api/v1/certificate/1/signing") -> {
                 val currentSigning = "MIIGNDCCBBygAwIBAgIKa78z60lFRxXAdDANBgkqhkiG9w0BAQsFADBoMQswCQYDVQQGEwJOTzEYMBYGA1UEYQwPTlRSTk8tOTgzMTYzMzI3MRMwEQYDVQQKDApCdXlwYXNzIEFTMSowKAYDVQQDDCFCdXlwYXNzIENsYXNzIDMgQ0EgRzIgU1QgQnVzaW5lc3MwHhcNMjUwODA2MTMyNzU1WhcNMjgwODA2MjE1OTAwWjBxMQswCQYDVQQGEwJOTzEjMCEGA1UECgwaQVJCRUlEUy0gT0cgVkVMRkVSRFNFVEFURU4xIzAhBgNVBAMMGkFSQkVJRFMtIE9HIFZFTEZFUkRTRVRBVEVOMRgwFgYDVQRhDA9OVFJOTy04ODk2NDA3ODIwggGiMA0GCSqGSIb3DQEBAQUAA4IBjwAwggGKAoIBgQC3VWnVUj50XSRw+Mf316qahVBcJHLu9vhys4SbpJFoEiRm03gpKomgL79RxuHgk2Vww/FfaqmFNhIsIy/VpEDUnqpHG7djn1JvxZsJPd+hxJdKApQ2Vrfl7urV+prZEjCs2ol1pwmctO30KMM1+o7Qd2r6n9D1darg04cJUwxAPK+rEZn/rtdBMXX0UWXKESQ6adXBVxuby93ZLQ/z4+me8UaoCDCLpbHEmj8fcbkwiQQs47WaqLBhNw1FQuIKioNxWQV6Zl/1O+Ir1hJ7V7dY1dsdcXB+eHd85UU71RfnMkZos7ASlwx7J2hb6EelBIG37ud7fslx93xzAxFnWrGxSw4PFrUqONpvQMGDYmOksdTjyT3QKtxGULkMvh+2Snj4F6fquA01UdWx3pLBHPRVTiz53SdVRVe3OBNWtji2f/vSBP++n7cgY12cS5u/UcwnhgEJSPC/0fg+E0LcpY++C3De2JvSfcuYy6DHxSkX1skqUD8MorZ8QaSY60i3HtMCAwEAAaOCAVUwggFRMAkGA1UdEwQCMAAwHwYDVR0jBBgwFoAUgUWcKZVmODftO1ROjjLlliF51WQwHQYDVR0OBBYEFHVXU9Opuw6ij6+3kGTkD9U"
                 var signCertificate = Certificate(
                     "D2A7137640A4CE620410C53A7BEDE4D00A3FC611",
@@ -36,7 +36,7 @@ fun getFakeNhnAdresseregisterEngine(): MockEngine =
 
                 Json.encodeToString(signCertificate)
             }
-            request.url.encodedPath.contains("/cpa/adresseregister/her/1/encryption") -> {
+            request.url.encodedPath.contains("/api/v1/certificate/1/encryption") -> {
                 val encryptCertificate = "MIIGNDCCBBygAwIBAgIKa78z60lFRxXAdDANBgkqhkiG9w0BAQsFADBoMQswCQYDVQQGEwJOTzEYMBYGA1UEYQwPTlRSTk8tOTgzMTYzMzI3MRMwEQYDVQQKDApCdXlwYXNzIEFTMSowKAYDVQQDDCFCdXlwYXNzIENsYXNzIDMgQ0EgRzIgU1QgQnVzaW5lc3MwHhcNMjUwODA2MTMyNzU1WhcNMjgwODA2MjE1OTAwWjBxMQswCQYDVQQGEwJOTzEjMCEGA1UECgwaQVJCRUlEUy0gT0cgVkVMRkVSRFNFVEFURU4xIzAhBgNVBAMMGkFSQkVJRFMtIE9HIFZFTEZFUkRTRVRBVEVOMRgwFgYDVQRhDA9OVFJOTy04ODk2NDA3ODIwggGiMA0GCSqGSIb3DQEBAQUAA4IBjwAwggGKAoIBgQC3VWnVUj50XSRw+Mf316qahVBcJHLu9vhys4SbpJFoEiRm03gpKomgL79RxuHgk2Vww/FfaqmFNhIsIy/VpEDUnqpHG7djn1JvxZsJPd+hxJdKApQ2Vrfl7urV+prZEjCs2ol1pwmctO30KMM1+o7Qd2r6n9D1darg04cJUwxAPK+rEZn/rtdBMXX0UWXKESQ6adXBVxuby93ZLQ/z4+me8UaoCDCLpbHEmj8fcbkwiQQs47WaqLBhNw1FQuIKioNxWQV6Zl/1O+Ir1hJ7V7dY1dsdcXB+eHd85UU71RfnMkZos7ASlwx7J2hb6EelBIG37ud7fslx93xzAxFnWrGxSw4PFrUqONpvQMGDYmOksdTjyT3QKtxGULkMvh+2Snj4F6fquA01UdWx3pLBHPRVTiz53SdVRVe3OBNWtji2f/vSBP++n7cgY12cS5u/UcwnhgEJSPC/0fg+E0LcpY++C3De2JvSfcuYy6DHxSkX1skqUD8MorZ8QaSY60i3HtMCAwEAAaOCAVUwggFRMAkGA1UdEwQCMAAwHwYDVR0jBBgwFoAUgUWcKZVmODftO1ROjjLlliF51WQwHQYDVR0OBBYEFHVXU9Opuw6ij6+3kGTkD9U"
                 var signCertificate = Certificate(
                     "P7A09812340A4CE620410C53A7BEDE4G786QTY98",

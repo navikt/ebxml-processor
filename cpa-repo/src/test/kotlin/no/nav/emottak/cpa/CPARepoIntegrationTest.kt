@@ -31,6 +31,7 @@ import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import no.nav.emottak.cpa.auth.AZURE_AD_AUTH
 import no.nav.emottak.cpa.auth.AuthConfig
@@ -743,67 +744,38 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
     }
 
     @Test
-    fun `Get adresseregisteret`() = cpaRepoTestApp {
+    fun `Get adresseregister data with herid should return the partner's data`() = cpaRepoTestApp {
         val httpClient = createClient {
             install(ContentNegotiation) {
                 json()
             }
         }
+
         val url = "/cpa/adresseregister/her/1"
-        val response = httpClient.get(url)
-        val communicationParty = response.body<CommunicationParty>()
+        val response = runBlocking { httpClient.get(url) }
+        val communicationParty = runBlocking { response.body<CommunicationParty>() }
 
         log.info("herId: ${communicationParty.herId}")
         log.info("displayName: ${communicationParty.displayName}")
-        log.info("organizationNumber: ${communicationParty.organizationDetails?.organizationNumber}")
+        log.info("organizationNumber: ${communicationParty.organizationDetails.organizationNumber}")
         log.info("ediAddress: ${communicationParty.ediAddress}")
         log.info("Partner validFrom: ${communicationParty.validFrom}")
         log.info("Partner validTo: ${communicationParty.validTo}")
         assertEquals(HttpStatusCode.OK, response.status)
-        assertTrue(response.bodyAsText().isNotBlank())
-    }
-
-    @Test
-    fun `Get adresseregister data with herid should return the partner's data`() = cpaRepoTestApp {
-        val httpClient = HttpClient(getFakeNhnAdresseregisterEngine()) {
-            install(ContentNegotiation) {
-                json(
-                    Json {
-                        ignoreUnknownKeys = true
-                    }
-                )
-            }
-        }
-
-        val url = "/cpa/adresseregister/her/1"
-        val response = httpClient.get(url)
-        val communicationParty = response.body<CommunicationParty>()
-
-        log.info("herId: ${communicationParty.herId}")
-        log.info("displayName: ${communicationParty.displayName}")
-        log.info("organizationNumber: ${communicationParty.organizationDetails?.organizationNumber}")
-        log.info("ediAddress: ${communicationParty.ediAddress}")
-        log.info("Partner validFrom: ${communicationParty.validFrom}")
-        log.info("Partner validTo: ${communicationParty.validTo}")
-        assertEquals(HttpStatusCode.OK, response.status)
-        assertTrue(response.bodyAsText().isNotBlank())
+        runBlocking { assertTrue(response.bodyAsText().isNotBlank()) }
     }
 
     @Test
     fun `Get the signing certificate from AR with herId should return signing certificate information`() = cpaRepoTestApp {
-        val httpClient = HttpClient(getFakeNhnAdresseregisterEngine()) {
+        val httpClient = createClient {
             install(ContentNegotiation) {
-                json(
-                    Json {
-                        ignoreUnknownKeys = true
-                    }
-                )
+                json()
             }
         }
 
         val url = "/cpa/adresseregister/her/1/signing"
-        val response = httpClient.get(url)
-        val signCertificate = response.body<Certificate>()
+        val response = runBlocking { httpClient.get(url) }
+        val signCertificate = runBlocking { response.body<Certificate>() }
 
         log.info(" ${signCertificate.thumbprint} ")
         log.info(" ${signCertificate.validFrom} ")
@@ -811,24 +783,20 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         log.info(" ${signCertificate.certificateValue} ")
 
         assertEquals(HttpStatusCode.OK, response.status)
-        assertTrue(StringUtils.isNotBlank(response.bodyAsText()), "Response can't be null or blank")
+        runBlocking { assertTrue(StringUtils.isNotBlank(response.bodyAsText()), "Response can't be null or blank") }
     }
 
     @Test
     fun `Get the encryption certificate from AR with herId should return encryption certificate information`() = cpaRepoTestApp {
-        val httpClient = HttpClient(getFakeNhnAdresseregisterEngine()) {
+        val httpClient = createClient {
             install(ContentNegotiation) {
-                json(
-                    Json {
-                        ignoreUnknownKeys = true
-                    }
-                )
+                json()
             }
         }
 
         val url = "/cpa/adresseregister/her/1/encryption"
-        val response = httpClient.get(url)
-        val encryptCertificate = response.body<Certificate>()
+        val response = runBlocking { httpClient.get(url) }
+        val encryptCertificate = runBlocking { response.body<Certificate>() }
 
         log.info(" ${encryptCertificate.thumbprint} ")
         log.info(" ${encryptCertificate.validFrom} ")
@@ -836,7 +804,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         log.info(" ${encryptCertificate.certificateValue} ")
 
         assertEquals(HttpStatusCode.OK, response.status)
-        assertTrue(StringUtils.isNotBlank(response.bodyAsText()), "Response can't be null or blank")
+        runBlocking { assertTrue(StringUtils.isNotBlank(response.bodyAsText()), "Response can't be null or blank") }
     }
 
     private fun loadTestCPA(cpaName: String): CollaborationProtocolAgreement {
