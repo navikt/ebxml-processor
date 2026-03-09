@@ -120,31 +120,4 @@ class RetryService(
         )
         log.warn(messageError.marker(), "MessageError returned", ebmsException)
     }
-
-    internal suspend fun sendToRetryIn(
-        record: ReceiverRecord<String, ByteArray>,
-        exceptionReason: String
-    ) {
-        if (config().kafkaErrorQueue.active) {
-            failedMessageQueue.sendToRetry(
-                record = record,
-                reason = exceptionReason,
-                direction = Direction.IN
-            )
-        }
-    }
-
-    internal suspend fun sendToRetryOut(
-        record: ReceiverRecord<String, ByteArray>,
-        exceptionReason: String
-    ) {
-        log.warn("Sending message to retry out queue with reason: $exceptionReason")
-        if (config().kafkaErrorQueueOut.active) {
-            failedMessageQueue.sendToRetry(
-                record = record,
-                reason = exceptionReason,
-                direction = Direction.OUT
-            )
-        }
-    }
 }

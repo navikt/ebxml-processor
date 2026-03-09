@@ -66,13 +66,6 @@ class PayloadMessageServiceTest {
         coEvery {
             retryService.incomingRetryEval(any(), any(), any(), any())
         } just runs
-        coEvery {
-            retryService.sendToRetryIn(any(), any())
-        } just runs
-        coEvery {
-            retryService.sendToRetryOut(any(), any())
-        } just runs
-
         mockkStatic(EbmsDocument::signer)
         every {
             any<EbmsDocument>().signer(any())
