@@ -137,14 +137,15 @@ class FailedMessageKafkaHandler(
         if (advanceRetryTime) {
             record.addHeader(RETRY_AFTER, getNextRetryTime(record))
         }
+        val topic = when (direction) {
+            Direction.IN -> config().kafkaErrorQueue.topic
+            Direction.OUT -> config().kafkaErrorQueueOut.topic
+        }
         try {
             val metadata = publisher.publishScope {
                 publish(
                     ProducerRecord(
-                        when (direction) {
-                            Direction.IN -> config().kafkaErrorQueue.topic
-                            Direction.OUT -> config().kafkaErrorQueueOut.topic
-                        },
+                        topic,
                         null,
                         key,
                         value,
@@ -155,21 +156,11 @@ class FailedMessageKafkaHandler(
             logger.info("Offset on metadata: " + metadata.offset())
             logger.info("Result " + metadata.partition() + " timestamp " + metadata.timestamp())
             logger.info(
-                "Message sent successfully to topic ${
-                when (direction) {
-                    Direction.IN -> config().kafkaErrorQueue.topic
-                    Direction.OUT -> config().kafkaErrorQueueOut.topic
-                }
-                }"
+                "Message sent successfully to topic $topic"
             )
         } catch (e: Exception) {
             logger.info(
-                "Failed to send message to ${
-                when (direction) {
-                    Direction.IN -> config().kafkaErrorQueue.topic
-                    Direction.OUT -> config().kafkaErrorQueueOut.topic
-                }
-                } : ${e.message}"
+                "Failed to send message to $topic : ${e.message}"
             )
         }
     }
