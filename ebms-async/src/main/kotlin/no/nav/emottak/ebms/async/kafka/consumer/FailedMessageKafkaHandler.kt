@@ -123,23 +123,18 @@ class FailedMessageKafkaHandler(
         advanceRetryTime: Boolean = true,
         direction: Direction
     ) {
+        val topic = when (direction) {
+            Direction.IN -> config().kafkaErrorQueue.topic
+            Direction.OUT -> config().kafkaErrorQueueOut.topic
+        }
         logger.info(
-            "Sending message to ${
-            when (direction) {
-                Direction.IN -> config().kafkaErrorQueue.topic
-                Direction.OUT -> config().kafkaErrorQueueOut.topic
-            }
-            } queue with reason: $reason"
+            "Sending message to $topic queue with reason: $reason"
         )
         if (reason != null) {
             record.addHeader(RETRY_REASON, reason)
         }
         if (advanceRetryTime) {
             record.addHeader(RETRY_AFTER, getNextRetryTime(record))
-        }
-        val topic = when (direction) {
-            Direction.IN -> config().kafkaErrorQueue.topic
-            Direction.OUT -> config().kafkaErrorQueueOut.topic
         }
         try {
             val metadata = publisher.publishScope {
