@@ -64,7 +64,7 @@ class PayloadMessageService(
             payloadMessageForwardingService.returnMessageResponse(ebmsPayloadMessage)
         }.onFailure { exception ->
             log.error(ebmsPayloadMessage.marker(), exception.message ?: "Outbound response processing error", exception)
-            //retryService.sendToRetryIfShouldBeRetried(record = record, payloadMessage = ebmsPayloadMessage, exception = exception, reason = exception.message ?: "Unknown error", Direction.OUT)
+            // retryService.sendToRetryIfShouldBeRetried(record = record, payloadMessage = ebmsPayloadMessage, exception = exception, reason = exception.message ?: "Unknown error", Direction.OUT)
         }
     }
 
