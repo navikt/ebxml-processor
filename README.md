@@ -62,7 +62,7 @@ smtp-transport (Kafka)
   │                      └─ feil → retry-kø (maks 10 forsøk, respekterer TimeToLive)
   │
   └─ signal-topic   ─→ ebms-async (SignalMessageService)
-                         └─ cpa-repo (validering av utgående signal)
+                         └─ cpa-repo (validering av innkommende signal)
 ```
 
 ## Utvikling
