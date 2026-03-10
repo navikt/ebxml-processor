@@ -1,0 +1,81 @@
+[
+  {
+    "herId": 0,
+    "name": "string",
+    "displayName": "string",
+    "type": "Organization",
+    "organizationDetails": {
+      "organizationNumber": "string",
+      "businessType": {
+        "codeListId": "string",
+        "value": "string",
+        "name": "string",
+        "url": "string"
+      },
+      "persons": [
+        0
+      ],
+      "services": [
+        0
+      ]
+    },
+    "personDetails": {
+      "hprNumber": 0,
+      "parentOrganization": {
+        "name": "string",
+        "herId": 0,
+        "organizationNumber": "string"
+      }
+    },
+    "serviceDetails": {
+      "serviceType": {
+        "codeListId": "string",
+        "value": "string",
+        "name": "string",
+        "url": "string"
+      },
+      "interMunicipalityCoverageArea": {
+        "municipalityHerIds": [
+          0
+        ]
+      },
+      "serviceSpecification": "string",
+      "parentOrganization": {
+        "name": "string",
+        "herId": 0,
+        "organizationNumber": "string"
+      }
+    },
+    "currentSigningCertificate": {
+      "thumbprint": "string",
+      "validFrom": "2026-03-10T10:00:13.878Z",
+      "validTo": "2026-03-10T10:00:13.878Z"
+    },
+    "currentEncryptionCertificate": {
+      "thumbprint": "string",
+      "validFrom": "2026-03-10T10:00:13.878Z",
+      "validTo": "2026-03-10T10:00:13.878Z"
+    },
+    "email": "string",
+    "homepageUrl": "string",
+    "phoneNumber": "string",
+    "faxNumber": "string",
+    "ediAddress": "string",
+    "fhirAddress": "string",
+    "postalAddress": {
+      "address": "string",
+      "postalBox": "string",
+      "postalCode": "string",
+      "city": "string"
+    },
+    "amqpTransportStatus": "Inherited",
+    "amqpAddress": {
+      "amqpSyncQueue": "string",
+      "amqpSyncReplyQueue": "string",
+      "amqpAsyncQueue": "string",
+      "amqpErrorQueue": "string"
+    },
+    "validFrom": "2026-03-10T10:00:13.878Z",
+    "validTo": "2026-03-10T10:00:13.878Z"
+  }
+]

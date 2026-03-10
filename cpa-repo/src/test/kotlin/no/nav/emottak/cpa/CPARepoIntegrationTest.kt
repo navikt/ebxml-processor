@@ -31,13 +31,11 @@ import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
-import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import no.nav.emottak.cpa.auth.AZURE_AD_AUTH
 import no.nav.emottak.cpa.auth.AuthConfig
 import no.nav.emottak.cpa.databasetest.PostgresOracleTest
 import no.nav.emottak.cpa.model.Certificate
-import no.nav.emottak.cpa.model.CommunicationParty
 import no.nav.emottak.cpa.persistence.CPARepository
 import no.nav.emottak.cpa.persistence.gammel.PartnerRepository
 import no.nav.emottak.cpa.util.EventRegistrationServiceFake
@@ -744,28 +742,6 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
     }
 
     @Test
-    fun `Get adresseregister data with herid should return the partner's data`() = cpaRepoTestApp {
-        val httpClient = createClient {
-            install(ContentNegotiation) {
-                json()
-            }
-        }
-
-        val url = "/cpa/adresseregister/her/1"
-        val response = runBlocking { httpClient.get(url) }
-        val communicationParty = runBlocking { response.body<CommunicationParty>() }
-
-        log.info("herId: ${communicationParty.herId}")
-        log.info("displayName: ${communicationParty.displayName}")
-        log.info("organizationNumber: ${communicationParty.organizationDetails.organizationNumber}")
-        log.info("ediAddress: ${communicationParty.ediAddress}")
-        log.info("Partner validFrom: ${communicationParty.validFrom}")
-        log.info("Partner validTo: ${communicationParty.validTo}")
-        assertEquals(HttpStatusCode.OK, response.status)
-        runBlocking { assertTrue(response.bodyAsText().isNotBlank()) }
-    }
-
-    @Test
     fun `Get the signing certificate from AR with herId should return signing certificate information`() = cpaRepoTestApp {
         val httpClient = createClient {
             install(ContentNegotiation) {
@@ -774,8 +750,8 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         }
 
         val url = "/cpa/adresseregister/her/1/signing"
-        val response = runBlocking { httpClient.get(url) }
-        val signCertificate = runBlocking { response.body<Certificate>() }
+        val response = httpClient.get(url)
+        val signCertificate = response.body<Certificate>()
 
         log.info(" ${signCertificate.thumbprint} ")
         log.info(" ${signCertificate.validFrom} ")
@@ -783,7 +759,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         log.info(" ${signCertificate.certificateValue} ")
 
         assertEquals(HttpStatusCode.OK, response.status)
-        runBlocking { assertTrue(StringUtils.isNotBlank(response.bodyAsText()), "Response can't be null or blank") }
+        assertTrue(StringUtils.isNotBlank(response.bodyAsText()), "Response can't be null or blank")
     }
 
     @Test
@@ -795,8 +771,8 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         }
 
         val url = "/cpa/adresseregister/her/1/encryption"
-        val response = runBlocking { httpClient.get(url) }
-        val encryptCertificate = runBlocking { response.body<Certificate>() }
+        val response = httpClient.get(url)
+        val encryptCertificate = response.body<Certificate>()
 
         log.info(" ${encryptCertificate.thumbprint} ")
         log.info(" ${encryptCertificate.validFrom} ")
@@ -804,7 +780,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         log.info(" ${encryptCertificate.certificateValue} ")
 
         assertEquals(HttpStatusCode.OK, response.status)
-        runBlocking { assertTrue(StringUtils.isNotBlank(response.bodyAsText()), "Response can't be null or blank") }
+        assertTrue(StringUtils.isNotBlank(response.bodyAsText()), "Response can't be null or blank")
     }
 
     private fun loadTestCPA(cpaName: String): CollaborationProtocolAgreement {

@@ -432,7 +432,6 @@ suspend fun HttpClient.fetchCommunicationParty(herId: String): CommunicationPart
         }
 
         val communicationParty = response.body<CommunicationParty>()
-        log.info("${communicationParty.validTo}")
         communicationParty
     } catch (e: Exception) {
         log.error("Kunne ikke koble til $baseUrl: ${e.localizedMessage}", e)
