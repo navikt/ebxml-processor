@@ -28,11 +28,11 @@ import no.nav.emottak.cpa.util.EventRegistrationService
 import no.nav.emottak.cpa.validation.MessageDirection
 import no.nav.emottak.cpa.validation.partyInfoHasRoleServiceActionCombo
 import no.nav.emottak.cpa.validation.validate
-import no.nav.emottak.melding.feil.EbmsException
 import no.nav.emottak.message.ebxml.EbXMLConstants.ACKNOWLEDGMENT_ACTION
 import no.nav.emottak.message.ebxml.EbXMLConstants.EBMS_SERVICE_URI
 import no.nav.emottak.message.ebxml.EbXMLConstants.MESSAGE_ERROR_ACTION
 import no.nav.emottak.message.ebxml.PartyTypeEnum
+import no.nav.emottak.message.exception.EbmsException
 import no.nav.emottak.message.model.ErrorCode
 import no.nav.emottak.message.model.Feil
 import no.nav.emottak.message.model.MessagingCharacteristicsRequest
@@ -267,15 +267,13 @@ fun Route.validateCpa(
             )
         )
 
-        val eventData = Json.encodeToString(
-            mapOf(EventDataType.SENDER_NAME.value to fromParty.partyName)
-        )
-
         eventRegistrationService.registerEvent(
             EventType.MESSAGE_VALIDATED_AGAINST_CPA,
             validateRequest,
             requestId,
-            eventData
+            Json.encodeToString(
+                mapOf(EventDataType.SENDER_NAME.value to fromParty.partyName)
+            )
         )
     } catch (ebmsEx: EbmsException) {
         eventRegistrationService.registerEvent(

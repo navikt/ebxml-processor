@@ -50,7 +50,9 @@ import no.nav.emottak.ebms.async.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.async.processing.MessageFilterService
 import no.nav.emottak.ebms.async.processing.PayloadMessageForwardingService
 import no.nav.emottak.ebms.async.processing.PayloadMessageService
+import no.nav.emottak.ebms.async.processing.RetryService
 import no.nav.emottak.ebms.async.processing.SignalMessageService
+import no.nav.emottak.ebms.async.processing.sendSignalResponseToTopic
 import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.ebms.async.util.EventRegistrationServiceImpl
 import no.nav.emottak.ebms.defaultHttpClient
@@ -112,6 +114,15 @@ fun main() = SuspendApp {
         messagePendingAckRepository = messagePendingAckRepository
     )
 
+    val retryService = RetryService(
+        cpaValidationService = cpaValidationService,
+        eventRegistrationService = eventRegistrationService,
+        failedMessageQueue = failedMessageQueue,
+        signalSender = { ebmsDocument, signalResponderEmails ->
+            sendSignalResponseToTopic(ebmsSignalProducer, eventRegistrationService, ebmsDocument, signalResponderEmails)
+        }
+    )
+
     val payloadMessageService = PayloadMessageService(
         cpaValidationService = cpaValidationService,
         processingService = processingService,
@@ -119,7 +130,7 @@ fun main() = SuspendApp {
         payloadMessageForwardingService = payloadMessageForwardingService,
         eventRegistrationService = eventRegistrationService,
         messageReceivedRepository = messageReceivedRepository,
-        failedMessageQueue = failedMessageQueue
+        retryService = retryService
     )
 
     val signalMessageService = SignalMessageService(
@@ -248,7 +259,7 @@ fun CoroutineScope.launchErrorRetryTask(
     timer(
         name = "Retry Errors Timer",
         initialDelay = 5000L,
-        period = config.errorRetryPolicy.processInterval.inWholeMilliseconds,
+        period = config.errorRetryPolicyIncoming.processInterval.inWholeMilliseconds,
         daemon = true
     ) {
         launch(Dispatchers.IO) {
@@ -261,7 +272,7 @@ fun CoroutineScope.launchErrorRetryTask(
 
                 failedMessageQueue.consumeRetryQueue(
                     messageFilterService,
-                    config.errorRetryPolicy.maxMessagesToProcess
+                    config.errorRetryPolicyIncoming.maxMessagesToProcess
                 )
             } catch (e: Exception) {
                 log.error("RetryErrorsTask failed", e)
@@ -392,7 +403,7 @@ fun Route.simulateError(
                         .copy(groupId = "ebms-provider-retry"),
                     (call.parameters[KAFKA_OFFSET])?.toLong() ?: 0
                 )
-                failedMessageQueue.sendToRetry(
+                failedMessageQueue.sendToRetryQueueIncoming(
                     record = record ?: throw Exception("No Record found. Offset: ${call.parameters[KAFKA_OFFSET]}"),
                     reason = "Simulated Error"
                 )

@@ -2,6 +2,7 @@ package no.nav.emottak.cpa.util
 
 import no.nav.emottak.cpa.log
 import no.nav.emottak.message.model.ValidationRequest
+import no.nav.emottak.util.marker
 import no.nav.emottak.utils.common.parseOrGenerateUuid
 import no.nav.emottak.utils.kafka.model.Event
 import no.nav.emottak.utils.kafka.model.EventType
@@ -25,7 +26,13 @@ class EventRegistrationServiceImpl(
         requestId: String,
         eventData: String
     ) {
-        log.debug("Registering event for requestId: $requestId")
+        log.debug(validationRequest.marker(), "Registering event for requestId: $requestId")
+        when (validationRequest.addressing.service) {
+            "HarBorgerEgenandelFritak", "HarBorgerFrikort" -> {
+                log.debug(validationRequest.marker(), "Skipping event persistence")
+                return
+            }
+        }
 
         try {
             val event = Event(

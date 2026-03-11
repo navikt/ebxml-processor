@@ -10,6 +10,7 @@ import no.nav.emottak.ebms.async.kafka.consumer.RETRY_COUNT_HEADER
 import no.nav.emottak.ebms.async.kafka.consumer.asReceiverRecord
 import no.nav.emottak.ebms.async.kafka.consumer.getRecord
 import no.nav.emottak.ebms.async.processing.MessageFilterService
+import no.nav.emottak.message.model.Direction
 import no.nav.emottak.utils.config.Kafka
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.junit.jupiter.api.AfterEach
@@ -40,19 +41,19 @@ class ErrorHandlerTest {
             // Set retry after 0 minutes, to force immediate retry
             val errorHandler = FailedMessageKafkaHandler(
                 kafka = testcontainerKafkaConfig,
-                errorRetryPolicy = ErrorRetryPolicy(1.seconds, 10, listOf(0.minutes), listOf(2))
+                errorRetryPolicy = ErrorRetryPolicy(1.seconds, 10, listOf(0.minutes), listOf(2), maxRetries = 10)
             )
             val processedMessages = ArrayList<ReceiverRecord<String, ByteArray>>()
             val messageFilterService = DummyMessageFilterService(errorHandler, processedMessages)
 
-            errorHandler.sendToRetry(newRecord("test-message"))
+            errorHandler.sendToRetry(newRecord("test-message"), direction = Direction.IN)
             val record1 = getRecordFromErrorQueueAtOffset(testcontainerKafkaConfig, 0)
             assertTrue(record1?.key() == "test-message", "Melding sendt til feilhåndtering ligger på feilkø med offset 0")
 
             errorHandler.consumeRetryQueue(messageFilterService)
             assertTrue(processedMessages.size == 1, "Etter prosessering av feilkø er meldingen prosessert av MessageFilterService")
 
-            errorHandler.sendToRetry(newRecord("failingAtFirstRetry"))
+            errorHandler.sendToRetry(newRecord("failingAtFirstRetry"), direction = Direction.IN)
             val record2 = getRecordFromErrorQueueAtOffset(testcontainerKafkaConfig, 1)
             assertTrue(record2?.key() == "failingAtFirstRetry", "Melding som vil feile ligger på feilkø med offset 1")
 
@@ -102,7 +103,8 @@ class ErrorHandlerTest {
                     println("--Failing message {$r+1} time with requestId: ${record.key()} and offset ${record.offset()}")
                     kafkaErrorHandler.sendToRetry(
                         record = record,
-                        reason = "Test message set to fail again"
+                        reason = "Test message set to fail again",
+                        direction = Direction.IN
                     )
                     return
                 }

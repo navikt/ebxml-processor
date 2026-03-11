@@ -11,12 +11,11 @@ import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
-import no.nav.emottak.ebms.util.EventRegistrationService
 import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.ebms.validation.MimeValidationException
 import no.nav.emottak.ebms.validation.convertToSoapFault
 import no.nav.emottak.ebms.validation.validateMime
-import no.nav.emottak.melding.feil.EbmsException
+import no.nav.emottak.message.exception.EbmsException
 import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.EbmsDocument
 import no.nav.emottak.message.model.Payload
@@ -25,18 +24,15 @@ import no.nav.emottak.message.model.PayloadProcessing
 import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.util.marker
 import no.nav.emottak.util.retrieveLoggableHeaderPairs
-import no.nav.emottak.utils.kafka.model.EventType
-import no.nav.emottak.utils.serialization.toEventDataJson
 
 fun Route.postEbmsSync(
     cpaValidationService: CPAValidationService,
     processingService: ProcessingService,
-    sendInService: SendInService,
-    eventRegistrationService: EventRegistrationService
+    sendInService: SendInService
 ): Route = post("/ebms/sync") {
     log.info("Receiving synchronous request")
 
-    val ebmsDocument = getEbmsDocument(call, eventRegistrationService) ?: return@post
+    val ebmsDocument = getEbmsDocument(call) ?: return@post
     val ebmsMessage = ebmsDocument.transform() as PayloadMessage
 
     var signingCertificate: SignatureDetails? = null
@@ -83,10 +79,6 @@ fun Route.postEbmsSync(
                     }
                 )
                 log.info(it.first.marker(), "Melding ferdig behandlet og svar returnert")
-                eventRegistrationService.registerEvent(
-                    EventType.MESSAGE_SENT_VIA_HTTP,
-                    it.first.toEbmsDokument()
-                )
                 return@post
             }
     } catch (ebmsException: EbmsException) {
@@ -96,24 +88,11 @@ fun Route.postEbmsSync(
                 it.signer(signatureDetails)
             }
             log.info(ebmsMessage.marker(), "Created MessageError response")
-
-            eventRegistrationService.registerEvent(
-                EventType.ERROR_WHILE_SENDING_MESSAGE_VIA_HTTP,
-                ebmsDocument,
-                ebmsException.toEventDataJson()
-            )
-
             call.respondEbmsDokument(it)
             return@post
         }
     } catch (ex: Exception) {
         log.error(ebmsMessage.marker(), ex.message ?: "Unknown error during message processing", ex)
-
-        eventRegistrationService.registerEvent(
-            EventType.ERROR_WHILE_SENDING_MESSAGE_VIA_HTTP,
-            ebmsDocument,
-            ex.toEventDataJson()
-        )
 
         call.respond(
             HttpStatusCode.InternalServerError,
@@ -123,8 +102,7 @@ fun Route.postEbmsSync(
 }
 
 private suspend fun getEbmsDocument(
-    call: RoutingCall,
-    eventRegistrationService: EventRegistrationService
+    call: RoutingCall
 ): EbmsDocument? {
     val ebmsDocument: EbmsDocument
     val loggableHeaders = call.request.headers.retrieveLoggableHeaderPairs()
@@ -132,12 +110,6 @@ private suspend fun getEbmsDocument(
         call.request.validateMime()
         ebmsDocument = call.receiveEbmsDokument()
         log.info(ebmsDocument.messageHeader().marker(loggableHeaders), "Melding mottatt")
-
-        eventRegistrationService.registerEventMessageDetails(ebmsDocument)
-        eventRegistrationService.registerEvent(
-            EventType.MESSAGE_RECEIVED_VIA_HTTP,
-            ebmsDocument
-        )
     } catch (ex: MimeValidationException) {
         logger().error(
             call.request.headers.marker(),
