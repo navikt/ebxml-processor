@@ -31,7 +31,9 @@ import no.nav.emottak.ebms.async.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.async.processing.MessageFilterService
 import no.nav.emottak.ebms.async.processing.PayloadMessageForwardingService
 import no.nav.emottak.ebms.async.processing.PayloadMessageService
+import no.nav.emottak.ebms.async.processing.RetryService
 import no.nav.emottak.ebms.async.processing.SignalMessageService
+import no.nav.emottak.ebms.async.processing.sendSignalResponseToTopic
 import no.nav.emottak.ebms.async.util.EventRegistrationServiceFake
 import no.nav.emottak.ebms.defaultHttpClient
 import no.nav.emottak.ebms.eventmanager.EventManagerService
@@ -40,6 +42,7 @@ import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.ebms.xml.ebmsSigning
 import no.nav.emottak.message.model.AsyncPayload
+import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.EbmsMessage
 import no.nav.emottak.message.model.MessagingCharacteristicsRequest
 import no.nav.emottak.message.model.MessagingCharacteristicsResponse
@@ -95,9 +98,9 @@ fun main() = SuspendApp {
     val config = config()
     println(" ************ config.kafkaErrorQueue.active: " + config.kafkaErrorQueue.active)
     println(" ************ config.kafkaPayloadReceiver.active: " + config.kafkaPayloadReceiver.active)
-    println(" ************ config.errorRetryPolicy.processInterval: " + config.errorRetryPolicy.processInterval)
-    println(" ************ config.errorRetryPolicy.retriesPerInterval: " + config.errorRetryPolicy.retriesPerInterval)
-    println(" ************ config.errorRetryPolicy.retryIntervals: " + config.errorRetryPolicy.retryIntervals)
+    println(" ************ config.errorRetryPolicy.processInterval: " + config.errorRetryPolicyIncoming.processInterval)
+    println(" ************ config.errorRetryPolicy.retriesPerInterval: " + config.errorRetryPolicyIncoming.retriesPerInterval)
+    println(" ************ config.errorRetryPolicy.retryIntervals: " + config.errorRetryPolicyIncoming.retryIntervals)
     println(" ************ config.messageResendPolicy.processInterval: " + config.messageResendPolicy.processInterval)
     println(" ************ config.messageResendPolicy.resendInterval: " + config.messageResendPolicy.resendInterval)
 
@@ -141,6 +144,15 @@ fun main() = SuspendApp {
         messagePendingAckRepository = messagePendingAckRepository
     )
 
+    val retryService = RetryService(
+        cpaValidationService = cpaValidationService,
+        eventRegistrationService = eventRegistrationService,
+        failedMessageQueue = failedMessageQueue,
+        signalSender = { ebmsDocument, signalResponderEmails ->
+            sendSignalResponseToTopic(ebmsSignalProducer, eventRegistrationService, ebmsDocument, signalResponderEmails)
+        }
+    )
+
     val payloadMessageService = PayloadMessageService(
         cpaValidationService = cpaValidationService,
         processingService = processingService,
@@ -148,7 +160,7 @@ fun main() = SuspendApp {
         payloadMessageForwardingService = payloadMessageForwardingService,
         eventRegistrationService = eventRegistrationService,
         eventManagerService = eventManagerService,
-        failedMessageQueue = failedMessageQueue
+        retryService = retryService
     )
 
     val signalMessageService = SignalMessageService(
@@ -255,9 +267,10 @@ class DummyMessageFilterService(
             if (f != null && r != null) {
                 if (r <= f) {
                     println("--Set to fail again, number of times to fail: $f, number of retries now: $r")
-                    payloadMessageService.failedMessageQueue.sendToRetry(
+                    payloadMessageService.retryService.failedMessageQueue.sendToRetry(
                         record = record,
-                        reason = "Test message set to fail again"
+                        reason = "Test message set to fail again",
+                        direction = Direction.IN
                     )
                     return
                 }

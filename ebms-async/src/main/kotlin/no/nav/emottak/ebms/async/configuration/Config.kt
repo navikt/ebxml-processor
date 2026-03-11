@@ -27,7 +27,8 @@ data class Config(
     val kafkaErrorQueueOut: KafkaErrorQueueOut,
     val kafkaEbmsOutPayloadReceiver: KafkaEbmsOutPayloadReceiver,
     val signering: List<KeyStoreConfiguration>,
-    val errorRetryPolicy: ErrorRetryPolicy,
+    val errorRetryPolicyIncoming: ErrorRetryPolicy,
+    val errorRetryPolicyOutgoing: ErrorRetryPolicy,
     val messageResendPolicy: MessageResendPolicy
 )
 
@@ -41,7 +42,8 @@ data class ErrorRetryPolicy(
     val processInterval: Duration,
     val maxMessagesToProcess: Int,
     val retryIntervals: List<Duration>,
-    val retriesPerInterval: List<Int>
+    val retriesPerInterval: List<Int>,
+    val maxRetries: Int
     // If retriesPerInterval is e.g. [3, 3, 23] and retryIntervalsMinutes is [5m, 15m, 1h, 24h],
     // then the first 3 retries occurs 5/10/15 minutes after first failure, the next 3 retries 30/45/60 minutes after first failure,
     // the next 23 retries 2-24 hours after first failure, and any retries after that will occur every 24 hours after the previous retry.

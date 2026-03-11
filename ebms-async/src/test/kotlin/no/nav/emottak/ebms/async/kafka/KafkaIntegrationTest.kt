@@ -6,6 +6,7 @@ import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
 import no.nav.emottak.ebms.async.kafka.consumer.getRecord
 import no.nav.emottak.ebms.async.kafka.consumer.getRetryRecord
+import no.nav.emottak.message.model.Direction
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.condition.DisabledIf
 import org.testcontainers.shaded.com.google.common.io.Resources
@@ -63,7 +64,8 @@ class KafkaIntegrationTest {
             )!!
             runBlocking {
                 failedMessageQueue.sendToRetry(
-                    record
+                    record,
+                    direction = Direction.IN
                 )
             }
             val retryRecord = getRetryRecord()
