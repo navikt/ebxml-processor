@@ -36,6 +36,7 @@ import no.nav.emottak.cpa.auth.AZURE_AD_AUTH
 import no.nav.emottak.cpa.auth.AuthConfig
 import no.nav.emottak.cpa.databasetest.PostgresOracleTest
 import no.nav.emottak.cpa.model.Certificate
+import no.nav.emottak.cpa.model.CommunicationParty
 import no.nav.emottak.cpa.persistence.CPARepository
 import no.nav.emottak.cpa.persistence.gammel.PartnerRepository
 import no.nav.emottak.cpa.util.EventRegistrationServiceFake
@@ -90,6 +91,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
                     install(ContentNegotiation) {
                         json(
                             Json {
+                                explicitNulls = false
                                 ignoreUnknownKeys = true
                             }
                         )
@@ -739,6 +741,25 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
 
     val LENIENT_JSON_PARSER = Json {
         isLenient = true
+    }
+
+    @Test
+    fun `Get the communicationparty from AR with herId should return partners information`() = cpaRepoTestApp {
+        val httpClient = createClient {
+            install(ContentNegotiation) {
+                json()
+            }
+        }
+
+        val url = "/cpa/adresseregister/her/79768"
+        val response = httpClient.get(url)
+        val cp = response.body<CommunicationParty>()
+
+        log.info("${cp.herID}")
+        log.info("${cp.displayName}")
+
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertTrue(StringUtils.isNotBlank(response.bodyAsText()), "Response can't be null or blank")
     }
 
     @Test

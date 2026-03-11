@@ -45,7 +45,6 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().all {
 dependencies {
     api(project(":felles"))
     api(project(":ebxml-processing-model"))
-    implementation("com.beust:klaxon:5.6")
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.netty)
     implementation(libs.ktor.server.content.negotiation)

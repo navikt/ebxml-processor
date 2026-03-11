@@ -399,7 +399,7 @@ fun Route.getARSignCertificate(httpClient: HttpClient) =
             val certificate = httpClient.fetchARSignCertificate(herId)
             call.respond(HttpStatusCode.OK, certificate)
         } catch (ex: Exception) {
-            log.error("Error while fetching communication party <$herId>", ex)
+            log.error("Error while fetching signing certificate <$herId>", ex)
             call.respondText(ex.localizedMessage, ContentType.Text.Plain, HttpStatusCode.InternalServerError)
         }
     }
@@ -412,7 +412,7 @@ fun Route.getAREncryptCertificate(httpClient: HttpClient) =
             val certificate = httpClient.fetchAREncryptCertificate(herId)
             call.respond(certificate)
         } catch (ex: Exception) {
-            log.error("Error while fetching communication party <$herId>", ex)
+            log.error("Error while fetching encryption certificate <$herId>", ex)
             call.respondText(
                 ex.localizedMessage,
                 ContentType.Text.Plain,

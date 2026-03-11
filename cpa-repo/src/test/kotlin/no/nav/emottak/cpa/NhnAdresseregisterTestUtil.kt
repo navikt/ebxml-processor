@@ -8,10 +8,15 @@ import io.ktor.http.headersOf
 import io.ktor.utils.io.ByteReadChannel
 import kotlinx.serialization.json.Json
 import no.nav.emottak.cpa.model.Certificate
+import java.io.File
 
 fun getFakeNhnAdresseregisterEngine(): MockEngine =
     MockEngine { request ->
+
         val responseBody = when {
+            request.url.encodedPath.contains("/api/v1/communicationparty/79768") -> {
+                File("src/main/resources/CommunicationParty.json").readText()
+            }
             request.url.encodedPath.contains("/api/v1/certificate/1/signing") -> {
                 val currentSigning = "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"
                 var signCertificate = Certificate(
@@ -20,6 +25,7 @@ fun getFakeNhnAdresseregisterEngine(): MockEngine =
                     "2027-09-26T21:59:00+00:00",
                     currentSigning
                 )
+                // CommunicationParty(kotlin.collections.Collection<CommunicationPartyElement>)
 
                 Json.encodeToString(signCertificate)
             }
