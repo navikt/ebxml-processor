@@ -15,7 +15,6 @@ import no.nav.emottak.ebms.payload
 import no.nav.emottak.ebms.postEbmsSync
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
-import no.nav.emottak.ebms.util.EventRegistrationServiceFake
 import no.nav.emottak.ebms.validMultipartRequest
 import no.nav.emottak.message.ebxml.errorList
 import no.nav.emottak.message.ebxml.messageHeader
@@ -35,7 +34,6 @@ class MimeValidationIT {
 
     val validMultipartRequest = validMultipartRequest()
     val cpaRepoClient = mockk<CpaRepoClient>()
-    val eventRegistrationService = EventRegistrationServiceFake()
 
     fun <T> mimeTestApp(testBlock: suspend ApplicationTestBuilder.() -> T) = testApplication {
         application {
@@ -43,7 +41,7 @@ class MimeValidationIT {
             val processingService = mockk<ProcessingService>()
             val sendInService = mockk<SendInService>()
             routing {
-                postEbmsSync(cpaValidationService, processingService, sendInService, eventRegistrationService)
+                postEbmsSync(cpaValidationService, processingService, sendInService)
             }
         }
         externalServices {

@@ -22,7 +22,6 @@ import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
-import no.nav.emottak.ebms.util.EventRegistrationServiceFake
 import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.ebms.validation.MimeHeaders
 import no.nav.emottak.message.ebxml.errorList
@@ -76,7 +75,6 @@ class EbmsRouteSyncIT {
     var sendInClientFagmeldingSynkronCount = 0
     var processingClientPayloadCount = 0
     val validMultipartRequest = validMultipartRequest()
-    val eventRegistrationService = EventRegistrationServiceFake()
 
     fun <T> testSyncApp(testBlock: suspend ApplicationTestBuilder.() -> T) = testApplication {
         val client = createClient {
@@ -100,7 +98,7 @@ class EbmsRouteSyncIT {
                 json()
             }
             routing {
-                postEbmsSync(cpaValidationService, ProcessingService(processingClient), SendInService(sendInClient), eventRegistrationService)
+                postEbmsSync(cpaValidationService, ProcessingService(processingClient), SendInService(sendInClient))
             }
         }
         externalServices {
