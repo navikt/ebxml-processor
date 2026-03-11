@@ -3,6 +3,7 @@ package no.nav.emottak.ebms.async.persistence.repository
 import no.nav.emottak.ebms.async.persistence.Database
 import no.nav.emottak.ebms.async.persistence.table.MessageReceivedTable
 import no.nav.emottak.ebms.async.persistence.table.MessageReceivedTable.referenceId
+import no.nav.emottak.ebms.async.util.getPreferredPartyId
 import no.nav.emottak.message.model.PayloadMessage
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
@@ -19,7 +20,15 @@ class MessageReceivedRepository(private val database: Database) {
                 it[referenceId] = UUID.fromString(ebmsPayloadMessage.requestId)
                 it[conversationId] = ebmsPayloadMessage.conversationId
                 it[messageId] = ebmsPayloadMessage.messageId
+                it[refToMessageId] = ebmsPayloadMessage.refToMessageId
                 it[cpaId] = ebmsPayloadMessage.cpaId
+                it[senderRole] = ebmsPayloadMessage.addressing.from.role
+                it[senderId] = ebmsPayloadMessage.addressing.from.partyId.getPreferredPartyId().value
+                it[receiverRole] = ebmsPayloadMessage.addressing.to.role
+                it[receiverId] = ebmsPayloadMessage.addressing.to.partyId.getPreferredPartyId().value
+                it[service] = ebmsPayloadMessage.addressing.service
+                it[action] = ebmsPayloadMessage.addressing.action
+                it[receivedAt] = java.time.Instant.now()
                 it[ackSent] = true
             }
         }
