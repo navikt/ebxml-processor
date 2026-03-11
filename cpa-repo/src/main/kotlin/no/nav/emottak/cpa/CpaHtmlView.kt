@@ -35,6 +35,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss z").withZone(ZoneId.systemDefault())
+private val EXPIRY_WARNING_THRESHOLD = java.time.Duration.ofDays(30)
 
 fun HTML.renderCpa(cpa: CollaborationProtocolAgreement) {
     val isActive = cpa.status.value == StatusValueType.AGREED
@@ -72,7 +73,8 @@ fun HTML.renderCpa(cpa: CollaborationProtocolAgreement) {
                     labeledValue(
                         "Valid to",
                         dateFormatter.format(cpa.end.toInstant()),
-                        expired = cpa.end.toInstant() < java.time.Instant.now()
+                        expired = cpa.end.toInstant() < java.time.Instant.now(),
+                        expiringSoon = cpa.end.toInstant() < java.time.Instant.now() + EXPIRY_WARNING_THRESHOLD
                     )
                 }
             }
@@ -198,10 +200,16 @@ fun HTML.renderCpa(cpa: CollaborationProtocolAgreement) {
     }
 }
 
-private fun FlowContent.labeledValue(label: String, value: String, expired: Boolean = false) {
+private fun FlowContent.labeledValue(label: String, value: String, expired: Boolean = false, expiringSoon: Boolean = false) {
     div("labeled-value") {
         span("label") { +label }
-        span(if (expired) "value value-expired" else "value") { +value }
+        span(
+            when {
+                expired -> "value value-expired"
+                expiringSoon -> "value value-expiring-soon"
+                else -> "value"
+            }
+        ) { +value }
     }
 }
 
@@ -214,6 +222,7 @@ private fun FlowContent.renderCertificates(party: PartyInfo) {
                 div("cert-card") {
                     val now = System.currentTimeMillis()
                     val expired = x509.notAfter.time < now
+                    val expiringSoon = x509.notAfter.time < now + EXPIRY_WARNING_THRESHOLD.toMillis()
                     val notYetValid = x509.notBefore.time > now
                     div("cert-header") {
                         span("cert-id") { +cert.certId }
@@ -221,6 +230,8 @@ private fun FlowContent.renderCertificates(party: PartyInfo) {
                             span("badge badge-inactive") { +"Expired" }
                         } else if (notYetValid) {
                             span("badge badge-inactive") { +"Not yet valid" }
+                        } else if (expiringSoon) {
+                            span("badge badge-warning") { +"Expiring soon" }
                         } else {
                             span("badge badge-active") { +"Valid" }
                         }
@@ -234,7 +245,8 @@ private fun FlowContent.renderCertificates(party: PartyInfo) {
                         labeledValue(
                             "Valid to",
                             dateFormatter.format(x509.notAfter.toInstant()),
-                            expired = expired
+                            expired = expired,
+                            expiringSoon = expiringSoon
                         )
                     }
                 }
@@ -271,6 +283,7 @@ private val CPA_STYLES = """
     .badge { padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; text-transform: uppercase; }
     .badge-active { background: #d4f5e2; color: #1a7a40; }
     .badge-inactive { background: #fde8e8; color: #c0392b; }
+    .badge-warning { background: #fefce8; color: #ca8a04; }
 
     h2 { font-size: 16px; font-weight: 600; color: #333; margin: 20px 0 12px; }
     h3 { font-size: 15px; font-weight: 600; margin-bottom: 16px; color: #1a1a2e; }
@@ -290,6 +303,7 @@ private val CPA_STYLES = """
     .labeled-value .label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.4px; }
     .labeled-value .value { font-size: 13px; color: #1a1a2e; font-weight: 500; margin-top: 2px; }
     .labeled-value .value-expired { color: #b91c1c; font-weight: 700; }
+    .labeled-value .value-expiring-soon { color: #ca8a04; font-weight: 700; }
 
     .table { width: 100%; border-collapse: collapse; font-size: 13px; }
     .table th { text-align: left; padding: 6px 10px; background: #f8f8fc;
