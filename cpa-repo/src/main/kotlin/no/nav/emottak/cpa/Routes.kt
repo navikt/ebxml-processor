@@ -3,6 +3,7 @@ package no.nav.emottak.cpa
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.authentication
+import io.ktor.server.html.respondHtml
 import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.plugins.NotFoundException
 import io.ktor.server.request.receive
@@ -72,6 +73,12 @@ fun Route.getCPA(cpaRepository: CPARepository): Route = get("/cpa/{$CPA_ID}") {
         contentType = ContentType.Text.Xml,
         text = cpa.asText()
     )
+}
+
+fun Route.getCpaView(cpaRepository: CPARepository): Route = get("/cpa/{$CPA_ID}/view") {
+    val cpaId = call.parameters[CPA_ID] ?: throw BadRequestException("Mangler $CPA_ID")
+    val cpa = cpaRepository.findCpa(cpaId) ?: throw NotFoundException("Fant ikke CPA $cpaId")
+    call.respondHtml { renderCpa(cpa) }
 }
 
 fun Route.deleteAllCPA(cpaRepository: CPARepository): Route = get("/cpa/deleteAll") {

@@ -48,6 +48,7 @@ dependencyResolutionManagement {
             library("ktor-client-cio-jvm", "io.ktor", "ktor-client-cio-jvm").versionRef("ktor")
             library("ktor-client-auth", "io.ktor", "ktor-client-auth").versionRef("ktor")
             library("ktor-server-auth-jvm", "io.ktor", "ktor-server-auth-jvm").versionRef("ktor")
+            library("ktor-server-html-builder", "io.ktor", "ktor-server-html-builder").versionRef("ktor")
 
             library("ktor-server-metrics-micrometer", "io.ktor", "ktor-server-metrics-micrometer").versionRef("ktor")
             library("micrometer-registry-prometheus", "io.micrometer:micrometer-registry-prometheus:1.14.2")

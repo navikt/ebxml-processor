@@ -66,6 +66,7 @@ dependencies {
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.cio)
     implementation(libs.ktor.server.auth.jvm)
+    implementation(libs.ktor.server.html.builder)
     implementation(libs.token.validation.ktor.v3)
     implementation(libs.ktor.client.auth)
     implementation(libs.emottak.utils)
