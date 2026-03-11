@@ -98,9 +98,9 @@ fun main() = SuspendApp {
     val config = config()
     println(" ************ config.kafkaErrorQueue.active: " + config.kafkaErrorQueue.active)
     println(" ************ config.kafkaPayloadReceiver.active: " + config.kafkaPayloadReceiver.active)
-    println(" ************ config.errorRetryPolicy.processInterval: " + config.errorRetryPolicy.processInterval)
-    println(" ************ config.errorRetryPolicy.retriesPerInterval: " + config.errorRetryPolicy.retriesPerInterval)
-    println(" ************ config.errorRetryPolicy.retryIntervals: " + config.errorRetryPolicy.retryIntervals)
+    println(" ************ config.errorRetryPolicy.processInterval: " + config.errorRetryPolicyIncoming.processInterval)
+    println(" ************ config.errorRetryPolicy.retriesPerInterval: " + config.errorRetryPolicyIncoming.retriesPerInterval)
+    println(" ************ config.errorRetryPolicy.retryIntervals: " + config.errorRetryPolicyIncoming.retryIntervals)
     println(" ************ config.messageResendPolicy.processInterval: " + config.messageResendPolicy.processInterval)
     println(" ************ config.messageResendPolicy.resendInterval: " + config.messageResendPolicy.resendInterval)
 

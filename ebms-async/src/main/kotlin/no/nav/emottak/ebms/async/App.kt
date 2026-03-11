@@ -66,7 +66,6 @@ import no.nav.emottak.ebms.registerRootEndpoint
 import no.nav.emottak.ebms.scopedAuthHttpClient
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.CPAValidationService
-import no.nav.emottak.message.model.Direction
 import no.nav.emottak.utils.environment.isProdEnv
 import no.nav.emottak.utils.kafka.client.EventPublisherClient
 import no.nav.emottak.utils.kafka.service.EventLoggingService
@@ -265,7 +264,7 @@ fun CoroutineScope.launchErrorRetryTask(
     timer(
         name = "Retry Errors Timer",
         initialDelay = 5000L,
-        period = config.errorRetryPolicy.processInterval.inWholeMilliseconds,
+        period = config.errorRetryPolicyIncoming.processInterval.inWholeMilliseconds,
         daemon = true
     ) {
         launch(Dispatchers.IO) {
@@ -278,7 +277,7 @@ fun CoroutineScope.launchErrorRetryTask(
 
                 failedMessageQueue.consumeRetryQueue(
                     messageFilterService,
-                    config.errorRetryPolicy.maxMessagesToProcess
+                    config.errorRetryPolicyIncoming.maxMessagesToProcess
                 )
             } catch (e: Exception) {
                 log.error("RetryErrorsTask failed", e)
@@ -409,10 +408,9 @@ fun Route.simulateError(
                         .copy(groupId = "ebms-provider-retry"),
                     (call.parameters[KAFKA_OFFSET])?.toLong() ?: 0
                 )
-                failedMessageQueue.sendToRetry(
+                failedMessageQueue.sendToRetryQueueIncoming(
                     record = record ?: throw Exception("No Record found. Offset: ${call.parameters[KAFKA_OFFSET]}"),
-                    reason = "Simulated Error",
-                    direction = Direction.IN
+                    reason = "Simulated Error"
                 )
                 call.respondText(
                     status = HttpStatusCode.OK,

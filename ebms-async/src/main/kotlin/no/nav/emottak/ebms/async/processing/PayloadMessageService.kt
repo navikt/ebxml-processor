@@ -51,7 +51,7 @@ class PayloadMessageService(
         }.onFailure { exception ->
             // TODO handle some errors by sending to retry, some by returning error message
             log.error(ebmsPayloadMessage.marker(), exception.message ?: "Message processing error", exception)
-            retryService.sendToRetryIfShouldBeRetried(record = record, payloadMessage = ebmsPayloadMessage, exception = exception, reason = exception.message ?: "Unknown error", Direction.IN)
+            retryService.incomingRetryEval(record = record, payloadMessage = ebmsPayloadMessage, exception = exception)
         }
     }
 
@@ -64,7 +64,7 @@ class PayloadMessageService(
             payloadMessageForwardingService.returnMessageResponse(ebmsPayloadMessage)
         }.onFailure { exception ->
             log.error(ebmsPayloadMessage.marker(), exception.message ?: "Outbound response processing error", exception)
-            // retryService.sendToRetryIfShouldBeRetried(record = record, payloadMessage = ebmsPayloadMessage, exception = exception, reason = exception.message ?: "Unknown error", Direction.OUT)
+            retryService.outgoingRetryEval(record = record, payloadMessage = ebmsPayloadMessage, exception = exception)
         }
     }
 

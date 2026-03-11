@@ -9,6 +9,7 @@ import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.mockkStatic
+import io.mockk.runs
 import io.mockk.spyk
 import kotlinx.coroutines.runBlocking
 import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
@@ -62,6 +63,9 @@ class RetryServiceTest {
         System.setProperty("EBMS_PAYLOAD_PRODUCER", "true")
         System.setProperty("EBMS_SIGNAL_PRODUCER", "true")
         System.setProperty("EBMS_RETRY_QUEUE", "true")
+        coEvery {
+            failedMessageQueue.sendToRetryQueueIncoming(any(), any(), any())
+        } just runs
         retryService = RetryService(
             cpaValidationService,
             eventRegistrationService,
@@ -136,7 +140,7 @@ class RetryServiceTest {
 
         spyService.sendToRetryIfShouldBeRetried(receiverRecord, payload, EbmsException("fail"), "reason", Direction.IN)
 
-        coVerify(exactly = 0) { spyService.sendToRetryIn(any(), any(), any()) }
+        coVerify(exactly = 0) { failedMessageQueue.sendToRetryQueueIncoming(any(), any(), any()) }
         coVerify { spyService.returnMessageError(any(), any()) }
     }
 
@@ -151,11 +155,10 @@ class RetryServiceTest {
 
         val spyService = spyk(retryService)
         coEvery { spyService.returnMessageError(any(), any()) } just Runs
-        coEvery { spyService.sendToRetryIn(any(), any(), any()) } just Runs
+        coEvery { spyService.incomingRetryEval(any(), any(), any()) } just Runs
 
         spyService.sendToRetryIfShouldBeRetried(receiverRecord, payload, EbmsException("fail"), "reason", Direction.IN)
-
-        coVerify(exactly = 1) { spyService.sendToRetryIn(any(), any(), any()) }
+        coVerify(exactly = 1) { failedMessageQueue.sendToRetryQueueIncoming(any(), any(), any()) }
     }
 
     @Test
@@ -169,11 +172,10 @@ class RetryServiceTest {
 
         val spyService = spyk(retryService)
         coEvery { spyService.returnMessageError(any(), any()) } just Runs
-        coEvery { spyService.sendToRetryIn(any(), any(), any()) } just Runs
+        coEvery { spyService.incomingRetryEval(any(), any(), any()) } just Runs
 
         spyService.sendToRetryIfShouldBeRetried(receiverRecord, payload, EbmsException("fail"), "reason", Direction.IN)
-
-        coVerify(exactly = 1) { spyService.sendToRetryIn(any(), any(), any()) }
+        coVerify(exactly = 1) { failedMessageQueue.sendToRetryQueueIncoming(any(), any()) }
     }
 
     private fun createPayloadMessageWithTtl(ttl: Instant?) = PayloadMessage(

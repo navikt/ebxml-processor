@@ -30,6 +30,7 @@ import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.util.Properties
+import kotlin.String
 import kotlin.collections.map
 
 const val RETRY_COUNT_HEADER = "retryCount"
@@ -46,7 +47,7 @@ val logger: Logger = LoggerFactory.getLogger(FailedMessageKafkaHandler::class.ja
 class FailedMessageKafkaHandler(
     val kafkaErrorQueue: KafkaErrorQueue = config().kafkaErrorQueue,
     val kafka: Kafka = config().kafka,
-    val errorRetryPolicy: ErrorRetryPolicy = config().errorRetryPolicy
+    val errorRetryPolicy: ErrorRetryPolicy = config().errorRetryPolicyIncoming // TODO FMKH also handles outgoing but is handled by retryservice
 ) {
 
     val publisher = KafkaPublisher(
@@ -63,7 +64,11 @@ class FailedMessageKafkaHandler(
     // We get into troubles with committing if we use the same groupid as the receivers used to listen on the message topics.
     val groupIdForRetry = kafka.groupId + "-retry"
     val pollerConsumer = KafkaConsumer(
-        getPollerProperties(kafka.toProperties(), groupIdForRetry, config().errorRetryPolicy.processInterval.inWholeSeconds),
+        getPollerProperties(
+            kafka.toProperties(),
+            groupIdForRetry,
+            config().errorRetryPolicyIncoming.processInterval.inWholeSeconds
+        ),
         StringDeserializer(),
         ByteArrayDeserializer()
     ).also { c ->
@@ -84,6 +89,32 @@ class FailedMessageKafkaHandler(
         return properties
     }
 
+    suspend fun sendToRetryQueueIncoming(
+        record: ReceiverRecord<String, ByteArray>,
+        reason: String? = null,
+        advanceRetryTime: Boolean = true
+    ) {
+        sendToRetry(
+            record,
+            reason = reason,
+            advanceRetryTime = advanceRetryTime,
+            direction = Direction.IN
+        )
+    }
+
+    suspend fun sendToRetryQueueOutgoing(
+        record: ReceiverRecord<String, ByteArray>,
+        reason: String? = null,
+        advanceRetryTime: Boolean = true
+    ) {
+        sendToRetry(
+            record,
+            reason = reason,
+            advanceRetryTime = advanceRetryTime,
+            direction = Direction.OUT
+        )
+    }
+
     suspend fun sendToRetry(
         record: ReceiverRecord<String, ByteArray>,
         key: String = record.key(),
@@ -96,8 +127,9 @@ class FailedMessageKafkaHandler(
             Direction.IN -> config().kafkaErrorQueue.topic
             Direction.OUT -> config().kafkaErrorQueueOut.topic
         }
-
-        logger.info("Sending message to $topic queue with reason: $reason")
+        logger.info(
+            "Sending message to $topic queue with reason: $reason"
+        )
         if (reason != null) {
             record.addHeader(RETRY_REASON, reason)
         }
@@ -106,13 +138,25 @@ class FailedMessageKafkaHandler(
         }
         try {
             val metadata = publisher.publishScope {
-                publish(ProducerRecord(topic, null, key, value, record.headers()))
+                publish(
+                    ProducerRecord(
+                        topic,
+                        null,
+                        key,
+                        value,
+                        record.headers()
+                    )
+                )
             }
             logger.info("Offset on metadata: " + metadata.offset())
             logger.info("Result " + metadata.partition() + " timestamp " + metadata.timestamp())
-            logger.info("Message sent successfully to topic $topic")
+            logger.info(
+                "Message sent successfully to topic $topic"
+            )
         } catch (e: Exception) {
-            logger.info("Failed to send message to $topic : ${e.message}")
+            logger.info(
+                "Failed to send message to $topic : ${e.message}"
+            )
         }
     }
 
@@ -138,7 +182,14 @@ class FailedMessageKafkaHandler(
         messageFilterService: MessageFilterService,
         limit: Int = 10
     ) {
-        logger.info("Checking for messages in error queue, current offset " + pollerConsumer.position(TopicPartition(kafkaErrorQueue.topic, 0)))
+        logger.info(
+            "Checking for messages in error queue, current offset " + pollerConsumer.position(
+                TopicPartition(
+                    kafkaErrorQueue.topic,
+                    0
+                )
+            )
+        )
         val records = getRecordsToConsume(pollerConsumer, limit)
         if (records.isEmpty()) {
             logger.info("No records to process in error queue")
@@ -171,7 +222,7 @@ class FailedMessageKafkaHandler(
                 logger.info("${record.key()} has been retried.")
             } else {
                 logger.info("${record.key()} is not retryable yet.")
-                sendToRetry(record.asReceiverRecord(), advanceRetryTime = false, direction = Direction.IN)
+                sendToRetryQueueIncoming(record.asReceiverRecord(), advanceRetryTime = false)
             }
             val offsets: Map<TopicPartition?, OffsetAndMetadata?> =
                 mapOf(
@@ -222,6 +273,7 @@ fun ReceiverRecord<String, ByteArray>.retryCount(): Int {
     }
     return headerValue.toInt()
 }
+
 private fun cannotReadInt(headerValue: String): Boolean {
     return headerValue.isBlank() || headerValue.toIntOrNull() == null
 }
