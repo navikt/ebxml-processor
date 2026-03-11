@@ -49,7 +49,7 @@ class PayloadMessageServiceTest {
     private lateinit var payloadMessageForwardingService: PayloadMessageForwardingService
     private lateinit var eventRegistrationService: EventRegistrationService
     private lateinit var eventManagerService: EventManagerService
-    private lateinit var retryService: RetryService
+    private lateinit var failedMessageKafkaHandler: no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
     private lateinit var service: PayloadMessageService
 
     @BeforeEach
@@ -62,9 +62,9 @@ class PayloadMessageServiceTest {
         payloadMessageForwardingService = mockk()
         eventRegistrationService = mockk<EventRegistrationService>()
         eventManagerService = mockk<EventManagerService>()
-        retryService = mockk<RetryService>()
+        failedMessageKafkaHandler = mockk<no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler>()
         coEvery {
-            retryService.incomingRetryEval(any(), any(), any(), any())
+            failedMessageKafkaHandler.incomingRetryEval(any(), any(), any(), any())
         } just runs
         mockkStatic(EbmsDocument::signer)
         every {
@@ -83,7 +83,7 @@ class PayloadMessageServiceTest {
             payloadMessageForwardingService,
             eventRegistrationService,
             eventManagerService,
-            retryService
+            failedMessageKafkaHandler
         )
     }
 
@@ -192,7 +192,7 @@ class PayloadMessageServiceTest {
     }
 
     @Test
-    fun `process should delegate to retryService if EbmsException is thrown`() = runBlocking {
+    fun `process should delegate to failedMessageKafkaHandler if EbmsException is thrown`() = runBlocking {
         initService()
         val (payloadMessage, ebmsMessageSlots, _) = setupMocks(
             PerMessageCharacteristicsType.PER_MESSAGE,
@@ -200,7 +200,7 @@ class PayloadMessageServiceTest {
             processAsyncThrowsEbmsException = true
         )
 
-        service.process(setupReceiverRecordWithRetryServiceMock(), payloadMessage)
+        service.process(setupReceiverRecordWithRetryMock(), payloadMessage)
 
         coVerify(exactly = 1) { eventManagerService.isDuplicateMessage(payloadMessage) }
         coVerify(exactly = 1) { eventRegistrationService.registerEventMessageDetails(any()) }
@@ -223,11 +223,11 @@ class PayloadMessageServiceTest {
             )
         }
         coVerify(exactly = 0) { ebmsSignalProducer.publishMessage(key = any(), value = any(), headers = any()) }
-        coVerify(exactly = 1) { retryService.incomingRetryEval(any(), any(), any(), any()) }
+        coVerify(exactly = 1) { failedMessageKafkaHandler.incomingRetryEval(any(), any(), any(), any()) }
     }
 
     @Test
-    fun `process should delegate to retryService if SignatureException is thrown`() = runBlocking {
+    fun `process should delegate to failedMessageKafkaHandler if SignatureException is thrown`() = runBlocking {
         initService()
         val (payloadMessage, ebmsMessageSlots, _) = setupMocks(
             PerMessageCharacteristicsType.PER_MESSAGE,
@@ -235,7 +235,7 @@ class PayloadMessageServiceTest {
             processAsyncThrowsSignatureException = true
         )
 
-        service.process(setupReceiverRecordWithRetryServiceMock(), payloadMessage)
+        service.process(setupReceiverRecordWithRetryMock(), payloadMessage)
 
         coVerify(exactly = 1) { eventManagerService.isDuplicateMessage(payloadMessage) }
         coVerify(exactly = 1) { eventRegistrationService.registerEventMessageDetails(any()) }
@@ -258,18 +258,18 @@ class PayloadMessageServiceTest {
             )
         }
         coVerify(exactly = 0) { ebmsSignalProducer.publishMessage(key = any(), value = any(), headers = any()) }
-        coVerify(exactly = 1) { retryService.incomingRetryEval(any(), any(), any(), any()) }
+        coVerify(exactly = 1) { failedMessageKafkaHandler.incomingRetryEval(any(), any(), any(), any()) }
     }
 
     @Test
-    fun `process should delegate to retryService if its not EbmsException nor SignatureException`() = runBlocking {
+    fun `process should delegate to failedMessageKafkaHandler if its not EbmsException nor SignatureException`() = runBlocking {
         initService()
         val (payloadMessage, ebmsMessageSlots, fakeResult) = setupMocks(
             PerMessageCharacteristicsType.PER_MESSAGE,
             false,
             validateOutgoingThrowsException = true
         )
-        service.process(setupReceiverRecordWithRetryServiceMock(), payloadMessage)
+        service.process(setupReceiverRecordWithRetryMock(), payloadMessage)
 
         coVerify(exactly = 1) { eventManagerService.isDuplicateMessage(payloadMessage) }
         coVerify(exactly = 2) { eventRegistrationService.registerEventMessageDetails(any()) }
@@ -295,7 +295,7 @@ class PayloadMessageServiceTest {
         }
         assertTrue(fakeResult.isSuccess)
         coVerify(exactly = 0) { ebmsSignalProducer.publishMessage(key = any(), value = any(), headers = any()) }
-        coVerify(exactly = 1) { retryService.incomingRetryEval(any(), any(), any(), any()) }
+        coVerify(exactly = 1) { failedMessageKafkaHandler.incomingRetryEval(any(), any(), any(), any()) }
     }
 
     @Test
@@ -328,7 +328,7 @@ class PayloadMessageServiceTest {
     }
 
     @Test
-    fun `process should delegate to retryService if SignatureException is thrown even when kafkaErrorQueue is not active`() = runBlocking {
+    fun `process should delegate to failedMessageKafkaHandler if SignatureException is thrown even when kafkaErrorQueue is not active`() = runBlocking {
         initService(enableRetryQueue = false)
         val (payloadMessage, ebmsMessageSlots, _) = setupMocks(
             PerMessageCharacteristicsType.PER_MESSAGE,
@@ -336,7 +336,7 @@ class PayloadMessageServiceTest {
             processAsyncThrowsSignatureException = true
         )
 
-        service.process(setupReceiverRecordWithRetryServiceMock(), payloadMessage)
+        service.process(setupReceiverRecordWithRetryMock(), payloadMessage)
 
         coVerify(exactly = 1) { eventManagerService.isDuplicateMessage(payloadMessage) }
         coVerify(exactly = 1) { eventRegistrationService.registerEventMessageDetails(any()) }
@@ -359,7 +359,7 @@ class PayloadMessageServiceTest {
             )
         }
         coVerify(exactly = 0) { ebmsSignalProducer.publishMessage(key = any(), value = any(), headers = any()) }
-        coVerify(exactly = 1) { retryService.incomingRetryEval(any(), any(), any(), any()) }
+        coVerify(exactly = 1) { failedMessageKafkaHandler.incomingRetryEval(any(), any(), any(), any()) }
     }
 
     @Test
@@ -470,11 +470,11 @@ class PayloadMessageServiceTest {
         return receiverRecord
     }
 
-    private fun setupReceiverRecordWithRetryServiceMock(): ReceiverRecord<String, ByteArray> {
+    private fun setupReceiverRecordWithRetryMock(): ReceiverRecord<String, ByteArray> {
         val receiverRecord = mockk<ReceiverRecord<String, ByteArray>>(relaxed = true)
         coEvery { receiverRecord.key() } returns "key"
         coEvery { receiverRecord.value() } returns "value".toByteArray()
-        coEvery { retryService.sendToRetryIfShouldBeRetried(any(), any(), any(), any(), any()) } just Runs
+        coEvery { failedMessageKafkaHandler.sendToRetryIfShouldBeRetried(any(), any(), any(), any(), any()) } just Runs
         return receiverRecord
     }
 
