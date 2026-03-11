@@ -69,7 +69,11 @@ fun HTML.renderCpa(cpa: CollaborationProtocolAgreement) {
                 div("grid-3") {
                     labeledValue("CPA ID", cpa.cpaid)
                     labeledValue("Valid from", dateFormatter.format(cpa.start.toInstant()))
-                    labeledValue("Valid to", dateFormatter.format(cpa.end.toInstant()))
+                    labeledValue(
+                        "Valid to",
+                        dateFormatter.format(cpa.end.toInstant()),
+                        expired = cpa.end.toInstant() < java.time.Instant.now()
+                    )
                 }
             }
 
@@ -194,10 +198,10 @@ fun HTML.renderCpa(cpa: CollaborationProtocolAgreement) {
     }
 }
 
-private fun FlowContent.labeledValue(label: String, value: String) {
+private fun FlowContent.labeledValue(label: String, value: String, expired: Boolean = false) {
     div("labeled-value") {
         span("label") { +label }
-        span("value") { +value }
+        span(if (expired) "value value-expired" else "value") { +value }
     }
 }
 
@@ -208,11 +212,11 @@ private fun FlowContent.renderCertificates(party: PartyInfo) {
         runCatching { createX509Certificate(cert.getX509Certificate()) }
             .onSuccess { x509 ->
                 div("cert-card") {
+                    val now = System.currentTimeMillis()
+                    val expired = x509.notAfter.time < now
+                    val notYetValid = x509.notBefore.time > now
                     div("cert-header") {
                         span("cert-id") { +cert.certId }
-                        val now = System.currentTimeMillis()
-                        val expired = x509.notAfter.time < now
-                        val notYetValid = x509.notBefore.time > now
                         if (expired) {
                             span("badge badge-inactive") { +"Expired" }
                         } else if (notYetValid) {
@@ -227,7 +231,11 @@ private fun FlowContent.renderCertificates(party: PartyInfo) {
                         labeledValue("Serial number", x509.serialNumber.toString(16).uppercase())
                         labeledValue("Thumbprint (SHA-1)", thumbprint(x509))
                         labeledValue("Valid from", dateFormatter.format(x509.notBefore.toInstant()))
-                        labeledValue("Valid to", dateFormatter.format(x509.notAfter.toInstant()))
+                        labeledValue(
+                            "Valid to",
+                            dateFormatter.format(x509.notAfter.toInstant()),
+                            expired = expired
+                        )
                     }
                 }
             }
@@ -281,6 +289,7 @@ private val CPA_STYLES = """
     .labeled-value { display: flex; flex-direction: column; }
     .labeled-value .label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.4px; }
     .labeled-value .value { font-size: 13px; color: #1a1a2e; font-weight: 500; margin-top: 2px; }
+    .labeled-value .value-expired { color: #b91c1c; font-weight: 700; }
 
     .table { width: 100%; border-collapse: collapse; font-size: 13px; }
     .table th { text-align: left; padding: 6px 10px; background: #f8f8fc;
