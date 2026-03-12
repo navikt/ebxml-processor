@@ -1,4 +1,0 @@
-ingresses:
-- "https://ebxml-processor.intern.nav.no"
-kafka:
-  pool: nav-prod
