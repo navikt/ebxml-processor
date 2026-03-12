@@ -30,6 +30,7 @@ import no.nav.emottak.cpa.persistence.gammel.PartnerRepository
 import no.nav.emottak.cpa.persistence.oracleConfig
 import no.nav.emottak.cpa.util.EventRegistrationService
 import no.nav.emottak.cpa.util.EventRegistrationServiceImpl
+import no.nav.emottak.utils.environment.isProdEnv
 import no.nav.emottak.utils.kafka.client.EventPublisherClient
 import no.nav.emottak.utils.kafka.service.EventLoggingService
 import no.nav.security.token.support.v3.tokenValidationSupport
@@ -41,7 +42,7 @@ fun main() {
     val kafkaPublisherClient = EventPublisherClient(config().kafka)
     val eventLoggingService = EventLoggingService(config().eventLogging, kafkaPublisherClient)
     val eventRegistrationService = EventRegistrationServiceImpl(eventLoggingService)
-    val adresseregisterClient = nhnArHttpClient()
+    val adresseregisterClient = if (!isProdEnv()) nhnArHttpClient() else null
 
     embeddedServer(
         Netty,
