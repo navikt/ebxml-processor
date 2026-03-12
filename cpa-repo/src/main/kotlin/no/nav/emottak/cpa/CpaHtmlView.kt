@@ -48,25 +48,18 @@ fun HTML.renderCpaView(cpa: CollaborationProtocolAgreement? = null, notFound: St
         div("container") {
             div("header") {
                 h1 { +"Collaboration Protocol Agreement" }
-                div("header-meta") {
-                    form(classes = "cpa-search") {
-                        attributes["onsubmit"] =
-                            "event.preventDefault(); window.location='/cpa/view?id='+document.getElementById('cpaIdInput').value"
-                        input(type = InputType.text, name = "id") {
-                            attributes["id"] = "cpaIdInput"
-                            placeholder = "Enter CPA ID…"
-                            if (cpa != null) value = cpa.cpaid
-                        }
-                        input(type = InputType.submit) { value = "Go" }
-                    }
+                form(classes = "cpa-search") {
+                    attributes["onsubmit"] =
+                        "event.preventDefault(); window.location='/cpa/view?id='+document.getElementById('cpaIdInput').value"
                     if (cpa != null) {
-                        val isActive = cpa.status.value == StatusValueType.AGREED
-                        span("badge ${if (isActive) "badge-active" else "badge-inactive"}") {
-                            +(cpa.status?.value?.value() ?: "unknown")
-                        }
-                        span("version") { +"v${cpa.version}" }
                         a(href = "/cpa/${cpa.cpaid}", classes = "raw-link") { +"Raw XML" }
                     }
+                    input(type = InputType.text, name = "id") {
+                        attributes["id"] = "cpaIdInput"
+                        placeholder = "Enter CPA ID…"
+                        if (cpa != null) value = cpa.cpaid
+                    }
+                    input(type = InputType.submit) { value = "Go" }
                 }
             }
 
@@ -79,10 +72,12 @@ fun HTML.renderCpaView(cpa: CollaborationProtocolAgreement? = null, notFound: St
 }
 
 private fun FlowContent.renderCpaContent(cpa: CollaborationProtocolAgreement) {
+    val isActive = cpa.status.value == StatusValueType.AGREED
     div("card") {
         h2 { +"Summary" }
-        div("grid-3") {
+        div("grid-4") {
             labeledValue("CPA ID", cpa.cpaid)
+            labeledValue("Status", cpa.status?.value?.value() ?: "unknown")
             labeledValue("Valid from", dateFormatter.format(cpa.start.toInstant()))
             labeledValue(
                 "Valid to",
@@ -277,7 +272,6 @@ private val CPA_STYLES = """
     .header { display: flex; align-items: center; justify-content: space-between;
               margin-bottom: 24px; padding-bottom: 16px; border-bottom: 2px solid #e0e0f0; }
     .header h1 { font-size: 22px; font-weight: 700; color: #1a1a2e; }
-    .header-meta { display: flex; align-items: center; gap: 12px; }
     .cpa-search { display: flex; gap: 4px; }
     .cpa-search input[type=text] { font-size: 13px; padding: 4px 8px; border: 1px solid #d0d0e8;
                                    border-radius: 4px; width: 220px; outline: none; }
@@ -285,7 +279,6 @@ private val CPA_STYLES = """
     .cpa-search input[type=submit] { font-size: 13px; padding: 4px 10px; background: #6366f1; color: #fff;
                                      border: none; border-radius: 4px; cursor: pointer; }
     .cpa-search input[type=submit]:hover { background: #4f46e5; }
-    .version { font-size: 12px; color: #666; background: #f0f0f8; padding: 4px 8px; border-radius: 4px; }
     .raw-link { font-size: 12px; color: #1d4ed8; text-decoration: none; border: 1px solid #bfdbfe;
                 padding: 4px 10px; border-radius: 4px; }
     .raw-link:hover { background: #eff6ff; }
@@ -308,6 +301,7 @@ private val CPA_STYLES = """
 
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+    .grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; }
     .small-grid { margin-top: 8px; }
     .labeled-value { display: flex; flex-direction: column; }
     .labeled-value .label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.4px; }
