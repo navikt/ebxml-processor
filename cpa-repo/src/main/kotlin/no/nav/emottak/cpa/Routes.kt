@@ -75,10 +75,14 @@ fun Route.getCPA(cpaRepository: CPARepository): Route = get("/cpa/{$CPA_ID}") {
     )
 }
 
-fun Route.getCpaView(cpaRepository: CPARepository): Route = get("/cpa/{$CPA_ID}/view") {
-    val cpaId = call.parameters[CPA_ID] ?: throw BadRequestException("Mangler $CPA_ID")
-    val cpa = cpaRepository.findCpa(cpaId) ?: throw NotFoundException("Fant ikke CPA $cpaId")
-    call.respondHtml { renderCpa(cpa) }
+fun Route.getCpaView(cpaRepository: CPARepository): Route = get("/cpa/view") {
+    val cpaId = call.request.queryParameters["id"]
+    if (cpaId == null) {
+        call.respondHtml { renderCpaView() }
+        return@get
+    }
+    val cpa = cpaRepository.findCpa(cpaId)
+    call.respondHtml { renderCpaView(cpa, notFound = if (cpa == null) cpaId else null) }
 }
 
 fun Route.deleteAllCPA(cpaRepository: CPARepository): Route = get("/cpa/deleteAll") {

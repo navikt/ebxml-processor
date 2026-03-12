@@ -37,10 +37,11 @@ import java.time.format.DateTimeFormatter
 private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss z").withZone(ZoneId.systemDefault())
 private val EXPIRY_WARNING_THRESHOLD = java.time.Duration.ofDays(30)
 
-fun HTML.renderCpa(cpa: CollaborationProtocolAgreement) {
-    val isActive = cpa.status.value == StatusValueType.AGREED
+fun HTML.renderCpa(cpa: CollaborationProtocolAgreement) = renderCpaView(cpa)
+
+fun HTML.renderCpaView(cpa: CollaborationProtocolAgreement? = null, notFound: String? = null) {
     head {
-        title { +"CPA: ${cpa.cpaid}" }
+        title { +(if (cpa != null) "CPA: ${cpa.cpaid}" else "CPA Viewer") }
         style { +CPA_STYLES }
     }
     body {
@@ -49,53 +50,121 @@ fun HTML.renderCpa(cpa: CollaborationProtocolAgreement) {
                 h1 { +"Collaboration Protocol Agreement" }
                 div("header-meta") {
                     form(classes = "cpa-search") {
-                        attributes["onsubmit"] = "event.preventDefault(); window.location='/cpa/'+document.getElementById('cpaIdInput').value+'/view'"
-                        input(type = InputType.text, name = "cpaId") {
+                        attributes["onsubmit"] =
+                            "event.preventDefault(); window.location='/cpa/view?id='+document.getElementById('cpaIdInput').value"
+                        input(type = InputType.text, name = "id") {
                             attributes["id"] = "cpaIdInput"
                             placeholder = "Enter CPA ID…"
-                            value = cpa.cpaid
+                            if (cpa != null) value = cpa.cpaid
                         }
                         input(type = InputType.submit) { value = "Go" }
                     }
-                    span("badge ${if (isActive) "badge-active" else "badge-inactive"}") {
-                        +(cpa.status?.value?.value() ?: "unknown")
+                    if (cpa != null) {
+                        val isActive = cpa.status.value == StatusValueType.AGREED
+                        span("badge ${if (isActive) "badge-active" else "badge-inactive"}") {
+                            +(cpa.status?.value?.value() ?: "unknown")
+                        }
+                        span("version") { +"v${cpa.version}" }
+                        a(href = "/cpa/${cpa.cpaid}", classes = "raw-link") { +"Raw XML" }
                     }
-                    span("version") { +"v${cpa.version}" }
-                    a(href = "/cpa/${cpa.cpaid}", classes = "raw-link") { +"Raw XML" }
                 }
             }
 
+            when {
+                notFound != null -> div("not-found") { +"CPA \"$notFound\" ikke funnet." }
+                cpa != null -> renderCpaContent(cpa)
+            }
+        }
+    }
+}
+
+private fun FlowContent.renderCpaContent(cpa: CollaborationProtocolAgreement) {
+    div("card") {
+        h2 { +"Summary" }
+        div("grid-3") {
+            labeledValue("CPA ID", cpa.cpaid)
+            labeledValue("Valid from", dateFormatter.format(cpa.start.toInstant()))
+            labeledValue(
+                "Valid to",
+                dateFormatter.format(cpa.end.toInstant()),
+                expired = cpa.end.toInstant() < java.time.Instant.now(),
+                expiringSoon = cpa.end.toInstant() < java.time.Instant.now() + EXPIRY_WARNING_THRESHOLD
+            )
+        }
+    }
+
+    h2 { +"Parties" }
+
+    // Party names + identifiers
+    div("party-row") {
+        cpa.partyInfo.forEach { party ->
             div("card") {
-                h2 { +"Summary" }
-                div("grid-3") {
-                    labeledValue("CPA ID", cpa.cpaid)
-                    labeledValue("Valid from", dateFormatter.format(cpa.start.toInstant()))
-                    labeledValue(
-                        "Valid to",
-                        dateFormatter.format(cpa.end.toInstant()),
-                        expired = cpa.end.toInstant() < java.time.Instant.now(),
-                        expiringSoon = cpa.end.toInstant() < java.time.Instant.now() + EXPIRY_WARNING_THRESHOLD
-                    )
+                h3 { +(party.partyName ?: "Unnamed party") }
+                if (party.partyId.isNotEmpty()) {
+                    div("section") {
+                        h4 { +"Identifiers" }
+                        table("table") {
+                            thead { tr { th { +"Type" }; th { +"Value" } } }
+                            tbody {
+                                party.partyId.forEach { pid ->
+                                    tr {
+                                        td { +(pid.type ?: "-") }
+                                        td { +(pid.value ?: "-") }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
+        }
+    }
 
-            h2 { +"Parties" }
+    // Certificates
+    div("party-row") {
+        cpa.partyInfo.forEach { party -> div("card") { renderCertificates(party) } }
+    }
 
-            // Party names + identifiers
-            div("party-row") {
-                cpa.partyInfo.forEach { party ->
-                    div("card") {
-                        h3 { +(party.partyName ?: "Unnamed party") }
-                        if (party.partyId.isNotEmpty()) {
-                            div("section") {
-                                h4 { +"Identifiers" }
+    // Collaboration Roles
+    div("party-row") {
+        cpa.partyInfo.forEach { party ->
+            div("card") {
+                if (party.collaborationRole.isNotEmpty()) {
+                    h4 { +"Collaboration Roles" }
+                    party.collaborationRole.forEach { role ->
+                        div("role-card") {
+                            div("role-header") {
+                                span("role-name") { +(role.role?.name ?: "Unknown") }
+                                span("process-name") {
+                                    +"${role.processSpecification?.name ?: "-"} ${role.processSpecification?.version ?: ""}".trim()
+                                }
+                            }
+                            val sb = role.serviceBinding
+                            if (sb != null) {
+                                div("service-label") { +"Service: ${sb.service?.value ?: "-"}" }
                                 table("table") {
-                                    thead { tr { th { +"Type" }; th { +"Value" } } }
+                                    thead {
+                                        tr {
+                                            th { +"Direction" }
+                                            th { +"Action" }
+                                            th { +"Channel" }
+                                        }
+                                    }
                                     tbody {
-                                        party.partyId.forEach { pid ->
+                                        val actions = sb.canSend.map { cs ->
+                                            val binding = cs.thisPartyActionBinding
+                                            val channelId = (binding?.channelId?.firstOrNull()?.value as? DeliveryChannel)?.channelId
+                                            Triple("send", binding?.action ?: "-", channelId ?: "-")
+                                        } + sb.canReceive.map { cr ->
+                                            val binding = cr.thisPartyActionBinding
+                                            val channelId = (binding?.channelId?.firstOrNull()?.value as? DeliveryChannel)?.channelId
+                                            Triple("receive", binding?.action ?: "-", channelId ?: "-")
+                                        }
+                                        actions.sortedBy { it.second }.forEach { (direction, action, channelId) ->
                                             tr {
-                                                td { +(pid.type ?: "-") }
-                                                td { +(pid.value ?: "-") }
+                                                td { span("action-tag $direction") { +if (direction == "send") "↑ Send" else "↓ Receive" } }
+                                                td { +action }
+                                                td("monospace") { +channelId }
                                             }
                                         }
                                     }
@@ -105,91 +174,32 @@ fun HTML.renderCpa(cpa: CollaborationProtocolAgreement) {
                     }
                 }
             }
+        }
+    }
 
-            // Certificates
-            div("party-row") {
-                cpa.partyInfo.forEach { party -> div("card") { renderCertificates(party) } }
-            }
-
-            // Collaboration Roles
-            div("party-row") {
-                cpa.partyInfo.forEach { party ->
-                    div("card") {
-                        if (party.collaborationRole.isNotEmpty()) {
-                            h4 { +"Collaboration Roles" }
-                            party.collaborationRole.forEach { role ->
-                                div("role-card") {
-                                    div("role-header") {
-                                        span("role-name") { +(role.role?.name ?: "Unknown") }
-                                        span("process-name") {
-                                            +"${role.processSpecification?.name ?: "-"} ${role.processSpecification?.version ?: ""}".trim()
-                                        }
-                                    }
-                                    val sb = role.serviceBinding
-                                    if (sb != null) {
-                                        div("service-label") { +"Service: ${sb.service?.value ?: "-"}" }
-                                        table("table") {
-                                            thead {
-                                                tr {
-                                                    th { +"Direction" }
-                                                    th { +"Action" }
-                                                    th { +"Channel" }
-                                                }
-                                            }
-                                            tbody {
-                                                sb.canSend.forEach { cs ->
-                                                    val binding = cs.thisPartyActionBinding
-                                                    val channelId = (binding?.channelId?.firstOrNull()?.value as? DeliveryChannel)?.channelId
-                                                    tr {
-                                                        td { span("action-tag send") { +"↑ Send" } }
-                                                        td { +(binding?.action ?: "-") }
-                                                        td("monospace") { +(channelId ?: "-") }
-                                                    }
-                                                }
-                                                sb.canReceive.forEach { cr ->
-                                                    val binding = cr.thisPartyActionBinding
-                                                    val channelId = (binding?.channelId?.firstOrNull()?.value as? DeliveryChannel)?.channelId
-                                                    tr {
-                                                        td { span("action-tag receive") { +"↓ Receive" } }
-                                                        td { +(binding?.action ?: "-") }
-                                                        td("monospace") { +(channelId ?: "-") }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
+    // Delivery Channels
+    div("party-row") {
+        cpa.partyInfo.forEach { party ->
+            div("card") {
+                if (party.deliveryChannel.isNotEmpty()) {
+                    h4 { +"Delivery Channels" }
+                    party.deliveryChannel.forEach { dc ->
+                        val transport = dc.transportId as? Transport
+                        val endpoints = transport?.transportReceiver?.endpoint.orEmpty()
+                        div("channel-card") {
+                            div("channel-header") {
+                                strong { +dc.channelId }
+                                if (endpoints.isNotEmpty()) {
+                                    span("endpoint-uri") { +endpoints.first().uri }
                                 }
                             }
-                        }
-                    }
-                }
-            }
-
-            // Delivery Channels
-            div("party-row") {
-                cpa.partyInfo.forEach { party ->
-                    div("card") {
-                        if (party.deliveryChannel.isNotEmpty()) {
-                            h4 { +"Delivery Channels" }
-                            party.deliveryChannel.forEach { dc ->
-                                val transport = dc.transportId as? Transport
-                                val endpoints = transport?.transportReceiver?.endpoint.orEmpty()
-                                div("channel-card") {
-                                    div("channel-header") {
-                                        strong { +dc.channelId }
-                                        if (endpoints.isNotEmpty()) {
-                                            span("endpoint-uri") { +endpoints.first().uri }
-                                        }
-                                    }
-                                    val mc = dc.messagingCharacteristics
-                                    if (mc != null) {
-                                        div("grid-2 small-grid") {
-                                            labeledValue("Sync reply", mc.syncReplyMode?.value() ?: "-")
-                                            labeledValue("Ack requested", mc.ackRequested?.value() ?: "-")
-                                            labeledValue("Ack signature", mc.ackSignatureRequested?.value() ?: "-")
-                                            labeledValue("Duplicate elimination", mc.duplicateElimination?.value() ?: "-")
-                                        }
-                                    }
+                            val mc = dc.messagingCharacteristics
+                            if (mc != null) {
+                                div("grid-2 small-grid") {
+                                    labeledValue("Sync reply", mc.syncReplyMode?.value() ?: "-")
+                                    labeledValue("Ack requested", mc.ackRequested?.value() ?: "-")
+                                    labeledValue("Ack signature", mc.ackSignatureRequested?.value() ?: "-")
+                                    labeledValue("Duplicate elimination", mc.duplicateElimination?.value() ?: "-")
                                 }
                             }
                         }
@@ -332,4 +342,6 @@ private val CPA_STYLES = """
     .cert-grid .labeled-value .value { font-size: 12px; word-break: break-all; }
 
     .endpoint-uri { font-family: monospace; font-size: 12px; color: #555; word-break: break-all; }
+
+    .not-found { margin-top: 40px; text-align: center; font-size: 15px; color: #555; }
 """.trimIndent()
