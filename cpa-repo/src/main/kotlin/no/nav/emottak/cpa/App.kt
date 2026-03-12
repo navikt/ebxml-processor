@@ -85,6 +85,7 @@ fun cpaApplicationModule(
                 validateCpa(cpaRepository, PartnerRepository(oracleDb), eventRegistrationService)
             }
             getCPA(cpaRepository)
+            getCpaView(cpaRepository)
             getTimeStampsDeprecated()
             getTimeStamps(cpaRepository)
             getTimeStampsLatestDeprecated()
