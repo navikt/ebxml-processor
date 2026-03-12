@@ -43,7 +43,8 @@ class PartnerIntegrationTest : PostgresOracleTest() {
                 postgres.dataSource,
                 postgres.dataSource,
                 oracle.dataSource,
-                eventRegistrationService
+                eventRegistrationService,
+                null
             )
         )
         testBlock()
