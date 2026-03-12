@@ -14,14 +14,9 @@ import io.ktor.utils.io.CancellationException
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import kotlinx.coroutines.awaitCancellation
-import no.nav.emottak.ebms.configuration.config
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
-import no.nav.emottak.ebms.util.EventRegistrationService
-import no.nav.emottak.ebms.util.EventRegistrationServiceImpl
 import no.nav.emottak.ebms.validation.CPAValidationService
-import no.nav.emottak.utils.kafka.client.EventPublisherClient
-import no.nav.emottak.utils.kafka.service.EventLoggingService
 import org.slf4j.LoggerFactory
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.App")
@@ -39,10 +34,6 @@ fun main() = SuspendApp {
     val sendInClient = SendInClient(scopedAuthHttpClient(EBMS_SEND_IN_SCOPE))
     val sendInService = SendInService(sendInClient)
 
-    val kafkaPublisherClient = EventPublisherClient(config().kafka)
-    val eventLoggingService = EventLoggingService(config().eventLogging, kafkaPublisherClient)
-    val eventRegistrationService = EventRegistrationServiceImpl(eventLoggingService)
-
     result {
         resourceScope {
             server(
@@ -52,8 +43,7 @@ fun main() = SuspendApp {
                     ebmsProviderModule(
                         cpaValidationService,
                         processingService,
-                        sendInService,
-                        eventRegistrationService
+                        sendInService
                     )
                 }
             ).also { it.engineConfig.maxChunkSize = 100000 }
@@ -72,8 +62,7 @@ fun main() = SuspendApp {
 fun Application.ebmsProviderModule(
     cpaValidationService: CPAValidationService,
     processing: ProcessingService,
-    sendInService: SendInService,
-    eventRegistrationService: EventRegistrationService
+    sendInService: SendInService
 ) {
     val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
 
@@ -87,6 +76,6 @@ fun Application.ebmsProviderModule(
         registerPrometheusEndpoint(appMicrometerRegistry)
         registerNavCheckStatus()
 
-        postEbmsSync(cpaValidationService, processing, sendInService, eventRegistrationService)
+        postEbmsSync(cpaValidationService, processing, sendInService)
     }
 }

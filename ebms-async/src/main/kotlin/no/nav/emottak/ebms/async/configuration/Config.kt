@@ -1,11 +1,5 @@
 package no.nav.emottak.ebms.async.configuration
 
-import no.nav.emottak.config.KafkaEbmsInPayloadProducer
-import no.nav.emottak.config.KafkaEbmsOutPayloadReceiver
-import no.nav.emottak.config.KafkaPayloadProducer
-import no.nav.emottak.config.KafkaPayloadReceiver
-import no.nav.emottak.config.KafkaSignalProducer
-import no.nav.emottak.config.KafkaSignalReceiver
 import no.nav.emottak.util.KeyStoreConfiguration
 import no.nav.emottak.utils.config.EventLogging
 import no.nav.emottak.utils.config.Kafka
@@ -33,20 +27,9 @@ data class Config(
     val kafkaErrorQueueOut: KafkaErrorQueueOut,
     val kafkaEbmsOutPayloadReceiver: KafkaEbmsOutPayloadReceiver,
     val signering: List<KeyStoreConfiguration>,
-    val errorRetryPolicy: ErrorRetryPolicy,
+    val errorRetryPolicyIncoming: ErrorRetryPolicy,
+    val errorRetryPolicyOutgoing: ErrorRetryPolicy,
     val messageResendPolicy: MessageResendPolicy
-)
-
-data class KafkaErrorQueue(
-    val active: Boolean,
-    val topic: String,
-    val initOffset: String
-)
-
-data class KafkaErrorQueueOut(
-    val active: Boolean,
-    val topic: String,
-    val initOffset: String
 )
 
 data class MessageResendPolicy(
@@ -59,7 +42,8 @@ data class ErrorRetryPolicy(
     val processInterval: Duration,
     val maxMessagesToProcess: Int,
     val retryIntervals: List<Duration>,
-    val retriesPerInterval: List<Int>
+    val retriesPerInterval: List<Int>,
+    val maxRetries: Int
     // If retriesPerInterval is e.g. [3, 3, 23] and retryIntervalsMinutes is [5m, 15m, 1h, 24h],
     // then the first 3 retries occurs 5/10/15 minutes after first failure, the next 3 retries 30/45/60 minutes after first failure,
     // the next 23 retries 2-24 hours after first failure, and any retries after that will occur every 24 hours after the previous retry.
