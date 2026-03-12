@@ -754,8 +754,6 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         val url = "/cpa/adresseregister/her/79768"
         val response = httpClient.get(url)
         val cp = response.body<CommunicationParty>()
-
-        log.info("${cp.herID}")
         log.info("${cp.displayName}")
 
         assertEquals(HttpStatusCode.OK, response.status)
@@ -773,10 +771,6 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         val url = "/cpa/adresseregister/her/1/signing"
         val response = httpClient.get(url)
         val signCertificate = response.body<Certificate>()
-
-        log.info(" ${signCertificate.thumbprint} ")
-        log.info(" ${signCertificate.validFrom} ")
-        log.info(" ${signCertificate.validTo} ")
         log.info(" ${signCertificate.certificateValue} ")
 
         assertEquals(HttpStatusCode.OK, response.status)
@@ -794,10 +788,6 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         val url = "/cpa/adresseregister/her/1/encryption"
         val response = httpClient.get(url)
         val encryptCertificate = response.body<Certificate>()
-
-        log.info(" ${encryptCertificate.thumbprint} ")
-        log.info(" ${encryptCertificate.validFrom} ")
-        log.info(" ${encryptCertificate.validTo} ")
         log.info(" ${encryptCertificate.certificateValue} ")
 
         assertEquals(HttpStatusCode.OK, response.status)
