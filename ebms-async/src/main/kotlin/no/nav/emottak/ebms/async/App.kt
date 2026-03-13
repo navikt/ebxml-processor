@@ -402,7 +402,8 @@ fun Application.ebmsProviderModule(
         registerPrometheusEndpoint(appMicrometerRegistry)
         registerNavCheckStatus()
         if (!isProdEnv()) {
-            simulateError(retryService)
+            forceRetryMessageIn(retryService)
+            forceRetryMessageOut(retryService)
         }
         retryErrorsIncoming(retryService, messageFilterService)
         retryErrorsOutgoing(retryService, payloadMessageService)
@@ -481,32 +482,53 @@ fun Routing.rerun(
 
 const val KAFKA_OFFSET = "offset"
 
-fun Route.simulateError(
+fun Route.forceRetryMessageIn(
     retryService: RetryService,
 ): Route =
-    get("/api/forceretry/{$KAFKA_OFFSET}") {
+    get("/api/forceRetryIn/{$KAFKA_OFFSET}") {
         if (!config().kafkaErrorQueue.active) {
-            call.respondText(status = HttpStatusCode.ServiceUnavailable, text = "Retry queue not active.")
+            call.respondText(status = HttpStatusCode.ServiceUnavailable, text = "Incoming retry queue not active.")
             return@get
         }
         CoroutineScope(Dispatchers.IO).launch() {
-            if (config().kafkaErrorQueue.active) {
-                val record = getRecord(
-                    config()
-                        .kafkaPayloadReceiver.topic,
-                    config().kafka
-                        .copy(groupId = "ebms-provider-retry"),
-                    (call.parameters[KAFKA_OFFSET])?.toLong() ?: 0
-                )
-                retryService.fmkh.sendToRetryQueueIncoming(
-                    record = record ?: throw Exception("No Record found. Offset: ${call.parameters[KAFKA_OFFSET]}"),
-                    reason = "Simulated Error"
-                )
-                call.respondText(
-                    status = HttpStatusCode.OK,
-                    text = "Payload message with offset ${call.parameters[KAFKA_OFFSET]} has been added to retry queue"
-                )
-            }
+            val record = getRecord(
+                config().kafkaPayloadReceiver.topic,
+                config().kafka.copy(groupId = "ebms-provider-retry"),
+                (call.parameters[KAFKA_OFFSET])?.toLong() ?: 0
+            )
+            retryService.fmkh.sendToRetryQueueIncoming(
+                record = record ?: throw Exception("No Record found. Offset: ${call.parameters[KAFKA_OFFSET]}"),
+                reason = "Forced Retry"
+            )
+            call.respondText(
+                status = HttpStatusCode.OK,
+                text = "Payload message with offset ${call.parameters[KAFKA_OFFSET]} has been added to incoming retry queue"
+            )
+        }
+    }
+
+fun Route.forceRetryMessageOut(
+    retryService: RetryService,
+): Route =
+    get("/api/forceRetryOut/{$KAFKA_OFFSET}") {
+        if (!config().kafkaErrorQueueOut.active) {
+            call.respondText(status = HttpStatusCode.ServiceUnavailable, text = "Outgoing retry queue not active.")
+            return@get
+        }
+        CoroutineScope(Dispatchers.IO).launch() {
+            val record = getRecord(
+                config().kafkaEbmsOutPayloadReceiver.topic,
+                config().kafka.copy(groupId = "ebms-provider-retry-out"),
+                (call.parameters[KAFKA_OFFSET])?.toLong() ?: 0
+            )
+            retryService.fmkh.sendToRetryQueueOutgoing(
+                record = record ?: throw Exception("No Record found. Offset: ${call.parameters[KAFKA_OFFSET]}"),
+                reason = "Forced Retry"
+            )
+            call.respondText(
+                status = HttpStatusCode.OK,
+                text = "Payload message with offset ${call.parameters[KAFKA_OFFSET]} has been added to outgoing retry queue"
+            )
         }
     }
 
