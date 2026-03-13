@@ -41,7 +41,10 @@ class ErrorHandlerTest {
             // Set retry after 0 minutes, to force immediate retry
             val errorHandler = FailedMessageKafkaHandler(
                 kafka = testcontainerKafkaConfig,
-                errorRetryPolicy = ErrorRetryPolicy(1.seconds, 10, listOf(0.minutes), listOf(2), maxRetries = 10)
+                errorRetryPolicy = ErrorRetryPolicy(1.seconds, 10, listOf(0.minutes), listOf(2), maxRetries = 10),
+                cpaValidationService = mockk(relaxed = true),
+                eventRegistrationService = mockk(relaxed = true),
+                signalSender = { _, _ -> }
             )
             val processedMessages = ArrayList<ReceiverRecord<String, ByteArray>>()
             val messageFilterService = DummyMessageFilterService(errorHandler, processedMessages)

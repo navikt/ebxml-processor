@@ -54,7 +54,11 @@ class KafkaIntegrationTest {
     @DisabledIf("noLocalKafkaEnv")
     fun leggTilRetry() {
         if (noLocalKafkaEnv()) return
-        val failedMessageQueue = FailedMessageKafkaHandler()
+        val failedMessageQueue = FailedMessageKafkaHandler(
+            cpaValidationService = io.mockk.mockk(relaxed = true),
+            eventRegistrationService = io.mockk.mockk(relaxed = true),
+            signalSender = { _, _ -> }
+        )
         runTest {
             val record = getRecord(
                 fromOffset = 9379942,
