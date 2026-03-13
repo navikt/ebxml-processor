@@ -3,7 +3,10 @@ package no.nav.emottak.ebms.async.processing
 import io.github.nomisRev.kafka.receiver.ReceiverRecord
 import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
+import no.nav.emottak.ebms.async.kafka.consumer.asReceiverRecord
+import no.nav.emottak.ebms.async.kafka.consumer.getRetryRecord
 import no.nav.emottak.ebms.async.kafka.consumer.retryCount
+import no.nav.emottak.ebms.async.kafka.consumer.retryCounter
 import no.nav.emottak.ebms.async.log
 import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.ebms.model.signer
@@ -15,12 +18,14 @@ import no.nav.emottak.message.model.EbmsMessage
 import no.nav.emottak.message.model.EmailAddress
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.util.marker
+import org.apache.kafka.clients.consumer.ConsumerRecord
 import java.time.Instant
+import java.time.LocalDateTime
 
 class RetryService(
     val cpaValidationService: CPAValidationService,
     val eventRegistrationService: EventRegistrationService,
-    val failedMessageQueue: FailedMessageKafkaHandler,
+    val fmkh: FailedMessageKafkaHandler,
     val signalSender: suspend (EbmsDocument, List<EmailAddress>) -> Unit
 ) {
 
@@ -61,8 +66,8 @@ class RetryService(
         when (decision) {
             RetryDecision.RETRY -> {
                 when (direction) {
-                    Direction.OUT -> failedMessageQueue.sendToRetryQueueOutgoing(record, retryReason)
-                    Direction.IN -> failedMessageQueue.sendToRetryQueueIncoming(record, retryReason)
+                    Direction.OUT -> fmkh.sendToRetryQueueOutgoing(record, retryReason, getNextRetryTime(record, direction))
+                    Direction.IN -> fmkh.sendToRetryQueueIncoming(record, retryReason, getNextRetryTime(record, direction))
                 }
             }
             RetryDecision.TTL_EXPIRED ->
@@ -85,6 +90,111 @@ class RetryService(
                 )
         }
         log.info("Decision [$decision]:\n" + "Failing payload sent at ${payloadMessage.sentAt ?: "unknown"}, error type: ${exception::class.simpleName ?: "Unknown error"}, reason: $retryReason, retries already performed: $retriedAlready. Decision reason: $reason")
+    }
+
+    /**
+     * Polls the incoming retry queue and processes each record.
+     * Records that are ready to retry are handed to [processor].
+     * Records not yet due are re-queued without advancing their retry time.
+     *
+     * @param limit Maximum number of records to process.
+     * @param processor Called to re-process each ready record (e.g. messageFilterService::filterMessage).
+     */
+    suspend fun consumeRetryQueueIncoming(
+        limit: Int,
+        processor: suspend (ReceiverRecord<String, ByteArray>) -> Unit
+    ) {
+        val records = fmkh.pollIncomingRetryRecords(limit)
+        records.forEachIndexed { index, record ->
+            if (index >= limit) {
+                log.info("Incoming retry queue limit reached: $limit")
+                return@forEachIndexed
+            }
+            processRetryRecord(record, Direction.IN, processor)
+            fmkh.commitOffset(record, Direction.IN)
+        }
+    }
+
+    /**
+     * Polls the outgoing retry queue and processes each record.
+     * Records that are ready to retry are handed to [processor].
+     * Records not yet due are re-queued without advancing their retry time.
+     *
+     * @param limit Maximum number of records to process.
+     * @param processor Called to re-process each ready record.
+     */
+    suspend fun consumeRetryQueueOutgoing(
+        limit: Int,
+        processor: suspend (ReceiverRecord<String, ByteArray>) -> Unit
+    ) {
+        if (!config().kafkaErrorQueueOut.active) return
+        val records = fmkh.pollOutgoingRetryRecords(limit)
+        records.forEachIndexed { index, record ->
+            if (index >= limit) {
+                log.info("Outgoing retry queue limit reached: $limit")
+                return@forEachIndexed
+            }
+            processRetryRecord(record, Direction.OUT, processor)
+            fmkh.commitOffset(record, Direction.OUT)
+        }
+    }
+
+    /**
+     * Forces re-processing of a specific message from the incoming retry queue by offset.
+     * The retry counter is NOT incremented — this is an operator-initiated re-run.
+     *
+     * @param offset Kafka offset of the message on the incoming retry queue.
+     * @param processor Called to re-process the record.
+     */
+    suspend fun forceRetryFailedMessage(
+        offset: Long,
+        processor: suspend (ReceiverRecord<String, ByteArray>) -> Unit
+    ) {
+        log.info("Forcing re-run of message on incoming error queue at offset $offset")
+        val record = getRetryRecord(offset)
+        if (record == null) {
+            log.info("No record in incoming error queue at offset $offset")
+            return
+        }
+        log.info("${record.key()} is being re-run.")
+        processor(record)
+        log.info("${record.key()} has been re-run.")
+    }
+
+    private suspend fun processRetryRecord(
+        record: ConsumerRecord<String, ByteArray>,
+        direction: Direction,
+        processor: suspend (ReceiverRecord<String, ByteArray>) -> Unit
+    ) {
+        val retryableAfter = fmkh.parseNextRetryHeader(record)
+        log.info("Record with key ${record.key()} is retryable after $retryableAfter.")
+
+        if (IGNORE_OLD_MESSAGES && LocalDateTime.now().minusDays(AGE_DAYS_TO_IGNORE).isAfter(retryableAfter)) {
+            log.info("${record.key()} is too old, ignoring. This should only happen during DEV.")
+            return
+        }
+
+        if (LocalDateTime.now().isAfter(retryableAfter)) {
+            log.info("${record.key()} is being retried.")
+            record.asReceiverRecord().retryCounter()
+            processor(record.asReceiverRecord())
+            log.info("${record.key()} has been retried.")
+        } else {
+            log.info("${record.key()} is not retryable yet.")
+            when (direction) {
+                Direction.IN -> fmkh.sendToRetryQueueIncoming(record.asReceiverRecord())
+                Direction.OUT -> fmkh.sendToRetryQueueOutgoing(record.asReceiverRecord())
+            }
+        }
+    }
+
+    internal fun getNextRetryTime(record: ReceiverRecord<String, ByteArray>, direction: Direction): String {
+        val policy = when (direction) {
+            Direction.IN -> config().errorRetryPolicyIncoming
+            Direction.OUT -> config().errorRetryPolicyOutgoing
+        }
+        val nextInterval = policy.nextInterval(record.retryCount())
+        return LocalDateTime.now().plusMinutes(nextInterval.inWholeMinutes).toString()
     }
 
     internal fun decideRetry(ttl: Instant?, retriedAlready: Int, maxRetries: Int): Pair<RetryDecision, String> {
@@ -119,5 +229,12 @@ class RetryService(
             validationResult.signalEmailAddress
         )
         log.warn(messageError.marker(), "MessageError returned", ebmsException)
+    }
+
+    companion object {
+        // This flag is intended for dummy-processing old messages in the error queue on startup in DEV (approx. 3000).
+        // It can also be used in normal operation to ignore messages older than the given number of days.
+        const val IGNORE_OLD_MESSAGES = false
+        const val AGE_DAYS_TO_IGNORE = 7L
     }
 }

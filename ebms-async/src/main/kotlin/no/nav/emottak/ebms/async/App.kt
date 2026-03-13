@@ -7,6 +7,8 @@ import arrow.continuations.SuspendApp
 import arrow.continuations.ktor.server
 import arrow.core.raise.result
 import arrow.fx.coroutines.resourceScope
+import io.github.nomisRev.kafka.receiver.ReceiverRecord
+import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.auth.authenticate
@@ -24,6 +26,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
 import no.nav.emottak.ebms.AZURE_AD_AUTH
 import no.nav.emottak.ebms.CpaRepoClient
 import no.nav.emottak.ebms.EBMS_PAYLOAD_SCOPE
@@ -66,6 +69,9 @@ import no.nav.emottak.ebms.registerRootEndpoint
 import no.nav.emottak.ebms.scopedAuthHttpClient
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.CPAValidationService
+import no.nav.emottak.message.model.Payload
+import no.nav.emottak.message.model.PayloadMessage
+import no.nav.emottak.utils.common.model.SendInResponse
 import no.nav.emottak.utils.environment.isProdEnv
 import no.nav.emottak.utils.kafka.client.EventPublisherClient
 import no.nav.emottak.utils.kafka.service.EventLoggingService
@@ -122,7 +128,7 @@ fun main() = SuspendApp {
     val retryService = RetryService(
         cpaValidationService = cpaValidationService,
         eventRegistrationService = eventRegistrationService,
-        failedMessageQueue = failedMessageQueue,
+        fmkh = failedMessageQueue,
         signalSender = { ebmsDocument, signalResponderEmails ->
             sendSignalResponseToTopic(ebmsSignalProducer, eventRegistrationService, ebmsDocument, signalResponderEmails)
         }
@@ -167,10 +173,16 @@ fun main() = SuspendApp {
                 config = config,
                 payloadMessageService = payloadMessageService
             )
-            launchErrorRetryTask(
+            launchErrorRetryTaskIncoming(
                 config = config,
+                retryService = retryService,
                 messageFilterService = messageFilterService,
-                failedMessageQueue = failedMessageQueue,
+                pauseRetryErrorsTimerFlag = pauseRetryErrorsTimerFlag
+            )
+            launchErrorRetryTaskOutgoing(
+                config = config,
+                retryService = retryService,
+                payloadMessageService = payloadMessageService,
                 pauseRetryErrorsTimerFlag = pauseRetryErrorsTimerFlag
             )
             launchMesssageResendTask(
@@ -187,7 +199,8 @@ fun main() = SuspendApp {
                         payloadRepository = payloadRepository,
                         messageFilterService = messageFilterService,
                         eventRegistrationService = eventRegistrationService,
-                        failedMessageQueue = failedMessageQueue,
+                        retryService = retryService,
+                        payloadMessageService = payloadMessageService,
                         pauseRetryErrorsTimerFlag = pauseRetryErrorsTimerFlag
                     )
                 }
@@ -253,34 +266,90 @@ fun CoroutineScope.launchSignalReceiver(
     }
 }
 
-fun CoroutineScope.launchErrorRetryTask(
+/**
+ * Builds the OUT-direction retry processor lambda.
+ * Decodes the stored SendInResponse from the record and delegates to
+ * [PayloadMessageService.processOutboundResponse], mirroring the live receive path in EbmsOutPayloadReceiver.
+ */
+fun makeOutRetryProcessor(
+    payloadMessageService: PayloadMessageService
+): suspend (ReceiverRecord<String, ByteArray>) -> Unit = { record ->
+    val sendInResponse = Json.decodeFromString<SendInResponse>(record.value().decodeToString())
+    val cpaId = record.headers().lastHeader("cpaId")?.let { String(it.value()) } ?: ""
+    val refToMessageId = record.headers().lastHeader("refToMessageId")?.let { String(it.value()) }
+    val payloadMessage = PayloadMessage(
+        requestId = sendInResponse.requestId,
+        messageId = sendInResponse.messageId,
+        conversationId = sendInResponse.conversationId,
+        cpaId = cpaId,
+        addressing = sendInResponse.addressing,
+        payload = Payload(sendInResponse.payload, ContentType.Application.Xml.toString()),
+        refToMessageId = refToMessageId,
+        duplicateElimination = false,
+        ackRequested = true
+    )
+    payloadMessageService.processOutboundResponse(record, payloadMessage)
+}
+
+fun CoroutineScope.launchErrorRetryTaskIncoming(
     config: Config,
+    retryService: RetryService,
     messageFilterService: MessageFilterService,
-    failedMessageQueue: FailedMessageKafkaHandler,
     pauseRetryErrorsTimerFlag: PauseRetryErrorsTimerFlag
 ) {
     if (!config.kafkaErrorQueue.active) return
 
     timer(
-        name = "Retry Errors Timer",
+        name = "Retry Errors Timer Incoming",
         initialDelay = 5000L,
         period = config.errorRetryPolicyIncoming.processInterval.inWholeMilliseconds,
         daemon = true
     ) {
         launch(Dispatchers.IO) {
-            log.info("=== RetryErrorsTask starting...")
+            log.info("=== RetryErrorsTaskIncoming starting...")
             try {
                 if (pauseRetryErrorsTimerFlag.paused) {
                     log.info("Retry task is paused.")
                     return@launch
                 }
-
-                failedMessageQueue.consumeRetryQueue(
-                    messageFilterService,
-                    config.errorRetryPolicyIncoming.maxMessagesToProcess
+                retryService.consumeRetryQueueIncoming(
+                    limit = config.errorRetryPolicyIncoming.maxMessagesToProcess,
+                    processor = messageFilterService::filterMessage
                 )
             } catch (e: Exception) {
-                log.error("RetryErrorsTask failed", e)
+                log.error("RetryErrorsTaskIncoming failed", e)
+            }
+        }
+    }
+}
+
+fun CoroutineScope.launchErrorRetryTaskOutgoing(
+    config: Config,
+    retryService: RetryService,
+    payloadMessageService: PayloadMessageService,
+    pauseRetryErrorsTimerFlag: PauseRetryErrorsTimerFlag
+) {
+    if (!config.kafkaErrorQueueOut.active) return
+
+    timer(
+        name = "Retry Errors Timer Outgoing",
+        initialDelay = 5000L,
+        period = config.errorRetryPolicyOutgoing.processInterval.inWholeMilliseconds,
+        daemon = true
+    ) {
+        launch(Dispatchers.IO) {
+            log.info("=== RetryErrorsTaskOutgoing starting...")
+            try {
+                if (pauseRetryErrorsTimerFlag.paused) {
+                    log.info("Retry task is paused.")
+                    return@launch
+                }
+                retryService.consumeRetryQueueOutgoing(
+                    limit = config.errorRetryPolicyOutgoing.maxMessagesToProcess,
+                    processor = makeOutRetryProcessor(payloadMessageService)
+                )
+            } catch (e: Exception) {
+                log.error("RetryErrorsTaskOutgoing failed", e)
             }
         }
     }
@@ -317,7 +386,8 @@ fun Application.ebmsProviderModule(
     payloadRepository: PayloadRepository,
     messageFilterService: MessageFilterService,
     eventRegistrationService: EventRegistrationService,
-    failedMessageQueue: FailedMessageKafkaHandler,
+    retryService: RetryService,
+    payloadMessageService: PayloadMessageService,
     pauseRetryErrorsTimerFlag: PauseRetryErrorsTimerFlag
 ) {
     val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
@@ -332,10 +402,12 @@ fun Application.ebmsProviderModule(
         registerPrometheusEndpoint(appMicrometerRegistry)
         registerNavCheckStatus()
         if (!isProdEnv()) {
-            simulateError(failedMessageQueue)
+            forceRetryMessageIn(retryService)
+            forceRetryMessageOut(retryService)
         }
-        retryErrors(messageFilterService, failedMessageQueue)
-        rerun(messageFilterService, failedMessageQueue)
+        retryErrorsIncoming(retryService, messageFilterService)
+        retryErrorsOutgoing(retryService, payloadMessageService)
+        rerun(retryService, messageFilterService)
         pauseRetries(pauseRetryErrorsTimerFlag)
         resumeRetries(pauseRetryErrorsTimerFlag)
         authenticate(AZURE_AD_AUTH) {
@@ -346,28 +418,47 @@ fun Application.ebmsProviderModule(
 
 const val RETRY_LIMIT = "retryLimit"
 
-fun Routing.retryErrors(
-    messageFilterService: MessageFilterService,
-    failedMessageQueue: FailedMessageKafkaHandler
+fun Routing.retryErrorsIncoming(
+    retryService: RetryService,
+    messageFilterService: MessageFilterService
 ): Route =
-    get("/api/retry/{$RETRY_LIMIT}") {
+    get("/api/retryIn/{$RETRY_LIMIT}") {
         if (!config().kafkaErrorQueue.active) {
-            call.respondText(status = HttpStatusCode.ServiceUnavailable, text = "Retry not active.")
+            call.respondText(status = HttpStatusCode.ServiceUnavailable, text = "Incoming retry not active.")
             return@get
         }
-        failedMessageQueue.consumeRetryQueue(
-            messageFilterService,
-            limit = (call.parameters[RETRY_LIMIT])?.toInt() ?: 10
+        retryService.consumeRetryQueueIncoming(
+            limit = (call.parameters[RETRY_LIMIT])?.toInt() ?: 10,
+            processor = messageFilterService::filterMessage
         )
         call.respondText(
             status = HttpStatusCode.OK,
-            text = "Retry processing started with limit ${call.parameters[RETRY_LIMIT] ?: "default"}"
+            text = "Incoming retry processing started with limit ${call.parameters[RETRY_LIMIT] ?: "default"}"
+        )
+    }
+
+fun Routing.retryErrorsOutgoing(
+    retryService: RetryService,
+    payloadMessageService: PayloadMessageService
+): Route =
+    get("/api/retryOut/{$RETRY_LIMIT}") {
+        if (!config().kafkaErrorQueueOut.active) {
+            call.respondText(status = HttpStatusCode.ServiceUnavailable, text = "Outgoing retry not active.")
+            return@get
+        }
+        retryService.consumeRetryQueueOutgoing(
+            limit = (call.parameters[RETRY_LIMIT])?.toInt() ?: 10,
+            processor = makeOutRetryProcessor(payloadMessageService)
+        )
+        call.respondText(
+            status = HttpStatusCode.OK,
+            text = "Outgoing retry processing started with limit ${call.parameters[RETRY_LIMIT] ?: "default"}"
         )
     }
 
 fun Routing.rerun(
-    messageFilterService: MessageFilterService,
-    failedMessageQueue: FailedMessageKafkaHandler
+    retryService: RetryService,
+    messageFilterService: MessageFilterService
 ): Route =
     get("/api/rerun/{$KAFKA_OFFSET}") {
         if (!config().kafkaErrorQueue.active) {
@@ -379,9 +470,9 @@ fun Routing.rerun(
             call.respondText(status = HttpStatusCode.BadRequest, text = "Must specify offset of message to rerun.")
             return@get
         }
-        failedMessageQueue.forceRetryFailedMessage(
-            messageFilterService,
-            offset = offsetParam
+        retryService.forceRetryFailedMessage(
+            offset = offsetParam,
+            processor = messageFilterService::filterMessage
         )
         call.respondText(
             status = HttpStatusCode.OK,
@@ -391,32 +482,53 @@ fun Routing.rerun(
 
 const val KAFKA_OFFSET = "offset"
 
-fun Route.simulateError(
-    failedMessageQueue: FailedMessageKafkaHandler
+fun Route.forceRetryMessageIn(
+    retryService: RetryService
 ): Route =
-    get("/api/forceretry/{$KAFKA_OFFSET}") {
+    get("/api/forceRetryIn/{$KAFKA_OFFSET}") {
         if (!config().kafkaErrorQueue.active) {
-            call.respondText(status = HttpStatusCode.ServiceUnavailable, text = "Retry queue not active.")
+            call.respondText(status = HttpStatusCode.ServiceUnavailable, text = "Incoming retry queue not active.")
             return@get
         }
         CoroutineScope(Dispatchers.IO).launch() {
-            if (config().kafkaErrorQueue.active) {
-                val record = getRecord(
-                    config()
-                        .kafkaPayloadReceiver.topic,
-                    config().kafka
-                        .copy(groupId = "ebms-provider-retry"),
-                    (call.parameters[KAFKA_OFFSET])?.toLong() ?: 0
-                )
-                failedMessageQueue.sendToRetryQueueIncoming(
-                    record = record ?: throw Exception("No Record found. Offset: ${call.parameters[KAFKA_OFFSET]}"),
-                    reason = "Simulated Error"
-                )
-                call.respondText(
-                    status = HttpStatusCode.OK,
-                    text = "Payload message with offset ${call.parameters[KAFKA_OFFSET]} has been added to retry queue"
-                )
-            }
+            val record = getRecord(
+                config().kafkaPayloadReceiver.topic,
+                config().kafka.copy(groupId = "ebms-provider-retry"),
+                (call.parameters[KAFKA_OFFSET])?.toLong() ?: 0
+            )
+            retryService.fmkh.sendToRetryQueueIncoming(
+                record = record ?: throw Exception("No Record found. Offset: ${call.parameters[KAFKA_OFFSET]}"),
+                reason = "Forced Retry"
+            )
+            call.respondText(
+                status = HttpStatusCode.OK,
+                text = "Payload message with offset ${call.parameters[KAFKA_OFFSET]} has been added to incoming retry queue"
+            )
+        }
+    }
+
+fun Route.forceRetryMessageOut(
+    retryService: RetryService
+): Route =
+    get("/api/forceRetryOut/{$KAFKA_OFFSET}") {
+        if (!config().kafkaErrorQueueOut.active) {
+            call.respondText(status = HttpStatusCode.ServiceUnavailable, text = "Outgoing retry queue not active.")
+            return@get
+        }
+        CoroutineScope(Dispatchers.IO).launch() {
+            val record = getRecord(
+                config().kafkaEbmsOutPayloadReceiver.topic,
+                config().kafka.copy(groupId = "ebms-provider-retry-out"),
+                (call.parameters[KAFKA_OFFSET])?.toLong() ?: 0
+            )
+            retryService.fmkh.sendToRetryQueueOutgoing(
+                record = record ?: throw Exception("No Record found. Offset: ${call.parameters[KAFKA_OFFSET]}"),
+                reason = "Forced Retry"
+            )
+            call.respondText(
+                status = HttpStatusCode.OK,
+                text = "Payload message with offset ${call.parameters[KAFKA_OFFSET]} has been added to outgoing retry queue"
+            )
         }
     }
 
