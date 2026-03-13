@@ -66,8 +66,8 @@ class RetryService(
         when (decision) {
             RetryDecision.RETRY -> {
                 when (direction) {
-                    Direction.OUT -> fmkh.sendToRetryQueueOutgoing(record, retryReason)
-                    Direction.IN -> fmkh.sendToRetryQueueIncoming(record, retryReason)
+                    Direction.OUT -> fmkh.sendToRetryQueueOutgoing(record, retryReason, getNextRetryTime(record, direction))
+                    Direction.IN -> fmkh.sendToRetryQueueIncoming(record, retryReason, getNextRetryTime(record, direction))
                 }
             }
             RetryDecision.TTL_EXPIRED ->
@@ -172,10 +172,19 @@ class RetryService(
         } else {
             log.info("${record.key()} is not retryable yet.")
             when (direction) {
-                Direction.IN -> fmkh.sendToRetryQueueIncoming(record.asReceiverRecord(), advanceRetryTime = false)
-                Direction.OUT -> fmkh.sendToRetryQueueOutgoing(record.asReceiverRecord(), advanceRetryTime = false)
+                Direction.IN -> fmkh.sendToRetryQueueIncoming(record.asReceiverRecord())
+                Direction.OUT -> fmkh.sendToRetryQueueOutgoing(record.asReceiverRecord())
             }
         }
+    }
+
+    internal fun getNextRetryTime(record: ReceiverRecord<String, ByteArray>, direction: Direction): String {
+        val policy = when (direction) {
+            Direction.IN -> config().errorRetryPolicyIncoming
+            Direction.OUT -> config().errorRetryPolicyOutgoing
+        }
+        val nextInterval = policy.nextInterval(record.retryCount())
+        return LocalDateTime.now().plusMinutes(nextInterval.inWholeMinutes).toString()
     }
 
     internal fun decideRetry(ttl: Instant?, retriedAlready: Int, maxRetries: Int): Pair<RetryDecision, String> {

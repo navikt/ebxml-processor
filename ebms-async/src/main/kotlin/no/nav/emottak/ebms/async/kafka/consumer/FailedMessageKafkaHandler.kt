@@ -5,7 +5,6 @@ import io.github.nomisRev.kafka.publisher.KafkaPublisher
 import io.github.nomisRev.kafka.publisher.PublisherSettings
 import io.github.nomisRev.kafka.receiver.Offset
 import io.github.nomisRev.kafka.receiver.ReceiverRecord
-import no.nav.emottak.ebms.async.configuration.ErrorRetryPolicy
 import no.nav.emottak.ebms.async.configuration.KafkaErrorQueue
 import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.configuration.toProperties
@@ -40,8 +39,7 @@ val logger: Logger = LoggerFactory.getLogger(FailedMessageKafkaHandler::class.ja
 
 class FailedMessageKafkaHandler(
     val kafkaErrorQueue: KafkaErrorQueue = config().kafkaErrorQueue,
-    val kafka: Kafka = config().kafka,
-    val errorRetryPolicy: ErrorRetryPolicy = config().errorRetryPolicyIncoming
+    val kafka: Kafka = config().kafka
 ) {
 
     val publisher = KafkaPublisher(
@@ -154,12 +152,12 @@ class FailedMessageKafkaHandler(
     suspend fun sendToRetryQueueIncoming(
         record: ReceiverRecord<String, ByteArray>,
         reason: String? = null,
-        advanceRetryTime: Boolean = true
+        nextRetryTime: String? = null
     ) {
         sendToRetry(
             record,
             reason = reason,
-            advanceRetryTime = advanceRetryTime,
+            nextRetryTime = nextRetryTime,
             direction = Direction.IN
         )
     }
@@ -167,12 +165,12 @@ class FailedMessageKafkaHandler(
     suspend fun sendToRetryQueueOutgoing(
         record: ReceiverRecord<String, ByteArray>,
         reason: String? = null,
-        advanceRetryTime: Boolean = true
+        nextRetryTime: String? = null
     ) {
         sendToRetry(
             record,
             reason = reason,
-            advanceRetryTime = advanceRetryTime,
+            nextRetryTime = nextRetryTime,
             direction = Direction.OUT
         )
     }
@@ -182,7 +180,7 @@ class FailedMessageKafkaHandler(
         key: String = record.key(),
         value: ByteArray = record.value(),
         reason: String? = null,
-        advanceRetryTime: Boolean = true,
+        nextRetryTime: String? = null,
         direction: Direction
     ) {
         val topic = when (direction) {
@@ -195,8 +193,8 @@ class FailedMessageKafkaHandler(
         if (reason != null) {
             record.addHeader(RETRY_REASON, reason)
         }
-        if (advanceRetryTime) {
-            record.addHeader(RETRY_AFTER, getNextRetryTime(record))
+        if (nextRetryTime != null) {
+            record.addHeader(RETRY_AFTER, nextRetryTime)
         }
         try {
             val metadata = publisher.publishScope {
@@ -232,10 +230,6 @@ class FailedMessageKafkaHandler(
         }
     }
 
-    fun getNextRetryTime(record: ReceiverRecord<String, ByteArray>): String {
-        val nextInterval = errorRetryPolicy.nextInterval(record.retryCount())
-        return LocalDateTime.now().plusMinutes(nextInterval.inWholeMinutes).toString()
-    }
 }
 
 // Under test klarte vi å framprovosere en situasjon hvor headeren inneholdt en tekst
