@@ -51,7 +51,6 @@ class ErrorHandlerTest {
             assertTrue(record1?.key() == "test-message", "Melding sendt til feilhåndtering ligger på feilkø med offset 0")
 
             retryService.consumeRetryQueueIncoming(1, messageFilterService::filterMessage)
-            // errorHandler.pollIncomingRetryRecords (1)
             assertTrue(processedMessages.size == 1, "Etter prosessering av feilkø er meldingen prosessert av MessageFilterService")
 
             errorHandler.sendToRetry(newRecord("failingAtFirstRetry"), direction = Direction.IN)
@@ -59,13 +58,11 @@ class ErrorHandlerTest {
             assertTrue(record2?.key() == "failingAtFirstRetry", "Melding som vil feile ligger på feilkø med offset 1")
 
             retryService.consumeRetryQueueIncoming(1, messageFilterService::filterMessage)
-            // errorHandler.pollIncomingRetryRecords(1)
             assertTrue(processedMessages.size == 1, "Etter prosessering av feilkø 1 gang er meldingen IKKE prosessert av MessageFilterService")
             val record3 = getRecordFromErrorQueueAtOffset(testcontainerKafkaConfig, 2)
             assertTrue(getRetryCountHeaderValue(record3) == 1, "Etter prosessering av feilkø 1 gang ligger meldingen igjen på feilkø med offset 2, og retrycount=1")
 
             retryService.consumeRetryQueueIncoming(1, messageFilterService::filterMessage)
-            // errorHandler.pollIncomingRetryRecords(1)
             assertTrue(processedMessages.size == 2, "Etter prosessering av feilkø 2 ganger er meldingen prosessert av MessageFilterService")
         }
     }
