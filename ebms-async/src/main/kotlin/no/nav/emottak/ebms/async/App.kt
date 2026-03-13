@@ -173,10 +173,15 @@ fun main() = SuspendApp {
                 config = config,
                 payloadMessageService = payloadMessageService
             )
-            launchErrorRetryTask(
+            launchErrorRetryTaskIncoming(
                 config = config,
                 retryService = retryService,
                 messageFilterService = messageFilterService,
+                pauseRetryErrorsTimerFlag = pauseRetryErrorsTimerFlag
+            )
+            launchErrorRetryTaskOutgoing(
+                config = config,
+                retryService = retryService,
                 payloadMessageService = payloadMessageService,
                 pauseRetryErrorsTimerFlag = pauseRetryErrorsTimerFlag
             )
@@ -286,36 +291,65 @@ fun makeOutRetryProcessor(
     payloadMessageService.processOutboundResponse(record, payloadMessage)
 }
 
-fun CoroutineScope.launchErrorRetryTask(
+fun CoroutineScope.launchErrorRetryTaskIncoming(
     config: Config,
     retryService: RetryService,
     messageFilterService: MessageFilterService,
-    payloadMessageService: PayloadMessageService,
     pauseRetryErrorsTimerFlag: PauseRetryErrorsTimerFlag
 ) {
     if (!config.kafkaErrorQueue.active) return
 
     timer(
-        name = "Retry Errors Timer",
+        name = "Retry Errors Timer Incoming",
         initialDelay = 5000L,
         period = config.errorRetryPolicyIncoming.processInterval.inWholeMilliseconds,
         daemon = true
     ) {
         launch(Dispatchers.IO) {
-            log.info("=== RetryErrorsTask starting...")
+            log.info("=== RetryErrorsTaskIncoming starting...")
             try {
                 if (pauseRetryErrorsTimerFlag.paused) {
                     log.info("Retry task is paused.")
                     return@launch
                 }
-
-                retryService.consumeRetryQueue(
+                retryService.consumeRetryQueueIncoming(
                     limit = config.errorRetryPolicyIncoming.maxMessagesToProcess,
-                    inProcessor = messageFilterService::filterMessage,
-                    outProcessor = makeOutRetryProcessor(payloadMessageService)
+                    processor = messageFilterService::filterMessage
                 )
             } catch (e: Exception) {
-                log.error("RetryErrorsTask failed", e)
+                log.error("RetryErrorsTaskIncoming failed", e)
+            }
+        }
+    }
+}
+
+fun CoroutineScope.launchErrorRetryTaskOutgoing(
+    config: Config,
+    retryService: RetryService,
+    payloadMessageService: PayloadMessageService,
+    pauseRetryErrorsTimerFlag: PauseRetryErrorsTimerFlag
+) {
+    if (!config.kafkaErrorQueueOut.active) return
+
+    timer(
+        name = "Retry Errors Timer Outgoing",
+        initialDelay = 5000L,
+        period = config.errorRetryPolicyOutgoing.processInterval.inWholeMilliseconds,
+        daemon = true
+    ) {
+        launch(Dispatchers.IO) {
+            log.info("=== RetryErrorsTaskOutgoing starting...")
+            try {
+                if (pauseRetryErrorsTimerFlag.paused) {
+                    log.info("Retry task is paused.")
+                    return@launch
+                }
+                retryService.consumeRetryQueueOutgoing(
+                    limit = config.errorRetryPolicyOutgoing.maxMessagesToProcess,
+                    processor = makeOutRetryProcessor(payloadMessageService)
+                )
+            } catch (e: Exception) {
+                log.error("RetryErrorsTaskOutgoing failed", e)
             }
         }
     }
@@ -370,7 +404,8 @@ fun Application.ebmsProviderModule(
         if (!isProdEnv()) {
             simulateError(retryService)
         }
-        retryErrors(retryService, messageFilterService, payloadMessageService)
+        retryErrorsIncoming(retryService, messageFilterService)
+        retryErrorsOutgoing(retryService, payloadMessageService)
         rerun(retryService, messageFilterService)
         pauseRetries(pauseRetryErrorsTimerFlag)
         resumeRetries(pauseRetryErrorsTimerFlag)
@@ -382,24 +417,41 @@ fun Application.ebmsProviderModule(
 
 const val RETRY_LIMIT = "retryLimit"
 
-fun Routing.retryErrors(
+fun Routing.retryErrorsIncoming(
     retryService: RetryService,
-    messageFilterService: MessageFilterService,
-    payloadMessageService: PayloadMessageService
+    messageFilterService: MessageFilterService
 ): Route =
-    get("/api/retry/{$RETRY_LIMIT}") {
+    get("/api/retryIn/{$RETRY_LIMIT}") {
         if (!config().kafkaErrorQueue.active) {
-            call.respondText(status = HttpStatusCode.ServiceUnavailable, text = "Retry not active.")
+            call.respondText(status = HttpStatusCode.ServiceUnavailable, text = "Incoming retry not active.")
             return@get
         }
-        retryService.consumeRetryQueue(
+        retryService.consumeRetryQueueIncoming(
             limit = (call.parameters[RETRY_LIMIT])?.toInt() ?: 10,
-            inProcessor = messageFilterService::filterMessage,
-            outProcessor = makeOutRetryProcessor(payloadMessageService)
+            processor = messageFilterService::filterMessage
         )
         call.respondText(
             status = HttpStatusCode.OK,
-            text = "Retry processing started with limit ${call.parameters[RETRY_LIMIT] ?: "default"}"
+            text = "Incoming retry processing started with limit ${call.parameters[RETRY_LIMIT] ?: "default"}"
+        )
+    }
+
+fun Routing.retryErrorsOutgoing(
+    retryService: RetryService,
+    payloadMessageService: PayloadMessageService
+): Route =
+    get("/api/retryOut/{$RETRY_LIMIT}") {
+        if (!config().kafkaErrorQueueOut.active) {
+            call.respondText(status = HttpStatusCode.ServiceUnavailable, text = "Outgoing retry not active.")
+            return@get
+        }
+        retryService.consumeRetryQueueOutgoing(
+            limit = (call.parameters[RETRY_LIMIT])?.toInt() ?: 10,
+            processor = makeOutRetryProcessor(payloadMessageService)
+        )
+        call.respondText(
+            status = HttpStatusCode.OK,
+            text = "Outgoing retry processing started with limit ${call.parameters[RETRY_LIMIT] ?: "default"}"
         )
     }
 

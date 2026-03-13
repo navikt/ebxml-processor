@@ -93,39 +93,49 @@ class RetryService(
     }
 
     /**
-     * Polls both the incoming and outgoing retry queues and processes each record.
-     * Records that are ready to retry are handed to the appropriate processor callback.
+     * Polls the incoming retry queue and processes each record.
+     * Records that are ready to retry are handed to [processor].
      * Records not yet due are re-queued without advancing their retry time.
      *
-     * @param limit Maximum number of records to process per direction.
-     * @param inProcessor Called to re-process an incoming retry record (e.g. messageFilterService::filterMessage).
-     * @param outProcessor Called to re-process an outgoing retry record.
+     * @param limit Maximum number of records to process.
+     * @param processor Called to re-process each ready record (e.g. messageFilterService::filterMessage).
      */
-    suspend fun consumeRetryQueue(
+    suspend fun consumeRetryQueueIncoming(
         limit: Int,
-        inProcessor: suspend (ReceiverRecord<String, ByteArray>) -> Unit,
-        outProcessor: suspend (ReceiverRecord<String, ByteArray>) -> Unit
+        processor: suspend (ReceiverRecord<String, ByteArray>) -> Unit
     ) {
-        val inRecords = fmkh.pollIncomingRetryRecords(limit)
-        inRecords.forEachIndexed { index, record ->
+        val records = fmkh.pollIncomingRetryRecords(limit)
+        records.forEachIndexed { index, record ->
             if (index >= limit) {
                 log.info("Incoming retry queue limit reached: $limit")
                 return@forEachIndexed
             }
-            processRetryRecord(record, Direction.IN, inProcessor)
+            processRetryRecord(record, Direction.IN, processor)
             fmkh.commitOffset(record, Direction.IN)
         }
+    }
 
-        if (config().kafkaErrorQueueOut.active) {
-            val outRecords = fmkh.pollOutgoingRetryRecords(limit)
-            outRecords.forEachIndexed { index, record ->
-                if (index >= limit) {
-                    log.info("Outgoing retry queue limit reached: $limit")
-                    return@forEachIndexed
-                }
-                processRetryRecord(record, Direction.OUT, outProcessor)
-                fmkh.commitOffset(record, Direction.OUT)
+    /**
+     * Polls the outgoing retry queue and processes each record.
+     * Records that are ready to retry are handed to [processor].
+     * Records not yet due are re-queued without advancing their retry time.
+     *
+     * @param limit Maximum number of records to process.
+     * @param processor Called to re-process each ready record.
+     */
+    suspend fun consumeRetryQueueOutgoing(
+        limit: Int,
+        processor: suspend (ReceiverRecord<String, ByteArray>) -> Unit
+    ) {
+        if (!config().kafkaErrorQueueOut.active) return
+        val records = fmkh.pollOutgoingRetryRecords(limit)
+        records.forEachIndexed { index, record ->
+            if (index >= limit) {
+                log.info("Outgoing retry queue limit reached: $limit")
+                return@forEachIndexed
             }
+            processRetryRecord(record, Direction.OUT, processor)
+            fmkh.commitOffset(record, Direction.OUT)
         }
     }
 
