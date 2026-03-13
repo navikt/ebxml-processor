@@ -192,7 +192,7 @@ class FailedMessageKafkaHandler(
         )
         val records = getRecordsToConsume(pollerConsumer, limit)
         if (records.isEmpty()) {
-            logger.info("No records to process in error queue")
+            logger.debug("No records to process in error queue")
             return
         }
         logger.info("At least ${records.count()} records to process in error queue")

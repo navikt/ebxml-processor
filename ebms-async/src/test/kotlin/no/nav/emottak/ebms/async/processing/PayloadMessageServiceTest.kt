@@ -13,8 +13,8 @@ import io.mockk.runs
 import io.mockk.slot
 import kotlinx.coroutines.runBlocking
 import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
+import no.nav.emottak.ebms.async.persistence.repository.MessageReceivedRepository
 import no.nav.emottak.ebms.async.util.EventRegistrationService
-import no.nav.emottak.ebms.eventmanager.EventManagerService
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.validation.CPAValidationService
@@ -48,7 +48,7 @@ class PayloadMessageServiceTest {
     private lateinit var ebmsSignalProducer: EbmsMessageProducer
     private lateinit var payloadMessageForwardingService: PayloadMessageForwardingService
     private lateinit var eventRegistrationService: EventRegistrationService
-    private lateinit var eventManagerService: EventManagerService
+    private lateinit var messageReceivedRepository: MessageReceivedRepository
     private lateinit var retryService: RetryService
     private lateinit var service: PayloadMessageService
 
@@ -61,7 +61,7 @@ class PayloadMessageServiceTest {
         ebmsSignalProducer = mockk()
         payloadMessageForwardingService = mockk()
         eventRegistrationService = mockk<EventRegistrationService>()
-        eventManagerService = mockk<EventManagerService>()
+        messageReceivedRepository = mockk<MessageReceivedRepository>()
         retryService = mockk<RetryService>()
         coEvery {
             retryService.incomingRetryEval(any(), any(), any(), any())
@@ -82,7 +82,7 @@ class PayloadMessageServiceTest {
             ebmsSignalProducer,
             payloadMessageForwardingService,
             eventRegistrationService,
-            eventManagerService,
+            messageReceivedRepository,
             retryService
         )
     }
@@ -95,7 +95,7 @@ class PayloadMessageServiceTest {
         service.process(setupReceiverRecordWithoutRetryCountMock(), payloadMessage)
 
         coVerify(exactly = 1) { cpaValidationService.getDuplicateEliminationStrategy(payloadMessage) }
-        coVerify(exactly = 1) { eventManagerService.isDuplicateMessage(payloadMessage) }
+        coVerify(exactly = 1) { messageReceivedRepository.isDuplicateMessage(payloadMessage) }
         coVerify(exactly = 0) { processingService.processAsync(any(), any()) }
         coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithSyncResponse(any()) }
         coVerify(exactly = 1) { eventRegistrationService.registerEventMessageDetails(any()) }
@@ -129,7 +129,7 @@ class PayloadMessageServiceTest {
 
         service.process(setupReceiverRecordWithoutRetryCountMock(), payloadMessage)
 
-        coVerify(exactly = 1) { eventManagerService.isDuplicateMessage(payloadMessage) }
+        coVerify(exactly = 1) { messageReceivedRepository.isDuplicateMessage(payloadMessage) }
         coVerify(exactly = 2) { eventRegistrationService.registerEventMessageDetails(any()) }
         assertType<PayloadMessage>(ebmsMessageSlots, 0)
         assertType<Acknowledgment>(ebmsMessageSlots, 1)
@@ -166,7 +166,7 @@ class PayloadMessageServiceTest {
 
         service.process(setupReceiverRecordWithoutRetryCountMock(), payloadMessage)
 
-        coVerify(exactly = 1) { eventManagerService.isDuplicateMessage(payloadMessage) }
+        coVerify(exactly = 1) { messageReceivedRepository.isDuplicateMessage(payloadMessage) }
         coVerify(exactly = 2) { eventRegistrationService.registerEventMessageDetails(any()) }
         assertType<PayloadMessage>(ebmsMessageSlots, 0)
         assertType<Acknowledgment>(ebmsMessageSlots, 1)
@@ -202,7 +202,7 @@ class PayloadMessageServiceTest {
 
         service.process(setupReceiverRecordWithRetryServiceMock(), payloadMessage)
 
-        coVerify(exactly = 1) { eventManagerService.isDuplicateMessage(payloadMessage) }
+        coVerify(exactly = 1) { messageReceivedRepository.isDuplicateMessage(payloadMessage) }
         coVerify(exactly = 1) { eventRegistrationService.registerEventMessageDetails(any()) }
         assertType<PayloadMessage>(ebmsMessageSlots, 0)
         coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(payloadMessage) }
@@ -237,7 +237,7 @@ class PayloadMessageServiceTest {
 
         service.process(setupReceiverRecordWithRetryServiceMock(), payloadMessage)
 
-        coVerify(exactly = 1) { eventManagerService.isDuplicateMessage(payloadMessage) }
+        coVerify(exactly = 1) { messageReceivedRepository.isDuplicateMessage(payloadMessage) }
         coVerify(exactly = 1) { eventRegistrationService.registerEventMessageDetails(any()) }
         assertType<PayloadMessage>(ebmsMessageSlots, 0)
         coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(payloadMessage) }
@@ -271,7 +271,7 @@ class PayloadMessageServiceTest {
         )
         service.process(setupReceiverRecordWithRetryServiceMock(), payloadMessage)
 
-        coVerify(exactly = 1) { eventManagerService.isDuplicateMessage(payloadMessage) }
+        coVerify(exactly = 1) { messageReceivedRepository.isDuplicateMessage(payloadMessage) }
         coVerify(exactly = 2) { eventRegistrationService.registerEventMessageDetails(any()) }
         assertType<PayloadMessage>(ebmsMessageSlots, 0)
         assertType<Acknowledgment>(ebmsMessageSlots, 1)
@@ -306,7 +306,7 @@ class PayloadMessageServiceTest {
         service.process(setupReceiverRecordWithoutRetryCountMock(), payloadMessage)
 
         coVerify(exactly = 1) { cpaValidationService.getDuplicateEliminationStrategy(payloadMessage) }
-        coVerify(exactly = 1) { eventManagerService.isDuplicateMessage(payloadMessage) }
+        coVerify(exactly = 1) { messageReceivedRepository.isDuplicateMessage(payloadMessage) }
         coVerify(exactly = 0) { processingService.processAsync(any(), any()) }
         coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithSyncResponse(any()) }
         coVerify(exactly = 1) { eventRegistrationService.registerEventMessageDetails(any()) }
@@ -338,7 +338,7 @@ class PayloadMessageServiceTest {
 
         service.process(setupReceiverRecordWithRetryServiceMock(), payloadMessage)
 
-        coVerify(exactly = 1) { eventManagerService.isDuplicateMessage(payloadMessage) }
+        coVerify(exactly = 1) { messageReceivedRepository.isDuplicateMessage(payloadMessage) }
         coVerify(exactly = 1) { eventRegistrationService.registerEventMessageDetails(any()) }
         assertType<PayloadMessage>(ebmsMessageSlots, 0)
         coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(payloadMessage) }
@@ -368,7 +368,7 @@ class PayloadMessageServiceTest {
         val payloadMessage = mockk<PayloadMessage>(relaxed = true)
         every { payloadMessage.duplicateElimination } returns true
         coEvery { cpaValidationService.getDuplicateEliminationStrategy(payloadMessage) } returns PerMessageCharacteristicsType.PER_MESSAGE
-        coEvery { eventManagerService.isDuplicateMessage(payloadMessage) } returns true
+        coEvery { messageReceivedRepository.isDuplicateMessage(payloadMessage) } returns true
 
         val result = service.isDuplicateMessage(payloadMessage)
 
@@ -392,7 +392,7 @@ class PayloadMessageServiceTest {
         initService(enableSignalProducer = false)
         val payloadMessage = mockk<PayloadMessage>(relaxed = true)
         coEvery { cpaValidationService.getDuplicateEliminationStrategy(payloadMessage) } returns PerMessageCharacteristicsType.ALWAYS
-        coEvery { eventManagerService.isDuplicateMessage(payloadMessage) } returns true
+        coEvery { messageReceivedRepository.isDuplicateMessage(payloadMessage) } returns true
 
         val result = service.isDuplicateMessage(payloadMessage)
 
@@ -424,7 +424,8 @@ class PayloadMessageServiceTest {
         val lambdaSlot = slot<(suspend () -> Result<RecordMetadata>)>()
 
         coEvery { cpaValidationService.getDuplicateEliminationStrategy(payloadMessage) } returns duplicateEliminationStrategy
-        coEvery { eventManagerService.isDuplicateMessage(payloadMessage) } returns isDuplicate
+        coEvery { messageReceivedRepository.updateOrInsert(payloadMessage) } returns payloadMessage.requestId
+        coEvery { messageReceivedRepository.isDuplicateMessage(payloadMessage) } returns isDuplicate
         coEvery { eventRegistrationService.registerEventMessageDetails(capture(ebmsMessageSlots)) } returns Unit
         coEvery { cpaValidationService.validateIncomingMessage(payloadMessage) } returns mockk<ValidationResult>(relaxed = true)
 
