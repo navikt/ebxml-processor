@@ -85,7 +85,9 @@ class FailedMessageKafkaHandler(
                     .map { TopicPartition(it.topic(), it.partition()) }
                 c.assign(partitions)
             }
-        } else null
+        } else {
+            null
+        }
 
     fun getPollerProperties(
         properties: Properties,
@@ -222,14 +224,18 @@ class FailedMessageKafkaHandler(
 
     fun parseNextRetryHeader(record: ConsumerRecord<String, ByteArray>): LocalDateTime {
         // Handles both old (Instant) and new (LocalDateTime) header formats.
-        val header = String(record.headers().lastHeader(RETRY_AFTER).value())
+        val header = try {
+            String(record.headers().lastHeader(RETRY_AFTER).value())
+        } catch (npe: NullPointerException) {
+            logger.warn("No RETRY_AFTER header found, assuming immediate retry")
+            return LocalDateTime.now()
+        }
         return try {
             LocalDateTime.parse(header)
         } catch (e: Exception) {
             LocalDateTime.ofInstant(Instant.parse(header), ZoneId.systemDefault())
         }
     }
-
 }
 
 // Under test klarte vi å framprovosere en situasjon hvor headeren inneholdt en tekst

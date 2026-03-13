@@ -7,6 +7,8 @@ import arrow.continuations.SuspendApp
 import arrow.continuations.ktor.server
 import arrow.core.raise.result
 import arrow.fx.coroutines.resourceScope
+import io.github.nomisRev.kafka.receiver.ReceiverRecord
+import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.auth.authenticate
@@ -24,7 +26,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.launch
-import io.ktor.http.ContentType
 import kotlinx.serialization.json.Json
 import no.nav.emottak.ebms.AZURE_AD_AUTH
 import no.nav.emottak.ebms.CpaRepoClient
@@ -50,16 +51,12 @@ import no.nav.emottak.ebms.async.persistence.ebmsDbConfig
 import no.nav.emottak.ebms.async.persistence.ebmsMigrationConfig
 import no.nav.emottak.ebms.async.persistence.repository.MessagePendingAckRepository
 import no.nav.emottak.ebms.async.persistence.repository.PayloadRepository
-import io.github.nomisRev.kafka.receiver.ReceiverRecord
 import no.nav.emottak.ebms.async.processing.MessageFilterService
 import no.nav.emottak.ebms.async.processing.PayloadMessageForwardingService
 import no.nav.emottak.ebms.async.processing.PayloadMessageService
 import no.nav.emottak.ebms.async.processing.RetryService
 import no.nav.emottak.ebms.async.processing.SignalMessageService
 import no.nav.emottak.ebms.async.processing.sendSignalResponseToTopic
-import no.nav.emottak.message.model.Payload
-import no.nav.emottak.message.model.PayloadMessage
-import no.nav.emottak.utils.common.model.SendInResponse
 import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.ebms.async.util.EventRegistrationServiceImpl
 import no.nav.emottak.ebms.defaultHttpClient
@@ -72,6 +69,9 @@ import no.nav.emottak.ebms.registerRootEndpoint
 import no.nav.emottak.ebms.scopedAuthHttpClient
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.CPAValidationService
+import no.nav.emottak.message.model.Payload
+import no.nav.emottak.message.model.PayloadMessage
+import no.nav.emottak.utils.common.model.SendInResponse
 import no.nav.emottak.utils.environment.isProdEnv
 import no.nav.emottak.utils.kafka.client.EventPublisherClient
 import no.nav.emottak.utils.kafka.service.EventLoggingService
@@ -483,7 +483,7 @@ fun Routing.rerun(
 const val KAFKA_OFFSET = "offset"
 
 fun Route.forceRetryMessageIn(
-    retryService: RetryService,
+    retryService: RetryService
 ): Route =
     get("/api/forceRetryIn/{$KAFKA_OFFSET}") {
         if (!config().kafkaErrorQueue.active) {
@@ -508,7 +508,7 @@ fun Route.forceRetryMessageIn(
     }
 
 fun Route.forceRetryMessageOut(
-    retryService: RetryService,
+    retryService: RetryService
 ): Route =
     get("/api/forceRetryOut/{$KAFKA_OFFSET}") {
         if (!config().kafkaErrorQueueOut.active) {

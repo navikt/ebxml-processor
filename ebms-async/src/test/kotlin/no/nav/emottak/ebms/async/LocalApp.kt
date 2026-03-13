@@ -190,10 +190,10 @@ fun main() = SuspendApp {
                 config = config,
                 messageFilterService = messageFilterService
             )
-            launchErrorRetryTask(
+            launchErrorRetryTaskIncoming(
                 config = config,
+                retryService = retryService,
                 messageFilterService = messageFilterService,
-                failedMessageQueue = failedMessageQueue,
                 pauseRetryErrorsTimerFlag = pauseRetryErrorsTimerFlag
             )
             launchMesssageResendTask(
@@ -210,8 +210,9 @@ fun main() = SuspendApp {
                         payloadRepository = payloadRepository,
                         messageFilterService = messageFilterService,
                         eventRegistrationService = eventRegistrationService,
-                        failedMessageQueue = failedMessageQueue,
-                        pauseRetryErrorsTimerFlag = pauseRetryErrorsTimerFlag
+                        retryService = retryService,
+                        pauseRetryErrorsTimerFlag = pauseRetryErrorsTimerFlag,
+                        payloadMessageService = payloadMessageService
                     )
                 }
             ).also { it.engineConfig.maxChunkSize = 100000 }
