@@ -31,6 +31,7 @@ import no.nav.emottak.ebms.async.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.async.processing.MessageFilterService
 import no.nav.emottak.ebms.async.processing.PayloadMessageForwardingService
 import no.nav.emottak.ebms.async.processing.PayloadMessageService
+import no.nav.emottak.ebms.async.processing.RetryService
 import no.nav.emottak.ebms.async.processing.SignalMessageService
 import no.nav.emottak.ebms.async.processing.sendSignalResponseToTopic
 import no.nav.emottak.ebms.async.util.EventRegistrationServiceFake
@@ -104,6 +105,8 @@ fun main() = SuspendApp {
     println(" ************ config.messageResendPolicy.resendInterval: " + config.messageResendPolicy.resendInterval)
 
     println(" ************ Setting up services ")
+    val failedMessageQueue = FailedMessageKafkaHandler()
+
     val messagePendingAckRepository = MessagePendingAckRepository(database, config.messageResendPolicy.resendInterval, config.messageResendPolicy.maxResends)
 
     // ebmsSigning er en Singleton brukt til å signere. Vi bare returnerer input-dokumentet, dvs det vil bli lagret/sendt uten signatur
@@ -130,14 +133,6 @@ fun main() = SuspendApp {
     val ebmsPayloadProducer = EbmsMessageProducer(config.kafkaPayloadProducer.topic, config.kafka)
     val ebmsInPayloadProducer = EbmsMessageProducer(config.kafkaEbmsInPayloadProducer.topic, config.kafka)
 
-    val failedMessageQueue = FailedMessageKafkaHandler(
-        cpaValidationService = cpaValidationService,
-        eventRegistrationService = eventRegistrationService,
-        signalSender = { ebmsDocument, signalResponderEmails ->
-            sendSignalResponseToTopic(ebmsSignalProducer, eventRegistrationService, ebmsDocument, signalResponderEmails)
-        }
-    )
-
     val payloadMessageForwardingService = PayloadMessageForwardingService(
         sendInService = sendInService,
         cpaValidationService = cpaValidationService,
@@ -149,6 +144,15 @@ fun main() = SuspendApp {
         messagePendingAckRepository = messagePendingAckRepository
     )
 
+    val retryService = RetryService(
+        cpaValidationService = cpaValidationService,
+        eventRegistrationService = eventRegistrationService,
+        failedMessageQueue = failedMessageQueue,
+        signalSender = { ebmsDocument, signalResponderEmails ->
+            sendSignalResponseToTopic(ebmsSignalProducer, eventRegistrationService, ebmsDocument, signalResponderEmails)
+        }
+    )
+
     val payloadMessageService = PayloadMessageService(
         cpaValidationService = cpaValidationService,
         processingService = processingService,
@@ -156,7 +160,7 @@ fun main() = SuspendApp {
         payloadMessageForwardingService = payloadMessageForwardingService,
         eventRegistrationService = eventRegistrationService,
         eventManagerService = eventManagerService,
-        failedMessageKafkaHandler = failedMessageQueue
+        retryService = retryService
     )
 
     val signalMessageService = SignalMessageService(
@@ -263,7 +267,7 @@ class DummyMessageFilterService(
             if (f != null && r != null) {
                 if (r <= f) {
                     println("--Set to fail again, number of times to fail: $f, number of retries now: $r")
-                    payloadMessageService.failedMessageKafkaHandler.sendToRetry(
+                    payloadMessageService.retryService.failedMessageQueue.sendToRetry(
                         record = record,
                         reason = "Test message set to fail again",
                         direction = Direction.IN

@@ -1,7 +1,6 @@
 package no.nav.emottak.ebms.async.processing
 
 import io.github.nomisRev.kafka.receiver.ReceiverRecord
-import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
 import no.nav.emottak.ebms.async.kafka.consumer.retryCount
 import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
 import no.nav.emottak.ebms.async.log
@@ -24,7 +23,7 @@ class PayloadMessageService(
     val payloadMessageForwardingService: PayloadMessageForwardingService,
     val eventRegistrationService: EventRegistrationService,
     val eventManagerService: EventManagerService,
-    val failedMessageKafkaHandler: FailedMessageKafkaHandler
+    val retryService: RetryService
 ) {
 
     suspend fun process(
@@ -52,7 +51,7 @@ class PayloadMessageService(
         }.onFailure { exception ->
             // TODO handle some errors by sending to retry, some by returning error message
             log.error(ebmsPayloadMessage.marker(), exception.message ?: "Message processing error", exception)
-            failedMessageKafkaHandler.incomingRetryEval(record = record, payloadMessage = ebmsPayloadMessage, exception = exception)
+            retryService.incomingRetryEval(record = record, payloadMessage = ebmsPayloadMessage, exception = exception)
         }
     }
 
@@ -65,7 +64,7 @@ class PayloadMessageService(
             payloadMessageForwardingService.returnMessageResponse(ebmsPayloadMessage)
         }.onFailure { exception ->
             log.error(ebmsPayloadMessage.marker(), exception.message ?: "Outbound response processing error", exception)
-            failedMessageKafkaHandler.outgoingRetryEval(record = record, payloadMessage = ebmsPayloadMessage, exception = exception)
+            retryService.outgoingRetryEval(record = record, payloadMessage = ebmsPayloadMessage, exception = exception)
         }
     }
 
