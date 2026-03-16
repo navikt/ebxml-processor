@@ -58,6 +58,7 @@ class RetryService(
                 Direction.OUT -> config().errorRetryPolicyOutgoing.maxRetries
             }
         )
+        log.info("Decision [$decision]:\n" + "Failing payload sent at ${payloadMessage.sentAt ?: "unknown"}, error type: ${exception::class.simpleName ?: "Unknown error"}, reason: $retryReason, retries already performed: $retriedAlready. Decision reason: $reason")
         when (decision) {
             RetryDecision.RETRY -> {
                 when (direction) {
@@ -84,7 +85,6 @@ class RetryService(
                     )
                 )
         }
-        log.info("Decision [$decision]:\n" + "Failing payload sent at ${payloadMessage.sentAt ?: "unknown"}, error type: ${exception::class.simpleName ?: "Unknown error"}, reason: $retryReason, retries already performed: $retriedAlready. Decision reason: $reason")
     }
 
     internal fun decideRetry(ttl: Instant?, retriedAlready: Int, maxRetries: Int): Pair<RetryDecision, String> {
