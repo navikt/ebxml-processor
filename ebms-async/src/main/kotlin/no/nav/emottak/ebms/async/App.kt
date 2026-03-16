@@ -259,7 +259,7 @@ fun CoroutineScope.launchErrorRetryTask(
     retryService: RetryService,
     pauseRetryErrorsTimerFlag: PauseRetryErrorsTimerFlag
 ) {
-    if (!config.kafkaErrorQueue.active) return
+    if (!config.kafkaErrorQueueIn.active) return
 
     timer(
         name = "Retry Errors Timer",
@@ -351,7 +351,7 @@ fun Routing.retryErrors(
     retryService: RetryService
 ): Route =
     get("/api/retry/{$RETRY_LIMIT}") {
-        if (!config().kafkaErrorQueue.active) {
+        if (!config().kafkaErrorQueueIn.active) {
             call.respondText(status = HttpStatusCode.ServiceUnavailable, text = "Retry not active.")
             return@get
         }
@@ -370,7 +370,7 @@ fun Routing.rerun(
     retryService: RetryService
 ): Route =
     get("/api/rerun/{$KAFKA_OFFSET}") {
-        if (!config().kafkaErrorQueue.active) {
+        if (!config().kafkaErrorQueueIn.active) {
             call.respondText(status = HttpStatusCode.ServiceUnavailable, text = "Retry queue not active.")
             return@get
         }
@@ -395,12 +395,12 @@ fun Route.simulateError(
     retryService: RetryService
 ): Route =
     get("/api/forceretry/{$KAFKA_OFFSET}") {
-        if (!config().kafkaErrorQueue.active) {
+        if (!config().kafkaErrorQueueIn.active) {
             call.respondText(status = HttpStatusCode.ServiceUnavailable, text = "Retry queue not active.")
             return@get
         }
         CoroutineScope(Dispatchers.IO).launch() {
-            if (config().kafkaErrorQueue.active) {
+            if (config().kafkaErrorQueueIn.active) {
                 val record = getRecord(
                     config()
                         .kafkaPayloadReceiver.topic,

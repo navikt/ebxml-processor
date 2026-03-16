@@ -95,7 +95,7 @@ fun main() = SuspendApp {
     System.setProperty("RESEND_PROCESS_INTERVAL", "1m")
     System.setProperty("RESEND_INTERVAL", "2m")
     val config = config()
-    println(" ************ config.kafkaErrorQueue.active: " + config.kafkaErrorQueue.active)
+    println(" ************ config.kafkaErrorQueue.active: " + config.kafkaErrorQueueIn.active)
     println(" ************ config.kafkaPayloadReceiver.active: " + config.kafkaPayloadReceiver.active)
     println(" ************ config.errorRetryPolicy.processInterval: " + config.errorRetryPolicyIncoming.processInterval)
     println(" ************ config.errorRetryPolicy.retriesPerInterval: " + config.errorRetryPolicyIncoming.retriesPerInterval)

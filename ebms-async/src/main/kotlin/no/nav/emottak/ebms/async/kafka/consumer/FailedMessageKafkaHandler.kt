@@ -6,7 +6,8 @@ import io.github.nomisRev.kafka.publisher.PublisherSettings
 import io.github.nomisRev.kafka.receiver.Offset
 import io.github.nomisRev.kafka.receiver.ReceiverRecord
 import no.nav.emottak.ebms.async.configuration.ErrorRetryPolicy
-import no.nav.emottak.ebms.async.configuration.KafkaErrorQueue
+import no.nav.emottak.ebms.async.configuration.KafkaErrorQueueIn
+import no.nav.emottak.ebms.async.configuration.KafkaErrorQueueOut
 import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.configuration.toProperties
 import no.nav.emottak.ebms.async.processing.MessageFilterService
@@ -45,7 +46,8 @@ const val AGE_DAYS_TO_IGNORE = 7L
 val logger: Logger = LoggerFactory.getLogger(FailedMessageKafkaHandler::class.java)
 
 class FailedMessageKafkaHandler(
-    val kafkaErrorQueue: KafkaErrorQueue = config().kafkaErrorQueue,
+    val kafkaErrorQueueIn: KafkaErrorQueueIn = config().kafkaErrorQueueIn,
+    val kafkaErrorQueueOut: KafkaErrorQueueOut = config().kafkaErrorQueueOut,
     val kafka: Kafka = config().kafka,
     val errorRetryPolicy: ErrorRetryPolicy = config().errorRetryPolicyIncoming // TODO FMKH also handles outgoing but is handled by retryservice
 ) {
@@ -72,7 +74,7 @@ class FailedMessageKafkaHandler(
         StringDeserializer(),
         ByteArrayDeserializer()
     ).also { c ->
-        val partitions = c.partitionsFor(kafkaErrorQueue.topic).map { TopicPartition(it.topic(), it.partition()) }
+        val partitions = c.partitionsFor(kafkaErrorQueueIn.topic).map { TopicPartition(it.topic(), it.partition()) }
         c.assign(partitions)
     }
 
@@ -85,7 +87,7 @@ class FailedMessageKafkaHandler(
         properties.setProperty(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, millisAllowedBetweenPolls.toString())
         // Hvis denne har verdi "earliest" vil man prosessere ALLE meldingene på feilkøen fra tidligste offset, første gangen app'en startes
         // Med "latest" vil man regne alle meldingene på feilkøen som allerede prosessert, og fortsette prosessering når nye meldinger kommer
-        properties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, kafkaErrorQueue.initOffset)
+        properties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, kafkaErrorQueueIn.initOffset)
         return properties
     }
 
@@ -124,8 +126,8 @@ class FailedMessageKafkaHandler(
         direction: Direction
     ) {
         val topic = when (direction) {
-            Direction.IN -> config().kafkaErrorQueue.topic
-            Direction.OUT -> config().kafkaErrorQueueOut.topic
+            Direction.IN -> kafkaErrorQueueIn.topic
+            Direction.OUT -> kafkaErrorQueueOut.topic
         }
         logger.info(
             "Sending message to $topic queue with reason: $reason"
@@ -185,7 +187,7 @@ class FailedMessageKafkaHandler(
         logger.info(
             "Checking for messages in error queue, current offset " + pollerConsumer.position(
                 TopicPartition(
-                    kafkaErrorQueue.topic,
+                    kafkaErrorQueueIn.topic,
                     0
                 )
             )
@@ -283,7 +285,7 @@ fun ReceiverRecord<String, ByteArray>.addHeader(key: String, value: String) {
 }
 
 fun getRetryRecord(fromOffset: Long = 0, requestedRecords: Int = 1): ReceiverRecord<String, ByteArray>? {
-    return getRecord(config().kafkaErrorQueue.topic, config().kafka, fromOffset, requestedRecords)
+    return getRecord(config().kafkaErrorQueueIn.topic, config().kafka, fromOffset, requestedRecords)
 }
 
 fun getRecord(

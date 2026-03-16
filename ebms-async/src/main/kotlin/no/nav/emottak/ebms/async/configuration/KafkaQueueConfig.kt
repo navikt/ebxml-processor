@@ -20,7 +20,7 @@ data class KafkaPayloadProducer(
     val topic: String
 )
 
-data class KafkaErrorQueue(
+data class KafkaErrorQueueIn(
     val active: Boolean,
     val topic: String,
     val initOffset: String

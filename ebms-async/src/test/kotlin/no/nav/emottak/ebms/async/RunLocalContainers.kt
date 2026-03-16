@@ -59,7 +59,7 @@ fun main() {
         KafkaTestContainer.createTopic(config().kafkaPayloadReceiver.topic)
         KafkaTestContainer.createTopic(config().kafkaSignalProducer.topic)
         KafkaTestContainer.createTopic(config().kafkaSignalReceiver.topic)
-        KafkaTestContainer.createTopic(config().kafkaErrorQueue.topic)
+        KafkaTestContainer.createTopic(config().kafkaErrorQueueIn.topic)
 
         File(localTmp(KAFKA_BROKERS_STORAGE)).writeText(KafkaTestContainer.bootstrapServers)
     }

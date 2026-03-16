@@ -26,7 +26,7 @@ class ErrorHandlerTest {
         runTest {
             KafkaTestContainer.start()
             System.setProperty("KAFKA_BROKERS", KafkaTestContainer.bootstrapServers)
-            KafkaTestContainer.createTopic(config().kafkaErrorQueue.topic)
+            KafkaTestContainer.createTopic(config().kafkaErrorQueueIn.topic)
             KafkaTestContainer.createTopic(config().kafkaPayloadProducer.topic)
 
             val testcontainerKafkaConfig =
@@ -73,11 +73,11 @@ class ErrorHandlerTest {
     }
 
     private fun newRecord(key: String): ReceiverRecord<String, ByteArray> =
-        ConsumerRecord(config().kafkaErrorQueue.topic, 0, 0, key, "".toByteArray())
+        ConsumerRecord(config().kafkaErrorQueueIn.topic, 0, 0, key, "".toByteArray())
             .asReceiverRecord()
 
     private fun getRecordFromErrorQueueAtOffset(testcontainerKafkaConfig: Kafka, offset: Long): ReceiverRecord<String, ByteArray>? =
-        getRecord(config().kafkaErrorQueue.topic, testcontainerKafkaConfig, offset, 1)
+        getRecord(config().kafkaErrorQueueIn.topic, testcontainerKafkaConfig, offset, 1)
 
     @AfterEach
     fun teardown() {
