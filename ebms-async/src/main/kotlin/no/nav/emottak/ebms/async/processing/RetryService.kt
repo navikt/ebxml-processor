@@ -20,8 +20,8 @@ import java.time.Instant
 class RetryService(
     val cpaValidationService: CPAValidationService,
     val eventRegistrationService: EventRegistrationService,
-    private val failedMessageQueue: FailedMessageKafkaHandler,
-    val signalSender: suspend (EbmsDocument, List<EmailAddress>) -> Unit
+    val signalSender: suspend (EbmsDocument, List<EmailAddress>) -> Unit,
+    private val failedMessageQueue: FailedMessageKafkaHandler = FailedMessageKafkaHandler()
 ) {
 
     internal suspend fun incomingRetryEval(

@@ -69,8 +69,8 @@ class RetryServiceTest {
         retryService = RetryService(
             cpaValidationService,
             eventRegistrationService,
-            failedMessageQueue,
-            signalSender
+            signalSender,
+            failedMessageQueue
         )
     }
 
