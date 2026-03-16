@@ -57,7 +57,6 @@ dependencies {
     implementation(libs.ebxml.protokoll)
     implementation(libs.hikari)
     implementation("no.nav:vault-jdbc:1.3.10")
-    implementation("com.google.code.gson:gson:2.10.1")
     runtimeClasspath(libs.ojdbc8)
     implementation(libs.flyway.core)
     implementation(libs.bundles.exposed)
