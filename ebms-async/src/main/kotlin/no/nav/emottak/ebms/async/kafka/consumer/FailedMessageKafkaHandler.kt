@@ -49,7 +49,8 @@ class FailedMessageKafkaHandler(
     val kafkaErrorQueueIn: KafkaErrorQueueIn = config().kafkaErrorQueueIn,
     val kafkaErrorQueueOut: KafkaErrorQueueOut = config().kafkaErrorQueueOut,
     val kafka: Kafka = config().kafka,
-    val errorRetryPolicy: ErrorRetryPolicy = config().errorRetryPolicyIncoming // TODO FMKH also handles outgoing but is handled by retryservice
+    val errorRetryPolicyIncoming: ErrorRetryPolicy = config().errorRetryPolicyIncoming, // TODO FMKH also handles outgoing but is handled by retryservice
+    val errorRetryPolicyOutgoing: ErrorRetryPolicy = config().errorRetryPolicyOutgoing
 ) {
 
     val publisher = KafkaPublisher(
@@ -69,7 +70,7 @@ class FailedMessageKafkaHandler(
         getPollerProperties(
             kafka.toProperties(),
             groupIdForRetry,
-            config().errorRetryPolicyIncoming.processInterval.inWholeSeconds
+            errorRetryPolicyIncoming.processInterval.inWholeSeconds
         ),
         StringDeserializer(),
         ByteArrayDeserializer()
@@ -249,7 +250,7 @@ class FailedMessageKafkaHandler(
     }
 
     fun getNextRetryTime(record: ReceiverRecord<String, ByteArray>): String {
-        val nextInterval = errorRetryPolicy.nextInterval(record.retryCount())
+        val nextInterval = errorRetryPolicyIncoming.nextInterval(record.retryCount())
         return LocalDateTime.now().plusMinutes(nextInterval.inWholeMinutes).toString()
     }
 
