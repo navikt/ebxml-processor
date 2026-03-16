@@ -69,25 +69,20 @@ class FailedMessageKafkaHandler(
         c.assign(partitions)
     }
 
-    val outPollerConsumer: KafkaConsumer<String, ByteArray>? =
-        if (config().kafkaErrorQueueOut.active) {
-            KafkaConsumer(
-                getPollerProperties(
-                    kafka.toProperties(),
-                    "$groupIdForRetry-out",
-                    config().errorRetryPolicyOutgoing.processInterval.inWholeSeconds,
-                    config().kafkaErrorQueueOut.initOffset
-                ),
-                StringDeserializer(),
-                ByteArrayDeserializer()
-            ).also { c ->
-                val partitions = c.partitionsFor(config().kafkaErrorQueueOut.topic)
-                    .map { TopicPartition(it.topic(), it.partition()) }
-                c.assign(partitions)
-            }
-        } else {
-            null
-        }
+    val outPollerConsumer = KafkaConsumer(
+        getPollerProperties(
+            kafka.toProperties(),
+            "$groupIdForRetry-out",
+            config().errorRetryPolicyOutgoing.processInterval.inWholeSeconds,
+            config().kafkaErrorQueueOut.initOffset
+        ),
+        StringDeserializer(),
+        ByteArrayDeserializer()
+    ).also { c ->
+        val partitions = c.partitionsFor(config().kafkaErrorQueueOut.topic)
+            .map { TopicPartition(it.topic(), it.partition()) }
+        c.assign(partitions)
+    }
 
     fun getPollerProperties(
         properties: Properties,
@@ -123,13 +118,12 @@ class FailedMessageKafkaHandler(
     }
 
     fun pollOutgoingRetryRecords(limit: Int): List<ConsumerRecord<String, ByteArray>> {
-        val consumer = outPollerConsumer ?: return emptyList()
         logger.info(
-            "Checking for messages in outgoing error queue, current offset " + consumer.position(
+            "Checking for messages in outgoing error queue, current offset " + outPollerConsumer.position(
                 TopicPartition(config().kafkaErrorQueueOut.topic, 0)
             )
         )
-        val records = getRecordsToConsume(consumer, limit)
+        val records = getRecordsToConsume(outPollerConsumer, limit)
         if (records.isEmpty()) {
             logger.info("No records to process in outgoing error queue")
         } else {
@@ -141,7 +135,7 @@ class FailedMessageKafkaHandler(
     fun commitOffset(record: ConsumerRecord<String, ByteArray>, direction: Direction) {
         val consumer = when (direction) {
             Direction.IN -> inPollerConsumer
-            Direction.OUT -> outPollerConsumer ?: return
+            Direction.OUT -> outPollerConsumer
         }
         val offsetToCommit = record.offset() + 1
         val offsets: Map<TopicPartition, OffsetAndMetadata> = mapOf(
