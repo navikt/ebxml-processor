@@ -205,7 +205,6 @@ class FailedMessageKafkaHandler(
         val nextInterval = errorRetryPolicyIncoming.nextInterval(record.retryCount())
         return LocalDateTime.now().plusMinutes(nextInterval.inWholeMinutes).toString()
     }
-
 }
 
 fun ReceiverRecord<String, ByteArray>.retryCounter(): Int {
