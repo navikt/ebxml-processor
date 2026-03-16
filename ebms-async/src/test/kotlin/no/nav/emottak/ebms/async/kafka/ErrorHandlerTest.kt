@@ -10,6 +10,7 @@ import no.nav.emottak.ebms.async.kafka.consumer.RETRY_COUNT_HEADER
 import no.nav.emottak.ebms.async.kafka.consumer.asReceiverRecord
 import no.nav.emottak.ebms.async.kafka.consumer.getRecord
 import no.nav.emottak.ebms.async.processing.MessageFilterService
+import no.nav.emottak.ebms.async.processing.RetryService
 import no.nav.emottak.message.model.Direction
 import no.nav.emottak.utils.config.Kafka
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -43,6 +44,12 @@ class ErrorHandlerTest {
                 kafka = testcontainerKafkaConfig,
                 errorRetryPolicyIncoming = ErrorRetryPolicy(1.seconds, 10, listOf(0.minutes), listOf(2), maxRetries = 10)
             )
+            val retryService = RetryService(
+                cpaValidationService = mockk(),
+                eventRegistrationService = mockk(),
+                failedMessageQueue = errorHandler,
+                signalSender = mockk()
+            )
             val processedMessages = ArrayList<ReceiverRecord<String, ByteArray>>()
             val messageFilterService = DummyMessageFilterService(errorHandler, processedMessages)
 
@@ -50,19 +57,19 @@ class ErrorHandlerTest {
             val record1 = getRecordFromErrorQueueAtOffset(testcontainerKafkaConfig, 0)
             assertTrue(record1?.key() == "test-message", "Melding sendt til feilhåndtering ligger på feilkø med offset 0")
 
-            errorHandler.consumeRetryQueue(messageFilterService)
+            retryService.consumeRetryQueue(messageFilterService)
             assertTrue(processedMessages.size == 1, "Etter prosessering av feilkø er meldingen prosessert av MessageFilterService")
 
             errorHandler.sendToRetry(newRecord("failingAtFirstRetry"), direction = Direction.IN)
             val record2 = getRecordFromErrorQueueAtOffset(testcontainerKafkaConfig, 1)
             assertTrue(record2?.key() == "failingAtFirstRetry", "Melding som vil feile ligger på feilkø med offset 1")
 
-            errorHandler.consumeRetryQueue(messageFilterService)
+            retryService.consumeRetryQueue(messageFilterService)
             assertTrue(processedMessages.size == 1, "Etter prosessering av feilkø 1 gang er meldingen IKKE prosessert av MessageFilterService")
             val record3 = getRecordFromErrorQueueAtOffset(testcontainerKafkaConfig, 2)
             assertTrue(getRetryCountHeaderValue(record3) == 1, "Etter prosessering av feilkø 1 gang ligger meldingen igjen på feilkø med offset 2, og retrycount=1")
 
-            errorHandler.consumeRetryQueue(messageFilterService)
+            retryService.consumeRetryQueue(messageFilterService)
             assertTrue(processedMessages.size == 2, "Etter prosessering av feilkø 2 ganger er meldingen prosessert av MessageFilterService")
         }
     }

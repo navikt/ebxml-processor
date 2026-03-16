@@ -10,7 +10,6 @@ import no.nav.emottak.ebms.async.configuration.KafkaErrorQueueIn
 import no.nav.emottak.ebms.async.configuration.KafkaErrorQueueOut
 import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.configuration.toProperties
-import no.nav.emottak.ebms.async.processing.MessageFilterService
 import no.nav.emottak.message.model.Direction
 import no.nav.emottak.utils.config.Kafka
 import org.apache.kafka.clients.consumer.ConsumerConfig
@@ -163,28 +162,11 @@ class FailedMessageKafkaHandler(
         }
     }
 
-    // Vi forutsetter at retry-køen kun har 1 partisjon, dvs offset er unikt
-    suspend fun forceRetryFailedMessage(
-        messageFilterService: MessageFilterService,
-        offset: Long
-    ) {
-        logger.info("Forcing re-run of message on error queue at offset $offset")
-        val record = getRetryRecord(offset)
-        if (record == null) {
-            logger.info("No record in error queue at offset $offset")
-            return
-        }
-        logger.info("${record.key()} is being re-run.")
-        // Antar at vi ikke teller opp i header for denne typen kjøring
-        // record.asReceiverRecord().retryCounter()
-        messageFilterService.filterMessage(record)
-        logger.info("${record.key()} has been re-run.")
+    fun fetchRecord(offset: Long): ReceiverRecord<String, ByteArray>? {
+        return getRetryRecord(offset)
     }
 
-    suspend fun consumeRetryQueue(
-        messageFilterService: MessageFilterService,
-        limit: Int = 10
-    ) {
+    fun pollRetryQueue(limit: Int = 10): List<ConsumerRecord<String, ByteArray>> {
         logger.info(
             "Checking for messages in error queue, current offset " + pollerConsumer.position(
                 TopicPartition(
@@ -193,53 +175,23 @@ class FailedMessageKafkaHandler(
                 )
             )
         )
-        val records = getRecordsToConsume(pollerConsumer, limit)
-        if (records.isEmpty()) {
-            logger.info("No records to process in error queue")
-            return
-        }
-        logger.info("At least ${records.count()} records to process in error queue")
+        return getRecordsToConsume(pollerConsumer, limit)
+    }
 
-        if (records.count() > limit) {
-            logger.info("Will only process $limit records, due to limit settings")
-        }
-        var counter = 0
-        records.forEach { record ->
-            counter++
-            if (counter > limit) {
-                logger.info("Retry queue Limit reached: $limit")
-                return@forEach
-            }
-
-            logger.info("Processing record: $counter, max is $limit, key: ${record.key()}, offset: ${record.offset()}")
-            val retryableAfter = parseNextRetryHeader(record)
-
-            logger.info("Record with key ${record.key()} is retryable after $retryableAfter.")
-            val offsetToCommit = record.offset() + 1
-            if (IGNORE_OLD_MESSAGES && LocalDateTime.now().minusDays(AGE_DAYS_TO_IGNORE).isAfter(retryableAfter)) {
-                logger.info("${record.key()} is too old, ignoring. This should only happen during DEV, when we want to process all messages in the queue.")
-            } else if (LocalDateTime.now().isAfter(retryableAfter)) {
-                logger.info("${record.key()} is being retried.")
-                record.asReceiverRecord().retryCounter()
-                messageFilterService.filterMessage(record.asReceiverRecord())
-                logger.info("${record.key()} has been retried.")
-            } else {
-                logger.info("${record.key()} is not retryable yet.")
-                sendToRetryQueueIncoming(record.asReceiverRecord(), advanceRetryTime = false)
-            }
-            val offsets: Map<TopicPartition?, OffsetAndMetadata?> =
-                mapOf(
-                    TopicPartition(record.topic(), record.partition())
-                        to OffsetAndMetadata(offsetToCommit)
-                )
-            pollerConsumer.commitSync(offsets)
-            logger.info("Committed offset $offsetToCommit for record with key ${record.key()}")
-        }
+    fun commitOffset(record: ConsumerRecord<String, ByteArray>) {
+        val offsetToCommit = record.offset() + 1
+        val offsets: Map<TopicPartition?, OffsetAndMetadata?> =
+            mapOf(
+                TopicPartition(record.topic(), record.partition())
+                    to OffsetAndMetadata(offsetToCommit)
+            )
+        pollerConsumer.commitSync(offsets)
+        logger.info("Committed offset $offsetToCommit for record with key ${record.key()}")
     }
 
     // Så lenge parseNextRetryHeader() og getNextRetryTime() er i sync mht. timestamp-formatet, skal parsing gå bra.
     // Vi har imidlertid erfart at man kan finne "gamle" meldinger på feilkø, med annet format - sikreste er å takle begge.
-    private fun parseNextRetryHeader(record: ConsumerRecord<String, ByteArray>): LocalDateTime {
+    fun parseNextRetryHeader(record: ConsumerRecord<String, ByteArray>): LocalDateTime {
         val header = String(record.headers().lastHeader(RETRY_AFTER).value())
         try {
             return LocalDateTime.parse(header)
@@ -254,14 +206,15 @@ class FailedMessageKafkaHandler(
         return LocalDateTime.now().plusMinutes(nextInterval.inWholeMinutes).toString()
     }
 
-    fun ReceiverRecord<String, ByteArray>.retryCounter(): Int {
-        val retryCounter = retryCount() + 1
-        this.headers().add(
-            RETRY_COUNT_HEADER,
-            retryCounter.toString().toByteArray()
-        )
-        return retryCounter
-    }
+}
+
+fun ReceiverRecord<String, ByteArray>.retryCounter(): Int {
+    val retryCounter = retryCount() + 1
+    this.headers().add(
+        RETRY_COUNT_HEADER,
+        retryCounter.toString().toByteArray()
+    )
+    return retryCounter
 }
 
 // Under test klarte vi å framprovosere en situasjon hvor headeren inneholdt en tekst

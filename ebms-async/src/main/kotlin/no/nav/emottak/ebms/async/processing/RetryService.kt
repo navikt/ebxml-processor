@@ -2,8 +2,12 @@ package no.nav.emottak.ebms.async.processing
 
 import io.github.nomisRev.kafka.receiver.ReceiverRecord
 import no.nav.emottak.ebms.async.configuration.config
+import no.nav.emottak.ebms.async.kafka.consumer.AGE_DAYS_TO_IGNORE
 import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
+import no.nav.emottak.ebms.async.kafka.consumer.IGNORE_OLD_MESSAGES
+import no.nav.emottak.ebms.async.kafka.consumer.asReceiverRecord
 import no.nav.emottak.ebms.async.kafka.consumer.retryCount
+import no.nav.emottak.ebms.async.kafka.consumer.retryCounter
 import no.nav.emottak.ebms.async.log
 import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.ebms.model.signer
@@ -16,6 +20,7 @@ import no.nav.emottak.message.model.EmailAddress
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.util.marker
 import java.time.Instant
+import java.time.LocalDateTime
 
 class RetryService(
     val cpaValidationService: CPAValidationService,
@@ -112,14 +117,46 @@ class RetryService(
         messageFilterService: MessageFilterService,
         limit: Int = 10
     ) {
-        failedMessageQueue.consumeRetryQueue(messageFilterService, limit)
+        val records = failedMessageQueue.pollRetryQueue(limit)
+        if (records.isEmpty()) {
+            log.info("No records to process in error queue")
+            return
+        }
+        log.info("At least ${records.count()} records to process in error queue")
+
+        records.take(limit).forEachIndexed { index, record ->
+            log.info("Processing record: ${index + 1}, max is $limit, key: ${record.key()}, offset: ${record.offset()}")
+            val retryableAfter = failedMessageQueue.parseNextRetryHeader(record)
+
+            log.info("Record with key ${record.key()} is retryable after $retryableAfter.")
+            if (IGNORE_OLD_MESSAGES && LocalDateTime.now().minusDays(AGE_DAYS_TO_IGNORE).isAfter(retryableAfter)) {
+                log.info("${record.key()} is too old, ignoring. This should only happen during DEV, when we want to process all messages in the queue.")
+            } else if (LocalDateTime.now().isAfter(retryableAfter)) {
+                log.info("${record.key()} is being retried.")
+                record.asReceiverRecord().retryCounter()
+                messageFilterService.filterMessage(record.asReceiverRecord())
+                log.info("${record.key()} has been retried.")
+            } else {
+                log.info("${record.key()} is not retryable yet.")
+                failedMessageQueue.sendToRetryQueueIncoming(record.asReceiverRecord(), advanceRetryTime = false)
+            }
+            failedMessageQueue.commitOffset(record)
+        }
     }
 
     suspend fun forceRetryFailedMessage(
         messageFilterService: MessageFilterService,
         offset: Long
     ) {
-        failedMessageQueue.forceRetryFailedMessage(messageFilterService, offset)
+        log.info("Forcing re-run of message on error queue at offset $offset")
+        val record = failedMessageQueue.fetchRecord(offset)
+        if (record == null) {
+            log.info("No record in error queue at offset $offset")
+            return
+        }
+        log.info("${record.key()} is being re-run.")
+        messageFilterService.filterMessage(record)
+        log.info("${record.key()} has been re-run.")
     }
 
     suspend fun sendToRetryQueueIncoming(
