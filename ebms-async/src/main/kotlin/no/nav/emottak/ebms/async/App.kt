@@ -170,7 +170,7 @@ fun main() = SuspendApp {
             launchErrorRetryTask(
                 config = config,
                 messageFilterService = messageFilterService,
-                failedMessageQueue = failedMessageQueue,
+                retryService = retryService,
                 pauseRetryErrorsTimerFlag = pauseRetryErrorsTimerFlag
             )
             launchMesssageResendTask(
@@ -187,7 +187,7 @@ fun main() = SuspendApp {
                         payloadRepository = payloadRepository,
                         messageFilterService = messageFilterService,
                         eventRegistrationService = eventRegistrationService,
-                        failedMessageQueue = failedMessageQueue,
+                        retryService = retryService,
                         pauseRetryErrorsTimerFlag = pauseRetryErrorsTimerFlag
                     )
                 }
@@ -256,7 +256,7 @@ fun CoroutineScope.launchSignalReceiver(
 fun CoroutineScope.launchErrorRetryTask(
     config: Config,
     messageFilterService: MessageFilterService,
-    failedMessageQueue: FailedMessageKafkaHandler,
+    retryService: RetryService,
     pauseRetryErrorsTimerFlag: PauseRetryErrorsTimerFlag
 ) {
     if (!config.kafkaErrorQueue.active) return
@@ -275,7 +275,7 @@ fun CoroutineScope.launchErrorRetryTask(
                     return@launch
                 }
 
-                failedMessageQueue.consumeRetryQueue(
+                retryService.consumeRetryQueue(
                     messageFilterService,
                     config.errorRetryPolicyIncoming.maxMessagesToProcess
                 )
@@ -317,7 +317,7 @@ fun Application.ebmsProviderModule(
     payloadRepository: PayloadRepository,
     messageFilterService: MessageFilterService,
     eventRegistrationService: EventRegistrationService,
-    failedMessageQueue: FailedMessageKafkaHandler,
+    retryService: RetryService,
     pauseRetryErrorsTimerFlag: PauseRetryErrorsTimerFlag
 ) {
     val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
@@ -332,10 +332,10 @@ fun Application.ebmsProviderModule(
         registerPrometheusEndpoint(appMicrometerRegistry)
         registerNavCheckStatus()
         if (!isProdEnv()) {
-            simulateError(failedMessageQueue)
+            simulateError(retryService)
         }
-        retryErrors(messageFilterService, failedMessageQueue)
-        rerun(messageFilterService, failedMessageQueue)
+        retryErrors(messageFilterService, retryService)
+        rerun(messageFilterService, retryService)
         pauseRetries(pauseRetryErrorsTimerFlag)
         resumeRetries(pauseRetryErrorsTimerFlag)
         authenticate(AZURE_AD_AUTH) {
@@ -348,14 +348,14 @@ const val RETRY_LIMIT = "retryLimit"
 
 fun Routing.retryErrors(
     messageFilterService: MessageFilterService,
-    failedMessageQueue: FailedMessageKafkaHandler
+    retryService: RetryService
 ): Route =
     get("/api/retry/{$RETRY_LIMIT}") {
         if (!config().kafkaErrorQueue.active) {
             call.respondText(status = HttpStatusCode.ServiceUnavailable, text = "Retry not active.")
             return@get
         }
-        failedMessageQueue.consumeRetryQueue(
+        retryService.consumeRetryQueue(
             messageFilterService,
             limit = (call.parameters[RETRY_LIMIT])?.toInt() ?: 10
         )
@@ -367,7 +367,7 @@ fun Routing.retryErrors(
 
 fun Routing.rerun(
     messageFilterService: MessageFilterService,
-    failedMessageQueue: FailedMessageKafkaHandler
+    retryService: RetryService
 ): Route =
     get("/api/rerun/{$KAFKA_OFFSET}") {
         if (!config().kafkaErrorQueue.active) {
@@ -379,7 +379,7 @@ fun Routing.rerun(
             call.respondText(status = HttpStatusCode.BadRequest, text = "Must specify offset of message to rerun.")
             return@get
         }
-        failedMessageQueue.forceRetryFailedMessage(
+        retryService.forceRetryFailedMessage(
             messageFilterService,
             offset = offsetParam
         )
@@ -392,7 +392,7 @@ fun Routing.rerun(
 const val KAFKA_OFFSET = "offset"
 
 fun Route.simulateError(
-    failedMessageQueue: FailedMessageKafkaHandler
+    retryService: RetryService
 ): Route =
     get("/api/forceretry/{$KAFKA_OFFSET}") {
         if (!config().kafkaErrorQueue.active) {
@@ -408,7 +408,7 @@ fun Route.simulateError(
                         .copy(groupId = "ebms-provider-retry"),
                     (call.parameters[KAFKA_OFFSET])?.toLong() ?: 0
                 )
-                failedMessageQueue.sendToRetryQueueIncoming(
+                retryService.sendToRetryQueueIncoming(
                     record = record ?: throw Exception("No Record found. Offset: ${call.parameters[KAFKA_OFFSET]}"),
                     reason = "Simulated Error"
                 )

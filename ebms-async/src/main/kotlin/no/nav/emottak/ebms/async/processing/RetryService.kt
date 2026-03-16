@@ -20,7 +20,7 @@ import java.time.Instant
 class RetryService(
     val cpaValidationService: CPAValidationService,
     val eventRegistrationService: EventRegistrationService,
-    val failedMessageQueue: FailedMessageKafkaHandler,
+    private val failedMessageQueue: FailedMessageKafkaHandler,
     val signalSender: suspend (EbmsDocument, List<EmailAddress>) -> Unit
 ) {
 
@@ -106,6 +106,27 @@ class RetryService(
 
     internal fun isExpired(ttl: Instant): Boolean {
         return ttl <= Instant.now()
+    }
+
+    suspend fun consumeRetryQueue(
+        messageFilterService: MessageFilterService,
+        limit: Int = 10
+    ) {
+        failedMessageQueue.consumeRetryQueue(messageFilterService, limit)
+    }
+
+    suspend fun forceRetryFailedMessage(
+        messageFilterService: MessageFilterService,
+        offset: Long
+    ) {
+        failedMessageQueue.forceRetryFailedMessage(messageFilterService, offset)
+    }
+
+    suspend fun sendToRetryQueueIncoming(
+        record: ReceiverRecord<String, ByteArray>,
+        reason: String
+    ) {
+        failedMessageQueue.sendToRetryQueueIncoming(record, reason)
     }
 
     suspend fun returnMessageError(ebmsPayloadMessage: EbmsMessage, ebmsException: EbmsException) {
