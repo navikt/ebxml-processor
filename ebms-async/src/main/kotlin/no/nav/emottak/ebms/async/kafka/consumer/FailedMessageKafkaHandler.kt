@@ -156,7 +156,7 @@ class FailedMessageKafkaHandler(
                 "Message sent successfully to topic $topic"
             )
         } catch (e: Exception) {
-            logger.info(
+            logger.error(
                 "Failed to send message to $topic : ${e.message}"
             )
         }
