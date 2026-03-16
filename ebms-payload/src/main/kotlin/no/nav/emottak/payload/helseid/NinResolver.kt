@@ -40,10 +40,10 @@ class NinResolver(
 
     private fun parseDateOrThrow(date: String?): Instant {
         requireNotNull(date) { "GenDate element missing or empty in document" }
-        try {
-            return OffsetDateTime.parse(date, DateTimeFormatter.ISO_OFFSET_DATE_TIME).toInstant()
+        return try {
+            OffsetDateTime.parse(date, DateTimeFormatter.ISO_OFFSET_DATE_TIME).toInstant()
         } catch (e: Exception) {
-            return java.time.LocalDateTime.parse(date, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+            java.time.LocalDateTime.parse(date, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
                 .atZone(java.time.ZoneId.systemDefault())
                 .toInstant()
         }
