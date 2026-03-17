@@ -18,6 +18,7 @@ import io.ktor.server.routing.routing
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.Json
 import no.nav.emottak.cpa.auth.AZURE_AD_AUTH
 import no.nav.emottak.cpa.auth.AuthConfig
 import no.nav.emottak.cpa.configuration.config
@@ -66,7 +67,13 @@ fun cpaApplicationModule(
         val oracleDb = if (emottakDbConfig != null) Database(emottakDbConfig) else null
 
         install(ContentNegotiation) {
-            json()
+            json(
+                Json {
+                    isLenient = true
+                    ignoreUnknownKeys = true
+                    prettyPrint = true
+                }
+            )
         }
         val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
         install(MicrometerMetrics) {

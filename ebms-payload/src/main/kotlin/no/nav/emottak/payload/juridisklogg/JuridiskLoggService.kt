@@ -14,6 +14,7 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import no.nav.emottak.message.model.PayloadRequest
 import no.nav.emottak.payload.log
 import no.nav.emottak.util.marker
@@ -32,7 +33,13 @@ class JuridiskLoggService() {
         var juridiskLoggRecordId: String? = null
         val httpClient = HttpClient(CIO) {
             install(ContentNegotiation) {
-                json()
+                json(
+                    Json {
+                        isLenient = true
+                        ignoreUnknownKeys = true
+                        prettyPrint = true
+                    }
+                )
             }
         }
 

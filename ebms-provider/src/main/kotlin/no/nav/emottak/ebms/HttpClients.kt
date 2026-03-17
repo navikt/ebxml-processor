@@ -155,7 +155,13 @@ fun defaultHttpClient(): () -> HttpClient {
         HttpClient(CIO) {
             expectSuccess = true
             install(ContentNegotiation) {
-                json()
+                json(
+                    Json {
+                        isLenient = true
+                        ignoreUnknownKeys = true
+                        prettyPrint = true
+                    }
+                )
             }
         }
     }
@@ -172,7 +178,13 @@ fun scopedAuthHttpClient(
         HttpClient(CIO) {
             expectSuccess = true
             install(ContentNegotiation) {
-                json()
+                json(
+                    Json {
+                        isLenient = true
+                        ignoreUnknownKeys = true
+                        prettyPrint = true
+                    }
+                )
             }
             install(Auth) {
                 bearer {

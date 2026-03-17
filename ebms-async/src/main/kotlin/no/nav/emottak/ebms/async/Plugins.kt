@@ -7,6 +7,7 @@ import io.ktor.server.auth.Authentication
 import io.ktor.server.metrics.micrometer.MicrometerMetrics
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
+import kotlinx.serialization.json.Json
 import no.nav.security.token.support.v3.tokenValidationSupport
 
 internal fun Application.installMicrometerRegistry(appMicrometerRegistry: PrometheusMeterRegistry) {
@@ -17,7 +18,13 @@ internal fun Application.installMicrometerRegistry(appMicrometerRegistry: Promet
 
 internal fun Application.installContentNegotiation() {
     install(ContentNegotiation) {
-        json()
+        json(
+            Json {
+                isLenient = true
+                ignoreUnknownKeys = true
+                prettyPrint = true
+            }
+        )
     }
 }
 
