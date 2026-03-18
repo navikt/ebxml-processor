@@ -5,7 +5,6 @@ import io.github.nomisRev.kafka.publisher.KafkaPublisher
 import io.github.nomisRev.kafka.publisher.PublisherSettings
 import io.github.nomisRev.kafka.receiver.Offset
 import io.github.nomisRev.kafka.receiver.ReceiverRecord
-import no.nav.emottak.ebms.async.configuration.ErrorRetryPolicy
 import no.nav.emottak.ebms.async.configuration.KafkaErrorQueueIn
 import no.nav.emottak.ebms.async.configuration.KafkaErrorQueueOut
 import no.nav.emottak.ebms.async.configuration.config
@@ -37,19 +36,12 @@ const val RETRY_COUNT_HEADER = "retryCount"
 const val RETRY_AFTER = "retryableAfter"
 const val RETRY_REASON = "retryReason"
 
-// Dette flagget er i utgangspunktet satt på for å dummy-prosessere alle gamle meldinger i feilkøen ved oppstart i DEV (ca 3000)
-// men kan evt brukes også i vanlig kjøring, siden det ignorerer meldinger eldre enn 1 uke
-const val IGNORE_OLD_MESSAGES = false
-const val AGE_DAYS_TO_IGNORE = 7L
-
 val logger: Logger = LoggerFactory.getLogger(FailedMessageKafkaHandler::class.java)
 
 class FailedMessageKafkaHandler(
     val kafkaErrorQueueIn: KafkaErrorQueueIn = config().kafkaErrorQueueIn,
     val kafkaErrorQueueOut: KafkaErrorQueueOut = config().kafkaErrorQueueOut,
-    val kafka: Kafka = config().kafka,
-    val errorRetryPolicyIncoming: ErrorRetryPolicy = config().errorRetryPolicyIncoming, // TODO FMKH also handles outgoing but is handled by retryservice
-    val errorRetryPolicyOutgoing: ErrorRetryPolicy = config().errorRetryPolicyOutgoing
+    val kafka: Kafka = config().kafka
 ) {
 
     val publisher = KafkaPublisher(
@@ -65,20 +57,52 @@ class FailedMessageKafkaHandler(
     // Set up a consumer for POLLing the retry topic. NOTE that this only polls and disconnects, it is NOT listening forever like the receivers.
     // We get into troubles with committing if we use the same groupid as the receivers used to listen on the message topics.
     val groupIdForRetry = kafka.groupId + "-retry"
-    val pollerConsumer = KafkaConsumer(
-        getPollerProperties(
-            kafka.toProperties(),
-            groupIdForRetry,
-            errorRetryPolicyIncoming.processInterval.inWholeSeconds
-        ),
-        StringDeserializer(),
-        ByteArrayDeserializer()
-    ).also { c ->
-        val partitions = c.partitionsFor(kafkaErrorQueueIn.topic).map { TopicPartition(it.topic(), it.partition()) }
-        c.assign(partitions)
-    }
+    val inPollerConsumer: KafkaConsumer<String, ByteArray>? =
+        if (kafkaErrorQueueIn.active) {
+            KafkaConsumer(
+                getPollerProperties(
+                    kafka.toProperties(),
+                    groupIdForRetry,
+                    config().errorRetryPolicyIncoming.processInterval.inWholeSeconds,
+                    kafkaErrorQueueIn.initOffset
+                ),
+                StringDeserializer(),
+                ByteArrayDeserializer()
+            ).also { c ->
+                val partitions = c.partitionsFor(kafkaErrorQueueIn.topic)
+                    .map { TopicPartition(it.topic(), it.partition()) }
+                c.assign(partitions)
+            }
+        } else {
+            null
+        }
 
-    fun getPollerProperties(properties: Properties, groupId: String, pollIntervalSeconds: Long): Properties {
+    val outPollerConsumer: KafkaConsumer<String, ByteArray>? =
+        if (kafkaErrorQueueOut.active) {
+            KafkaConsumer(
+                getPollerProperties(
+                    kafka.toProperties(),
+                    "$groupIdForRetry-out",
+                    config().errorRetryPolicyOutgoing.processInterval.inWholeSeconds,
+                    kafkaErrorQueueOut.initOffset
+                ),
+                StringDeserializer(),
+                ByteArrayDeserializer()
+            ).also { c ->
+                val partitions = c.partitionsFor(kafkaErrorQueueOut.topic)
+                    .map { TopicPartition(it.topic(), it.partition()) }
+                c.assign(partitions)
+            }
+        } else {
+            null
+        }
+
+    fun getPollerProperties(
+        properties: Properties,
+        groupId: String,
+        pollIntervalSeconds: Long,
+        initOffset: String
+    ): Properties {
         properties.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false")
         properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, groupId)
         // Sikre at ikke Kafka anser polleren vår som "død" selv om den ikke poller så ofte som Kafka er designet for.
@@ -87,19 +111,64 @@ class FailedMessageKafkaHandler(
         properties.setProperty(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, millisAllowedBetweenPolls.toString())
         // Hvis denne har verdi "earliest" vil man prosessere ALLE meldingene på feilkøen fra tidligste offset, første gangen app'en startes
         // Med "latest" vil man regne alle meldingene på feilkøen som allerede prosessert, og fortsette prosessering når nye meldinger kommer
-        properties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, kafkaErrorQueueIn.initOffset)
+        properties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, initOffset)
         return properties
+    }
+
+    fun pollIncomingRetryRecords(limit: Int): List<ConsumerRecord<String, ByteArray>> {
+        if (inPollerConsumer == null) return emptyList()
+        logger.info(
+            "Checking for messages in incoming error queue, current offset " + inPollerConsumer.position(
+                TopicPartition(kafkaErrorQueueIn.topic, 0)
+            )
+        )
+        val records = getRecordsToConsume(inPollerConsumer, limit)
+        if (records.isEmpty()) {
+            logger.info("No records to process in incoming error queue")
+        } else {
+            logger.info("At least ${records.count()} records to process in incoming error queue")
+        }
+        return records
+    }
+
+    fun pollOutgoingRetryRecords(limit: Int): List<ConsumerRecord<String, ByteArray>> {
+        if (outPollerConsumer == null) return emptyList()
+        logger.info(
+            "Checking for messages in outgoing error queue, current offset " + outPollerConsumer.position(
+                TopicPartition(kafkaErrorQueueOut.topic, 0)
+            )
+        )
+        val records = getRecordsToConsume(outPollerConsumer, limit)
+        if (records.isEmpty()) {
+            logger.info("No records to process in outgoing error queue")
+        } else {
+            logger.info("At least ${records.count()} records to process in outgoing error queue")
+        }
+        return records
+    }
+
+    fun commitOffset(record: ConsumerRecord<String, ByteArray>, direction: Direction) {
+        val consumer = when (direction) {
+            Direction.IN -> inPollerConsumer
+            Direction.OUT -> outPollerConsumer
+        } ?: return
+        val offsetToCommit = record.offset() + 1
+        val offsets: Map<TopicPartition, OffsetAndMetadata> = mapOf(
+            TopicPartition(record.topic(), record.partition()) to OffsetAndMetadata(offsetToCommit)
+        )
+        consumer.commitSync(offsets)
+        logger.info("Committed offset $offsetToCommit for record with key ${record.key()}")
     }
 
     suspend fun sendToRetryQueueIncoming(
         record: ReceiverRecord<String, ByteArray>,
         reason: String? = null,
-        advanceRetryTime: Boolean = true
+        nextRetryTime: String? = null
     ) {
         sendToRetry(
             record,
             reason = reason,
-            advanceRetryTime = advanceRetryTime,
+            nextRetryTime = nextRetryTime,
             direction = Direction.IN
         )
     }
@@ -107,12 +176,12 @@ class FailedMessageKafkaHandler(
     suspend fun sendToRetryQueueOutgoing(
         record: ReceiverRecord<String, ByteArray>,
         reason: String? = null,
-        advanceRetryTime: Boolean = true
+        nextRetryTime: String? = null
     ) {
         sendToRetry(
             record,
             reason = reason,
-            advanceRetryTime = advanceRetryTime,
+            nextRetryTime = nextRetryTime,
             direction = Direction.OUT
         )
     }
@@ -122,7 +191,7 @@ class FailedMessageKafkaHandler(
         key: String = record.key(),
         value: ByteArray = record.value(),
         reason: String? = null,
-        advanceRetryTime: Boolean = true,
+        nextRetryTime: String? = null,
         direction: Direction
     ) {
         val topic = when (direction) {
@@ -135,8 +204,8 @@ class FailedMessageKafkaHandler(
         if (reason != null) {
             record.addHeader(RETRY_REASON, reason)
         }
-        if (advanceRetryTime) {
-            record.addHeader(RETRY_AFTER, getNextRetryTime(record))
+        if (nextRetryTime != null) {
+            record.addHeader(RETRY_AFTER, nextRetryTime)
         }
         try {
             val metadata = publisher.publishScope {
@@ -162,58 +231,20 @@ class FailedMessageKafkaHandler(
         }
     }
 
-    fun fetchRecord(offset: Long): ReceiverRecord<String, ByteArray>? {
-        return getRetryRecord(offset)
-    }
-
-    fun pollRetryQueue(limit: Int = 10): List<ConsumerRecord<String, ByteArray>> {
-        logger.info(
-            "Checking for messages in error queue, current offset " + pollerConsumer.position(
-                TopicPartition(
-                    kafkaErrorQueueIn.topic,
-                    0
-                )
-            )
-        )
-        return getRecordsToConsume(pollerConsumer, limit)
-    }
-
-    fun commitOffset(record: ConsumerRecord<String, ByteArray>) {
-        val offsetToCommit = record.offset() + 1
-        val offsets: Map<TopicPartition?, OffsetAndMetadata?> =
-            mapOf(
-                TopicPartition(record.topic(), record.partition())
-                    to OffsetAndMetadata(offsetToCommit)
-            )
-        pollerConsumer.commitSync(offsets)
-        logger.info("Committed offset $offsetToCommit for record with key ${record.key()}")
-    }
-
-    // Så lenge parseNextRetryHeader() og getNextRetryTime() er i sync mht. timestamp-formatet, skal parsing gå bra.
-    // Vi har imidlertid erfart at man kan finne "gamle" meldinger på feilkø, med annet format - sikreste er å takle begge.
     fun parseNextRetryHeader(record: ConsumerRecord<String, ByteArray>): LocalDateTime {
-        val header = String(record.headers().lastHeader(RETRY_AFTER).value())
-        try {
-            return LocalDateTime.parse(header)
+        // Handles both old (Instant) and new (LocalDateTime) header formats.
+        val header = try {
+            String(record.headers().lastHeader(RETRY_AFTER).value())
+        } catch (npe: NullPointerException) {
+            logger.warn("No RETRY_AFTER header found, assuming immediate retry")
+            return LocalDateTime.now()
+        }
+        return try {
+            LocalDateTime.parse(header)
         } catch (e: Exception) {
-            val instant = Instant.parse(header)
-            return LocalDateTime.ofInstant(instant, ZoneId.systemDefault())
+            LocalDateTime.ofInstant(Instant.parse(header), ZoneId.systemDefault())
         }
     }
-
-    fun getNextRetryTime(record: ReceiverRecord<String, ByteArray>): String {
-        val nextInterval = errorRetryPolicyIncoming.nextInterval(record.retryCount())
-        return LocalDateTime.now().plusMinutes(nextInterval.inWholeMinutes).toString()
-    }
-}
-
-fun ReceiverRecord<String, ByteArray>.retryCounter(): Int {
-    val retryCounter = retryCount() + 1
-    this.headers().add(
-        RETRY_COUNT_HEADER,
-        retryCounter.toString().toByteArray()
-    )
-    return retryCounter
 }
 
 // Under test klarte vi å framprovosere en situasjon hvor headeren inneholdt en tekst
@@ -229,6 +260,15 @@ fun ReceiverRecord<String, ByteArray>.retryCount(): Int {
     return headerValue.toInt()
 }
 
+fun ReceiverRecord<String, ByteArray>.retryCounter(): Int {
+    val retryCounter = retryCount() + 1
+    this.headers().add(
+        RETRY_COUNT_HEADER,
+        retryCounter.toString().toByteArray()
+    )
+    return retryCounter
+}
+
 private fun cannotReadInt(headerValue: String): Boolean {
     return headerValue.isBlank() || headerValue.toIntOrNull() == null
 }
@@ -237,7 +277,7 @@ fun ReceiverRecord<String, ByteArray>.addHeader(key: String, value: String) {
     this.headers().add(key, value.toByteArray())
 }
 
-fun getRetryRecord(fromOffset: Long = 0, requestedRecords: Int = 1): ReceiverRecord<String, ByteArray>? {
+fun getRetryInRecord(fromOffset: Long = 0, requestedRecords: Int = 1): ReceiverRecord<String, ByteArray>? {
     return getRecord(config().kafkaErrorQueueIn.topic, config().kafka, fromOffset, requestedRecords)
 }
 

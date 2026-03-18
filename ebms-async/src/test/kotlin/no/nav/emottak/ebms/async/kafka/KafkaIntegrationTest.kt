@@ -5,7 +5,7 @@ import kotlinx.coroutines.test.runTest
 import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
 import no.nav.emottak.ebms.async.kafka.consumer.getRecord
-import no.nav.emottak.ebms.async.kafka.consumer.getRetryRecord
+import no.nav.emottak.ebms.async.kafka.consumer.getRetryInRecord
 import no.nav.emottak.message.model.Direction
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.condition.DisabledIf
@@ -68,7 +68,7 @@ class KafkaIntegrationTest {
                     direction = Direction.IN
                 )
             }
-            val retryRecord = getRetryRecord()
+            val retryRecord = getRetryInRecord()
             assert(retryRecord?.key() != null)
         }
     }

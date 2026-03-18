@@ -189,9 +189,14 @@ fun main() = SuspendApp {
                 config = config,
                 messageFilterService = messageFilterService
             )
-            launchErrorRetryTask(
+            launchErrorRetryTaskIncoming(
                 config = config,
+                retryService = retryService,
                 messageFilterService = messageFilterService,
+                pauseRetryErrorsTimerFlag = pauseRetryErrorsTimerFlag
+            )
+            launchErrorRetryTaskOutgoing(
+                config = config,
                 retryService = retryService,
                 pauseRetryErrorsTimerFlag = pauseRetryErrorsTimerFlag
             )

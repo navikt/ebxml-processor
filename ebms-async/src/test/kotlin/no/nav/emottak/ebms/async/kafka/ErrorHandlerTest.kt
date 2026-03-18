@@ -3,13 +3,11 @@ package no.nav.emottak.ebms.async.kafka
 import io.github.nomisRev.kafka.receiver.ReceiverRecord
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
-import no.nav.emottak.ebms.async.configuration.ErrorRetryPolicy
 import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
 import no.nav.emottak.ebms.async.kafka.consumer.RETRY_COUNT_HEADER
 import no.nav.emottak.ebms.async.kafka.consumer.asReceiverRecord
 import no.nav.emottak.ebms.async.kafka.consumer.getRecord
-import no.nav.emottak.ebms.async.processing.MessageFilterService
 import no.nav.emottak.ebms.async.processing.RetryService
 import no.nav.emottak.message.model.Direction
 import no.nav.emottak.utils.config.Kafka
@@ -17,8 +15,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import kotlin.test.assertTrue
-import kotlin.time.Duration.Companion.minutes
-import kotlin.time.Duration.Companion.seconds
 
 class ErrorHandlerTest {
 
@@ -41,8 +37,7 @@ class ErrorHandlerTest {
             System.setProperty("RETRY_INIT_OFFSET", "earliest")
             // Set retry after 0 minutes, to force immediate retry
             val errorHandler = FailedMessageKafkaHandler(
-                kafka = testcontainerKafkaConfig,
-                errorRetryPolicyIncoming = ErrorRetryPolicy(1.seconds, 10, listOf(0.minutes), listOf(2), maxRetries = 10)
+                kafka = testcontainerKafkaConfig
             )
             val retryService = RetryService(
                 cpaValidationService = mockk(),
@@ -57,19 +52,28 @@ class ErrorHandlerTest {
             val record1 = getRecordFromErrorQueueAtOffset(testcontainerKafkaConfig, 0)
             assertTrue(record1?.key() == "test-message", "Melding sendt til feilhåndtering ligger på feilkø med offset 0")
 
-            retryService.consumeRetryQueue(messageFilterService)
+            retryService.consumeRetryQueueIncoming(
+                limit = 10,
+                processor = messageFilterService::filterMessage
+            )
             assertTrue(processedMessages.size == 1, "Etter prosessering av feilkø er meldingen prosessert av MessageFilterService")
 
             errorHandler.sendToRetry(newRecord("failingAtFirstRetry"), direction = Direction.IN)
             val record2 = getRecordFromErrorQueueAtOffset(testcontainerKafkaConfig, 1)
             assertTrue(record2?.key() == "failingAtFirstRetry", "Melding som vil feile ligger på feilkø med offset 1")
 
-            retryService.consumeRetryQueue(messageFilterService)
+            retryService.consumeRetryQueueIncoming(
+                limit = 10,
+                processor = messageFilterService::filterMessage
+            )
             assertTrue(processedMessages.size == 1, "Etter prosessering av feilkø 1 gang er meldingen IKKE prosessert av MessageFilterService")
             val record3 = getRecordFromErrorQueueAtOffset(testcontainerKafkaConfig, 2)
             assertTrue(getRetryCountHeaderValue(record3) == 1, "Etter prosessering av feilkø 1 gang ligger meldingen igjen på feilkø med offset 2, og retrycount=1")
 
-            retryService.consumeRetryQueue(messageFilterService)
+            retryService.consumeRetryQueueIncoming(
+                limit = 10,
+                processor = messageFilterService::filterMessage
+            )
             assertTrue(processedMessages.size == 2, "Etter prosessering av feilkø 2 ganger er meldingen prosessert av MessageFilterService")
         }
     }
@@ -94,7 +98,7 @@ class ErrorHandlerTest {
     class DummyMessageFilterService(
         val kafkaErrorHandler: FailedMessageKafkaHandler,
         val processedMessages: MutableList<ReceiverRecord<String, ByteArray>>
-    ) : MessageFilterService(
+    ) : no.nav.emottak.ebms.async.processing.MessageFilterService(
         mockk(),
         mockk(),
         mockk(),
