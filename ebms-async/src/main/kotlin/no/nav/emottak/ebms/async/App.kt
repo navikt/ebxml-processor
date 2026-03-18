@@ -196,7 +196,6 @@ fun main() = SuspendApp {
             }
         }
 }
-
 class PauseRetryErrorsTimerFlag {
     var paused = false
 }
@@ -338,4 +337,3 @@ fun Application.ebmsProviderModule(
         }
     }
 }
-
