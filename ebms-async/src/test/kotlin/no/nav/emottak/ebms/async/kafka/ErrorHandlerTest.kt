@@ -17,18 +17,18 @@ import org.junit.jupiter.api.Test
 import kotlin.test.assertTrue
 
 class ErrorHandlerTest {
-
     @Test
     fun testConsumeRetryQueue() {
         runTest {
             KafkaTestContainer.start()
             System.setProperty("KAFKA_BROKERS", KafkaTestContainer.bootstrapServers)
+            System.setProperty("EBMS_RETRY_QUEUE", "true")
             KafkaTestContainer.createTopic(config().kafkaErrorQueueIn.topic)
             KafkaTestContainer.createTopic(config().kafkaPayloadProducer.topic)
 
             val testcontainerKafkaConfig =
                 config().kafka.copy(
-                    bootstrapServers = KafkaTestContainer.kafkaContainer.bootstrapServers
+                    bootstrapServers = KafkaTestContainer.kafkaContainer.bootstrapServers,
                 )
 
             // This test seems to have problems with the startup,
@@ -36,15 +36,17 @@ class ErrorHandlerTest {
             // Need to override this by explicitly setting to earliest offset
             System.setProperty("RETRY_INIT_OFFSET", "earliest")
             // Set retry after 0 minutes, to force immediate retry
-            val errorHandler = FailedMessageKafkaHandler(
-                kafka = testcontainerKafkaConfig
-            )
-            val retryService = RetryService(
-                cpaValidationService = mockk(),
-                eventRegistrationService = mockk(),
-                failedMessageQueue = errorHandler,
-                signalSender = mockk()
-            )
+            val errorHandler =
+                FailedMessageKafkaHandler(
+                    kafka = testcontainerKafkaConfig,
+                )
+            val retryService =
+                RetryService(
+                    cpaValidationService = mockk(),
+                    eventRegistrationService = mockk(),
+                    failedMessageQueue = errorHandler,
+                    signalSender = mockk(),
+                )
             val processedMessages = ArrayList<ReceiverRecord<String, ByteArray>>()
             val messageFilterService = DummyMessageFilterService(errorHandler, processedMessages)
 
@@ -56,7 +58,7 @@ class ErrorHandlerTest {
                 // Keep each consume step deterministic for this test. A larger batch size can
                 // pick up a freshly requeued record in the same poll cycle.
                 limit = 1,
-                processor = messageFilterService::filterMessage
+                processor = messageFilterService::filterMessage,
             )
             assertTrue(processedMessages.size == 1, "Etter prosessering av feilkø er meldingen prosessert av MessageFilterService")
 
@@ -66,15 +68,21 @@ class ErrorHandlerTest {
 
             retryService.consumeRetryQueueIncoming(
                 limit = 1,
-                processor = messageFilterService::filterMessage
+                processor = messageFilterService::filterMessage,
             )
-            assertTrue(processedMessages.size == 1, "Etter prosessering av feilkø 1 gang er meldingen IKKE prosessert av MessageFilterService")
+            assertTrue(
+                processedMessages.size == 1,
+                "Etter prosessering av feilkø 1 gang er meldingen IKKE prosessert av MessageFilterService",
+            )
             val record3 = getRecordFromErrorQueueAtOffset(testcontainerKafkaConfig, 2)
-            assertTrue(getRetryCountHeaderValue(record3) == 1, "Etter prosessering av feilkø 1 gang ligger meldingen igjen på feilkø med offset 2, og retrycount=1")
+            assertTrue(
+                getRetryCountHeaderValue(record3) == 1,
+                "Etter prosessering av feilkø 1 gang ligger meldingen igjen på feilkø med offset 2, og retrycount=1",
+            )
 
             retryService.consumeRetryQueueIncoming(
                 limit = 1,
-                processor = messageFilterService::filterMessage
+                processor = messageFilterService::filterMessage,
             )
             assertTrue(processedMessages.size == 2, "Etter prosessering av feilkø 2 ganger er meldingen prosessert av MessageFilterService")
         }
@@ -89,8 +97,10 @@ class ErrorHandlerTest {
         ConsumerRecord(config().kafkaErrorQueueIn.topic, 0, 0, key, "".toByteArray())
             .asReceiverRecord()
 
-    private fun getRecordFromErrorQueueAtOffset(testcontainerKafkaConfig: Kafka, offset: Long): ReceiverRecord<String, ByteArray>? =
-        getRecord(config().kafkaErrorQueueIn.topic, testcontainerKafkaConfig, offset, 1)
+    private fun getRecordFromErrorQueueAtOffset(
+        testcontainerKafkaConfig: Kafka,
+        offset: Long,
+    ): ReceiverRecord<String, ByteArray>? = getRecord(config().kafkaErrorQueueIn.topic, testcontainerKafkaConfig, offset, 1)
 
     @AfterEach
     fun teardown() {
@@ -99,13 +109,13 @@ class ErrorHandlerTest {
 
     class DummyMessageFilterService(
         val kafkaErrorHandler: FailedMessageKafkaHandler,
-        val processedMessages: MutableList<ReceiverRecord<String, ByteArray>>
+        val processedMessages: MutableList<ReceiverRecord<String, ByteArray>>,
     ) : no.nav.emottak.ebms.async.processing.MessageFilterService(
-        mockk(),
-        mockk(),
-        mockk(),
-        mockk()
-    ) {
+            mockk(),
+            mockk(),
+            mockk(),
+            mockk(),
+        ) {
         override suspend fun filterMessage(record: ReceiverRecord<String, ByteArray>) {
             // Fail and send to retry if key starts with "fail", until retried 2 times
             val retries = 2
@@ -117,7 +127,7 @@ class ErrorHandlerTest {
                     kafkaErrorHandler.sendToRetry(
                         record = record,
                         reason = "Test message set to fail again",
-                        direction = Direction.IN
+                        direction = Direction.IN,
                     )
                     return
                 }
