@@ -147,7 +147,7 @@ fun main() = SuspendApp {
     val retryService = RetryService(
         cpaValidationService = cpaValidationService,
         eventRegistrationService = eventRegistrationService,
-        fmkh = failedMessageQueue,
+        failedMessageKafkaHandler = failedMessageQueue,
         signalSender = { ebmsDocument, signalResponderEmails ->
             sendSignalResponseToTopic(ebmsSignalProducer, eventRegistrationService, ebmsDocument, signalResponderEmails)
         }
@@ -268,7 +268,7 @@ class DummyMessageFilterService(
             if (f != null && r != null) {
                 if (r <= f) {
                     println("--Set to fail again, number of times to fail: $f, number of retries now: $r")
-                    payloadMessageService.retryService.fmkh.sendToRetry(
+                    payloadMessageService.retryService.failedMessageKafkaHandler.sendToRetry(
                         record = record,
                         reason = "Test message set to fail again",
                         direction = Direction.IN

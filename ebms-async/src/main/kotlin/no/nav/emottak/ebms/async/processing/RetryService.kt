@@ -25,7 +25,7 @@ import java.time.LocalDateTime
 class RetryService(
     val cpaValidationService: CPAValidationService,
     val eventRegistrationService: EventRegistrationService,
-    val fmkh: FailedMessageKafkaHandler,
+    val failedMessageKafkaHandler: FailedMessageKafkaHandler,
     val signalSender: suspend (EbmsDocument, List<EmailAddress>) -> Unit
 ) {
 
@@ -66,8 +66,8 @@ class RetryService(
         when (decision) {
             RetryDecision.RETRY -> {
                 when (direction) {
-                    Direction.OUT -> fmkh.sendToRetryQueueOutgoing(record, retryReason, getNextRetryTime(record, direction))
-                    Direction.IN -> fmkh.sendToRetryQueueIncoming(record, retryReason, getNextRetryTime(record, direction))
+                    Direction.OUT -> failedMessageKafkaHandler.sendToRetryQueueOutgoing(record, retryReason, getNextRetryTime(record, direction))
+                    Direction.IN -> failedMessageKafkaHandler.sendToRetryQueueIncoming(record, retryReason, getNextRetryTime(record, direction))
                 }
             }
             RetryDecision.TTL_EXPIRED ->
@@ -104,14 +104,14 @@ class RetryService(
         limit: Int,
         processor: suspend (ReceiverRecord<String, ByteArray>) -> Unit
     ) {
-        val records = fmkh.pollIncomingRetryRecords(limit)
+        val records = failedMessageKafkaHandler.pollIncomingRetryRecords(limit)
         records.forEachIndexed { index, record ->
             if (index >= limit) {
                 log.info("Incoming retry queue limit reached: $limit")
                 return@forEachIndexed
             }
             processRetryRecord(record, Direction.IN, processor)
-            fmkh.commitOffset(record, Direction.IN)
+            failedMessageKafkaHandler.commitOffset(record, Direction.IN)
         }
     }
 
@@ -128,14 +128,14 @@ class RetryService(
         processor: suspend (ReceiverRecord<String, ByteArray>) -> Unit
     ) {
         if (!config().kafkaErrorQueueOut.active) return
-        val records = fmkh.pollOutgoingRetryRecords(limit)
+        val records = failedMessageKafkaHandler.pollOutgoingRetryRecords(limit)
         records.forEachIndexed { index, record ->
             if (index >= limit) {
                 log.info("Outgoing retry queue limit reached: $limit")
                 return@forEachIndexed
             }
             processRetryRecord(record, Direction.OUT, processor)
-            fmkh.commitOffset(record, Direction.OUT)
+            failedMessageKafkaHandler.commitOffset(record, Direction.OUT)
         }
     }
 
@@ -166,7 +166,7 @@ class RetryService(
         direction: Direction,
         processor: suspend (ReceiverRecord<String, ByteArray>) -> Unit
     ) {
-        val retryableAfter = fmkh.parseNextRetryHeader(record)
+        val retryableAfter = failedMessageKafkaHandler.parseNextRetryHeader(record)
         log.info("Record with key ${record.key()} is retryable after $retryableAfter.")
 
         if (IGNORE_OLD_MESSAGES && LocalDateTime.now().minusDays(AGE_DAYS_TO_IGNORE).isAfter(retryableAfter)) {
@@ -182,8 +182,8 @@ class RetryService(
         } else {
             log.info("${record.key()} is not retryable yet.")
             when (direction) {
-                Direction.IN -> fmkh.sendToRetryQueueIncoming(record.asReceiverRecord())
-                Direction.OUT -> fmkh.sendToRetryQueueOutgoing(record.asReceiverRecord())
+                Direction.IN -> failedMessageKafkaHandler.sendToRetryQueueIncoming(record.asReceiverRecord())
+                Direction.OUT -> failedMessageKafkaHandler.sendToRetryQueueOutgoing(record.asReceiverRecord())
             }
         }
     }

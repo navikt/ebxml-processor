@@ -128,7 +128,7 @@ fun main() = SuspendApp {
     val retryService = RetryService(
         cpaValidationService = cpaValidationService,
         eventRegistrationService = eventRegistrationService,
-        fmkh = failedMessageQueue,
+        failedMessageKafkaHandler = failedMessageQueue,
         signalSender = { ebmsDocument, signalResponderEmails ->
             sendSignalResponseToTopic(ebmsSignalProducer, eventRegistrationService, ebmsDocument, signalResponderEmails)
         }
@@ -496,7 +496,7 @@ fun Route.forceRetryMessageIn(
                 config().kafka.copy(groupId = "ebms-provider-retry"),
                 (call.parameters[KAFKA_OFFSET])?.toLong() ?: 0
             )
-            retryService.fmkh.sendToRetryQueueIncoming(
+            retryService.failedMessageKafkaHandler.sendToRetryQueueIncoming(
                 record = record ?: throw Exception("No Record found. Offset: ${call.parameters[KAFKA_OFFSET]}"),
                 reason = "Forced Retry"
             )
@@ -521,7 +521,7 @@ fun Route.forceRetryMessageOut(
                 config().kafka.copy(groupId = "ebms-provider-retry-out"),
                 (call.parameters[KAFKA_OFFSET])?.toLong() ?: 0
             )
-            retryService.fmkh.sendToRetryQueueOutgoing(
+            retryService.failedMessageKafkaHandler.sendToRetryQueueOutgoing(
                 record = record ?: throw Exception("No Record found. Offset: ${call.parameters[KAFKA_OFFSET]}"),
                 reason = "Forced Retry"
             )
