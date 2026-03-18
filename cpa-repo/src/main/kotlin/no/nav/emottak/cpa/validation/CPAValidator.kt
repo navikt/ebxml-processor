@@ -15,7 +15,17 @@ import java.util.Date
 fun CollaborationProtocolAgreement.validate(validationRequest: ValidationRequest) {
     validateCpaId(validationRequest.cpaId)
     validateCpaDatoGyldig()
-    hasRoleServiceActionCombo(validationRequest.addressing)
+    if (validationRequest.refToMessageId != null) {
+        // Hvis ref'en ikke er null, er det en Respons som skal valideres.
+        // Da holder det å validere at from/NAV-siden er OK,
+        // og at to/samhandler har et innslag for riktig service/action
+        // TODO kunne evt oppdatere from-role med verdien fra innslaget, tror ikke den brukes ?
+        val toRole = responseHasRoleServiceActionCombo(validationRequest.addressing)
+        log.info("Role for respons hentet fra to-party: $toRole")
+//        validationRequest.addressing.to.role = toRole
+    } else {
+        hasRoleServiceActionCombo(validationRequest.addressing)
+    }
 }
 
 @Throws(CpaValidationException::class)
@@ -37,6 +47,23 @@ fun CollaborationProtocolAgreement.hasRoleServiceActionCombo(addressing: Address
 }
 
 @Throws(CpaValidationException::class)
+fun CollaborationProtocolAgreement.responseHasRoleServiceActionCombo(addressing: Addressing) {
+    if (addressing.service == EBMS_SERVICE_URI) {
+        if (addressing.action != ACKNOWLEDGMENT_ACTION && addressing.action != MESSAGE_ERROR_ACTION) {
+            throw CpaValidationException("Service $EBMS_SERVICE_URI støtter ikke action ${addressing.action}")
+        }
+        return
+    }
+    val fromParty = this.getPartyInfoByTypeAndID(addressing.from.partyId)
+    val fromRole = addressing.from.role
+
+    val toParty = this.getPartyInfoByTypeAndID(addressing.to.partyId)
+
+    partyInfoHasRoleServiceActionCombo(fromParty, fromRole, addressing.service, addressing.action, MessageDirection.SEND)
+    val toRole = getRoleFromPartyInfoWithServiceActionCombo(toParty, addressing.service, addressing.action, MessageDirection.RECEIVE)
+}
+
+@Throws(CpaValidationException::class)
 fun partyInfoHasRoleServiceActionCombo(partyInfo: PartyInfo, role: String, service: String, action: String, direction: MessageDirection) {
     val partyWithRole = partyInfo.collaborationRole.firstOrNull { r ->
         r.role.name == role && r.serviceBinding.service.value == service
@@ -47,6 +74,26 @@ fun partyInfoHasRoleServiceActionCombo(partyInfo: PartyInfo, role: String, servi
         MessageDirection.RECEIVE -> partyWithRole.serviceBinding.canReceive.firstOrNull { a -> a.thisPartyActionBinding.action == action }
             ?: throw CpaValidationException("Action $action matcher ikke service $service for receiving party ${partyInfo.partyName}")
     }
+}
+
+@Throws(CpaValidationException::class)
+fun getRoleFromPartyInfoWithServiceActionCombo(partyInfo: PartyInfo, service: String, action: String, direction: MessageDirection): String {
+    var lookupRole = ""
+    val partyWithRole = partyInfo.collaborationRole.firstOrNull { r ->
+        if (r.serviceBinding.service.value == service) {
+            lookupRole = r.role.name
+            true
+        } else {
+            false
+        }
+    } ?: throw CpaValidationException("Service $service kan ikke brukes av party ${partyInfo.partyName}")
+    when (direction) {
+        MessageDirection.SEND -> partyWithRole!!.serviceBinding.canSend.firstOrNull { a -> a.thisPartyActionBinding.action == action }
+            ?: throw CpaValidationException("Action $action matcher ikke service $service for sending party ${partyInfo.partyName}")
+        MessageDirection.RECEIVE -> partyWithRole!!.serviceBinding.canReceive.firstOrNull { a -> a.thisPartyActionBinding.action == action }
+            ?: throw CpaValidationException("Action $action matcher ikke service $service for receiving party ${partyInfo.partyName}")
+    }
+    return lookupRole
 }
 
 fun CollaborationProtocolAgreement.validateCpaId(cpaId: String) {
