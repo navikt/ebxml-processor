@@ -34,9 +34,9 @@ import no.nav.emottak.ebms.PayloadProcessingClient
 import no.nav.emottak.ebms.SMTP_TRANSPORT_SCOPE
 import no.nav.emottak.ebms.SendInClient
 import no.nav.emottak.ebms.SmtpTransportClient
+import no.nav.emottak.ebms.StatusResponse
 import no.nav.emottak.ebms.async.configuration.Config
 import no.nav.emottak.ebms.async.configuration.config
-import no.nav.emottak.ebms.StatusResponse
 import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
 import no.nav.emottak.ebms.async.kafka.consumer.getRecord
 import no.nav.emottak.ebms.async.kafka.consumer.startEbmsOutPayloadReceiver

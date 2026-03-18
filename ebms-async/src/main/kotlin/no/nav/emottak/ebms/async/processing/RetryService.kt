@@ -97,7 +97,7 @@ class RetryService(
         processor: suspend (ReceiverRecord<String, ByteArray>) -> Unit
     ) {
         val records = failedMessageQueue.pollIncomingRetryRecords(limit)
-        records.forEachIndexed { index, record  ->
+        records.forEachIndexed { index, record ->
             if (index >= limit) {
                 log.info("Incoming retry queue limit reached: $limit")
                 return@forEachIndexed
