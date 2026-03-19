@@ -21,6 +21,7 @@ import io.ktor.client.statement.request
 import io.ktor.http.ContentType.Application.Json
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
+import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.routing.routing
@@ -47,6 +48,7 @@ import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.message.model.SignatureDetailsRequest
 import no.nav.emottak.message.model.ValidationRequest
 import no.nav.emottak.message.model.ValidationResult
+import no.nav.emottak.util.LENIENT_JSON_PARSER
 import no.nav.emottak.util.OSLO_ZONE
 import no.nav.emottak.utils.common.model.Addressing
 import no.nav.emottak.utils.common.model.Party
@@ -125,7 +127,8 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         )
         val httpClient = createClient {
             install(ContentNegotiation) {
-                LENIENT_JSON_PARSER
+//                LENIENT_JSON_PARSER
+                json()
             }
         }
 
@@ -724,10 +727,6 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
                 }
             }
         }
-    }
-
-    val LENIENT_JSON_PARSER = Json {
-        isLenient = true
     }
 
     private fun loadTestCPA(cpaName: String): CollaborationProtocolAgreement {
