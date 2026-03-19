@@ -40,16 +40,21 @@ import no.nav.emottak.cpa.model.CommunicationParty
 import no.nav.emottak.cpa.persistence.CPARepository
 import no.nav.emottak.cpa.persistence.gammel.PartnerRepository
 import no.nav.emottak.cpa.util.EventRegistrationServiceFake
+import no.nav.emottak.message.ebxml.messageHeader
 import no.nav.emottak.message.model.Direction.IN
+import no.nav.emottak.message.model.EbmsDocument
 import no.nav.emottak.message.model.EmailAddress
 import no.nav.emottak.message.model.ErrorCode
 import no.nav.emottak.message.model.MessagingCharacteristicsRequest
 import no.nav.emottak.message.model.MessagingCharacteristicsResponse
+import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.ProcessConfig
 import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.message.model.SignatureDetailsRequest
 import no.nav.emottak.message.model.ValidationRequest
 import no.nav.emottak.message.model.ValidationResult
+import no.nav.emottak.message.xml.getDocumentBuilder
+import no.nav.emottak.message.xml.unmarshal
 import no.nav.emottak.util.OSLO_ZONE
 import no.nav.emottak.utils.common.model.Addressing
 import no.nav.emottak.utils.common.model.Party
@@ -57,6 +62,7 @@ import no.nav.emottak.utils.common.model.PartyId
 import no.nav.emottak.utils.environment.getEnvVar
 import no.nav.security.mock.oauth2.MockOAuth2Server
 import org.apache.commons.lang3.StringUtils
+import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
@@ -845,6 +851,33 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         }
     }
 
+    private val attachments = listOf(
+        Payload(
+            bytes = "Test attachment content".toByteArray(),
+            contentType = "text/plain",
+            contentId = "attachment1"
+        )
+    )
+
+    @Test
+    fun `Hent cpaid from envelope signatursjekk when Cpa dosn't exist`() = cpaRepoTestApp { // TODO: Cpaid in envelope not found in cpa-repo
+        val httpClient = createClient {
+            install(ContentNegotiation) {
+                json(
+                    Json {
+                        explicitNulls = false
+                        ignoreUnknownKeys = true
+                    }
+                )
+            }
+        }
+        val document = getDocumentBuilder().parse(java.io.File("src/test/resources/oppgjorsmelding/2023_08_29T12_56_58_328.xml"))
+        val request = EbmsDocument(Uuid.random().toString(), document, attachments)
+        log.info("${request.messageHeader().from.partyId.firstOrNull()?.value}")
+        log.info("${request.messageHeader().cpaId}")
+
+        Assertions.assertEquals(request.messageHeader().cpaId, "nav:qass:35065")
+    }
 //    @Test
 //    fun `ValidationRequest endpoint should return NotFound if CPA is not found`() = cpaRepoTestApp {
 //        val httpClient = createClient {
