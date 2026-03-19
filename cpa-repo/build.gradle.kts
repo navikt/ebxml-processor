@@ -71,6 +71,7 @@ dependencies {
     implementation(libs.token.validation.ktor.v3)
     implementation(libs.ktor.client.auth)
     implementation(libs.emottak.utils)
+    implementation(libs.apache.santuario)
     testRuntimeOnly(testLibs.junit.jupiter.engine)
     testImplementation(testLibs.mock.oauth2.server)
     testImplementation(testLibs.mockk.jvm)

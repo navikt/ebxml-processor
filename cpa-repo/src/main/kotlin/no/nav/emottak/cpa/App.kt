@@ -96,12 +96,13 @@ fun cpaApplicationModule(
             getTimeStampsLatest(cpaRepository)
             getTimeStampsLastUsed(cpaRepository)
             getCertificate(cpaRepository)
-            signingCertificate(cpaRepository)
-            getMessagingCharacteristics(cpaRepository)
+            signingCertificate(cpaRepository, adresseregisterClient)
+            getMessagingCharacteristics(cpaRepository, adresseregisterClient)
             if (adresseregisterClient != null) {
                 getAdresseregisterData(adresseregisterClient)
                 getARSignCertificate(adresseregisterClient)
                 getAREncryptCertificate(adresseregisterClient)
+                getAdresseregisterHerID(adresseregisterClient)
             }
             registerHealthEndpoints(appMicrometerRegistry, cpaRepository)
 

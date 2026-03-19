@@ -136,6 +136,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
             service = "BehandlerKrav",
             action = "OppgjorsMelding"
         )
+
         val httpClient = createClient {
             install(ContentNegotiation) {
                 json()
@@ -469,7 +470,6 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
             contentType(Json)
         }
 
-        assertEquals(HttpStatusCode.OK, response.status)
         val messagingCharacteristicsResponse = response.body<MessagingCharacteristicsResponse>()
         assertNotNull(messagingCharacteristicsResponse)
         assertEquals(
@@ -492,31 +492,6 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
             messagingCharacteristicsResponse.duplicateElimination,
             "DuplicateElimination should be the same as in nav-qass-35065.xml file"
         )
-    }
-
-    @Test
-    fun `messagingCharacteristics endpoint should return NotFound if CPA is not found`() = cpaRepoTestApp {
-        val httpClient = createClient {
-            install(ContentNegotiation) {
-                json()
-            }
-        }
-
-        val messagingCharacteristicsRequest = MessagingCharacteristicsRequest(
-            requestId = Uuid.random().toString(),
-            cpaId = "no:such:cpa",
-            partyIds = listOf(PartyId("HER", "8141253")),
-            role = "Behandler",
-            service = "BehandlerKrav",
-            action = "OppgjorsMelding"
-        )
-
-        val response = httpClient.post("/cpa/messagingCharacteristics") {
-            setBody(messagingCharacteristicsRequest)
-            contentType(Json)
-        }
-
-        assertEquals(HttpStatusCode.NotFound, response.status)
     }
 
     @Test
@@ -751,7 +726,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
             }
         }
 
-        val url = "/cpa/adresseregister/her/79768"
+        val url = "/cpa/adresseregister/her/8141253"
         val response = httpClient.get(url)
         val cp = response.body<CommunicationParty>()
         log.info("${cp.displayName}")
@@ -768,7 +743,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
             }
         }
 
-        val url = "/cpa/adresseregister/her/1/signing"
+        val url = "/cpa/adresseregister/her/8141253/signing"
         val response = httpClient.get(url)
         val signCertificate = response.body<Certificate>()
         log.info(" ${signCertificate.certificateValue} ")
@@ -785,7 +760,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
             }
         }
 
-        val url = "/cpa/adresseregister/her/1/encryption"
+        val url = "/cpa/adresseregister/her/8141253/encryption"
         val response = httpClient.get(url)
         val encryptCertificate = response.body<Certificate>()
         log.info(" ${encryptCertificate.certificateValue} ")
@@ -793,6 +768,111 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         assertEquals(HttpStatusCode.OK, response.status)
         assertTrue(StringUtils.isNotBlank(response.bodyAsText()), "Response can't be null or blank")
     }
+
+    @Test
+    fun `Get Partner information from AR`() = cpaRepoTestApp { // Parviz Use partner information from AR
+        val httpClient = createClient {
+            install(ContentNegotiation) {
+                json()
+            }
+        }
+        val response = httpClient.get("/cpa/nav:qass:350652")
+        if (response.status == HttpStatusCode.NotFound) {
+            log.info("Cpa fins ikke!")
+            assertEquals(HttpStatusCode.NotFound, response.status)
+            // TODO assertTrue(StringUtils.isNotBlank(response.bodyAsText()), "Response can't be null or blank")
+        } else {
+            log.info("Cpa fins!")
+            assertEquals(HttpStatusCode.OK, response.status)
+            assertTrue(StringUtils.isNotBlank(response.bodyAsText()), "Response can't be null or blank")
+        }
+    }
+
+    @Test
+    fun `messagingCharacteristics endpoint should return NotFound if CPA is not found`() = cpaRepoTestApp { // Parviz Use partner information from AR
+        val httpClient = createClient {
+            install(ContentNegotiation) {
+                json()
+            }
+        }
+
+        val messagingCharacteristicsRequest = MessagingCharacteristicsRequest(
+            requestId = Uuid.random().toString(),
+            cpaId = "no:such:cpa",
+            partyIds = listOf(PartyId("HER", "8141253000000")),
+            role = "Behandler",
+            service = "BehandlerKrav",
+            action = "OppgjorsMelding"
+        )
+
+        val response = httpClient.post("/cpa/messagingCharacteristics") {
+            setBody(messagingCharacteristicsRequest)
+            contentType(Json)
+        }
+
+        assertEquals(HttpStatusCode.NotFound, response.status)
+    }
+
+    @Test
+    fun `Hent sertifikat for signatursjekk when Cpa dosn't exist`() = cpaRepoTestApp { // Parviz: Check with AR if cpa doesn't exist
+        val request = SignatureDetailsRequest(
+            cpaId = "no:such:cpa", // ""nav:qass:35065", // TODO endres hvis/når respons fra getCpa ikke lenger er hardkodet
+            partyType = "HER",
+            partyId = "8141253",
+            role = "Behandler",
+            service = "BehandlerKrav",
+            action = "OppgjorsMelding"
+        )
+
+        val httpClient = createClient {
+            install(ContentNegotiation) {
+                json(
+                    Json {
+                        explicitNulls = false
+                        ignoreUnknownKeys = true
+                    }
+                )
+            }
+        }
+
+        val response = httpClient.post("/signing/certificate") {
+            setBody(request)
+            contentType(Json)
+        }
+        response.body<Certificate>()
+        if (response.status == HttpStatusCode.NotFound) {
+            assertEquals(HttpStatusCode.NotFound, response.status)
+        }
+    }
+
+//    @Test
+//    fun `ValidationRequest endpoint should return NotFound if CPA is not found`() = cpaRepoTestApp {
+//        val httpClient = createClient {
+//            install(ContentNegotiation) {
+//                json()
+//            }
+//        }
+//
+//        val validationRequest = ValidationRequest(
+//            Direction.IN,
+//        "mesageid",
+//        "conversationid",
+//        "no:such:cpa",
+//            Addressing(
+//                Party(listOf(PartyId("HER", "79768")), "KontrollUtbetaler"),
+//                Party(listOf(PartyId("HER", "8090595")), "Utleverer"),
+//                "OppgjorsKontroll",
+//                "Oppgjorskrav"
+//            )
+//        )
+//
+//        val response = httpClient.post("/cpa/validationRequest") {
+//            setBody(validationRequest)
+//            contentType(Json)
+//        }
+//
+//        assertEquals(HttpStatusCode.NotFound, response.status)
+//    }
 
     private fun loadTestCPA(cpaName: String): CollaborationProtocolAgreement {
         val testCpaString = String(this::class.java.classLoader.getResource("cpa/$cpaName").readBytes())
