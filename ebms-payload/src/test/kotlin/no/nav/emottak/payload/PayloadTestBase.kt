@@ -27,8 +27,8 @@ import no.nav.emottak.payload.crypto.PayloadSignering
 import no.nav.emottak.payload.ocspstatus.OcspStatusService
 import no.nav.emottak.payload.ocspstatus.ssnPolicyID
 import no.nav.emottak.payload.util.EventRegistrationServiceFake
-import no.nav.emottak.util.LENIENT_JSON_PARSER
 import no.nav.emottak.util.createDocument
+import no.nav.emottak.util.jsonLenient
 import no.nav.emottak.utils.common.model.Addressing
 import no.nav.emottak.utils.common.model.Party
 import no.nav.emottak.utils.common.model.PartyId
@@ -68,7 +68,7 @@ abstract class PayloadTestBase {
         authenticated: Boolean = false
     ): HttpClient = createClient {
         install(ContentNegotiation) {
-            LENIENT_JSON_PARSER
+            jsonLenient()
         }
         defaultRequest {
             when {

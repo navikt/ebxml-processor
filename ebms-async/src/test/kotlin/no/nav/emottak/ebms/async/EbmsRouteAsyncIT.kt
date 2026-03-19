@@ -19,7 +19,7 @@ import no.nav.emottak.ebms.async.persistence.Database
 import no.nav.emottak.ebms.async.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.async.util.EventRegistrationServiceFake
 import no.nav.emottak.message.model.AsyncPayload
-import no.nav.emottak.util.LENIENT_JSON_PARSER
+import no.nav.emottak.util.jsonLenient
 import no.nav.security.mock.oauth2.MockOAuth2Server
 import no.nav.security.token.support.v3.tokenValidationSupport
 import org.junit.jupiter.api.AfterAll
@@ -39,7 +39,7 @@ class EbmsRouteAsyncIT {
     fun <T> validationTestApp(testBlock: suspend ApplicationTestBuilder.() -> T) = testApplication {
         application {
             install(ServerContentNegotiation) {
-                LENIENT_JSON_PARSER
+                jsonLenient()
             }
 
             install(Authentication) {
@@ -120,7 +120,7 @@ class EbmsRouteAsyncIT {
 
     private fun ApplicationTestBuilder.getHttpClient() = createClient {
         install(ClientContentNegotiation) {
-            LENIENT_JSON_PARSER
+            jsonLenient()
         }
     }
 

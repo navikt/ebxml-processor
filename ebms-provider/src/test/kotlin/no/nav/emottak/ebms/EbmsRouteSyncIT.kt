@@ -35,8 +35,8 @@ import no.nav.emottak.message.model.ProcessConfig
 import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.message.xml.xmlMarshaller
-import no.nav.emottak.util.LENIENT_JSON_PARSER
 import no.nav.emottak.util.decodeBase64
+import no.nav.emottak.util.jsonLenient
 import no.nav.emottak.utils.common.model.Addressing
 import no.nav.emottak.utils.common.model.EbmsProcessing
 import no.nav.emottak.utils.common.model.Party
@@ -80,7 +80,7 @@ class EbmsRouteSyncIT {
         val client = createClient {
             expectSuccess = true
             install(io.ktor.client.plugins.contentnegotiation.ContentNegotiation) {
-                LENIENT_JSON_PARSER
+                jsonLenient()
             }
         }
         val cpaRepoClient = CpaRepoClient { client }
@@ -95,7 +95,7 @@ class EbmsRouteSyncIT {
         application {
             val cpaValidationService = CPAValidationService(cpaRepoClient)
             install(ContentNegotiation) {
-                LENIENT_JSON_PARSER
+                jsonLenient()
             }
             routing {
                 postEbmsSync(cpaValidationService, ProcessingService(processingClient), SendInService(sendInClient))
@@ -104,7 +104,7 @@ class EbmsRouteSyncIT {
         externalServices {
             hosts(getEnvVar("CPA_REPO_URL", "http://cpa-repo.team-emottak.svc.nais.local")) {
                 this.install(ContentNegotiation) {
-                    LENIENT_JSON_PARSER
+                    jsonLenient()
                 }
                 routing {
                     post("cpa/validate/6ae68a32-8b0e-4de2-baad-f4d841aacce1") {
@@ -121,7 +121,7 @@ class EbmsRouteSyncIT {
             }
             hosts(getEnvVar("SEND_IN_URL", "http://ebms-send-in")) {
                 this.install(ContentNegotiation) {
-                    LENIENT_JSON_PARSER
+                    jsonLenient()
                 }
                 routing {
                     post("/fagmelding/synkron") {
@@ -140,7 +140,7 @@ class EbmsRouteSyncIT {
             }
             hosts(getEnvVar("PAYLOAD_PROCESSOR_URL", "http://ebms-payload")) {
                 this.install(ContentNegotiation) {
-                    LENIENT_JSON_PARSER
+                    jsonLenient()
                 }
                 routing {
                     post("payload") {
@@ -186,7 +186,7 @@ class EbmsRouteSyncIT {
         externalServices {
             hosts(getEnvVar("CPA_REPO_URL", "http://cpa-repo.team-emottak.svc.nais.local")) {
                 this.install(ContentNegotiation) {
-                    LENIENT_JSON_PARSER
+                    jsonLenient()
                 }
                 routing {
                     post("cpa/validate/e491180e-eea6-41d6-ac5b-d232c9fb115f") {
@@ -249,7 +249,7 @@ class EbmsRouteSyncIT {
         externalServices {
             hosts(getEnvVar("SEND_IN_URL", "http://ebms-send-in")) {
                 this.install(ContentNegotiation) {
-                    LENIENT_JSON_PARSER
+                    jsonLenient()
                 }
                 routing {
                     post("/fagmelding/synkron") {
@@ -344,7 +344,7 @@ class EbmsRouteSyncIT {
         externalServices {
             hosts(getEnvVar("PAYLOAD_PROCESSOR_URL", "http://ebms-payload")) {
                 this.install(ContentNegotiation) {
-                    LENIENT_JSON_PARSER
+                    jsonLenient()
                 }
                 routing {
                     post("payload") {

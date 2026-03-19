@@ -10,7 +10,7 @@ import io.ktor.util.logging.KtorSimpleLogger
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import net.logstash.logback.marker.Markers
 import no.nav.emottak.constants.SMTPHeaders
-import no.nav.emottak.util.LENIENT_JSON_PARSER
+import no.nav.emottak.util.jsonLenient
 import java.time.Duration
 import java.time.Instant
 import kotlin.time.toKotlinDuration
@@ -23,7 +23,7 @@ internal fun Application.installMicrometerRegistry(appMicrometerRegistry: Promet
 
 internal fun Application.installContentNegotiation() {
     install(ContentNegotiation) {
-        LENIENT_JSON_PARSER
+        jsonLenient()
     }
 }
 

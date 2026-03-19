@@ -16,7 +16,7 @@ import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import no.nav.emottak.payload.configuration.config
 import no.nav.emottak.payload.util.EventRegistrationService
 import no.nav.emottak.payload.util.EventRegistrationServiceImpl
-import no.nav.emottak.util.LENIENT_JSON_PARSER
+import no.nav.emottak.util.jsonLenient
 import no.nav.emottak.utils.environment.getEnvVar
 import no.nav.emottak.utils.kafka.client.EventPublisherClient
 import no.nav.emottak.utils.kafka.service.EventLoggingService
@@ -60,7 +60,7 @@ fun payloadApplicationModule(
 ): Application.() -> Unit {
     return {
         install(ContentNegotiation) {
-            LENIENT_JSON_PARSER
+            jsonLenient()
         }
         val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
         install(MicrometerMetrics) {

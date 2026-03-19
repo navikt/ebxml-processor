@@ -18,7 +18,6 @@ import io.ktor.http.ContentType
 import io.ktor.http.ContentType.Application.Json
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
-import kotlinx.serialization.json.Json
 import no.nav.emottak.message.model.AsyncPayload
 import no.nav.emottak.message.model.MessagingCharacteristicsRequest
 import no.nav.emottak.message.model.MessagingCharacteristicsResponse
@@ -27,6 +26,7 @@ import no.nav.emottak.message.model.PayloadResponse
 import no.nav.emottak.message.model.ValidationRequest
 import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.util.LENIENT_JSON_PARSER
+import no.nav.emottak.util.jsonLenient
 import no.nav.emottak.utils.common.model.DuplicateCheckRequest
 import no.nav.emottak.utils.common.model.DuplicateCheckResponse
 import no.nav.emottak.utils.common.model.SendInRequest
@@ -155,7 +155,7 @@ fun defaultHttpClient(): () -> HttpClient {
         HttpClient(CIO) {
             expectSuccess = true
             install(ContentNegotiation) {
-                LENIENT_JSON_PARSER
+                jsonLenient()
             }
         }
     }
@@ -168,7 +168,7 @@ fun scopedAuthHttpClient(
         HttpClient(CIO) {
             expectSuccess = true
             install(ContentNegotiation) {
-                LENIENT_JSON_PARSER
+                jsonLenient()
             }
             install(Auth) {
                 bearer {
