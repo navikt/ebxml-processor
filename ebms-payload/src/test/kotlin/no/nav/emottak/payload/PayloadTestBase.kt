@@ -9,7 +9,6 @@ import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.request.header
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
-import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import io.mockk.coEvery
@@ -29,6 +28,7 @@ import no.nav.emottak.payload.ocspstatus.OcspStatusService
 import no.nav.emottak.payload.ocspstatus.ssnPolicyID
 import no.nav.emottak.payload.util.EventRegistrationServiceFake
 import no.nav.emottak.util.createDocument
+import no.nav.emottak.util.jsonLenient
 import no.nav.emottak.utils.common.model.Addressing
 import no.nav.emottak.utils.common.model.Party
 import no.nav.emottak.utils.common.model.PartyId
@@ -67,7 +67,9 @@ abstract class PayloadTestBase {
         audience: String? = null,
         authenticated: Boolean = false
     ): HttpClient = createClient {
-        install(ContentNegotiation) { json() }
+        install(ContentNegotiation) {
+            jsonLenient()
+        }
         defaultRequest {
             when {
                 audience != null -> header("Authorization", "Bearer ${token(audience).serialize()}")
