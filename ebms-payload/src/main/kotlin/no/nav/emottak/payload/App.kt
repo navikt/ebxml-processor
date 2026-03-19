@@ -2,7 +2,6 @@ package no.nav.emottak.payload
 
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
-import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.auth.Authentication
@@ -17,6 +16,7 @@ import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import no.nav.emottak.payload.configuration.config
 import no.nav.emottak.payload.util.EventRegistrationService
 import no.nav.emottak.payload.util.EventRegistrationServiceImpl
+import no.nav.emottak.util.jsonLenient
 import no.nav.emottak.utils.environment.getEnvVar
 import no.nav.emottak.utils.kafka.client.EventPublisherClient
 import no.nav.emottak.utils.kafka.service.EventLoggingService
@@ -60,7 +60,7 @@ fun payloadApplicationModule(
 ): Application.() -> Unit {
     return {
         install(ContentNegotiation) {
-            json()
+            jsonLenient()
         }
         val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
         install(MicrometerMetrics) {
