@@ -21,7 +21,6 @@ import io.ktor.client.statement.request
 import io.ktor.http.ContentType.Application.Json
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
-import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.routing.routing
@@ -31,7 +30,6 @@ import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
-import kotlinx.serialization.json.Json
 import no.nav.emottak.cpa.auth.AZURE_AD_AUTH
 import no.nav.emottak.cpa.auth.AuthConfig
 import no.nav.emottak.cpa.databasetest.PostgresOracleTest
@@ -48,7 +46,9 @@ import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.message.model.SignatureDetailsRequest
 import no.nav.emottak.message.model.ValidationRequest
 import no.nav.emottak.message.model.ValidationResult
+import no.nav.emottak.util.LENIENT_JSON_PARSER
 import no.nav.emottak.util.OSLO_ZONE
+import no.nav.emottak.util.jsonLenient
 import no.nav.emottak.utils.common.model.Addressing
 import no.nav.emottak.utils.common.model.Party
 import no.nav.emottak.utils.common.model.PartyId
@@ -104,7 +104,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
     ): Application.() -> Unit {
         return {
             install(io.ktor.server.plugins.contentnegotiation.ContentNegotiation) {
-                json()
+                jsonLenient()
             }
             routing {
                 validateCpa(cpaRepository, partnerRepository, eventRegistrationService)
@@ -126,7 +126,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         )
         val httpClient = createClient {
             install(ContentNegotiation) {
-                json()
+                jsonLenient()
             }
         }
 
@@ -144,7 +144,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
     fun `Test egenandelfritak partyTo PartyFrom resolve`() = cpaRepoTestApp {
         val httpClient = createClient {
             install(ContentNegotiation) {
-                json()
+                jsonLenient()
             }
         }
         val response = runValidateCpa(
@@ -169,7 +169,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
     fun `Bytt from og to - role service action matcher ikke`() = cpaRepoTestApp {
         val httpClient = createClient {
             install(ContentNegotiation) {
-                json()
+                jsonLenient()
             }
         }
         val response = runValidateCpa(
@@ -199,7 +199,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
     fun `Test hente epost`() = cpaRepoTestApp {
         val httpClient = createClient {
             install(ContentNegotiation) {
-                json()
+                jsonLenient()
             }
         }
         val response = runValidateCpa(
@@ -225,7 +225,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
     fun `Test hente epost - flere ChannelId'er og flere endpoints (epostadresser)`() = cpaRepoTestApp {
         val httpClient = createClient {
             install(ContentNegotiation) {
-                json()
+                jsonLenient()
             }
         }
         val response = runValidateCpa(
@@ -296,7 +296,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
     fun `Hent cpaId map`() = cpaRepoTestApp {
         val httpClient = createClient {
             install(ContentNegotiation) {
-                json()
+                jsonLenient()
             }
         }
 
@@ -322,7 +322,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
     fun `Hent cpaId map - med CPA-id i header`() = cpaRepoTestApp {
         val httpClient = createClient {
             install(ContentNegotiation) {
-                json()
+                jsonLenient()
             }
         }
         val responseMedEn = httpClient.get("/cpa/timestamps") {
@@ -340,7 +340,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
     fun `Post CPA uten token blir avvist`() = cpaRepoTestApp {
         val client = createClient {
             install(ContentNegotiation) {
-                json()
+                jsonLenient()
             }
         }
         val response = client.post("/cpa")
@@ -351,7 +351,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
     fun `Henter latest updated timestamp (deprecated endpoint - redirected)`() = cpaRepoTestApp {
         val httpClient = createClient {
             install(ContentNegotiation) {
-                json()
+                jsonLenient()
             }
             installCpaRepoAuthentication()
         }
@@ -365,7 +365,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
     fun `Henter latest updated timestamp`() = cpaRepoTestApp {
         val httpClient = createClient {
             install(ContentNegotiation) {
-                json()
+                jsonLenient()
             }
             installCpaRepoAuthentication()
         }
@@ -378,7 +378,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
     fun `Henter timestamps map (deprecated endpoint - redirected)`() = cpaRepoTestApp {
         val httpClient = createClient {
             install(ContentNegotiation) {
-                json()
+                jsonLenient()
             }
             installCpaRepoAuthentication()
         }
@@ -393,7 +393,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
     fun `Henter timestamps map`() = cpaRepoTestApp {
         val httpClient = createClient {
             install(ContentNegotiation) {
-                json()
+                jsonLenient()
             }
             installCpaRepoAuthentication()
         }
@@ -424,7 +424,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
     fun `Get cpa with ID should return CPA`() = cpaRepoTestApp {
         val httpClient = createClient {
             install(ContentNegotiation) {
-                json()
+                jsonLenient()
             }
         }
 
@@ -439,7 +439,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
     fun `messagingCharacteristics endpoint should return MessagingCharacteristicsResponse`() = cpaRepoTestApp {
         val httpClient = createClient {
             install(ContentNegotiation) {
-                json()
+                jsonLenient()
             }
         }
 
@@ -486,7 +486,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
     fun `messagingCharacteristics endpoint should return NotFound if CPA is not found`() = cpaRepoTestApp {
         val httpClient = createClient {
             install(ContentNegotiation) {
-                json()
+                jsonLenient()
             }
         }
 
@@ -516,7 +516,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
             )
         val httpClient = createClient {
             install(ContentNegotiation) {
-                json()
+                jsonLenient()
             }
         }
         val response = httpClient.get("/whoami") {
@@ -532,7 +532,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
     fun `Delete CPA without token is rejected`() = cpaRepoTestApp {
         val client = createClient {
             install(ContentNegotiation) {
-                json()
+                jsonLenient()
             }
         }
         val response = client.delete("/cpa/delete/nav:qass:35065")
@@ -543,7 +543,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
     fun `Delete CPA should result in deletion`() = cpaRepoTestApp {
         val c = createClient {
             install(ContentNegotiation) {
-                json()
+                jsonLenient()
             }
             installCpaRepoAuthentication()
         }
@@ -556,7 +556,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
     fun `validateCpa should update CPA's last used date`() = cpaRepoTestApp {
         val httpClient = createClient {
             install(ContentNegotiation) {
-                json()
+                jsonLenient()
             }
         }
 
@@ -589,7 +589,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
     fun `last used should not be null after CPA update`() = cpaRepoTestApp {
         val httpClient = createClient {
             install(ContentNegotiation) {
-                json()
+                jsonLenient()
             }
             installCpaRepoAuthentication()
         }
@@ -644,7 +644,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
     fun `validateCpa should only call CPARepository_updateCpaLastUsed once pr day`() = validateCpaMockTestApp {
         val httpClient = createClient {
             install(ContentNegotiation) {
-                json()
+                jsonLenient()
             }
         }
         val cpaId = "nav:qass:31162"
@@ -725,10 +725,6 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
                 }
             }
         }
-    }
-
-    val LENIENT_JSON_PARSER = Json {
-        isLenient = true
     }
 
     private fun loadTestCPA(cpaName: String): CollaborationProtocolAgreement {

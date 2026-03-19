@@ -1,5 +1,6 @@
 package no.nav.emottak.payload.helseid
 
+import kotlinx.datetime.LocalDateTime
 import no.nav.emottak.crypto.KeyStoreManager
 import no.nav.emottak.payload.configuration.config
 import no.nav.emottak.payload.defaultHttpClient
@@ -39,6 +40,12 @@ class NinResolver(
 
     private fun parseDateOrThrow(date: String?): Instant {
         requireNotNull(date) { "GenDate element missing or empty in document" }
-        return OffsetDateTime.parse(date, DateTimeFormatter.ISO_OFFSET_DATE_TIME).toInstant()
+        return try {
+            OffsetDateTime.parse(date, DateTimeFormatter.ISO_OFFSET_DATE_TIME).toInstant()
+        } catch (e: Exception) {
+            java.time.LocalDateTime.parse(date, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                .atZone(java.time.ZoneId.systemDefault())
+                .toInstant()
+        }
     }
 }
