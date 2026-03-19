@@ -10,12 +10,12 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
-import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import no.nav.emottak.message.model.PayloadRequest
 import no.nav.emottak.payload.log
+import no.nav.emottak.util.LENIENT_JSON_PARSER
 import no.nav.emottak.util.marker
 import no.nav.emottak.utils.common.model.PartyId
 import no.nav.emottak.utils.environment.getEnvVar
@@ -32,7 +32,7 @@ class JuridiskLoggService() {
         var juridiskLoggRecordId: String? = null
         val httpClient = HttpClient(CIO) {
             install(ContentNegotiation) {
-                json()
+                LENIENT_JSON_PARSER
             }
         }
 

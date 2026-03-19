@@ -5,7 +5,6 @@ import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
-import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.auth.Authentication
@@ -29,6 +28,7 @@ import no.nav.emottak.cpa.persistence.gammel.PartnerRepository
 import no.nav.emottak.cpa.persistence.oracleConfig
 import no.nav.emottak.cpa.util.EventRegistrationService
 import no.nav.emottak.cpa.util.EventRegistrationServiceImpl
+import no.nav.emottak.util.LENIENT_JSON_PARSER
 import no.nav.emottak.utils.kafka.client.EventPublisherClient
 import no.nav.emottak.utils.kafka.service.EventLoggingService
 import no.nav.security.token.support.v3.tokenValidationSupport
@@ -66,7 +66,7 @@ fun cpaApplicationModule(
         val oracleDb = if (emottakDbConfig != null) Database(emottakDbConfig) else null
 
         install(ContentNegotiation) {
-            json()
+            LENIENT_JSON_PARSER
         }
         val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
         install(MicrometerMetrics) {
