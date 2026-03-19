@@ -51,6 +51,9 @@ spec:
   ingresses:
     - "https://cpa-repo-fss.intern.nav.no"
     #- "https://cpa-repo.prod-fss-pub.nais.io"
+  filesFrom:
+    - secret: emottak-ar-klient-secret
+      mountPath: /var/run/secrets/emottak-ar-klient-secret
   vault:
     enabled: true
     paths:
