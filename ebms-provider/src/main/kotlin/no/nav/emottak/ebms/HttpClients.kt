@@ -163,6 +163,7 @@ fun defaultHttpClient(): () -> HttpClient {
 
 val LENIENT_JSON_PARSER = Json {
     isLenient = true
+    ignoreUnknownKeys = true
 }
 
 fun scopedAuthHttpClient(
@@ -172,7 +173,15 @@ fun scopedAuthHttpClient(
         HttpClient(CIO) {
             expectSuccess = true
             install(ContentNegotiation) {
-                json()
+                Json {
+                    encodeDefaults = true
+                    isLenient = true
+                    allowSpecialFloatingPointValues = true
+                    allowStructuredMapKeys = true
+                    prettyPrint = false
+                    useArrayPolymorphism = false
+                    ignoreUnknownKeys = true
+                }
             }
             install(Auth) {
                 bearer {
