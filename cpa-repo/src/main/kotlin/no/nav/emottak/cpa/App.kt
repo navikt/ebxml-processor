@@ -20,6 +20,7 @@ import kotlinx.coroutines.runBlocking
 import no.nav.emottak.cpa.auth.AZURE_AD_AUTH
 import no.nav.emottak.cpa.auth.AuthConfig
 import no.nav.emottak.cpa.configuration.config
+import no.nav.emottak.cpa.nhn.adresseregisteret.nhnArHttpClient
 import no.nav.emottak.cpa.persistence.CPARepository
 import no.nav.emottak.cpa.persistence.Database
 import no.nav.emottak.cpa.persistence.cpaDbConfig
@@ -29,6 +30,7 @@ import no.nav.emottak.cpa.persistence.oracleConfig
 import no.nav.emottak.cpa.util.EventRegistrationService
 import no.nav.emottak.cpa.util.EventRegistrationServiceImpl
 import no.nav.emottak.util.jsonLenient
+import no.nav.emottak.utils.environment.isProdEnv
 import no.nav.emottak.utils.kafka.client.EventPublisherClient
 import no.nav.emottak.utils.kafka.service.EventLoggingService
 import no.nav.security.token.support.v3.tokenValidationSupport
@@ -40,6 +42,7 @@ fun main() {
     val kafkaPublisherClient = EventPublisherClient(config().kafka)
     val eventLoggingService = EventLoggingService(config().eventLogging, kafkaPublisherClient)
     val eventRegistrationService = EventRegistrationServiceImpl(eventLoggingService)
+    val adresseregisterClient = if (!isProdEnv()) nhnArHttpClient() else null
 
     embeddedServer(
         Netty,
@@ -48,7 +51,8 @@ fun main() {
             cpaDbConfig.value,
             cpaMigrationConfig.value,
             oracleConfig.value,
-            eventRegistrationService
+            eventRegistrationService,
+            adresseregisterClient
         )
     ).start(wait = true)
 }
@@ -57,7 +61,8 @@ fun cpaApplicationModule(
     cpaDbConfig: HikariConfig,
     cpaMigrationConfig: HikariConfig,
     emottakDbConfig: HikariConfig? = null,
-    eventRegistrationService: EventRegistrationService
+    eventRegistrationService: EventRegistrationService,
+    adresseregisterClient: HttpClient?
 ): Application.() -> Unit {
     return {
         val database = Database(cpaDbConfig)
@@ -93,6 +98,11 @@ fun cpaApplicationModule(
             getCertificate(cpaRepository)
             signingCertificate(cpaRepository)
             getMessagingCharacteristics(cpaRepository)
+            if (adresseregisterClient != null) {
+                getAdresseregisterData(adresseregisterClient)
+                getARSignCertificate(adresseregisterClient)
+                getAREncryptCertificate(adresseregisterClient)
+            }
             registerHealthEndpoints(appMicrometerRegistry, cpaRepository)
 
             if (canInitAuthenticatedRoutes().also { log.info("INIT AZURE ENDPOINTS: [$it]") }) {

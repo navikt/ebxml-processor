@@ -48,7 +48,6 @@ open class EndToEndTest {
         val cpaRepoUrl = "http://localhost:$portnoCpaRepo"
         val cpaEventRegistrationService = CpaEventRegistrationServiceFake()
 
-        // TODO Start mailserver og payload processor
         val cpaRepoDbContainer: PostgreSQLContainer<Nothing>
         lateinit var ebmsProviderServer: ApplicationEngine
         lateinit var cpaRepoServer: ApplicationEngine
@@ -82,7 +81,8 @@ open class EndToEndTest {
                     cpaRepoDb.dataSource,
                     cpaRepoDb.dataSource,
                     cpaRepoDb.dataSource,
-                    cpaEventRegistrationService
+                    cpaEventRegistrationService,
+                    null
                 )
             ).also {
                 it.start()
