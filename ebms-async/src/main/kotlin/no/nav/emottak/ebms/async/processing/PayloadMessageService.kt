@@ -31,24 +31,25 @@ class PayloadMessageService(
         ebmsPayloadMessage: PayloadMessage
     ) {
         runCatching {
-            val isDuplicate = isDuplicateMessage(ebmsPayloadMessage)
             val isRetry = record.retryCount() > 0
-            when (isDuplicate && !isRetry) {
-                true -> log.info(ebmsPayloadMessage.marker(), "Got duplicate payload message with reference <${ebmsPayloadMessage.requestId}>")
-                false -> {
-                    if (isRetry) {
-                        eventRegistrationService.registerEvent(
-                            eventType = EventType.RETRY_TRIGGED,
-                            requestId = ebmsPayloadMessage.requestId.parseOrGenerateUuid(),
-                            messageId = ebmsPayloadMessage.messageId,
-                            conversationId = ebmsPayloadMessage.conversationId
-                        )
-                    }
-                    processPayloadMessage(ebmsPayloadMessage)
+            val isDuplicate = !isRetry && isDuplicateMessage(ebmsPayloadMessage)
+
+            if (isDuplicate) {
+                log.info(ebmsPayloadMessage.marker(), "Got duplicate payload message with reference <${ebmsPayloadMessage.requestId}>")
+            } else {
+                messageReceivedRepository.messageReceived(ebmsPayloadMessage)
+                if (isRetry) {
+                    eventRegistrationService.registerEvent(
+                        eventType = EventType.RETRY_TRIGGED,
+                        requestId = ebmsPayloadMessage.requestId.parseOrGenerateUuid(),
+                        messageId = ebmsPayloadMessage.messageId,
+                        conversationId = ebmsPayloadMessage.conversationId
+                    )
                 }
+                processPayloadMessage(ebmsPayloadMessage)
             }
             returnAcknowledgment(ebmsPayloadMessage)
-            messageReceivedRepository.updateOrInsert(ebmsPayloadMessage)
+            messageReceivedRepository.messageAcknowledged(ebmsPayloadMessage)
         }.onFailure { exception ->
             // TODO handle some errors by sending to retry, some by returning error message
             log.error(ebmsPayloadMessage.marker(), exception.message ?: "Message processing error", exception)
@@ -103,16 +104,17 @@ class PayloadMessageService(
             return false
         }
 
-        if (duplicateEliminationStrategy == PerMessageCharacteristicsType.ALWAYS) {
-            return messageReceivedRepository.isDuplicateMessage(ebmsPayloadMessage)
-        }
+        return when (duplicateEliminationStrategy) {
+            PerMessageCharacteristicsType.ALWAYS -> {
+                messageReceivedRepository.getMessageReceived(ebmsPayloadMessage)?.acknowledged ?: false
+            }
 
-        if (
-            duplicateEliminationStrategy == PerMessageCharacteristicsType.PER_MESSAGE &&
-            ebmsPayloadMessage.duplicateElimination
-        ) {
-            return messageReceivedRepository.isDuplicateMessage(ebmsPayloadMessage)
+            PerMessageCharacteristicsType.PER_MESSAGE -> {
+                ebmsPayloadMessage.duplicateElimination && (messageReceivedRepository.getMessageReceived(ebmsPayloadMessage)?.acknowledged ?: false)
+            }
+
+            PerMessageCharacteristicsType.NEVER -> false
+            null -> false
         }
-        return false
     }
 }

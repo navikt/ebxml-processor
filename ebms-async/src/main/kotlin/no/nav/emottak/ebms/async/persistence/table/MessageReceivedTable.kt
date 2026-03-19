@@ -18,7 +18,7 @@ object MessageReceivedTable : Table("message_received") {
     val service: Column<String> = varchar("service", 256)
     val action: Column<String> = varchar("action", 256)
     val receivedAt: Column<java.time.Instant> = timestamp("received_at")
-    val ackSent: Column<Boolean> = bool("ack_sent")
+    val acknowledged: Column<Boolean> = bool("acknowledged")
 
     override val primaryKey = PrimaryKey(referenceId)
 }

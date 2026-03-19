@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.testcontainers.containers.PostgreSQLContainer
-import java.util.UUID
+import kotlin.uuid.Uuid
 
 class MessageReceivedRepositoryTest {
     companion object {
@@ -37,33 +37,35 @@ class MessageReceivedRepositoryTest {
     @Test
     fun `Message gets saved to database`() {
         val originalMessage = createPayloadMessage()
-        val originalReferenceId = UUID.fromString(originalMessage.requestId)
+        val originalReferenceId = Uuid.parse(originalMessage.requestId)
 
-        messageReceivedRepository.updateOrInsert(originalMessage)
+        messageReceivedRepository.messageReceived(originalMessage)
 
-        val messageReceivedId = messageReceivedRepository.getByReferenceId(originalReferenceId)
+        val messageReceived = messageReceivedRepository.getByReferenceId(originalReferenceId)
 
-        Assertions.assertNotNull(messageReceivedId)
-        Assertions.assertEquals(originalReferenceId, messageReceivedId)
+        Assertions.assertNotNull(messageReceived)
+        Assertions.assertEquals(originalReferenceId, messageReceived!!.referenceId)
     }
 
     @Test
-    fun `Saved message gets flagged as duplicate`() {
+    fun `Saved message gets acknowledged`() {
         val originalMessage = createPayloadMessage()
 
-        messageReceivedRepository.updateOrInsert(originalMessage)
+        messageReceivedRepository.messageReceived(originalMessage)
+        val unacknowledgedMessageReceived = messageReceivedRepository.getMessageReceived(originalMessage)
+        Assertions.assertFalse(unacknowledgedMessageReceived!!.acknowledged)
 
-        val isDuplicate = messageReceivedRepository.isDuplicateMessage(originalMessage)
-
-        Assertions.assertEquals(true, isDuplicate)
+        messageReceivedRepository.messageAcknowledged(originalMessage)
+        val acknowledgedMessageReceived = messageReceivedRepository.getMessageReceived(originalMessage)
+        Assertions.assertTrue(acknowledgedMessageReceived!!.acknowledged)
     }
 
     @Test
-    fun `Unsaved message gets flagged as not duplicate`() {
+    fun `Unsaved (new) message gets returns null`() {
         val originalMessage = createPayloadMessage()
 
-        val isDuplicate = messageReceivedRepository.isDuplicateMessage(originalMessage)
+        val messageReceived = messageReceivedRepository.getByReferenceId(Uuid.parse(originalMessage.requestId))
 
-        Assertions.assertEquals(false, isDuplicate)
+        Assertions.assertNull(messageReceived)
     }
 }

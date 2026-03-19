@@ -12,7 +12,7 @@ CREATE TABLE message_received
     service             VARCHAR(256)        NOT NULL,
     action              VARCHAR(256)        NOT NULL,
     received_at         TIMESTAMP           NOT NULL DEFAULT now(),
-    ack_sent            BOOLEAN             NOT NULL
+    acknowledged        BOOLEAN             NOT NULL
 );
 
 CREATE INDEX idx_message_received_duplicate_check
