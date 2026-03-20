@@ -61,11 +61,13 @@ class MessageReceivedRepositoryTest {
     }
 
     @Test
-    fun `Unsaved (new) message gets returns null`() {
+    fun `Get new incoming message returns null`() {
         val originalMessage = createPayloadMessage()
 
-        val messageReceived = messageReceivedRepository.getByReferenceId(Uuid.parse(originalMessage.requestId))
+        val messageReceivedByReference = messageReceivedRepository.getByReferenceId(Uuid.parse(originalMessage.requestId))
+        Assertions.assertNull(messageReceivedByReference)
 
-        Assertions.assertNull(messageReceived)
+        val messageReceivedByEbmsData = messageReceivedRepository.getMessageReceived(originalMessage)
+        Assertions.assertNull(messageReceivedByEbmsData)
     }
 }
