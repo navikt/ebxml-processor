@@ -16,8 +16,8 @@ import no.nav.emottak.utils.config.Kafka
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
-import kotlin.test.assertTrue
 import java.time.Instant
+import kotlin.test.assertTrue
 
 class ErrorHandlerTest {
 
