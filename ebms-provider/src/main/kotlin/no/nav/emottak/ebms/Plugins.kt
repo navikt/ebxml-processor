@@ -1,6 +1,5 @@
 package no.nav.emottak.ebms
 
-import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.createRouteScopedPlugin
 import io.ktor.server.application.install
@@ -9,9 +8,9 @@ import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.request.uri
 import io.ktor.util.logging.KtorSimpleLogger
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
-import kotlinx.serialization.json.Json
 import net.logstash.logback.marker.Markers
 import no.nav.emottak.constants.SMTPHeaders
+import no.nav.emottak.util.jsonLenient
 import java.time.Duration
 import java.time.Instant
 import kotlin.time.toKotlinDuration
@@ -24,13 +23,7 @@ internal fun Application.installMicrometerRegistry(appMicrometerRegistry: Promet
 
 internal fun Application.installContentNegotiation() {
     install(ContentNegotiation) {
-        json(
-            Json {
-                isLenient = true
-                ignoreUnknownKeys = true
-                prettyPrint = true
-            }
-        )
+        jsonLenient()
     }
 }
 

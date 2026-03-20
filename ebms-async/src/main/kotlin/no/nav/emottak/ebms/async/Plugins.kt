@@ -1,13 +1,12 @@
 package no.nav.emottak.ebms.async
 
-import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.auth.Authentication
 import io.ktor.server.metrics.micrometer.MicrometerMetrics
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
-import kotlinx.serialization.json.Json
+import no.nav.emottak.util.jsonLenient
 import no.nav.security.token.support.v3.tokenValidationSupport
 
 internal fun Application.installMicrometerRegistry(appMicrometerRegistry: PrometheusMeterRegistry) {
@@ -18,13 +17,7 @@ internal fun Application.installMicrometerRegistry(appMicrometerRegistry: Promet
 
 internal fun Application.installContentNegotiation() {
     install(ContentNegotiation) {
-        json(
-            Json {
-                isLenient = true
-                ignoreUnknownKeys = true
-                prettyPrint = true
-            }
-        )
+        jsonLenient()
     }
 }
 

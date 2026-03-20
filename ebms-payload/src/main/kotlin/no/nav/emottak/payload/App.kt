@@ -2,7 +2,6 @@ package no.nav.emottak.payload
 
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
-import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.auth.Authentication
@@ -14,10 +13,10 @@ import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.routing.routing
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
-import kotlinx.serialization.json.Json
 import no.nav.emottak.payload.configuration.config
 import no.nav.emottak.payload.util.EventRegistrationService
 import no.nav.emottak.payload.util.EventRegistrationServiceImpl
+import no.nav.emottak.util.jsonLenient
 import no.nav.emottak.utils.environment.getEnvVar
 import no.nav.emottak.utils.kafka.client.EventPublisherClient
 import no.nav.emottak.utils.kafka.service.EventLoggingService
@@ -61,13 +60,7 @@ fun payloadApplicationModule(
 ): Application.() -> Unit {
     return {
         install(ContentNegotiation) {
-            json(
-                Json {
-                    isLenient = true
-                    ignoreUnknownKeys = true
-                    prettyPrint = true
-                }
-            )
+            jsonLenient()
         }
         val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
         install(MicrometerMetrics) {
