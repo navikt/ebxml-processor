@@ -17,6 +17,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import kotlin.test.assertTrue
+import java.time.Instant
 
 class ErrorHandlerTest {
 
@@ -37,7 +38,7 @@ class ErrorHandlerTest {
             // so the consumer offset is initialised (after the  sendToRetry() ?) with 1 instead of 0.
             // Need to override this by explicitly setting to earliest offset
             System.setProperty("RETRY_INIT_OFFSET", "earliest")
-            // Set retry after 0 minutes, to force immediate retry
+            // Ensure immediate retry by explicitly setting nextRetryTime
             val errorHandler = FailedMessageKafkaHandler(
                 kafka = testcontainerKafkaConfig
                 // errorRetryPolicy = ErrorRetryPolicy(1.seconds, 10, listOf(0.minutes), listOf(2), maxRetries = 10)
@@ -46,14 +47,14 @@ class ErrorHandlerTest {
             val processedMessages = ArrayList<ReceiverRecord<String, ByteArray>>()
             val messageFilterService = DummyMessageFilterService(errorHandler, processedMessages)
 
-            errorHandler.sendToRetry(newRecord("test-message"), direction = Direction.IN)
+            errorHandler.sendToRetry(newRecord("test-message"), direction = Direction.IN, nextRetryTime = Instant.now())
             val record1 = getRecordFromErrorQueueAtOffset(testcontainerKafkaConfig, 0)
             assertTrue(record1?.key() == "test-message", "Melding sendt til feilhåndtering ligger på feilkø med offset 0")
 
             retryService.consumeRetryQueueIncoming(1, messageFilterService::filterMessage)
             assertTrue(processedMessages.size == 1, "Etter prosessering av feilkø er meldingen prosessert av MessageFilterService")
 
-            errorHandler.sendToRetry(newRecord("failingAtFirstRetry"), direction = Direction.IN)
+            errorHandler.sendToRetry(newRecord("failingAtFirstRetry"), direction = Direction.IN, nextRetryTime = Instant.now())
             val record2 = getRecordFromErrorQueueAtOffset(testcontainerKafkaConfig, 1)
             assertTrue(record2?.key() == "failingAtFirstRetry", "Melding som vil feile ligger på feilkø med offset 1")
 
