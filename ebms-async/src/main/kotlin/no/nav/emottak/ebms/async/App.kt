@@ -66,6 +66,7 @@ import no.nav.emottak.ebms.registerRootEndpoint
 import no.nav.emottak.ebms.scopedAuthHttpClient
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.CPAValidationService
+import no.nav.emottak.utils.environment.getEnvVar
 import no.nav.emottak.utils.environment.isProdEnv
 import no.nav.emottak.utils.kafka.client.EventPublisherClient
 import no.nav.emottak.utils.kafka.service.EventLoggingService
@@ -80,6 +81,19 @@ fun main() = SuspendApp {
     val payloadRepository = PayloadRepository(database)
 
     val config = config()
+
+    val useAsyncOutbound = getEnvVar("USE_ASYNC_OUT", "false").toBoolean()
+    if (useAsyncOutbound) {
+        log.info("Starting OUT receiver, asynchronous responses/outgoing messages will be processed.")
+    } else {
+        log.info("OUT receiver is OFF, asynchronous responses/outgoing messages will NOT be processed.")
+    }
+    val useAsyncInbound = getEnvVar("USE_ASYNC_IN", "false").toBoolean()
+    if (useAsyncInbound) {
+        log.info("Async IN is ON, inbound messages will be forwarded asynchronously.")
+    } else {
+        log.info("Async IN is OFF, inbound messages will be forwarded synchronously.")
+    }
 
     val messagePendingAckRepository = MessagePendingAckRepository(database, config.messageResendPolicy.resendInterval, config.messageResendPolicy.maxResends)
 
@@ -135,7 +149,8 @@ fun main() = SuspendApp {
         payloadMessageForwardingService = payloadMessageForwardingService,
         eventRegistrationService = eventRegistrationService,
         eventManagerService = eventManagerService,
-        retryService = retryService
+        retryService = retryService,
+        useAsyncInbound
     )
 
     val signalMessageService = SignalMessageService(
@@ -163,10 +178,12 @@ fun main() = SuspendApp {
                 config = config,
                 messageFilterService = messageFilterService
             )
-            launchEbmsOutPayloadReceiver(
-                config = config,
-                payloadMessageService = payloadMessageService
-            )
+            if (useAsyncOutbound) {
+                launchEbmsOutPayloadReceiver(
+                    config = config,
+                    payloadMessageService = payloadMessageService
+                )
+            }
             launchErrorRetryTask(
                 config = config,
                 messageFilterService = messageFilterService,

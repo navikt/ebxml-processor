@@ -83,7 +83,8 @@ class PayloadMessageServiceTest {
             payloadMessageForwardingService,
             eventRegistrationService,
             eventManagerService,
-            retryService
+            retryService,
+            true
         )
     }
 
