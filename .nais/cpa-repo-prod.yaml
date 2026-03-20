@@ -44,14 +44,16 @@ spec:
     max: 4
   resources:
     limits:
-      cpu: "1000m"
       memory: "512Mi"
     requests:
       cpu: "100m"
-      memory: "256Mi"
+      memory: "512Mi"
   ingresses:
     - "https://cpa-repo-fss.intern.nav.no"
     #- "https://cpa-repo.prod-fss-pub.nais.io"
+  filesFrom:
+    - secret: emottak-ar-klient-secret
+      mountPath: /var/run/secrets/emottak-ar-klient-secret
   vault:
     enabled: true
     paths:
@@ -95,3 +97,23 @@ spec:
       value: /secrets/oracle/creds
     - name: ORACLE_CONFIG_SECRET_PATH
       value: /secrets/oracle/config
+    - name: ADRESSE_REGISTER_URL
+      value: https://cpapi.grunndata.nhn.no/api/v1/communicationparty
+    - name: ADRESSE_REGISTER_CERTIFICATE_URL
+      value: https://cpapi.grunndata.nhn.no/api/v1/certificate
+    - name: NHN_KEYPAIR_PATH
+      value: "/var/run/secrets/emottak-ar-klient-secret/key"
+    - name: NHN_TOKEN_ENDPOINT
+      value: "https://helseid-sts.nhn.no/connect/token"
+    - name: NHN_CLIENT_KEY_ID
+      value: "placeholderKeyId"
+    - name: NHN_CLIENT_ID
+      value: "placeholderClientId"
+    - name: NHN_CLIENT_AUDIENCE
+      value: "https://helseid-sts.nhn.no"
+    - name: NHN_CLIENT_SCOPE
+      value: "nhn:communicationparty/read"
+    - name: NHN_CLIENT_GRANT_TYPE
+      value: "client_credentials"
+    - name: NHN_CLIENT_ASSERTION_TYPE
+      value: "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"

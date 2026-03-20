@@ -134,6 +134,37 @@ class MessagePendingAckRepositoryTest {
     }
 
     @Test
+    fun `Verify unregisterAckForMessage`() {
+        val requestId = Uuid.random()
+        val payload = "theContent"
+        val messageHeader = readMessageHeaderFromTestFile("signaltest/acknowledgment.xml")
+        val messageId = messageHeader.messageData.messageId
+        val emailList = listOf(EmailAddress("ab@cd.com", EndpointTypeType.RESPONSE))
+        messagePendingAckRepository.storeMessagePendingAck(requestId, messageHeader, payload.toByteArray(), emailList)
+
+        // Acknowledge the message
+        messagePendingAckRepository.registerAckForMessage(messageId)
+        var messages = messagePendingAckRepository.findMessagesToResend(Instant.now())
+        Assertions.assertEquals(0, messages.size)
+
+        // Unacknowledge the message - it should now be found for resending again
+        val updated = messagePendingAckRepository.unregisterAckForMessage(messageId)
+        Assertions.assertTrue(updated)
+
+        messages = messagePendingAckRepository.findMessagesToResend(Instant.now())
+        Assertions.assertEquals(1, messages.size)
+        Assertions.assertEquals(false, messages[0].ackReceived)
+        Assertions.assertEquals(0, messages[0].resentCount)
+    }
+
+    @Test
+    fun `Verify unregisterAckForMessage returns false for unknown message`() {
+        val unknownMessageId = Uuid.random().toString()
+        val updated = messagePendingAckRepository.unregisterAckForMessage(unknownMessageId)
+        Assertions.assertFalse(updated)
+    }
+
+    @Test
     fun `Perform entire process`() {
         val requestId = Uuid.random()
         val payload = "theContent"

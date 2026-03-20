@@ -4,12 +4,12 @@ import io.ktor.client.call.body
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
 import io.ktor.http.HttpStatusCode
-import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import no.nav.emottak.cpa.databasetest.PostgresOracleTest
 import no.nav.emottak.cpa.persistence.gammel.PARTNER_CPA
 import no.nav.emottak.cpa.util.EventRegistrationServiceFake
+import no.nav.emottak.util.jsonLenient
 import org.jetbrains.exposed.v1.jdbc.deleteAll
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
@@ -43,7 +43,8 @@ class PartnerIntegrationTest : PostgresOracleTest() {
                 postgres.dataSource,
                 postgres.dataSource,
                 oracle.dataSource,
-                eventRegistrationService
+                eventRegistrationService,
+                null
             )
         )
         testBlock()
@@ -53,7 +54,7 @@ class PartnerIntegrationTest : PostgresOracleTest() {
     fun `Partner endepunkt Good case`() = cpaRepoTestApp {
         val httpClient = createClient {
             install(ContentNegotiation) {
-                json()
+                jsonLenient()
             }
         }
         val herId = "8141253"
@@ -69,7 +70,7 @@ class PartnerIntegrationTest : PostgresOracleTest() {
     fun `Partner endepunkt returnerer 404 når partner id ikke finnes`() = cpaRepoTestApp {
         val httpClient = createClient {
             install(ContentNegotiation) {
-                json()
+                jsonLenient()
             }
         }
         val herId = "123"
@@ -85,7 +86,7 @@ class PartnerIntegrationTest : PostgresOracleTest() {
     fun `Partner endepunkt returner 400 når role, service, action mangler`() = cpaRepoTestApp {
         val httpClient = createClient {
             install(ContentNegotiation) {
-                json()
+                jsonLenient()
             }
         }
         val herId = "123"
