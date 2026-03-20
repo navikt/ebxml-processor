@@ -23,7 +23,7 @@ data class Config(
     val kafkaPayloadReceiver: KafkaPayloadReceiver,
     val kafkaPayloadProducer: KafkaPayloadProducer,
     val kafkaEbmsInPayloadProducer: KafkaEbmsInPayloadProducer,
-    val kafkaErrorQueue: KafkaErrorQueue,
+    val kafkaErrorQueueIn: KafkaErrorQueueIn,
     val kafkaErrorQueueOut: KafkaErrorQueueOut,
     val kafkaEbmsOutPayloadReceiver: KafkaEbmsOutPayloadReceiver,
     val signering: List<KeyStoreConfiguration>,

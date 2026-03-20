@@ -42,7 +42,6 @@ import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.ebms.xml.ebmsSigning
 import no.nav.emottak.message.model.AsyncPayload
-import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.EbmsMessage
 import no.nav.emottak.message.model.MessagingCharacteristicsRequest
 import no.nav.emottak.message.model.MessagingCharacteristicsResponse
@@ -96,7 +95,7 @@ fun main() = SuspendApp {
     System.setProperty("RESEND_PROCESS_INTERVAL", "1m")
     System.setProperty("RESEND_INTERVAL", "2m")
     val config = config()
-    println(" ************ config.kafkaErrorQueue.active: " + config.kafkaErrorQueue.active)
+    println(" ************ config.kafkaErrorQueue.active: " + config.kafkaErrorQueueIn.active)
     println(" ************ config.kafkaPayloadReceiver.active: " + config.kafkaPayloadReceiver.active)
     println(" ************ config.errorRetryPolicy.processInterval: " + config.errorRetryPolicyIncoming.processInterval)
     println(" ************ config.errorRetryPolicy.retriesPerInterval: " + config.errorRetryPolicyIncoming.retriesPerInterval)
@@ -190,10 +189,15 @@ fun main() = SuspendApp {
                 config = config,
                 messageFilterService = messageFilterService
             )
-            launchErrorRetryTask(
+            launchErrorRetryTaskIncoming(
                 config = config,
+                retryService = retryService,
                 messageFilterService = messageFilterService,
-                failedMessageQueue = failedMessageQueue,
+                pauseRetryErrorsTimerFlag = pauseRetryErrorsTimerFlag
+            )
+            launchErrorRetryTaskOutgoing(
+                config = config,
+                retryService = retryService,
                 pauseRetryErrorsTimerFlag = pauseRetryErrorsTimerFlag
             )
             launchMesssageResendTask(
@@ -210,7 +214,7 @@ fun main() = SuspendApp {
                         payloadRepository = payloadRepository,
                         messageFilterService = messageFilterService,
                         eventRegistrationService = eventRegistrationService,
-                        failedMessageQueue = failedMessageQueue,
+                        retryService = retryService,
                         pauseRetryErrorsTimerFlag = pauseRetryErrorsTimerFlag
                     )
                 }
@@ -267,10 +271,9 @@ class DummyMessageFilterService(
             if (f != null && r != null) {
                 if (r <= f) {
                     println("--Set to fail again, number of times to fail: $f, number of retries now: $r")
-                    payloadMessageService.retryService.failedMessageQueue.sendToRetry(
+                    payloadMessageService.retryService.failedMessageQueue.sendToRetryQueueIncoming(
                         record = record,
-                        reason = "Test message set to fail again",
-                        direction = Direction.IN
+                        reason = "Test message set to fail again"
                     )
                     return
                 }

@@ -54,7 +54,7 @@ class RetryServiceTest {
         mockkStatic(EbmsDocument::signer)
         every {
             any<EbmsDocument>().signer(any())
-        } returnsArgument(0)
+        } returnsArgument (0)
 
         initService()
     }
