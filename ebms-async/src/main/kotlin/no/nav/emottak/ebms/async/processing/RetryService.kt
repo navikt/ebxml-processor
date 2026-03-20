@@ -21,6 +21,7 @@ import no.nav.emottak.util.marker
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import java.time.Instant
 import java.time.LocalDateTime
+import kotlin.time.toJavaDuration
 
 class RetryService(
     val cpaValidationService: CPAValidationService,
@@ -186,7 +187,7 @@ class RetryService(
             Direction.OUT -> config().errorRetryPolicyOutgoing
         }
         val nextInterval = policy.nextInterval(record.retryCount())
-        return LocalDateTime.now().plusMinutes(nextInterval.inWholeMinutes).toString()
+        return LocalDateTime.now().plus(nextInterval.toJavaDuration()).toString()
     }
 
     internal fun decideRetry(ttl: Instant?, retriedAlready: Int, maxRetries: Int): Pair<RetryDecision, String> {
