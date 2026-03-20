@@ -103,6 +103,10 @@ spec:
       value: http://smtp-transport
     - name: EVENT_MANAGER_URL
       value: http://emottak-event-manager
+    - name: USE_ASYNC_IN
+      value: "true"
+    - name: USE_ASYNC_OUT
+      value: "true"
   envFrom:
     - secret: ebms-keystore-pwd-2025
   filesFrom:

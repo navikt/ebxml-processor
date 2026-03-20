@@ -23,7 +23,8 @@ class PayloadMessageService(
     val payloadMessageForwardingService: PayloadMessageForwardingService,
     val eventRegistrationService: EventRegistrationService,
     val eventManagerService: EventManagerService,
-    val retryService: RetryService
+    val retryService: RetryService,
+    val useAsyncInbound: Boolean
 ) {
 
     suspend fun process(
@@ -74,8 +75,13 @@ class PayloadMessageService(
         val validationResult = cpaValidationService.validateIncomingMessage(ebmsPayloadMessage)
         val (processedPayload, direction) = processingService.processAsync(ebmsPayloadMessage, validationResult.payloadProcessing)
         when (direction) {
-            Direction.IN -> payloadMessageForwardingService.forwardMessageWithSyncResponse(processedPayload)
-//            Direction.IN -> payloadMessageForwardingService.forwardMessageWithAsyncResponse(processedPayload, validationResult.partnerId)
+            Direction.IN -> {
+                if (useAsyncInbound) {
+                    payloadMessageForwardingService.forwardMessageWithAsyncResponse(processedPayload, validationResult.partnerId)
+                } else {
+                    payloadMessageForwardingService.forwardMessageWithSyncResponse(processedPayload)
+                }
+            }
             Direction.OUT -> payloadMessageForwardingService.returnMessageResponse(processedPayload)
         }
     }
