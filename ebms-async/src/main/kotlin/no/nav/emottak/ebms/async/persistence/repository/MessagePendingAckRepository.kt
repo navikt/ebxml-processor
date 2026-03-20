@@ -107,6 +107,7 @@ class MessagePendingAckRepository(
             MessagePendingAckTable
                 .update(where = { MessagePendingAckTable.messageId.eq(messageIdAsUuid) }) {
                     it[ackReceived] = false
+                    it[resentCount] = 0
                 } > 0
         }
     }
