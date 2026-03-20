@@ -7,6 +7,8 @@ import arrow.continuations.SuspendApp
 import arrow.continuations.ktor.server
 import arrow.core.raise.result
 import arrow.fx.coroutines.resourceScope
+import io.github.nomisRev.kafka.receiver.ReceiverRecord
+import io.ktor.http.ContentType
 import io.ktor.server.application.Application
 import io.ktor.server.auth.authenticate
 import io.ktor.server.netty.Netty
@@ -18,6 +20,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
 import no.nav.emottak.ebms.AZURE_AD_AUTH
 import no.nav.emottak.ebms.CpaRepoClient
 import no.nav.emottak.ebms.EBMS_PAYLOAD_SCOPE
@@ -58,6 +61,9 @@ import no.nav.emottak.ebms.registerRootEndpoint
 import no.nav.emottak.ebms.scopedAuthHttpClient
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.CPAValidationService
+import no.nav.emottak.message.model.Payload
+import no.nav.emottak.message.model.PayloadMessage
+import no.nav.emottak.utils.common.model.SendInResponse
 import no.nav.emottak.utils.environment.isProdEnv
 import no.nav.emottak.utils.kafka.client.EventPublisherClient
 import no.nav.emottak.utils.kafka.service.EventLoggingService
@@ -114,7 +120,7 @@ fun main() = SuspendApp {
     val retryService = RetryService(
         cpaValidationService = cpaValidationService,
         eventRegistrationService = eventRegistrationService,
-        failedMessageQueue = failedMessageQueue,
+        failedMessageKafkaHandler = failedMessageQueue,
         signalSender = { ebmsDocument, signalResponderEmails ->
             sendSignalResponseToTopic(ebmsSignalProducer, eventRegistrationService, ebmsDocument, signalResponderEmails)
         }
@@ -159,10 +165,16 @@ fun main() = SuspendApp {
                 config = config,
                 payloadMessageService = payloadMessageService
             )
-            launchErrorRetryTask(
+            launchErrorRetryTaskIncoming(
                 config = config,
+                retryService = retryService,
                 messageFilterService = messageFilterService,
-                failedMessageQueue = failedMessageQueue,
+                pauseRetryErrorsTimerFlag = pauseRetryErrorsTimerFlag
+            )
+            launchErrorRetryTaskOutgoing(
+                config = config,
+                retryService = retryService,
+                payloadMessageService = payloadMessageService,
                 pauseRetryErrorsTimerFlag = pauseRetryErrorsTimerFlag
             )
             launchMesssageResendTask(
@@ -179,8 +191,10 @@ fun main() = SuspendApp {
                         payloadRepository = payloadRepository,
                         messageFilterService = messageFilterService,
                         eventRegistrationService = eventRegistrationService,
-                        failedMessageQueue = failedMessageQueue,
+                        retryService = retryService,
+                        payloadMessageService = payloadMessageService,
                         pauseRetryErrorsTimerFlag = pauseRetryErrorsTimerFlag,
+                        failedMessageQueue = failedMessageQueue,
                         messagePendingAckRepository = messagePendingAckRepository
                     )
                 }
@@ -245,34 +259,90 @@ fun CoroutineScope.launchSignalReceiver(
     }
 }
 
-fun CoroutineScope.launchErrorRetryTask(
+/**
+ * Builds the OUT-direction retry processor lambda.
+ * Decodes the stored SendInResponse from the record and delegates to
+ * [PayloadMessageService.processOutboundResponse], mirroring the live receive path in EbmsOutPayloadReceiver.
+ */
+fun makeOutRetryProcessor(
+    payloadMessageService: PayloadMessageService
+): suspend (ReceiverRecord<String, ByteArray>) -> Unit = { record ->
+    val sendInResponse = Json.decodeFromString<SendInResponse>(record.value().decodeToString())
+    val cpaId = record.headers().lastHeader("cpaId")?.let { String(it.value()) } ?: ""
+    val refToMessageId = record.headers().lastHeader("refToMessageId")?.let { String(it.value()) }
+    val payloadMessage = PayloadMessage(
+        requestId = sendInResponse.requestId,
+        messageId = sendInResponse.messageId,
+        conversationId = sendInResponse.conversationId,
+        cpaId = cpaId,
+        addressing = sendInResponse.addressing,
+        payload = Payload(sendInResponse.payload, ContentType.Application.Xml.toString()),
+        refToMessageId = refToMessageId,
+        duplicateElimination = false,
+        ackRequested = true
+    )
+    payloadMessageService.processOutboundResponse(record, payloadMessage)
+}
+
+fun CoroutineScope.launchErrorRetryTaskIncoming(
     config: Config,
+    retryService: RetryService,
     messageFilterService: MessageFilterService,
-    failedMessageQueue: FailedMessageKafkaHandler,
     pauseRetryErrorsTimerFlag: PauseRetryErrorsTimerFlag
 ) {
     if (!config.kafkaErrorQueue.active) return
 
     timer(
-        name = "Retry Errors Timer",
+        name = "Retry Errors Timer Incoming",
         initialDelay = 5000L,
         period = config.errorRetryPolicyIncoming.processInterval.inWholeMilliseconds,
         daemon = true
     ) {
         launch(Dispatchers.IO) {
-            log.info("=== RetryErrorsTask starting...")
+            log.info("=== RetryErrorsTaskIncoming starting...")
             try {
                 if (pauseRetryErrorsTimerFlag.paused) {
                     log.info("Retry task is paused.")
                     return@launch
                 }
-
-                failedMessageQueue.consumeRetryQueue(
-                    messageFilterService,
-                    config.errorRetryPolicyIncoming.maxMessagesToProcess
+                retryService.consumeRetryQueueIncoming(
+                    limit = config.errorRetryPolicyIncoming.maxMessagesToProcess,
+                    processor = messageFilterService::filterMessage
                 )
             } catch (e: Exception) {
-                log.error("RetryErrorsTask failed", e)
+                log.error("RetryErrorsTaskIncoming failed", e)
+            }
+        }
+    }
+}
+
+fun CoroutineScope.launchErrorRetryTaskOutgoing(
+    config: Config,
+    retryService: RetryService,
+    payloadMessageService: PayloadMessageService,
+    pauseRetryErrorsTimerFlag: PauseRetryErrorsTimerFlag
+) {
+    if (!config.kafkaErrorQueueOut.active) return
+
+    timer(
+        name = "Retry Errors Timer Outgoing",
+        initialDelay = 5000L,
+        period = config.errorRetryPolicyOutgoing.processInterval.inWholeMilliseconds,
+        daemon = true
+    ) {
+        launch(Dispatchers.IO) {
+            log.info("=== RetryErrorsTaskOutgoing starting...")
+            try {
+                if (pauseRetryErrorsTimerFlag.paused) {
+                    log.info("Retry task is paused.")
+                    return@launch
+                }
+                retryService.consumeRetryQueueOutgoing(
+                    limit = config.errorRetryPolicyOutgoing.maxMessagesToProcess,
+                    processor = makeOutRetryProcessor(payloadMessageService)
+                )
+            } catch (e: Exception) {
+                log.error("RetryErrorsTaskOutgoing failed", e)
             }
         }
     }
@@ -309,8 +379,10 @@ fun Application.ebmsProviderModule(
     payloadRepository: PayloadRepository,
     messageFilterService: MessageFilterService,
     eventRegistrationService: EventRegistrationService,
-    failedMessageQueue: FailedMessageKafkaHandler,
+    retryService: RetryService,
+    payloadMessageService: PayloadMessageService,
     pauseRetryErrorsTimerFlag: PauseRetryErrorsTimerFlag,
+    failedMessageQueue: FailedMessageKafkaHandler,
     messagePendingAckRepository: MessagePendingAckRepository
 ) {
     val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
@@ -325,10 +397,12 @@ fun Application.ebmsProviderModule(
         registerPrometheusEndpoint(appMicrometerRegistry)
         registerNavCheckStatus()
         if (!isProdEnv()) {
-            simulateError(failedMessageQueue)
+            forceRetryMessageIn(retryService)
+            forceRetryMessageOut(retryService)
         }
-        retryErrors(messageFilterService, failedMessageQueue)
-        rerun(messageFilterService, failedMessageQueue)
+        retryErrorsIncoming(retryService, messageFilterService)
+        retryErrorsOutgoing(retryService, payloadMessageService)
+        rerun(retryService, messageFilterService)
         pauseRetries(pauseRetryErrorsTimerFlag)
         resumeRetries(pauseRetryErrorsTimerFlag)
         unacknowledge(messagePendingAckRepository)

@@ -175,7 +175,7 @@ class RetryServiceTest {
         coEvery { spyService.incomingRetryEval(any(), any(), any()) } just Runs
 
         spyService.sendToRetryIfShouldBeRetried(receiverRecord, payload, EbmsException("fail"), "reason", Direction.IN)
-        coVerify(exactly = 1) { failedMessageQueue.sendToRetryQueueIncoming(any(), any()) }
+        coVerify(exactly = 1) { failedMessageQueue.sendToRetryQueueIncoming(any(), any(), any()) }
     }
 
     private fun createPayloadMessageWithTtl(ttl: Instant?) = PayloadMessage(

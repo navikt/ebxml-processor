@@ -147,7 +147,7 @@ fun main() = SuspendApp {
     val retryService = RetryService(
         cpaValidationService = cpaValidationService,
         eventRegistrationService = eventRegistrationService,
-        failedMessageQueue = failedMessageQueue,
+        failedMessageKafkaHandler = failedMessageQueue,
         signalSender = { ebmsDocument, signalResponderEmails ->
             sendSignalResponseToTopic(ebmsSignalProducer, eventRegistrationService, ebmsDocument, signalResponderEmails)
         }
@@ -190,10 +190,10 @@ fun main() = SuspendApp {
                 config = config,
                 messageFilterService = messageFilterService
             )
-            launchErrorRetryTask(
+            launchErrorRetryTaskIncoming(
                 config = config,
+                retryService = retryService,
                 messageFilterService = messageFilterService,
-                failedMessageQueue = failedMessageQueue,
                 pauseRetryErrorsTimerFlag = pauseRetryErrorsTimerFlag
             )
             launchMesssageResendTask(
@@ -210,8 +210,10 @@ fun main() = SuspendApp {
                         payloadRepository = payloadRepository,
                         messageFilterService = messageFilterService,
                         eventRegistrationService = eventRegistrationService,
-                        failedMessageQueue = failedMessageQueue,
+                        retryService = retryService,
                         pauseRetryErrorsTimerFlag = pauseRetryErrorsTimerFlag,
+                        payloadMessageService = payloadMessageService,
+                        failedMessageQueue = failedMessageQueue,
                         messagePendingAckRepository = messagePendingAckRepository
                     )
                 }
@@ -268,7 +270,7 @@ class DummyMessageFilterService(
             if (f != null && r != null) {
                 if (r <= f) {
                     println("--Set to fail again, number of times to fail: $f, number of retries now: $r")
-                    payloadMessageService.retryService.failedMessageQueue.sendToRetry(
+                    payloadMessageService.retryService.failedMessageKafkaHandler.sendToRetry(
                         record = record,
                         reason = "Test message set to fail again",
                         direction = Direction.IN
