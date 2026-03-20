@@ -422,7 +422,7 @@ fun Routing.retryErrorsIncoming(
     retryService: RetryService,
     messageFilterService: MessageFilterService
 ): Route =
-    get("/api/retryIn/{$RETRY_LIMIT}") {
+    get("/api/retry/incoming/limit/{$RETRY_LIMIT}") {
         if (!config().kafkaErrorQueue.active) {
             call.respondText(status = HttpStatusCode.ServiceUnavailable, text = "Incoming retry not active.")
             return@get
@@ -441,7 +441,7 @@ fun Routing.retryErrorsOutgoing(
     retryService: RetryService,
     payloadMessageService: PayloadMessageService
 ): Route =
-    get("/api/retryOut/{$RETRY_LIMIT}") {
+    get("/api/retry/outgoing/limit/{$RETRY_LIMIT}") {
         if (!config().kafkaErrorQueueOut.active) {
             call.respondText(status = HttpStatusCode.ServiceUnavailable, text = "Outgoing retry not active.")
             return@get
@@ -460,7 +460,7 @@ fun Routing.rerun(
     retryService: RetryService,
     messageFilterService: MessageFilterService
 ): Route =
-    get("/api/rerun/{$KAFKA_OFFSET}") {
+    get("/api/retry/incoming/rerun/offset/{$KAFKA_OFFSET}") {
         if (!config().kafkaErrorQueue.active) {
             call.respondText(status = HttpStatusCode.ServiceUnavailable, text = "Retry queue not active.")
             return@get
@@ -485,7 +485,7 @@ const val KAFKA_OFFSET = "offset"
 fun Route.forceRetryMessageIn(
     retryService: RetryService
 ): Route =
-    get("/api/forceRetryIn/{$KAFKA_OFFSET}") {
+    get("/api/retry/incoming/force/offset/{$KAFKA_OFFSET}") {
         if (!config().kafkaErrorQueue.active) {
             call.respondText(status = HttpStatusCode.ServiceUnavailable, text = "Incoming retry queue not active.")
             return@get
@@ -510,7 +510,7 @@ fun Route.forceRetryMessageIn(
 fun Route.forceRetryMessageOut(
     retryService: RetryService
 ): Route =
-    get("/api/forceRetryOut/{$KAFKA_OFFSET}") {
+    get("/api/retry/outgoing/force/offset/{$KAFKA_OFFSET}") {
         if (!config().kafkaErrorQueueOut.active) {
             call.respondText(status = HttpStatusCode.ServiceUnavailable, text = "Outgoing retry queue not active.")
             return@get
