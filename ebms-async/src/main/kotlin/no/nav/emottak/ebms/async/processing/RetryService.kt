@@ -105,11 +105,7 @@ class RetryService(
         processor: suspend (ReceiverRecord<String, ByteArray>) -> Unit
     ) {
         val records = failedMessageKafkaHandler.pollIncomingRetryRecords(limit)
-        records.forEachIndexed { index, record ->
-            if (index >= limit) {
-                log.info("Incoming retry queue limit reached: $limit")
-                return@forEachIndexed
-            }
+        records.forEach { record ->
             processRetryRecord(record, Direction.IN, processor)
             failedMessageKafkaHandler.commitOffset(record, Direction.IN)
         }
@@ -129,11 +125,7 @@ class RetryService(
     ) {
         if (!config().kafkaErrorQueueOut.active) return
         val records = failedMessageKafkaHandler.pollOutgoingRetryRecords(limit)
-        records.forEachIndexed { index, record ->
-            if (index >= limit) {
-                log.info("Outgoing retry queue limit reached: $limit")
-                return@forEachIndexed
-            }
+        records.forEach { record ->
             processRetryRecord(record, Direction.OUT, processor)
             failedMessageKafkaHandler.commitOffset(record, Direction.OUT)
         }
