@@ -333,6 +333,12 @@ fun getRecordsToConsume(
         records = pollerConsumer.poll(Duration.ofMillis(200))
         allRecords.addAll(records)
     }
+    if (allRecords.size > limit && limit > 0) {
+        val limitRecord = allRecords[limit - 1]
+        val tp = TopicPartition(limitRecord.topic(), limitRecord.partition())
+        pollerConsumer.seek(tp, limitRecord.offset() + 1)
+        return allRecords.take(limit)
+    }
     return allRecords
 }
 
