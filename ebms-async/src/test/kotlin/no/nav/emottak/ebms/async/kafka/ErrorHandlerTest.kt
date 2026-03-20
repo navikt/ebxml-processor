@@ -47,14 +47,14 @@ class ErrorHandlerTest {
             val processedMessages = ArrayList<ReceiverRecord<String, ByteArray>>()
             val messageFilterService = DummyMessageFilterService(errorHandler, processedMessages)
 
-            errorHandler.sendToRetry(newRecord("test-message"), direction = Direction.IN, nextRetryTime = Instant.now())
+            errorHandler.sendToRetry(newRecord("test-message"), direction = Direction.IN, nextRetryTime = Instant.now().toString())
             val record1 = getRecordFromErrorQueueAtOffset(testcontainerKafkaConfig, 0)
             assertTrue(record1?.key() == "test-message", "Melding sendt til feilhåndtering ligger på feilkø med offset 0")
 
             retryService.consumeRetryQueueIncoming(1, messageFilterService::filterMessage)
             assertTrue(processedMessages.size == 1, "Etter prosessering av feilkø er meldingen prosessert av MessageFilterService")
 
-            errorHandler.sendToRetry(newRecord("failingAtFirstRetry"), direction = Direction.IN, nextRetryTime = Instant.now())
+            errorHandler.sendToRetry(newRecord("failingAtFirstRetry"), direction = Direction.IN, nextRetryTime = Instant.now().toString())
             val record2 = getRecordFromErrorQueueAtOffset(testcontainerKafkaConfig, 1)
             assertTrue(record2?.key() == "failingAtFirstRetry", "Melding som vil feile ligger på feilkø med offset 1")
 
