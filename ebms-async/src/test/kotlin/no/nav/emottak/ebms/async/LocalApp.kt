@@ -210,7 +210,8 @@ fun main() = SuspendApp {
                         messageFilterService = messageFilterService,
                         eventRegistrationService = eventRegistrationService,
                         failedMessageQueue = failedMessageQueue,
-                        pauseRetryErrorsTimerFlag = pauseRetryErrorsTimerFlag
+                        pauseRetryErrorsTimerFlag = pauseRetryErrorsTimerFlag,
+                        messagePendingAckRepository = messagePendingAckRepository
                     )
                 }
             ).also { it.engineConfig.maxChunkSize = 100000 }
