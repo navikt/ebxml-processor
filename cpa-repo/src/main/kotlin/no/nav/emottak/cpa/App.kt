@@ -87,7 +87,7 @@ fun cpaApplicationModule(
         routing {
             if (oracleDb != null) {
                 partnerId(PartnerRepository(oracleDb), cpaRepository)
-                validateCpa(cpaRepository, PartnerRepository(oracleDb), eventRegistrationService)
+                validateCpa(cpaRepository, PartnerRepository(oracleDb), eventRegistrationService, adresseregisterClient)
             }
             getCPA(cpaRepository)
             getTimeStampsDeprecated()

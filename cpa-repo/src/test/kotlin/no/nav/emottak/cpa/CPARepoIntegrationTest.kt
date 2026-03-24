@@ -40,9 +40,7 @@ import no.nav.emottak.cpa.model.CommunicationParty
 import no.nav.emottak.cpa.persistence.CPARepository
 import no.nav.emottak.cpa.persistence.gammel.PartnerRepository
 import no.nav.emottak.cpa.util.EventRegistrationServiceFake
-import no.nav.emottak.message.ebxml.messageHeader
 import no.nav.emottak.message.model.Direction.IN
-import no.nav.emottak.message.model.EbmsDocument
 import no.nav.emottak.message.model.EmailAddress
 import no.nav.emottak.message.model.ErrorCode
 import no.nav.emottak.message.model.MessagingCharacteristicsRequest
@@ -53,7 +51,6 @@ import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.message.model.SignatureDetailsRequest
 import no.nav.emottak.message.model.ValidationRequest
 import no.nav.emottak.message.model.ValidationResult
-import no.nav.emottak.message.xml.getDocumentBuilder
 import no.nav.emottak.message.xml.unmarshal
 import no.nav.emottak.util.OSLO_ZONE
 import no.nav.emottak.utils.common.model.Addressing
@@ -62,7 +59,6 @@ import no.nav.emottak.utils.common.model.PartyId
 import no.nav.emottak.utils.environment.getEnvVar
 import no.nav.security.mock.oauth2.MockOAuth2Server
 import org.apache.commons.lang3.StringUtils
-import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
@@ -110,22 +106,29 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
 
     private fun <T> validateCpaMockTestApp(testBlock: suspend ApplicationTestBuilder.() -> T) = testApplication {
         clearAllMocks()
+
+        val httpClient = createClient {
+            install(ContentNegotiation) {
+                json()
+            }
+        }
         cpaRepositoryMock = mockk()
         partnerRepositoryMock = mockk(relaxed = true)
-        application(validateCpaApplicationModule(cpaRepositoryMock, partnerRepositoryMock))
+        application(validateCpaApplicationModule(cpaRepositoryMock, partnerRepositoryMock, httpClient))
         testBlock()
     }
 
     private fun validateCpaApplicationModule(
         cpaRepository: CPARepository,
-        partnerRepository: PartnerRepository
+        partnerRepository: PartnerRepository,
+        httpdClient: HttpClient
     ): Application.() -> Unit {
         return {
             install(io.ktor.server.plugins.contentnegotiation.ContentNegotiation) {
                 json()
             }
             routing {
-                validateCpa(cpaRepository, partnerRepository, eventRegistrationService)
+                validateCpa(cpaRepository, partnerRepository, eventRegistrationService, httpdClient)
             }
         }
     }
@@ -173,7 +176,8 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
                 Party(listOf(PartyId("HER", "8090595")), "Utleverer"),
                 "HarBorgerEgenandelFritak",
                 "EgenandelForesporsel"
-            )
+            ),
+            "nav:qass:31162"
         )
 
         val validationResult = response.body<ValidationResult>()
@@ -182,6 +186,57 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         assertEquals(1, validationResult.signalEmailAddress.size)
         assertEquals("mailto://mottak-qass@test-es.nav.no", validationResult.signalEmailAddress.first().emailAddress)
         assertTrue(validationResult.receiverEmailAddress.isEmpty()) // Channel-protokoll er HTTP
+    }
+
+    @Test
+    fun `Validation of certificate given by AR when cpa does not exist`() = cpaRepoTestApp {
+        val httpClient = createClient {
+            install(ContentNegotiation) {
+                json()
+            }
+        }
+        val response = runValidateCpa(
+            httpClient,
+            Addressing(
+                Party(listOf(PartyId("HER", "79768")), "Frikortregister"),
+                Party(listOf(PartyId("HER", "8141253")), "Utleverer"),
+                "HarBorgerEgenandelFritak",
+                "EgenandelForesporsel"
+            ),
+            "no:such:cpa"
+        )
+
+        val validationResult = response.body<ValidationResult>()
+        assertNotNull(validationResult)
+
+        assertEquals(true, validationResult.valid())
+    }
+
+    @Test
+    fun `Validation of edi address given by AR when cpa does not exist`() = cpaRepoTestApp {
+        val httpClient = createClient {
+            install(ContentNegotiation) {
+                json()
+            }
+        }
+        val response = runValidateCpa(
+            httpClient,
+            Addressing(
+                Party(listOf(PartyId("HER", "79768")), "Frikortregister"),
+                Party(listOf(PartyId("HER", "8141253")), "Utleverer"),
+                "HarBorgerEgenandelFritak",
+                "EgenandelForesporsel"
+            ),
+            "no:such:cpa"
+        )
+
+        val validationResult = response.body<ValidationResult>()
+
+        assertNotNull(validationResult)
+        // assertTrue(validationResult.receiverEmailAddress.isEmpty()) // Channel-protokoll er HTTP
+        assertEquals(1, validationResult.receiverEmailAddress.size)
+        assertEquals("mailto://mottak-qass@test-es.nav.no", "mailto://" + validationResult.receiverEmailAddress.first().emailAddress)
+        assertEquals("mailto://meldingstjener-api@testedi.nhn.no", "mailto://" + validationResult.signalEmailAddress.first().emailAddress)
     }
 
     @Test
@@ -198,7 +253,8 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
                 Party(listOf(PartyId("HER", "79768")), "Frikortregister"),
                 "HarBorgerEgenandelFritak",
                 "EgenandelForesporsel"
-            )
+            ),
+            "nav:qass:31162"
         )
 
         val validationResult = response.body<ValidationResult>()
@@ -228,7 +284,8 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
                 Party(listOf(PartyId("HER", "8090595")), "Utleverer"),
                 "OppgjorsKontroll",
                 "Oppgjorskrav"
-            )
+            ),
+            "nav:qass:31162"
         )
 
         val validationResult = response.body<ValidationResult>()
@@ -563,7 +620,8 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
                 Party(listOf(PartyId("HER", "8090595")), "Utleverer"),
                 "OppgjorsKontroll",
                 "Oppgjorskrav"
-            )
+            ),
+            "nav:qass:31162"
         )
 
         lastUsedMap = getLastUsedMap(httpClient)
@@ -602,7 +660,8 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
                 Party(listOf(PartyId("HER", "8090595")), "Utleverer"),
                 "OppgjorsKontroll",
                 "Oppgjorskrav"
-            )
+            ),
+            "nav:qass:31162"
         )
 
         // Verify that lastUsed is set
@@ -671,9 +730,9 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
             "Oppgjorskrav"
         )
 
-        runValidateCpa(httpClient, addressing)
-        runValidateCpa(httpClient, addressing)
-        runValidateCpa(httpClient, addressing)
+        runValidateCpa(httpClient, addressing, "nav:qass:31162")
+        runValidateCpa(httpClient, addressing, "nav:qass:31162")
+        runValidateCpa(httpClient, addressing, "nav:qass:31162")
 
         coVerify(exactly = 3) { cpaRepositoryMock.findCpaAndLastUsed(cpaId) }
         coVerify(exactly = 1) { cpaRepositoryMock.updateCpaLastUsed(cpaId) }
@@ -794,6 +853,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         }
     }
 
+    // TODO: Skal sjekkes!!!!!
     @Test
     fun `messagingCharacteristics endpoint should return NotFound if CPA is not found`() = cpaRepoTestApp { // Parviz Use partner information from AR
         val httpClient = createClient {
@@ -805,7 +865,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         val messagingCharacteristicsRequest = MessagingCharacteristicsRequest(
             requestId = Uuid.random().toString(),
             cpaId = "no:such:cpa",
-            partyIds = listOf(PartyId("HER", "8141253000000")),
+            partyIds = listOf(PartyId("HER", "8141253")),
             role = "Behandler",
             service = "BehandlerKrav",
             action = "OppgjorsMelding"
@@ -816,13 +876,13 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
             contentType(Json)
         }
 
-        assertEquals(HttpStatusCode.NotFound, response.status)
+        assertEquals(HttpStatusCode.OK, response.status)
     }
 
     @Test
-    fun `Hent sertifikat for signatursjekk when Cpa dosn't exist`() = cpaRepoTestApp { // Parviz: Check with AR if cpa doesn't exist
+    fun `Validate signature sertifikat from AR when Cpa does not exist`() = cpaRepoTestApp { // Parviz: Check with AR if cpa doesn't exist
         val request = SignatureDetailsRequest(
-            cpaId = "no:such:cpa", // ""nav:qass:35065", // TODO endres hvis/når respons fra getCpa ikke lenger er hardkodet
+            cpaId = "no:such:cpa", // TODO endres hvis/når respons fra getCpa ikke lenger er hardkodet
             partyType = "HER",
             partyId = "8141253",
             role = "Behandler",
@@ -851,68 +911,12 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         }
     }
 
-    private val attachments = listOf(
-        Payload(
-            bytes = "Test attachment content".toByteArray(),
-            contentType = "text/plain",
-            contentId = "attachment1"
-        )
-    )
-
-    @Test
-    fun `Hent cpaid from envelope signatursjekk when Cpa dosn't exist`() = cpaRepoTestApp { // TODO: Cpaid in envelope not found in cpa-repo
-        val httpClient = createClient {
-            install(ContentNegotiation) {
-                json(
-                    Json {
-                        explicitNulls = false
-                        ignoreUnknownKeys = true
-                    }
-                )
-            }
-        }
-        val document = getDocumentBuilder().parse(java.io.File("src/test/resources/oppgjorsmelding/2023_08_29T12_56_58_328.xml"))
-        val request = EbmsDocument(Uuid.random().toString(), document, attachments)
-        log.info("${request.messageHeader().from.partyId.firstOrNull()?.value}")
-        log.info("${request.messageHeader().cpaId}")
-
-        Assertions.assertEquals(request.messageHeader().cpaId, "nav:qass:35065")
-    }
-//    @Test
-//    fun `ValidationRequest endpoint should return NotFound if CPA is not found`() = cpaRepoTestApp {
-//        val httpClient = createClient {
-//            install(ContentNegotiation) {
-//                json()
-//            }
-//        }
-//
-//        val validationRequest = ValidationRequest(
-//            Direction.IN,
-//        "mesageid",
-//        "conversationid",
-//        "no:such:cpa",
-//            Addressing(
-//                Party(listOf(PartyId("HER", "79768")), "KontrollUtbetaler"),
-//                Party(listOf(PartyId("HER", "8090595")), "Utleverer"),
-//                "OppgjorsKontroll",
-//                "Oppgjorskrav"
-//            )
-//        )
-//
-//        val response = httpClient.post("/cpa/validationRequest") {
-//            setBody(validationRequest)
-//            contentType(Json)
-//        }
-//
-//        assertEquals(HttpStatusCode.NotFound, response.status)
-//    }
-
     private fun loadTestCPA(cpaName: String): CollaborationProtocolAgreement {
         val testCpaString = String(this::class.java.classLoader.getResource("cpa/$cpaName").readBytes())
         return xmlMarshaller.unmarshal(testCpaString, CollaborationProtocolAgreement::class.java)
     }
 
-    private suspend fun runValidateCpa(httpClient: HttpClient, addressing: Addressing, cpaId: String = "nav:qass:31162"): HttpResponse {
+    private suspend fun runValidateCpa(httpClient: HttpClient, addressing: Addressing, cpaId: String): HttpResponse {
         val validationRequest = ValidationRequest(
             IN,
             "e17eb03e-9e43-43fb-874c-1fde9a28c308",
@@ -927,6 +931,14 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         assertEquals(HttpStatusCode.OK, validateResponse.status, "Expected OK status for validate")
         return validateResponse
     }
+
+    private val attachments = listOf(
+        Payload(
+            bytes = "Test attachment content".toByteArray(),
+            contentType = "text/plain",
+            contentId = "attachment1"
+        )
+    )
 
     private suspend fun postCpaRequest(
         httpClient: HttpClient,

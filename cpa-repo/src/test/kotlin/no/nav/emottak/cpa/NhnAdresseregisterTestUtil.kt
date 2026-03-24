@@ -25,13 +25,13 @@ fun getFakeNhnAdresseregisterEngine(): MockEngine =
             }
             // Test nr 2 Nav
             request.url.encodedPath.contains("/api/v1/communicationparty/79768") -> {
-                File("src/test/resources/adresseregister/Speare_CommunicationParty.json").readText()
+                File("src/test/resources/adresseregister/NavCommunicationParty.json").readText()
             }
             request.url.encodedPath.contains("/api/v1/certificate/79768/signing") -> {
-                File("src/test/resources/adresseregister/SPEAREAS_qass_35065_SignCert.json").readText()
+                File("src/test/resources/adresseregister/NavSignCert.json").readText()
             }
             request.url.encodedPath.contains("/api/v1/certificate/79768/encryption") -> {
-                File("src/test/resources/adresseregister/SPEAREAS_qass_35065_EncryptCert.json").readText()
+                File("src/test/resources/adresseregister/NavEncryptCert.json").readText()
                 // Json.encodeToString(signCertificate)
             }
             else -> """{"error": "not found"}"""
