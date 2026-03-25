@@ -1,17 +1,9 @@
 plugins {
-    kotlin("jvm")
-    application
-    id("io.ktor.plugin")
-    kotlin("plugin.serialization") apply true
-    id("org.jlleitschuh.gradle.ktlint") version "11.6.1"
+    id("ktor-application-conventions")
 }
 
 application {
     mainClass.set("no.nav.emottak.ebms.async.AppKt")
-}
-
-kotlin {
-    jvmToolchain(21)
 }
 
 dependencies {
@@ -65,32 +57,6 @@ dependencies {
     testImplementation(testLibs.testcontainers.postgresql)
     testImplementation(testLibs.testcontainers.kafka)
     testRuntimeOnly(testLibs.junit.jupiter.engine)
-}
-
-tasks {
-    shadowJar {
-        archiveFileName.set("app.jar")
-        isZip64 = true
-    }
-    test {
-        useJUnitPlatform()
-        testLogging {
-            events("passed", "skipped", "failed")
-            showExceptions = true
-            showCauses = true
-            showStackTraces = true
-            exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
-        }
-    }
-    ktlintFormat {
-        this.enabled = true
-    }
-    ktlintCheck {
-        dependsOn("ktlintFormat")
-    }
-    build {
-        dependsOn("ktlintCheck")
-    }
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().all {
