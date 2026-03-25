@@ -10,32 +10,12 @@ plugins {
     id("org.jlleitschuh.gradle.ktlint") version "11.6.1"
 }
 
-tasks {
-    register<Wrapper>("wrapper") {
-        gradleVersion = "8.1.1"
-    }
-    shadowJar {
-        archiveFileName.set("app.jar")
-    }
-    test {
-        useJUnitPlatform()
-        testLogging {
-            events("passed", "skipped", "failed")
-            showExceptions = true
-            showCauses = true
-            showStackTraces = true
-            exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
-        }
-    }
-    ktlintFormat {
-        this.enabled = true
-    }
-    ktlintCheck {
-        dependsOn("ktlintFormat")
-    }
-    build {
-        dependsOn("ktlintCheck")
-    }
+application {
+    mainClass.set("no.nav.emottak.payload.AppKt")
+}
+
+kotlin {
+    jvmToolchain(21)
 }
 
 dependencies {
@@ -64,6 +44,7 @@ dependencies {
     implementation("net.sf.saxon:Saxon-HE:12.7")
     implementation(libs.jackson.module.kotlin)
     implementation(libs.jackson.dataformat.yaml)
+    implementation(kotlin("stdlib-jdk8"))
     runtimeOnly("net.java.dev.jna:jna:5.12.1")
 
     testImplementation(testLibs.junit.jupiter.api)
@@ -71,13 +52,29 @@ dependencies {
     testImplementation(testLibs.mock.oauth2.server)
     testImplementation(testLibs.mockk.jvm)
     testRuntimeOnly(testLibs.junit.jupiter.engine)
-    implementation(kotlin("stdlib-jdk8"))
 }
 
-application {
-    mainClass.set("no.nav.emottak.payload.AppKt")
-}
-
-kotlin {
-    jvmToolchain(21)
+tasks {
+    shadowJar {
+        archiveFileName.set("app.jar")
+    }
+    test {
+        useJUnitPlatform()
+        testLogging {
+            events("passed", "skipped", "failed")
+            showExceptions = true
+            showCauses = true
+            showStackTraces = true
+            exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        }
+    }
+    ktlintFormat {
+        this.enabled = true
+    }
+    ktlintCheck {
+        dependsOn("ktlintFormat")
+    }
+    build {
+        dependsOn("ktlintCheck")
+    }
 }

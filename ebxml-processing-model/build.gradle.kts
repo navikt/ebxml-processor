@@ -12,22 +12,8 @@ plugins {
     id("org.jlleitschuh.gradle.ktlint") version "11.6.1"
 }
 
-tasks {
-    register<Wrapper>("wrapper") {
-        gradleVersion = "8.1.1"
-    }
-    test {
-        useJUnitPlatform()
-    }
-    ktlintFormat {
-        this.enabled = true
-    }
-    ktlintCheck {
-        dependsOn("ktlintFormat")
-    }
-    build {
-        dependsOn("ktlintCheck")
-    }
+kotlin {
+    jvmToolchain(21)
 }
 
 publishing {
@@ -58,4 +44,19 @@ dependencies {
     implementation(libs.jaxb.runtime)
     implementation(libs.bundles.logging)
     runtimeOnly("org.postgresql:postgresql:42.7.3")
+}
+
+tasks {
+    test {
+        useJUnitPlatform()
+    }
+    ktlintFormat {
+        this.enabled = true
+    }
+    ktlintCheck {
+        dependsOn("ktlintFormat")
+    }
+    build {
+        dependsOn("ktlintCheck")
+    }
 }

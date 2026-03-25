@@ -1,5 +1,3 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
 plugins {
     id("java-library")
     kotlin("jvm") version "2.1.10" apply false
@@ -12,12 +10,5 @@ plugins {
 tasks {
     ktlintFormat {
         this.enabled = true
-    }
-}
-
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().all {
-    compilerOptions {
-        jvmTarget = JvmTarget.JVM_21
-        optIn.add("kotlin.uuid.ExperimentalUuidApi")
     }
 }

@@ -10,38 +10,12 @@ plugins {
     id("org.jlleitschuh.gradle.ktlint") version "11.6.1"
 }
 
-tasks {
-
-    shadowJar {
-        isZip64 = true
-        archiveFileName.set("app.jar")
-    }
-    test {
-        useJUnitPlatform()
-        testLogging {
-            events("passed", "skipped", "failed")
-            showExceptions = true
-            showCauses = true
-            showStackTraces = true
-            exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
-        }
-    }
-    ktlintFormat {
-        this.enabled = true
-    }
-    ktlintCheck {
-        dependsOn("ktlintFormat")
-    }
-    build {
-        dependsOn("ktlintCheck")
-    }
+application {
+    mainClass.set("no.nav.emottak.cpa.AppKt")
 }
 
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().all {
-    compilerOptions {
-        optIn.add("kotlin.uuid.ExperimentalUuidApi")
-        optIn.add("com.sksamuel.hoplite.ExperimentalHoplite")
-    }
+kotlin {
+    jvmToolchain(21)
 }
 
 dependencies {
@@ -92,6 +66,35 @@ dependencies {
     runtimeOnly("org.postgresql:postgresql:42.7.3")
 }
 
-application {
-    mainClass.set("no.nav.emottak.cpa.AppKt")
+tasks {
+    shadowJar {
+        isZip64 = true
+        archiveFileName.set("app.jar")
+    }
+    test {
+        useJUnitPlatform()
+        testLogging {
+            events("passed", "skipped", "failed")
+            showExceptions = true
+            showCauses = true
+            showStackTraces = true
+            exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        }
+    }
+    ktlintFormat {
+        this.enabled = true
+    }
+    ktlintCheck {
+        dependsOn("ktlintFormat")
+    }
+    build {
+        dependsOn("ktlintCheck")
+    }
+}
+
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().all {
+    compilerOptions {
+        optIn.add("kotlin.uuid.ExperimentalUuidApi")
+        optIn.add("com.sksamuel.hoplite.ExperimentalHoplite")
+    }
 }
