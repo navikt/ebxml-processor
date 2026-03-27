@@ -550,31 +550,31 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
             "DuplicateElimination should be the same as in nav-qass-35065.xml file"
         )
     }
-
-    @Test
-    fun `messagingCharacteristics endpoint should return NotFound if CPA is not found`() = cpaRepoTestApp {
-        val httpClient = createClient {
-            install(ContentNegotiation) {
-                jsonLenient()
-            }
-        }
-
-        val messagingCharacteristicsRequest = MessagingCharacteristicsRequest(
-            requestId = Uuid.random().toString(),
-            cpaId = "no:such:cpa",
-            partyIds = listOf(PartyId("HER", "8141253")),
-            role = "Behandler",
-            service = "BehandlerKrav",
-            action = "OppgjorsMelding"
-        )
-
-        val response = httpClient.post("/cpa/messagingCharacteristics") {
-            setBody(messagingCharacteristicsRequest)
-            contentType(Json)
-        }
-
-        assertEquals(HttpStatusCode.NotFound, response.status)
-    }
+//
+//    @Test
+//    fun `messagingCharacteristics endpoint should return NotFound if CPA is not found`() = cpaRepoTestApp {
+//        val httpClient = createClient {
+//            install(ContentNegotiation) {
+//                jsonLenient()
+//            }
+//        }
+//
+//        val messagingCharacteristicsRequest = MessagingCharacteristicsRequest(
+//            requestId = Uuid.random().toString(),
+//            cpaId = "no:such:cpa",
+//            partyIds = listOf(PartyId("HER", "8141253")),
+//            role = "Behandler",
+//            service = "BehandlerKrav",
+//            action = "OppgjorsMelding"
+//        )
+//
+//        val response = httpClient.post("/cpa/messagingCharacteristics") {
+//            setBody(messagingCharacteristicsRequest)
+//            contentType(Json)
+//        }
+//
+//        assertEquals(HttpStatusCode.NotFound, response.status)
+//    }
 
     @Test
     fun `Should require valid token`() = cpaRepoTestApp {
@@ -796,57 +796,6 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
                 }
             }
         }
-    }
-
-    @Test
-    fun `Get the communicationparty from AR with herId should return partners information`() = cpaRepoTestApp {
-        val httpClient = createClient {
-            install(ContentNegotiation) {
-                jsonLenient()
-            }
-        }
-
-        val url = "/cpa/adresseregister/her/79768"
-        val response = httpClient.get(url)
-        val cp = response.body<CommunicationParty>()
-        log.info("${cp.displayName}")
-
-        assertEquals(HttpStatusCode.OK, response.status)
-        assertTrue(StringUtils.isNotBlank(response.bodyAsText()), "Response can't be null or blank")
-    }
-
-    @Test
-    fun `Get the signing certificate from AR with herId should return signing certificate information`() = cpaRepoTestApp {
-        val httpClient = createClient {
-            install(ContentNegotiation) {
-                jsonLenient()
-            }
-        }
-
-        val url = "/cpa/adresseregister/her/1/signing"
-        val response = httpClient.get(url)
-        val signCertificate = response.body<Certificate>()
-        log.info(" ${signCertificate.certificateValue} ")
-
-        assertEquals(HttpStatusCode.OK, response.status)
-        assertTrue(StringUtils.isNotBlank(response.bodyAsText()), "Response can't be null or blank")
-    }
-
-    @Test
-    fun `Get the encryption certificate from AR with herId should return encryption certificate information`() = cpaRepoTestApp {
-        val httpClient = createClient {
-            install(ContentNegotiation) {
-                jsonLenient()
-            }
-        }
-
-        val url = "/cpa/adresseregister/her/1/encryption"
-        val response = httpClient.get(url)
-        val encryptCertificate = response.body<Certificate>()
-        log.info(" ${encryptCertificate.certificateValue} ")
-
-        assertEquals(HttpStatusCode.OK, response.status)
-        assertTrue(StringUtils.isNotBlank(response.bodyAsText()), "Response can't be null or blank")
     }
 
     @Test

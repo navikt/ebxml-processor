@@ -514,25 +514,6 @@ fun Route.getAREncryptCertificate(httpClient: HttpClient) =
         }
     }
 
-suspend fun HttpClient.fetchARHerId(herId: String): Long {
-    val baseUrl = config().nhn.adresseregisterApiBaseUrl
-    return try {
-        val response: HttpResponse = this.get("$baseUrl/$herId")
-        if (response.status == HttpStatusCode.OK) {
-            log.info("Data mottatt: ${response.bodyAsText()}")
-        } else {
-            log.warn("Feil ved oppslag: ${response.status}")
-        }
-        val communicationParty = response.body<CommunicationParty>()
-
-        communicationParty.herId
-    } catch (e: Exception) {
-        log.error("Kunne ikke koble til $baseUrl: ${e.localizedMessage}", e)
-        e.localizedMessage
-        throw e
-    }
-}
-
 suspend fun HttpClient.fetchAREdiAddress(herId: String? = null): String? {
     val baseUrl = config().nhn.adresseregisterApiBaseUrl
     return try {

@@ -103,7 +103,6 @@ fun cpaApplicationModule(
                 getAdresseregisterData(adresseregisterClient)
                 getARSignCertificate(adresseregisterClient)
                 getAREncryptCertificate(adresseregisterClient)
-                getAdresseregisterHerID(adresseregisterClient)
             }
             registerHealthEndpoints(appMicrometerRegistry, cpaRepository)
 
