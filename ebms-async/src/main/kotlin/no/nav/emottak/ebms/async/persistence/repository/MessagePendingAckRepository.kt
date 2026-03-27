@@ -12,6 +12,7 @@ import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.update
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
+import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.util.UUID
 import kotlin.time.Duration
@@ -35,6 +36,8 @@ data class MessagePendingAck(
     val lastSent: Instant = Instant.now(),
     val resentCount: Int = 0
 )
+
+private val log = LoggerFactory.getLogger(MessagePendingAckRepository::class.java)
 
 class MessagePendingAckRepository(
     private val database: Database,
@@ -88,6 +91,24 @@ class MessagePendingAckRepository(
                 .update(where = { MessagePendingAckTable.messageId.eq(messageIdAsUuid) }) {
                     it[ackReceived] = true
                 }
+        }
+    }
+
+    // Unset ackReceived for message with given message id, to allow resending
+    fun unregisterAckForMessage(messageId: String): Boolean {
+        val messageIdAsUuid: UUID
+        try {
+            messageIdAsUuid = Uuid.parse(messageId).toJavaUuid()
+        } catch (e: Exception) {
+            log.warn("Failed to parse message ID '{}' as UUID for unacknowledge", messageId, e)
+            return false
+        }
+        return transaction(database.db) {
+            MessagePendingAckTable
+                .update(where = { MessagePendingAckTable.messageId.eq(messageIdAsUuid) }) {
+                    it[ackReceived] = false
+                    it[resentCount] = 0
+                } > 0
         }
     }
 

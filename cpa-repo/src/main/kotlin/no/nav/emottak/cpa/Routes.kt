@@ -8,6 +8,7 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.authentication
+import io.ktor.server.html.respondHtml
 import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.plugins.NotFoundException
 import io.ktor.server.request.receive
@@ -89,6 +90,16 @@ fun Route.getCPA(cpaRepository: CPARepository): Route = get("/cpa/{$CPA_ID}") {
         contentType = ContentType.Text.Xml,
         text = cpa.asText()
     )
+}
+
+fun Route.getCpaView(cpaRepository: CPARepository): Route = get("/cpa/view") {
+    val cpaId = call.request.queryParameters["id"]
+    if (cpaId == null) {
+        call.respondHtml { renderCpaView() }
+        return@get
+    }
+    val cpa = cpaRepository.findCpa(cpaId)
+    call.respondHtml { renderCpaView(cpa, notFound = if (cpa == null) cpaId else null) }
 }
 
 fun Route.deleteAllCPA(cpaRepository: CPARepository): Route = get("/cpa/deleteAll") {
@@ -463,17 +474,6 @@ fun Route.getMessagingCharacteristics(cpaRepository: CPARepository, httpClient: 
         }
     }
 
-fun Route.getAdresseregisterHerID(httpClient: HttpClient) =
-    get("/cpa/adresseregister/her/{$HER_ID}") {
-        val herId = call.parameters[HER_ID] ?: throw BadRequestException("Mangler $HER_ID")
-        try {
-            val communicationParty = httpClient.fetchARHerId(herId)
-            call.respond(HttpStatusCode.OK, communicationParty)
-        } catch (ex: Exception) {
-            log.error("Error while fetching communication party <$herId>", ex)
-            call.respondText(ex.localizedMessage, ContentType.Text.Plain, HttpStatusCode.InternalServerError)
-        }
-    }
 fun Route.getAdresseregisterData(httpClient: HttpClient) =
     get("/cpa/adresseregister/her/{$HER_ID}") {
         val herId = call.parameters[HER_ID] ?: throw BadRequestException("Mangler $HER_ID")
