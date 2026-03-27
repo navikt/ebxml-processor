@@ -87,7 +87,7 @@ fun cpaApplicationModule(
         routing {
             if (oracleDb != null) {
                 partnerId(PartnerRepository(oracleDb), cpaRepository)
-                validateCpa(cpaRepository, PartnerRepository(oracleDb), eventRegistrationService)
+                validateCpa(cpaRepository, PartnerRepository(oracleDb), eventRegistrationService, adresseregisterClient)
             }
             getCPA(cpaRepository)
             getCpaView(cpaRepository)
@@ -97,8 +97,8 @@ fun cpaApplicationModule(
             getTimeStampsLatest(cpaRepository)
             getTimeStampsLastUsed(cpaRepository)
             getCertificate(cpaRepository)
-            signingCertificate(cpaRepository)
-            getMessagingCharacteristics(cpaRepository)
+            signingCertificate(cpaRepository, adresseregisterClient)
+            getMessagingCharacteristics(cpaRepository, adresseregisterClient)
             if (adresseregisterClient != null) {
                 getAdresseregisterData(adresseregisterClient)
                 getARSignCertificate(adresseregisterClient)

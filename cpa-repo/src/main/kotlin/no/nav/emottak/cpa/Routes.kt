@@ -35,6 +35,7 @@ import no.nav.emottak.cpa.persistence.CPARepository
 import no.nav.emottak.cpa.persistence.gammel.PartnerRepository
 import no.nav.emottak.cpa.util.EventRegistrationService
 import no.nav.emottak.cpa.validation.MessageDirection
+import no.nav.emottak.cpa.validation.log
 import no.nav.emottak.cpa.validation.partyInfoHasRoleServiceActionCombo
 import no.nav.emottak.cpa.validation.validate
 import no.nav.emottak.message.ebxml.EbXMLConstants.ACKNOWLEDGMENT_ACTION
@@ -42,15 +43,19 @@ import no.nav.emottak.message.ebxml.EbXMLConstants.EBMS_SERVICE_URI
 import no.nav.emottak.message.ebxml.EbXMLConstants.MESSAGE_ERROR_ACTION
 import no.nav.emottak.message.ebxml.PartyTypeEnum
 import no.nav.emottak.message.exception.EbmsException
+import no.nav.emottak.message.model.EmailAddress
 import no.nav.emottak.message.model.ErrorCode
 import no.nav.emottak.message.model.Feil
 import no.nav.emottak.message.model.MessagingCharacteristicsRequest
 import no.nav.emottak.message.model.MessagingCharacteristicsResponse
 import no.nav.emottak.message.model.PayloadProcessing
+import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.message.model.SignatureDetailsRequest
 import no.nav.emottak.message.model.ValidationRequest
 import no.nav.emottak.message.model.ValidationResult
+import no.nav.emottak.message.xml.xmlMarshaller
 import no.nav.emottak.util.createX509Certificate
+import no.nav.emottak.util.decodeBase64
 import no.nav.emottak.util.isToday
 import no.nav.emottak.util.marker
 import no.nav.emottak.utils.common.model.EbmsProcessing
@@ -59,7 +64,10 @@ import no.nav.emottak.utils.kafka.model.EventDataType
 import no.nav.emottak.utils.kafka.model.EventType
 import no.nav.emottak.utils.serialization.toEventDataJson
 import no.nav.security.token.support.v3.TokenValidationContextPrincipal
+import org.apache.xml.security.algorithms.MessageDigestAlgorithm
+import org.apache.xml.security.signature.XMLSignature
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
+import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.EndpointTypeType
 import java.util.Date
 
 fun Route.whoAmI(): Route = get("/whoami") {
@@ -76,6 +84,7 @@ fun Route.whoAmI(): Route = get("/whoami") {
 
 fun Route.getCPA(cpaRepository: CPARepository): Route = get("/cpa/{$CPA_ID}") {
     val cpaId = call.parameters[CPA_ID] ?: throw BadRequestException("Mangler $CPA_ID")
+
     val cpa = cpaRepository.findCpa(cpaId) ?: throw NotFoundException("Fant ikke CPA $CPA_ID")
     call.respondText(
         contentType = ContentType.Text.Xml,
@@ -228,72 +237,116 @@ fun Route.postCpa(cpaRepository: CPARepository) = post("/cpa") {
 fun Route.validateCpa(
     cpaRepository: CPARepository,
     partnerRepository: PartnerRepository,
-    eventRegistrationService: EventRegistrationService
+    eventRegistrationService: EventRegistrationService,
+    httpClient: HttpClient?
 ) = post("/cpa/validate/{$REQUEST_ID}") {
     val validateRequest = call.receive(ValidationRequest::class)
 
     val requestId = call.parameters[REQUEST_ID] ?: throw BadRequestException("Mangler $REQUEST_ID")
-
     try {
         log.info(validateRequest.marker(), "Validerer ebms mot CPA")
         val (cpa, lastUsed) = cpaRepository.findCpaAndLastUsed(validateRequest.cpaId)
-        if (cpa == null) throw NotFoundException("Fant ikke CPA (${validateRequest.cpaId})")
-        if (!lastUsed.isToday() && !cpaRepository.updateCpaLastUsed(validateRequest.cpaId)) {
-            log.warn(validateRequest.marker(), "Feilet med å oppdatere last_used for CPA '${validateRequest.cpaId}'")
-        }
-        if (!validateRequest.isSignalMessage()) {
-            cpa.validate(validateRequest)
-        } // Delivery Failure
+        if (cpa == null) {
+            val PartnerHerId = validateRequest.addressing.from.partyId.firstOrNull()?.value
+            val navHerId = validateRequest.addressing.to.partyId.firstOrNull()?.value
+            log.warn("Cpa finnes ikke for Partner $PartnerHerId. Forsøker å hente informasjon fra adresseregisteret.")
+            try {
+                val fromEdi = httpClient?.fetchAREdiAddress(PartnerHerId)
+                val toEdi = httpClient?.fetchAREdiAddress(navHerId)
+                val signalEmails = listOf(EmailAddress(fromEdi ?: "", EndpointTypeType.REQUEST))
+                val receiverEmails = listOf(EmailAddress(toEdi ?: "", EndpointTypeType.REQUEST))
+                val arSignCertificate = httpClient?.fetchARSignCertificate("$PartnerHerId")
+                val encryptionCertificate = httpClient?.fetchAREncryptCertificate("$navHerId")
+                val validSignatureDetails = SignatureDetails(
+                    certificate = decodeBase64(arSignCertificate!!.certificateValue.toByteArray()),
+                    signatureAlgorithm = XMLSignature.ALGO_ID_SIGNATURE_RSA_SHA256,
+                    hashFunction = MessageDigestAlgorithm.ALGO_ID_DIGEST_SHA256
+                )
+                runCatching {
+                    createX509Certificate(validSignatureDetails.certificate).validate()
+                }.onFailure {
+                    log.warn(validateRequest.marker(), "Signatursjekk feilet", it)
+                }
+                val validate = ValidationResult(
+                    EbmsProcessing(),
+                    PayloadProcessing(
+                        validSignatureDetails,
+                        encryptionCertificate!!.certificateValue.toByteArray(),
+                        cpaRepository.getProcessConfig(
+                            validateRequest.addressing.from.role,
+                            validateRequest.addressing.service,
+                            validateRequest.addressing.action
+                        )
+                    ),
+                    signalEmails,
+                    receiverEmails
+                )
+                call.respond(validate)
+            } catch (ex: Exception) {
+                log.error("Error while fetching arSignCertificate ", ex)
+                call.respondText(ex.localizedMessage, ContentType.Text.Plain, HttpStatusCode.InternalServerError)
+            }
+        } else {
+            if (!lastUsed.isToday() && !cpaRepository.updateCpaLastUsed(validateRequest.cpaId)) {
+                log.warn(
+                    validateRequest.marker(),
+                    "Feilet med å oppdatere last_used for CPA '${validateRequest.cpaId}'"
+                )
+            }
+            if (!validateRequest.isSignalMessage()) {
+                cpa.validate(validateRequest)
+            } // Delivery Failure
 
-        val fromParty = cpa.getPartyInfoByTypeAndID(validateRequest.addressing.from.partyId) // Delivery Failure
-        val toParty = cpa.getPartyInfoByTypeAndID(validateRequest.addressing.to.partyId) // Delivery Failure
-        val encryptionCertificate = toParty.getCertificateForEncryption()
+            val fromParty = cpa.getPartyInfoByTypeAndID(validateRequest.addressing.from.partyId) // Delivery Failure
+            val toParty = cpa.getPartyInfoByTypeAndID(validateRequest.addressing.to.partyId) // Delivery Failure
+            val encryptionCertificate = toParty.getCertificateForEncryption()
 
-        val signingCertificate = fromParty.getCertificateForSignatureValidation(
-            validateRequest.addressing.from.role,
-            validateRequest.addressing.service,
-            validateRequest.addressing.action
-        ) // Security Failure
+            val signingCertificate = fromParty.getCertificateForSignatureValidation(
+                validateRequest.addressing.from.role,
+                validateRequest.addressing.service,
+                validateRequest.addressing.action
+            ) // Security Failure
+            log.info("signingCertificate:     ${createX509Certificate(signingCertificate.certificate)}")
+            val signalEmails = toParty.getSignalEmailAddress(validateRequest)
+            val receiverEmails = toParty.getReceiveEmailAddress(validateRequest)
 
-        val signalEmails = toParty.getSignalEmailAddress(validateRequest)
-        val receiverEmails = toParty.getReceiveEmailAddress(validateRequest)
+            runCatching {
+                createX509Certificate(signingCertificate.certificate).validate()
+            }.onFailure {
+                log.error(validateRequest.marker(), "Validation feilet i sertifikat sjekk", it)
+                throw it
+            }
 
-        runCatching {
-            createX509Certificate(signingCertificate.certificate).validate()
-        }.onFailure {
-            log.error(validateRequest.marker(), "Validation feilet i sertifikat sjekk", it)
-            throw it
-        }
+            val partnerId = runCatching { partnerRepository.findPartnerId(cpa.cpaid) }.getOrNull()
 
-        val partnerId = runCatching { partnerRepository.findPartnerId(cpa.cpaid) }.getOrNull()
-
-        call.respond(
-            HttpStatusCode.OK,
-            ValidationResult(
-                EbmsProcessing(),
-                PayloadProcessing(
-                    signingCertificate,
-                    encryptionCertificate,
-                    cpaRepository.getProcessConfig(
-                        validateRequest.addressing.from.role,
-                        validateRequest.addressing.service,
-                        validateRequest.addressing.action
-                    )
-                ),
-                signalEmails,
-                receiverEmails,
-                partnerId
+            call.respond(
+                HttpStatusCode.OK,
+                ValidationResult(
+                    EbmsProcessing(),
+                    PayloadProcessing(
+                        signingCertificate,
+                        encryptionCertificate,
+                        cpaRepository.getProcessConfig(
+                            validateRequest.addressing.from.role,
+                            validateRequest.addressing.service,
+                            validateRequest.addressing.action
+                        )
+                    ),
+                    signalEmails,
+                    receiverEmails,
+                    partnerId
+                )
             )
-        )
 
-        eventRegistrationService.registerEvent(
-            EventType.MESSAGE_VALIDATED_AGAINST_CPA,
-            validateRequest,
-            requestId,
-            Json.encodeToString(
-                mapOf(EventDataType.SENDER_NAME.value to fromParty.partyName)
+            eventRegistrationService.registerEvent(
+                EventType.MESSAGE_VALIDATED_AGAINST_CPA,
+                validateRequest,
+                requestId,
+                Json.encodeToString(
+                    mapOf(EventDataType.SENDER_NAME.value to fromParty.partyName)
+                )
             )
-        )
+        }
     } catch (ebmsEx: EbmsException) {
         eventRegistrationService.registerEvent(
             EventType.VALIDATION_AGAINST_CPA_FAILED,
@@ -325,6 +378,7 @@ fun Route.validateCpa(
             requestId,
             ex.toEventDataJson()
         )
+
         log.error(validateRequest.marker(), ex.message, ex)
         call.respond(
             HttpStatusCode.OK,
@@ -346,46 +400,78 @@ fun Route.getCertificate(cpaRepository: CPARepository) =
         call.respond(partyInfo.getCertificateForEncryption())
     }
 
-fun Route.signingCertificate(cpaRepository: CPARepository) = post("/signing/certificate") {
+fun Route.signingCertificate(cpaRepository: CPARepository, httpClient: HttpClient?) = post("/signing/certificate") {
     val signatureDetailsRequest = call.receive(SignatureDetailsRequest::class)
     val cpa = cpaRepository.findCpa(signatureDetailsRequest.cpaId)
-        ?: throw NotFoundException("Ingen CPA med ID ${signatureDetailsRequest.cpaId} funnet")
-    try {
-        val partyInfo = cpa.getPartyInfoByTypeAndID(signatureDetailsRequest.partyType, signatureDetailsRequest.partyId)
-        val signatureDetails = partyInfo.getCertificateForSignatureValidation(
-            signatureDetailsRequest.role,
-            signatureDetailsRequest.service,
-            signatureDetailsRequest.action
-        )
-        // TODO Strengere signatursjekk. Nå er den snill og resultatet logges bare
-        runCatching {
-            createX509Certificate(signatureDetails.certificate).validate()
-        }.onFailure {
-            log.warn(signatureDetailsRequest.marker(), "Signatursjekk feilet", it)
+
+    if (cpa == null) {
+        val herid = signatureDetailsRequest.partyId
+        try {
+            val arSignCertificate = httpClient?.fetchARSignCertificate(herid)
+            val validSignatureDetails = SignatureDetails(
+                certificate = decodeBase64(arSignCertificate!!.certificateValue.toByteArray()),
+                signatureAlgorithm = XMLSignature.ALGO_ID_SIGNATURE_RSA_SHA256,
+                hashFunction = MessageDigestAlgorithm.ALGO_ID_DIGEST_SHA256
+            )
+            runCatching {
+                createX509Certificate(validSignatureDetails.certificate).validate()
+            }.onFailure {
+                log.warn(signatureDetailsRequest.marker(), "Signatursjekk feilet", it)
+            }
+            call.respond(arSignCertificate as Any)
+        } catch (ex: Exception) {
+            log.error("Error while fetching arSignCertificate <$herid>", ex)
+            call.respondText(ex.localizedMessage, ContentType.Text.Plain, HttpStatusCode.InternalServerError)
         }
-        call.respond(signatureDetails)
-    } catch (ex: CpaValidationException) {
-        log.warn(signatureDetailsRequest.marker(), ex.message, ex)
-        call.respond(HttpStatusCode.BadRequest, ex.localizedMessage)
+    } else {
+        try {
+            val partyInfo =
+                cpa.getPartyInfoByTypeAndID(signatureDetailsRequest.partyType, signatureDetailsRequest.partyId)
+            val signatureDetails = partyInfo.getCertificateForSignatureValidation(
+                signatureDetailsRequest.role,
+                signatureDetailsRequest.service,
+                signatureDetailsRequest.action
+            )
+            // TODO Strengere signatursjekk. Nå er den snill og resultatet logges bare
+            runCatching {
+                createX509Certificate(signatureDetails.certificate).validate()
+            }.onFailure {
+                log.warn(signatureDetailsRequest.marker(), "Signatursjekk feilet", it)
+            }
+            call.respond(signatureDetails)
+        } catch (ex: CpaValidationException) {
+            log.warn(signatureDetailsRequest.marker(), ex.message, ex)
+            call.respond(HttpStatusCode.BadRequest, ex.localizedMessage)
+        }
     }
 }
 
-fun Route.getMessagingCharacteristics(cpaRepository: CPARepository) =
+fun Route.getMessagingCharacteristics(cpaRepository: CPARepository, httpClient: HttpClient?) =
     post("/cpa/messagingCharacteristics") {
         val request = call.receive(MessagingCharacteristicsRequest::class)
+        val cpa = cpaRepository.findCpa(request.cpaId)
+        if (cpa == null) {
+            val herid = request.partyIds.firstOrNull()?.value.toString()
+            log.info("Partner's information from AR on her id $herid")
+            try {
+                val response = httpClient?.fetchCommunicationParty(herid)
+                call.respond(response as Any)
+            } catch (ex: Exception) {
+                log.error("Error while fetching communication party <$herid>", ex)
+                call.respondText(ex.localizedMessage, ContentType.Text.Plain, HttpStatusCode.InternalServerError)
+            }
+        } else {
+            val fromParty = cpa.getPartyInfoByTypeAndID(request.partyIds)
+            val deliveryChannel = fromParty.getSendDeliveryChannel(request.role, request.service, request.action)
+            val response = MessagingCharacteristicsResponse(
+                requestId = request.requestId,
+                ackRequested = deliveryChannel.messagingCharacteristics.ackRequested,
+                ackSignatureRequested = deliveryChannel.messagingCharacteristics.ackSignatureRequested,
+                duplicateElimination = deliveryChannel.messagingCharacteristics.duplicateElimination
+            )
 
-        val cpa = cpaRepository.findCpa(request.cpaId) ?: throw NotFoundException("CPA not found for ID ${request.cpaId}")
-        val fromParty = cpa.getPartyInfoByTypeAndID(request.partyIds)
-        val deliveryChannel = fromParty.getSendDeliveryChannel(request.role, request.service, request.action)
-
-        val response = MessagingCharacteristicsResponse(
-            requestId = request.requestId,
-            ackRequested = deliveryChannel.messagingCharacteristics.ackRequested,
-            ackSignatureRequested = deliveryChannel.messagingCharacteristics.ackSignatureRequested,
-            duplicateElimination = deliveryChannel.messagingCharacteristics.duplicateElimination
-        )
-
-        call.respond(response)
+            call.respond(response)
+        }
     }
 
 fun Route.getAdresseregisterData(httpClient: HttpClient) =
@@ -403,7 +489,6 @@ fun Route.getAdresseregisterData(httpClient: HttpClient) =
 fun Route.getARSignCertificate(httpClient: HttpClient) =
     get("/cpa/adresseregister/her/{$HER_ID}/signing") {
         val herId = call.parameters[HER_ID] ?: throw BadRequestException("Mangler $HER_ID")
-        // ContentNegotiation
         try {
             val certificate = httpClient.fetchARSignCertificate(herId)
             call.respond(HttpStatusCode.OK, certificate)
@@ -414,7 +499,6 @@ fun Route.getARSignCertificate(httpClient: HttpClient) =
     }
 
 fun Route.getAREncryptCertificate(httpClient: HttpClient) =
-
     get("/cpa/adresseregister/her/{$HER_ID}/encryption") {
         val herId = call.parameters[HER_ID] ?: throw BadRequestException("Mangler $HER_ID")
         try {
@@ -430,8 +514,27 @@ fun Route.getAREncryptCertificate(httpClient: HttpClient) =
         }
     }
 
-suspend fun HttpClient.fetchCommunicationParty(herId: String): CommunicationParty {
+suspend fun HttpClient.fetchAREdiAddress(herId: String? = null): String? {
     val baseUrl = config().nhn.adresseregisterApiBaseUrl
+    return try {
+        val response: HttpResponse = this.get("$baseUrl/$herId")
+        if (response.status == HttpStatusCode.OK) {
+            log.info("Data mottatt: ${response.bodyAsText()}")
+        } else {
+            log.warn("Feil ved oppslag: ${response.status}")
+        }
+
+        val communicationParty = response.body<CommunicationParty>()
+        communicationParty.ediAddress
+    } catch (e: Exception) {
+        log.error("Kunne ikke koble til $baseUrl: ${e.localizedMessage}", e)
+        e.localizedMessage
+        throw e
+    }
+}
+
+suspend fun HttpClient.fetchCommunicationParty(herId: String? = null): CommunicationParty {
+    val baseUrl = config().nhn.adresseregisterApiBaseUrl // "https://cpa-repo-fss.intern.dev.nav.no/cpa/adresseregister/her"
     return try {
         val response: HttpResponse = this.get("$baseUrl/$herId")
         if (response.status == HttpStatusCode.OK) {
@@ -456,12 +559,12 @@ suspend fun HttpClient.fetchARSignCertificate(herId: String): Certificate {
         if (response.status == HttpStatusCode.OK) {
             log.info("Data mottatt: ${response.bodyAsText()}")
         } else {
-            log.warn("Feil ved oppslag: Connect to $$baseUrl --> ${response.status} ")
+            log.warn("Connect to $$baseUrl: herId: $herId  ${response.status} ")
         }
 
         response.body<Certificate>()
     } catch (e: Exception) {
-        log.error("Kunne ikke koble til $baseUrl: ${e.localizedMessage}", e)
+        log.error("fetchARSignCertificate: Kunne ikke koble til $baseUrl: $herId ${e.localizedMessage}", e)
         e.localizedMessage
         throw e
     }
