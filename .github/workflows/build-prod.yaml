@@ -79,6 +79,7 @@ jobs:
       providerimage: ${{ steps.docker-push-ebms-provider.outputs.image }}
       payloadimage: ${{ steps.docker-push-ebms-payload.outputs.image }}
       cpaimage: ${{ steps.docker-push-cpa-repo.outputs.image }}
+      asyncimage: ${{ steps.docker-push-ebms-async.outputs.image }}
   deploy-async:
     name: "Deploy ebms async to PROD"
     needs: "build"
