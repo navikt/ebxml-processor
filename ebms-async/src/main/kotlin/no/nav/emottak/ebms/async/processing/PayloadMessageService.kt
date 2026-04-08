@@ -4,8 +4,8 @@ import io.github.nomisRev.kafka.receiver.ReceiverRecord
 import no.nav.emottak.ebms.async.kafka.consumer.retryCount
 import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
 import no.nav.emottak.ebms.async.log
+import no.nav.emottak.ebms.async.persistence.repository.MessageReceivedRepository
 import no.nav.emottak.ebms.async.util.EventRegistrationService
-import no.nav.emottak.ebms.eventmanager.EventManagerService
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.validation.CPAValidationService
@@ -22,7 +22,7 @@ class PayloadMessageService(
     val ebmsSignalProducer: EbmsMessageProducer,
     val payloadMessageForwardingService: PayloadMessageForwardingService,
     val eventRegistrationService: EventRegistrationService,
-    val eventManagerService: EventManagerService,
+    val messageReceivedRepository: MessageReceivedRepository,
     val retryService: RetryService
 ) {
 
@@ -31,23 +31,25 @@ class PayloadMessageService(
         ebmsPayloadMessage: PayloadMessage
     ) {
         runCatching {
-            val isDuplicate = isDuplicateMessage(ebmsPayloadMessage)
             val isRetry = record.retryCount() > 0
-            when (isDuplicate && !isRetry) {
-                true -> log.info(ebmsPayloadMessage.marker(), "Got duplicate payload message with reference <${ebmsPayloadMessage.requestId}>")
-                false -> {
-                    if (isRetry) {
-                        eventRegistrationService.registerEvent(
-                            eventType = EventType.RETRY_TRIGGED,
-                            requestId = ebmsPayloadMessage.requestId.parseOrGenerateUuid(),
-                            messageId = ebmsPayloadMessage.messageId,
-                            conversationId = ebmsPayloadMessage.conversationId
-                        )
-                    }
-                    processPayloadMessage(ebmsPayloadMessage)
+            val isDuplicate = !isRetry && isDuplicateMessage(ebmsPayloadMessage)
+
+            if (isDuplicate) {
+                log.info(ebmsPayloadMessage.marker(), "Got duplicate payload message with reference <${ebmsPayloadMessage.requestId}>")
+            } else {
+                messageReceivedRepository.messageReceived(ebmsPayloadMessage)
+                if (isRetry) {
+                    eventRegistrationService.registerEvent(
+                        eventType = EventType.RETRY_TRIGGED,
+                        requestId = ebmsPayloadMessage.requestId.parseOrGenerateUuid(),
+                        messageId = ebmsPayloadMessage.messageId,
+                        conversationId = ebmsPayloadMessage.conversationId
+                    )
                 }
+                processPayloadMessage(ebmsPayloadMessage)
             }
             returnAcknowledgment(ebmsPayloadMessage)
+            messageReceivedRepository.messageAcknowledged(ebmsPayloadMessage)
         }.onFailure { exception ->
             // TODO handle some errors by sending to retry, some by returning error message
             log.error(ebmsPayloadMessage.marker(), exception.message ?: "Message processing error", exception)
@@ -102,16 +104,17 @@ class PayloadMessageService(
             return false
         }
 
-        if (duplicateEliminationStrategy == PerMessageCharacteristicsType.ALWAYS) {
-            return eventManagerService.isDuplicateMessage(ebmsPayloadMessage)
-        }
+        return when (duplicateEliminationStrategy) {
+            PerMessageCharacteristicsType.ALWAYS -> {
+                messageReceivedRepository.getMessageReceived(ebmsPayloadMessage)?.acknowledged ?: false
+            }
 
-        if (
-            duplicateEliminationStrategy == PerMessageCharacteristicsType.PER_MESSAGE &&
-            ebmsPayloadMessage.duplicateElimination
-        ) {
-            return eventManagerService.isDuplicateMessage(ebmsPayloadMessage)
+            PerMessageCharacteristicsType.PER_MESSAGE -> {
+                ebmsPayloadMessage.duplicateElimination && (messageReceivedRepository.getMessageReceived(ebmsPayloadMessage)?.acknowledged ?: false)
+            }
+
+            PerMessageCharacteristicsType.NEVER -> false
+            null -> false
         }
-        return false
     }
 }
