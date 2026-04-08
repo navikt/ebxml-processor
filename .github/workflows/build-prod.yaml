@@ -92,7 +92,7 @@ jobs:
       - name: "Deploy to PROD"
         uses: "nais/deploy/actions/deploy@v2"
         env:
-          CLUSTER: "PROD-fss"
+          CLUSTER: "prod-fss"
           RESOURCE: ".nais/ebms-async-prod.yaml"
           IMAGE: ${{ needs.build.outputs.asyncimage }}
   deploy-processor:
