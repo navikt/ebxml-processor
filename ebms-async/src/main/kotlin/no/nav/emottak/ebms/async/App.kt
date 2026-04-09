@@ -61,10 +61,10 @@ import no.nav.emottak.ebms.registerRootEndpoint
 import no.nav.emottak.ebms.scopedAuthHttpClient
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.CPAValidationService
-import no.nav.emottak.utils.environment.getEnvVar
 import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.utils.common.model.SendInResponse
+import no.nav.emottak.utils.environment.getEnvVar
 import no.nav.emottak.utils.environment.isProdEnv
 import no.nav.emottak.utils.kafka.client.EventPublisherClient
 import no.nav.emottak.utils.kafka.service.EventLoggingService
@@ -180,7 +180,7 @@ fun main() = SuspendApp {
                 config = config,
                 payloadMessageService = payloadMessageService
             )
-            launchErrorRetryTask(
+            launchErrorRetryTaskIncoming(
                 config = config,
                 retryService = retryService,
                 messageFilterService = messageFilterService,
