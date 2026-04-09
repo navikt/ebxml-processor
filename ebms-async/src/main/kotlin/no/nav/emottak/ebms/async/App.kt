@@ -20,7 +20,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.Json
 import no.nav.emottak.ebms.AZURE_AD_AUTH
 import no.nav.emottak.ebms.CpaRepoClient
 import no.nav.emottak.ebms.EBMS_PAYLOAD_SCOPE
@@ -63,6 +62,7 @@ import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadMessage
+import no.nav.emottak.util.LENIENT_JSON_PARSER
 import no.nav.emottak.utils.common.model.SendInResponse
 import no.nav.emottak.utils.environment.isProdEnv
 import no.nav.emottak.utils.kafka.client.EventPublisherClient
@@ -267,7 +267,7 @@ fun CoroutineScope.launchSignalReceiver(
 fun makeOutRetryProcessor(
     payloadMessageService: PayloadMessageService
 ): suspend (ReceiverRecord<String, ByteArray>) -> Unit = { record ->
-    val sendInResponse = Json.decodeFromString<SendInResponse>(record.value().decodeToString())
+    val sendInResponse = LENIENT_JSON_PARSER.decodeFromString<SendInResponse>(record.value().decodeToString())
     val cpaId = record.headers().lastHeader("cpaId")?.let { String(it.value()) } ?: ""
     val refToMessageId = record.headers().lastHeader("refToMessageId")?.let { String(it.value()) }
     val payloadMessage = PayloadMessage(
