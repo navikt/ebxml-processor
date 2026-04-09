@@ -11,6 +11,7 @@ import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.PayloadMessage
+import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.util.marker
 import no.nav.emottak.utils.common.parseOrGenerateUuid
 import no.nav.emottak.utils.kafka.model.EventType
@@ -76,13 +77,30 @@ class PayloadMessageService(
         val (processedPayload, direction) = processingService.processAsync(ebmsPayloadMessage, validationResult.payloadProcessing)
         when (direction) {
             Direction.IN -> {
+                routeDependingOnMessageType(processedPayload, validationResult)
+            }
+            Direction.OUT -> payloadMessageForwardingService.returnMessageResponse(processedPayload)
+        }
+    }
+
+    private suspend fun routeDependingOnMessageType(processedPayload: PayloadMessage, validationResult: ValidationResult) {
+        when (val messageType = messageTypeByServiceName(processedPayload.addressing.service)) {
+            MessageType.HAR_BORGER_FRIKORT_MENGDE, MessageType.INNTEKTSFORESPORSEL -> {
+                log.debug(processedPayload.marker(), "Calling SendIn SYNCHRONOUSLY for $messageType")
+                payloadMessageForwardingService.forwardMessageWithSyncResponse(processedPayload)
+            }
+            MessageType.TREKKOPPLYSNING -> {
                 if (useAsyncInbound) {
+                    log.debug(processedPayload.marker(), "Calling SendIn ASYNCHRONOUSLY for $messageType")
                     payloadMessageForwardingService.forwardMessageWithAsyncResponse(processedPayload, validationResult.partnerId)
                 } else {
+                    log.debug(processedPayload.marker(), "Calling SendIn SYNCHRONOUSLY (due to async flag turned OFF) for $messageType")
                     payloadMessageForwardingService.forwardMessageWithSyncResponse(processedPayload)
                 }
             }
-            Direction.OUT -> payloadMessageForwardingService.returnMessageResponse(processedPayload)
+            else -> {
+                log.debug(processedPayload.marker(), "Skipping SendIn for $processedPayload.addressing.service")
+            }
         }
     }
 
