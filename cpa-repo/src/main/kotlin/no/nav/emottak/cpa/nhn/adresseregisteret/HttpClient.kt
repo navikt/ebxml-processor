@@ -61,9 +61,9 @@ private fun httpClient(
 
 fun nhnArHttpClient(
     nhnOAuth: NhnOAuth = config.nhnOAuth,
-    nhn: Nhn = config.nhn
+    nhnConfig: Nhn = config.nhn
 ): HttpClient {
-    val dpopJwtProvider = DpopJwtProvider(nhnOAuth, nhn)
+    val dpopJwtProvider = DpopJwtProvider(nhnOAuth, nhnConfig)
     val dpopTokenUtil = DpopTokenUtil(nhnOAuth, dpopJwtProvider, httpTokenClient())
 
     return httpClient(dpopJwtProvider, dpopTokenUtil)
