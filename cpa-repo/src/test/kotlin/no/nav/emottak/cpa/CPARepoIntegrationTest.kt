@@ -38,6 +38,7 @@ import no.nav.emottak.cpa.model.CommunicationParty
 import no.nav.emottak.cpa.persistence.CPARepository
 import no.nav.emottak.cpa.persistence.gammel.PartnerRepository
 import no.nav.emottak.cpa.util.EventRegistrationServiceFake
+import no.nav.emottak.cpa.validation.AdresseregisterValidator
 import no.nav.emottak.message.model.Direction.IN
 import no.nav.emottak.message.model.EmailAddress
 import no.nav.emottak.message.model.ErrorCode
@@ -51,7 +52,9 @@ import no.nav.emottak.message.model.ValidationRequest
 import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.util.LENIENT_JSON_PARSER
 import no.nav.emottak.util.OSLO_ZONE
+import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.jsonLenient
+import no.nav.emottak.util.thumbprint
 import no.nav.emottak.utils.common.model.Addressing
 import no.nav.emottak.utils.common.model.Party
 import no.nav.emottak.utils.common.model.PartyId
@@ -88,11 +91,13 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
                 postgres.dataSource,
                 oracle.dataSource,
                 eventRegistrationService,
-                HttpClient(getFakeNhnAdresseregisterEngine()) {
-                    install(ContentNegotiation) {
-                        jsonLenient()
+                AdresseregisterValidator(
+                    HttpClient(getFakeNhnAdresseregisterEngine()) {
+                        install(ContentNegotiation) {
+                            jsonLenient()
+                        }
                     }
-                }
+                )
             )
         )
         testBlock()
@@ -101,28 +106,31 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
     private fun <T> validateCpaMockTestApp(testBlock: suspend ApplicationTestBuilder.() -> T) = testApplication {
         clearAllMocks()
 
-        val httpClient = createClient {
-            install(ContentNegotiation) {
-                jsonLenient()
+        val adresseregisterValidator = AdresseregisterValidator(
+            HttpClient(getFakeNhnAdresseregisterEngine()) {
+                install(ContentNegotiation) {
+                    jsonLenient()
+                }
             }
-        }
+        )
+
         cpaRepositoryMock = mockk()
         partnerRepositoryMock = mockk(relaxed = true)
-        application(validateCpaApplicationModule(cpaRepositoryMock, partnerRepositoryMock, httpClient))
+        application(validateCpaApplicationModule(cpaRepositoryMock, partnerRepositoryMock, adresseregisterValidator))
         testBlock()
     }
 
     private fun validateCpaApplicationModule(
         cpaRepository: CPARepository,
         partnerRepository: PartnerRepository,
-        httpdClient: HttpClient
+        adresseregisterValidator: AdresseregisterValidator
     ): Application.() -> Unit {
         return {
             install(io.ktor.server.plugins.contentnegotiation.ContentNegotiation) {
                 jsonLenient()
             }
             routing {
-                validateCpa(cpaRepository, partnerRepository, eventRegistrationService, httpdClient)
+                validateCpa(cpaRepository, partnerRepository, eventRegistrationService, adresseregisterValidator)
             }
         }
     }
@@ -230,7 +238,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         // assertTrue(validationResult.receiverEmailAddress.isEmpty()) // Channel-protokoll er HTTP
         assertEquals(1, validationResult.receiverEmailAddress.size)
         assertEquals("mailto://mottak-qass@test-es.nav.no", "mailto://" + validationResult.receiverEmailAddress.first().emailAddress)
-        assertEquals("mailto://meldingstjener-api@testedi.nhn.no", "mailto://" + validationResult.signalEmailAddress.first().emailAddress)
+        assertEquals("mailto://mottak-qass@test-es.nav.no", "mailto://" + validationResult.signalEmailAddress.first().emailAddress)
     }
 
     @Test
@@ -868,31 +876,6 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
     }
 
     @Test
-    fun `messagingCharacteristics endpoint should return OK if CPA does not found`() = cpaRepoTestApp {
-        val httpClient = createClient {
-            install(ContentNegotiation) {
-                jsonLenient()
-            }
-        }
-
-        val messagingCharacteristicsRequest = MessagingCharacteristicsRequest(
-            requestId = Uuid.random().toString(),
-            cpaId = "no:such:cpa",
-            partyIds = listOf(PartyId("HER", "8141253")),
-            role = "Behandler",
-            service = "BehandlerKrav",
-            action = "OppgjorsMelding"
-        )
-
-        val response = httpClient.post("/cpa/messagingCharacteristics") {
-            setBody(messagingCharacteristicsRequest)
-            contentType(Json)
-        }
-
-        assertEquals(HttpStatusCode.OK, response.status)
-    }
-
-    @Test
     fun `Validate signature sertifikat from AR when Cpa does not exist`() = cpaRepoTestApp {
         val request = SignatureDetailsRequest(
             cpaId = "no:such:cpa", // TODO endres hvis/når respons fra getCpa ikke lenger er hardkodet
@@ -914,7 +897,9 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
             contentType(Json)
         }
 
-        response.body<Certificate>()
+        val signatureDetails = response.body<SignatureDetails>()
+        val signingCertificate = createX509Certificate(signatureDetails.certificate)
+        assertEquals("6401DC7DE91E1DE1DAA58AB9F71B769C00578FA2", signingCertificate.thumbprint())
         assertEquals(HttpStatusCode.OK, response.status)
     }
 
