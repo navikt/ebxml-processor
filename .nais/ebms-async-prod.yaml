@@ -66,6 +66,8 @@ spec:
     inbound:
       rules:
         - application: smtp-transport
+  envFrom:
+    - configmap: ebms-async
   env:
     - name: VIRKSOMHETSSERTIFIKAT_PATH
       value: /secret/virksomhetssertifikat/prod/Arbeids-og-velferdsetaten

@@ -71,6 +71,11 @@ import no.nav.emottak.utils.kafka.service.EventLoggingService
 import org.slf4j.LoggerFactory
 import kotlin.concurrent.timer
 
+// De fleste env-variablene hentes fra nais-yaml i dette prosjektet, så key i koden skal stemme med key i nais-yaml.
+// For de følgende feature-flaggene hentes variabelverdien fra ekstern nais-config, med følgende keys.
+// (Se https://console.nav.cloud.nais.io/team/team-emottak/dev-fss/config/ebms-async)
+const val USE_ASYNC_IN_KEY = "USE_ASYNC_IN"
+
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.async.App")
 
 fun main() = SuspendApp {
@@ -80,13 +85,7 @@ fun main() = SuspendApp {
 
     val config = config()
 
-    val useAsyncOutbound = getEnvVar("USE_ASYNC_OUT", "false").toBoolean()
-    if (useAsyncOutbound) {
-        log.info("Starting OUT receiver, asynchronous responses/outgoing messages will be processed.")
-    } else {
-        log.info("OUT receiver is OFF, asynchronous responses/outgoing messages will NOT be processed.")
-    }
-    val useAsyncInbound = getEnvVar("USE_ASYNC_IN", "false").toBoolean()
+    val useAsyncInbound = getEnvVar(USE_ASYNC_IN_KEY, "false").fixEnvStringFromConfig().toBoolean()
     if (useAsyncInbound) {
         log.info("Async IN is ON, inbound messages will be forwarded asynchronously.")
     } else {
@@ -225,6 +224,11 @@ fun main() = SuspendApp {
             }
         }
 }
+
+// Boolske verdier i ekstern NAIS config må/bør være tekst-strenger, ellers kan de ikke redigeres
+// De kommer da inn til applikasjonen med anførselstegnene i tekstverdien, som må fjernes for å kunne tolkes riktig.
+internal fun String.fixEnvStringFromConfig() = removeSurrounding("\"")
+
 class PauseRetryErrorsTimerFlag {
     var paused = false
 }
