@@ -12,9 +12,9 @@ import no.nav.emottak.ebms.async.log
 import no.nav.emottak.ebms.async.processing.PayloadMessageService
 import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadMessage
-import no.nav.emottak.util.LENIENT_JSON_PARSER
 import no.nav.emottak.utils.common.model.SendInResponse
 import no.nav.emottak.utils.config.Kafka
+import no.nav.emottak.utils.serialization.LENIENT_JSON_PARSER
 import org.apache.kafka.common.serialization.ByteArrayDeserializer
 import org.apache.kafka.common.serialization.StringDeserializer
 import kotlin.time.Duration.Companion.seconds
