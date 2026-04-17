@@ -24,8 +24,7 @@ class PayloadMessageService(
     val payloadMessageForwardingService: PayloadMessageForwardingService,
     val eventRegistrationService: EventRegistrationService,
     val eventManagerService: EventManagerService,
-    val retryService: RetryService,
-    val useAsyncInbound: Boolean
+    val retryService: RetryService
 ) {
 
     suspend fun process(
@@ -90,13 +89,8 @@ class PayloadMessageService(
                 payloadMessageForwardingService.forwardMessageWithSyncResponse(processedPayload)
             }
             MessageType.TREKKOPPLYSNING -> {
-                if (useAsyncInbound) {
-                    log.debug(processedPayload.marker(), "Calling SendIn ASYNCHRONOUSLY for $messageType")
-                    payloadMessageForwardingService.forwardMessageWithAsyncResponse(processedPayload, validationResult.partnerId)
-                } else {
-                    log.debug(processedPayload.marker(), "Calling SendIn SYNCHRONOUSLY (due to async flag turned OFF) for $messageType")
-                    payloadMessageForwardingService.forwardMessageWithSyncResponse(processedPayload)
-                }
+                log.debug(processedPayload.marker(), "Calling SendIn ASYNCHRONOUSLY for $messageType")
+                payloadMessageForwardingService.forwardMessageWithAsyncResponse(processedPayload, validationResult.partnerId)
             }
             else -> {
                 log.debug(processedPayload.marker(), "Skipping SendIn for $processedPayload.addressing.service")

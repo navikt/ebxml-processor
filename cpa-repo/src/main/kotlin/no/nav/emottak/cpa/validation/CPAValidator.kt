@@ -78,22 +78,16 @@ fun partyInfoHasRoleServiceActionCombo(partyInfo: PartyInfo, role: String, servi
 
 @Throws(CpaValidationException::class)
 fun getRoleFromPartyInfoWithServiceActionCombo(partyInfo: PartyInfo, service: String, action: String, direction: MessageDirection): String {
-    var lookupRole = ""
-    val partyWithRole = partyInfo.collaborationRole.firstOrNull { r ->
-        if (r.serviceBinding.service.value == service) {
-            lookupRole = r.role.name
-            true
-        } else {
-            false
-        }
+    val partyWithRole = partyInfo.collaborationRole.firstOrNull {
+        it.serviceBinding.service.value == service
     } ?: throw CpaValidationException("Service $service kan ikke brukes av party ${partyInfo.partyName}")
     when (direction) {
-        MessageDirection.SEND -> partyWithRole!!.serviceBinding.canSend.firstOrNull { a -> a.thisPartyActionBinding.action == action }
+        MessageDirection.SEND -> partyWithRole.serviceBinding.canSend.firstOrNull { a -> a.thisPartyActionBinding.action == action }
             ?: throw CpaValidationException("Action $action matcher ikke service $service for sending party ${partyInfo.partyName}")
-        MessageDirection.RECEIVE -> partyWithRole!!.serviceBinding.canReceive.firstOrNull { a -> a.thisPartyActionBinding.action == action }
+        MessageDirection.RECEIVE -> partyWithRole.serviceBinding.canReceive.firstOrNull { a -> a.thisPartyActionBinding.action == action }
             ?: throw CpaValidationException("Action $action matcher ikke service $service for receiving party ${partyInfo.partyName}")
     }
-    return lookupRole
+    return partyWithRole.role.name
 }
 
 fun CollaborationProtocolAgreement.validateCpaId(cpaId: String) {
