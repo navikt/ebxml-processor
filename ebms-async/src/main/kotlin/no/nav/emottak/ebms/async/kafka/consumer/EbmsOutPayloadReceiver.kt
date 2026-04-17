@@ -41,16 +41,14 @@ suspend fun startEbmsOutPayloadReceiver(
         .receive(topic)
         .map { record ->
             val sendInResponse = Json.decodeFromString<SendInResponse>(record.value().decodeToString())
-            val cpaId = record.headers().lastHeader("cpaId")?.let { String(it.value()) } ?: ""
-            val refToMessageId = record.headers().lastHeader("refToMessageId")?.let { String(it.value()) }
             val payloadMessage = PayloadMessage(
                 requestId = sendInResponse.requestId,
                 messageId = sendInResponse.messageId,
                 conversationId = sendInResponse.conversationId,
-                cpaId = cpaId,
+                cpaId = sendInResponse.cpaId,
                 addressing = sendInResponse.addressing,
                 payload = Payload(sendInResponse.payload, ContentType.Application.Xml.toString()),
-                refToMessageId = refToMessageId,
+                refToMessageId = sendInResponse.refToMessageId,
                 duplicateElimination = false,
                 ackRequested = true
             )
