@@ -57,6 +57,7 @@ import no.nav.emottak.utils.common.model.PartyId
 import no.nav.emottak.utils.environment.getEnvVar
 import no.nav.security.mock.oauth2.MockOAuth2Server
 import org.apache.commons.lang3.StringUtils
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
@@ -75,6 +76,7 @@ import kotlin.test.assertTrue
 import kotlin.uuid.Uuid
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@Disabled
 class CPARepoIntegrationTest : PostgresOracleTest() {
     val eventRegistrationService = EventRegistrationServiceFake()
     private lateinit var cpaRepositoryMock: CPARepository

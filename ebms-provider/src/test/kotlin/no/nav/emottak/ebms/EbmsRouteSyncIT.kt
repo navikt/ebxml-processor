@@ -129,7 +129,9 @@ class EbmsRouteSyncIT {
                         call.respond(
                             SendInResponse(
                                 "e17eb03e-9e43-43fb-874c-1fde9a28c308",
+                                "e17eb03e-9e43-43fb-874c-1fde9a28c308",
                                 "1234",
+                                "dummyCpa",
                                 Addressing(Party(listOf(PartyId("HER", "79768")), "Frikortregister"), Party(listOf(PartyId("HER", "8090595")), "Utleverer"), "HarBorgerEgenandelFritak", "EgenandelSvar"),
                                 this::class.java.classLoader.getResource("har-borger-egenandrel-fritak/harBorgerEgenandelFritakResponseFagmelding.xml")!!.readBytes(),
                                 requestId = Uuid.random().toString()

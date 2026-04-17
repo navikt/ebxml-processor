@@ -43,9 +43,9 @@ class PayloadMessageForwardingService(
 ) {
 
     suspend fun forwardMessageWithSyncResponse(payloadMessage: PayloadMessage) {
-        when (val service = payloadMessage.addressing.service) {
-            "HarBorgerFrikortMengde", "Inntektsforesporsel", "Trekkopplysning" -> {
-                log.debug(payloadMessage.marker(), "Starting SendIn for $service")
+        when (val messageType = messageTypeByServiceName(payloadMessage.addressing.service)) {
+            MessageType.HAR_BORGER_FRIKORT_MENGDE, MessageType.INNTEKTSFORESPORSEL, MessageType.TREKKOPPLYSNING -> {
+                log.debug(payloadMessage.marker(), "Starting SendIn for $messageType")
                 sendInService.sendIn(payloadMessage).let { sendInResponse ->
                     PayloadMessage(
                         requestId = sendInResponse.requestId,
@@ -63,7 +63,7 @@ class PayloadMessageForwardingService(
                 }
             }
             else -> {
-                log.debug(payloadMessage.marker(), "Skipping SendIn for $service")
+                log.debug(payloadMessage.marker(), "Skipping SendIn for $payloadMessage.addressing.service")
             }
         }
     }
