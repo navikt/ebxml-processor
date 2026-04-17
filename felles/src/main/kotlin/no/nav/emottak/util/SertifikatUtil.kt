@@ -2,6 +2,7 @@ package no.nav.emottak.util
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import java.io.ByteArrayInputStream
+import java.security.MessageDigest
 import java.security.cert.CertificateException
 import java.security.cert.CertificateFactory
 import java.security.cert.X509CRL
@@ -26,3 +27,8 @@ fun createCRLFile(byteArray: ByteArray): X509CRL {
 }
 
 fun decodeBase64(base64String: ByteArray): ByteArray = java.util.Base64.getMimeDecoder().decode(base64String)
+
+fun X509Certificate.thumbprint(): String {
+    val digest = MessageDigest.getInstance("SHA-1")
+    return digest.digest(encoded).joinToString("") { "%02X".format(it) }
+}
