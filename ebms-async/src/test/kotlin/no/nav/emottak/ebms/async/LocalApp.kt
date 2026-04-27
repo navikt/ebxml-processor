@@ -328,12 +328,14 @@ class DummySendInClient() : SendInClient(defaultHttpClient()) {
         var responsePayload = readClasspathFile("xml/harBorgerEgenandelFritakResponseFagmelding.xml")
         if (responsePayload == null) responsePayload = ""
         val responseMessageId = "22a46f21-33c6-4324-8e46-b704a59b5658"
+        val refToMessageId = "22a46f21-33c6-4324-8e46-b704a59b5658"
         val responseConversationId = "17eb03e-9e43-43fb-874c-1fde9a28c308"
         val responseRequestId = "11111111-2222-3333-4444-555555555555"
+        val cpaId = "dummyCpa"
         val service = "Inntektsforesporsel"
         val action = "InntektInformasjon"
         val addressing = Addressing(sendInRequest.addressing.from, sendInRequest.addressing.to, service, action)
-        return SendInResponse(responseMessageId, responseConversationId, addressing, responsePayload.toByteArray(), responseRequestId)
+        return SendInResponse(responseMessageId, refToMessageId, responseConversationId, cpaId, addressing, responsePayload.toByteArray(), responseRequestId)
     }
 }
 

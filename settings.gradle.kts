@@ -24,8 +24,8 @@ dependencyResolutionManagement {
             version("logback", "1.5.17")
             version("logstash", "8.0")
             version("fasterxml-jackson", "2.18.2")
-            version("emottak-utils", "0.3.6")
             version("jwt", "4.4.0")
+            version("emottak-utils", "0.3.7")
 
             library("jwt", "com.auth0", "java-jwt").versionRef("jwt")
             library("bcpkix-jdk18on", "org.bouncycastle", "bcpkix-jdk18on").versionRef("bouncycastle")
