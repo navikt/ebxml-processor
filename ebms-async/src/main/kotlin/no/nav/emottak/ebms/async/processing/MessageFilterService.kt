@@ -3,6 +3,8 @@ package no.nav.emottak.ebms.async.processing
 import io.github.nomisRev.kafka.receiver.ReceiverRecord
 import kotlinx.serialization.json.Json
 import no.nav.emottak.ebms.SmtpTransportClient
+import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
+import no.nav.emottak.ebms.async.log
 import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.message.model.Acknowledgment
 import no.nav.emottak.message.model.DocumentType
@@ -23,14 +25,21 @@ open class MessageFilterService(
     val payloadMessageService: PayloadMessageService,
     val signalMessageService: SignalMessageService,
     val smtpTransportClient: SmtpTransportClient,
-    val eventRegistrationService: EventRegistrationService
+    val eventRegistrationService: EventRegistrationService,
+    val failedMessageKafkaHandler: FailedMessageKafkaHandler
 ) {
 
     open suspend fun filterMessage(record: ReceiverRecord<String, ByteArray>) {
-        val ebmsMessage = createEbmsDocument(
-            requestId = record.key(),
-            document = record.value().createDocument()
-        )
+        val ebmsMessage = try {
+            createEbmsDocument(
+                requestId = record.key(),
+                document = record.value().createDocument()
+            )
+        } catch (e: Exception) {
+            log.error("Failed to create ebmsDocument", e)
+            failedMessageKafkaHandler.sendToRetryQueueIncoming(record, e.localizedMessage)
+            return
+        }
         eventRegistrationService.registerEvent(
             eventType = EventType.MESSAGE_READ_FROM_QUEUE,
             requestId = ebmsMessage.requestId.parseOrGenerateUuid(),
