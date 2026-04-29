@@ -115,8 +115,6 @@ class PayloadMessageForwardingService(
             ),
             validationResult.payloadProcessing
         )
-
-        validationResult.ebmsProcessing
         val signedEbmsDocument = processedMessage.toEbmsDokument()
             .signer(validationResult.payloadProcessing!!.signingCertificate)
         savePayloadsToDatabase(
