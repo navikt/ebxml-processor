@@ -107,7 +107,7 @@ class PayloadMessageForwardingService(
         val elimStrat: PerMessageCharacteristicsType? = cpaValidationService.getDuplicateEliminationStrategy(payloadMessage)
         val duplicateElimination: Boolean = when (elimStrat) {
             PerMessageCharacteristicsType.NEVER -> false
-                else -> true
+            else -> true
         }
         val processedMessage = processingService.proccessSyncOut(
             payloadMessage.copy(
