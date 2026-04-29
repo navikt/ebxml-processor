@@ -173,7 +173,8 @@ fun main() = SuspendApp {
         payloadMessageService = payloadMessageService,
         signalMessageService = signalMessageService,
         smtpTransportClient = smtpTransportClient,
-        eventRegistrationService = eventRegistrationService
+        eventRegistrationService = eventRegistrationService,
+        failedMessageKafkaHandler = failedMessageQueue
     )
 
     var pauseRetryErrorsTimerFlag = PauseRetryErrorsTimerFlag()
@@ -253,12 +254,14 @@ class DummyMessageFilterService(
     payloadMessageService: PayloadMessageService,
     signalMessageService: SignalMessageService,
     smtpTransportClient: DummySmtpTransportClient,
-    eventRegistrationService: EventRegistrationServiceFake
+    eventRegistrationService: EventRegistrationServiceFake,
+    failedMessageKafkaHandler: FailedMessageKafkaHandler
 ) : MessageFilterService(
     payloadMessageService,
     signalMessageService,
     smtpTransportClient,
-    eventRegistrationService
+    eventRegistrationService,
+    failedMessageKafkaHandler
 ) {
     override suspend fun filterMessage(record: ReceiverRecord<String, ByteArray>) {
         println("--DUMMY Processing message with requestId: ${record.key()} and offset ${record.offset()}:\n" + record.value().decodeToString().substring(0, 100))

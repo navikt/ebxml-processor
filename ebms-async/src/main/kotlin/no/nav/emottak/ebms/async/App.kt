@@ -146,7 +146,8 @@ fun main() = SuspendApp {
         payloadMessageService = payloadMessageService,
         signalMessageService = signalMessageService,
         smtpTransportClient = smtpTransportClient,
-        eventRegistrationService = eventRegistrationService
+        eventRegistrationService = eventRegistrationService,
+        failedMessageKafkaHandler = failedMessageQueue
     )
 
     val pauseRetryErrorsTimerFlag = PauseRetryErrorsTimerFlag()
