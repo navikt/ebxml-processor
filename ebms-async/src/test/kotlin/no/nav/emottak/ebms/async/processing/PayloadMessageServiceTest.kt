@@ -474,7 +474,8 @@ class PayloadMessageServiceTest {
         val receiverRecord = mockk<ReceiverRecord<String, ByteArray>>(relaxed = true)
         coEvery { receiverRecord.key() } returns "key"
         coEvery { receiverRecord.value() } returns "value".toByteArray()
-        coEvery { retryService.sendToRetryIfShouldBeRetried(any(), any(), any(), any(), any()) } just Runs
+        coEvery { retryService.incomingRetryEval(any(), any(), any(), any()) } just Runs
+        coEvery { retryService.outgoingRetryEval(any(), any(), any(), any()) } just Runs
         return receiverRecord
     }
 
