@@ -18,7 +18,8 @@ import io.ktor.http.HttpMethod.Companion.Post
 import net.minidev.json.JSONObject
 import net.minidev.json.parser.JSONParser
 import net.minidev.json.parser.JSONParser.MODE_PERMISSIVE
-import no.nav.emottak.cpa.configuration.Config
+import no.nav.emottak.cpa.configuration.Nhn
+import no.nav.emottak.cpa.configuration.NhnOAuth
 import java.io.File
 import java.net.URI
 import java.security.MessageDigest.getInstance
@@ -32,11 +33,12 @@ private const val HTU_CLAIM_NAME = "htu"
 private const val ATH_CLAIM_NAME = "ath"
 
 class DpopJwtProvider(
-    private val config: Config
+    private val nhnOAuth: NhnOAuth,
+    private val nhn: Nhn
 ) {
     fun dpopProofWithoutNonce(): String =
         dpopProof(
-            config.nhnOAuth.tokenEndpoint,
+            nhnOAuth.tokenEndpoint,
             Post,
             null,
             null
@@ -44,7 +46,7 @@ class DpopJwtProvider(
 
     fun dpopProofWithNonce(nonce: Nonce): String =
         dpopProof(
-            config.nhnOAuth.tokenEndpoint,
+            nhnOAuth.tokenEndpoint,
             Post,
             nonce,
             null
@@ -69,16 +71,16 @@ class DpopJwtProvider(
                 mapOf(
                     "typ" to "client-authentication+jwt",
                     "alg" to "RS256",
-                    "kid" to config.nhnOAuth.keyId.value
+                    "kid" to nhnOAuth.keyId.value
                 )
             )
-            .withIssuer(config.nhnOAuth.clientId.value)
-            .withSubject(config.nhnOAuth.clientId.value)
-            .withAudience(config.nhnOAuth.audience.value)
+            .withIssuer(nhnOAuth.clientId.value)
+            .withSubject(nhnOAuth.clientId.value)
+            .withAudience(nhnOAuth.audience.value)
             .withJWTId(Uuid.random().toString())
             .withIssuedAt(from(now))
             .withExpiresAt(from(now.plusSeconds(60)))
-            .sign(Algorithm.RSA256(parseKeyPair(config.nhn.keyPairPath.value).toRSAPrivateKey()))
+            .sign(Algorithm.RSA256(parseKeyPair(nhn.keyPairPath.value).toRSAPrivateKey()))
     }
 
     private fun dpopProof(
@@ -93,7 +95,7 @@ class DpopJwtProvider(
         .apply {
             sign(
                 RSASSASigner(
-                    parseKeyPair(config.nhn.keyPairPath.value)
+                    parseKeyPair(nhn.keyPairPath.value)
                         .toRSAPrivateKey()
                 )
             )
@@ -125,7 +127,7 @@ class DpopJwtProvider(
     internal fun rsaKey(): RSAKey =
         RSAKey
             .Builder(
-                parseKeyPair(config.nhn.keyPairPath.value)
+                parseKeyPair(nhn.keyPairPath.value)
                     .toRSAPublicKey()
             )
             .algorithm(RS256)

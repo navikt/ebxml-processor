@@ -1,0 +1,44 @@
+{
+  "herId": 8141253,
+  "name": "SPEARE AS",
+  "displayName": "Speare",
+  "type": "Organization",
+  "organizationDetails": {
+    "organizationNumber": "993954896",
+    "businessType": {
+      "codeListId": "9040",
+      "value": "103",
+      "name": "Fastlege og annen privat virksomhet som yter helsetjenester",
+      "url": "https://fat.kote.helsedirektoratet.no/api/code-systems/adm/codelist/9040"
+    },
+    "persons": [
+      8143579,
+      8144326
+    ],
+    "services": [
+      8143187,
+      8141449,
+      8142462,
+      8141978,
+      8141451,
+      8141452
+    ]
+  },
+  "currentSigningCertificate": {
+    "thumbprint": "6401DC7DE91E1DE1DAA58AB9F71B769C00578FA2",
+    "validFrom": "2025-01-02T09:29:44+00:00",
+    "validTo": "2028-01-02T22:59:00+00:00"
+  },
+  "currentEncryptionCertificate": {
+    "thumbprint": "1D9976A7238FAED100487BF1F24FDC933737240D",
+    "validFrom": "2025-01-02T09:29:44+00:00",
+    "validTo": "2028-01-02T22:59:00+00:00"
+  },
+  "email": "speare@speare.no",
+  "homepageUrl": "http://www.speare.no",
+  "faxNumber": "21557746",
+  "ediAddress": "meldingstjener-api@testedi.nhn.no",
+  "amqpTransportStatus": "Disabled",
+  "validFrom": "2022-09-21T00:00:00+00:00",
+  "validTo": "2122-09-21T00:00:00+00:00"
+}
