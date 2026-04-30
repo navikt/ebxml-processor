@@ -56,7 +56,7 @@ internal fun createSertifikatInfoFromOCSPResponse(
 }
 
 internal fun formatDate(date: Date): String {
-    return SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale("nb")).format(date)
+    return SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.forLanguageTag("nb")).format(date)
 }
 
 private fun getSertifikatType(certificate: X509Certificate): SertifikatType {

@@ -1,39 +1,9 @@
 plugins {
-    kotlin("jvm")
-    application
-    id("io.ktor.plugin")
-    kotlin("plugin.serialization") apply true
-    id("org.jlleitschuh.gradle.ktlint") version "11.6.1"
+    id("ktor-application-conventions")
 }
 
-tasks {
-    register<Wrapper>("wrapper") {
-        gradleVersion = "8.1.1"
-    }
-    shadowJar {
-        archiveFileName.set("app.jar")
-        isZip64 = true
-    }
-    test {
-        useJUnitPlatform()
-    }
-    ktlintFormat {
-        this.enabled = true
-    }
-    ktlintCheck {
-        dependsOn("ktlintFormat")
-    }
-    build {
-        dependsOn("ktlintCheck")
-    }
-}
-
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().all {
-    compilerOptions {
-        optIn.add("kotlin.uuid.ExperimentalUuidApi")
-        optIn.add("com.sksamuel.hoplite.ExperimentalHoplite")
-        optIn.add("kotlin.time.ExperimentalTime")
-    }
+application {
+    mainClass.set("no.nav.emottak.ebms.async.AppKt")
 }
 
 dependencies {
@@ -89,6 +59,10 @@ dependencies {
     testRuntimeOnly(testLibs.junit.jupiter.engine)
 }
 
-application {
-    mainClass.set("no.nav.emottak.ebms.async.AppKt")
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().all {
+    compilerOptions {
+        optIn.add("kotlin.uuid.ExperimentalUuidApi")
+        optIn.add("com.sksamuel.hoplite.ExperimentalHoplite")
+        optIn.add("kotlin.time.ExperimentalTime")
+    }
 }
