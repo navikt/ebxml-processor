@@ -42,6 +42,7 @@ import no.nav.emottak.message.ebxml.EbXMLConstants.EBMS_SERVICE_URI
 import no.nav.emottak.message.ebxml.EbXMLConstants.MESSAGE_ERROR_ACTION
 import no.nav.emottak.message.ebxml.PartyTypeEnum
 import no.nav.emottak.message.exception.EbmsException
+import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.ErrorCode
 import no.nav.emottak.message.model.Feil
 import no.nav.emottak.message.model.MessagingCharacteristicsRequest
@@ -53,6 +54,7 @@ import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.isToday
 import no.nav.emottak.util.marker
+import no.nav.emottak.utils.common.model.Addressing
 import no.nav.emottak.utils.common.model.EbmsProcessing
 import no.nav.emottak.utils.environment.getEnvVar
 import no.nav.emottak.utils.kafka.model.EventDataType
@@ -244,9 +246,20 @@ fun Route.validateCpa(
         if (!validateRequest.isSignalMessage()) {
             cpa.validate(validateRequest)
         } // Delivery Failure
-
-        val fromParty = cpa.getPartyInfoByTypeAndID(validateRequest.addressing.from.partyId) // Delivery Failure
-        val toParty = cpa.getPartyInfoByTypeAndID(validateRequest.addressing.to.partyId) // Delivery Failure
+        val fromParty =
+            if (validateRequest.direction == Direction.OUT) {
+                cpa.getValidPartyInfosSender().firstOrNull().also { log.info("Found FromParty in CPA. Name: [${it?.partyName}] PartyIds: [${it?.partyId}]") }
+                    ?: throw NotFoundException("Fant ikke avsender for CPA ${validateRequest.cpaId}")
+            } else {
+                cpa.getPartyInfoByTypeAndID(validateRequest.addressing.from.partyId) // Delivery Failure
+            }
+        val toParty =
+            if (validateRequest.direction == Direction.OUT) {
+                cpa.getValidPartyInfosReceiver().firstOrNull().also { log.info("Found ToParty in CPA. Name: [${it?.partyName}] PartyIds: [${it?.partyId}]") }
+                    ?: throw NotFoundException("Fant ikke mottaker for CPA ${validateRequest.cpaId}")
+            } else {
+                cpa.getPartyInfoByTypeAndID(validateRequest.addressing.to.partyId) // Delivery Failure
+            }
         val encryptionCertificate = toParty.getCertificateForEncryption()
 
         val signingCertificate = fromParty.getCertificateForSignatureValidation(
@@ -282,7 +295,17 @@ fun Route.validateCpa(
                 ),
                 signalEmails,
                 receiverEmails,
-                partnerId
+                partnerId,
+                cpaAddressing = if (validateRequest.direction == Direction.OUT) {
+                    Addressing(
+                        toParty.toDomainModel(),
+                        fromParty.toDomainModel(),
+                        validateRequest.addressing.service,
+                        validateRequest.addressing.action
+                    )
+                } else {
+                    null
+                }
             )
         )
 
