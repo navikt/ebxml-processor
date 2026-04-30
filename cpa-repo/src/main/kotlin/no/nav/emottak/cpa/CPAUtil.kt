@@ -3,11 +3,13 @@ package no.nav.emottak.cpa
 import jakarta.xml.bind.JAXBElement
 import no.nav.emottak.cpa.feil.CpaValidationException
 import no.nav.emottak.cpa.feil.SecurityException
+import no.nav.emottak.cpa.persistence.ProcessConfigTable.role
 import no.nav.emottak.message.ebxml.EbXMLConstants.EBMS_SERVICE_URI
 import no.nav.emottak.message.ebxml.PartyTypeEnum
 import no.nav.emottak.message.model.EmailAddress
 import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.message.model.ValidationRequest
+import no.nav.emottak.utils.common.model.Party
 import no.nav.emottak.utils.common.model.PartyId
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.Certificate
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
@@ -48,6 +50,41 @@ fun PartyInfo.getSendDeliveryChannel(
         val roles = this.collaborationRole.filter { it.role.name == role && it.serviceBinding.service.value == service }
         val canSend = roles.flatMap { it.serviceBinding.canSend.filter { cs -> cs.thisPartyActionBinding.action == action } }
         return canSend.firstOrNull()?.thisPartyActionBinding?.channelId?.first()?.value as DeliveryChannel? ?: throw CpaValidationException("Fant ikke SendDeliverChannel")
+    }
+}
+
+fun PartyInfo.toDomainModel(): Party {
+    return Party(partyId.map { partyId -> PartyId(partyId.type!!, partyId.value!!) }, role.name)
+}
+
+fun List<PartyInfo>.getValidPartyInfoSender(service: String, action: String): PartyInfo {
+    return first { partyInfo ->
+        partyInfo.collaborationRole
+            .any() { collabRole ->
+                collabRole.serviceBinding.service.value == service && collabRole.serviceBinding.canSend.any { cs -> cs.thisPartyActionBinding.action == action }
+            }
+    }
+}
+
+fun List<PartyInfo>.getValidPartyInfoReceiver(service: String, action: String): PartyInfo {
+    return first { partyInfo ->
+        partyInfo.collaborationRole
+            .any() { collabRole ->
+                collabRole.serviceBinding.service.value == service && collabRole.serviceBinding.canReceive.any { cr -> cr.thisPartyActionBinding.action == action }
+            }
+    }
+}
+
+fun CollaborationProtocolAgreement.getValidPartyInfos(): List<PartyInfo> {
+    return this.partyInfo.filter { partyInfo ->
+        partyInfo.partyId.firstOrNull {
+                partyId ->
+            partyId.type == PartyTypeEnum.HER.type ||
+                partyId.type == PartyTypeEnum.ENH.type ||
+                partyId.type == PartyTypeEnum.ORG.type
+        } != null
+    }.also {
+        if (it.isEmpty()) throw CpaValidationException("Ingen gyldige mottakere funnet i CPA")
     }
 }
 
