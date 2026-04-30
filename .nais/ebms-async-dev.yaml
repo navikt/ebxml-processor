@@ -105,6 +105,7 @@ spec:
       value: http://emottak-event-manager
   envFrom:
     - secret: ebms-keystore-pwd-2025
+    - configmap: ebms-async-config
   filesFrom:
     - secret: ebms-keystore-2025
       mountPath: /var/run/secrets/ebms-keystore-2025
