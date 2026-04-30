@@ -75,9 +75,22 @@ fun List<PartyInfo>.getValidPartyInfoReceiver(service: String, action: String): 
     }
 }
 
-fun CollaborationProtocolAgreement.getValidPartyInfos(): List<PartyInfo> {
+fun CollaborationProtocolAgreement.getValidPartyInfosReceiver(): List<PartyInfo> {
     return this.partyInfo.filter { partyInfo ->
-        partyInfo.partyId.firstOrNull {
+        partyInfo.partyName != "NAV" && partyInfo.partyId.firstOrNull {
+                partyId ->
+            partyId.type == PartyTypeEnum.HER.type ||
+                partyId.type == PartyTypeEnum.ENH.type ||
+                partyId.type == PartyTypeEnum.ORG.type
+        } != null
+    }.also {
+        if (it.isEmpty()) throw CpaValidationException("Ingen gyldige mottakere funnet i CPA")
+    }
+}
+
+fun CollaborationProtocolAgreement.getValidPartyInfosSender(): List<PartyInfo> {
+    return this.partyInfo.filter { partyInfo ->
+        partyInfo.partyName == "NAV" && partyInfo.partyId.firstOrNull {
                 partyId ->
             partyId.type == PartyTypeEnum.HER.type ||
                 partyId.type == PartyTypeEnum.ENH.type ||

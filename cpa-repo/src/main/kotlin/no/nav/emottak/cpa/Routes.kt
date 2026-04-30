@@ -248,13 +248,15 @@ fun Route.validateCpa(
         } // Delivery Failure
         val fromParty =
             if (validateRequest.direction == Direction.OUT) {
-                cpa.getValidPartyInfos().getValidPartyInfoSender(validateRequest.addressing.service, validateRequest.addressing.action)
+                cpa.getValidPartyInfosSender().firstOrNull().also { log.info("Found FromParty in CPA. Name: [${it?.partyName}] PartyIds: [${it?.partyId}]") }
+                    ?: throw NotFoundException("Fant ikke avsender for CPA ${validateRequest.cpaId}")
             } else {
                 cpa.getPartyInfoByTypeAndID(validateRequest.addressing.from.partyId) // Delivery Failure
             }
         val toParty =
             if (validateRequest.direction == Direction.OUT) {
-                cpa.getValidPartyInfos().getValidPartyInfoReceiver(validateRequest.addressing.service, validateRequest.addressing.action)
+                cpa.getValidPartyInfosReceiver().firstOrNull().also { log.info("Found ToParty in CPA. Name: [${it?.partyName}] PartyIds: [${it?.partyId}]") }
+                    ?: throw NotFoundException("Fant ikke mottaker for CPA ${validateRequest.cpaId}")
             } else {
                 cpa.getPartyInfoByTypeAndID(validateRequest.addressing.to.partyId) // Delivery Failure
             }
