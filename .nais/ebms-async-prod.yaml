@@ -113,3 +113,5 @@ spec:
       value: http://smtp-transport
     - name: EVENT_MANAGER_URL
       value: http://emottak-event-manager
+  envFrom:
+    - configmap: ebms-async-config
