@@ -54,7 +54,10 @@ fun PartyInfo.getSendDeliveryChannel(
 }
 
 fun PartyInfo.toDomainModel(): Party {
-    return Party(partyId.map { partyId -> PartyId(partyId.type!!, partyId.value!!) }, role.name)
+    return Party(
+        partyId.map { partyId -> PartyId(partyId.type!!, partyId.value!!) },
+        collaborationRole.first().role.name
+    )
 }
 
 fun List<PartyInfo>.getValidPartyInfoSender(service: String, action: String): PartyInfo {
