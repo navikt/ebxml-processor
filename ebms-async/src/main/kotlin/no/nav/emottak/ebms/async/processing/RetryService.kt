@@ -1,6 +1,7 @@
 package no.nav.emottak.ebms.async.processing
 
 import io.github.nomisRev.kafka.receiver.ReceiverRecord
+import no.nav.emottak.ebms.async.configuration.ErrorRetryPolicy
 import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
 import no.nav.emottak.ebms.async.kafka.consumer.asReceiverRecord
@@ -36,41 +37,14 @@ class RetryService(
         exception: Throwable,
         retryReason: String = exception.message ?: "Unknown error"
     ) {
-        sendToRetryIfShouldBeRetried(record, payloadMessage, exception, retryReason, Direction.IN)
-    }
-
-    internal suspend fun outgoingRetryEval(
-        record: ReceiverRecord<String, ByteArray>,
-        payloadMessage: PayloadMessage,
-        exception: Throwable,
-        retryReason: String = exception.message ?: "Unknown error"
-    ) {
-        sendToRetryIfShouldBeRetried(record, payloadMessage, exception, retryReason, Direction.OUT)
-    }
-
-    internal suspend fun sendToRetryIfShouldBeRetried(
-        record: ReceiverRecord<String, ByteArray>,
-        payloadMessage: PayloadMessage,
-        exception: Throwable,
-        retryReason: String,
-        direction: Direction
-    ) {
-        val retriedAlready = record.retryCount()
+        val retryCount = record.retryCount()
         val (decision, reason) = decideRetry(
             ttl = payloadMessage.timeToLive,
-            retriedAlready = retriedAlready,
-            maxRetries = when (direction) {
-                Direction.IN -> config().errorRetryPolicyIncoming.maxRetries
-                Direction.OUT -> config().errorRetryPolicyOutgoing.maxRetries
-            }
+            retriedAlready = retryCount,
+            maxRetries = config().errorRetryPolicyIncoming.maxRetries
         )
         when (decision) {
-            RetryDecision.RETRY -> {
-                when (direction) {
-                    Direction.OUT -> failedMessageKafkaHandler.sendToRetryQueueOutgoing(record, retryReason, getNextRetryTime(record, direction))
-                    Direction.IN -> failedMessageKafkaHandler.sendToRetryQueueIncoming(record, retryReason, getNextRetryTime(record, direction))
-                }
-            }
+            RetryDecision.RETRY -> failedMessageKafkaHandler.sendToRetryQueueIncoming(record, retryReason, getNextRetryTime(record, config().errorRetryPolicyIncoming))
             RetryDecision.TTL_EXPIRED ->
                 returnMessageError(
                     payloadMessage,
@@ -83,14 +57,35 @@ class RetryService(
             RetryDecision.MAX_RETRIES_EXCEEDED ->
                 returnMessageError(
                     payloadMessage,
-                    EbmsException(
-                        "Max Retries expired",
-                        errorCode = no.nav.emottak.message.model.ErrorCode.DELIVERY_FAILURE,
-                        exception = exception
-                    )
+                    exception as? EbmsException
+                        ?: EbmsException(
+                            "Max Retries expired",
+                            errorCode = no.nav.emottak.message.model.ErrorCode.DELIVERY_FAILURE,
+                            exception = exception
+                        )
                 )
         }
-        log.info("Decision [$decision]:\n" + "Failing payload sent at ${payloadMessage.sentAt ?: "unknown"}, error type: ${exception::class.simpleName ?: "Unknown error"}, reason: $retryReason, retries already performed: $retriedAlready. Decision reason: $reason")
+        log.info("Decision [$decision]:\n" + "Failing payload sent at ${payloadMessage.sentAt ?: "unknown"}, error type: ${exception::class.simpleName ?: "Unknown error"}, reason: $retryReason, retries already performed: $retryCount. Decision reason: $reason")
+    }
+
+    internal suspend fun outgoingRetryEval(
+        record: ReceiverRecord<String, ByteArray>,
+        payloadMessage: PayloadMessage,
+        exception: Throwable,
+        retryReason: String = exception.message ?: "Unknown error"
+    ) {
+        val retryCount = record.retryCount()
+        val (decision, reason) = decideRetry(
+            ttl = payloadMessage.timeToLive,
+            retriedAlready = retryCount,
+            maxRetries = config().errorRetryPolicyOutgoing.maxRetries
+        )
+        when (decision) {
+            RetryDecision.RETRY -> failedMessageKafkaHandler.sendToRetryQueueOutgoing(record, retryReason, getNextRetryTime(record, config().errorRetryPolicyOutgoing))
+            RetryDecision.TTL_EXPIRED -> log.error(payloadMessage.marker(), "ebXML TimeToLive expired for outgoing message", exception)
+            RetryDecision.MAX_RETRIES_EXCEEDED -> log.error(payloadMessage.marker(), "ebXML Max Retires exhausted for outgoing message", exception)
+        }
+        log.info("Decision [$decision]:\n" + "Failing outgoing payload sent at ${payloadMessage.sentAt ?: "unknown"}, error type: ${exception::class.simpleName ?: "Unknown error"}, reason: $retryReason, retries already performed: $retryCount. Decision reason: $reason")
     }
 
     /**
@@ -181,11 +176,7 @@ class RetryService(
         }
     }
 
-    internal fun getNextRetryTime(record: ReceiverRecord<String, ByteArray>, direction: Direction): String {
-        val policy = when (direction) {
-            Direction.IN -> config().errorRetryPolicyIncoming
-            Direction.OUT -> config().errorRetryPolicyOutgoing
-        }
+    internal fun getNextRetryTime(record: ReceiverRecord<String, ByteArray>, policy: ErrorRetryPolicy): String {
         val nextInterval = policy.nextInterval(record.retryCount())
         return LocalDateTime.now().plus(nextInterval.toJavaDuration()).toString()
     }
