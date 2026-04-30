@@ -5,28 +5,11 @@ import no.nav.emottak.cpa.getPartyInfoByTypeAndID
 import no.nav.emottak.message.ebxml.EbXMLConstants.ACKNOWLEDGMENT_ACTION
 import no.nav.emottak.message.ebxml.EbXMLConstants.EBMS_SERVICE_URI
 import no.nav.emottak.message.ebxml.EbXMLConstants.MESSAGE_ERROR_ACTION
-import no.nav.emottak.message.model.ValidationRequest
 import no.nav.emottak.utils.common.model.Addressing
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PartyInfo
 import java.time.Instant
 import java.util.Date
-
-fun CollaborationProtocolAgreement.validate(validationRequest: ValidationRequest) {
-    validateCpaId(validationRequest.cpaId)
-    validateCpaDatoGyldig()
-    if (validationRequest.refToMessageId != null) {
-        // Hvis ref'en ikke er null, er det en Respons som skal valideres.
-        // Da holder det å validere at from/NAV-siden er OK,
-        // og at to/samhandler har et innslag for riktig service/action
-        // TODO kunne evt oppdatere from-role med verdien fra innslaget, tror ikke den brukes ?
-        val toRole = responseHasRoleServiceActionCombo(validationRequest.addressing)
-        log.info("Role for respons hentet fra to-party: $toRole")
-//        validationRequest.addressing.to.role = toRole
-    } else {
-        hasRoleServiceActionCombo(validationRequest.addressing)
-    }
-}
 
 @Throws(CpaValidationException::class)
 fun CollaborationProtocolAgreement.hasRoleServiceActionCombo(addressing: Addressing) {
@@ -44,23 +27,6 @@ fun CollaborationProtocolAgreement.hasRoleServiceActionCombo(addressing: Address
 
     partyInfoHasRoleServiceActionCombo(fromParty, fromRole, addressing.service, addressing.action, MessageDirection.SEND)
     partyInfoHasRoleServiceActionCombo(toParty, toRole, addressing.service, addressing.action, MessageDirection.RECEIVE)
-}
-
-@Throws(CpaValidationException::class)
-fun CollaborationProtocolAgreement.responseHasRoleServiceActionCombo(addressing: Addressing) {
-    if (addressing.service == EBMS_SERVICE_URI) {
-        if (addressing.action != ACKNOWLEDGMENT_ACTION && addressing.action != MESSAGE_ERROR_ACTION) {
-            throw CpaValidationException("Service $EBMS_SERVICE_URI støtter ikke action ${addressing.action}")
-        }
-        return
-    }
-    val fromParty = this.getPartyInfoByTypeAndID(addressing.from.partyId)
-    val fromRole = addressing.from.role
-
-    val toParty = this.getPartyInfoByTypeAndID(addressing.to.partyId)
-
-    partyInfoHasRoleServiceActionCombo(fromParty, fromRole, addressing.service, addressing.action, MessageDirection.SEND)
-    val toRole = getRoleFromPartyInfoWithServiceActionCombo(toParty, addressing.service, addressing.action, MessageDirection.RECEIVE)
 }
 
 @Throws(CpaValidationException::class)
