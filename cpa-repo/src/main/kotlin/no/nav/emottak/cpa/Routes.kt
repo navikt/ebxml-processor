@@ -35,8 +35,11 @@ import no.nav.emottak.cpa.persistence.CPARepository
 import no.nav.emottak.cpa.persistence.gammel.PartnerRepository
 import no.nav.emottak.cpa.util.EventRegistrationService
 import no.nav.emottak.cpa.validation.MessageDirection
+import no.nav.emottak.cpa.validation.hasRoleServiceActionCombo
 import no.nav.emottak.cpa.validation.partyInfoHasRoleServiceActionCombo
 import no.nav.emottak.cpa.validation.validate
+import no.nav.emottak.cpa.validation.validateCpaDatoGyldig
+import no.nav.emottak.cpa.validation.validateCpaId
 import no.nav.emottak.message.ebxml.EbXMLConstants.ACKNOWLEDGMENT_ACTION
 import no.nav.emottak.message.ebxml.EbXMLConstants.EBMS_SERVICE_URI
 import no.nav.emottak.message.ebxml.EbXMLConstants.MESSAGE_ERROR_ACTION
@@ -243,9 +246,6 @@ fun Route.validateCpa(
         if (!lastUsed.isToday() && !cpaRepository.updateCpaLastUsed(validateRequest.cpaId)) {
             log.warn(validateRequest.marker(), "Feilet med å oppdatere last_used for CPA '${validateRequest.cpaId}'")
         }
-        if (!validateRequest.isSignalMessage()) {
-            cpa.validate(validateRequest)
-        } // Delivery Failure
         val fromParty =
             if (validateRequest.direction == Direction.OUT) {
                 cpa.getValidPartyInfosSender().firstOrNull().also { log.info("Found FromParty in CPA. Name: [${it?.partyName}] PartyIds: [${it?.partyId}]") }
@@ -260,6 +260,23 @@ fun Route.validateCpa(
             } else {
                 cpa.getPartyInfoByTypeAndID(validateRequest.addressing.to.partyId) // Delivery Failure
             }
+        val cpaAddressing = if (validateRequest.direction == Direction.OUT) {
+            Addressing(
+                toParty.toDomainModel(),
+                fromParty.toDomainModel(),
+                validateRequest.addressing.service,
+                validateRequest.addressing.action
+            )
+        } else {
+            null
+        }
+
+        if (!validateRequest.isSignalMessage()) {
+            cpa.validateCpaId(validateRequest.cpaId)
+            cpa.validateCpaDatoGyldig()
+            cpa.hasRoleServiceActionCombo(cpaAddressing ?: validateRequest.addressing)
+        } // Delivery Failure
+
         val encryptionCertificate = toParty.getCertificateForEncryption()
 
         val signingCertificate = fromParty.getCertificateForSignatureValidation(
@@ -296,16 +313,7 @@ fun Route.validateCpa(
                 signalEmails,
                 receiverEmails,
                 partnerId,
-                cpaAddressing = if (validateRequest.direction == Direction.OUT) {
-                    Addressing(
-                        toParty.toDomainModel(),
-                        fromParty.toDomainModel(),
-                        validateRequest.addressing.service,
-                        validateRequest.addressing.action
-                    )
-                } else {
-                    null
-                }
+                cpaAddressing = cpaAddressing
             )
         )
 
