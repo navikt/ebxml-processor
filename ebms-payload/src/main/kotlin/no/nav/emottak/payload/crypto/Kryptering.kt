@@ -1,5 +1,6 @@
 package no.nav.emottak.payload.crypto
 
+import no.nav.emottak.payload.error.EncryptionException
 import org.bouncycastle.asn1.ASN1ObjectIdentifier
 import org.bouncycastle.cms.CMSAlgorithm
 import org.bouncycastle.cms.CMSEnvelopedDataGenerator
@@ -45,7 +46,10 @@ fun krypterDokument(doc: ByteArray, certificate: X509Certificate): ByteArray {
     return try {
         krypterDokument(doc, listOf(certificate))
     } catch (e: Exception) {
-        throw EncryptionException("Feil ved kryptering av dokument. Sertifikat: ${getEncryptionDetails(certificate)}", e)
+        throw EncryptionException(
+            "Feil ved kryptering av dokument. Sertifikat: ${getEncryptionDetails(certificate)}",
+            e
+        )
     }
 }
 
