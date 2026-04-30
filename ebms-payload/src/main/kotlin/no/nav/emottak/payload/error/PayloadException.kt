@@ -6,19 +6,15 @@ import no.nav.emottak.util.signatur.SignatureException
 import no.nav.emottak.utils.kafka.model.EventType
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.SeverityType
 
-open class CertificateException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
+open class PayloadException(message: String?, cause: Exception?) : Exception(message, cause)
 
-class OCSPValidationFnrBlankError(message: String, cause: Throwable? = null) : CertificateException(message, cause)
-
-class CompressionException(message: String, exception: Exception? = null) : Exception(message, exception)
-
-class DecompressionException(message: String, exception: Exception? = null) : Exception(message, exception)
-
-class DecryptionException(message: String, exception: Exception? = null) : Exception(message, exception)
-
-class EncryptionException(override val message: String, e: Exception? = null) : Exception(message, e)
-
-class JuridiskLoggException(message: String, exception: Exception? = null) : Exception(message, exception)
+open class CertificateException(message: String, cause: Exception? = null) : PayloadException(message, cause)
+class OCSPValidationFnrBlankError(message: String, cause: Exception? = null) : CertificateException(message, cause)
+class CompressionException(message: String, cause: Exception? = null) : PayloadException(message, cause)
+class DecompressionException(message: String, cause: Exception? = null) : PayloadException(message, cause)
+class DecryptionException(message: String, cause: Exception? = null) : PayloadException(message, cause)
+class EncryptionException(message: String, cause: Exception? = null) : PayloadException(message, cause)
+class JuridiskLoggException(message: String, cause: Exception? = null) : PayloadException(message, cause)
 
 fun Throwable.convertToFeil(): Feil = when (this) {
     is JuridiskLoggException -> Feil(ErrorCode.DELIVERY_FAILURE, localizedMessage, SeverityType.ERROR.value())

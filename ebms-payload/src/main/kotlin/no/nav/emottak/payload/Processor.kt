@@ -89,11 +89,10 @@ class Processor(
             log.debug(marker, "Validating for payload in validateOcsp flow")
             val domDocument = createDocument(ByteArrayInputStream(payload.bytes))
 
-            val xmlSignature = domDocument.retrieveSignatureElement()
-
-            val certificateFromSignature = xmlSignature.keyInfo.x509Certificate
-
-            var signedByFnr: String? = ninResolver.resolve(domDocument, certificateFromSignature)
+            val signedByFnr: String? = ninResolver.resolve(
+                domDocument,
+                domDocument.retrieveSignatureElement().keyInfo.x509Certificate
+            )
 
             log.debug(marker, "Validating OCSP for payload: Step 5 copy")
             payload.copy(signedBy = signedByFnr).also {
