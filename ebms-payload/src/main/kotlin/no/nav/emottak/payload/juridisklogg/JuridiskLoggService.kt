@@ -14,6 +14,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import no.nav.emottak.message.model.PayloadRequest
+import no.nav.emottak.payload.error.JuridiskLoggException
 import no.nav.emottak.payload.log
 import no.nav.emottak.util.jsonLenient
 import no.nav.emottak.util.marker

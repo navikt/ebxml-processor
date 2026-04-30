@@ -19,18 +19,12 @@ import no.nav.emottak.message.model.PayloadRequest
 import no.nav.emottak.message.model.PayloadResponse
 import no.nav.emottak.message.model.ProcessConfig
 import no.nav.emottak.payload.apprec.createNegativeApprec
-import no.nav.emottak.payload.crypto.DecryptionException
-import no.nav.emottak.payload.crypto.EncryptionException
-import no.nav.emottak.payload.juridisklogg.JuridiskLoggException
-import no.nav.emottak.payload.ocspstatus.SertifikatError
-import no.nav.emottak.payload.util.CompressionException
-import no.nav.emottak.payload.util.DecompressionException
+import no.nav.emottak.payload.error.convertToFeil
+import no.nav.emottak.payload.error.getEventType
 import no.nav.emottak.payload.util.EventRegistrationService
 import no.nav.emottak.payload.util.marshal
 import no.nav.emottak.payload.util.unmarshal
 import no.nav.emottak.util.marker
-import no.nav.emottak.util.signatur.SignatureException
-import no.nav.emottak.utils.kafka.model.EventType
 import no.nav.emottak.utils.serialization.toEventDataJson
 
 fun Route.postPayload(
@@ -67,19 +61,8 @@ fun Route.postPayload(
     }.onFailure { error ->
         log.error(request.marker(), "Payload prosessert med feil: ${error.localizedMessage}", error)
 
-        val eventType = when (error) {
-            is JuridiskLoggException -> EventType.ERROR_WHILE_SAVING_MESSAGE_IN_JURIDISK_LOGG
-            is EncryptionException -> EventType.MESSAGE_ENCRYPTION_FAILED
-            is DecryptionException -> EventType.MESSAGE_DECRYPTION_FAILED
-            is CompressionException -> EventType.MESSAGE_COMPRESSION_FAILED
-            is DecompressionException -> EventType.MESSAGE_DECOMPRESSION_FAILED
-            is SignatureException -> EventType.SIGNATURE_CHECK_FAILED
-            is SertifikatError -> EventType.OCSP_CHECK_FAILED
-            else -> EventType.UNKNOWN_ERROR_OCCURRED
-        }
-
         eventRegistrationService.registerEvent(
-            eventType,
+            error.getEventType(),
             request,
             Exception(error).toEventDataJson()
         )
@@ -92,17 +75,6 @@ fun Route.postPayload(
             )
         )
     }
-}
-
-private fun Throwable.convertToFeil(): Feil = when (this) {
-    is JuridiskLoggException -> Feil(ErrorCode.DELIVERY_FAILURE, localizedMessage, "Error")
-    is EncryptionException -> Feil(ErrorCode.SECURITY_FAILURE, localizedMessage, "Error")
-    is DecryptionException -> Feil(ErrorCode.SECURITY_FAILURE, localizedMessage, "Error")
-    is CompressionException -> Feil(ErrorCode.SECURITY_FAILURE, localizedMessage, "Error")
-    is DecompressionException -> Feil(ErrorCode.SECURITY_FAILURE, localizedMessage, "Error")
-    is SignatureException -> Feil(ErrorCode.SECURITY_FAILURE, localizedMessage, "Error")
-    is SertifikatError -> Feil(ErrorCode.SECURITY_FAILURE, localizedMessage, "Error")
-    else -> Feil(ErrorCode.UNKNOWN, this.localizedMessage, "Error")
 }
 
 private suspend fun createOutgoingPayloadResponse(request: PayloadRequest, processor: Processor) = PayloadResponse(
