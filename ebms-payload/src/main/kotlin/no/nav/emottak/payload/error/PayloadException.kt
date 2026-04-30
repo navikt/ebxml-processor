@@ -6,7 +6,7 @@ import no.nav.emottak.util.signatur.SignatureException
 import no.nav.emottak.utils.kafka.model.EventType
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.SeverityType
 
-open class PayloadException(message: String?, cause: Exception?) : Exception(message, cause)
+open class PayloadException(message: String?, cause: Throwable?) : Exception(message, cause)
 
 open class CertificateException(message: String, cause: Exception? = null) : PayloadException(message, cause)
 class OCSPValidationFnrBlankError(message: String, cause: Exception? = null) : CertificateException(message, cause)
