@@ -81,7 +81,8 @@ data class ValidationResult(
     val signalEmailAddress: List<EmailAddress> = emptyList(),
     val receiverEmailAddress: List<EmailAddress> = emptyList(),
     val partnerId: Long? = null,
-    val error: List<Feil>? = null
+    val error: List<Feil>? = null,
+    val cpaAddressing: Addressing? = null
 ) {
     fun valid(): Boolean = error == null
 }

@@ -109,8 +109,10 @@ class PayloadMessageForwardingService(
             PerMessageCharacteristicsType.NEVER -> false
             else -> true
         }
+
         val processedMessage = processingService.proccessSyncOut(
             payloadMessage.copy(
+                addressing = validationResult.cpaAddressing!!,
                 duplicateElimination = duplicateElimination
             ),
             validationResult.payloadProcessing
