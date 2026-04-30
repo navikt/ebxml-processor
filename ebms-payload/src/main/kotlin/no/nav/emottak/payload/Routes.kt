@@ -94,17 +94,15 @@ fun Route.postPayload(
     }
 }
 
-private fun Throwable.convertToFeil(): Feil {
-    return when (this) {
-        is JuridiskLoggException -> Feil(ErrorCode.DELIVERY_FAILURE, localizedMessage, "Error")
-        is EncryptionException -> Feil(ErrorCode.SECURITY_FAILURE, localizedMessage, "Error")
-        is DecryptionException -> Feil(ErrorCode.SECURITY_FAILURE, localizedMessage, "Error")
-        is CompressionException -> Feil(ErrorCode.SECURITY_FAILURE, localizedMessage, "Error")
-        is DecompressionException -> Feil(ErrorCode.SECURITY_FAILURE, localizedMessage, "Error")
-        is SignatureException -> Feil(ErrorCode.SECURITY_FAILURE, localizedMessage, "Error")
-        is SertifikatError -> Feil(ErrorCode.SECURITY_FAILURE, localizedMessage, "Error")
-        else -> Feil(ErrorCode.UNKNOWN, this.localizedMessage, "Error")
-    }
+private fun Throwable.convertToFeil(): Feil = when (this) {
+    is JuridiskLoggException -> Feil(ErrorCode.DELIVERY_FAILURE, localizedMessage, "Error")
+    is EncryptionException -> Feil(ErrorCode.SECURITY_FAILURE, localizedMessage, "Error")
+    is DecryptionException -> Feil(ErrorCode.SECURITY_FAILURE, localizedMessage, "Error")
+    is CompressionException -> Feil(ErrorCode.SECURITY_FAILURE, localizedMessage, "Error")
+    is DecompressionException -> Feil(ErrorCode.SECURITY_FAILURE, localizedMessage, "Error")
+    is SignatureException -> Feil(ErrorCode.SECURITY_FAILURE, localizedMessage, "Error")
+    is SertifikatError -> Feil(ErrorCode.SECURITY_FAILURE, localizedMessage, "Error")
+    else -> Feil(ErrorCode.UNKNOWN, this.localizedMessage, "Error")
 }
 
 private suspend fun createOutgoingPayloadResponse(request: PayloadRequest, processor: Processor) = PayloadResponse(
