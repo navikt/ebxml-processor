@@ -133,6 +133,7 @@ fun CollaborationProtocolAgreement.getValidPartyInfosSender(service: String, act
             log.error("Klarte ikke finne valid service/action combo, bruker default.", e) // TODO: Fjern denne try catch dersom du ikke ser denne error logget (SignalMeldinger)
         }
     }
+    log.warn("Using fallback to find party for $service and $action.")
     return this.partyInfo.filter { partyInfo ->
         partyInfo.partyName == "NAV" && partyInfo.partyId.firstOrNull {
                 partyId ->
