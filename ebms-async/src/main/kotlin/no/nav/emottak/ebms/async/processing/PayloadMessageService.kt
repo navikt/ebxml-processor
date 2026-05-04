@@ -32,14 +32,11 @@ class PayloadMessageService(
         ebmsPayloadMessage: PayloadMessage
     ) {
         runCatching {
-            val isRetry = record.retryCount() > 0
-            val isDuplicate = !isRetry && isDuplicateMessage(ebmsPayloadMessage)
-
-            if (isDuplicate) {
+            if (isDuplicateMessage(ebmsPayloadMessage)) {
                 log.info(ebmsPayloadMessage.marker(), "Got duplicate payload message with reference <${ebmsPayloadMessage.requestId}>")
             } else {
                 messageReceivedRepository.messageReceived(ebmsPayloadMessage)
-                if (isRetry) {
+                if (record.retryCount() > 0) {
                     eventRegistrationService.registerEvent(
                         eventType = EventType.RETRY_TRIGGED,
                         requestId = ebmsPayloadMessage.requestId.parseOrGenerateUuid(),
