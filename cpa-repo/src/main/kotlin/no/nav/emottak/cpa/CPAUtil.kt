@@ -86,7 +86,7 @@ fun List<PartyInfo>.findValidComboSender(service: String, action: String): List<
     return filter { partyInfo ->
         partyInfo.collaborationRole
             .any() { collabRole ->
-                (collabRole.serviceBinding.service.value == service || EBMS_SERVICE_URI == service) &&
+                (collabRole.serviceBinding.service.value == service) &&
                     collabRole.serviceBinding.canSend.any { cs -> cs.thisPartyActionBinding.action == action }
             }
     }
@@ -96,18 +96,22 @@ fun List<PartyInfo>.findValidComboReceiver(service: String, action: String): Lis
     return filter { partyInfo ->
         partyInfo.collaborationRole
             .any() { collabRole ->
-                (collabRole.serviceBinding.service.value == service || EBMS_SERVICE_URI == service) &&
+                (collabRole.serviceBinding.service.value == service) &&
                     collabRole.serviceBinding.canReceive.any { cr -> cr.thisPartyActionBinding.action == action }
             }
     }
 }
 
 fun CollaborationProtocolAgreement.getValidPartyInfosReceiver(service: String, action: String): List<PartyInfo> {
-    try {
-        return this.partyInfo.findValidComboReceiver(service, action)
-    } catch (e: Exception) {
-        log.error("Klarte ikke finne valid service/action combo, bruker default.", e) // TODO: Fjern denne try catch dersom du ikke ser denne error logget (SignalMeldinger)
+    if (EBMS_SERVICE_URI != service) {
+        try {
+            return this.partyInfo.findValidComboReceiver(service, action)
+                .ifEmpty { throw CpaValidationException("Ingen gyldige mottakere funnet i CPA") }
+        } catch (e: Exception) {
+            log.error("Klarte ikke finne valid service/action combo, bruker default.", e) // TODO: Fjern denne try catch dersom du ikke ser denne error logget (SignalMeldinger)
+        }
     }
+    log.warn("Using fallback to find party for $service and $action.")
     return this.partyInfo.filter { partyInfo ->
         partyInfo.partyName != "NAV" && partyInfo.partyId.firstOrNull {
                 partyId ->
@@ -121,11 +125,15 @@ fun CollaborationProtocolAgreement.getValidPartyInfosReceiver(service: String, a
 }
 
 fun CollaborationProtocolAgreement.getValidPartyInfosSender(service: String, action: String): List<PartyInfo> {
-    try {
-        return this.partyInfo.findValidComboSender(service, action)
-    } catch (e: Exception) {
-        log.error("Klarte ikke finne valid service/action combo, bruker default.", e) // TODO: Fjern denne try catch dersom du ikke ser denne error logget (SignalMeldinger)
+    if (EBMS_SERVICE_URI != service) {
+        try {
+            return this.partyInfo.findValidComboSender(service, action)
+                .ifEmpty { throw CpaValidationException("Ingen gyldige avsender funnet i CPA") }
+        } catch (e: Exception) {
+            log.error("Klarte ikke finne valid service/action combo, bruker default.", e) // TODO: Fjern denne try catch dersom du ikke ser denne error logget (SignalMeldinger)
+        }
     }
+    log.warn("Using fallback to find party for $service and $action.")
     return this.partyInfo.filter { partyInfo ->
         partyInfo.partyName == "NAV" && partyInfo.partyId.firstOrNull {
                 partyId ->
