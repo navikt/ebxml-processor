@@ -93,7 +93,7 @@ fun CollaborationProtocolAgreement.getValidPartyInfosReceiver(service: String, a
     try {
         return this.partyInfo.findValidComboReceiver(service, action)
     } catch (e: Exception) {
-        log.error("Klarte ikke finne valid service/action combo, bruker default.", e)
+        log.error("Klarte ikke finne valid service/action combo, bruker default.", e) // TODO: Fjern denne try catch dersom du ikke ser denne error logget (SignalMeldinger)
     }
     return this.partyInfo.filter { partyInfo ->
         partyInfo.partyName != "NAV" && partyInfo.partyId.firstOrNull {
@@ -111,7 +111,7 @@ fun CollaborationProtocolAgreement.getValidPartyInfosSender(service: String, act
     try {
         return this.partyInfo.findValidComboSender(service, action)
     } catch (e: Exception) {
-        log.error("Klarte ikke finne valid service/action combo, bruker default.", e)
+        log.error("Klarte ikke finne valid service/action combo, bruker default.", e) // TODO: Fjern denne try catch dersom du ikke ser denne error logget (SignalMeldinger)
     }
     return this.partyInfo.filter { partyInfo ->
         partyInfo.partyName == "NAV" && partyInfo.partyId.firstOrNull {
