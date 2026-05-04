@@ -52,12 +52,6 @@ fun PartyInfo.getSendDeliveryChannel(
     }
 }
 
-fun PartyInfo.toDomainModel(): Party {
-    return Party(
-        partyId.map { partyId -> PartyId(partyId.type!!, partyId.value!!) },
-        collaborationRole.first().role.name
-    )
-}
 
 fun org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PartyId.actuallyUsefulToString(): String {
     return "[${this.type}:${this.value}]"
@@ -67,6 +61,16 @@ fun List<org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PartyId>.actual
     return map { entry ->
         entry.actuallyUsefulToString()
     }.joinToString(",")
+}
+
+fun PartyInfo.toDomainModel(service: String, action: String): Party {
+    return Party(
+        partyId.map { partyId -> PartyId(partyId.type!!, partyId.value!!) },
+        collaborationRole.first() { collabRole ->
+            (collabRole.serviceBinding.service.value == service || EBMS_SERVICE_URI == service) &&
+                    collabRole.serviceBinding.canSend.any { cs -> cs.thisPartyActionBinding.action == action }
+        }.role.name,
+    )
 }
 
 fun List<PartyInfo>.findValidComboSender(service: String, action: String): List<PartyInfo> {
