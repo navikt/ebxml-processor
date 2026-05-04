@@ -59,6 +59,22 @@ class CPAValidatorKtTest {
     }
 
     @Test
+    fun `Blank til role er ok for respons`() {
+        val cpa = TestUtil.createValidTestCPA()
+        val validationRequest = createValidValidationRequest().let {
+            it.copy(
+                addressing = it.addressing.copy(
+                    to = createValidToHERParty().copy(
+                        role = ""
+                    )
+                ),
+                refToMessageId = "notnullMeansThisIsResponse"
+            )
+        }
+        cpa.validate(validationRequest)
+    }
+
+    @Test
     fun `Role og service matcher, men ikke action`() {
         val cpa = TestUtil.createValidTestCPA()
         val partyName = cpa.partyInfo[0].partyName
