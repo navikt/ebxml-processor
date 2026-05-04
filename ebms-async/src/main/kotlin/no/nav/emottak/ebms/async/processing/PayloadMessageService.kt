@@ -119,16 +119,16 @@ class PayloadMessageService(
             cpaValidationService.getDuplicateEliminationStrategy(ebmsPayloadMessage)
         } catch (e: Exception) {
             log.warn(ebmsPayloadMessage.marker(), "Error checking duplicate status", e)
-            return false
+            null
         }
 
         return when (duplicateEliminationStrategy) {
             PerMessageCharacteristicsType.ALWAYS -> {
-                messageReceivedRepository.getMessageReceived(ebmsPayloadMessage)?.acknowledged ?: false
+                messageReceivedRepository.isAcknowledged(ebmsPayloadMessage) ?: false
             }
 
             PerMessageCharacteristicsType.PER_MESSAGE -> {
-                ebmsPayloadMessage.duplicateElimination && (messageReceivedRepository.getMessageReceived(ebmsPayloadMessage)?.acknowledged ?: false)
+                ebmsPayloadMessage.duplicateElimination && (messageReceivedRepository.isAcknowledged(ebmsPayloadMessage) ?: false)
             }
 
             PerMessageCharacteristicsType.NEVER -> false

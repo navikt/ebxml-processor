@@ -52,12 +52,10 @@ class MessageReceivedRepositoryTest {
         val originalMessage = createPayloadMessage()
 
         messageReceivedRepository.messageReceived(originalMessage)
-        val unacknowledgedMessageReceived = messageReceivedRepository.getMessageReceived(originalMessage)
-        Assertions.assertFalse(unacknowledgedMessageReceived!!.acknowledged)
+        Assertions.assertFalse(messageReceivedRepository.isAcknowledged(originalMessage)!!)
 
         messageReceivedRepository.messageAcknowledged(originalMessage)
-        val acknowledgedMessageReceived = messageReceivedRepository.getMessageReceived(originalMessage)
-        Assertions.assertTrue(acknowledgedMessageReceived!!.acknowledged)
+        Assertions.assertTrue(messageReceivedRepository.isAcknowledged(originalMessage)!!)
     }
 
     @Test
@@ -67,7 +65,6 @@ class MessageReceivedRepositoryTest {
         val messageReceivedByReference = messageReceivedRepository.getByReferenceId(Uuid.parse(originalMessage.requestId))
         Assertions.assertNull(messageReceivedByReference)
 
-        val messageReceivedByEbmsData = messageReceivedRepository.getMessageReceived(originalMessage)
-        Assertions.assertNull(messageReceivedByEbmsData)
+        Assertions.assertNull(messageReceivedRepository.isAcknowledged(originalMessage))
     }
 }

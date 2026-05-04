@@ -8,6 +8,7 @@ import no.nav.emottak.message.model.PayloadMessage
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.upsert
@@ -53,15 +54,15 @@ class MessageReceivedRepository(private val database: Database) {
             .firstOrNull()
     }
 
-    fun getMessageReceived(ebmsPayloadMessage: PayloadMessage): MessageReceived? = transaction(database.db) {
+    fun isAcknowledged(ebmsPayloadMessage: PayloadMessage): Boolean? = transaction(database.db) {
         MessageReceivedTable
-            .selectAll()
+            .select(MessageReceivedTable.acknowledged)
             .where {
                 (MessageReceivedTable.conversationId eq ebmsPayloadMessage.conversationId) and
                     (MessageReceivedTable.messageId eq ebmsPayloadMessage.messageId) and
                     (MessageReceivedTable.cpaId eq ebmsPayloadMessage.cpaId)
             }
-            .map { it.toMessageReceived() }
+            .map { it[MessageReceivedTable.acknowledged] }
             .firstOrNull()
     }
 
