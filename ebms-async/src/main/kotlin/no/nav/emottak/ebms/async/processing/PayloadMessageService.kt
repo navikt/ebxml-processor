@@ -49,8 +49,8 @@ class PayloadMessageService(
                 }
                 processPayloadMessage(ebmsPayloadMessage)
             }
-            returnAcknowledgment(ebmsPayloadMessage)
             messageReceivedRepository.messageAcknowledged(ebmsPayloadMessage)
+            returnAcknowledgment(ebmsPayloadMessage)
         }.onFailure { exception ->
             // TODO handle some errors by sending to retry, some by returning error message
             log.error(ebmsPayloadMessage.marker(), exception.message ?: "Message processing error", exception)

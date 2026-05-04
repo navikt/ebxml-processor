@@ -273,21 +273,20 @@ class PayloadMessageServiceTest {
         val (payloadMessage, ebmsMessageSlots, fakeResult) = setupMocks(
             PerMessageCharacteristicsType.PER_MESSAGE,
             false,
-            validateOutgoingThrowsException = true
+            processSyncThrowsUnknownException = true
         )
         service.process(setupReceiverRecordWithRetryServiceMock(), payloadMessage)
 
         coVerify(exactly = 1) { messageReceivedRepository.getMessageReceived(payloadMessage) }
-        coVerify(exactly = 2) { eventRegistrationService.registerEventMessageDetails(any()) }
+        coVerify(exactly = 1) { eventRegistrationService.registerEventMessageDetails(any()) }
         assertType<PayloadMessage>(ebmsMessageSlots, 0)
         coVerify(exactly = 0) { messageReceivedRepository.messageAcknowledged(any()) }
-        assertType<Acknowledgment>(ebmsMessageSlots, 1)
         coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(payloadMessage) }
         coVerify(exactly = 1) { processingService.processAsync(payloadMessage, any()) }
         coVerify(exactly = 1) { payloadMessageForwardingService.forwardMessageWithSyncResponse(payloadMessage) }
         coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithAsyncResponse(payloadMessage, any()) }
         coVerify(exactly = 0) { payloadMessageForwardingService.returnMessageResponse(payloadMessage) }
-        coVerify(exactly = 1) { cpaValidationService.validateOutgoingMessage(any()) }
+        coVerify(exactly = 0) { cpaValidationService.validateOutgoingMessage(any()) }
         coVerify(exactly = 0) {
             eventRegistrationService.runWithEvent(
                 EventType.MESSAGE_PLACED_IN_QUEUE,
@@ -426,6 +425,7 @@ class PayloadMessageServiceTest {
         direction: Direction = Direction.IN,
         processAsyncThrowsEbmsException: Boolean = false,
         processAsyncThrowsSignatureException: Boolean = false,
+        processSyncThrowsUnknownException: Boolean = false,
         validateOutgoingThrowsException: Boolean = false
     ): Triple<PayloadMessage, MutableList<EbmsMessage>, Result<RecordMetadata>> {
         val payloadMessage = createPayloadMessage()
@@ -459,7 +459,12 @@ class PayloadMessageServiceTest {
             coEvery { processingService.processAsync(any(), any()) } returns Pair(payloadMessage, direction)
         }
 
-        coEvery { payloadMessageForwardingService.forwardMessageWithSyncResponse(any()) } just Runs
+        if (processSyncThrowsUnknownException) {
+            coEvery { payloadMessageForwardingService.forwardMessageWithSyncResponse(any()) } throws Exception("Unexpected exception")
+        } else {
+            coEvery { payloadMessageForwardingService.forwardMessageWithSyncResponse(any()) } just Runs
+        }
+
         coEvery { payloadMessageForwardingService.forwardMessageWithAsyncResponse(any(), any()) } just Runs
         coEvery { payloadMessageForwardingService.returnMessageResponse(any()) } just Runs
         coEvery { eventRegistrationService.registerEventMessageDetails(capture(ebmsMessageSlots)) } returns Unit
