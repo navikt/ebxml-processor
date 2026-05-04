@@ -3,7 +3,6 @@ package no.nav.emottak.cpa
 import jakarta.xml.bind.JAXBElement
 import no.nav.emottak.cpa.feil.CpaValidationException
 import no.nav.emottak.cpa.feil.SecurityException
-import no.nav.emottak.cpa.persistence.ProcessConfigTable.role
 import no.nav.emottak.message.ebxml.EbXMLConstants.EBMS_SERVICE_URI
 import no.nav.emottak.message.ebxml.PartyTypeEnum
 import no.nav.emottak.message.model.EmailAddress
@@ -60,25 +59,42 @@ fun PartyInfo.toDomainModel(): Party {
     )
 }
 
-fun List<PartyInfo>.getValidPartyInfoSender(service: String, action: String): PartyInfo {
-    return first { partyInfo ->
+fun org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PartyId.actuallyUsefulToString(): String {
+    return "[${this.type}:${this.value}]"
+}
+
+fun List<org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PartyId>.actuallyUsefulToString(): String {
+    return map { entry ->
+        entry.actuallyUsefulToString()
+    }.joinToString(",")
+}
+
+fun List<PartyInfo>.findValidComboSender(service: String, action: String): List<PartyInfo> {
+    return filter { partyInfo ->
         partyInfo.collaborationRole
             .any() { collabRole ->
-                collabRole.serviceBinding.service.value == service && collabRole.serviceBinding.canSend.any { cs -> cs.thisPartyActionBinding.action == action }
+                (collabRole.serviceBinding.service.value == service || EBMS_SERVICE_URI == service) &&
+                    collabRole.serviceBinding.canSend.any { cs -> cs.thisPartyActionBinding.action == action }
             }
     }
 }
 
-fun List<PartyInfo>.getValidPartyInfoReceiver(service: String, action: String): PartyInfo {
-    return first { partyInfo ->
+fun List<PartyInfo>.findValidComboReceiver(service: String, action: String): List<PartyInfo> {
+    return filter { partyInfo ->
         partyInfo.collaborationRole
             .any() { collabRole ->
-                collabRole.serviceBinding.service.value == service && collabRole.serviceBinding.canReceive.any { cr -> cr.thisPartyActionBinding.action == action }
+                (collabRole.serviceBinding.service.value == service || EBMS_SERVICE_URI == service) &&
+                    collabRole.serviceBinding.canReceive.any { cr -> cr.thisPartyActionBinding.action == action }
             }
     }
 }
 
-fun CollaborationProtocolAgreement.getValidPartyInfosReceiver(): List<PartyInfo> {
+fun CollaborationProtocolAgreement.getValidPartyInfosReceiver(service: String, action: String): List<PartyInfo> {
+    try {
+        return this.partyInfo.findValidComboReceiver(service, action)
+    } catch (e: Exception) {
+        log.error("Klarte ikke finne valid service/action combo, bruker default.", e) // TODO: Fjern denne try catch dersom du ikke ser denne error logget (SignalMeldinger)
+    }
     return this.partyInfo.filter { partyInfo ->
         partyInfo.partyName != "NAV" && partyInfo.partyId.firstOrNull {
                 partyId ->
@@ -91,7 +107,12 @@ fun CollaborationProtocolAgreement.getValidPartyInfosReceiver(): List<PartyInfo>
     }
 }
 
-fun CollaborationProtocolAgreement.getValidPartyInfosSender(): List<PartyInfo> {
+fun CollaborationProtocolAgreement.getValidPartyInfosSender(service: String, action: String): List<PartyInfo> {
+    try {
+        return this.partyInfo.findValidComboSender(service, action)
+    } catch (e: Exception) {
+        log.error("Klarte ikke finne valid service/action combo, bruker default.", e) // TODO: Fjern denne try catch dersom du ikke ser denne error logget (SignalMeldinger)
+    }
     return this.partyInfo.filter { partyInfo ->
         partyInfo.partyName == "NAV" && partyInfo.partyId.firstOrNull {
                 partyId ->
