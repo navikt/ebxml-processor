@@ -257,8 +257,8 @@ fun Route.validateCpa(
                 ?: throw NotFoundException("Fant ikke mottaker for CPA ${validateRequest.cpaId}")
             validateRequest = validateRequest.copy(
                 addressing = Addressing(
-                    toParty.toDomainModel(),
-                    fromParty.toDomainModel(),
+                    toParty.toDomainModel(validateRequest.addressing.service, validateRequest.addressing.action),
+                    fromParty.toDomainModel(validateRequest.addressing.service, validateRequest.addressing.action),
                     validateRequest.addressing.service,
                     validateRequest.addressing.action
                 )
