@@ -62,12 +62,22 @@ fun List<org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PartyId>.actual
     }.joinToString(",")
 }
 
-fun PartyInfo.toDomainModel(service: String, action: String): Party {
+fun PartyInfo.toDomainModelSender(service: String, action: String): Party {
     return Party(
         partyId.map { partyId -> PartyId(partyId.type!!, partyId.value!!) },
-        collaborationRole.firstOrNull() { collabRole ->
-            (collabRole.serviceBinding.service.value == service || EBMS_SERVICE_URI == service) &&
+        collaborationRole.firstOrNull { collabRole ->
+            collabRole.serviceBinding.service.value == service &&
                 collabRole.serviceBinding.canSend.any { cs -> cs.thisPartyActionBinding.action == action }
+        }?.role?.name ?: "Default".also { log.warn("Fant ikke gyldig rolle for service $service og action $action, setter default") }
+    )
+}
+
+fun PartyInfo.toDomainModelReceiver(service: String, action: String): Party {
+    return Party(
+        partyId.map { partyId -> PartyId(partyId.type!!, partyId.value!!) },
+        collaborationRole.firstOrNull { collabRole ->
+            collabRole.serviceBinding.service.value == service &&
+                collabRole.serviceBinding.canReceive.any { cr -> cr.thisPartyActionBinding.action == action }
         }?.role?.name ?: "Default".also { log.warn("Fant ikke gyldig rolle for service $service og action $action, setter default") }
     )
 }
