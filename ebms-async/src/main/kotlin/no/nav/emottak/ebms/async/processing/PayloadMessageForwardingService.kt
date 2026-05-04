@@ -224,6 +224,15 @@ class PayloadMessageForwardingService(
     }
 
     private fun storeMessagePendingAck(ebmsDocument: EbmsDocument, receiverEmailAddress: List<EmailAddress>) {
-        messagePendingAckRepository.storeMessagePendingAck(Uuid.parse(ebmsDocument.requestId), ebmsDocument.messageHeader(), ebmsDocument.document.toByteArray(), receiverEmailAddress)
+        try {
+            messagePendingAckRepository.storeMessagePendingAck(
+                Uuid.parse(ebmsDocument.requestId),
+                ebmsDocument.messageHeader(),
+                ebmsDocument.document.toByteArray(),
+                receiverEmailAddress
+            )
+        } catch (e: Exception) {
+            log.warn("Failed to store message pending ack, probably a duplicate", e)
+        }
     }
 }
