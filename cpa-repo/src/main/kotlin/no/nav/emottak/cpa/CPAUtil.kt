@@ -52,7 +52,6 @@ fun PartyInfo.getSendDeliveryChannel(
     }
 }
 
-
 fun org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PartyId.actuallyUsefulToString(): String {
     return "[${this.type}:${this.value}]"
 }
@@ -68,8 +67,8 @@ fun PartyInfo.toDomainModel(service: String, action: String): Party {
         partyId.map { partyId -> PartyId(partyId.type!!, partyId.value!!) },
         collaborationRole.first() { collabRole ->
             (collabRole.serviceBinding.service.value == service || EBMS_SERVICE_URI == service) &&
-                    collabRole.serviceBinding.canSend.any { cs -> cs.thisPartyActionBinding.action == action }
-        }.role.name,
+                collabRole.serviceBinding.canSend.any { cs -> cs.thisPartyActionBinding.action == action }
+        }.role.name
     )
 }
 
