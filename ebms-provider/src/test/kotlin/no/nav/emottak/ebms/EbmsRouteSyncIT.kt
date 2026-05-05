@@ -367,7 +367,7 @@ class EbmsRouteSyncIT {
         assertEquals(HttpStatusCode.OK, response.status)
         assertEquals(1, externalServiceCalledCount, "Forventet kall til externalService.")
         with(getEnvelope(response).assertErrorAndGet().error.first()) {
-            assertEquals("Noe gikk galt i ebms-payload [${ErrorCode.UNKNOWN.value}]", this.description!!.value)
+            assertEquals("Noe gikk galt i ebms-payload", this.description!!.value)
         }
     }
 
@@ -399,7 +399,7 @@ class EbmsRouteSyncIT {
         assertEquals(HttpStatusCode.OK, response.status)
         assertEquals(1, externalServiceCalledCount, "Forventet kall til externalService.")
         with(getEnvelope(response).assertErrorAndGet().error.first()) {
-            assertEquals("$errorMsg [${ErrorCode.SECURITY_FAILURE.value}]", this.description!!.value)
+            assertEquals(errorMsg, this.description!!.value)
             assertEquals(ErrorCode.SECURITY_FAILURE.value, this.errorCode)
         }
     }

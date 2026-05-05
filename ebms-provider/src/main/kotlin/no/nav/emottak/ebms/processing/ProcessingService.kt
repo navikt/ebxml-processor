@@ -58,14 +58,19 @@ class ProcessingService(private val httpClient: PayloadProcessingClient) {
                     payloadMessage.convertToErrorActionMessage(
                         clientRequestException.retrieveReturnableApprecResponse(
                             direction,
-                            errorMsg
+                            payloadError?.let { "${it.descriptionText} [${it.code.value}]" } ?: "Processing has failed"
                         ).processedPayload!!,
                         payloadProcessing.processConfig.errorAction!!
                     ),
                     Direction.OUT
                 )
             } else {
-                throw EbmsException(
+                throw payloadError?.let {
+                    EbmsException(
+                        feil = listOf(payloadError),
+                        exception = clientRequestException
+                    )
+                } ?: EbmsException(
                     message = errorMsg,
                     errorCode = errorCode,
                     exception = clientRequestException
