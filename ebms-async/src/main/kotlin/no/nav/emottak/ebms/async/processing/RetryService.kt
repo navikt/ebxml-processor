@@ -5,7 +5,8 @@ import no.nav.emottak.ebms.async.configuration.ErrorRetryPolicy
 import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
 import no.nav.emottak.ebms.async.kafka.consumer.asReceiverRecord
-import no.nav.emottak.ebms.async.kafka.consumer.getRetryRecord
+import no.nav.emottak.ebms.async.kafka.consumer.getRetryIncomingRecord
+import no.nav.emottak.ebms.async.kafka.consumer.getRetryOutgoingRecord
 import no.nav.emottak.ebms.async.kafka.consumer.retryCount
 import no.nav.emottak.ebms.async.kafka.consumer.retryCounter
 import no.nav.emottak.ebms.async.log
@@ -134,14 +135,36 @@ class RetryService(
      * @param offset Kafka offset of the message on the incoming retry queue.
      * @param processor Called to re-process the record.
      */
-    suspend fun forceRetryFailedMessage(
+    suspend fun forceRetryFailedIncomingMessage(
         offset: Long,
         processor: suspend (ReceiverRecord<String, ByteArray>) -> Unit
     ) {
         log.info("Forcing re-run of message on incoming error queue at offset $offset")
-        val record = getRetryRecord(offset)
+        val record = getRetryIncomingRecord(offset)
         if (record == null) {
             log.info("No record in incoming error queue at offset $offset")
+            return
+        }
+        log.info("${record.key()} is being re-run.")
+        processor(record)
+        log.info("${record.key()} has been re-run.")
+    }
+
+    /**
+     * Forces re-processing of a specific message from the outgoing retry queue by offset.
+     * The retry counter is NOT incremented — this is an operator-initiated re-run.
+     *
+     * @param offset Kafka offset of the message on the outgoing retry queue.
+     * @param processor Called to re-process the record.
+     */
+    suspend fun forceRetryFailedOutgoingMessage(
+        offset: Long,
+        processor: suspend (ReceiverRecord<String, ByteArray>) -> Unit
+    ) {
+        log.info("Forcing re-run of message on outgoing error queue at offset $offset")
+        val record = getRetryOutgoingRecord(offset)
+        if (record == null) {
+            log.info("No record in outgoing error queue at offset $offset")
             return
         }
         log.info("${record.key()} is being re-run.")
