@@ -397,7 +397,8 @@ fun Application.ebmsProviderModule(
         }
         retryErrorsIncoming(retryService, messageFilterService)
         retryErrorsOutgoing(retryService, payloadMessageService)
-        rerun(retryService, messageFilterService)
+        rerunIncoming(retryService, messageFilterService)
+        rerunOutgoing(retryService, payloadMessageService)
         pauseRetries(pauseRetryErrorsTimerFlag)
         resumeRetries(pauseRetryErrorsTimerFlag)
         unacknowledge(messagePendingAckRepository)
