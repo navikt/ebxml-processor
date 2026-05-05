@@ -60,9 +60,9 @@ class JuridiskLoggService() {
 
                 if (httpResponse.status == HttpStatusCode.OK) {
                     juridiskLoggRecordId = httpResponse.body<JuridiskLoggResponse>().id
-                    log.info(payloadRequest.marker(), "Message saved to juridisk logg")
+                    log.debug(payloadRequest.marker(), "Message saved to juridisk logg")
                 } else {
-                    log.info(payloadRequest.marker(), "Failed to save message to juridisk logg: $httpResponse")
+                    log.warn(payloadRequest.marker(), "Failed to save message to juridisk logg: $httpResponse")
                 }
             } catch (e: Exception) {
                 log.error(payloadRequest.marker(), "Exception occurred during sending message to juridisk logg: ${e.message}", e)

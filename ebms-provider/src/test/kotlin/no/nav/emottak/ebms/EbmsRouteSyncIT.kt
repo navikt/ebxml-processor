@@ -8,6 +8,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.install
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.response.respond
+import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
@@ -366,7 +367,92 @@ class EbmsRouteSyncIT {
         assertEquals(HttpStatusCode.OK, response.status)
         assertEquals(1, externalServiceCalledCount, "Forventet kall til externalService.")
         with(getEnvelope(response).assertErrorAndGet().error.first()) {
-            assertEquals("Processing has failed: Noe gikk galt i ebms-payload [${ErrorCode.UNKNOWN.value}]", this.description!!.value)
+            assertEquals("Noe gikk galt i ebms-payload [${ErrorCode.UNKNOWN.value}]", this.description!!.value)
+        }
+    }
+
+    @Test
+    fun `Feilkode fra EBMS-PAYLOAD bevares når apprec er false`() = testSyncApp {
+        val errorMsg = "Sertifikat er utløpt"
+        var externalServiceCalledCount = 0
+        externalServices {
+            hosts(getEnvVar("PAYLOAD_PROCESSOR_URL", "http://ebms-payload")) {
+                this.install(ContentNegotiation) {
+                    jsonLenient()
+                }
+                routing {
+                    post("payload") {
+                        externalServiceCalledCount++
+                        call.respond(
+                            status = HttpStatusCode.BadRequest,
+                            message = PayloadResponse(
+                                error = Feil(ErrorCode.SECURITY_FAILURE, errorMsg, "Error"),
+                                apprec = false
+                            )
+                        )
+                    }
+                }
+            }
+        }
+        val multipart = TestData.HarBorgerEgenandel.harBorgerEgenandelFritakRequestWithFormItem
+        val response = client.post(SYNC_PATH, multipart.asHttpRequest())
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertEquals(1, externalServiceCalledCount, "Forventet kall til externalService.")
+        with(getEnvelope(response).assertErrorAndGet().error.first()) {
+            assertEquals("$errorMsg [${ErrorCode.SECURITY_FAILURE.value}]", this.description!!.value)
+            assertEquals(ErrorCode.SECURITY_FAILURE.value, this.errorCode)
+        }
+    }
+
+    @Test
+    fun `Uleselig svar fra EBMS-PAYLOAD gir fallback-feilmelding med Unknown feilkode`() = testSyncApp {
+        var externalServiceCalledCount = 0
+        externalServices {
+            hosts(getEnvVar("PAYLOAD_PROCESSOR_URL", "http://ebms-payload")) {
+                routing {
+                    post("payload") {
+                        externalServiceCalledCount++
+                        call.respondText(
+                            text = "Forespørselen kunne ikke behandles",
+                            status = HttpStatusCode.BadRequest
+                        )
+                    }
+                }
+            }
+        }
+        val multipart = TestData.HarBorgerEgenandel.harBorgerEgenandelFritakRequestWithFormItem
+        val response = client.post(SYNC_PATH, multipart.asHttpRequest())
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertEquals(1, externalServiceCalledCount, "Forventet kall til externalService.")
+        with(getEnvelope(response).assertErrorAndGet().error.first()) {
+            assertEquals("Processing has failed", this.description!!.value)
+            assertEquals(ErrorCode.UNKNOWN.value, this.errorCode)
+        }
+    }
+
+    @Test
+    fun `5xx svar fra EBMS-PAYLOAD ignorerer responsbody og gir fallback-feilmelding`() = testSyncApp {
+        var externalServiceCalledCount = 0
+        externalServices {
+            hosts(getEnvVar("PAYLOAD_PROCESSOR_URL", "http://ebms-payload")) {
+                routing {
+                    post("payload") {
+                        externalServiceCalledCount++
+                        call.respondText(
+                            text = "Internal server error",
+                            status = HttpStatusCode.InternalServerError
+                        )
+                    }
+                }
+            }
+        }
+        val multipart = TestData.HarBorgerEgenandel.harBorgerEgenandelFritakRequestWithFormItem
+        val response = client.post(SYNC_PATH, multipart.asHttpRequest())
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertEquals(1, externalServiceCalledCount, "Forventet kall til externalService.")
+        with(getEnvelope(response).assertErrorAndGet().error.first()) {
+            assertEquals("An unexpected error occurred", this.description!!.value)
+            assertEquals(ErrorCode.UNKNOWN.value, this.errorCode)
         }
     }
 

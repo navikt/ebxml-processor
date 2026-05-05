@@ -2,13 +2,13 @@ package no.nav.emottak.ebms.processing
 
 import io.ktor.client.call.body
 import io.ktor.client.plugins.ClientRequestException
-import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import no.nav.emottak.ebms.PayloadProcessingClient
 import no.nav.emottak.ebms.logger
 import no.nav.emottak.message.exception.EbmsException
 import no.nav.emottak.message.model.Direction
+import no.nav.emottak.message.model.ErrorCode
 import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.model.PayloadProcessing
@@ -49,23 +49,30 @@ class ProcessingService(private val httpClient: PayloadProcessingClient) {
                 "Processing failed: ${clientRequestException.message}",
                 clientRequestException
             )
-            val payloadError = runCatching { clientRequestException.response.body<PayloadResponse>().error }.getOrNull()
-            val errorMsg = "Processing has failed${payloadError?.let { ": ${it.descriptionText} [${it.code.value}]" } ?: ""}"
-            when (clientRequestException.response.status) {
-                HttpStatusCode.BadRequest -> {
-                    return Pair(
-                        payloadMessage.convertToErrorActionMessage(
-                            clientRequestException.retrieveReturnableApprecResponse(direction, errorMsg).processedPayload!!,
-                            payloadProcessing.processConfig.errorAction!!
-                        ),
-                        Direction.OUT
-                    )
-                }
-
-                else -> throw EbmsException(errorMsg, exception = clientRequestException)
+            val payloadErrorMessage = runCatching { clientRequestException.response.body<PayloadResponse>() }.getOrNull()
+            val payloadError = payloadErrorMessage?.error
+            val errorMsg = payloadError?.let { "${it.descriptionText} [${it.code.value}]" } ?: "Processing has failed"
+            val errorCode = payloadError?.code ?: ErrorCode.UNKNOWN
+            if (payloadErrorMessage?.apprec == true) {
+                return Pair(
+                    payloadMessage.convertToErrorActionMessage(
+                        clientRequestException.retrieveReturnableApprecResponse(
+                            direction,
+                            errorMsg
+                        ).processedPayload!!,
+                        payloadProcessing.processConfig.errorAction!!
+                    ),
+                    Direction.OUT
+                )
+            } else {
+                throw EbmsException(
+                    message = errorMsg,
+                    errorCode = errorCode,
+                    exception = clientRequestException
+                )
             }
         } catch (exception: Exception) {
-            throw EbmsException("Processing has failed", exception = exception)
+            throw EbmsException("An unexpected error occurred", exception = exception)
         }
     }
 
