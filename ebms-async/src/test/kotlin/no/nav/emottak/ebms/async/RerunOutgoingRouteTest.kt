@@ -50,7 +50,7 @@ class RerunOutgoingRouteTest {
         testApplication {
             application {
                 routing {
-                    rerunOutgoing(retryService, payloadMessageService)
+                    rerunOutgoingInterval(retryService, payloadMessageService)
                 }
             }
             block()
@@ -93,7 +93,7 @@ class RerunOutgoingRouteTest {
     fun `calls rerunUniqueKeysOutgoing with parsed start and end offsets`() {
         System.setProperty("EBMS_RETRY_OUT_QUEUE", "true")
         testApp {
-            client.get("/api/retry/outgoing/rerun/inteval/?start=20&end=200")
+            client.get("/api/retry/outgoing/rerun/interval/?start=20&end=200")
             coVerify { retryService.rerunUniqueKeysOutgoing(any<suspend (ReceiverRecord<String, ByteArray>) -> Unit>(), 20, 200) }
         }
     }
