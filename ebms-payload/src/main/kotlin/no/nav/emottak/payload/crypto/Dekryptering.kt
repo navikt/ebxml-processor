@@ -2,6 +2,7 @@ package no.nav.emottak.payload.crypto
 
 import no.nav.emottak.crypto.KeyStoreManager
 import no.nav.emottak.payload.configuration.config
+import no.nav.emottak.payload.error.DecryptionException
 import no.nav.emottak.util.decodeBase64
 import org.bouncycastle.cms.CMSEnvelopedData
 import org.bouncycastle.cms.KeyTransRecipientId
