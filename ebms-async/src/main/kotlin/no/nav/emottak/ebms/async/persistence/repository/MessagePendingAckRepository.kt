@@ -94,6 +94,21 @@ class MessagePendingAckRepository(
         }
     }
 
+    fun existsForMessageId(messageId: String): Boolean {
+        val messageIdAsUuid: UUID
+        try {
+            messageIdAsUuid = Uuid.parse(messageId).toJavaUuid()
+        } catch (e: Exception) {
+            return false
+        }
+        return transaction(database.db) {
+            MessagePendingAckTable
+                .select(MessagePendingAckTable.messageId)
+                .where { MessagePendingAckTable.messageId.eq(messageIdAsUuid) }
+                .count() > 0
+        }
+    }
+
     // Unset ackReceived for message with given message id, to allow resending
     fun unregisterAckForMessage(messageId: String): Boolean {
         val messageIdAsUuid: UUID

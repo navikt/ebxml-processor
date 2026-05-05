@@ -216,6 +216,11 @@ class FailedMessageKafkaHandler(
         }
     }
 
+    fun getAllOutgoingRetryRecords(): List<ReceiverRecord<String, ByteArray>> {
+        logger.info("Reading all records from outgoing error queue from the beginning")
+        return getRecords(config().kafkaErrorQueueOut.topic, kafka, fromOffset = 0, requestedRecords = Int.MAX_VALUE - 1)
+    }
+
     fun parseNextRetryHeader(record: ConsumerRecord<String, ByteArray>): LocalDateTime {
         // Handles both old (Instant) and new (LocalDateTime) header formats.
         val header = try {

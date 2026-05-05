@@ -31,6 +31,34 @@ class RetryService(
     val signalSender: suspend (EbmsDocument, List<EmailAddress>) -> Unit
 ) {
 
+    /**
+     * Scans the entire outgoing retry topic from the beginning, deduplicates by Kafka key (requestId),
+     * and calls [processor] once for each unique key.
+     * Messages that have already been processed successfully will be detected and skipped
+     * transparently by the normal processing path in [PayloadMessageService.processOutboundResponse].
+     */
+    suspend fun rerunAbandonedOutgoingMessages(
+        processor: suspend (ReceiverRecord<String, ByteArray>) -> Unit
+    ) {
+        log.info("Starting full scan of outgoing retry topic to rerun abandoned messages")
+        val records = failedMessageKafkaHandler.getAllOutgoingRetryRecords()
+        log.info("Found ${records.size} total records on outgoing retry topic")
+
+        val seenKeys = mutableSetOf<String>()
+        var skippedDuplicates = 0
+        var processed = 0
+
+        records.forEach { record ->
+            if (seenKeys.add(record.key())) {
+                processor(record)
+                processed++
+            } else {
+                skippedDuplicates++
+            }
+        }
+        log.info("Outgoing retry topic scan complete: $processed unique messages processed, $skippedDuplicates duplicate records skipped")
+    }
+
     internal suspend fun incomingRetryEval(
         record: ReceiverRecord<String, ByteArray>,
         payloadMessage: PayloadMessage,

@@ -1,6 +1,7 @@
 package no.nav.emottak.ebms.async.processing
 
 import io.github.nomisRev.kafka.receiver.ReceiverRecord
+import no.nav.emottak.ebms.async.persistence.repository.MessagePendingAckRepository
 import no.nav.emottak.ebms.async.kafka.consumer.retryCount
 import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
 import no.nav.emottak.ebms.async.log
@@ -24,7 +25,8 @@ class PayloadMessageService(
     val payloadMessageForwardingService: PayloadMessageForwardingService,
     val eventRegistrationService: EventRegistrationService,
     val messageReceivedRepository: MessageReceivedRepository,
-    val retryService: RetryService
+    val retryService: RetryService,
+    val messagePendingAckRepository: MessagePendingAckRepository
 ) {
 
     suspend fun process(
@@ -61,6 +63,10 @@ class PayloadMessageService(
     ) {
         runCatching {
             log.info(ebmsPayloadMessage.marker(), "Got outbound response message from ebms.out.payload with reference <${ebmsPayloadMessage.requestId}>")
+            if (messagePendingAckRepository.existsForMessageId(ebmsPayloadMessage.messageId)) {
+                log.info(ebmsPayloadMessage.marker(), "Outgoing message ${ebmsPayloadMessage.messageId} has already been processed successfully, skipping")
+                return@runCatching
+            }
             payloadMessageForwardingService.returnMessageResponse(ebmsPayloadMessage)
         }.onFailure { exception ->
             log.error(ebmsPayloadMessage.marker(), exception.message ?: "Outbound response processing error", exception)

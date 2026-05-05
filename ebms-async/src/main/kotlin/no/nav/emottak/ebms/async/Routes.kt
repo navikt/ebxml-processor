@@ -180,6 +180,22 @@ fun Routing.rerun(
         )
     }
 
+fun Routing.rerunAbandonedOutgoing(
+    retryService: RetryService,
+    payloadMessageService: PayloadMessageService
+): Route =
+    get("/api/retry/outgoing/rerun/abandoned") {
+        if (!config().kafkaErrorQueueOut.active) {
+            call.respondText(status = HttpStatusCode.ServiceUnavailable, text = "Outgoing retry queue not active.")
+            return@get
+        }
+        retryService.rerunAbandonedOutgoingMessages(makeOutRetryProcessor(payloadMessageService))
+        call.respondText(
+            status = HttpStatusCode.OK,
+            text = "Abandoned outgoing message rerun complete"
+        )
+    }
+
 fun Route.forceRetryMessageIn(
     retryService: RetryService
 ): Route =

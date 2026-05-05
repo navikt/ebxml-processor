@@ -13,6 +13,7 @@ import io.mockk.runs
 import io.mockk.slot
 import kotlinx.coroutines.runBlocking
 import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
+import no.nav.emottak.ebms.async.persistence.repository.MessagePendingAckRepository
 import no.nav.emottak.ebms.async.persistence.repository.MessageReceivedRepository
 import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.ebms.model.signer
@@ -50,6 +51,7 @@ class PayloadMessageServiceTest {
     private lateinit var eventRegistrationService: EventRegistrationService
     private lateinit var messageReceivedRepository: MessageReceivedRepository
     private lateinit var retryService: RetryService
+    private lateinit var messagePendingAckRepository: MessagePendingAckRepository
     private lateinit var service: PayloadMessageService
 
     @BeforeEach
@@ -63,6 +65,8 @@ class PayloadMessageServiceTest {
         eventRegistrationService = mockk<EventRegistrationService>()
         messageReceivedRepository = mockk<MessageReceivedRepository>()
         retryService = mockk<RetryService>()
+        messagePendingAckRepository = mockk<MessagePendingAckRepository>()
+        every { messagePendingAckRepository.existsForMessageId(any()) } returns false
         coEvery {
             retryService.incomingRetryEval(any(), any(), any(), any())
         } just runs
@@ -83,7 +87,8 @@ class PayloadMessageServiceTest {
             payloadMessageForwardingService,
             eventRegistrationService,
             messageReceivedRepository,
-            retryService
+            retryService,
+            messagePendingAckRepository
         )
     }
 
