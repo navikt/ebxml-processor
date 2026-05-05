@@ -400,7 +400,7 @@ fun Route.getMessagingCharacteristics(cpaRepository: CPARepository) =
         val request = call.receive(MessagingCharacteristicsRequest::class)
 
         val cpa = cpaRepository.findCpa(request.cpaId) ?: throw NotFoundException("CPA not found for ID ${request.cpaId}")
-        val fromParty = cpa.getPartyInfoByTypeAndID(request.partyIds)
+        val fromParty = cpa.getValidPartyInfosSender(request.service, request.action).firstOrNull() ?: throw BadRequestException("Fant ikke gyldig fromParty for service ${request.service} og action ${request.action}")
         val deliveryChannel = fromParty.getSendDeliveryChannel(request.role, request.service, request.action)
 
         val response = MessagingCharacteristicsResponse(
