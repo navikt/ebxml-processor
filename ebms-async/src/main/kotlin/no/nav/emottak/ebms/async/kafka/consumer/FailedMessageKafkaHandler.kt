@@ -267,8 +267,12 @@ fun ReceiverRecord<String, ByteArray>.addHeader(key: String, value: String) {
     this.headers().add(key, value.toByteArray())
 }
 
-fun getRetryRecord(fromOffset: Long = 0, requestedRecords: Int = 1): ReceiverRecord<String, ByteArray>? {
+fun getRetryIncomingRecord(fromOffset: Long = 0, requestedRecords: Int = 1): ReceiverRecord<String, ByteArray>? {
     return getRecord(config().kafkaErrorQueue.topic, config().kafka, fromOffset, requestedRecords)
+}
+
+fun getRetryOutgoingRecord(fromOffset: Long = 0, requestedRecords: Int = 1): ReceiverRecord<String, ByteArray>? {
+    return getRecord(config().kafkaErrorQueueOut.topic, config().kafka, fromOffset, requestedRecords)
 }
 
 fun getRecord(
