@@ -60,7 +60,7 @@ class RerunOutgoingRouteTest {
     fun `returns 503 when outgoing retry queue is not active`() {
         System.setProperty("EBMS_RETRY_OUT_QUEUE", "false")
         testApp {
-            val response = client.get("/api/retry/outgoing/rerun/")
+            val response = client.get("/api/retry/outgoing/rerun/interval/")
             assertEquals(HttpStatusCode.ServiceUnavailable, response.status)
         }
     }
@@ -69,7 +69,7 @@ class RerunOutgoingRouteTest {
     fun `returns 200 with default start and end offsets when no query params given`() {
         System.setProperty("EBMS_RETRY_OUT_QUEUE", "true")
         testApp {
-            val response = client.get("/api/retry/outgoing/rerun/")
+            val response = client.get("/api/retry/outgoing/rerun/interval/")
             assertEquals(HttpStatusCode.OK, response.status)
             val body = response.bodyAsText()
             assertTrue(body.contains("StartingOffset=0"))
@@ -81,7 +81,7 @@ class RerunOutgoingRouteTest {
     fun `returns 200 with specified start and end offsets in response text`() {
         System.setProperty("EBMS_RETRY_OUT_QUEUE", "true")
         testApp {
-            val response = client.get("/api/retry/outgoing/rerun/?start=10&end=500")
+            val response = client.get("/api/retry/outgoing/rerun/interval/?start=10&end=500")
             assertEquals(HttpStatusCode.OK, response.status)
             val body = response.bodyAsText()
             assertTrue(body.contains("StartingOffset=10"))
@@ -93,7 +93,7 @@ class RerunOutgoingRouteTest {
     fun `calls rerunUniqueKeysOutgoing with parsed start and end offsets`() {
         System.setProperty("EBMS_RETRY_OUT_QUEUE", "true")
         testApp {
-            client.get("/api/retry/outgoing/rerun/?start=20&end=200")
+            client.get("/api/retry/outgoing/rerun/inteval/?start=20&end=200")
             coVerify { retryService.rerunUniqueKeysOutgoing(any<suspend (ReceiverRecord<String, ByteArray>) -> Unit>(), 20, 200) }
         }
     }
