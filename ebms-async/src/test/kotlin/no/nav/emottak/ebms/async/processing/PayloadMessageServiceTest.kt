@@ -505,6 +505,32 @@ class PayloadMessageServiceTest {
             "ebmsMessageSlots[$i] er ikke ${T::class.simpleName}, men ${ebmsMessageSlots[0].javaClass.name}"
         )
     }
+
+    @Test
+    fun `processOutboundResponse should skip processing when message already exists in DB`() = runBlocking {
+        initService()
+        val payloadMessage = createPayloadMessage()
+        every { messagePendingAckRepository.existsForMessageId(payloadMessage.messageId) } returns true
+        val record = setupReceiverRecordWithRetryServiceMock()
+
+        service.processOutboundResponse(record, payloadMessage)
+
+        coVerify(exactly = 0) { payloadMessageForwardingService.returnMessageResponse(any()) }
+        coVerify(exactly = 0) { retryService.outgoingRetryEval(any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `processOutboundResponse should delegate to returnMessageResponse when message not yet in DB`() = runBlocking {
+        initService()
+        val payloadMessage = createPayloadMessage()
+        every { messagePendingAckRepository.existsForMessageId(payloadMessage.messageId) } returns false
+        coEvery { payloadMessageForwardingService.returnMessageResponse(payloadMessage) } just Runs
+        val record = setupReceiverRecordWithRetryServiceMock()
+
+        service.processOutboundResponse(record, payloadMessage)
+
+        coVerify(exactly = 1) { payloadMessageForwardingService.returnMessageResponse(payloadMessage) }
+    }
 }
 
 fun createPayloadMessage(document: Document? = null) = PayloadMessage(

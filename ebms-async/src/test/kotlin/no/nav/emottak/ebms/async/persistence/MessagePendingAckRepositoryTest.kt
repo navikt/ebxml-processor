@@ -185,6 +185,32 @@ class MessagePendingAckRepositoryTest {
         Assertions.assertEquals(0, messages.size)
     }
 
+    @Test
+    fun `existsForMessageId returns true for a stored message`() {
+        val requestId = Uuid.random()
+        val messageHeader = readMessageHeaderFromTestFile("signaltest/acknowledgment.xml")
+        val messageId = messageHeader.messageData.messageId
+        messagePendingAckRepository.storeMessagePendingAck(
+            requestId,
+            messageHeader,
+            "content".toByteArray(),
+            listOf(EmailAddress("a@b.com", EndpointTypeType.RESPONSE))
+        )
+
+        Assertions.assertTrue(messagePendingAckRepository.existsForMessageId(messageId))
+    }
+
+    @Test
+    fun `existsForMessageId returns false when no entry exists`() {
+        val unknownMessageId = Uuid.random().toString()
+        Assertions.assertFalse(messagePendingAckRepository.existsForMessageId(unknownMessageId))
+    }
+
+    @Test
+    fun `existsForMessageId returns false for non-UUID input`() {
+        Assertions.assertFalse(messagePendingAckRepository.existsForMessageId("not-a-uuid"))
+    }
+
     private fun readMessageHeaderFromTestFile(fileName: String): MessageHeader {
         val testMessage = String(
             this::class.java.classLoader

@@ -5,6 +5,7 @@ import no.nav.emottak.ebms.async.configuration.ErrorRetryPolicy
 import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
 import no.nav.emottak.ebms.async.kafka.consumer.asReceiverRecord
+import no.nav.emottak.ebms.async.kafka.consumer.getRecords
 import no.nav.emottak.ebms.async.kafka.consumer.getRetryRecord
 import no.nav.emottak.ebms.async.kafka.consumer.retryCount
 import no.nav.emottak.ebms.async.kafka.consumer.retryCounter
@@ -31,32 +32,40 @@ class RetryService(
     val signalSender: suspend (EbmsDocument, List<EmailAddress>) -> Unit
 ) {
 
-    /**
-     * Scans the entire outgoing retry topic from the beginning, deduplicates by Kafka key (requestId),
-     * and calls [processor] once for each unique key.
-     * Messages that have already been processed successfully will be detected and skipped
-     * transparently by the normal processing path in [PayloadMessageService.processOutboundResponse].
-     */
-    suspend fun rerunAbandonedOutgoingMessages(
-        processor: suspend (ReceiverRecord<String, ByteArray>) -> Unit
+    suspend fun rerunUniqueKeysOutgoing(
+        processor: suspend (ReceiverRecord<String, ByteArray>) -> Unit,
+        startOffset: Int = 0,
+        endOffset: Int = Int.MAX_VALUE - 1
     ) {
-        log.info("Starting full scan of outgoing retry topic to rerun abandoned messages")
-        val records = failedMessageKafkaHandler.getAllOutgoingRetryRecords()
-        log.info("Found ${records.size} total records on outgoing retry topic")
+        log.info("Starting rerun of all outgoing messages (StartingOffset=$startOffset, EndOffset=$endOffset).")
 
         val seenKeys = mutableSetOf<String>()
         var skippedDuplicates = 0
         var processed = 0
+        var currentOffset = startOffset.toLong()
 
-        records.forEach { record ->
-            if (seenKeys.add(record.key())) {
-                processor(record)
-                processed++
-            } else {
-                skippedDuplicates++
+        while (currentOffset <= endOffset.toLong()) {
+            val recordBatch = getRecords(
+                config().kafkaErrorQueueOut.topic,
+                config().kafka,
+                fromOffset = currentOffset,
+                requestedRecords = 100
+            ).filter { it.offset() <= endOffset.toLong() }
+
+            if (recordBatch.isEmpty()) break
+
+            recordBatch.forEach { record ->
+                if (seenKeys.add(record.key())) {
+                    processor(record)
+                    processed++
+                } else {
+                    skippedDuplicates++
+                }
             }
+            currentOffset = recordBatch.last().offset() + 1
         }
-        log.info("Outgoing retry topic scan complete: $processed unique messages processed, $skippedDuplicates duplicate records skipped")
+
+        log.info("Outgoing retry topic scan complete: $processed abandoned messages processed, $skippedDuplicates duplicates skipped")
     }
 
     internal suspend fun incomingRetryEval(
@@ -162,7 +171,7 @@ class RetryService(
      * @param offset Kafka offset of the message on the incoming retry queue.
      * @param processor Called to re-process the record.
      */
-    suspend fun forceRetryFailedMessage(
+    suspend fun forceRetryFailedIncomingMessage(
         offset: Long,
         processor: suspend (ReceiverRecord<String, ByteArray>) -> Unit
     ) {

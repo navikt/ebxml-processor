@@ -170,7 +170,7 @@ fun Routing.rerun(
             call.respondText(status = HttpStatusCode.BadRequest, text = "Must specify offset of message to rerun.")
             return@get
         }
-        retryService.forceRetryFailedMessage(
+        retryService.forceRetryFailedIncomingMessage(
             offset = offsetParam,
             processor = messageFilterService::filterMessage
         )
@@ -180,20 +180,23 @@ fun Routing.rerun(
         )
     }
 
-fun Routing.rerunAbandonedOutgoing(
+fun Routing.rerunOutgoing(
     retryService: RetryService,
     payloadMessageService: PayloadMessageService
 ): Route =
-    get("/api/retry/outgoing/rerun/abandoned") {
+    get("/api/retry/outgoing/rerun/") {
         if (!config().kafkaErrorQueueOut.active) {
             call.respondText(status = HttpStatusCode.ServiceUnavailable, text = "Outgoing retry queue not active.")
             return@get
         }
-        retryService.rerunAbandonedOutgoingMessages(makeOutRetryProcessor(payloadMessageService))
+        val startOffset = call.request.queryParameters["start"]?.toInt() ?: 0
+        val endOffset = call.request.queryParameters["end"]?.toInt() ?: (Int.MAX_VALUE - 1)
+
         call.respondText(
             status = HttpStatusCode.OK,
-            text = "Abandoned outgoing message rerun complete"
+            text = "Rerunning outgoing messages (StartingOffset=$startOffset, EndOffset=$endOffset)"
         )
+        retryService.rerunUniqueKeysOutgoing(makeOutRetryProcessor(payloadMessageService), startOffset, endOffset)
     }
 
 fun Route.forceRetryMessageIn(
