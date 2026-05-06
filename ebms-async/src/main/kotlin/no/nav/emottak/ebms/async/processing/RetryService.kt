@@ -50,7 +50,7 @@ class RetryService(
                 config().kafkaErrorQueueOut.topic,
                 config().kafka,
                 fromOffset = currentOffset,
-                requestedRecords = 100
+                requestedRecords = 50
             ).filter { it.offset() <= endOffset.toLong() }
 
             if (recordBatch.isEmpty()) break
