@@ -290,7 +290,7 @@ fun CoroutineScope.launchErrorRetryTaskIncoming(
 
     timer(
         name = "Retry Errors Timer Incoming",
-        initialDelay = 5000L,
+        initialDelay = config.errorRetryPolicyIncoming.startupDelay.inWholeMilliseconds,
         period = config.errorRetryPolicyIncoming.processInterval.inWholeMilliseconds,
         daemon = true
     ) {
@@ -322,7 +322,7 @@ fun CoroutineScope.launchErrorRetryTaskOutgoing(
 
     timer(
         name = "Retry Errors Timer Outgoing",
-        initialDelay = 5000L,
+        initialDelay = config.errorRetryPolicyOutgoing.startupDelay.inWholeMilliseconds,
         period = config.errorRetryPolicyOutgoing.processInterval.inWholeMilliseconds,
         daemon = true
     ) {
@@ -351,7 +351,7 @@ fun CoroutineScope.launchMesssageResendTask(
 ) {
     timer(
         name = "Resend Messages Timer",
-        initialDelay = 5000L,
+        initialDelay = config.messageResendPolicy.startupDelay.inWholeMilliseconds,
         period = config.messageResendPolicy.processInterval.inWholeMilliseconds,
         daemon = true
     ) {
