@@ -5,9 +5,11 @@ import io.github.nomisRev.kafka.publisher.KafkaPublisher
 import io.github.nomisRev.kafka.publisher.PublisherSettings
 import io.github.nomisRev.kafka.receiver.Offset
 import io.github.nomisRev.kafka.receiver.ReceiverRecord
+import io.micrometer.core.instrument.MeterRegistry
 import no.nav.emottak.ebms.async.configuration.KafkaErrorQueue
 import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.configuration.toProperties
+import no.nav.emottak.ebms.async.incrementMessagesQueuedForRetry
 import no.nav.emottak.message.model.Direction
 import no.nav.emottak.utils.config.Kafka
 import org.apache.kafka.clients.consumer.ConsumerConfig
@@ -39,7 +41,8 @@ val logger: Logger = LoggerFactory.getLogger(FailedMessageKafkaHandler::class.ja
 
 class FailedMessageKafkaHandler(
     val kafkaErrorQueue: KafkaErrorQueue = config().kafkaErrorQueue,
-    val kafka: Kafka = config().kafka
+    val kafka: Kafka = config().kafka,
+    val meterRegistry: MeterRegistry
 ) {
 
     val publisher = KafkaPublisher(
@@ -184,7 +187,7 @@ class FailedMessageKafkaHandler(
             Direction.OUT -> config().kafkaErrorQueueOut.topic
         }
         logger.info(
-            "Sending message to $topic queue with reason: $reason"
+            "Sending message with key $key to $topic with reason: $reason"
         )
         if (reason != null) {
             record.addHeader(RETRY_REASON, reason)
@@ -192,28 +195,19 @@ class FailedMessageKafkaHandler(
         if (nextRetryTime != null) {
             record.addHeader(RETRY_AFTER, nextRetryTime)
         }
-        try {
-            val metadata = publisher.publishScope {
-                publish(
-                    ProducerRecord(
-                        topic,
-                        null,
-                        key,
-                        value,
-                        record.headers()
-                    )
+        val metadata = publisher.publishScope {
+            publish(
+                ProducerRecord(
+                    topic,
+                    null,
+                    key,
+                    value,
+                    record.headers()
                 )
-            }
-            logger.info("Offset on metadata: " + metadata.offset())
-            logger.info("Result " + metadata.partition() + " timestamp " + metadata.timestamp())
-            logger.info(
-                "Message sent successfully to topic $topic"
-            )
-        } catch (e: Exception) {
-            logger.info(
-                "Failed to send message to $topic : ${e.message}"
             )
         }
+        logger.info("MESSAGE_QUEUED_FOR_RETRY in $topic with key $key at offset ${metadata.offset()}, retryAfter: $nextRetryTime")
+        meterRegistry.incrementMessagesQueuedForRetry(topic)
     }
 
     fun parseNextRetryHeader(record: ConsumerRecord<String, ByteArray>): LocalDateTime {
