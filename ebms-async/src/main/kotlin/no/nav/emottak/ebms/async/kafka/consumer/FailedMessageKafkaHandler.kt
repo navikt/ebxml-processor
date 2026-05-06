@@ -11,6 +11,7 @@ import no.nav.emottak.ebms.async.configuration.toProperties
 import no.nav.emottak.message.model.Direction
 import no.nav.emottak.utils.config.Kafka
 import org.apache.kafka.clients.consumer.ConsumerConfig
+import org.apache.kafka.clients.consumer.ConsumerConfig.MAX_POLL_RECORDS_CONFIG
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.consumer.ConsumerRecords
 import org.apache.kafka.clients.consumer.KafkaConsumer
@@ -286,7 +287,10 @@ fun getRecords(
     requestedRecords: Int = 1
 ): List<ReceiverRecord<String, ByteArray>> {
     KafkaConsumer(
-        kafka.toProperties(),
+        kafka.toProperties()
+            .apply {
+                put(MAX_POLL_RECORDS_CONFIG, requestedRecords.toString())
+            },
         StringDeserializer(),
         ByteArrayDeserializer()
     ).use { consumer ->
