@@ -128,7 +128,8 @@ fun main() = SuspendApp {
         payloadMessageForwardingService = payloadMessageForwardingService,
         eventRegistrationService = eventRegistrationService,
         messageReceivedRepository = messageReceivedRepository,
-        retryService = retryService
+        retryService = retryService,
+        messagePendingAckRepository = messagePendingAckRepository
     )
 
     val signalMessageService = SignalMessageService(
@@ -399,6 +400,7 @@ fun Application.ebmsProviderModule(
         retryErrorsOutgoing(retryService, payloadMessageService)
         rerunIncoming(retryService, messageFilterService)
         rerunOutgoing(retryService, payloadMessageService)
+        rerunOutgoingInterval(retryService, payloadMessageService)
         pauseRetries(pauseRetryErrorsTimerFlag)
         resumeRetries(pauseRetryErrorsTimerFlag)
         unacknowledge(messagePendingAckRepository)

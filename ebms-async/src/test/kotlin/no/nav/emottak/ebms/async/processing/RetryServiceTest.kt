@@ -11,8 +11,12 @@ import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.runs
 import io.mockk.spyk
+import io.mockk.unmockkAll
+import io.mockk.verify
 import kotlinx.coroutines.runBlocking
 import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
+import no.nav.emottak.ebms.async.kafka.consumer.asReceiverRecord
+import no.nav.emottak.ebms.async.kafka.consumer.getRecords
 import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.validation.CPAValidationService
@@ -23,8 +27,10 @@ import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.utils.common.model.Addressing
 import no.nav.emottak.utils.common.model.Party
 import no.nav.emottak.utils.common.model.PartyId
+import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.common.header.Headers
 import org.apache.kafka.common.header.internals.RecordHeader
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
@@ -238,4 +244,110 @@ class RetryServiceTest {
         duplicateElimination = false,
         ackRequested = false
     )
+
+    private fun makeRecordAtOffset(key: String, offset: Long): ReceiverRecord<String, ByteArray> =
+        ConsumerRecord("topic", 0, offset, key, ByteArray(0)).asReceiverRecord()
+
+    @AfterEach
+    fun tearDownMocks() {
+        unmockkAll()
+    }
+
+    // rerunUniqueKeysOutgoing
+
+    @Test
+    fun `rerunUniqueKeysOutgoing processes all records in a single batch`() = runBlocking {
+        mockkStatic("no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandlerKt")
+        val record1 = makeRecordAtOffset("key-1", 0L)
+        val record2 = makeRecordAtOffset("key-2", 1L)
+        every { getRecords(any(), any(), any(), any()) } answers {
+            if (thirdArg<Long>() == 0L) listOf(record1, record2) else emptyList()
+        }
+
+        val processed = mutableListOf<ReceiverRecord<String, ByteArray>>()
+        retryService.rerunUniqueKeysOutgoing(processor = { processed.add(it) })
+
+        assertEquals(2, processed.size)
+        assertEquals(setOf("key-1", "key-2"), processed.map { it.key() }.toSet())
+    }
+
+    @Test
+    fun `rerunUniqueKeysOutgoing deduplicates by key, processing only the first occurrence`() = runBlocking {
+        mockkStatic("no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandlerKt")
+        val first = makeRecordAtOffset("same-key", 0L)
+        val duplicate = makeRecordAtOffset("same-key", 1L)
+        val unique = makeRecordAtOffset("other-key", 2L)
+        every { getRecords(any(), any(), any(), any()) } answers {
+            if (thirdArg<Long>() == 0L) listOf(first, duplicate, unique) else emptyList()
+        }
+
+        val processed = mutableListOf<ReceiverRecord<String, ByteArray>>()
+        retryService.rerunUniqueKeysOutgoing(processor = { processed.add(it) })
+
+        assertEquals(2, processed.size)
+        assertEquals(1, processed.count { it.key() == "same-key" })
+        assertEquals(first, processed.first { it.key() == "same-key" })
+    }
+
+    @Test
+    fun `rerunUniqueKeysOutgoing starts fetching from startOffset`() = runBlocking {
+        mockkStatic("no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandlerKt")
+        every { getRecords(any(), any(), any(), any()) } answers {
+            if (thirdArg<Long>() == 50L) listOf(makeRecordAtOffset("key-1", 50L)) else emptyList()
+        }
+
+        val processed = mutableListOf<ReceiverRecord<String, ByteArray>>()
+        retryService.rerunUniqueKeysOutgoing(processor = { processed.add(it) }, startOffset = 50)
+
+        assertEquals(1, processed.size)
+        verify { getRecords(any(), any(), 50L, any()) }
+    }
+
+    @Test
+    fun `rerunUniqueKeysOutgoing excludes records with offset beyond endOffset`() = runBlocking {
+        mockkStatic("no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandlerKt")
+        val withinRange = makeRecordAtOffset("key-1", 5L)
+        val beyondRange = makeRecordAtOffset("key-2", 15L)
+        every { getRecords(any(), any(), any(), any()) } answers {
+            if (thirdArg<Long>() == 0L) listOf(withinRange, beyondRange) else emptyList()
+        }
+
+        val processed = mutableListOf<ReceiverRecord<String, ByteArray>>()
+        retryService.rerunUniqueKeysOutgoing(processor = { processed.add(it) }, endOffset = 10)
+
+        assertEquals(1, processed.size)
+        assertEquals("key-1", processed[0].key())
+    }
+
+    @Test
+    fun `rerunUniqueKeysOutgoing fetches next batch starting after last record in previous batch`() = runBlocking {
+        mockkStatic("no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandlerKt")
+        val firstBatch = (0 until 100).map { makeRecordAtOffset("key-$it", it.toLong()) }
+        val secondBatch = listOf(makeRecordAtOffset("key-100", 100L), makeRecordAtOffset("key-101", 101L))
+        every { getRecords(any(), any(), any(), any()) } answers {
+            when (thirdArg<Long>()) {
+                0L -> firstBatch
+                100L -> secondBatch
+                else -> emptyList()
+            }
+        }
+
+        val processed = mutableListOf<ReceiverRecord<String, ByteArray>>()
+        retryService.rerunUniqueKeysOutgoing(processor = { processed.add(it) })
+
+        assertEquals(102, processed.size)
+        verify { getRecords(any(), any(), 0L, any()) }
+        verify { getRecords(any(), any(), 100L, any()) }
+    }
+
+    @Test
+    fun `rerunUniqueKeysOutgoing does nothing when topic is empty`() = runBlocking {
+        mockkStatic("no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandlerKt")
+        every { getRecords(any(), any(), any(), any()) } returns emptyList()
+
+        val processed = mutableListOf<ReceiverRecord<String, ByteArray>>()
+        retryService.rerunUniqueKeysOutgoing(processor = { processed.add(it) })
+
+        assertEquals(0, processed.size)
+    }
 }

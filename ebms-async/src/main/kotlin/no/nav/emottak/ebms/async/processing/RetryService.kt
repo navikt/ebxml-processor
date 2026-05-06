@@ -5,6 +5,7 @@ import no.nav.emottak.ebms.async.configuration.ErrorRetryPolicy
 import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
 import no.nav.emottak.ebms.async.kafka.consumer.asReceiverRecord
+import no.nav.emottak.ebms.async.kafka.consumer.getRecords
 import no.nav.emottak.ebms.async.kafka.consumer.getRetryIncomingRecord
 import no.nav.emottak.ebms.async.kafka.consumer.getRetryOutgoingRecord
 import no.nav.emottak.ebms.async.kafka.consumer.retryCount
@@ -32,6 +33,42 @@ class RetryService(
     val failedMessageKafkaHandler: FailedMessageKafkaHandler,
     val signalSender: suspend (EbmsDocument, List<EmailAddress>) -> Unit
 ) {
+
+    suspend fun rerunUniqueKeysOutgoing(
+        processor: suspend (ReceiverRecord<String, ByteArray>) -> Unit,
+        startOffset: Int = 0,
+        endOffset: Int = Int.MAX_VALUE - 1
+    ) {
+        log.info("Starting rerun of all outgoing messages (StartingOffset=$startOffset, EndOffset=$endOffset).")
+
+        val seenKeys = mutableSetOf<String>()
+        var skippedDuplicates = 0
+        var processed = 0
+        var currentOffset = startOffset.toLong()
+
+        while (currentOffset <= endOffset.toLong()) {
+            val recordBatch = getRecords(
+                config().kafkaErrorQueueOut.topic,
+                config().kafka,
+                fromOffset = currentOffset,
+                requestedRecords = 100
+            ).filter { it.offset() <= endOffset.toLong() }
+
+            if (recordBatch.isEmpty()) break
+
+            recordBatch.forEach { record ->
+                if (seenKeys.add(record.key())) {
+                    processor(record)
+                    processed++
+                } else {
+                    skippedDuplicates++
+                }
+            }
+            currentOffset = recordBatch.last().offset() + 1
+        }
+
+        log.info("Outgoing retry topic scan complete: $processed abandoned messages processed, $skippedDuplicates duplicates skipped")
+    }
 
     internal suspend fun incomingRetryEval(
         record: ReceiverRecord<String, ByteArray>,
