@@ -13,6 +13,7 @@ import io.mockk.runs
 import io.mockk.slot
 import kotlinx.coroutines.runBlocking
 import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
+import no.nav.emottak.ebms.async.persistence.repository.MessagePendingAckRepository
 import no.nav.emottak.ebms.async.persistence.repository.MessageReceivedRepository
 import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.ebms.model.signer
@@ -50,6 +51,7 @@ class PayloadMessageServiceTest {
     private lateinit var eventRegistrationService: EventRegistrationService
     private lateinit var messageReceivedRepository: MessageReceivedRepository
     private lateinit var retryService: RetryService
+    private lateinit var messagePendingAckRepository: MessagePendingAckRepository
     private lateinit var service: PayloadMessageService
 
     @BeforeEach
@@ -63,6 +65,8 @@ class PayloadMessageServiceTest {
         eventRegistrationService = mockk<EventRegistrationService>()
         messageReceivedRepository = mockk<MessageReceivedRepository>()
         retryService = mockk<RetryService>()
+        messagePendingAckRepository = mockk<MessagePendingAckRepository>()
+        every { messagePendingAckRepository.existsForMessageId(any()) } returns false
         coEvery {
             retryService.incomingRetryEval(any(), any(), any(), any())
         } just runs
@@ -83,7 +87,8 @@ class PayloadMessageServiceTest {
             payloadMessageForwardingService,
             eventRegistrationService,
             messageReceivedRepository,
-            retryService
+            retryService,
+            messagePendingAckRepository
         )
     }
 
@@ -499,6 +504,32 @@ class PayloadMessageServiceTest {
             ebmsMessageSlots[i] is T,
             "ebmsMessageSlots[$i] er ikke ${T::class.simpleName}, men ${ebmsMessageSlots[0].javaClass.name}"
         )
+    }
+
+    @Test
+    fun `processOutboundResponse should skip processing when message already exists in DB`() = runBlocking {
+        initService()
+        val payloadMessage = createPayloadMessage()
+        every { messagePendingAckRepository.existsForMessageId(payloadMessage.messageId) } returns true
+        val record = setupReceiverRecordWithRetryServiceMock()
+
+        service.processOutboundResponse(record, payloadMessage)
+
+        coVerify(exactly = 0) { payloadMessageForwardingService.returnMessageResponse(any()) }
+        coVerify(exactly = 0) { retryService.outgoingRetryEval(any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `processOutboundResponse should delegate to returnMessageResponse when message not yet in DB`() = runBlocking {
+        initService()
+        val payloadMessage = createPayloadMessage()
+        every { messagePendingAckRepository.existsForMessageId(payloadMessage.messageId) } returns false
+        coEvery { payloadMessageForwardingService.returnMessageResponse(payloadMessage) } just Runs
+        val record = setupReceiverRecordWithRetryServiceMock()
+
+        service.processOutboundResponse(record, payloadMessage)
+
+        coVerify(exactly = 1) { payloadMessageForwardingService.returnMessageResponse(payloadMessage) }
     }
 }
 

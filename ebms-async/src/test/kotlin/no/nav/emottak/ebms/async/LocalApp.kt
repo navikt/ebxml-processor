@@ -159,7 +159,8 @@ fun main() = SuspendApp {
         payloadMessageForwardingService = payloadMessageForwardingService,
         eventRegistrationService = eventRegistrationService,
         messageReceivedRepository = messageReceivedRepository,
-        retryService = retryService
+        retryService = retryService,
+        messagePendingAckRepository = messagePendingAckRepository
     )
 
     val signalMessageService = SignalMessageService(
