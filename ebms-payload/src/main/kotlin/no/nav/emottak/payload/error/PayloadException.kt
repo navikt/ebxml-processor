@@ -22,7 +22,7 @@ fun Throwable.convertToFeil(): Feil = when (this) {
     is DecryptionException -> Feil(ErrorCode.SECURITY_FAILURE, localizedMessage, SeverityType.ERROR.value(), this.recoverable)
     is CompressionException -> Feil(ErrorCode.SECURITY_FAILURE, localizedMessage, SeverityType.ERROR.value(), this.recoverable)
     is DecompressionException -> Feil(ErrorCode.SECURITY_FAILURE, localizedMessage, SeverityType.ERROR.value(), this.recoverable)
-    is SignatureException -> Feil(ErrorCode.SECURITY_FAILURE, localizedMessage, SeverityType.ERROR.value(), false)
+    is SignatureException -> Feil(ErrorCode.SECURITY_FAILURE, localizedMessage, SeverityType.ERROR.value(), true)
     is CertificateException -> Feil(ErrorCode.SECURITY_FAILURE, localizedMessage, SeverityType.ERROR.value(), this.recoverable)
     else -> Feil(ErrorCode.UNKNOWN, this.localizedMessage, SeverityType.ERROR.value())
 }
