@@ -284,7 +284,7 @@ fun getRecords(
     topic: String,
     kafka: Kafka,
     fromOffset: Long = 0,
-    requestedRecords: Int = 1
+    requestedRecords: Int = 100
 ): List<ReceiverRecord<String, ByteArray>> {
     KafkaConsumer(
         kafka.toProperties()
