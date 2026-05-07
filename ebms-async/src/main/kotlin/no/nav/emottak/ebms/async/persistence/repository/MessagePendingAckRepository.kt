@@ -164,6 +164,7 @@ class MessagePendingAckRepository(
                         .and(MessagePendingAckTable.firstSent.greaterEq(since))
                 }
                 .orderBy(MessagePendingAckTable.firstSent, SortOrder.DESC)
+                .filter { it[MessagePendingAckTable.firstSent] < Instant.now().minus(5, java.time.temporal.ChronoUnit.MINUTES) }
                 .map {
                     val header = xmlMarshaller.unmarshal(it[MessagePendingAckTable.messageHeader], MessageHeader::class.java)
                     MessagePendingAckSummary(
