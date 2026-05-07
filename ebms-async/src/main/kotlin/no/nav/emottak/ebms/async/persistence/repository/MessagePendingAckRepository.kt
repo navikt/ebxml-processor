@@ -1,5 +1,6 @@
 package no.nav.emottak.ebms.async.persistence.repository
 
+import kotlinx.serialization.Serializable
 import no.nav.emottak.ebms.async.persistence.Database
 import no.nav.emottak.ebms.async.persistence.table.MessagePendingAckTable
 import no.nav.emottak.message.model.EmailAddress
@@ -35,6 +36,23 @@ data class MessagePendingAck(
     val firstSent: Instant = Instant.now(),
     val lastSent: Instant = Instant.now(),
     val resentCount: Int = 0
+)
+
+@Serializable
+data class MessagePendingAckSummary(
+    val messageId: String,
+    val requestId: String,
+    val cpaId: String,
+    val conversationId: String,
+    val refToMessageId: String?,
+    val service: String,
+    val action: String,
+    val receiverHerId: String?,
+    val receiverOrgnummer: String?,
+    val emailAddressList: List<String>,
+    val firstSent: String,
+    val lastSent: String,
+    val resentCount: Int
 )
 
 private val log = LoggerFactory.getLogger(MessagePendingAckRepository::class.java)
@@ -124,6 +142,40 @@ class MessagePendingAckRepository(
                     it[ackReceived] = false
                     it[resentCount] = 0
                 } > 0
+        }
+    }
+
+    fun findAllWithoutAck(): List<MessagePendingAckSummary> {
+        return transaction(database.db) {
+            MessagePendingAckTable
+                .select(
+                    MessagePendingAckTable.messageId,
+                    MessagePendingAckTable.requestId,
+                    MessagePendingAckTable.messageHeader,
+                    MessagePendingAckTable.emailAddressList,
+                    MessagePendingAckTable.firstSent,
+                    MessagePendingAckTable.lastSent,
+                    MessagePendingAckTable.resentCount
+                )
+                .where { MessagePendingAckTable.ackReceived.eq(false) }
+                .map {
+                    val header = xmlMarshaller.unmarshal(it[MessagePendingAckTable.messageHeader], MessageHeader::class.java)
+                    MessagePendingAckSummary(
+                        messageId = it[MessagePendingAckTable.messageId].toString(),
+                        requestId = it[MessagePendingAckTable.requestId].toString(),
+                        cpaId = header.cpaId ?: "",
+                        conversationId = header.conversationId ?: "",
+                        refToMessageId = header.messageData.refToMessageId,
+                        service = header.service.value ?: "",
+                        action = header.action ?: "",
+                        receiverHerId = header.to.partyId.firstOrNull { it.type == "HER" }?.value,
+                        receiverOrgnummer = header.to.partyId.firstOrNull { it.type == "orgnummer" }?.value,
+                        emailAddressList = it[MessagePendingAckTable.emailAddressList].split(","),
+                        firstSent = it[MessagePendingAckTable.firstSent].toString(),
+                        lastSent = it[MessagePendingAckTable.lastSent].toString(),
+                        resentCount = it[MessagePendingAckTable.resentCount]
+                    )
+                }
         }
     }
 

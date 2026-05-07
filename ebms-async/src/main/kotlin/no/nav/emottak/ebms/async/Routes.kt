@@ -1,6 +1,7 @@
 package no.nav.emottak.ebms.async
 
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.html.respondHtml
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
@@ -92,6 +93,20 @@ fun Route.getPayloads(
         )
     }
     return@get
+}
+
+fun Route.getMessagesPendingAck(
+    messagePendingAckRepository: MessagePendingAckRepository
+): Route = get("/api/messages/pending-ack") {
+    call.respond(HttpStatusCode.OK, messagePendingAckRepository.findAllWithoutAck())
+}
+
+fun Route.getMessagesPendingAckHtml(
+    messagePendingAckRepository: MessagePendingAckRepository
+): Route = get("/api/messages/pending-ack/view") {
+    call.respondHtml(HttpStatusCode.OK) {
+        renderMessagesPendingAck(messagePendingAckRepository.findAllWithoutAck())
+    }
 }
 
 fun Route.unacknowledge(
