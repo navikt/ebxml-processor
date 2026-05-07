@@ -404,6 +404,8 @@ fun Application.ebmsProviderModule(
         pauseRetries(pauseRetryErrorsTimerFlag)
         resumeRetries(pauseRetryErrorsTimerFlag)
         unacknowledge(messagePendingAckRepository)
+        getMessagesPendingAck(messagePendingAckRepository)
+        getMessagesPendingAckHtml(messagePendingAckRepository)
         authenticate(AZURE_AD_AUTH) {
             getPayloads(payloadRepository, eventRegistrationService)
         }
