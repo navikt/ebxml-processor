@@ -21,6 +21,10 @@ import no.nav.emottak.ebms.async.processing.RetryService
 import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.utils.kafka.model.EventType
 import no.nav.emottak.utils.serialization.toEventDataJson
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
+import java.time.temporal.ChronoUnit
 import kotlin.uuid.Uuid
 
 private const val REFERENCE_ID = "referenceId"
@@ -98,16 +102,25 @@ fun Route.getPayloads(
 fun Route.getMessagesPendingAck(
     messagePendingAckRepository: MessagePendingAckRepository
 ): Route = get("/api/messages/pending-ack") {
-    call.respond(HttpStatusCode.OK, messagePendingAckRepository.findAllWithoutAck())
+    val since = parseSinceParameter(call.request.queryParameters["since"])
+    call.respond(HttpStatusCode.OK, messagePendingAckRepository.findAllWithoutAck(since))
 }
 
 fun Route.getMessagesPendingAckHtml(
     messagePendingAckRepository: MessagePendingAckRepository
 ): Route = get("/api/messages/pending-ack/view") {
+    val since = parseSinceParameter(call.request.queryParameters["since"])
     call.respondHtml(HttpStatusCode.OK) {
-        renderMessagesPendingAck(messagePendingAckRepository.findAllWithoutAck())
+        renderMessagesPendingAck(messagePendingAckRepository.findAllWithoutAck(since))
     }
 }
+
+private fun parseSinceParameter(value: String?): Instant =
+    if (value != null) {
+        LocalDate.parse(value).atStartOfDay().toInstant(ZoneOffset.UTC)
+    } else {
+        Instant.now().minus(14, ChronoUnit.DAYS)
+    }
 
 fun Route.unacknowledge(
     messagePendingAckRepository: MessagePendingAckRepository

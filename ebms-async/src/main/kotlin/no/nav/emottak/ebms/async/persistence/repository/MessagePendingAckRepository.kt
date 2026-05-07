@@ -5,8 +5,10 @@ import no.nav.emottak.ebms.async.persistence.Database
 import no.nav.emottak.ebms.async.persistence.table.MessagePendingAckTable
 import no.nav.emottak.message.model.EmailAddress
 import no.nav.emottak.message.xml.xmlMarshaller
+import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.greaterEq
 import org.jetbrains.exposed.v1.core.less
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.select
@@ -145,7 +147,7 @@ class MessagePendingAckRepository(
         }
     }
 
-    fun findAllWithoutAck(): List<MessagePendingAckSummary> {
+    fun findAllWithoutAck(since: Instant = Instant.now().minus(14, java.time.temporal.ChronoUnit.DAYS)): List<MessagePendingAckSummary> {
         return transaction(database.db) {
             MessagePendingAckTable
                 .select(
@@ -157,7 +159,11 @@ class MessagePendingAckRepository(
                     MessagePendingAckTable.lastSent,
                     MessagePendingAckTable.resentCount
                 )
-                .where { MessagePendingAckTable.ackReceived.eq(false) }
+                .where {
+                    MessagePendingAckTable.ackReceived.eq(false)
+                        .and(MessagePendingAckTable.firstSent.greaterEq(since))
+                }
+                .orderBy(MessagePendingAckTable.firstSent, SortOrder.DESC)
                 .map {
                     val header = xmlMarshaller.unmarshal(it[MessagePendingAckTable.messageHeader], MessageHeader::class.java)
                     MessagePendingAckSummary(
