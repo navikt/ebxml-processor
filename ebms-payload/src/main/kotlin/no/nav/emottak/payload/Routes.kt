@@ -10,6 +10,7 @@ import io.ktor.server.routing.Routing
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
+import net.logstash.logback.marker.Markers
 import no.kith.xmlstds.msghead._2006_05_24.MsgHead
 import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.ErrorCode
@@ -19,6 +20,7 @@ import no.nav.emottak.message.model.PayloadRequest
 import no.nav.emottak.message.model.PayloadResponse
 import no.nav.emottak.message.model.ProcessConfig
 import no.nav.emottak.payload.apprec.createNegativeApprec
+import no.nav.emottak.payload.error.DecryptionException
 import no.nav.emottak.payload.error.convertToFeil
 import no.nav.emottak.payload.error.getEventType
 import no.nav.emottak.payload.util.EventRegistrationService
@@ -52,14 +54,30 @@ fun Route.postPayload(
         it.juridiskLoggRecordId = juridiskLoggRecordId
 
         if (it.error != null) {
-            log.error(request.marker(), "Payload prosessert med kode ${it.error!!.code.description} og feil: ${it.error!!.descriptionText}", it.error)
+            log.error(
+                request.marker(),
+                "Payload prosessert med kode ${it.error!!.code.description} og feil: ${it.error!!.descriptionText}",
+                it.error
+            )
             call.respond(HttpStatusCode.BadRequest, it)
         } else {
             log.info(request.marker(), "Payload prosessert OK <${request.payload.contentId}>")
             call.respond(it)
         }
     }.onFailure { error ->
-        log.error(request.marker(), "Payload prosessert med feil: ${error.localizedMessage}", error)
+        log.error(
+            request.marker().and(
+                Markers.append(
+                    "DECRYPTION_KEY_ID",
+                    when (error) {
+                        is DecryptionException -> error.decryptionKeyId
+                        else -> null
+                    }
+                )
+            ),
+            "Payload prosessert med feil: ${error.localizedMessage}",
+            error
+        )
 
         eventRegistrationService.registerEvent(
             error.getEventType(),
@@ -104,7 +122,11 @@ private suspend fun createIncomingPayloadResponse(
             }
         )
     } catch (e: Exception) {
-        log.error(request.marker(), "Feil ved validering av payload, creating AppRec or Error Payload in response instead", e)
+        log.error(
+            request.marker(),
+            "Feil ved validering av payload, creating AppRec or Error Payload in response instead",
+            e
+        )
         val errorPayload: Payload? = createNegativeAppRecOrErrorPayload(processConfig, request, readablePayload, e)
         PayloadResponse(
             processedPayload = errorPayload,
@@ -130,6 +152,7 @@ private fun createNegativeAppRecOrErrorPayload(
                 ContentType.Application.Xml.toString()
             )
         }
+
         false -> null
     }
 }.onFailure {
