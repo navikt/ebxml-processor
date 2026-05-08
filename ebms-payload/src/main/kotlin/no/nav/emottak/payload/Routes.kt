@@ -68,9 +68,9 @@ fun Route.postPayload(
         log.error(
             request.marker().and(
                 Markers.append(
-                    "DECRYPTION_KEY_ID",
+                    "decryptionKeySerialnumber",
                     when (error) {
-                        is DecryptionException -> error.decryptionKeyId
+                        is DecryptionException -> error.decryptionKeySerialnumber
                         else -> null
                     }
                 )

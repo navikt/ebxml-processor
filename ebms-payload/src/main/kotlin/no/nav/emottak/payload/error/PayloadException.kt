@@ -13,7 +13,7 @@ open class CertificateException(message: String, cause: Exception? = null) : Pay
 class OCSPValidationFnrBlankError(message: String, cause: Exception? = null) : CertificateException(message, cause)
 class CompressionException(message: String, cause: Exception? = null) : PayloadException(message, cause)
 class DecompressionException(message: String, cause: Exception? = null) : PayloadException(message, cause)
-class DecryptionException(message: String, cause: Exception? = null, val decryptionKeyId: BigInteger? = null) : PayloadException(message, cause)
+class DecryptionException(message: String, cause: Exception? = null, val decryptionKeySerialnumber: BigInteger? = null) : PayloadException(message, cause)
 class EncryptionException(message: String, cause: Exception? = null) : PayloadException(message, cause)
 class JuridiskLoggException(message: String, cause: Exception? = null) : PayloadException(message, cause)
 
