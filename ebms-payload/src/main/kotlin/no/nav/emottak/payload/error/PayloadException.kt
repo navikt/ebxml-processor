@@ -5,6 +5,7 @@ import no.nav.emottak.message.model.Feil
 import no.nav.emottak.util.signatur.SignatureException
 import no.nav.emottak.utils.kafka.model.EventType
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.SeverityType
+import java.math.BigInteger
 
 open class PayloadException(message: String?, cause: Throwable?, val recoverable: Boolean) : Exception(message, cause)
 
@@ -12,7 +13,7 @@ open class CertificateException(message: String, cause: Exception? = null) : Pay
 class OCSPValidationFnrBlankError(message: String, cause: Exception? = null) : CertificateException(message, cause)
 class CompressionException(message: String, cause: Exception? = null) : PayloadException(message, cause, true)
 class DecompressionException(message: String, cause: Exception? = null) : PayloadException(message, cause, false)
-class DecryptionException(message: String, cause: Exception? = null) : PayloadException(message, cause, false)
+class DecryptionException(message: String, cause: Exception? = null, val decryptionKeySerialnumber: BigInteger? = null) : PayloadException(message, cause, false)
 class EncryptionException(message: String, cause: Exception? = null) : PayloadException(message, cause, true)
 class JuridiskLoggException(message: String, cause: Exception? = null) : PayloadException(message, cause, true)
 
