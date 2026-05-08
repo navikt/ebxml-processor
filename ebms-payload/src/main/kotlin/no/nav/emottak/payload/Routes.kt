@@ -70,7 +70,7 @@ fun Route.postPayload(
                 Markers.append(
                     "decryptionKeySerialnumber",
                     when (error) {
-                        is DecryptionException -> error.decryptionKeyId
+                        is DecryptionException -> error.decryptionKeySerialnumber
                         else -> null
                     }
                 )
