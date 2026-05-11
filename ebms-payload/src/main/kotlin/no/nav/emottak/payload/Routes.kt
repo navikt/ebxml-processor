@@ -10,6 +10,7 @@ import io.ktor.server.routing.Routing
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
+import net.logstash.logback.marker.LogstashMarker
 import net.logstash.logback.marker.Markers
 import no.kith.xmlstds.msghead._2006_05_24.MsgHead
 import no.nav.emottak.message.model.Direction
@@ -64,15 +65,12 @@ fun Route.postPayload(
         }
     }.onFailure { error ->
         log.error(
-            request.marker().and(
-                Markers.append(
-                    "decryptionKeySerialnumber",
-                    when (error) {
-                        is DecryptionException -> error.decryptionKeySerialnumber
-                        else -> null
+            request.marker()
+                .also { marker ->
+                    if (error is DecryptionException) {
+                        marker.and<LogstashMarker>(Markers.append("decryptionKeySerialnumber", error.decryptionKeySerialnumber))
                     }
-                )
-            ),
+                },
             "Payload prosessert med feil: ${error.localizedMessage}",
             error
         )
