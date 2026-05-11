@@ -19,6 +19,7 @@ import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.EbmsDocument
 import no.nav.emottak.message.model.EbmsMessage
 import no.nav.emottak.message.model.EmailAddress
+import no.nav.emottak.message.model.ErrorCode
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.util.marker
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -79,7 +80,8 @@ class RetryService(
         val (decision, reason) = decideRetry(
             ttl = payloadMessage.timeToLive,
             retriedAlready = retryCount,
-            maxRetries = config().errorRetryPolicyIncoming.maxRetries
+            maxRetries = config().errorRetryPolicyIncoming.maxRetries,
+            exception
         )
         when (decision) {
             RetryDecision.RETRY -> failedMessageKafkaHandler.sendToRetryQueueIncoming(record, retryReason, getNextRetryTime(record, config().errorRetryPolicyIncoming))
@@ -88,7 +90,7 @@ class RetryService(
                     payloadMessage,
                     EbmsException(
                         "TimeToLive expired",
-                        errorCode = no.nav.emottak.message.model.ErrorCode.TIME_TO_LIVE_EXPIRED,
+                        errorCode = ErrorCode.TIME_TO_LIVE_EXPIRED,
                         exception = exception
                     )
                 )
@@ -98,9 +100,14 @@ class RetryService(
                     exception as? EbmsException
                         ?: EbmsException(
                             "Max Retries expired",
-                            errorCode = no.nav.emottak.message.model.ErrorCode.DELIVERY_FAILURE,
+                            errorCode = ErrorCode.DELIVERY_FAILURE,
                             exception = exception
                         )
+                )
+            RetryDecision.NO_RETRY ->
+                returnMessageError(
+                    payloadMessage,
+                    exception as EbmsException
                 )
         }
         log.info("Decision [$decision]:\n" + "Failing payload sent at ${payloadMessage.sentAt ?: "unknown"}, error type: ${exception::class.simpleName ?: "Unknown error"}, reason: $retryReason, retries already performed: $retryCount. Decision reason: $reason")
@@ -116,12 +123,14 @@ class RetryService(
         val (decision, reason) = decideRetry(
             ttl = payloadMessage.timeToLive,
             retriedAlready = retryCount,
-            maxRetries = config().errorRetryPolicyOutgoing.maxRetries
+            maxRetries = config().errorRetryPolicyOutgoing.maxRetries,
+            exception
         )
         when (decision) {
             RetryDecision.RETRY -> failedMessageKafkaHandler.sendToRetryQueueOutgoing(record, retryReason, getNextRetryTime(record, config().errorRetryPolicyOutgoing))
             RetryDecision.TTL_EXPIRED -> log.error(payloadMessage.marker(), "ebXML TimeToLive expired for outgoing message", exception)
-            RetryDecision.MAX_RETRIES_EXCEEDED -> log.error(payloadMessage.marker(), "ebXML Max Retires exhausted for outgoing message", exception)
+            RetryDecision.MAX_RETRIES_EXCEEDED -> log.error(payloadMessage.marker(), "ebXML Max Retries exhausted for outgoing message", exception)
+            RetryDecision.NO_RETRY -> log.error(payloadMessage.marker(), "Unrecoverable error occured", exception)
         }
         log.info("Decision [$decision]:\n" + "Failing outgoing payload sent at ${payloadMessage.sentAt ?: "unknown"}, error type: ${exception::class.simpleName ?: "Unknown error"}, reason: $retryReason, retries already performed: $retryCount. Decision reason: $reason")
     }
@@ -241,22 +250,17 @@ class RetryService(
         return LocalDateTime.now().plus(nextInterval.toJavaDuration()).toString()
     }
 
-    internal fun decideRetry(ttl: Instant?, retriedAlready: Int, maxRetries: Int): Pair<RetryDecision, String> {
-        if (ttl != null && isExpired(ttl)) {
-            return RetryDecision.TTL_EXPIRED to "ebXML TimeToLive expired at $ttl"
+    internal fun decideRetry(ttl: Instant?, retriedAlready: Int, maxRetries: Int, throwable: Throwable? = null): Pair<RetryDecision, String> {
+        return when {
+            throwable?.isRecoverableException() == false -> RetryDecision.NO_RETRY to "Unrecoverable exception type ${throwable::class.simpleName}, not retrying"
+            (ttl != null && isExpired(ttl)) -> RetryDecision.TTL_EXPIRED to "ebXML TimeToLive expired at $ttl"
+            (retriedAlready >= maxRetries) -> RetryDecision.MAX_RETRIES_EXCEEDED to "Retried too many times, max number is $maxRetries, already retried $retriedAlready times"
+            (ttl != null) -> RetryDecision.RETRY to "Within ebXML TimeToLive (expires at $ttl), already retried $retriedAlready times"
+            else -> RetryDecision.RETRY to "No ebXML TimeToLive but more retries OK, already retried $retriedAlready times"
         }
-        if (retriedAlready >= maxRetries) {
-            return RetryDecision.MAX_RETRIES_EXCEEDED to "Retried too many times, max number is $maxRetries, already retried $retriedAlready times"
-        }
-        val reason = if (ttl != null) {
-            "Within ebXML TimeToLive (expires at $ttl), already retried $retriedAlready times"
-        } else {
-            "No ebXML TimeToLive but more retries OK, already retried $retriedAlready times"
-        }
-        return RetryDecision.RETRY to reason
     }
 
-    internal enum class RetryDecision { RETRY, TTL_EXPIRED, MAX_RETRIES_EXCEEDED }
+    internal enum class RetryDecision { RETRY, TTL_EXPIRED, MAX_RETRIES_EXCEEDED, NO_RETRY }
 
     internal fun isExpired(ttl: Instant): Boolean {
         return ttl <= Instant.now()
@@ -282,3 +286,5 @@ class RetryService(
         const val AGE_DAYS_TO_IGNORE = 7L
     }
 }
+
+private fun Throwable?.isRecoverableException(): Boolean = (this as? EbmsException)?.isRecoverable() ?: true

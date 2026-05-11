@@ -13,8 +13,6 @@ import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import net.logstash.logback.marker.Markers
 import no.kith.xmlstds.msghead._2006_05_24.MsgHead
 import no.nav.emottak.message.model.Direction
-import no.nav.emottak.message.model.ErrorCode
-import no.nav.emottak.message.model.Feil
 import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadRequest
 import no.nav.emottak.message.model.PayloadResponse
@@ -130,7 +128,7 @@ private suspend fun createIncomingPayloadResponse(
         val errorPayload: Payload? = createNegativeAppRecOrErrorPayload(processConfig, request, readablePayload, e)
         PayloadResponse(
             processedPayload = errorPayload,
-            error = Feil(ErrorCode.UNKNOWN, e.localizedMessage, "Error"),
+            error = e.convertToFeil(),
             apprec = errorPayload != null
         )
     }
