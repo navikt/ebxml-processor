@@ -64,7 +64,8 @@ open class CPAValidationService(val httpClient: CpaRepoClient) {
             message.messageId,
             message.conversationId,
             message.cpaId,
-            message.addressing
+            message.addressing,
+            message.refToMessageId
         )
         val validationResult = withContext(Dispatchers.IO) {
             httpClient.postValidate(message.requestId, validationRequest)

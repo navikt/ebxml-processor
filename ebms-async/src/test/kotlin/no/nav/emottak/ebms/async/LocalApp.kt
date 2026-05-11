@@ -27,6 +27,7 @@ import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
 import no.nav.emottak.ebms.async.persistence.Database
 import no.nav.emottak.ebms.async.persistence.PayloadRepositoryTest.Companion.ebmsProviderDbContainer
 import no.nav.emottak.ebms.async.persistence.repository.MessagePendingAckRepository
+import no.nav.emottak.ebms.async.persistence.repository.MessageReceivedRepository
 import no.nav.emottak.ebms.async.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.async.processing.MessageFilterService
 import no.nav.emottak.ebms.async.processing.PayloadMessageForwardingService
@@ -36,7 +37,6 @@ import no.nav.emottak.ebms.async.processing.SignalMessageService
 import no.nav.emottak.ebms.async.processing.sendSignalResponseToTopic
 import no.nav.emottak.ebms.async.util.EventRegistrationServiceFake
 import no.nav.emottak.ebms.defaultHttpClient
-import no.nav.emottak.ebms.eventmanager.EventManagerService
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.CPAValidationService
@@ -80,6 +80,7 @@ fun main() = SuspendApp {
     println(" ************ Setting up to use local DB with URL: " + database.dataSource.jdbcUrl)
 
     val payloadRepository = PayloadRepository(database)
+    val messageReceivedRepository = MessageReceivedRepository(database)
 
     val kafkaUrl = getRunningKafkaBrokerUrl()
     println(" ************ Setting up to use local Kafka with URL: " + kafkaUrl)
@@ -124,9 +125,7 @@ fun main() = SuspendApp {
         httpClient = DummySendInClient()
     )
     val smtpTransportClient = DummySmtpTransportClient()
-    val eventManagerService = EventManagerService(
-        DummyEventManagerClient()
-    )
+
     val eventRegistrationService = EventRegistrationServiceFake()
 
     val ebmsSignalProducer = EbmsMessageProducer(config.kafkaSignalProducer.topic, config.kafka)
@@ -159,8 +158,9 @@ fun main() = SuspendApp {
         ebmsSignalProducer = ebmsSignalProducer,
         payloadMessageForwardingService = payloadMessageForwardingService,
         eventRegistrationService = eventRegistrationService,
-        eventManagerService = eventManagerService,
-        retryService = retryService
+        messageReceivedRepository = messageReceivedRepository,
+        retryService = retryService,
+        messagePendingAckRepository = messagePendingAckRepository
     )
 
     val signalMessageService = SignalMessageService(
@@ -173,7 +173,8 @@ fun main() = SuspendApp {
         payloadMessageService = payloadMessageService,
         signalMessageService = signalMessageService,
         smtpTransportClient = smtpTransportClient,
-        eventRegistrationService = eventRegistrationService
+        eventRegistrationService = eventRegistrationService,
+        failedMessageKafkaHandler = failedMessageQueue
     )
 
     var pauseRetryErrorsTimerFlag = PauseRetryErrorsTimerFlag()
@@ -253,12 +254,14 @@ class DummyMessageFilterService(
     payloadMessageService: PayloadMessageService,
     signalMessageService: SignalMessageService,
     smtpTransportClient: DummySmtpTransportClient,
-    eventRegistrationService: EventRegistrationServiceFake
+    eventRegistrationService: EventRegistrationServiceFake,
+    failedMessageKafkaHandler: FailedMessageKafkaHandler
 ) : MessageFilterService(
     payloadMessageService,
     signalMessageService,
     smtpTransportClient,
-    eventRegistrationService
+    eventRegistrationService,
+    failedMessageKafkaHandler
 ) {
     override suspend fun filterMessage(record: ReceiverRecord<String, ByteArray>) {
         println("--DUMMY Processing message with requestId: ${record.key()} and offset ${record.offset()}:\n" + record.value().decodeToString().substring(0, 100))
@@ -328,12 +331,14 @@ class DummySendInClient() : SendInClient(defaultHttpClient()) {
         var responsePayload = readClasspathFile("xml/harBorgerEgenandelFritakResponseFagmelding.xml")
         if (responsePayload == null) responsePayload = ""
         val responseMessageId = "22a46f21-33c6-4324-8e46-b704a59b5658"
+        val refToMessageId = "22a46f21-33c6-4324-8e46-b704a59b5658"
         val responseConversationId = "17eb03e-9e43-43fb-874c-1fde9a28c308"
         val responseRequestId = "11111111-2222-3333-4444-555555555555"
+        val cpaId = "dummyCpa"
         val service = "Inntektsforesporsel"
         val action = "InntektInformasjon"
         val addressing = Addressing(sendInRequest.addressing.from, sendInRequest.addressing.to, service, action)
-        return SendInResponse(responseMessageId, responseConversationId, addressing, responsePayload.toByteArray(), responseRequestId)
+        return SendInResponse(responseMessageId, refToMessageId, responseConversationId, cpaId, addressing, responsePayload.toByteArray(), responseRequestId)
     }
 }
 

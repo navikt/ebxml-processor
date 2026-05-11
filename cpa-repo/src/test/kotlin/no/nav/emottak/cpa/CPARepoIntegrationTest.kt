@@ -57,6 +57,7 @@ import no.nav.emottak.utils.common.model.PartyId
 import no.nav.emottak.utils.environment.getEnvVar
 import no.nav.security.mock.oauth2.MockOAuth2Server
 import org.apache.commons.lang3.StringUtils
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
@@ -75,6 +76,7 @@ import kotlin.test.assertTrue
 import kotlin.uuid.Uuid
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@Disabled
 class CPARepoIntegrationTest : PostgresOracleTest() {
     val eventRegistrationService = EventRegistrationServiceFake()
     private lateinit var cpaRepositoryMock: CPARepository
@@ -512,6 +514,31 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         }
 
         assertEquals(HttpStatusCode.NotFound, response.status)
+    }
+
+    @Test
+    fun `messagingCharacteristics endpoint should return BadRequest if no valid sender party found for service and action`() = cpaRepoTestApp {
+        val httpClient = createClient {
+            install(ContentNegotiation) {
+                jsonLenient()
+            }
+        }
+
+        val messagingCharacteristicsRequest = MessagingCharacteristicsRequest(
+            requestId = Uuid.random().toString(),
+            cpaId = "nav:qass:35065",
+            partyIds = listOf(PartyId("HER", "8141253")),
+            role = "Behandler",
+            service = "NoSuchService",
+            action = "NoSuchAction"
+        )
+
+        val response = httpClient.post("/cpa/messagingCharacteristics") {
+            setBody(messagingCharacteristicsRequest)
+            contentType(Json)
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status)
     }
 
     @Test

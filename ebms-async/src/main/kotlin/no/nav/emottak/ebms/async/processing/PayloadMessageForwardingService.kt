@@ -28,6 +28,7 @@ import no.nav.emottak.utils.common.parseOrGenerateUuid
 import no.nav.emottak.utils.kafka.model.EventDataType
 import no.nav.emottak.utils.kafka.model.EventType
 import org.apache.kafka.common.header.Header
+import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PerMessageCharacteristicsType
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
 import kotlin.uuid.Uuid
 
@@ -43,9 +44,9 @@ class PayloadMessageForwardingService(
 ) {
 
     suspend fun forwardMessageWithSyncResponse(payloadMessage: PayloadMessage) {
-        when (val service = payloadMessage.addressing.service) {
-            "HarBorgerFrikortMengde", "Inntektsforesporsel", "Trekkopplysning" -> {
-                log.debug(payloadMessage.marker(), "Starting SendIn for $service")
+        when (val messageType = messageTypeByServiceName(payloadMessage.addressing.service)) {
+            MessageType.HAR_BORGER_FRIKORT_MENGDE, MessageType.INNTEKTSFORESPORSEL, MessageType.TREKKOPPLYSNING -> {
+                log.debug(payloadMessage.marker(), "Starting SendIn for $messageType")
                 sendInService.sendIn(payloadMessage).let { sendInResponse ->
                     PayloadMessage(
                         requestId = sendInResponse.requestId,
@@ -63,7 +64,7 @@ class PayloadMessageForwardingService(
                 }
             }
             else -> {
-                log.debug(payloadMessage.marker(), "Skipping SendIn for $service")
+                log.debug(payloadMessage.marker(), "Skipping SendIn for $payloadMessage.addressing.service")
             }
         }
     }
@@ -103,11 +104,19 @@ class PayloadMessageForwardingService(
     // Used to send OUT a response from NAV
     suspend fun returnMessageResponse(payloadMessage: PayloadMessage) {
         val validationResult = cpaValidationService.validateOutgoingMessage(payloadMessage)
+        val elimStrat: PerMessageCharacteristicsType? = cpaValidationService.getDuplicateEliminationStrategy(payloadMessage)
+        val duplicateElimination: Boolean = when (elimStrat) {
+            PerMessageCharacteristicsType.NEVER -> false
+            else -> true
+        }
+
         val processedMessage = processingService.proccessSyncOut(
-            payloadMessage,
+            payloadMessage.copy(
+                addressing = validationResult.cpaAddressing!!,
+                duplicateElimination = duplicateElimination
+            ),
             validationResult.payloadProcessing
         )
-
         val signedEbmsDocument = processedMessage.toEbmsDokument()
             .signer(validationResult.payloadProcessing!!.signingCertificate)
         savePayloadsToDatabase(
@@ -215,6 +224,15 @@ class PayloadMessageForwardingService(
     }
 
     private fun storeMessagePendingAck(ebmsDocument: EbmsDocument, receiverEmailAddress: List<EmailAddress>) {
-        messagePendingAckRepository.storeMessagePendingAck(Uuid.parse(ebmsDocument.requestId), ebmsDocument.messageHeader(), ebmsDocument.document.toByteArray(), receiverEmailAddress)
+        try {
+            messagePendingAckRepository.storeMessagePendingAck(
+                Uuid.parse(ebmsDocument.requestId),
+                ebmsDocument.messageHeader(),
+                ebmsDocument.document.toByteArray(),
+                receiverEmailAddress
+            )
+        } catch (e: Exception) {
+            log.warn("Failed to store message pending ack, probably a duplicate", e)
+        }
     }
 }

@@ -113,7 +113,7 @@ class IntegrasjonsTest : EndToEndTest() {
         application { ebmsProviderModule(cpaValidationService, processingService, sendInService) }
         val response = client.get("/")
         Assertions.assertEquals(HttpStatusCode.OK, response.status)
-        Assertions.assertEquals("{\"status\":\"Hello\"}", response.bodyAsText())
+        Assertions.assertEquals("{\"status\":\"Hello\"}", response.bodyAsText().replace("\\s".toRegex(), ""))
     }
 
     @Test

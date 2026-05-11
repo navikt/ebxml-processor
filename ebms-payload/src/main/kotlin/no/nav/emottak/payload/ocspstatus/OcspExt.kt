@@ -1,5 +1,6 @@
 package no.nav.emottak.payload.ocspstatus
 
+import no.nav.emottak.payload.error.CertificateException
 import no.nav.emottak.payload.log
 import org.bouncycastle.asn1.ASN1EncodableVector
 import org.bouncycastle.asn1.ASN1Object
@@ -71,6 +72,6 @@ private fun getSSN(ssnExtension: Extension?): String {
     try {
         return String(ssnExtension.extnValue.encoded).replace(Regex("\\D"), "")
     } catch (e: IOException) {
-        throw SertifikatError("Failed to extract SSN", cause = e)
+        throw CertificateException("Failed to extract SSN", cause = e)
     }
 }
