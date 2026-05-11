@@ -41,7 +41,8 @@ data class PayloadResponse(
 data class Feil(
     val code: ErrorCode,
     val descriptionText: String,
-    val severity: String? = null
+    val severity: String? = null,
+    val recoverable: Boolean = true
 ) {
 
     fun asEbxmlError(location: String? = null): Error {
@@ -81,7 +82,8 @@ data class ValidationResult(
     val signalEmailAddress: List<EmailAddress> = emptyList(),
     val receiverEmailAddress: List<EmailAddress> = emptyList(),
     val partnerId: Long? = null,
-    val error: List<Feil>? = null
+    val error: List<Feil>? = null,
+    val cpaAddressing: Addressing? = null
 ) {
     fun valid(): Boolean = error == null
 }
@@ -147,7 +149,7 @@ typealias EbmsAttachment = Payload
 enum class ErrorCode(val value: String, val description: String) {
     VALUE_NOT_RECOGNIZED("ValueNotRecognized", "Element content or attribute value not recognized."),
     NOT_SUPPORTED("NotSupported", "Element content or attribute not supported"),
-    INCONSISTENT("ValueNotRecognized", "Element content or attribute value inconsistent with other elements or attributes."),
+    INCONSISTENT("Inconsistent", "Element content or attribute value inconsistent with other elements or attributes."),
     OTHER_XML("OtherXml", "Other error in an element content or attribute value"),
     DELIVERY_FAILURE("DeliveryFailure", "Message Delivery Failure"),
     TIME_TO_LIVE_EXPIRED("TimeToLiveExpired", "Message Time To Live Expired"),

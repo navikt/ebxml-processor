@@ -14,6 +14,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import no.nav.emottak.message.model.PayloadRequest
+import no.nav.emottak.payload.error.JuridiskLoggException
 import no.nav.emottak.payload.log
 import no.nav.emottak.util.jsonLenient
 import no.nav.emottak.util.marker
@@ -59,9 +60,9 @@ class JuridiskLoggService() {
 
                 if (httpResponse.status == HttpStatusCode.OK) {
                     juridiskLoggRecordId = httpResponse.body<JuridiskLoggResponse>().id
-                    log.info(payloadRequest.marker(), "Message saved to juridisk logg")
+                    log.debug(payloadRequest.marker(), "Message saved to juridisk logg")
                 } else {
-                    log.info(payloadRequest.marker(), "Failed to save message to juridisk logg: $httpResponse")
+                    log.warn(payloadRequest.marker(), "Failed to save message to juridisk logg: $httpResponse")
                 }
             } catch (e: Exception) {
                 log.error(payloadRequest.marker(), "Exception occurred during sending message to juridisk logg: ${e.message}", e)
