@@ -46,6 +46,8 @@ class Dekryptering(
                 }
             }
             throw DecryptionException("Fant ikke PrivateKey for dekryptering med recipients ${recipients.recipients}")
+        } catch (e: DecryptionException) {
+            throw e
         } catch (e: Exception) {
             throw DecryptionException("Feil ved dekryptering", e)
         }
