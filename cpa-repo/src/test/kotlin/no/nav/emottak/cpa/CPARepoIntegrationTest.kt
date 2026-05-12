@@ -517,6 +517,31 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
     }
 
     @Test
+    fun `messagingCharacteristics endpoint should return BadRequest if no valid sender party found for service and action`() = cpaRepoTestApp {
+        val httpClient = createClient {
+            install(ContentNegotiation) {
+                jsonLenient()
+            }
+        }
+
+        val messagingCharacteristicsRequest = MessagingCharacteristicsRequest(
+            requestId = Uuid.random().toString(),
+            cpaId = "nav:qass:35065",
+            partyIds = listOf(PartyId("HER", "8141253")),
+            role = "Behandler",
+            service = "NoSuchService",
+            action = "NoSuchAction"
+        )
+
+        val response = httpClient.post("/cpa/messagingCharacteristics") {
+            setBody(messagingCharacteristicsRequest)
+            contentType(Json)
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+    }
+
+    @Test
     fun `Should require valid token`() = cpaRepoTestApp {
         val token = mockOAuth2Server
             .issueToken(

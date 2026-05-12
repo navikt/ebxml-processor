@@ -1,6 +1,8 @@
 package no.nav.emottak.payload.util
 
 import io.ktor.server.plugins.BadRequestException
+import no.nav.emottak.payload.error.CompressionException
+import no.nav.emottak.payload.error.DecompressionException
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.util.zip.GZIPInputStream

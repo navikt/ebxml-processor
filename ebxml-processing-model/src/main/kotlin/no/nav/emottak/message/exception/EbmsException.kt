@@ -13,8 +13,9 @@ open class EbmsException(
         message: String,
         errorCode: ErrorCode = ErrorCode.UNKNOWN,
         severity: String = SeverityType.ERROR.value()!!,
+        recoverable: Boolean = true,
         exception: Throwable? = null
-    ) : this(listOf(Feil(errorCode, message, severity)), exception)
+    ) : this(listOf(Feil(errorCode, message, severity, recoverable)), exception)
 
     companion object {
         fun concatFeilmessage(feil: List<Feil>) =
@@ -22,4 +23,6 @@ open class EbmsException(
                 it.descriptionText
             }
     }
+
+    fun isRecoverable() = feil.all { it.recoverable }
 }

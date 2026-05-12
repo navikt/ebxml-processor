@@ -1,5 +1,6 @@
 package no.nav.emottak.payload.ocspstatus
 
+import no.nav.emottak.payload.error.CertificateException
 import org.bouncycastle.asn1.ASN1OctetString
 import org.bouncycastle.asn1.ASN1Primitive
 import org.bouncycastle.asn1.ASN1Sequence
@@ -69,7 +70,7 @@ private fun newLdapName(name: String): LdapName {
     return try {
         LdapName(name)
     } catch (e: InvalidNameException) {
-        throw SertifikatError("failed to create LdapName", cause = e)
+        throw CertificateException("failed to create LdapName", cause = e)
     }
 }
 

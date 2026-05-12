@@ -15,6 +15,7 @@ dependencies {
     implementation(libs.arrow.resilience)
     implementation(libs.arrow.suspendapp)
     implementation(libs.arrow.suspendapp.ktor)
+    implementation(libs.ktor.server.html.builder)
     implementation(libs.ktor.server.call.logging.jvm)
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.core.jvm)

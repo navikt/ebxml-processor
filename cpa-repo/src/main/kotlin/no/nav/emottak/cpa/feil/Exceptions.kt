@@ -9,14 +9,24 @@ open class CpaValidationException(
     errorCode: ErrorCode = ErrorCode.DELIVERY_FAILURE,
     severity: String = SeverityType.ERROR.value()!!,
     exception: Exception? = null
-) : EbmsException(message, errorCode, severity, exception)
+) : EbmsException(
+    message = message,
+    errorCode = errorCode,
+    severity = severity,
+    exception = exception
+)
 
 open class SecurityException(
     message: String,
     errorCode: ErrorCode = ErrorCode.SECURITY_FAILURE,
     severity: String = SeverityType.ERROR.value()!!,
     exception: java.lang.Exception? = null
-) : EbmsException(message, errorCode, severity, exception)
+) : EbmsException(
+    message = message,
+    errorCode = errorCode,
+    severity = severity,
+    exception = exception
+)
 
 open class PartnerNotFoundException(
     message: String,
