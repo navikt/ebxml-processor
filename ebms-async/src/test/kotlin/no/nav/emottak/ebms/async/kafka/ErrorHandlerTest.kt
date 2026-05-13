@@ -92,6 +92,7 @@ class ErrorHandlerTest {
         mockk(),
         mockk(),
         mockk(),
+        mockk(),
         mockk()
     ) {
         override suspend fun filterMessage(record: ReceiverRecord<String, ByteArray>) {

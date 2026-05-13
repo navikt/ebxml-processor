@@ -36,9 +36,10 @@ class Processor(
     private val ninResolver: NinResolver = NinResolver()
 
     suspend fun loggMessageToJuridiskLogg(payloadRequest: PayloadRequest): String? {
-        log.info(payloadRequest.marker(), "Save message to juridisk logg")
+        log.debug(payloadRequest.marker(), "Save message to juridisk logg")
         try {
             return juridiskLogging.logge(payloadRequest).also {
+                log.info(payloadRequest.marker(), "Message saved to juridisk logg with id: $it")
                 eventRegistrationService.registerEvent(
                     EventType.MESSAGE_SAVED_IN_JURIDISK_LOGG,
                     payloadRequest,
@@ -89,11 +90,10 @@ class Processor(
             log.debug(marker, "Validating for payload in validateOcsp flow")
             val domDocument = createDocument(ByteArrayInputStream(payload.bytes))
 
-            val xmlSignature = domDocument.retrieveSignatureElement()
-
-            val certificateFromSignature = xmlSignature.keyInfo.x509Certificate
-
-            var signedByFnr: String? = ninResolver.resolve(domDocument, certificateFromSignature)
+            val signedByFnr: String? = ninResolver.resolve(
+                domDocument,
+                domDocument.retrieveSignatureElement().keyInfo.x509Certificate
+            )
 
             log.debug(marker, "Validating OCSP for payload: Step 5 copy")
             payload.copy(signedBy = signedByFnr).also {

@@ -49,7 +49,7 @@ suspend fun startEbmsOutPayloadReceiver(
                 addressing = sendInResponse.addressing,
                 payload = Payload(sendInResponse.payload, ContentType.Application.Xml.toString()),
                 refToMessageId = sendInResponse.refToMessageId,
-                duplicateElimination = false,
+                duplicateElimination = true,
                 ackRequested = true
             )
             payloadMessageService.processOutboundResponse(record, payloadMessage)
