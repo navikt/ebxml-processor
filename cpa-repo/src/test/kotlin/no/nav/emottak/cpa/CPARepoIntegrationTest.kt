@@ -48,13 +48,13 @@ import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.message.model.SignatureDetailsRequest
 import no.nav.emottak.message.model.ValidationRequest
 import no.nav.emottak.message.model.ValidationResult
-import no.nav.emottak.util.LENIENT_JSON_PARSER
 import no.nav.emottak.util.OSLO_ZONE
 import no.nav.emottak.util.jsonLenient
 import no.nav.emottak.utils.common.model.Addressing
 import no.nav.emottak.utils.common.model.Party
 import no.nav.emottak.utils.common.model.PartyId
 import no.nav.emottak.utils.environment.getEnvVar
+import no.nav.emottak.utils.serialization.LENIENT_JSON_PARSER
 import no.nav.security.mock.oauth2.MockOAuth2Server
 import org.apache.commons.lang3.StringUtils
 import org.junit.jupiter.api.Disabled
