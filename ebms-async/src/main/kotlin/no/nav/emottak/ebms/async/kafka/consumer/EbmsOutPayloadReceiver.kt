@@ -7,7 +7,6 @@ import io.github.nomisRev.kafka.receiver.ReceiverSettings
 import io.ktor.http.ContentType
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.map
-import kotlinx.serialization.json.Json
 import no.nav.emottak.ebms.async.configuration.toProperties
 import no.nav.emottak.ebms.async.log
 import no.nav.emottak.ebms.async.processing.PayloadMessageService
@@ -15,6 +14,7 @@ import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.utils.common.model.SendInResponse
 import no.nav.emottak.utils.config.Kafka
+import no.nav.emottak.utils.serialization.LENIENT_JSON_PARSER
 import org.apache.kafka.common.serialization.ByteArrayDeserializer
 import org.apache.kafka.common.serialization.StringDeserializer
 import kotlin.time.Duration.Companion.seconds
@@ -40,7 +40,7 @@ suspend fun startEbmsOutPayloadReceiver(
     KafkaReceiver(receiverSettings)
         .receive(topic)
         .map { record ->
-            val sendInResponse = Json.decodeFromString<SendInResponse>(record.value().decodeToString())
+            val sendInResponse = LENIENT_JSON_PARSER.decodeFromString<SendInResponse>(record.value().decodeToString())
             val payloadMessage = PayloadMessage(
                 requestId = sendInResponse.requestId,
                 messageId = sendInResponse.messageId,
