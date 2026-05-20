@@ -117,19 +117,25 @@ class CPAValidationServiceTest {
     }
 
     @Test
-    fun `validateIncomingSignalSignature - does not throw when no certs have signatureDetails`() = runBlocking {
+    fun `validateIncomingSignalSignature - throws EbmsException when no certs have signatureDetails`() {
         coEvery { cpaRepoClient.getPartyCertificates(testCpaId) } returns listOf(
             PartyCertificates(listOf(PartyId("HER", "8141253")), signatureDetails = null, encryptionCertificate = null)
         )
 
-        service.validateIncomingSignalSignature(testAcknowledgment)
+        val exception = assertThrows<EbmsException> {
+            runBlocking { service.validateIncomingSignalSignature(testAcknowledgment) }
+        }
+        assertEquals(ErrorCode.SECURITY_FAILURE, exception.feil.first().code)
     }
 
     @Test
-    fun `validateIncomingSignalSignature - does not throw when party list is empty`() = runBlocking {
+    fun `validateIncomingSignalSignature - throws EbmsException when party list is empty`() {
         coEvery { cpaRepoClient.getPartyCertificates(testCpaId) } returns emptyList()
 
-        service.validateIncomingSignalSignature(testAcknowledgment)
+        val exception = assertThrows<EbmsException> {
+            runBlocking { service.validateIncomingSignalSignature(testAcknowledgment) }
+        }
+        assertEquals(ErrorCode.SECURITY_FAILURE, exception.feil.first().code)
     }
 
     @Test

@@ -46,7 +46,9 @@ open class CPAValidationService(val httpClient: CpaRepoClient) {
                 failures.first()
             )
         }
-        log.warn("Ingen signeringssertifikater å validere mot for signalmelding ${signalMessage.messageId}")
+        throw EbmsException(
+            listOf(Feil(ErrorCode.SECURITY_FAILURE, "Ingen signeringssertifikater funnet for signalmelding ${signalMessage.messageId}"))
+        )
     }
 
     suspend fun validateIncomingMessage(message: EbmsMessage): ValidationResult =
