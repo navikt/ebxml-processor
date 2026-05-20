@@ -33,7 +33,7 @@ fun PartyInfo.getCertificateForSignatureValidation(
 ): SignatureDetails {
     val deliveryChannel = this.getSendDeliveryChannel(role, service, action)
     return SignatureDetails(
-        certificate = deliveryChannel.getCertificates().getX509Certificate(),
+        certificate = deliveryChannel.getSigningCertificate().getX509Certificate(),
         signatureAlgorithm = deliveryChannel.getSignatureAlgorithm(),
         hashFunction = deliveryChannel.getHashFunction()
     )
@@ -190,7 +190,7 @@ private fun getReceiverEmailAddress(deliveryChannels: List<DeliveryChannel>): Li
     }.distinct()
 }
 
-fun DeliveryChannel.getCertificates(): Certificate {
+fun DeliveryChannel.getSigningCertificate(): Certificate {
     val docExchange = this.docExchangeId as DocExchange? ?: throw SecurityException("Fant ikke DocExchange")
     return if (
         docExchange.ebXMLSenderBinding != null &&
@@ -268,7 +268,7 @@ fun CollaborationProtocolAgreement.getPartyInfoByTypeAndID(partyId: List<PartyId
 fun PartyInfo.getCertificates(): PartyCertificates {
     val signingDetails = this.deliveryChannel.firstNotNullOfOrNull { dc ->
         runCatching {
-            Triple(dc.getCertificates(), dc.getSignatureAlgorithm(), dc.getHashFunction())
+            Triple(dc.getSigningCertificate(), dc.getSignatureAlgorithm(), dc.getHashFunction())
         }.getOrNull()
     }?.let { (cert, signatureAlgorithm, hashFunction) ->
         SignatureDetails(
