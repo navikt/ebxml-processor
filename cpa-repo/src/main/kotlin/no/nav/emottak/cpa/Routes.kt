@@ -371,6 +371,13 @@ fun Route.getCertificate(cpaRepository: CPARepository) =
         call.respond(partyInfo.getCertificateForEncryption())
     }
 
+fun Route.getCertificates(cpaRepository: CPARepository) = get("/cpa/{$CPA_ID}/certificates") {
+    val cpaId = call.parameters[CPA_ID] ?: throw BadRequestException("Mangler $CPA_ID")
+    val cpa = cpaRepository.findCpa(cpaId) ?: throw NotFoundException("Ingen CPA med ID $cpaId funnet")
+    val certificates = cpa.partyInfo.map { it.getCertificates() }
+    call.respond(HttpStatusCode.OK, certificates)
+}
+
 fun Route.signingCertificate(cpaRepository: CPARepository) = post("/signing/certificate") {
     val signatureDetailsRequest = call.receive(SignatureDetailsRequest::class)
     val cpa = cpaRepository.findCpa(signatureDetailsRequest.cpaId)

@@ -97,6 +97,7 @@ fun cpaApplicationModule(
             getTimeStampsLatest(cpaRepository)
             getTimeStampsLastUsed(cpaRepository)
             getCertificate(cpaRepository)
+            getCertificates(cpaRepository)
             signingCertificate(cpaRepository)
             getMessagingCharacteristics(cpaRepository)
             if (adresseregisterClient != null) {

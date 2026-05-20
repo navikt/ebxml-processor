@@ -6,6 +6,7 @@ import no.nav.emottak.cpa.feil.SecurityException
 import no.nav.emottak.message.ebxml.EbXMLConstants.EBMS_SERVICE_URI
 import no.nav.emottak.message.ebxml.PartyTypeEnum
 import no.nav.emottak.message.model.EmailAddress
+import no.nav.emottak.message.model.PartyCertificates
 import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.message.model.ValidationRequest
 import no.nav.emottak.utils.common.model.Party
@@ -32,7 +33,7 @@ fun PartyInfo.getCertificateForSignatureValidation(
 ): SignatureDetails {
     val deliveryChannel = this.getSendDeliveryChannel(role, service, action)
     return SignatureDetails(
-        certificate = deliveryChannel.getSigningCertificate().getX509Certificate(),
+        certificate = deliveryChannel.getCertificates().getX509Certificate(),
         signatureAlgorithm = deliveryChannel.getSignatureAlgorithm(),
         hashFunction = deliveryChannel.getHashFunction()
     )
@@ -189,7 +190,7 @@ private fun getReceiverEmailAddress(deliveryChannels: List<DeliveryChannel>): Li
     }.distinct()
 }
 
-fun DeliveryChannel.getSigningCertificate(): Certificate {
+fun DeliveryChannel.getCertificates(): Certificate {
     val docExchange = this.docExchangeId as DocExchange? ?: throw SecurityException("Fant ikke DocExchange")
     return if (
         docExchange.ebXMLSenderBinding != null &&
@@ -262,6 +263,26 @@ fun CollaborationProtocolAgreement.getPartyInfoByTypeAndID(partyId: List<PartyId
             partyId.contains(PartyId(party.type!!, party.value!!)) // TODO O(n^2)...
         }
     } ?: throw CpaValidationException("Ingen match blant $partyId i CPA")
+}
+
+fun PartyInfo.getCertificates(): PartyCertificates {
+    val signingDetails = this.deliveryChannel.firstNotNullOfOrNull { dc ->
+        runCatching {
+            Triple(dc.getCertificates(), dc.getSignatureAlgorithm(), dc.getHashFunction())
+        }.getOrNull()
+    }?.let { (cert, signatureAlgorithm, hashFunction) ->
+        SignatureDetails(
+            certificate = cert.getX509Certificate(),
+            signatureAlgorithm = signatureAlgorithm,
+            hashFunction = hashFunction
+        )
+    }
+    val encryptionCert = runCatching { getCertificateForEncryption() }.getOrNull()
+    return PartyCertificates(
+        partyIds = this.partyId.map { PartyId(it.type ?: "", it.value ?: "") },
+        signatureDetails = signingDetails,
+        encryptionCertificate = encryptionCert
+    )
 }
 
 fun Certificate.getX509Certificate(): ByteArray {
