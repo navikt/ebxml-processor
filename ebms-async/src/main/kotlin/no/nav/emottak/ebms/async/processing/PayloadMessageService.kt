@@ -15,6 +15,7 @@ import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.util.marker
 import no.nav.emottak.utils.common.parseOrGenerateUuid
+import no.nav.emottak.utils.environment.getEnvVar
 import no.nav.emottak.utils.kafka.model.EventType
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PerMessageCharacteristicsType
 
@@ -67,6 +68,21 @@ class PayloadMessageService(
                 log.info(ebmsPayloadMessage.marker(), "Outgoing message ${ebmsPayloadMessage.messageId} has already been processed successfully, skipping")
                 return@runCatching
             }
+
+            // todo fjern dette når responser på Sykmelding og Legemelding skal sendes som vanlig
+            if (getEnvVar("SEND_SYKE_LEGE_RESPONS", "false") == "false") {
+                if (ebmsPayloadMessage.addressing.service == "Sykmelding" || ebmsPayloadMessage.addressing.service == "Legemelding") {
+                    log.info(ebmsPayloadMessage.marker(), "Skipping sending of outbound response for ${ebmsPayloadMessage.addressing.service} message ${ebmsPayloadMessage.messageId}")
+                    log.info(
+                        "Message ID: ${ebmsPayloadMessage.messageId}, Service: ${ebmsPayloadMessage.addressing.service}, " +
+                            "Conversation ID: ${ebmsPayloadMessage.conversationId}, CPA ID: ${ebmsPayloadMessage.cpaId}, " +
+                            "Refto Message ID: ${ebmsPayloadMessage.refToMessageId}, Role: ${ebmsPayloadMessage.addressing.from.role}, " +
+                            "Action: ${ebmsPayloadMessage.addressing.action}, From: ${ebmsPayloadMessage.addressing.from.partyId}, " +
+                            "To-role: ${ebmsPayloadMessage.addressing.to.role}, To: ${ebmsPayloadMessage.addressing.to.partyId}"
+                    )
+                    return@runCatching
+                }
+            }
             payloadMessageForwardingService.returnMessageResponse(ebmsPayloadMessage)
         }.onFailure { exception ->
             log.error(ebmsPayloadMessage.marker(), exception.message ?: "Outbound response processing error", exception)
@@ -93,7 +109,7 @@ class PayloadMessageService(
                 log.debug(processedPayload.marker(), "Calling SendIn SYNCHRONOUSLY for $messageType")
                 payloadMessageForwardingService.forwardMessageWithSyncResponse(processedPayload)
             }
-            MessageType.TREKKOPPLYSNING -> {
+            MessageType.TREKKOPPLYSNING, MessageType.SYKMELDING, MessageType.LEGEMELDING -> {
                 log.debug(processedPayload.marker(), "Calling SendIn ASYNCHRONOUSLY for $messageType")
                 payloadMessageForwardingService.forwardMessageWithAsyncResponse(processedPayload, validationResult.partnerId)
             }
