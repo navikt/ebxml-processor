@@ -18,6 +18,7 @@ import no.nav.emottak.utils.common.parseOrGenerateUuid
 import no.nav.emottak.utils.environment.getEnvVar
 import no.nav.emottak.utils.kafka.model.EventType
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PerMessageCharacteristicsType
+import kotlin.uuid.Uuid
 
 class PayloadMessageService(
     val cpaValidationService: CPAValidationService,
@@ -80,6 +81,18 @@ class PayloadMessageService(
                             "Action: ${ebmsPayloadMessage.addressing.action}, From: ${ebmsPayloadMessage.addressing.from.partyId}, " +
                             "To-role: ${ebmsPayloadMessage.addressing.to.role}, To: ${ebmsPayloadMessage.addressing.to.partyId}"
                     )
+                    try {
+                        val uuid = Uuid.parse(ebmsPayloadMessage.messageId)
+                        val incomingMessage = messageReceivedRepository.getByReferenceId(uuid)
+                        if (incomingMessage == null) {
+                            log.warn("Could not find incoming message with message id ${ebmsPayloadMessage.messageId}")
+                        } else {
+                            log.info("Found incoming message with message id ${ebmsPayloadMessage.messageId}: $incomingMessage")
+                        }
+                        // todo skal sette CPA ID osv fra incomming message
+                    } catch (e: Exception) {
+                        log.warn("Could not get received message for message id ${ebmsPayloadMessage.messageId}: ${e.message}")
+                    }
                     return@runCatching
                 }
             }
