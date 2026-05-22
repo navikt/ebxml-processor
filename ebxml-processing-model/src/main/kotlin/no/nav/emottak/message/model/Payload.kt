@@ -41,7 +41,8 @@ data class PayloadResponse(
 data class Feil(
     val code: ErrorCode,
     val descriptionText: String,
-    val severity: String? = null
+    val severity: String? = null,
+    val recoverable: Boolean = true
 ) {
 
     fun asEbxmlError(location: String? = null): Error {

@@ -5,25 +5,26 @@ import no.nav.emottak.message.model.Feil
 import no.nav.emottak.util.signatur.SignatureException
 import no.nav.emottak.utils.kafka.model.EventType
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.SeverityType
+import java.math.BigInteger
 
-open class PayloadException(message: String?, cause: Throwable?) : Exception(message, cause)
+open class PayloadException(message: String?, cause: Throwable?, val recoverable: Boolean) : Exception(message, cause)
 
-open class CertificateException(message: String, cause: Exception? = null) : PayloadException(message, cause)
+open class CertificateException(message: String, cause: Exception? = null) : PayloadException(message, cause, true)
 class OCSPValidationFnrBlankError(message: String, cause: Exception? = null) : CertificateException(message, cause)
-class CompressionException(message: String, cause: Exception? = null) : PayloadException(message, cause)
-class DecompressionException(message: String, cause: Exception? = null) : PayloadException(message, cause)
-class DecryptionException(message: String, cause: Exception? = null) : PayloadException(message, cause)
-class EncryptionException(message: String, cause: Exception? = null) : PayloadException(message, cause)
-class JuridiskLoggException(message: String, cause: Exception? = null) : PayloadException(message, cause)
+class CompressionException(message: String, cause: Exception? = null) : PayloadException(message, cause, true)
+class DecompressionException(message: String, cause: Exception? = null) : PayloadException(message, cause, false)
+class DecryptionException(message: String, cause: Exception? = null, val decryptionKeySerialnumber: BigInteger? = null) : PayloadException(message, cause, false)
+class EncryptionException(message: String, cause: Exception? = null) : PayloadException(message, cause, true)
+class JuridiskLoggException(message: String, cause: Exception? = null) : PayloadException(message, cause, true)
 
 fun Throwable.convertToFeil(): Feil = when (this) {
-    is JuridiskLoggException -> Feil(ErrorCode.DELIVERY_FAILURE, localizedMessage, SeverityType.ERROR.value())
-    is EncryptionException -> Feil(ErrorCode.SECURITY_FAILURE, localizedMessage, SeverityType.ERROR.value())
-    is DecryptionException -> Feil(ErrorCode.SECURITY_FAILURE, localizedMessage, SeverityType.ERROR.value())
-    is CompressionException -> Feil(ErrorCode.SECURITY_FAILURE, localizedMessage, SeverityType.ERROR.value())
-    is DecompressionException -> Feil(ErrorCode.SECURITY_FAILURE, localizedMessage, SeverityType.ERROR.value())
-    is SignatureException -> Feil(ErrorCode.SECURITY_FAILURE, localizedMessage, SeverityType.ERROR.value())
-    is CertificateException -> Feil(ErrorCode.SECURITY_FAILURE, localizedMessage, SeverityType.ERROR.value())
+    is JuridiskLoggException -> Feil(ErrorCode.DELIVERY_FAILURE, localizedMessage, SeverityType.ERROR.value(), this.recoverable)
+    is EncryptionException -> Feil(ErrorCode.SECURITY_FAILURE, localizedMessage, SeverityType.ERROR.value(), this.recoverable)
+    is DecryptionException -> Feil(ErrorCode.SECURITY_FAILURE, localizedMessage, SeverityType.ERROR.value(), this.recoverable)
+    is CompressionException -> Feil(ErrorCode.SECURITY_FAILURE, localizedMessage, SeverityType.ERROR.value(), this.recoverable)
+    is DecompressionException -> Feil(ErrorCode.SECURITY_FAILURE, localizedMessage, SeverityType.ERROR.value(), this.recoverable)
+    is SignatureException -> Feil(ErrorCode.SECURITY_FAILURE, localizedMessage, SeverityType.ERROR.value(), true)
+    is CertificateException -> Feil(ErrorCode.SECURITY_FAILURE, localizedMessage, SeverityType.ERROR.value(), this.recoverable)
     else -> Feil(ErrorCode.UNKNOWN, this.localizedMessage, SeverityType.ERROR.value())
 }
 

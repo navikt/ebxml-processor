@@ -36,9 +36,10 @@ class Processor(
     private val ninResolver: NinResolver = NinResolver()
 
     suspend fun loggMessageToJuridiskLogg(payloadRequest: PayloadRequest): String? {
-        log.info(payloadRequest.marker(), "Save message to juridisk logg")
+        log.debug(payloadRequest.marker(), "Save message to juridisk logg")
         try {
             return juridiskLogging.logge(payloadRequest).also {
+                log.info(payloadRequest.marker(), "Message saved to juridisk logg with id: $it")
                 eventRegistrationService.registerEvent(
                     EventType.MESSAGE_SAVED_IN_JURIDISK_LOGG,
                     payloadRequest,

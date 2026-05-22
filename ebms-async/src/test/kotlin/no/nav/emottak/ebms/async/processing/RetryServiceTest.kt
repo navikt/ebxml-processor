@@ -129,6 +129,48 @@ class RetryServiceTest {
     }
 
     @Test
+    fun `decideRetry returns NO_RETRY when exception is unrecoverable`() {
+        val unrecoverable = EbmsException("Dekryptering feilet", recoverable = false)
+        val (decision, reason) = retryService.decideRetry(ttl = null, retriedAlready = 0, maxRetries = 5, throwable = unrecoverable)
+        assertEquals(RetryService.RetryDecision.NO_RETRY, decision)
+        assertTrue(reason.contains("EbmsException"))
+    }
+
+    @Test
+    fun `decideRetry returns NO_RETRY for unrecoverable exception even when ttl is valid and retries remain`() {
+        val future = Instant.now().plusSeconds(3600)
+        val unrecoverable = EbmsException("Dekryptering feilet", recoverable = false)
+        val (decision, _) = retryService.decideRetry(ttl = future, retriedAlready = 0, maxRetries = 5, throwable = unrecoverable)
+        assertEquals(RetryService.RetryDecision.NO_RETRY, decision)
+    }
+
+    @Test
+    fun `decideRetry does not return NO_RETRY for recoverable exception`() {
+        val recoverable = EbmsException("Midlertidig feil", recoverable = true)
+        val (decision, _) = retryService.decideRetry(ttl = null, retriedAlready = 0, maxRetries = 5, throwable = recoverable)
+        assertEquals(RetryService.RetryDecision.RETRY, decision)
+    }
+
+    @Test
+    fun `incomingRetryEval does not retry and returns MessageError when exception is unrecoverable`() = runBlocking {
+        val receiverRecord = mockk<ReceiverRecord<String, ByteArray>>(relaxed = true)
+        val headers = mockk<Headers>()
+        every { receiverRecord.headers() } returns headers
+        every { headers.lastHeader("retryCount") } returns null
+
+        val payload = createPayloadMessageWithTtl(Instant.now().plusSeconds(3600))
+        val unrecoverable = EbmsException("Dekryptering feilet", recoverable = false)
+
+        val spyService = spyk(retryService)
+        coEvery { spyService.returnMessageError(any(), any()) } just Runs
+
+        spyService.incomingRetryEval(receiverRecord, payload, unrecoverable)
+
+        coVerify(exactly = 0) { failedMessageQueue.sendToRetryQueueIncoming(any(), any(), any()) }
+        coVerify { spyService.returnMessageError(any(), unrecoverable) }
+    }
+
+    @Test
     fun `sendToRetryInIfShouldBeRetried does not retry when ttl expired and returns MessageError`() = runBlocking {
         val receiverRecord = mockk<ReceiverRecord<String, ByteArray>>(relaxed = true)
         val headers = mockk<Headers>()

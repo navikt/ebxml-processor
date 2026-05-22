@@ -46,6 +46,8 @@ class Dekryptering(
                 }
             }
             throw DecryptionException("Fant ikke PrivateKey for dekryptering med recipients ${recipients.recipients}")
+        } catch (e: DecryptionException) {
+            throw e
         } catch (e: Exception) {
             throw DecryptionException("Feil ved dekryptering", e)
         }
@@ -59,7 +61,7 @@ class Dekryptering(
         if (recipient.rid.type == RecipientId.keyTrans) {
             val rid = recipient.rid as KeyTransRecipientId
             return keyStore.getPrivateKey(rid.serialNumber)
-                ?: throw DecryptionException("Fant ingen gyldige privatsertifikat for dekryptering")
+                ?: throw DecryptionException("Fant ingen gyldige privatsertifikat for dekryptering", decryptionKeySerialnumber = rid.serialNumber)
         }
         throw DecryptionException("Fant ikke riktig sertifikat for mottaker: ")
     }

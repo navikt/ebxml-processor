@@ -4,16 +4,7 @@ import io.ktor.http.ContentType
 import io.ktor.serialization.Configuration
 import io.ktor.serialization.kotlinx.serialization
 import kotlinx.serialization.json.Json
-
-val LENIENT_JSON_PARSER = Json {
-    encodeDefaults = true
-    isLenient = true
-    allowSpecialFloatingPointValues = true
-    allowStructuredMapKeys = true
-    prettyPrint = false
-    useArrayPolymorphism = false
-    ignoreUnknownKeys = true
-}
+import no.nav.emottak.utils.serialization.LENIENT_JSON_PARSER
 
 fun Configuration.jsonLenient(
     json: Json = LENIENT_JSON_PARSER,
