@@ -14,8 +14,10 @@ import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.util.marker
+import no.nav.emottak.utils.common.model.Addressing
+import no.nav.emottak.utils.common.model.Party
+import no.nav.emottak.utils.common.model.PartyId
 import no.nav.emottak.utils.common.parseOrGenerateUuid
-import no.nav.emottak.utils.environment.getEnvVar
 import no.nav.emottak.utils.kafka.model.EventType
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PerMessageCharacteristicsType
 import kotlin.uuid.Uuid
@@ -53,7 +55,6 @@ class PayloadMessageService(
             messageReceivedRepository.messageAcknowledged(ebmsPayloadMessage)
             returnAcknowledgment(ebmsPayloadMessage)
         }.onFailure { exception ->
-            // TODO handle some errors by sending to retry, some by returning error message
             log.error(ebmsPayloadMessage.marker(), exception.message ?: "Message processing error", exception)
             retryService.incomingRetryEval(record = record, payloadMessage = ebmsPayloadMessage, exception = exception)
         }
@@ -70,36 +71,52 @@ class PayloadMessageService(
                 return@runCatching
             }
 
-            // todo fjern dette når responser på Sykmelding og Legemelding skal sendes som vanlig
-            if (getEnvVar("SEND_SYKE_LEGE_RESPONS", "false") == "false") {
-                if (ebmsPayloadMessage.addressing.service == "Sykmelding" || ebmsPayloadMessage.addressing.service == "Legemelding") {
-                    log.info(ebmsPayloadMessage.marker(), "Skipping sending of outbound response for ${ebmsPayloadMessage.addressing.service} message ${ebmsPayloadMessage.messageId}")
-                    log.info(
-                        "Message ID: ${ebmsPayloadMessage.messageId}, Service: ${ebmsPayloadMessage.addressing.service}, " +
-                            "Conversation ID: ${ebmsPayloadMessage.conversationId}, CPA ID: ${ebmsPayloadMessage.cpaId}, " +
-                            "Refto Message ID: ${ebmsPayloadMessage.refToMessageId}, Role: ${ebmsPayloadMessage.addressing.from.role}, " +
-                            "Action: ${ebmsPayloadMessage.addressing.action}, From: ${ebmsPayloadMessage.addressing.from.partyId}, " +
-                            "To-role: ${ebmsPayloadMessage.addressing.to.role}, To: ${ebmsPayloadMessage.addressing.to.partyId}"
-                    )
-                    try {
-                        val uuid = Uuid.parse(ebmsPayloadMessage.messageId)
-                        val incomingMessage = messageReceivedRepository.getByReferenceId(uuid)
-                        if (incomingMessage == null) {
-                            log.warn("Could not find incoming message with message id ${ebmsPayloadMessage.messageId}")
-                        } else {
-                            log.info("Found incoming message with message id ${ebmsPayloadMessage.messageId}: $incomingMessage")
-                        }
-                        // todo skal sette CPA ID osv fra incomming message
-                    } catch (e: Exception) {
-                        log.warn("Could not get received message for message id ${ebmsPayloadMessage.messageId}: ${e.message}")
-                    }
-                    return@runCatching
-                }
+            // Spesialbehandling av responser for sykmelding/legemelding, inneholder antagelig for lite info til å kunne sendes ut
+            if (ebmsPayloadMessage.addressing.service == "Sykmelding" || ebmsPayloadMessage.addressing.service == "Legemelding") {
+                returnEnrichedMessage(ebmsPayloadMessage)
+                return@runCatching
             }
             payloadMessageForwardingService.returnMessageResponse(ebmsPayloadMessage)
         }.onFailure { exception ->
             log.error(ebmsPayloadMessage.marker(), exception.message ?: "Outbound response processing error", exception)
             retryService.outgoingRetryEval(record = record, payloadMessage = ebmsPayloadMessage, exception = exception)
+        }
+    }
+
+    private suspend fun returnEnrichedMessage(ebmsPayloadMessage: PayloadMessage) {
+        log.info(ebmsPayloadMessage.marker(), "Looking up incoming data for outbound response ${ebmsPayloadMessage.addressing.service} message ${ebmsPayloadMessage.messageId}, ref to ${ebmsPayloadMessage.refToMessageId}")
+        log.info(
+            "BEFORE lookup: Message ID: ${ebmsPayloadMessage.messageId}, Service: ${ebmsPayloadMessage.addressing.service}, " +
+                "Conversation ID: ${ebmsPayloadMessage.conversationId}, CPA ID: ${ebmsPayloadMessage.cpaId}, " +
+                "Refto Message ID: ${ebmsPayloadMessage.refToMessageId}, Role: ${ebmsPayloadMessage.addressing.from.role}, " +
+                "Action: ${ebmsPayloadMessage.addressing.action}, From: ${ebmsPayloadMessage.addressing.from.partyId}, " +
+                "To-role: ${ebmsPayloadMessage.addressing.to.role}, To: ${ebmsPayloadMessage.addressing.to.partyId}"
+        )
+        try {
+            val uuid = Uuid.parse(ebmsPayloadMessage.refToMessageId!!)
+            val incomingMessage = messageReceivedRepository.getByReferenceId(uuid)
+            if (incomingMessage == null) {
+                log.warn("Could not find incoming message with message id ${ebmsPayloadMessage.refToMessageId}, skipping response!!!")
+                return
+            }
+            log.info("Found incoming message with message id ${ebmsPayloadMessage.refToMessageId}: $incomingMessage")
+            val toParty = Party(listOf(PartyId("", incomingMessage.senderId)), incomingMessage.senderRole)
+            val addressing = Addressing(toParty, ebmsPayloadMessage.addressing.from, ebmsPayloadMessage.addressing.service, ebmsPayloadMessage.addressing.action)
+            val enrichedMessage = ebmsPayloadMessage.copy(
+                conversationId = incomingMessage.conversationId,
+                cpaId = incomingMessage.cpaId,
+                addressing = addressing
+            )
+            log.info(
+                "AFTER lookup: Message ID: ${enrichedMessage.messageId}, Service: ${enrichedMessage.addressing.service}, " +
+                    "Conversation ID: ${enrichedMessage.conversationId}, CPA ID: ${enrichedMessage.cpaId}, " +
+                    "Refto Message ID: ${enrichedMessage.refToMessageId}, Role: ${enrichedMessage.addressing.from.role}, " +
+                    "Action: ${enrichedMessage.addressing.action}, From: ${enrichedMessage.addressing.from.partyId}, " +
+                    "To-role: ${enrichedMessage.addressing.to.role}, To: ${enrichedMessage.addressing.to.partyId}"
+            )
+            payloadMessageForwardingService.returnMessageResponse(enrichedMessage)
+        } catch (e: Exception) {
+            log.warn("Could not get incoming message for message id ${ebmsPayloadMessage.messageId}, skipping response!!!  ${e.message}")
         }
     }
 
