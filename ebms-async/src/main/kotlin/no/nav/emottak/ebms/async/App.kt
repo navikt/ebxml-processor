@@ -14,6 +14,7 @@ import io.ktor.server.auth.authenticate
 import io.ktor.server.netty.Netty
 import io.ktor.server.routing.routing
 import io.ktor.utils.io.CancellationException
+import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import kotlinx.coroutines.CoroutineScope
@@ -70,6 +71,16 @@ import kotlin.concurrent.timer
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.async.App")
 
+const val MESSAGES_QUEUED_FOR_RETRY_COUNTER = "messages_queued_for_retry_total"
+const val TAG_RETRY_TOPIC = "retry_topic"
+
+fun MeterRegistry.incrementMessagesQueuedForRetry(topic: String) =
+    counter(
+        MESSAGES_QUEUED_FOR_RETRY_COUNTER,
+        TAG_RETRY_TOPIC,
+        topic
+    ).increment()
+
 fun main() = SuspendApp {
     val config = config()
 
@@ -79,7 +90,8 @@ fun main() = SuspendApp {
     val messageReceivedRepository = MessageReceivedRepository(database)
     val messagePendingAckRepository = MessagePendingAckRepository(database, config.messageResendPolicy.resendInterval, config.messageResendPolicy.maxResends)
 
-    val failedMessageQueue = FailedMessageKafkaHandler()
+    val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
+    val failedMessageQueue = FailedMessageKafkaHandler(meterRegistry = appMicrometerRegistry)
 
     val processingService = ProcessingService(
         httpClient = PayloadProcessingClient(scopedAuthHttpClient(EBMS_PAYLOAD_SCOPE))
@@ -191,8 +203,8 @@ fun main() = SuspendApp {
                         retryService = retryService,
                         payloadMessageService = payloadMessageService,
                         pauseRetryErrorsTimerFlag = pauseRetryErrorsTimerFlag,
-                        failedMessageQueue = failedMessageQueue,
-                        messagePendingAckRepository = messagePendingAckRepository
+                        messagePendingAckRepository = messagePendingAckRepository,
+                        appMicrometerRegistry = appMicrometerRegistry
                     )
                 }
             ).also { it.engineConfig.maxChunkSize = 100000 }
@@ -290,7 +302,7 @@ fun CoroutineScope.launchErrorRetryTaskIncoming(
 
     timer(
         name = "Retry Errors Timer Incoming",
-        initialDelay = 5000L,
+        initialDelay = config.errorRetryPolicyIncoming.startupDelay.inWholeMilliseconds,
         period = config.errorRetryPolicyIncoming.processInterval.inWholeMilliseconds,
         daemon = true
     ) {
@@ -322,7 +334,7 @@ fun CoroutineScope.launchErrorRetryTaskOutgoing(
 
     timer(
         name = "Retry Errors Timer Outgoing",
-        initialDelay = 5000L,
+        initialDelay = config.errorRetryPolicyOutgoing.startupDelay.inWholeMilliseconds,
         period = config.errorRetryPolicyOutgoing.processInterval.inWholeMilliseconds,
         daemon = true
     ) {
@@ -351,7 +363,7 @@ fun CoroutineScope.launchMesssageResendTask(
 ) {
     timer(
         name = "Resend Messages Timer",
-        initialDelay = 5000L,
+        initialDelay = config.messageResendPolicy.startupDelay.inWholeMilliseconds,
         period = config.messageResendPolicy.processInterval.inWholeMilliseconds,
         daemon = true
     ) {
@@ -378,11 +390,9 @@ fun Application.ebmsProviderModule(
     retryService: RetryService,
     payloadMessageService: PayloadMessageService,
     pauseRetryErrorsTimerFlag: PauseRetryErrorsTimerFlag,
-    failedMessageQueue: FailedMessageKafkaHandler,
-    messagePendingAckRepository: MessagePendingAckRepository
+    messagePendingAckRepository: MessagePendingAckRepository,
+    appMicrometerRegistry: PrometheusMeterRegistry
 ) {
-    val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
-
     installMicrometerRegistry(appMicrometerRegistry)
     installContentNegotiation()
     installAuthentication()
