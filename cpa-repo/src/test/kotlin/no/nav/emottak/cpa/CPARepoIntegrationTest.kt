@@ -812,6 +812,48 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         assertTrue(StringUtils.isNotBlank(response.bodyAsText()), "Response can't be null or blank")
     }
 
+    @Test
+    fun `getCertificates returnerer to parties med signing og encryption sertifikat for gyldig CPA`() = cpaRepoTestApp {
+        val httpClient = createClient {
+            install(ContentNegotiation) {
+                jsonLenient()
+            }
+        }
+
+        val response = httpClient.get("/cpa/nav:qass:35065/certificates")
+        assertEquals(HttpStatusCode.OK, response.status)
+
+        val certificates = response.body<List<no.nav.emottak.message.model.PartyCertificates>>()
+        assertEquals(2, certificates.size)
+
+        val partnerCert = certificates.first { cert -> cert.partyIds.any { it.value == "8141253" } }
+        val partnerSignatureDetails = partnerCert.signatureDetails
+        assertNotNull(partnerSignatureDetails)
+        assertEquals("http://www.w3.org/2001/04/xmldsig-more#rsa-sha256", partnerSignatureDetails.signatureAlgorithm)
+        assertEquals("http://www.w3.org/2001/04/xmlenc#sha256", partnerSignatureDetails.hashFunction)
+        assertTrue(partnerSignatureDetails.certificate.isNotEmpty())
+        val partnerEncryptionCertificate = partnerCert.encryptionCertificate
+        assertNotNull(partnerEncryptionCertificate)
+        assertTrue(partnerEncryptionCertificate.isNotEmpty())
+
+        val navCert = certificates.first { cert -> cert.partyIds.any { it.value == "79768" } }
+        val navSignatureDetails = navCert.signatureDetails
+        assertNotNull(navSignatureDetails)
+        assertEquals("http://www.w3.org/2001/04/xmldsig-more#rsa-sha256", navSignatureDetails.signatureAlgorithm)
+        assertEquals("http://www.w3.org/2001/04/xmlenc#sha256", navSignatureDetails.hashFunction)
+        assertTrue(navSignatureDetails.certificate.isNotEmpty())
+        val navEncryptionCertificate = navCert.encryptionCertificate
+        assertNotNull(navEncryptionCertificate)
+        assertTrue(navEncryptionCertificate.isNotEmpty())
+    }
+
+    @Test
+    fun `getCertificates returnerer 404 for ukjent CPA`() = cpaRepoTestApp {
+        val httpClient = createClient {}
+        val response = httpClient.get("/cpa/no:such:cpa/certificates")
+        assertEquals(HttpStatusCode.NotFound, response.status)
+    }
+
     private fun loadTestCPA(cpaName: String): CollaborationProtocolAgreement {
         val testCpaString = String(this::class.java.classLoader.getResource("cpa/$cpaName").readBytes())
         return xmlMarshaller.unmarshal(testCpaString, CollaborationProtocolAgreement::class.java)

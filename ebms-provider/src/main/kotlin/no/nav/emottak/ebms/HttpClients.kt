@@ -21,6 +21,7 @@ import io.ktor.http.contentType
 import no.nav.emottak.message.model.AsyncPayload
 import no.nav.emottak.message.model.MessagingCharacteristicsRequest
 import no.nav.emottak.message.model.MessagingCharacteristicsResponse
+import no.nav.emottak.message.model.PartyCertificates
 import no.nav.emottak.message.model.PayloadRequest
 import no.nav.emottak.message.model.PayloadResponse
 import no.nav.emottak.message.model.ValidationRequest
@@ -58,6 +59,16 @@ open class CpaRepoClient(clientProvider: () -> HttpClient) {
         }
 
         log.debug("Received messaging characteristics response: ${response.status} - ${response.bodyAsText()}")
+        return response.body()
+    }
+
+    open suspend fun getPartyCertificates(cpaId: String): List<PartyCertificates> {
+        log.debug("Getting certificates from $cpaId")
+        val response = httpClient.get("$cpaRepoEndpoint/cpa/$cpaId/certificates") {
+            contentType(Json)
+        }
+
+        log.debug("Received party certificates: ${response.status} - ${response.bodyAsText()}")
         return response.body()
     }
 }

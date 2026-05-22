@@ -6,6 +6,7 @@ import no.nav.emottak.cpa.feil.SecurityException
 import no.nav.emottak.message.ebxml.EbXMLConstants.EBMS_SERVICE_URI
 import no.nav.emottak.message.ebxml.PartyTypeEnum
 import no.nav.emottak.message.model.EmailAddress
+import no.nav.emottak.message.model.PartyCertificates
 import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.message.model.ValidationRequest
 import no.nav.emottak.utils.common.model.Party
@@ -262,6 +263,26 @@ fun CollaborationProtocolAgreement.getPartyInfoByTypeAndID(partyId: List<PartyId
             partyId.contains(PartyId(party.type!!, party.value!!)) // TODO O(n^2)...
         }
     } ?: throw CpaValidationException("Ingen match blant $partyId i CPA")
+}
+
+fun PartyInfo.getCertificates(): PartyCertificates {
+    val signingDetails = this.deliveryChannel.firstNotNullOfOrNull { dc ->
+        runCatching {
+            Triple(dc.getSigningCertificate(), dc.getSignatureAlgorithm(), dc.getHashFunction())
+        }.getOrNull()
+    }?.let { (cert, signatureAlgorithm, hashFunction) ->
+        SignatureDetails(
+            certificate = cert.getX509Certificate(),
+            signatureAlgorithm = signatureAlgorithm,
+            hashFunction = hashFunction
+        )
+    }
+    val encryptionCert = runCatching { getCertificateForEncryption() }.getOrNull()
+    return PartyCertificates(
+        partyIds = this.partyId.map { PartyId(it.type ?: "", it.value ?: "") },
+        signatureDetails = signingDetails,
+        encryptionCertificate = encryptionCert
+    )
 }
 
 fun Certificate.getX509Certificate(): ByteArray {
