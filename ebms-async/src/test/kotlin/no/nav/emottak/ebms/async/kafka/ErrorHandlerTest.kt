@@ -1,9 +1,13 @@
 package no.nav.emottak.ebms.async.kafka
 
 import io.github.nomisRev.kafka.receiver.ReceiverRecord
+import io.mockk.coEvery
+import io.mockk.just
 import io.mockk.mockk
+import io.mockk.runs
 import kotlinx.coroutines.test.runTest
 import no.nav.emottak.ebms.async.configuration.config
+import no.nav.emottak.ebms.async.incrementMessagesQueuedForRetry
 import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
 import no.nav.emottak.ebms.async.kafka.consumer.RETRY_COUNT_HEADER
 import no.nav.emottak.ebms.async.kafka.consumer.asReceiverRecord
@@ -39,9 +43,12 @@ class ErrorHandlerTest {
             // Need to override this by explicitly setting to earliest offset
             System.setProperty("RETRY_INIT_OFFSET", "earliest")
             // Ensure immediate retry by explicitly setting nextRetryTime
+            val mockMeterRegistry = mockk<io.micrometer.core.instrument.MeterRegistry>()
+            coEvery { mockMeterRegistry.incrementMessagesQueuedForRetry(any()) } just runs
             val errorHandler = FailedMessageKafkaHandler(
-                kafka = testcontainerKafkaConfig
-                // errorRetryPolicy = ErrorRetryPolicy(1.seconds, 10, listOf(0.minutes), listOf(2), maxRetries = 10)
+                kafka = testcontainerKafkaConfig,
+                // errorRetryPolicy = ErrorRetryPolicy(1.seconds, 10, listOf(0.minutes), listOf(2), maxRetries = 10),
+                meterRegistry = mockMeterRegistry
             )
             val retryService = RetryService(mockk<CPAValidationService>(), mockk<no.nav.emottak.ebms.async.util.EventRegistrationService>(), errorHandler, mockk())
             val processedMessages = ArrayList<ReceiverRecord<String, ByteArray>>()

@@ -33,12 +33,14 @@ data class Config(
 )
 
 data class MessageResendPolicy(
+    val startupDelay: Duration,
     val processInterval: Duration, // Reading/processing starts every X seconds
     val resendInterval: Duration, // Minutes to wait for Ack before resending
     val maxResends: Int // Max number of resends
 )
 
 data class ErrorRetryPolicy(
+    val startupDelay: Duration,
     val processInterval: Duration,
     val maxMessagesToProcess: Int,
     val retryIntervals: List<Duration>,
