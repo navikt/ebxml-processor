@@ -98,7 +98,7 @@ class HelseIdTokenValidator(
             }
         }
         claims.issueTime?.let { iat ->
-            if (messageGenerationDate.time > iat.time - allowedClockSkewInMs + allowedMessageGenerationGapInMs) {
+            if (messageGenerationDate.time > iat.time + allowedClockSkewInMs + allowedMessageGenerationGapInMs) {
                 error("Message generation time should be within ${allowedMessageGenerationGapInMs / 1000} seconds after token issued time")
             }
         }
