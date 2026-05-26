@@ -21,6 +21,7 @@ import no.nav.emottak.payload.configuration.config
 import no.nav.emottak.payload.helseid.util.OpenIdConfigProvider
 import no.nav.emottak.payload.helseid.util.XPathEvaluator
 import no.nav.emottak.payload.helseid.util.msgHeadNamespaceContext
+import no.nav.emottak.payload.log
 import no.nav.emottak.util.OSLO_ZONE
 import org.w3c.dom.Document
 import java.text.ParseException
@@ -90,6 +91,7 @@ class HelseIdTokenValidator(
     }
 
     private fun validateTimestamps(claims: JWTClaimsSet, messageGenerationDate: Date) {
+        log.debug("Message generation date: $messageGenerationDate, iat: ${claims.issueTime}, exp: ${claims.expirationTime}, nbf: ${claims.notBeforeTime}, at: ${authTime(claims)}, allowed clock skew: $allowedClockSkewInMs, allowed message generation gap: $allowedMessageGenerationGapInMs")
         claims.issueTime?.let { iat ->
             if (messageGenerationDate.time < iat.time - allowedClockSkewInMs) {
                 error("${timePrefix(messageGenerationDate)} is before issued time ${timePrefix(iat)}")
