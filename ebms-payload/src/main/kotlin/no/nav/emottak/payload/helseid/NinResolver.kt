@@ -10,7 +10,6 @@ import no.nav.emottak.payload.ocspstatus.OcspStatusService
 import org.w3c.dom.Document
 import java.security.cert.X509Certificate
 import java.time.Instant
-import java.time.OffsetDateTime
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
@@ -45,7 +44,7 @@ class NinResolver(
         log.debug("Timestamp string to be parsed: <$date>")
         return try {
             ZonedDateTime.parse(date).toInstant()
-            //OffsetDateTime.parse(date, DateTimeFormatter.ISO_OFFSET_DATE_TIME).toInstant()
+            // OffsetDateTime.parse(date, DateTimeFormatter.ISO_OFFSET_DATE_TIME).toInstant()
         } catch (e: Exception) {
             java.time.LocalDateTime.parse(date, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
                 .atZone(java.time.ZoneId.systemDefault())
