@@ -74,11 +74,27 @@ val log = LoggerFactory.getLogger("no.nav.emottak.ebms.async.App")
 const val MESSAGES_QUEUED_FOR_RETRY_COUNTER = "messages_queued_for_retry_total"
 const val TAG_RETRY_TOPIC = "retry_topic"
 
+const val MESSAGES_FIRST_FAILURE_COUNTER = "messages_first_failure_total"
+const val TAG_DIRECTION = "direction"
+const val TAG_SERVICE = "service"
+const val TAG_ACTION = "action"
+
 fun MeterRegistry.incrementMessagesQueuedForRetry(topic: String) =
     counter(
         MESSAGES_QUEUED_FOR_RETRY_COUNTER,
         TAG_RETRY_TOPIC,
         topic
+    ).increment()
+
+fun MeterRegistry.incrementFirstFailure(direction: String, service: String, action: String) =
+    counter(
+        MESSAGES_FIRST_FAILURE_COUNTER,
+        TAG_DIRECTION,
+        direction,
+        TAG_SERVICE,
+        service,
+        TAG_ACTION,
+        action
     ).increment()
 
 fun main() = SuspendApp {

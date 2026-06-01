@@ -3,6 +3,7 @@ package no.nav.emottak.ebms.async.processing
 import io.github.nomisRev.kafka.receiver.ReceiverRecord
 import no.nav.emottak.ebms.async.configuration.ErrorRetryPolicy
 import no.nav.emottak.ebms.async.configuration.config
+import no.nav.emottak.ebms.async.incrementFirstFailure
 import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
 import no.nav.emottak.ebms.async.kafka.consumer.asReceiverRecord
 import no.nav.emottak.ebms.async.kafka.consumer.getRecords
@@ -87,7 +88,10 @@ class RetryService(
             exception
         )
         when (decision) {
-            RetryDecision.RETRY -> failedMessageKafkaHandler.sendToRetryQueueIncoming(record, retryReason, getNextRetryTime(record, config().errorRetryPolicyIncoming))
+            RetryDecision.RETRY -> {
+                if (retryCount == 0) failedMessageKafkaHandler.meterRegistry.incrementFirstFailure("incoming", payloadMessage.addressing.service, payloadMessage.addressing.action)
+                failedMessageKafkaHandler.sendToRetryQueueIncoming(record, retryReason, getNextRetryTime(record, config().errorRetryPolicyIncoming))
+            }
             RetryDecision.TTL_EXPIRED -> {
                 returnMessageError(
                     payloadMessage,
@@ -136,7 +140,10 @@ class RetryService(
             exception
         )
         when (decision) {
-            RetryDecision.RETRY -> failedMessageKafkaHandler.sendToRetryQueueOutgoing(record, retryReason, getNextRetryTime(record, config().errorRetryPolicyOutgoing))
+            RetryDecision.RETRY -> {
+                if (retryCount == 0) failedMessageKafkaHandler.meterRegistry.incrementFirstFailure("outgoing", payloadMessage.addressing.service, payloadMessage.addressing.action)
+                failedMessageKafkaHandler.sendToRetryQueueOutgoing(record, retryReason, getNextRetryTime(record, config().errorRetryPolicyOutgoing))
+            }
             RetryDecision.TTL_EXPIRED -> log.error(payloadMessage.marker(), "MESSAGE_GIVEN_UP: outgoing with key ${record.key()} at offset ${record.offset()}, retried $retryCount times, ebXML TimeToLive expired", exception)
             RetryDecision.MAX_RETRIES_EXCEEDED -> log.error(payloadMessage.marker(), "MESSAGE_GIVEN_UP: outgoing with key ${record.key()} at offset ${record.offset()}, retried $retryCount times, ebXML Max Retries exhausted", exception)
             RetryDecision.NO_RETRY -> log.error(payloadMessage.marker(), "MESSAGE_GIVEN_UP: outgoing with key ${record.key()} at offset ${record.offset()}, no retry for this error", exception)
