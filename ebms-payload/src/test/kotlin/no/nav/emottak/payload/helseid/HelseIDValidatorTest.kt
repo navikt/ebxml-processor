@@ -63,6 +63,17 @@ internal class HelseIDValidatorTest {
     }
 
     @Test
+    fun `validate helseID with multiple audiences`() {
+        validateHomeMadeHelseId(
+            validator,
+            audiences = listOf(
+                HelseIdTokenValidator.SUPPORTED_AUDIENCE.first(),
+                "one:audience:more"
+            )
+        )
+    }
+
+    @Test
     fun `validate helseID signature with JWKS`() {
         runBlocking {
             val jwtString =
@@ -155,18 +166,6 @@ internal class HelseIDValidatorTest {
             HelseIdTokenValidator("https://foo.bar"),
             type = JOSEObjectType("foo"),
             errMsg = "Unsupported token type foo"
-        )
-    }
-
-    @Test
-    fun `validate helseID with multiple audiences`() {
-        validateHomeMadeHelseId(
-            validator,
-            audiences = listOf(
-                HelseIdTokenValidator.SUPPORTED_AUDIENCE.first(),
-                "one:audience:more"
-            ),
-            errMsg = "Token contains multiple audiences"
         )
     }
 
