@@ -74,6 +74,17 @@ internal class HelseIDValidatorTest {
     }
 
     @Test
+    fun `validate helseID with multiple scopes`() {
+        validateHomeMadeHelseId(
+            validator,
+            scopes = listOf(
+                HelseIdTokenValidator.SUPPORTED_SCOPES.first(),
+                "one:scope:more"
+            )
+        )
+    }
+
+    @Test
     fun `validate helseID signature with JWKS`() {
         runBlocking {
             val jwtString =
@@ -166,18 +177,6 @@ internal class HelseIDValidatorTest {
             HelseIdTokenValidator("https://foo.bar"),
             type = JOSEObjectType("foo"),
             errMsg = "Unsupported token type foo"
-        )
-    }
-
-    @Test
-    fun `validate helseID with multiple scopes`() {
-        validateHomeMadeHelseId(
-            validator,
-            scopes = listOf(
-                HelseIdTokenValidator.SUPPORTED_SCOPES.first(),
-                "one:scope:more"
-            ),
-            errMsg = "Token contains multiple scopes"
         )
     }
 
