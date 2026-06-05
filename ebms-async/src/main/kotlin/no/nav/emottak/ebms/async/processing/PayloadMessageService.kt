@@ -93,8 +93,7 @@ class PayloadMessageService(
                 "To-role: ${ebmsPayloadMessage.addressing.to.role}, To: ${ebmsPayloadMessage.addressing.to.partyId}"
         )
         try {
-            val uuid = Uuid.parse(ebmsPayloadMessage.refToMessageId!!)
-            val incomingMessage = messageReceivedRepository.getByReferenceId(uuid)
+            val incomingMessage = messageReceivedRepository.getByMessageId(ebmsPayloadMessage.refToMessageId!!)
             if (incomingMessage == null) {
                 log.warn("Could not find incoming message with message id ${ebmsPayloadMessage.refToMessageId}, skipping response!!!")
                 return
