@@ -55,7 +55,6 @@ class CPARepositoryTest : PostgresTest() {
         val now = Instant.now().truncatedTo(ChronoUnit.MINUTES)
         val (_, storedLastUsed) = cpaRepository.findCpaAndLastUsed(CPA_ID)
         assertNotNull(storedLastUsed)
-        println("Now: $now")
         assertEquals(now, storedLastUsed.truncatedTo(ChronoUnit.MINUTES))
     }
 
