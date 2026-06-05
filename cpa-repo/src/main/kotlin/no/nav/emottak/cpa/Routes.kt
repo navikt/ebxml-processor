@@ -52,7 +52,7 @@ import no.nav.emottak.message.model.SignatureDetailsRequest
 import no.nav.emottak.message.model.ValidationRequest
 import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.util.createX509Certificate
-import no.nav.emottak.util.isToday
+import no.nav.emottak.util.isMoreThanXMinutesSince
 import no.nav.emottak.util.marker
 import no.nav.emottak.utils.common.model.Addressing
 import no.nav.emottak.utils.common.model.EbmsProcessing
@@ -240,8 +240,18 @@ fun Route.validateCpa(
         log.info(validateRequest.marker(), "Validerer ebms mot CPA")
         val (cpa, lastUsed) = cpaRepository.findCpaAndLastUsed(validateRequest.cpaId)
         if (cpa == null) throw NotFoundException("Fant ikke CPA (${validateRequest.cpaId})")
-        if (!lastUsed.isToday() && !cpaRepository.updateCpaLastUsed(validateRequest.cpaId)) {
-            log.warn(validateRequest.marker(), "Feilet med å oppdatere last_used for CPA '${validateRequest.cpaId}'")
+        if (lastUsed.isMoreThanXMinutesSince(x = 5)) {
+            if (!cpaRepository.updateCpaLastUsed(validateRequest.cpaId)) {
+                log.warn(
+                    validateRequest.marker(),
+                    "Feilet med å oppdatere last_used for CPA '${validateRequest.cpaId}'"
+                )
+            } else {
+                log.debug(
+                    validateRequest.marker(),
+                    "Oppdaterte last_used for CPA '${validateRequest.cpaId}'"
+                )
+            }
         }
 
         val toParty: PartyInfo

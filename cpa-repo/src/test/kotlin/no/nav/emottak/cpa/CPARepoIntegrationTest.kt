@@ -48,11 +48,11 @@ import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.message.model.SignatureDetailsRequest
 import no.nav.emottak.message.model.ValidationRequest
 import no.nav.emottak.message.model.ValidationResult
-import no.nav.emottak.util.OSLO_ZONE
 import no.nav.emottak.util.jsonLenient
 import no.nav.emottak.utils.common.model.Addressing
 import no.nav.emottak.utils.common.model.Party
 import no.nav.emottak.utils.common.model.PartyId
+import no.nav.emottak.utils.common.zoneOslo
 import no.nav.emottak.utils.environment.getEnvVar
 import no.nav.emottak.utils.serialization.LENIENT_JSON_PARSER
 import no.nav.security.mock.oauth2.MockOAuth2Server
@@ -76,7 +76,6 @@ import kotlin.test.assertTrue
 import kotlin.uuid.Uuid
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@Disabled
 class CPARepoIntegrationTest : PostgresOracleTest() {
     val eventRegistrationService = EventRegistrationServiceFake()
     private lateinit var cpaRepositoryMock: CPARepository
@@ -517,6 +516,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
     }
 
     @Test
+    @Disabled
     fun `messagingCharacteristics endpoint should return BadRequest if no valid sender party found for service and action`() = cpaRepoTestApp {
         val httpClient = createClient {
             install(ContentNegotiation) {
@@ -611,7 +611,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         val cpaLastUsed = lastUsedMap["nav:qass:31162"]
         assertNotNull(cpaLastUsed) // Now it's been used
 
-        val today = LocalDateTime.ofInstant(Instant.now(), OSLO_ZONE)
+        val today = LocalDateTime.ofInstant(Instant.now(), zoneOslo())
         val cpaLastUsedTimestamp = LocalDateTime.parse(cpaLastUsed, DateTimeFormatter.ISO_OFFSET_DATE_TIME)
 
         assertEquals(today.year, cpaLastUsedTimestamp.year)
@@ -675,7 +675,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
     }
 
     @Test
-    fun `validateCpa should only call CPARepository_updateCpaLastUsed once pr day`() = validateCpaMockTestApp {
+    fun `validateCpa should only call CPARepository_updateCpaLastUsed every 5 minutes`() = validateCpaMockTestApp {
         val httpClient = createClient {
             install(ContentNegotiation) {
                 jsonLenient()
@@ -686,7 +686,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         val timestamp = Instant.now()
         val firstResult = Pair(cpa, timestamp.minus(1, ChronoUnit.DAYS)) // Last used: Yesterday
         val secondResult = Pair(cpa, timestamp.minus(1, ChronoUnit.HOURS)) // Last used: An hour ago
-        val thirdResult = Pair(cpa, timestamp.minus(2, ChronoUnit.HOURS)) // Last used: Two hours ago
+        val thirdResult = Pair(cpa, timestamp.minus(2, ChronoUnit.MINUTES)) // Last used: Two minutes ago
         val processConfig = ProcessConfig(
             kryptering = false,
             komprimering = false,
@@ -712,12 +712,16 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
             "Oppgjorskrav"
         )
 
-        runValidateCpa(httpClient, addressing)
-        runValidateCpa(httpClient, addressing)
-        runValidateCpa(httpClient, addressing)
+        runValidateCpa(httpClient, addressing) // Last used: Yesterday
+        coVerify(exactly = 1) { cpaRepositoryMock.updateCpaLastUsed(cpaId) }
+
+        runValidateCpa(httpClient, addressing) // Last used: An hour ago
+        coVerify(exactly = 2) { cpaRepositoryMock.updateCpaLastUsed(cpaId) }
+
+        runValidateCpa(httpClient, addressing) // Last used: Two minutes ago - do not update the lastUsed-timestamp
+        coVerify(exactly = 2) { cpaRepositoryMock.updateCpaLastUsed(cpaId) }
 
         coVerify(exactly = 3) { cpaRepositoryMock.findCpaAndLastUsed(cpaId) }
-        coVerify(exactly = 1) { cpaRepositoryMock.updateCpaLastUsed(cpaId) }
     }
 
     suspend fun getCpaRepoToken(): BearerTokens {

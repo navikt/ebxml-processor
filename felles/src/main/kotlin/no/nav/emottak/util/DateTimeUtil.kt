@@ -1,16 +1,15 @@
 package no.nav.emottak.util
 
+import no.nav.emottak.utils.common.zoneOslo
 import java.time.Instant
 import java.time.LocalDateTime
-import java.time.ZoneId
 
-fun Instant?.isToday() =
+fun Instant?.isMoreThanXMinutesSince(x: Long) =
     if (null == this) {
-        false
+        true
     } else {
-        val today = LocalDateTime.ofInstant(Instant.now(), OSLO_ZONE)
-        val cpaLastUsed = LocalDateTime.ofInstant(this, OSLO_ZONE)
-        today.dayOfYear == cpaLastUsed.dayOfYear
+        val today = LocalDateTime.ofInstant(Instant.now(), zoneOslo())
+        val earlierToday = today.minusMinutes(x)
+        val cpaLastUsed = LocalDateTime.ofInstant(this, zoneOslo())
+        cpaLastUsed.isBefore(earlierToday)
     }
-
-val OSLO_ZONE: ZoneId = ZoneId.of("Europe/Oslo")
