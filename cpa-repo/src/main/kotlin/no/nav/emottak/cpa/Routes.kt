@@ -63,6 +63,7 @@ import no.nav.emottak.utils.serialization.toEventDataJson
 import no.nav.security.token.support.v3.TokenValidationContextPrincipal
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PartyInfo
+import java.time.Instant
 import java.util.Date
 
 fun Route.whoAmI(): Route = get("/whoami") {
@@ -240,19 +241,7 @@ fun Route.validateCpa(
         log.info(validateRequest.marker(), "Validerer ebms mot CPA")
         val (cpa, lastUsed) = cpaRepository.findCpaAndLastUsed(validateRequest.cpaId)
         if (cpa == null) throw NotFoundException("Fant ikke CPA (${validateRequest.cpaId})")
-        if (lastUsed.isMoreThanXMinutesSince(x = 5)) {
-            if (!cpaRepository.updateCpaLastUsed(validateRequest.cpaId)) {
-                log.warn(
-                    validateRequest.marker(),
-                    "Feilet med å oppdatere last_used for CPA '${validateRequest.cpaId}'"
-                )
-            } else {
-                log.debug(
-                    validateRequest.marker(),
-                    "Oppdaterte last_used for CPA '${validateRequest.cpaId}'"
-                )
-            }
-        }
+        updateLastUsed(cpaRepository, lastUsed, validateRequest)
 
         val toParty: PartyInfo
         val fromParty: PartyInfo
@@ -370,6 +359,22 @@ fun Route.validateCpa(
 
 private fun ValidationRequest.isSignalMessage(): Boolean = this.addressing.service == EBMS_SERVICE_URI &&
     (this.addressing.action == MESSAGE_ERROR_ACTION || this.addressing.action == ACKNOWLEDGMENT_ACTION)
+
+private fun updateLastUsed(cpaRepository: CPARepository, lastUsed: Instant?, validateRequest: ValidationRequest) {
+    if (lastUsed.isMoreThanXMinutesSince(x = 5)) {
+        if (!cpaRepository.updateCpaLastUsed(validateRequest.cpaId)) {
+            log.warn(
+                validateRequest.marker(),
+                "Feilet med å oppdatere last_used for CPA '${validateRequest.cpaId}'"
+            )
+        } else {
+            log.debug(
+                validateRequest.marker(),
+                "Oppdaterte last_used for CPA '${validateRequest.cpaId}'"
+            )
+        }
+    }
+}
 
 fun Route.getCertificate(cpaRepository: CPARepository) =
     get("/cpa/{$CPA_ID}/party/{$PARTY_TYPE}/{$PARTY_ID}/encryption/certificate") {
