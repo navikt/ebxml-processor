@@ -83,38 +83,33 @@ class PayloadMessageService(
     }
 
     private suspend fun returnEnrichedMessage(ebmsPayloadMessage: PayloadMessage) {
-        log.info(ebmsPayloadMessage.marker(), "Looking up incoming data for outbound response ${ebmsPayloadMessage.addressing.service} message ${ebmsPayloadMessage.messageId}, ref to ${ebmsPayloadMessage.refToMessageId}")
-        log.info(
-            "BEFORE lookup: Message ID: ${ebmsPayloadMessage.messageId}, Service: ${ebmsPayloadMessage.addressing.service}, " +
-                "Conversation ID: ${ebmsPayloadMessage.conversationId}, CPA ID: ${ebmsPayloadMessage.cpaId}, " +
-                "Refto Message ID: ${ebmsPayloadMessage.refToMessageId}, Role: ${ebmsPayloadMessage.addressing.from.role}, " +
-                "Action: ${ebmsPayloadMessage.addressing.action}, From: ${ebmsPayloadMessage.addressing.from.partyId}, " +
-                "To-role: ${ebmsPayloadMessage.addressing.to.role}, To: ${ebmsPayloadMessage.addressing.to.partyId}"
-        )
-        try {
-            val incomingMessage = messageReceivedRepository.getByMessageId(ebmsPayloadMessage.refToMessageId!!)
-            if (incomingMessage == null) {
-                log.warn("Could not find incoming message with message id ${ebmsPayloadMessage.refToMessageId}, skipping response!!!")
-                return
-            }
-            log.info("Found incoming message with message id ${ebmsPayloadMessage.refToMessageId}: $incomingMessage")
+        log.debug(ebmsPayloadMessage.marker(), "Looking up incoming data for outbound response ${ebmsPayloadMessage.addressing.service} message ${ebmsPayloadMessage.messageId}, ref to ${ebmsPayloadMessage.refToMessageId}")
+        val incomingMessage = messageReceivedRepository.getByMessageId(ebmsPayloadMessage.refToMessageId!!)
+        if (incomingMessage == null) {
+            log.warn("Could not find incoming message with message id ${ebmsPayloadMessage.refToMessageId}")
+            payloadMessageForwardingService.returnMessageResponse(ebmsPayloadMessage)
+        } else {
+            log.debug("Found incoming message with message id ${ebmsPayloadMessage.refToMessageId}: $incomingMessage")
             val toParty = Party(listOf(PartyId("", incomingMessage.senderId)), incomingMessage.senderRole)
-            val addressing = Addressing(toParty, ebmsPayloadMessage.addressing.from, ebmsPayloadMessage.addressing.service, ebmsPayloadMessage.addressing.action)
+            val addressing = Addressing(
+                toParty,
+                ebmsPayloadMessage.addressing.from,
+                ebmsPayloadMessage.addressing.service,
+                ebmsPayloadMessage.addressing.action
+            )
             val enrichedMessage = ebmsPayloadMessage.copy(
                 conversationId = incomingMessage.conversationId,
                 cpaId = incomingMessage.cpaId,
                 addressing = addressing
             )
             log.info(
-                "AFTER lookup: Message ID: ${enrichedMessage.messageId}, Service: ${enrichedMessage.addressing.service}, " +
-                    "Conversation ID: ${enrichedMessage.conversationId}, CPA ID: ${enrichedMessage.cpaId}, " +
+                "Enriched outgoing payload: Message ID: ${enrichedMessage.messageId}, Service: ${enrichedMessage.addressing.service}, " +
                     "Refto Message ID: ${enrichedMessage.refToMessageId}, Role: ${enrichedMessage.addressing.from.role}, " +
                     "Action: ${enrichedMessage.addressing.action}, From: ${enrichedMessage.addressing.from.partyId}, " +
-                    "To-role: ${enrichedMessage.addressing.to.role}, To: ${enrichedMessage.addressing.to.partyId}"
+                    "Conversation ID (from inbound): ${enrichedMessage.conversationId}, CPA ID (from inbound): ${enrichedMessage.cpaId}, " +
+                    "To-role (from inbound): ${enrichedMessage.addressing.to.role}, To (from inbound): ${enrichedMessage.addressing.to.partyId}"
             )
             payloadMessageForwardingService.returnMessageResponse(enrichedMessage)
-        } catch (e: Exception) {
-            log.warn("Could not get incoming message for message id ${ebmsPayloadMessage.messageId}, skipping response!!!  ${e.message}")
         }
     }
 
