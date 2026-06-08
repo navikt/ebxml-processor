@@ -134,9 +134,6 @@ class HelseIdTokenValidator(
         if (scopes.none { it in SUPPORTED_SCOPES }) {
             error("Token does not contain required scope")
         }
-//        if (scopes.size > 1) {
-//            error("Token contains multiple scopes")
-//        }
     }
 
     private fun extractNin(jwt: SignedJWT): String = getString(jwt.jwtClaimsSet, PID_CLAIM)
