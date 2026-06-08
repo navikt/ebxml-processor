@@ -50,7 +50,6 @@ import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.message.model.SignatureDetailsRequest
 import no.nav.emottak.message.model.ValidationRequest
 import no.nav.emottak.message.model.ValidationResult
-import no.nav.emottak.util.LENIENT_JSON_PARSER
 import no.nav.emottak.util.OSLO_ZONE
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.jsonLenient
@@ -59,6 +58,7 @@ import no.nav.emottak.utils.common.model.Addressing
 import no.nav.emottak.utils.common.model.Party
 import no.nav.emottak.utils.common.model.PartyId
 import no.nav.emottak.utils.environment.getEnvVar
+import no.nav.emottak.utils.serialization.LENIENT_JSON_PARSER
 import no.nav.security.mock.oauth2.MockOAuth2Server
 import org.apache.commons.lang3.StringUtils
 import org.junit.jupiter.api.Disabled
@@ -585,6 +585,31 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
 //
 //        assertEquals(HttpStatusCode.NotFound, response.status)
 //    }
+
+    @Test
+    fun `messagingCharacteristics endpoint should return BadRequest if no valid sender party found for service and action`() = cpaRepoTestApp {
+        val httpClient = createClient {
+            install(ContentNegotiation) {
+                jsonLenient()
+            }
+        }
+
+        val messagingCharacteristicsRequest = MessagingCharacteristicsRequest(
+            requestId = Uuid.random().toString(),
+            cpaId = "nav:qass:35065",
+            partyIds = listOf(PartyId("HER", "8141253")),
+            role = "Behandler",
+            service = "NoSuchService",
+            action = "NoSuchAction"
+        )
+
+        val response = httpClient.post("/cpa/messagingCharacteristics") {
+            setBody(messagingCharacteristicsRequest)
+            contentType(Json)
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+    }
 
     @Test
     fun `Should require valid token`() = cpaRepoTestApp {

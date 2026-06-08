@@ -3,6 +3,7 @@ package no.nav.emottak.ebms.async.configuration
 import no.nav.emottak.util.KeyStoreConfiguration
 import no.nav.emottak.utils.config.EventLogging
 import no.nav.emottak.utils.config.Kafka
+import no.nav.emottak.utils.config.toProperties
 import no.nav.emottak.utils.environment.getEnvVar
 import org.apache.kafka.clients.CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG
 import org.apache.kafka.clients.CommonClientConfigs.SECURITY_PROTOCOL_CONFIG
@@ -12,7 +13,6 @@ import org.apache.kafka.common.config.SslConfigs.SSL_KEYSTORE_TYPE_CONFIG
 import org.apache.kafka.common.config.SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG
 import org.apache.kafka.common.config.SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG
 import org.apache.kafka.common.config.SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG
-import java.util.Properties
 import kotlin.time.Duration
 
 data class Config(
@@ -33,12 +33,14 @@ data class Config(
 )
 
 data class MessageResendPolicy(
+    val startupDelay: Duration,
     val processInterval: Duration, // Reading/processing starts every X seconds
     val resendInterval: Duration, // Minutes to wait for Ack before resending
     val maxResends: Int // Max number of resends
 )
 
 data class ErrorRetryPolicy(
+    val startupDelay: Duration,
     val processInterval: Duration,
     val maxMessagesToProcess: Int,
     val retryIntervals: List<Duration>,
@@ -68,16 +70,17 @@ data class ErrorRetryPolicy(
     }
 }
 
-fun Kafka.toProperties() = Properties()
-    .apply {
-        put(BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
-        if (getEnvVar("NAIS_CLUSTER_NAME", "local") != "local") {
-            put(SECURITY_PROTOCOL_CONFIG, securityProtocol.value)
-            put(SSL_KEYSTORE_TYPE_CONFIG, keystoreType.value)
-            put(SSL_KEYSTORE_LOCATION_CONFIG, keystoreLocation.value)
-            put(SSL_KEYSTORE_PASSWORD_CONFIG, keystorePassword.value)
-            put(SSL_TRUSTSTORE_TYPE_CONFIG, truststoreType.value)
-            put(SSL_TRUSTSTORE_LOCATION_CONFIG, truststoreLocation.value)
-            put(SSL_TRUSTSTORE_PASSWORD_CONFIG, truststorePassword.value)
+fun Kafka.toProperties() =
+    toProperties()
+        .apply {
+            put(BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
+            if (getEnvVar("NAIS_CLUSTER_NAME", "local") == "local") {
+                remove(SECURITY_PROTOCOL_CONFIG, securityProtocol.value)
+                remove(SSL_KEYSTORE_TYPE_CONFIG, keystoreType.value)
+                remove(SSL_KEYSTORE_LOCATION_CONFIG, keystoreLocation.value)
+                remove(SSL_KEYSTORE_PASSWORD_CONFIG, keystorePassword.value)
+                remove(SSL_TRUSTSTORE_TYPE_CONFIG, truststoreType.value)
+                remove(SSL_TRUSTSTORE_LOCATION_CONFIG, truststoreLocation.value)
+                remove(SSL_TRUSTSTORE_PASSWORD_CONFIG, truststorePassword.value)
+            }
         }
-    }

@@ -1,11 +1,12 @@
 package no.nav.emottak.ebms.async.kafka
 
+import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
 import no.nav.emottak.ebms.async.kafka.consumer.getRecord
-import no.nav.emottak.ebms.async.kafka.consumer.getRetryRecord
+import no.nav.emottak.ebms.async.kafka.consumer.getRetryIncomingRecord
 import no.nav.emottak.message.model.Direction
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.condition.DisabledIf
@@ -54,7 +55,7 @@ class KafkaIntegrationTest {
     @DisabledIf("noLocalKafkaEnv")
     fun leggTilRetry() {
         if (noLocalKafkaEnv()) return
-        val failedMessageQueue = FailedMessageKafkaHandler()
+        val failedMessageQueue = FailedMessageKafkaHandler(meterRegistry = mockk<io.micrometer.core.instrument.MeterRegistry>())
         runTest {
             val record = getRecord(
                 fromOffset = 9379942,
@@ -68,7 +69,7 @@ class KafkaIntegrationTest {
                     direction = Direction.IN
                 )
             }
-            val retryRecord = getRetryRecord()
+            val retryRecord = getRetryIncomingRecord()
             assert(retryRecord?.key() != null)
         }
     }

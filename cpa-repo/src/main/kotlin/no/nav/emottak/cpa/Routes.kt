@@ -36,6 +36,7 @@ import no.nav.emottak.message.ebxml.EbXMLConstants.EBMS_SERVICE_URI
 import no.nav.emottak.message.ebxml.EbXMLConstants.MESSAGE_ERROR_ACTION
 import no.nav.emottak.message.ebxml.PartyTypeEnum
 import no.nav.emottak.message.exception.EbmsException
+import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.EmailAddress
 import no.nav.emottak.message.model.ErrorCode
 import no.nav.emottak.message.model.Feil
@@ -51,6 +52,7 @@ import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.decodeBase64
 import no.nav.emottak.util.isToday
 import no.nav.emottak.util.marker
+import no.nav.emottak.utils.common.model.Addressing
 import no.nav.emottak.utils.common.model.EbmsProcessing
 import no.nav.emottak.utils.environment.getEnvVar
 import no.nav.emottak.utils.kafka.model.EventDataType
@@ -61,6 +63,7 @@ import org.apache.xml.security.algorithms.MessageDigestAlgorithm
 import org.apache.xml.security.signature.XMLSignature
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.EndpointTypeType
+import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PartyInfo
 import java.util.Date
 
 fun Route.whoAmI(): Route = get("/whoami") {
@@ -233,8 +236,7 @@ fun Route.validateCpa(
     eventRegistrationService: EventRegistrationService,
     adresseregisterValidator: AdresseregisterValidator?
 ) = post("/cpa/validate/{$REQUEST_ID}") {
-    val validateRequest = call.receive(ValidationRequest::class)
-
+    var validateRequest = call.receive(ValidationRequest::class)
     val requestId = call.parameters[REQUEST_ID] ?: throw BadRequestException("Mangler $REQUEST_ID")
     try {
         log.info(validateRequest.marker(), "Validerer ebms mot CPA")
@@ -294,12 +296,33 @@ fun Route.validateCpa(
                     "Feilet med å oppdatere last_used for CPA '${validateRequest.cpaId}'"
                 )
             }
+            val toParty: PartyInfo
+            val fromParty: PartyInfo
+            if (validateRequest.direction == Direction.OUT) {
+                fromParty = cpa.getValidPartyInfosSender(validateRequest.addressing.service, validateRequest.addressing.action)
+                    .firstOrNull()
+                    .also { log.info("Found FromParty in CPA. Name: ${it?.partyName}, IDs: ${it?.partyId?.actuallyUsefulToString()}") }
+                    ?: throw NotFoundException("Fant ikke avsender for CPA ${validateRequest.cpaId}")
+                toParty = cpa.getValidPartyInfosReceiver(validateRequest.addressing.service, validateRequest.addressing.action)
+                    .firstOrNull()
+                    .also { log.info("Found ToParty in CPA. Name: ${it?.partyName}, IDs: [${it?.partyId?.actuallyUsefulToString()}]") }
+                    ?: throw NotFoundException("Fant ikke mottaker for CPA ${validateRequest.cpaId}")
+                validateRequest = validateRequest.copy(
+                    addressing = Addressing(
+                        toParty.toDomainModelReceiver(validateRequest.addressing.service, validateRequest.addressing.action),
+                        fromParty.toDomainModelSender(validateRequest.addressing.service, validateRequest.addressing.action),
+                        validateRequest.addressing.service,
+                        validateRequest.addressing.action
+                    )
+                )
+            } else {
+                fromParty = cpa.getPartyInfoByTypeAndID(validateRequest.addressing.from.partyId) // Delivery Failure
+                toParty = cpa.getPartyInfoByTypeAndID(validateRequest.addressing.to.partyId) // Delivery Failure
+            }
+
             if (!validateRequest.isSignalMessage()) {
                 cpa.validate(validateRequest)
             } // Delivery Failure
-
-            val fromParty = cpa.getPartyInfoByTypeAndID(validateRequest.addressing.from.partyId) // Delivery Failure
-            val toParty = cpa.getPartyInfoByTypeAndID(validateRequest.addressing.to.partyId) // Delivery Failure
             val encryptionCertificate = toParty.getCertificateForEncryption()
 
             val signingCertificate = fromParty.getCertificateForSignatureValidation(
@@ -335,7 +358,8 @@ fun Route.validateCpa(
                     ),
                     signalEmails,
                     receiverEmails,
-                    partnerId
+                    partnerId,
+                    cpaAddressing = validateRequest.addressing
                 )
             )
 
@@ -459,7 +483,7 @@ fun Route.getMessagingCharacteristics(cpaRepository: CPARepository) =
         val request = call.receive(MessagingCharacteristicsRequest::class)
 
         val cpa = cpaRepository.findCpa(request.cpaId) ?: throw NotFoundException("CPA not found for ID ${request.cpaId}")
-        val fromParty = cpa.getPartyInfoByTypeAndID(request.partyIds)
+        val fromParty = cpa.getValidPartyInfosSender(request.service, request.action).firstOrNull() ?: throw BadRequestException("Fant ikke gyldig fromParty for service ${request.service} og action ${request.action}")
         val deliveryChannel = fromParty.getSendDeliveryChannel(request.role, request.service, request.action)
 
         val response = MessagingCharacteristicsResponse(

@@ -8,13 +8,12 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import no.nav.emottak.ebms.SmtpTransportClient
+import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
 import no.nav.emottak.ebms.async.util.EventRegistrationServiceFake
 import no.nav.emottak.message.model.AsyncPayload
 import org.apache.kafka.common.header.internals.RecordHeaders
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
-import kotlin.test.assertEquals
 import kotlin.uuid.Uuid
 
 class MessageFilterServiceTest {
@@ -23,11 +22,13 @@ class MessageFilterServiceTest {
     val signalMessageService = mockk<SignalMessageService>()
     val smtpTransportClient = mockk<SmtpTransportClient>()
     val eventRegistrationService = EventRegistrationServiceFake()
+    val failedMessageKafkaHandler = mockk<FailedMessageKafkaHandler>()
     val messageFilterService = MessageFilterService(
         payloadMessageService,
         signalMessageService,
         smtpTransportClient,
-        eventRegistrationService
+        eventRegistrationService,
+        failedMessageKafkaHandler
     )
 
     @BeforeEach
@@ -38,7 +39,7 @@ class MessageFilterServiceTest {
     }
 
     @Test
-    fun `Not ebxml message throws error`() {
+    fun `Not ebxml adds message to error queue`() {
         val message = this::class.java.classLoader
             .getResourceAsStream("signaltest/dokument.xml")
 
@@ -47,13 +48,15 @@ class MessageFilterServiceTest {
         every { record.key() } returns Uuid.random().toString()
         every { record.value() } returns message!!.readAllBytes()
         every { record.headers() } returns RecordHeaders()
+        coEvery { failedMessageKafkaHandler.sendToRetryQueueIncoming(record, any(), any()) } returns Unit
 
-        val exception = assertThrows<RuntimeException> {
-            runBlocking {
-                messageFilterService.filterMessage(record)
-            }
+        runBlocking {
+            messageFilterService.filterMessage(record)
         }
-        assertEquals("Message does not contain ebXML message header", exception.message)
+
+        coVerify(exactly = 1) {
+            failedMessageKafkaHandler.sendToRetryQueueIncoming(record, any(), any())
+        }
     }
 
     @Test

@@ -4,8 +4,9 @@ import io.github.nomisRev.kafka.receiver.ReceiverRecord
 import no.nav.emottak.ebms.async.kafka.consumer.retryCount
 import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
 import no.nav.emottak.ebms.async.log
+import no.nav.emottak.ebms.async.persistence.repository.MessagePendingAckRepository
+import no.nav.emottak.ebms.async.persistence.repository.MessageReceivedRepository
 import no.nav.emottak.ebms.async.util.EventRegistrationService
-import no.nav.emottak.ebms.eventmanager.EventManagerService
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.validation.CPAValidationService
@@ -23,8 +24,9 @@ class PayloadMessageService(
     val ebmsSignalProducer: EbmsMessageProducer,
     val payloadMessageForwardingService: PayloadMessageForwardingService,
     val eventRegistrationService: EventRegistrationService,
-    val eventManagerService: EventManagerService,
-    val retryService: RetryService
+    val messageReceivedRepository: MessageReceivedRepository,
+    val retryService: RetryService,
+    val messagePendingAckRepository: MessagePendingAckRepository
 ) {
 
     suspend fun process(
@@ -32,22 +34,21 @@ class PayloadMessageService(
         ebmsPayloadMessage: PayloadMessage
     ) {
         runCatching {
-            val isDuplicate = isDuplicateMessage(ebmsPayloadMessage)
-            val isRetry = record.retryCount() > 0
-            when (isDuplicate && !isRetry) {
-                true -> log.info(ebmsPayloadMessage.marker(), "Got duplicate payload message with reference <${ebmsPayloadMessage.requestId}>")
-                false -> {
-                    if (isRetry) {
-                        eventRegistrationService.registerEvent(
-                            eventType = EventType.RETRY_TRIGGED,
-                            requestId = ebmsPayloadMessage.requestId.parseOrGenerateUuid(),
-                            messageId = ebmsPayloadMessage.messageId,
-                            conversationId = ebmsPayloadMessage.conversationId
-                        )
-                    }
-                    processPayloadMessage(ebmsPayloadMessage)
+            if (isDuplicateMessage(ebmsPayloadMessage)) {
+                log.info(ebmsPayloadMessage.marker(), "Got duplicate payload message with reference <${ebmsPayloadMessage.requestId}>")
+            } else {
+                messageReceivedRepository.messageReceived(ebmsPayloadMessage)
+                if (record.retryCount() > 0) {
+                    eventRegistrationService.registerEvent(
+                        eventType = EventType.RETRY_TRIGGED,
+                        requestId = ebmsPayloadMessage.requestId.parseOrGenerateUuid(),
+                        messageId = ebmsPayloadMessage.messageId,
+                        conversationId = ebmsPayloadMessage.conversationId
+                    )
                 }
+                processPayloadMessage(ebmsPayloadMessage)
             }
+            messageReceivedRepository.messageAcknowledged(ebmsPayloadMessage)
             returnAcknowledgment(ebmsPayloadMessage)
         }.onFailure { exception ->
             // TODO handle some errors by sending to retry, some by returning error message
@@ -62,6 +63,10 @@ class PayloadMessageService(
     ) {
         runCatching {
             log.info(ebmsPayloadMessage.marker(), "Got outbound response message from ebms.out.payload with reference <${ebmsPayloadMessage.requestId}>")
+            if (messagePendingAckRepository.existsForMessageId(ebmsPayloadMessage.messageId)) {
+                log.info(ebmsPayloadMessage.marker(), "Outgoing message ${ebmsPayloadMessage.messageId} has already been processed successfully, skipping")
+                return@runCatching
+            }
             payloadMessageForwardingService.returnMessageResponse(ebmsPayloadMessage)
         }.onFailure { exception ->
             log.error(ebmsPayloadMessage.marker(), exception.message ?: "Outbound response processing error", exception)
@@ -117,19 +122,20 @@ class PayloadMessageService(
             cpaValidationService.getDuplicateEliminationStrategy(ebmsPayloadMessage)
         } catch (e: Exception) {
             log.warn(ebmsPayloadMessage.marker(), "Error checking duplicate status", e)
-            return false
+            null
         }
 
-        if (duplicateEliminationStrategy == PerMessageCharacteristicsType.ALWAYS) {
-            return eventManagerService.isDuplicateMessage(ebmsPayloadMessage)
-        }
+        return when (duplicateEliminationStrategy) {
+            PerMessageCharacteristicsType.ALWAYS -> {
+                messageReceivedRepository.isAcknowledged(ebmsPayloadMessage) ?: false
+            }
 
-        if (
-            duplicateEliminationStrategy == PerMessageCharacteristicsType.PER_MESSAGE &&
-            ebmsPayloadMessage.duplicateElimination
-        ) {
-            return eventManagerService.isDuplicateMessage(ebmsPayloadMessage)
+            PerMessageCharacteristicsType.PER_MESSAGE -> {
+                ebmsPayloadMessage.duplicateElimination && (messageReceivedRepository.isAcknowledged(ebmsPayloadMessage) ?: false)
+            }
+
+            PerMessageCharacteristicsType.NEVER -> false
+            null -> false
         }
-        return false
     }
 }
