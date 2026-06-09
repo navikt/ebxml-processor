@@ -330,12 +330,13 @@ fun Route.validateCpa(
                 validateRequest.addressing.service,
                 validateRequest.addressing.action
             ) // Security Failure
-            log.info("signingCertificate:     ${createX509Certificate(signingCertificate.certificate)}")
             val signalEmails = toParty.getSignalEmailAddress(validateRequest)
             val receiverEmails = toParty.getReceiveEmailAddress(validateRequest)
 
             runCatching {
-                createX509Certificate(signingCertificate.certificate).validate()
+                createX509Certificate(signingCertificate.certificate).also {
+                    log.debug("signingCertificate: {}", it)
+                }.validate()
             }.onFailure {
                 log.error(validateRequest.marker(), "Validation feilet i sertifikat sjekk", it)
                 throw it
