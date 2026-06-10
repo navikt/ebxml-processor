@@ -4,7 +4,7 @@ import no.nav.emottak.utils.common.zoneOslo
 import java.time.Instant
 import java.time.LocalDateTime
 
-fun Instant?.isMoreThanXMinutesSince(x: Long) =
+fun Instant?.isMoreThanXMinutesAgo(x: Long) =
     if (null == this) {
         true
     } else {

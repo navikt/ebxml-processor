@@ -23,7 +23,6 @@ import no.nav.emottak.payload.helseid.util.XPathEvaluator
 import no.nav.emottak.payload.helseid.util.msgHeadNamespaceContext
 import no.nav.emottak.payload.log
 import no.nav.emottak.utils.common.zoneOslo
-import no.nav.emottak.util.OSLO_ZONE
 import org.w3c.dom.Document
 import java.text.ParseException
 import java.time.Instant

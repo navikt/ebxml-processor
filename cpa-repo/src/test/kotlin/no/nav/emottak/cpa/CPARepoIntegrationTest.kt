@@ -50,7 +50,6 @@ import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.message.model.SignatureDetailsRequest
 import no.nav.emottak.message.model.ValidationRequest
 import no.nav.emottak.message.model.ValidationResult
-import no.nav.emottak.util.OSLO_ZONE
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.jsonLenient
 import no.nav.emottak.util.thumbprint
@@ -785,13 +784,13 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
             "Oppgjorskrav"
         )
 
-        runValidateCpa(httpClient, addressing) // Last used: Yesterday
+        runValidateCpa(httpClient, addressing, cpaId) // Last used: Yesterday
         coVerify(exactly = 1) { cpaRepositoryMock.updateCpaLastUsed(cpaId) }
 
-        runValidateCpa(httpClient, addressing) // Last used: An hour ago
+        runValidateCpa(httpClient, addressing, cpaId) // Last used: An hour ago
         coVerify(exactly = 2) { cpaRepositoryMock.updateCpaLastUsed(cpaId) }
 
-        runValidateCpa(httpClient, addressing) // Last used: Two minutes ago - do not update the lastUsed-timestamp
+        runValidateCpa(httpClient, addressing, cpaId) // Last used: Two minutes ago - do not update the lastUsed-timestamp
         coVerify(exactly = 2) { cpaRepositoryMock.updateCpaLastUsed(cpaId) }
 
         coVerify(exactly = 3) { cpaRepositoryMock.findCpaAndLastUsed(cpaId) }

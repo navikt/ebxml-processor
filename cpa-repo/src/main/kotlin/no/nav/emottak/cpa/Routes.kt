@@ -50,7 +50,7 @@ import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.message.xml.xmlMarshaller
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.decodeBase64
-import no.nav.emottak.util.isMoreThanXMinutesSince
+import no.nav.emottak.util.isMoreThanXMinutesAgo
 import no.nav.emottak.util.marker
 import no.nav.emottak.utils.common.model.Addressing
 import no.nav.emottak.utils.common.model.EbmsProcessing
@@ -412,7 +412,7 @@ private fun ValidationRequest.isSignalMessage(): Boolean = this.addressing.servi
     (this.addressing.action == MESSAGE_ERROR_ACTION || this.addressing.action == ACKNOWLEDGMENT_ACTION)
 
 private fun updateLastUsed(cpaRepository: CPARepository, lastUsed: Instant?, validateRequest: ValidationRequest) {
-    if (lastUsed.isMoreThanXMinutesSince(x = 5)) {
+    if (lastUsed.isMoreThanXMinutesAgo(x = 5)) {
         if (!cpaRepository.updateCpaLastUsed(validateRequest.cpaId)) {
             log.warn(
                 validateRequest.marker(),
@@ -427,7 +427,6 @@ private fun updateLastUsed(cpaRepository: CPARepository, lastUsed: Instant?, val
     }
 }
 
-fun Route.getCertificate(cpaRepository: CPARepository) =
 fun Route.getEncryptionCertificate(cpaRepository: CPARepository) =
     get("/cpa/{$CPA_ID}/party/{$PARTY_TYPE}/{$PARTY_ID}/encryption/certificate") {
         val cpaId = call.parameters[CPA_ID] ?: throw BadRequestException("Mangler $CPA_ID")
