@@ -22,7 +22,7 @@ import no.nav.emottak.payload.helseid.util.OpenIdConfigProvider
 import no.nav.emottak.payload.helseid.util.XPathEvaluator
 import no.nav.emottak.payload.helseid.util.msgHeadNamespaceContext
 import no.nav.emottak.payload.log
-import no.nav.emottak.util.OSLO_ZONE
+import no.nav.emottak.utils.common.zoneOslo
 import org.w3c.dom.Document
 import java.text.ParseException
 import java.time.Instant
@@ -159,7 +159,7 @@ class HelseIdTokenValidator(
         private val DATE_FMT: DateTimeFormatter =
             DateTimeFormatter
                 .ofPattern("EEE MMM dd HH:mm:ss zzz yyyy", Locale.US)
-                .withZone(OSLO_ZONE)
+                .withZone(zoneOslo())
         private val SUPPORTED_ALGORITHMS = listOf(
             JWSAlgorithm.RS256,
             JWSAlgorithm.RS384,
