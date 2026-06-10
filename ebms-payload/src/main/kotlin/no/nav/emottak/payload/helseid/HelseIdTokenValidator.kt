@@ -21,7 +21,9 @@ import no.nav.emottak.payload.configuration.config
 import no.nav.emottak.payload.helseid.util.OpenIdConfigProvider
 import no.nav.emottak.payload.helseid.util.XPathEvaluator
 import no.nav.emottak.payload.helseid.util.msgHeadNamespaceContext
+import no.nav.emottak.payload.log
 import no.nav.emottak.utils.common.zoneOslo
+import no.nav.emottak.util.OSLO_ZONE
 import org.w3c.dom.Document
 import java.text.ParseException
 import java.time.Instant
@@ -90,13 +92,14 @@ class HelseIdTokenValidator(
     }
 
     private fun validateTimestamps(claims: JWTClaimsSet, messageGenerationDate: Date) {
+        log.debug("Message generation date: $messageGenerationDate, iat: ${claims.issueTime}, exp: ${claims.expirationTime}, nbf: ${claims.notBeforeTime}, at: ${authTime(claims)}, allowed clock skew: $allowedClockSkewInMs, allowed message generation gap: $allowedMessageGenerationGapInMs")
         claims.issueTime?.let { iat ->
             if (messageGenerationDate.time < iat.time - allowedClockSkewInMs) {
                 error("${timePrefix(messageGenerationDate)} is before issued time ${timePrefix(iat)}")
             }
         }
         claims.issueTime?.let { iat ->
-            if (messageGenerationDate.time > iat.time - allowedClockSkewInMs + allowedMessageGenerationGapInMs) {
+            if (messageGenerationDate.time > iat.time + allowedClockSkewInMs + allowedMessageGenerationGapInMs) {
                 error("Message generation time should be within ${allowedMessageGenerationGapInMs / 1000} seconds after token issued time")
             }
         }
@@ -131,9 +134,6 @@ class HelseIdTokenValidator(
         val scopes = getStringArray(claims, "scope")
         if (scopes.none { it in SUPPORTED_SCOPES }) {
             error("Token does not contain required scope")
-        }
-        if (scopes.size > 1) {
-            error("Token contains multiple scopes")
         }
     }
 
