@@ -304,7 +304,7 @@ fun ValidationRequest.getFromToPartyInfo(cpa: CollaborationProtocolAgreement): T
         fromParty = cpa.getPartyInfoByTypeAndID(addressing.from.partyId) // Delivery Failure
         toParty = cpa.getPartyInfoByTypeAndID(addressing.to.partyId) // Delivery Failure
     }
-    return Triple(fromParty, toParty, cpaAddressing)
+    return Triple(toParty, fromParty, cpaAddressing)
 }
 
 fun Route.validateCpa(
