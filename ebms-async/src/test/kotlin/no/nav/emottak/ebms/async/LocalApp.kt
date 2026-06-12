@@ -203,7 +203,8 @@ fun main() = SuspendApp {
             launchMesssageResendTask(
                 config = config,
                 messagePendingAckRepository = messagePendingAckRepository,
-                payloadMessageForwardingService = payloadMessageForwardingService
+                payloadMessageForwardingService = payloadMessageForwardingService,
+                meterRegistry = appMicrometerRegistry
             )
 
             server(
