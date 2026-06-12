@@ -130,7 +130,9 @@ fun CollaborationProtocolAgreement.getValidPartyInfosSender(service: String, act
             return this.partyInfo.findValidComboSender(service, action)
                 .ifEmpty { throw CpaValidationException("Ingen gyldige avsender funnet i CPA") }
         } catch (e: Exception) {
-            log.error("Klarte ikke finne valid service/action combo, bruker default.", e) // TODO: Fjern denne try catch dersom du ikke ser denne error logget (SignalMeldinger)
+            // TODO: Fjern denne try catch dersom du ikke ser denne error logget (SignalMeldinger)
+            // Husk også å aktivere testen i CPARepoIntegrationTest.kt igjen etterpå.
+            log.error("Klarte ikke finne valid service/action combo, bruker default.", e)
         }
     }
     log.warn("Using fallback to find party for $service and $action.")
