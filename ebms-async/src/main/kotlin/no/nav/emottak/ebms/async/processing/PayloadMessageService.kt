@@ -4,8 +4,9 @@ import io.github.nomisRev.kafka.receiver.ReceiverRecord
 import no.nav.emottak.ebms.async.kafka.consumer.retryCount
 import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
 import no.nav.emottak.ebms.async.log
+import no.nav.emottak.ebms.async.persistence.repository.MessagePendingAckRepository
+import no.nav.emottak.ebms.async.persistence.repository.MessageReceivedRepository
 import no.nav.emottak.ebms.async.util.EventRegistrationService
-import no.nav.emottak.ebms.eventmanager.EventManagerService
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.validation.CPAValidationService
@@ -13,6 +14,9 @@ import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.util.marker
+import no.nav.emottak.utils.common.model.Addressing
+import no.nav.emottak.utils.common.model.Party
+import no.nav.emottak.utils.common.model.PartyId
 import no.nav.emottak.utils.common.parseOrGenerateUuid
 import no.nav.emottak.utils.kafka.model.EventType
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PerMessageCharacteristicsType
@@ -23,8 +27,9 @@ class PayloadMessageService(
     val ebmsSignalProducer: EbmsMessageProducer,
     val payloadMessageForwardingService: PayloadMessageForwardingService,
     val eventRegistrationService: EventRegistrationService,
-    val eventManagerService: EventManagerService,
-    val retryService: RetryService
+    val messageReceivedRepository: MessageReceivedRepository,
+    val retryService: RetryService,
+    val messagePendingAckRepository: MessagePendingAckRepository
 ) {
 
     suspend fun process(
@@ -32,25 +37,23 @@ class PayloadMessageService(
         ebmsPayloadMessage: PayloadMessage
     ) {
         runCatching {
-            val isDuplicate = isDuplicateMessage(ebmsPayloadMessage)
-            val isRetry = record.retryCount() > 0
-            when (isDuplicate && !isRetry) {
-                true -> log.info(ebmsPayloadMessage.marker(), "Got duplicate payload message with reference <${ebmsPayloadMessage.requestId}>")
-                false -> {
-                    if (isRetry) {
-                        eventRegistrationService.registerEvent(
-                            eventType = EventType.RETRY_TRIGGED,
-                            requestId = ebmsPayloadMessage.requestId.parseOrGenerateUuid(),
-                            messageId = ebmsPayloadMessage.messageId,
-                            conversationId = ebmsPayloadMessage.conversationId
-                        )
-                    }
-                    processPayloadMessage(ebmsPayloadMessage)
+            if (isDuplicateMessage(ebmsPayloadMessage)) {
+                log.info(ebmsPayloadMessage.marker(), "Got duplicate payload message with reference <${ebmsPayloadMessage.requestId}>")
+            } else {
+                messageReceivedRepository.messageReceived(ebmsPayloadMessage)
+                if (record.retryCount() > 0) {
+                    eventRegistrationService.registerEvent(
+                        eventType = EventType.RETRY_TRIGGED,
+                        requestId = ebmsPayloadMessage.requestId.parseOrGenerateUuid(),
+                        messageId = ebmsPayloadMessage.messageId,
+                        conversationId = ebmsPayloadMessage.conversationId
+                    )
                 }
+                processPayloadMessage(ebmsPayloadMessage)
             }
+            messageReceivedRepository.messageAcknowledged(ebmsPayloadMessage)
             returnAcknowledgment(ebmsPayloadMessage)
         }.onFailure { exception ->
-            // TODO handle some errors by sending to retry, some by returning error message
             log.error(ebmsPayloadMessage.marker(), exception.message ?: "Message processing error", exception)
             retryService.incomingRetryEval(record = record, payloadMessage = ebmsPayloadMessage, exception = exception)
         }
@@ -62,10 +65,51 @@ class PayloadMessageService(
     ) {
         runCatching {
             log.info(ebmsPayloadMessage.marker(), "Got outbound response message from ebms.out.payload with reference <${ebmsPayloadMessage.requestId}>")
+            if (messagePendingAckRepository.existsForMessageId(ebmsPayloadMessage.messageId)) {
+                log.info(ebmsPayloadMessage.marker(), "Outgoing message ${ebmsPayloadMessage.messageId} has already been processed successfully, skipping")
+                return@runCatching
+            }
+
+            // Spesialbehandling av responser for sykmelding/legemelding, inneholder antagelig for lite info til å kunne sendes ut
+            if (ebmsPayloadMessage.addressing.service == "Sykmelding" || ebmsPayloadMessage.addressing.service == "Legemelding") {
+                returnEnrichedMessage(ebmsPayloadMessage)
+                return@runCatching
+            }
             payloadMessageForwardingService.returnMessageResponse(ebmsPayloadMessage)
         }.onFailure { exception ->
             log.error(ebmsPayloadMessage.marker(), exception.message ?: "Outbound response processing error", exception)
             retryService.outgoingRetryEval(record = record, payloadMessage = ebmsPayloadMessage, exception = exception)
+        }
+    }
+
+    private suspend fun returnEnrichedMessage(ebmsPayloadMessage: PayloadMessage) {
+        log.debug(ebmsPayloadMessage.marker(), "Looking up incoming data for outbound response ${ebmsPayloadMessage.addressing.service} message ${ebmsPayloadMessage.messageId}, ref to ${ebmsPayloadMessage.refToMessageId}")
+        val incomingMessage = messageReceivedRepository.getByMessageId(ebmsPayloadMessage.refToMessageId!!)
+        if (incomingMessage == null) {
+            log.warn("Could not find incoming message with message id ${ebmsPayloadMessage.refToMessageId}")
+            payloadMessageForwardingService.returnMessageResponse(ebmsPayloadMessage)
+        } else {
+            log.debug("Found incoming message with message id ${ebmsPayloadMessage.refToMessageId}: $incomingMessage")
+            val toParty = Party(listOf(PartyId("", incomingMessage.senderId)), incomingMessage.senderRole)
+            val addressing = Addressing(
+                toParty,
+                ebmsPayloadMessage.addressing.from,
+                ebmsPayloadMessage.addressing.service,
+                ebmsPayloadMessage.addressing.action
+            )
+            val enrichedMessage = ebmsPayloadMessage.copy(
+                conversationId = incomingMessage.conversationId,
+                cpaId = incomingMessage.cpaId,
+                addressing = addressing
+            )
+            log.info(
+                "Enriched outgoing payload: Message ID: ${enrichedMessage.messageId}, Service: ${enrichedMessage.addressing.service}, " +
+                    "Refto Message ID: ${enrichedMessage.refToMessageId}, Role: ${enrichedMessage.addressing.from.role}, " +
+                    "Action: ${enrichedMessage.addressing.action}, From: ${enrichedMessage.addressing.from.partyId}, " +
+                    "Conversation ID (from inbound): ${enrichedMessage.conversationId}, CPA ID (from inbound): ${enrichedMessage.cpaId}, " +
+                    "To-role (from inbound): ${enrichedMessage.addressing.to.role}, To (from inbound): ${enrichedMessage.addressing.to.partyId}"
+            )
+            payloadMessageForwardingService.returnMessageResponse(enrichedMessage)
         }
     }
 
@@ -88,7 +132,7 @@ class PayloadMessageService(
                 log.debug(processedPayload.marker(), "Calling SendIn SYNCHRONOUSLY for $messageType")
                 payloadMessageForwardingService.forwardMessageWithSyncResponse(processedPayload)
             }
-            MessageType.TREKKOPPLYSNING -> {
+            MessageType.TREKKOPPLYSNING, MessageType.SYKMELDING, MessageType.LEGEMELDING -> {
                 log.debug(processedPayload.marker(), "Calling SendIn ASYNCHRONOUSLY for $messageType")
                 payloadMessageForwardingService.forwardMessageWithAsyncResponse(processedPayload, validationResult.partnerId)
             }
@@ -117,19 +161,20 @@ class PayloadMessageService(
             cpaValidationService.getDuplicateEliminationStrategy(ebmsPayloadMessage)
         } catch (e: Exception) {
             log.warn(ebmsPayloadMessage.marker(), "Error checking duplicate status", e)
-            return false
+            null
         }
 
-        if (duplicateEliminationStrategy == PerMessageCharacteristicsType.ALWAYS) {
-            return eventManagerService.isDuplicateMessage(ebmsPayloadMessage)
-        }
+        return when (duplicateEliminationStrategy) {
+            PerMessageCharacteristicsType.ALWAYS -> {
+                messageReceivedRepository.isAcknowledged(ebmsPayloadMessage) ?: false
+            }
 
-        if (
-            duplicateEliminationStrategy == PerMessageCharacteristicsType.PER_MESSAGE &&
-            ebmsPayloadMessage.duplicateElimination
-        ) {
-            return eventManagerService.isDuplicateMessage(ebmsPayloadMessage)
+            PerMessageCharacteristicsType.PER_MESSAGE -> {
+                ebmsPayloadMessage.duplicateElimination && (messageReceivedRepository.isAcknowledged(ebmsPayloadMessage) ?: false)
+            }
+
+            PerMessageCharacteristicsType.NEVER -> false
+            null -> false
         }
-        return false
     }
 }

@@ -8,6 +8,7 @@ import no.nav.emottak.message.ebxml.PartyTypeEnum
 import no.nav.emottak.message.model.EmailAddress
 import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.message.model.ValidationRequest
+import no.nav.emottak.utils.common.model.Party
 import no.nav.emottak.utils.common.model.PartyId
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.Certificate
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
@@ -48,6 +49,102 @@ fun PartyInfo.getSendDeliveryChannel(
         val roles = this.collaborationRole.filter { it.role.name == role && it.serviceBinding.service.value == service }
         val canSend = roles.flatMap { it.serviceBinding.canSend.filter { cs -> cs.thisPartyActionBinding.action == action } }
         return canSend.firstOrNull()?.thisPartyActionBinding?.channelId?.first()?.value as DeliveryChannel? ?: throw CpaValidationException("Fant ikke SendDeliverChannel")
+    }
+}
+
+fun org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PartyId.actuallyUsefulToString(): String {
+    return "[${this.type}:${this.value}]"
+}
+
+fun List<org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PartyId>.actuallyUsefulToString(): String {
+    return map { entry ->
+        entry.actuallyUsefulToString()
+    }.joinToString(",")
+}
+
+fun PartyInfo.toDomainModelSender(service: String, action: String): Party {
+    return Party(
+        partyId.map { partyId -> PartyId(partyId.type!!, partyId.value!!) },
+        collaborationRole.firstOrNull { collabRole ->
+            collabRole.serviceBinding.service.value == service &&
+                collabRole.serviceBinding.canSend.any { cs -> cs.thisPartyActionBinding.action == action }
+        }?.role?.name ?: "Default".also { log.warn("Fant ikke gyldig rolle for service $service og action $action, setter default") }
+    )
+}
+
+fun PartyInfo.toDomainModelReceiver(service: String, action: String): Party {
+    return Party(
+        partyId.map { partyId -> PartyId(partyId.type!!, partyId.value!!) },
+        collaborationRole.firstOrNull { collabRole ->
+            collabRole.serviceBinding.service.value == service &&
+                collabRole.serviceBinding.canReceive.any { cr -> cr.thisPartyActionBinding.action == action }
+        }?.role?.name ?: "Default".also { log.warn("Fant ikke gyldig rolle for service $service og action $action, setter default") }
+    )
+}
+
+fun List<PartyInfo>.findValidComboSender(service: String, action: String): List<PartyInfo> {
+    return filter { partyInfo ->
+        partyInfo.collaborationRole
+            .any() { collabRole ->
+                (collabRole.serviceBinding.service.value == service) &&
+                    collabRole.serviceBinding.canSend.any { cs -> cs.thisPartyActionBinding.action == action }
+            }
+    }
+}
+
+fun List<PartyInfo>.findValidComboReceiver(service: String, action: String): List<PartyInfo> {
+    return filter { partyInfo ->
+        partyInfo.collaborationRole
+            .any() { collabRole ->
+                (collabRole.serviceBinding.service.value == service) &&
+                    collabRole.serviceBinding.canReceive.any { cr -> cr.thisPartyActionBinding.action == action }
+            }
+    }
+}
+
+fun CollaborationProtocolAgreement.getValidPartyInfosReceiver(service: String, action: String): List<PartyInfo> {
+    if (EBMS_SERVICE_URI != service) {
+        try {
+            return this.partyInfo.findValidComboReceiver(service, action)
+                .ifEmpty { throw CpaValidationException("Ingen gyldige mottakere funnet i CPA") }
+        } catch (e: Exception) {
+            log.error("Klarte ikke finne valid service/action combo, bruker default.", e) // TODO: Fjern denne try catch dersom du ikke ser denne error logget (SignalMeldinger)
+        }
+    }
+    log.warn("Using fallback to find party for $service and $action.")
+    return this.partyInfo.filter { partyInfo ->
+        partyInfo.partyName != "NAV" && partyInfo.partyId.firstOrNull {
+                partyId ->
+            partyId.type == PartyTypeEnum.HER.type ||
+                partyId.type == PartyTypeEnum.ENH.type ||
+                partyId.type == PartyTypeEnum.ORG.type
+        } != null
+    }.also {
+        if (it.isEmpty()) throw CpaValidationException("Ingen gyldige mottakere funnet i CPA")
+    }
+}
+
+fun CollaborationProtocolAgreement.getValidPartyInfosSender(service: String, action: String): List<PartyInfo> {
+    if (EBMS_SERVICE_URI != service) {
+        try {
+            return this.partyInfo.findValidComboSender(service, action)
+                .ifEmpty { throw CpaValidationException("Ingen gyldige avsender funnet i CPA") }
+        } catch (e: Exception) {
+            // TODO: Fjern denne try catch dersom du ikke ser denne error logget (SignalMeldinger)
+            // Husk også å aktivere testen i CPARepoIntegrationTest.kt igjen etterpå.
+            log.error("Klarte ikke finne valid service/action combo, bruker default.", e)
+        }
+    }
+    log.warn("Using fallback to find party for $service and $action.")
+    return this.partyInfo.filter { partyInfo ->
+        partyInfo.partyName == "NAV" && partyInfo.partyId.firstOrNull {
+                partyId ->
+            partyId.type == PartyTypeEnum.HER.type ||
+                partyId.type == PartyTypeEnum.ENH.type ||
+                partyId.type == PartyTypeEnum.ORG.type
+        } != null
+    }.also {
+        if (it.isEmpty()) throw CpaValidationException("Ingen gyldige mottakere funnet i CPA")
     }
 }
 

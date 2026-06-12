@@ -13,10 +13,10 @@ import io.ktor.http.ContentType.Application.FormUrlEncoded
 import io.ktor.http.Parameters
 import io.ktor.http.contentType
 import io.ktor.http.formUrlEncode
-import no.nav.emottak.cpa.configuration.Config
+import no.nav.emottak.cpa.configuration.NhnOAuth
 
 class DpopTokenUtil(
-    private val config: Config,
+    private val nhnOAuth: NhnOAuth,
     private val jwtProvider: DpopJwtProvider,
     private val httpTokenClient: HttpClient
 ) {
@@ -45,16 +45,16 @@ class DpopTokenUtil(
     }
 
     private suspend fun tokenRequest(dpopProofWithNonce: String): HttpResponse =
-        httpTokenClient.post(config.nhnOAuth.tokenEndpoint.toString()) {
+        httpTokenClient.post(nhnOAuth.tokenEndpoint.toString()) {
             header(DPOP.value, dpopProofWithNonce)
             contentType(FormUrlEncoded)
             setBody(
                 Parameters.build {
-                    append("client_id", config.nhnOAuth.clientId.value)
-                    append("grant_type", config.nhnOAuth.grantType.value)
-                    append("scope", config.nhnOAuth.scope.value)
+                    append("client_id", nhnOAuth.clientId.value)
+                    append("grant_type", nhnOAuth.grantType.value)
+                    append("scope", nhnOAuth.scope.value)
                     append("client_assertion", jwtProvider.clientAssertion())
-                    append("client_assertion_type", config.nhnOAuth.clientAssertionType.value)
+                    append("client_assertion_type", nhnOAuth.clientAssertionType.value)
                 }
                     .formUrlEncode()
             )

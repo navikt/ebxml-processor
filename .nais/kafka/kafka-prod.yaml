@@ -132,6 +132,9 @@ spec:
     - team: team-emottak
       application: ebms-async
       access: read
+    - team: team-emottak
+      application: emottak-kafka-manager
+      access: read
 
 ---
 
@@ -151,3 +154,6 @@ spec:
     - team: team-emottak
       application: ebms-async
       access: write
+    - team: team-emottak
+      application: emottak-kafka-manager
+      access: read

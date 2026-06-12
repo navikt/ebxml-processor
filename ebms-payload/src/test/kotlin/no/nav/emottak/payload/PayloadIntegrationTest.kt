@@ -68,7 +68,7 @@ class PayloadIntegrationTest : PayloadTestBase() {
             setBody(baseRequest().withEncryption())
         }.let { response ->
             assertEquals(HttpStatusCode.BadRequest, response.status)
-            assertEquals(ErrorCode.UNKNOWN, response.body<PayloadResponse>().error!!.code)
+            assertEquals(ErrorCode.SECURITY_FAILURE, response.body<PayloadResponse>().error!!.code)
             assertEquals("Feil ved dekryptering", response.body<PayloadResponse>().error!!.descriptionText)
         }
     }

@@ -10,6 +10,8 @@ import arrow.fx.coroutines.resourceScope
 import io.github.nomisRev.kafka.receiver.ReceiverRecord
 import io.ktor.server.netty.Netty
 import io.ktor.utils.io.CancellationException
+import io.micrometer.prometheusmetrics.PrometheusConfig
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import io.mockk.Runs
 import io.mockk.every
 import io.mockk.just
@@ -27,6 +29,7 @@ import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
 import no.nav.emottak.ebms.async.persistence.Database
 import no.nav.emottak.ebms.async.persistence.PayloadRepositoryTest.Companion.ebmsProviderDbContainer
 import no.nav.emottak.ebms.async.persistence.repository.MessagePendingAckRepository
+import no.nav.emottak.ebms.async.persistence.repository.MessageReceivedRepository
 import no.nav.emottak.ebms.async.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.async.processing.MessageFilterService
 import no.nav.emottak.ebms.async.processing.PayloadMessageForwardingService
@@ -36,7 +39,6 @@ import no.nav.emottak.ebms.async.processing.SignalMessageService
 import no.nav.emottak.ebms.async.processing.sendSignalResponseToTopic
 import no.nav.emottak.ebms.async.util.EventRegistrationServiceFake
 import no.nav.emottak.ebms.defaultHttpClient
-import no.nav.emottak.ebms.eventmanager.EventManagerService
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.CPAValidationService
@@ -80,6 +82,7 @@ fun main() = SuspendApp {
     println(" ************ Setting up to use local DB with URL: " + database.dataSource.jdbcUrl)
 
     val payloadRepository = PayloadRepository(database)
+    val messageReceivedRepository = MessageReceivedRepository(database)
 
     val kafkaUrl = getRunningKafkaBrokerUrl()
     println(" ************ Setting up to use local Kafka with URL: " + kafkaUrl)
@@ -105,7 +108,8 @@ fun main() = SuspendApp {
     println(" ************ config.messageResendPolicy.resendInterval: " + config.messageResendPolicy.resendInterval)
 
     println(" ************ Setting up services ")
-    val failedMessageQueue = FailedMessageKafkaHandler()
+    val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
+    val failedMessageQueue = FailedMessageKafkaHandler(meterRegistry = appMicrometerRegistry)
 
     val messagePendingAckRepository = MessagePendingAckRepository(database, config.messageResendPolicy.resendInterval, config.messageResendPolicy.maxResends)
 
@@ -124,9 +128,7 @@ fun main() = SuspendApp {
         httpClient = DummySendInClient()
     )
     val smtpTransportClient = DummySmtpTransportClient()
-    val eventManagerService = EventManagerService(
-        DummyEventManagerClient()
-    )
+
     val eventRegistrationService = EventRegistrationServiceFake()
 
     val ebmsSignalProducer = EbmsMessageProducer(config.kafkaSignalProducer.topic, config.kafka)
@@ -159,8 +161,9 @@ fun main() = SuspendApp {
         ebmsSignalProducer = ebmsSignalProducer,
         payloadMessageForwardingService = payloadMessageForwardingService,
         eventRegistrationService = eventRegistrationService,
-        eventManagerService = eventManagerService,
-        retryService = retryService
+        messageReceivedRepository = messageReceivedRepository,
+        retryService = retryService,
+        messagePendingAckRepository = messagePendingAckRepository
     )
 
     val signalMessageService = SignalMessageService(
@@ -173,7 +176,8 @@ fun main() = SuspendApp {
         payloadMessageService = payloadMessageService,
         signalMessageService = signalMessageService,
         smtpTransportClient = smtpTransportClient,
-        eventRegistrationService = eventRegistrationService
+        eventRegistrationService = eventRegistrationService,
+        failedMessageKafkaHandler = failedMessageQueue
     )
 
     var pauseRetryErrorsTimerFlag = PauseRetryErrorsTimerFlag()
@@ -213,8 +217,8 @@ fun main() = SuspendApp {
                         retryService = retryService,
                         pauseRetryErrorsTimerFlag = pauseRetryErrorsTimerFlag,
                         payloadMessageService = payloadMessageService,
-                        failedMessageQueue = failedMessageQueue,
-                        messagePendingAckRepository = messagePendingAckRepository
+                        messagePendingAckRepository = messagePendingAckRepository,
+                        appMicrometerRegistry = appMicrometerRegistry
                     )
                 }
             ).also { it.engineConfig.maxChunkSize = 100000 }
@@ -253,12 +257,14 @@ class DummyMessageFilterService(
     payloadMessageService: PayloadMessageService,
     signalMessageService: SignalMessageService,
     smtpTransportClient: DummySmtpTransportClient,
-    eventRegistrationService: EventRegistrationServiceFake
+    eventRegistrationService: EventRegistrationServiceFake,
+    failedMessageKafkaHandler: FailedMessageKafkaHandler
 ) : MessageFilterService(
     payloadMessageService,
     signalMessageService,
     smtpTransportClient,
-    eventRegistrationService
+    eventRegistrationService,
+    failedMessageKafkaHandler
 ) {
     override suspend fun filterMessage(record: ReceiverRecord<String, ByteArray>) {
         println("--DUMMY Processing message with requestId: ${record.key()} and offset ${record.offset()}:\n" + record.value().decodeToString().substring(0, 100))

@@ -14,19 +14,17 @@ import io.ktor.server.auth.authenticate
 import io.ktor.server.netty.Netty
 import io.ktor.server.routing.routing
 import io.ktor.utils.io.CancellationException
+import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.Json
 import no.nav.emottak.ebms.AZURE_AD_AUTH
 import no.nav.emottak.ebms.CpaRepoClient
 import no.nav.emottak.ebms.EBMS_PAYLOAD_SCOPE
 import no.nav.emottak.ebms.EBMS_SEND_IN_SCOPE
-import no.nav.emottak.ebms.EVENT_MANAGER_SCOPE
-import no.nav.emottak.ebms.EventManagerClient
 import no.nav.emottak.ebms.PayloadProcessingClient
 import no.nav.emottak.ebms.SMTP_TRANSPORT_SCOPE
 import no.nav.emottak.ebms.SendInClient
@@ -42,6 +40,7 @@ import no.nav.emottak.ebms.async.persistence.Database
 import no.nav.emottak.ebms.async.persistence.ebmsDbConfig
 import no.nav.emottak.ebms.async.persistence.ebmsMigrationConfig
 import no.nav.emottak.ebms.async.persistence.repository.MessagePendingAckRepository
+import no.nav.emottak.ebms.async.persistence.repository.MessageReceivedRepository
 import no.nav.emottak.ebms.async.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.async.processing.MessageFilterService
 import no.nav.emottak.ebms.async.processing.PayloadMessageForwardingService
@@ -52,7 +51,6 @@ import no.nav.emottak.ebms.async.processing.sendSignalResponseToTopic
 import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.ebms.async.util.EventRegistrationServiceImpl
 import no.nav.emottak.ebms.defaultHttpClient
-import no.nav.emottak.ebms.eventmanager.EventManagerService
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.registerHealthEndpoints
 import no.nav.emottak.ebms.registerNavCheckStatus
@@ -67,21 +65,33 @@ import no.nav.emottak.utils.common.model.SendInResponse
 import no.nav.emottak.utils.environment.isProdEnv
 import no.nav.emottak.utils.kafka.client.EventPublisherClient
 import no.nav.emottak.utils.kafka.service.EventLoggingService
+import no.nav.emottak.utils.serialization.LENIENT_JSON_PARSER
 import org.slf4j.LoggerFactory
 import kotlin.concurrent.timer
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.async.App")
 
+const val MESSAGES_QUEUED_FOR_RETRY_COUNTER = "messages_queued_for_retry_total"
+const val TAG_RETRY_TOPIC = "retry_topic"
+
+fun MeterRegistry.incrementMessagesQueuedForRetry(topic: String) =
+    counter(
+        MESSAGES_QUEUED_FOR_RETRY_COUNTER,
+        TAG_RETRY_TOPIC,
+        topic
+    ).increment()
+
 fun main() = SuspendApp {
+    val config = config()
+
     val database = Database(ebmsDbConfig.value)
     database.migrate(ebmsMigrationConfig.value)
     val payloadRepository = PayloadRepository(database)
-
-    val config = config()
-
+    val messageReceivedRepository = MessageReceivedRepository(database)
     val messagePendingAckRepository = MessagePendingAckRepository(database, config.messageResendPolicy.resendInterval, config.messageResendPolicy.maxResends)
 
-    val failedMessageQueue = FailedMessageKafkaHandler()
+    val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
+    val failedMessageQueue = FailedMessageKafkaHandler(meterRegistry = appMicrometerRegistry)
 
     val processingService = ProcessingService(
         httpClient = PayloadProcessingClient(scopedAuthHttpClient(EBMS_PAYLOAD_SCOPE))
@@ -99,9 +109,6 @@ fun main() = SuspendApp {
 
     val smtpTransportClient = SmtpTransportClient(scopedAuthHttpClient(SMTP_TRANSPORT_SCOPE))
 
-    val eventManagerService = EventManagerService(
-        EventManagerClient(scopedAuthHttpClient(EVENT_MANAGER_SCOPE))
-    )
     val eventRegistrationService = EventRegistrationServiceImpl(
         EventLoggingService(config().eventLogging, EventPublisherClient(config().kafka))
     )
@@ -132,8 +139,9 @@ fun main() = SuspendApp {
         ebmsSignalProducer = ebmsSignalProducer,
         payloadMessageForwardingService = payloadMessageForwardingService,
         eventRegistrationService = eventRegistrationService,
-        eventManagerService = eventManagerService,
-        retryService = retryService
+        messageReceivedRepository = messageReceivedRepository,
+        retryService = retryService,
+        messagePendingAckRepository = messagePendingAckRepository
     )
 
     val signalMessageService = SignalMessageService(
@@ -146,7 +154,8 @@ fun main() = SuspendApp {
         payloadMessageService = payloadMessageService,
         signalMessageService = signalMessageService,
         smtpTransportClient = smtpTransportClient,
-        eventRegistrationService = eventRegistrationService
+        eventRegistrationService = eventRegistrationService,
+        failedMessageKafkaHandler = failedMessageQueue
     )
 
     val pauseRetryErrorsTimerFlag = PauseRetryErrorsTimerFlag()
@@ -194,8 +203,8 @@ fun main() = SuspendApp {
                         retryService = retryService,
                         payloadMessageService = payloadMessageService,
                         pauseRetryErrorsTimerFlag = pauseRetryErrorsTimerFlag,
-                        failedMessageQueue = failedMessageQueue,
-                        messagePendingAckRepository = messagePendingAckRepository
+                        messagePendingAckRepository = messagePendingAckRepository,
+                        appMicrometerRegistry = appMicrometerRegistry
                     )
                 }
             ).also { it.engineConfig.maxChunkSize = 100000 }
@@ -268,17 +277,15 @@ fun CoroutineScope.launchSignalReceiver(
 fun makeOutRetryProcessor(
     payloadMessageService: PayloadMessageService
 ): suspend (ReceiverRecord<String, ByteArray>) -> Unit = { record ->
-    val sendInResponse = Json.decodeFromString<SendInResponse>(record.value().decodeToString())
-    val cpaId = record.headers().lastHeader("cpaId")?.let { String(it.value()) } ?: ""
-    val refToMessageId = record.headers().lastHeader("refToMessageId")?.let { String(it.value()) }
+    val sendInResponse = LENIENT_JSON_PARSER.decodeFromString<SendInResponse>(record.value().decodeToString())
     val payloadMessage = PayloadMessage(
         requestId = sendInResponse.requestId,
         messageId = sendInResponse.messageId,
         conversationId = sendInResponse.conversationId,
-        cpaId = cpaId,
+        cpaId = sendInResponse.cpaId,
         addressing = sendInResponse.addressing,
         payload = Payload(sendInResponse.payload, ContentType.Application.Xml.toString()),
-        refToMessageId = refToMessageId,
+        refToMessageId = sendInResponse.refToMessageId,
         duplicateElimination = false,
         ackRequested = true
     )
@@ -295,12 +302,12 @@ fun CoroutineScope.launchErrorRetryTaskIncoming(
 
     timer(
         name = "Retry Errors Timer Incoming",
-        initialDelay = 5000L,
+        initialDelay = config.errorRetryPolicyIncoming.startupDelay.inWholeMilliseconds,
         period = config.errorRetryPolicyIncoming.processInterval.inWholeMilliseconds,
         daemon = true
     ) {
         launch(Dispatchers.IO) {
-            log.info("=== RetryErrorsTaskIncoming starting...")
+            log.debug("=== RetryErrorsTaskIncoming starting...")
             try {
                 if (pauseRetryErrorsTimerFlag.paused) {
                     log.info("Retry task is paused.")
@@ -327,7 +334,7 @@ fun CoroutineScope.launchErrorRetryTaskOutgoing(
 
     timer(
         name = "Retry Errors Timer Outgoing",
-        initialDelay = 5000L,
+        initialDelay = config.errorRetryPolicyOutgoing.startupDelay.inWholeMilliseconds,
         period = config.errorRetryPolicyOutgoing.processInterval.inWholeMilliseconds,
         daemon = true
     ) {
@@ -356,7 +363,7 @@ fun CoroutineScope.launchMesssageResendTask(
 ) {
     timer(
         name = "Resend Messages Timer",
-        initialDelay = 5000L,
+        initialDelay = config.messageResendPolicy.startupDelay.inWholeMilliseconds,
         period = config.messageResendPolicy.processInterval.inWholeMilliseconds,
         daemon = true
     ) {
@@ -383,11 +390,9 @@ fun Application.ebmsProviderModule(
     retryService: RetryService,
     payloadMessageService: PayloadMessageService,
     pauseRetryErrorsTimerFlag: PauseRetryErrorsTimerFlag,
-    failedMessageQueue: FailedMessageKafkaHandler,
-    messagePendingAckRepository: MessagePendingAckRepository
+    messagePendingAckRepository: MessagePendingAckRepository,
+    appMicrometerRegistry: PrometheusMeterRegistry
 ) {
-    val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
-
     installMicrometerRegistry(appMicrometerRegistry)
     installContentNegotiation()
     installAuthentication()
@@ -403,10 +408,14 @@ fun Application.ebmsProviderModule(
         }
         retryErrorsIncoming(retryService, messageFilterService)
         retryErrorsOutgoing(retryService, payloadMessageService)
-        rerun(retryService, messageFilterService)
+        rerunIncoming(retryService, messageFilterService)
+        rerunOutgoing(retryService, payloadMessageService)
+        rerunOutgoingInterval(retryService, payloadMessageService)
         pauseRetries(pauseRetryErrorsTimerFlag)
         resumeRetries(pauseRetryErrorsTimerFlag)
         unacknowledge(messagePendingAckRepository)
+        getMessagesPendingAck(messagePendingAckRepository)
+        getMessagesPendingAckHtml(messagePendingAckRepository)
         authenticate(AZURE_AD_AUTH) {
             getPayloads(payloadRepository, eventRegistrationService)
         }
