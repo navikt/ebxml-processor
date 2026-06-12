@@ -324,7 +324,7 @@ fun Route.validateCpa(
             )
             return@post
         }
-        if (!lastUsed.isToday() && !cpaRepository.updateCpaLastUsed(validateRequest.cpaId)) {
+        if (!lastUsed.isMoreThanXMinutesAgo(5) && !cpaRepository.updateCpaLastUsed(validateRequest.cpaId)) {
             log.warn(
                 validateRequest.marker(),
                 "Feilet med å oppdatere last_used for CPA '${validateRequest.cpaId}'"
