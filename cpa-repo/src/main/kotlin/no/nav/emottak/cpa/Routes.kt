@@ -318,11 +318,8 @@ fun Route.validateCpa(
         log.info(validateRequest.marker(), "Validerer ebms mot CPA")
         val (cpa, lastUsed) = cpaRepository.findCpaAndLastUsed(validateRequest.cpaId)
         if (cpa == null) {
-            if (adresseregisterValidator == null) {
-                throw NotFoundException("Fant ikke CPA. Addresseregistervalidator ikke initialisert.")
-            }
             call.respond(
-                adresseregisterValidator.validateWithAR(cpaRepository, validateRequest)
+                adresseregisterValidator?.validateWithAR(cpaRepository, validateRequest) ?: throw NotFoundException("Fant ikke CPA. Addresseregistervalidator ikke initialisert.")
             )
             return@post
         }
