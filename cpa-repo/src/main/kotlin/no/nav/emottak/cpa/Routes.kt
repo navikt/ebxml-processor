@@ -12,7 +12,6 @@ import io.ktor.server.response.respondRedirect
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.Routing
-import io.ktor.server.routing.RoutingContext
 import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
@@ -231,13 +230,12 @@ fun Route.postCpa(cpaRepository: CPARepository) = post("/cpa") {
         }
 }
 
-suspend fun RoutingContext.validateWithAR(
+suspend fun AdresseregisterValidator.validateWithAR(
     cpaRepository: CPARepository,
-    validateRequest: ValidationRequest,
-    adresseregisterValidator: AdresseregisterValidator?
-) {
-    if (adresseregisterValidator == null || !adresseregisterValidator.cpapiActive) {
-        throw NotFoundException("Fant ikke CPA")
+    validateRequest: ValidationRequest
+): ValidationResult {
+    if (cpapiActive) {
+        throw NotFoundException("Fant ikke CPA og adreseregisterValidator er deaktivert.")
     }
     val fromHerId = validateRequest.addressing.from.partyId.firstOrNull()?.value
         ?: throw BadRequestException("Mangler avsender HER")
@@ -247,7 +245,7 @@ suspend fun RoutingContext.validateWithAR(
     try {
         val validSignatureDetails = SignatureDetails(
             certificate = decodeBase64(
-                adresseregisterValidator.getSigningCertificate(fromHerId).certificateValue.toByteArray()
+                getSigningCertificate(fromHerId).certificateValue.toByteArray()
             ),
             signatureAlgorithm = XMLSignature.ALGO_ID_SIGNATURE_RSA_SHA256,
             hashFunction = MessageDigestAlgorithm.ALGO_ID_DIGEST_SHA256
@@ -258,28 +256,26 @@ suspend fun RoutingContext.validateWithAR(
             log.warn(validateRequest.marker(), "Signatursjekk feilet", it)
         }
         val allPurposeEdiEndpoint =
-            EmailAddress(adresseregisterValidator.getEdiAddress(toHerId) ?: "", EndpointTypeType.ALL_PURPOSE)
-        call.respond(
-            ValidationResult(
-                EbmsProcessing(),
-                PayloadProcessing(
-                    validSignatureDetails,
-                    decodeBase64(
-                        adresseregisterValidator.getEncryptionCertificate(toHerId).certificateValue.toByteArray()
-                    ),
-                    cpaRepository.getProcessConfig(
-                        validateRequest.addressing.from.role,
-                        validateRequest.addressing.service,
-                        validateRequest.addressing.action
-                    )
+            EmailAddress(getEdiAddress(toHerId) ?: "", EndpointTypeType.ALL_PURPOSE)
+        return ValidationResult(
+            EbmsProcessing(),
+            PayloadProcessing(
+                validSignatureDetails,
+                decodeBase64(
+                    getEncryptionCertificate(toHerId).certificateValue.toByteArray()
                 ),
-                listOf(allPurposeEdiEndpoint),
-                listOf(allPurposeEdiEndpoint)
-            )
+                cpaRepository.getProcessConfig(
+                    validateRequest.addressing.from.role,
+                    validateRequest.addressing.service,
+                    validateRequest.addressing.action
+                )
+            ),
+            listOf(allPurposeEdiEndpoint),
+            listOf(allPurposeEdiEndpoint)
         )
     } catch (ex: Exception) {
         log.error("Error while fetching arSignCertificate ", ex)
-        call.respondText(ex.localizedMessage, ContentType.Text.Plain, HttpStatusCode.InternalServerError)
+        throw ex
     }
 }
 
@@ -322,7 +318,12 @@ fun Route.validateCpa(
         log.info(validateRequest.marker(), "Validerer ebms mot CPA")
         val (cpa, lastUsed) = cpaRepository.findCpaAndLastUsed(validateRequest.cpaId)
         if (cpa == null) {
-            validateWithAR(cpaRepository, validateRequest, adresseregisterValidator)
+            if (adresseregisterValidator == null) {
+                throw NotFoundException("Fant ikke CPA. Addresseregistervalidator ikke initialisert.")
+            }
+            call.respond(
+                adresseregisterValidator.validateWithAR(cpaRepository, validateRequest)
+            )
             return@post
         }
         if (!lastUsed.isToday() && !cpaRepository.updateCpaLastUsed(validateRequest.cpaId)) {
