@@ -280,7 +280,7 @@ suspend fun AdresseregisterValidator.validateWithAR(
     }
 }
 
-fun ValidationRequest.getFromToPartyInfo(cpa: CollaborationProtocolAgreement): Triple<PartyInfo, PartyInfo, Addressing?> {
+fun ValidationRequest.getToFromPartyInfo(cpa: CollaborationProtocolAgreement): Triple<PartyInfo, PartyInfo, Addressing?> {
     val toParty: PartyInfo
     val fromParty: PartyInfo
     var cpaAddressing: Addressing? = null
@@ -325,7 +325,7 @@ fun Route.validateCpa(
             return@post
         }
         updateLastUsed(cpaRepository, lastUsed, validateRequest)
-        val (toParty, fromParty, cpaAddressing) = validateRequest.getFromToPartyInfo(cpa)
+        val (toParty, fromParty, cpaAddressing) = validateRequest.getToFromPartyInfo(cpa)
         if (cpaAddressing != null) {
             validateRequest = validateRequest.copy(
                 addressing = cpaAddressing
