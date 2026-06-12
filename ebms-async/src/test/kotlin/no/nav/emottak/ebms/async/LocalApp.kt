@@ -10,6 +10,8 @@ import arrow.fx.coroutines.resourceScope
 import io.github.nomisRev.kafka.receiver.ReceiverRecord
 import io.ktor.server.netty.Netty
 import io.ktor.utils.io.CancellationException
+import io.micrometer.prometheusmetrics.PrometheusConfig
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import io.mockk.Runs
 import io.mockk.every
 import io.mockk.just
@@ -106,7 +108,8 @@ fun main() = SuspendApp {
     println(" ************ config.messageResendPolicy.resendInterval: " + config.messageResendPolicy.resendInterval)
 
     println(" ************ Setting up services ")
-    val failedMessageQueue = FailedMessageKafkaHandler()
+    val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
+    val failedMessageQueue = FailedMessageKafkaHandler(meterRegistry = appMicrometerRegistry)
 
     val messagePendingAckRepository = MessagePendingAckRepository(database, config.messageResendPolicy.resendInterval, config.messageResendPolicy.maxResends)
 
@@ -214,8 +217,8 @@ fun main() = SuspendApp {
                         retryService = retryService,
                         pauseRetryErrorsTimerFlag = pauseRetryErrorsTimerFlag,
                         payloadMessageService = payloadMessageService,
-                        failedMessageQueue = failedMessageQueue,
-                        messagePendingAckRepository = messagePendingAckRepository
+                        messagePendingAckRepository = messagePendingAckRepository,
+                        appMicrometerRegistry = appMicrometerRegistry
                     )
                 }
             ).also { it.engineConfig.maxChunkSize = 100000 }

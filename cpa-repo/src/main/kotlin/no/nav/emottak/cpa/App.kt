@@ -29,8 +29,8 @@ import no.nav.emottak.cpa.persistence.gammel.PartnerRepository
 import no.nav.emottak.cpa.persistence.oracleConfig
 import no.nav.emottak.cpa.util.EventRegistrationService
 import no.nav.emottak.cpa.util.EventRegistrationServiceImpl
+import no.nav.emottak.cpa.validation.AdresseregisterValidator
 import no.nav.emottak.util.jsonLenient
-import no.nav.emottak.utils.environment.isProdEnv
 import no.nav.emottak.utils.kafka.client.EventPublisherClient
 import no.nav.emottak.utils.kafka.service.EventLoggingService
 import no.nav.security.token.support.v3.tokenValidationSupport
@@ -39,10 +39,17 @@ import org.slf4j.LoggerFactory
 
 internal val log = LoggerFactory.getLogger("no.nav.emottak.cpa.App")
 fun main() {
-    val kafkaPublisherClient = EventPublisherClient(config().kafka)
-    val eventLoggingService = EventLoggingService(config().eventLogging, kafkaPublisherClient)
+    val kafkaPublisherClient = EventPublisherClient(config.kafka)
+    val eventLoggingService = EventLoggingService(config.eventLogging, kafkaPublisherClient)
     val eventRegistrationService = EventRegistrationServiceImpl(eventLoggingService)
-    val adresseregisterClient = if (!isProdEnv()) nhnArHttpClient() else null
+    val adresseregisterValidator = if (config.nhn.cpApiActive) {
+        AdresseregisterValidator(
+            httpClient = nhnArHttpClient(config.nhnOAuth, config.nhn),
+            nhnConfig = config.nhn
+        )
+    } else {
+        null
+    }
 
     embeddedServer(
         Netty,
@@ -52,7 +59,7 @@ fun main() {
             cpaMigrationConfig.value,
             oracleConfig.value,
             eventRegistrationService,
-            adresseregisterClient
+            adresseregisterValidator
         )
     ).start(wait = true)
 }
@@ -62,7 +69,7 @@ fun cpaApplicationModule(
     cpaMigrationConfig: HikariConfig,
     emottakDbConfig: HikariConfig? = null,
     eventRegistrationService: EventRegistrationService,
-    adresseregisterClient: HttpClient?
+    adresseregisterValidator: AdresseregisterValidator?
 ): Application.() -> Unit {
     return {
         val database = Database(cpaDbConfig)
@@ -87,7 +94,7 @@ fun cpaApplicationModule(
         routing {
             if (oracleDb != null) {
                 partnerId(PartnerRepository(oracleDb), cpaRepository)
-                validateCpa(cpaRepository, PartnerRepository(oracleDb), eventRegistrationService)
+                validateCpa(cpaRepository, PartnerRepository(oracleDb), eventRegistrationService, adresseregisterValidator)
             }
             getCPA(cpaRepository)
             getCpaView(cpaRepository)
@@ -96,13 +103,13 @@ fun cpaApplicationModule(
             getTimeStampsLatestDeprecated()
             getTimeStampsLatest(cpaRepository)
             getTimeStampsLastUsed(cpaRepository)
-            getCertificate(cpaRepository)
-            signingCertificate(cpaRepository)
+            getEncryptionCertificate(cpaRepository)
+            getSigningCertificate(cpaRepository, adresseregisterValidator)
             getMessagingCharacteristics(cpaRepository)
-            if (adresseregisterClient != null) {
-                getAdresseregisterData(adresseregisterClient)
-                getARSignCertificate(adresseregisterClient)
-                getAREncryptCertificate(adresseregisterClient)
+            if (adresseregisterValidator != null) {
+                getAdresseregisterData(adresseregisterValidator)
+                getARSignCertificate(adresseregisterValidator)
+                getAREncryptCertificate(adresseregisterValidator)
             }
             registerHealthEndpoints(appMicrometerRegistry, cpaRepository)
 
