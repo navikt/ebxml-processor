@@ -324,12 +324,7 @@ fun Route.validateCpa(
             )
             return@post
         }
-        if (!lastUsed.isMoreThanXMinutesAgo(5) && !cpaRepository.updateCpaLastUsed(validateRequest.cpaId)) {
-            log.warn(
-                validateRequest.marker(),
-                "Feilet med å oppdatere last_used for CPA '${validateRequest.cpaId}'"
-            )
-        }
+        updateLastUsed(cpaRepository, lastUsed, validateRequest)
         val (toParty, fromParty, cpaAddressing) = validateRequest.getFromToPartyInfo(cpa)
         if (cpaAddressing != null) {
             validateRequest = validateRequest.copy(
