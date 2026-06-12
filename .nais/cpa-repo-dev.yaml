@@ -46,8 +46,8 @@ spec:
     limits:
       memory: "512Mi"
     requests:
-      cpu: "200m"
-      memory: "256Mi"
+      cpu: "100m"
+      memory: "512Mi"
   ingresses:
     - "https://cpa-repo-fss.intern.dev.nav.no"
     - "https://cpa-repo.dev-fss-pub.nais.io"
