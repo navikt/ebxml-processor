@@ -62,7 +62,6 @@ spec:
         - application: ebms-payload
         - application: ebms-send-in
         - application: smtp-transport
-        - application: emottak-event-manager
     inbound:
       rules:
         - application: smtp-transport
@@ -101,8 +100,6 @@ spec:
       value: http://ebms-send-in
     - name: SMTP_TRANSPORT_URL
       value: http://smtp-transport
-    - name: EVENT_MANAGER_URL
-      value: http://emottak-event-manager
   envFrom:
     - secret: ebms-keystore-pwd-2025
     - configmap: ebms-async-config
