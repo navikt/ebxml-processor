@@ -235,7 +235,7 @@ suspend fun AdresseregisterValidator.validateWithAR(
     cpaRepository: CPARepository,
     validateRequest: ValidationRequest
 ): ValidationResult {
-    if (cpapiActive) {
+    if (!cpapiActive) {
         throw NotFoundException("Fant ikke CPA og adreseregisterValidator er deaktivert.")
     }
     val fromHerId = validateRequest.addressing.from.partyId.firstOrNull()?.value
