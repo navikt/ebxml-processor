@@ -1,6 +1,7 @@
 package no.nav.emottak.ebms.async.processing
 
 import io.github.nomisRev.kafka.receiver.ReceiverRecord
+import io.ktor.http.ContentType
 import io.mockk.Runs
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
@@ -25,13 +26,16 @@ import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.EbmsAttachment
 import no.nav.emottak.message.model.EbmsDocument
 import no.nav.emottak.message.model.EbmsMessage
+import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.util.signatur.SignatureException
 import no.nav.emottak.utils.common.model.Addressing
 import no.nav.emottak.utils.common.model.Party
 import no.nav.emottak.utils.common.model.PartyId
+import no.nav.emottak.utils.common.model.SendInResponse
 import no.nav.emottak.utils.kafka.model.EventType
+import no.nav.emottak.utils.serialization.LENIENT_JSON_PARSER
 import org.apache.kafka.clients.producer.RecordMetadata
 import org.apache.kafka.common.header.Headers
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -530,6 +534,48 @@ class PayloadMessageServiceTest {
         service.processOutboundResponse(record, payloadMessage)
 
         coVerify(exactly = 1) { payloadMessageForwardingService.returnMessageResponse(payloadMessage) }
+    }
+
+    @Test
+    fun `allow SendInResponse with missing fields`() = runBlocking {
+        val simpleResponse = SendInResponse(
+            messageId = "dummy",
+            refToMessageId = "dummy",
+            conversationId = "",
+            cpaId = "",
+            addressing = Addressing(
+                Party(listOf(), "toRole"),
+                Party(listOf(PartyId("HER", "dummy")), "fromRole"),
+                "service",
+                "action"
+            ),
+            payload = "dummy".toByteArray(),
+            requestId = "dummy"
+        )
+        println(simpleResponse)
+        val json = LENIENT_JSON_PARSER.encodeToString(simpleResponse)
+        println(json)
+        val sendInResponse = LENIENT_JSON_PARSER.decodeFromString<SendInResponse>(json)
+        println(sendInResponse)
+        val ebmsPayloadMessage = PayloadMessage(
+            requestId = sendInResponse.requestId,
+            messageId = sendInResponse.messageId,
+            conversationId = sendInResponse.conversationId,
+            cpaId = sendInResponse.cpaId,
+            addressing = sendInResponse.addressing,
+            payload = Payload(sendInResponse.payload, ContentType.Application.Xml.toString()),
+            refToMessageId = sendInResponse.refToMessageId,
+            duplicateElimination = true,
+            ackRequested = true
+        )
+        println(ebmsPayloadMessage)
+        println(
+            "Message ID: ${ebmsPayloadMessage.messageId}, Service: ${ebmsPayloadMessage.addressing.service}, " +
+                "Conversation ID: ${ebmsPayloadMessage.conversationId}, CPA ID: ${ebmsPayloadMessage.cpaId}, " +
+                "Refto Message ID: ${ebmsPayloadMessage.refToMessageId}, Role: ${ebmsPayloadMessage.addressing.from.role}, " +
+                "Action: ${ebmsPayloadMessage.addressing.action}, From: ${ebmsPayloadMessage.addressing.from.partyId}, " +
+                "To-role: ${ebmsPayloadMessage.addressing.to.role}, To: ${ebmsPayloadMessage.addressing.to.partyId}"
+        )
     }
 }
 
