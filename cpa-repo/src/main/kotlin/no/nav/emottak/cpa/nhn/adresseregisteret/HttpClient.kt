@@ -9,6 +9,8 @@ import io.ktor.client.request.header
 import io.ktor.http.HttpHeaders.Accept
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
+import no.nav.emottak.cpa.configuration.Nhn
+import no.nav.emottak.cpa.configuration.NhnOAuth
 import no.nav.emottak.cpa.configuration.config
 import no.nav.emottak.utils.environment.getEnvVar
 import java.net.InetSocketAddress
@@ -57,11 +59,12 @@ private fun httpClient(
     }
 }
 
-fun nhnArHttpClient(): HttpClient {
-    val config = config()
-
-    val dpopJwtProvider = DpopJwtProvider(config)
-    val dpopTokenUtil = DpopTokenUtil(config, dpopJwtProvider, httpTokenClient())
+fun nhnArHttpClient(
+    nhnOAuth: NhnOAuth = config.nhnOAuth,
+    nhnConfig: Nhn = config.nhn
+): HttpClient {
+    val dpopJwtProvider = DpopJwtProvider(nhnOAuth, nhnConfig)
+    val dpopTokenUtil = DpopTokenUtil(nhnOAuth, dpopJwtProvider, httpTokenClient())
 
     return httpClient(dpopJwtProvider, dpopTokenUtil)
 }

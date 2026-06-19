@@ -40,8 +40,10 @@ data class NhnOAuth(
 }
 
 data class Nhn(
-    val adresseregisterApiBaseUrl: URI,
-    val adresseregisterApiCertificateBaseUrl: URI,
+    val cpApiBaseUrl: URI,
+    val cpApiCommunicationPartyUrl: URI,
+    val cpApiCertificateUrl: URI,
+    val cpApiActive: Boolean,
     val keyPairPath: KeyPairPath
 ) {
     @JvmInline
