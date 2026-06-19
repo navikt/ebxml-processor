@@ -89,7 +89,9 @@ class RetryService(
         )
         when (decision) {
             RetryDecision.RETRY -> {
-                if (retryCount == 0) failedMessageKafkaHandler.meterRegistry.incrementFirstFailure("incoming", payloadMessage.addressing.service, payloadMessage.addressing.action)
+                if (retryCount == 0) {
+                    failedMessageKafkaHandler.meterRegistry.incrementFirstFailure("incoming", payloadMessage.addressing.service, payloadMessage.addressing.action)
+                }
                 failedMessageKafkaHandler.sendToRetryQueueIncoming(record, retryReason, getNextRetryTime(record, config().errorRetryPolicyIncoming))
             }
             RetryDecision.TTL_EXPIRED -> {
@@ -141,7 +143,9 @@ class RetryService(
         )
         when (decision) {
             RetryDecision.RETRY -> {
-                if (retryCount == 0) failedMessageKafkaHandler.meterRegistry.incrementFirstFailure("outgoing", payloadMessage.addressing.service, payloadMessage.addressing.action)
+                if (retryCount == 0) {
+                    failedMessageKafkaHandler.meterRegistry.incrementFirstFailure("outgoing", payloadMessage.addressing.service, payloadMessage.addressing.action)
+                }
                 failedMessageKafkaHandler.sendToRetryQueueOutgoing(record, retryReason, getNextRetryTime(record, config().errorRetryPolicyOutgoing))
             }
             RetryDecision.TTL_EXPIRED -> log.error(payloadMessage.marker(), "MESSAGE_GIVEN_UP: outgoing with key ${record.key()} at offset ${record.offset()}, retried $retryCount times, ebXML TimeToLive expired", exception)
