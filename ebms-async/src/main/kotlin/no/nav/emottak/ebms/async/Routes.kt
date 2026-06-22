@@ -10,15 +10,19 @@ import io.ktor.server.routing.get
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import no.nav.emottak.ebms.StatusResponse
 import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.kafka.consumer.getRecord
+import no.nav.emottak.ebms.async.kafka.consumer.getRecords
 import no.nav.emottak.ebms.async.persistence.repository.MessagePendingAckRepository
 import no.nav.emottak.ebms.async.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.async.processing.MessageFilterService
 import no.nav.emottak.ebms.async.processing.PayloadMessageService
 import no.nav.emottak.ebms.async.processing.RetryService
 import no.nav.emottak.ebms.async.util.EventRegistrationService
+import no.nav.emottak.message.model.EbmsDocument
+import no.nav.emottak.message.xml.createDocument
 import no.nav.emottak.utils.kafka.model.EventType
 import no.nav.emottak.utils.serialization.toEventDataJson
 import java.time.Instant
@@ -321,6 +325,57 @@ fun Route.resumeRetries(
         }
         log.info("Resuming retry task.")
         call.respond(StatusResponse("Error retries are RESUMED"))
+    }
+
+fun Route.getEbmsInPayloadView(): Route =
+    get("/api/kafka/ebms-in-payload/view") {
+        val serviceFilter = call.request.queryParameters["service"]?.takeIf { it.isNotBlank() }
+        val actionFilter = call.request.queryParameters["action"]?.takeIf { it.isNotBlank() }
+        val cpaIdFilter = call.request.queryParameters["cpaId"]?.takeIf { it.isNotBlank() }
+        val startOffset = call.request.queryParameters["startOffset"]?.toLongOrNull() ?: 0L
+        val limit = (call.request.queryParameters["limit"]?.toIntOrNull() ?: 50).coerceIn(1, 500)
+
+        val rawRecords = withContext(Dispatchers.IO) {
+            getRecords(
+                topic = config().kafkaPayloadReceiver.topic,
+                kafka = config().kafka.copy(groupId = "ebms-payload-browser"),
+                fromOffset = startOffset,
+                requestedRecords = limit
+            )
+        }
+
+        val records = mutableListOf<EbmsInPayloadRecord>()
+        for (record in rawRecords) {
+            try {
+                val header = EbmsDocument(
+                    requestId = record.key() ?: "",
+                    document = record.value().createDocument(),
+                    attachments = emptyList()
+                ).messageHeader()
+                val rec = EbmsInPayloadRecord(
+                    offset = record.offset(),
+                    key = record.key() ?: "",
+                    service = header.service?.value ?: "",
+                    action = header.action ?: "",
+                    cpaId = header.cpaId ?: "",
+                    messageId = header.messageData.messageId ?: "",
+                    conversationId = header.conversationId ?: "",
+                    timestampMs = record.timestamp()
+                )
+                if ((serviceFilter == null || rec.service == serviceFilter) &&
+                    (actionFilter == null || rec.action == actionFilter) &&
+                    (cpaIdFilter == null || rec.cpaId == cpaIdFilter)
+                ) {
+                    records.add(rec)
+                }
+            } catch (e: Exception) {
+                log.warn("Skipping unparseable record at offset ${record.offset()}: ${e.message}")
+            }
+        }
+
+        call.respondHtml(HttpStatusCode.OK) {
+            renderEbmsInPayload(records, serviceFilter, actionFilter, cpaIdFilter, startOffset, limit)
+        }
     }
 
 fun Exception.getErrorMessage(): String {
