@@ -66,8 +66,7 @@ data class PersonDetails(
 @Serializable
 data class ParentOrganization(
     val name: String,
-    val herID: Long,
-
+    val herId: Long,
     val organizationNumber: String
 )
 

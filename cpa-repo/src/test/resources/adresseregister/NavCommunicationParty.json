@@ -1,0 +1,38 @@
+{
+  "herId": 79768,
+  "name": "NAV IKT",
+  "displayName": "NAV",
+  "type": "Organization",
+  "organizationDetails": {
+    "organizationNumber": "990983291",
+    "businessType": {
+      "codeListId": "9040",
+      "value": "99",
+      "url": "https://fat.kote.helsedirektoratet.no/api/code-systems/adm/codelist/9040"
+    },
+    "persons": [],
+    "services": []
+  },
+  "currentSigningCertificate": {
+    "thumbprint": "42B5D65754297E5417182530CD2FE473D45CF7D5",
+    "validFrom": "2025-08-25T13:41:36+00:00",
+    "validTo": "2028-08-25T21:59:00+00:00"
+  },
+  "currentEncryptionCertificate": {
+    "thumbprint": "252E4186D078861C480941E55FB7B7CBF558A6C8",
+    "validFrom": "2025-08-25T13:41:36+00:00",
+    "validTo": "2028-08-25T21:59:00+00:00"
+  },
+  "phoneNumber": "22927000",
+  "faxNumber": "22927070",
+  "ediAddress": "mottak-qass@test-es.nav.no",
+  "postalAddress": {
+    "address": "Postboks 5 St Olavs plass",
+    "postalBox": "",
+    "postalCode": "130",
+    "city": "OSLO"
+  },
+  "amqpTransportStatus": "Disabled",
+  "validFrom": "2022-02-08T00:00:00+00:00",
+  "validTo": "2050-12-31T00:00:00+00:00"
+}

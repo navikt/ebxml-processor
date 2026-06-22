@@ -3,6 +3,8 @@ package no.nav.emottak.cpa.persistence
 import no.nav.emottak.cpa.databasetest.PostgresTest
 import no.nav.emottak.cpa.feil.CpaValidationException
 import org.junit.jupiter.api.assertThrows
+import java.time.Instant
+import java.time.temporal.ChronoUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -44,6 +46,16 @@ class CPARepositoryTest : PostgresTest() {
         val cpaRepository = CPARepository(postgres)
         cpaRepository.updateCpaLastUsed(CPA_ID)
         assertNotNull(cpaRepository.findCpaEntry(CPA_ID)?.lastUsed)
+    }
+
+    @Test
+    fun `CPA db entry har lastUsed-timestamp som er dagens dato og klokkeslett`() {
+        val cpaRepository = CPARepository(postgres)
+        cpaRepository.updateCpaLastUsed(CPA_ID)
+        val now = Instant.now().truncatedTo(ChronoUnit.MINUTES)
+        val (_, storedLastUsed) = cpaRepository.findCpaAndLastUsed(CPA_ID)
+        assertNotNull(storedLastUsed)
+        assertEquals(now, storedLastUsed.truncatedTo(ChronoUnit.MINUTES))
     }
 
     @Test

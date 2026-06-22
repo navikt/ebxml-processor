@@ -14,7 +14,6 @@ import io.ktor.client.request.headers
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
-import io.ktor.http.ContentType
 import io.ktor.http.ContentType.Application.Json
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
@@ -27,8 +26,6 @@ import no.nav.emottak.message.model.PayloadResponse
 import no.nav.emottak.message.model.ValidationRequest
 import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.util.jsonLenient
-import no.nav.emottak.utils.common.model.DuplicateCheckRequest
-import no.nav.emottak.utils.common.model.DuplicateCheckResponse
 import no.nav.emottak.utils.common.model.SendInRequest
 import no.nav.emottak.utils.common.model.SendInResponse
 import no.nav.emottak.utils.environment.getEnvVar
@@ -52,13 +49,13 @@ open class CpaRepoClient(clientProvider: () -> HttpClient) {
     }
 
     open suspend fun getMessagingCharacteristics(request: MessagingCharacteristicsRequest): MessagingCharacteristicsResponse {
-        log.debug("Sending messaging characteristics request: $request")
+        log.debug("Sending messaging characteristics request: {}", request)
         val response = httpClient.post("$cpaRepoEndpoint/cpa/messagingCharacteristics") {
             setBody(request)
             contentType(Json)
         }
 
-        log.debug("Received messaging characteristics response: ${response.status} - ${response.bodyAsText()}")
+        log.debug("Received messaging characteristics response: {} - {}", response.status, response.bodyAsText())
         return response.body()
     }
 
@@ -80,7 +77,7 @@ open class PayloadProcessingClient(clientProvider: () -> HttpClient) {
     open suspend fun postPayloadRequest(payloadRequest: PayloadRequest): PayloadResponse {
         return httpClient.post("$payloadProcessorEndpoint/payload") {
             setBody(payloadRequest)
-            contentType(ContentType.Application.Json)
+            contentType(Json)
         }.body()
     }
 }
@@ -92,7 +89,7 @@ open class SendInClient(clientProvider: () -> HttpClient) {
     open suspend fun postSendIn(sendInRequest: SendInRequest): SendInResponse {
         val response = httpClient.post("$sendInEndpoint/fagmelding/synkron") {
             setBody(sendInRequest)
-            contentType(ContentType.Application.Json)
+            contentType(Json)
         }
         if (response.status == HttpStatusCode.BadRequest) {
             val errorMessage = response.bodyAsText()
@@ -110,34 +107,11 @@ open class SmtpTransportClient(clientProvider: () -> HttpClient) {
     open suspend fun getPayload(referenceId: Uuid): List<AsyncPayload> {
         val payloadUri = "$smtpTransportEndpoint/api/payloads/$referenceId"
         val response = httpClient.get(payloadUri) {
-            contentType(ContentType.Application.Json)
+            contentType(Json)
         }
         if (response.status != HttpStatusCode.OK) {
             val errorMessage = response.bodyAsText()
             log.error("Failed to get payload from smtp-transport: $errorMessage")
-            throw Exception(errorMessage)
-        }
-        return response.body()
-    }
-}
-
-open class EventManagerClient(clientProvider: () -> HttpClient) {
-    private var httpClient = clientProvider.invoke()
-    private val eventManagerUrl = getEnvVar("EVENT_MANAGER_URL", "http://emottak-event-manager")
-
-    open suspend fun duplicateCheck(duplicateCheckRequest: DuplicateCheckRequest): DuplicateCheckResponse {
-        val duplicateCheckUri = "$eventManagerUrl/message-details/duplicate-check"
-
-        log.debug("Sending duplicate check request: $duplicateCheckRequest")
-        val response = httpClient.post(duplicateCheckUri) {
-            setBody(duplicateCheckRequest)
-            contentType(ContentType.Application.Json)
-        }
-        log.debug("Received response from duplicate check: ${response.status} - ${response.bodyAsText()}")
-
-        if (response.status != HttpStatusCode.OK) {
-            val errorMessage = response.bodyAsText()
-            log.error("Failed to check if the message is a duplicate: $errorMessage")
             throw Exception(errorMessage)
         }
         return response.body()
@@ -155,10 +129,6 @@ val EBMS_PAYLOAD_SCOPE = getEnvVar(
 val SMTP_TRANSPORT_SCOPE = getEnvVar(
     "SMTP_TRANSPORT_SCOPE",
     "api://" + getEnvVar("NAIS_CLUSTER_NAME", "dev-fss") + ".team-emottak.smtp-transport/.default"
-)
-val EVENT_MANAGER_SCOPE = getEnvVar(
-    "EVENT_MANAGER_SCOPE",
-    "api://" + getEnvVar("NAIS_CLUSTER_NAME", "dev-fss") + ".team-emottak.emottak-event-manager/.default"
 )
 
 fun defaultHttpClient(): () -> HttpClient {

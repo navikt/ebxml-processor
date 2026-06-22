@@ -1,6 +1,7 @@
 package no.nav.emottak.ebms.async.processing
 
 import io.github.nomisRev.kafka.receiver.ReceiverRecord
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import io.mockk.Runs
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
@@ -46,6 +47,7 @@ class RetryServiceTest {
     private lateinit var failedMessageQueue: FailedMessageKafkaHandler
     private lateinit var signalSender: suspend (EbmsDocument, List<no.nav.emottak.message.model.EmailAddress>) -> Unit
     private lateinit var retryService: RetryService
+    private lateinit var meterRegistry: SimpleMeterRegistry
 
     @BeforeEach
     fun setUp() {
@@ -53,6 +55,8 @@ class RetryServiceTest {
         cpaValidationService = mockk()
         eventRegistrationService = mockk<EventRegistrationService>()
         failedMessageQueue = mockk<FailedMessageKafkaHandler>()
+        meterRegistry = SimpleMeterRegistry()
+        every { failedMessageQueue.meterRegistry } returns meterRegistry
         signalSender = mockk()
         coEvery { signalSender(any(), any()) } just Runs
 
@@ -70,6 +74,9 @@ class RetryServiceTest {
         System.setProperty("EBMS_RETRY_QUEUE", "true")
         coEvery {
             failedMessageQueue.sendToRetryQueueIncoming(any(), any(), any())
+        } just runs
+        coEvery {
+            failedMessageQueue.sendToRetryQueueOutgoing(any(), any(), any())
         } just runs
         retryService = RetryService(
             cpaValidationService,
@@ -223,6 +230,69 @@ class RetryServiceTest {
 
         spyService.incomingRetryEval(receiverRecord, payload, EbmsException("fail"), "reason")
         coVerify(exactly = 1) { failedMessageQueue.sendToRetryQueueIncoming(any(), any(), any()) }
+    }
+
+    private fun firstFailureCount(direction: String): Double =
+        meterRegistry.find("messages_first_failure_total").tag("direction", direction).counter()?.count() ?: 0.0
+
+    @Test
+    fun `incomingRetryEval increments first-failure counter only on first failure (retryCount 0)`() = runBlocking {
+        val receiverRecord = mockk<ReceiverRecord<String, ByteArray>>(relaxed = true)
+        val headers = mockk<Headers>()
+        every { receiverRecord.headers() } returns headers
+        every { headers.lastHeader("retryCount") } returns null
+
+        val payload = createPayloadMessageWithTtl(null)
+
+        retryService.incomingRetryEval(receiverRecord, payload, EbmsException("fail"), "reason")
+
+        assertEquals(1.0, firstFailureCount("incoming"))
+    }
+
+    @Test
+    fun `incomingRetryEval does not increment first-failure counter on subsequent retries`() = runBlocking {
+        val receiverRecord = mockk<ReceiverRecord<String, ByteArray>>(relaxed = true)
+        val headers = mockk<Headers>()
+        every { receiverRecord.headers() } returns headers
+        every { headers.lastHeader("retryCount") } returns RecordHeader("retryCount", "1".toByteArray())
+
+        val payload = createPayloadMessageWithTtl(Instant.now().plusSeconds(3600))
+
+        retryService.incomingRetryEval(receiverRecord, payload, EbmsException("fail"), "reason")
+
+        assertEquals(0.0, firstFailureCount("incoming"))
+    }
+
+    @Test
+    fun `incomingRetryEval does not increment first-failure counter when decision is NO_RETRY`() = runBlocking {
+        val receiverRecord = mockk<ReceiverRecord<String, ByteArray>>(relaxed = true)
+        val headers = mockk<Headers>()
+        every { receiverRecord.headers() } returns headers
+        every { headers.lastHeader("retryCount") } returns null
+
+        val payload = createPayloadMessageWithTtl(Instant.now().plusSeconds(3600))
+        val unrecoverable = EbmsException("Dekryptering feilet", recoverable = false)
+
+        val spyService = spyk(retryService)
+        coEvery { spyService.returnMessageError(any(), any()) } just Runs
+
+        spyService.incomingRetryEval(receiverRecord, payload, unrecoverable)
+
+        assertEquals(0.0, firstFailureCount("incoming"))
+    }
+
+    @Test
+    fun `outgoingRetryEval increments first-failure counter only on first failure (retryCount 0)`() = runBlocking {
+        val receiverRecord = mockk<ReceiverRecord<String, ByteArray>>(relaxed = true)
+        val headers = mockk<Headers>()
+        every { receiverRecord.headers() } returns headers
+        every { headers.lastHeader("retryCount") } returns null
+
+        val payload = createPayloadMessageWithTtl(null)
+
+        retryService.outgoingRetryEval(receiverRecord, payload, EbmsException("fail"), "reason")
+
+        assertEquals(1.0, firstFailureCount("outgoing"))
     }
 
     private fun createPayloadMessageWithTtl(ttl: Instant?) = PayloadMessage(
