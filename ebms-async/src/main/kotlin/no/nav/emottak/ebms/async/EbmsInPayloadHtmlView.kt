@@ -14,7 +14,6 @@ import kotlinx.html.head
 import kotlinx.html.input
 import kotlinx.html.label
 import kotlinx.html.p
-import kotlinx.html.span
 import kotlinx.html.style
 import kotlinx.html.table
 import kotlinx.html.tbody
