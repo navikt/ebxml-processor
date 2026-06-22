@@ -154,7 +154,7 @@ spec:
       application: ebms-async
       access: write
     - team: team-emottak
-      application: emottak-test-client
+      application: emottak-test-client-backend
       access: write
     - access: read
       application: emottak-kafka-manager
