@@ -61,6 +61,7 @@ import no.nav.emottak.utils.environment.getEnvVar
 import no.nav.emottak.utils.serialization.LENIENT_JSON_PARSER
 import no.nav.security.mock.oauth2.MockOAuth2Server
 import org.apache.commons.lang3.StringUtils
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
