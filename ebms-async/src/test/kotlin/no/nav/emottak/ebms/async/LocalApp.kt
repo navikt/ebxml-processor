@@ -10,13 +10,14 @@ import arrow.fx.coroutines.resourceScope
 import io.github.nomisRev.kafka.receiver.ReceiverRecord
 import io.ktor.server.netty.Netty
 import io.ktor.utils.io.CancellationException
+import io.micrometer.prometheusmetrics.PrometheusConfig
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import io.mockk.Runs
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockkObject
 import kotlinx.coroutines.awaitCancellation
 import no.nav.emottak.ebms.CpaRepoClient
-import no.nav.emottak.ebms.EventManagerClient
 import no.nav.emottak.ebms.PayloadProcessingClient
 import no.nav.emottak.ebms.SendInClient
 import no.nav.emottak.ebms.SmtpTransportClient
@@ -54,8 +55,6 @@ import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.message.model.ValidationRequest
 import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.utils.common.model.Addressing
-import no.nav.emottak.utils.common.model.DuplicateCheckRequest
-import no.nav.emottak.utils.common.model.DuplicateCheckResponse
 import no.nav.emottak.utils.common.model.SendInRequest
 import no.nav.emottak.utils.common.model.SendInResponse
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PerMessageCharacteristicsType
@@ -106,7 +105,8 @@ fun main() = SuspendApp {
     println(" ************ config.messageResendPolicy.resendInterval: " + config.messageResendPolicy.resendInterval)
 
     println(" ************ Setting up services ")
-    val failedMessageQueue = FailedMessageKafkaHandler()
+    val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
+    val failedMessageQueue = FailedMessageKafkaHandler(meterRegistry = appMicrometerRegistry)
 
     val messagePendingAckRepository = MessagePendingAckRepository(database, config.messageResendPolicy.resendInterval, config.messageResendPolicy.maxResends)
 
@@ -177,7 +177,7 @@ fun main() = SuspendApp {
         failedMessageKafkaHandler = failedMessageQueue
     )
 
-    var pauseRetryErrorsTimerFlag = PauseRetryErrorsTimerFlag()
+    val pauseRetryErrorsTimerFlag = PauseRetryErrorsTimerFlag()
 
     println(" ************ Setting up Netty at 8080 ")
 
@@ -200,7 +200,8 @@ fun main() = SuspendApp {
             launchMesssageResendTask(
                 config = config,
                 messagePendingAckRepository = messagePendingAckRepository,
-                payloadMessageForwardingService = payloadMessageForwardingService
+                payloadMessageForwardingService = payloadMessageForwardingService,
+                meterRegistry = appMicrometerRegistry
             )
 
             server(
@@ -214,8 +215,8 @@ fun main() = SuspendApp {
                         retryService = retryService,
                         pauseRetryErrorsTimerFlag = pauseRetryErrorsTimerFlag,
                         payloadMessageService = payloadMessageService,
-                        failedMessageQueue = failedMessageQueue,
-                        messagePendingAckRepository = messagePendingAckRepository
+                        messagePendingAckRepository = messagePendingAckRepository,
+                        appMicrometerRegistry = appMicrometerRegistry
                     )
                 }
             ).also { it.engineConfig.maxChunkSize = 100000 }
@@ -339,14 +340,6 @@ class DummySendInClient() : SendInClient(defaultHttpClient()) {
         val action = "InntektInformasjon"
         val addressing = Addressing(sendInRequest.addressing.from, sendInRequest.addressing.to, service, action)
         return SendInResponse(responseMessageId, refToMessageId, responseConversationId, cpaId, addressing, responsePayload.toByteArray(), responseRequestId)
-    }
-}
-
-// Dummy duplcate check always returning FALSE
-class DummyEventManagerClient : EventManagerClient(defaultHttpClient()) {
-    override suspend fun duplicateCheck(duplicateCheckRequest: DuplicateCheckRequest): DuplicateCheckResponse {
-        println("DummyEventManagerClient: duplicateCheck called with duplicateCheckRequest: $duplicateCheckRequest")
-        return DuplicateCheckResponse("dummyId", false)
     }
 }
 
