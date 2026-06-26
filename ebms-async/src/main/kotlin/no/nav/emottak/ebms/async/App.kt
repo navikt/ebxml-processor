@@ -413,6 +413,7 @@ fun Application.ebmsProviderModule(
         unacknowledge(messagePendingAckRepository)
         getMessagesPendingAck(messagePendingAckRepository)
         getMessagesPendingAckHtml(messagePendingAckRepository)
+        getEbmsInPayloadView()
         authenticate(AZURE_AD_AUTH) {
             getPayloads(payloadRepository, eventRegistrationService)
         }
