@@ -501,6 +501,12 @@ fun Route.getSigningCertificate(cpaRepository: CPARepository, adresseregisterVal
             call.respond(HttpStatusCode.BadRequest, ex.localizedMessage)
         }
     }
+fun Route.getCertificates(cpaRepository: CPARepository) = get("/cpa/{$CPA_ID}/certificates") {
+    val cpaId = call.parameters[CPA_ID] ?: throw BadRequestException("Mangler $CPA_ID")
+    val cpa = cpaRepository.findCpa(cpaId) ?: throw NotFoundException("Ingen CPA med ID $cpaId funnet")
+    val certificates = cpa.partyInfo.map { it.getCertificates() }
+    call.respond(HttpStatusCode.OK, certificates)
+}
 
 fun Route.getMessagingCharacteristics(cpaRepository: CPARepository) =
     post("/cpa/messagingCharacteristics") {
