@@ -62,7 +62,6 @@ import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.utils.common.model.SendInResponse
-import no.nav.emottak.utils.environment.isProdEnv
 import no.nav.emottak.utils.kafka.client.EventPublisherClient
 import no.nav.emottak.utils.kafka.service.EventLoggingService
 import no.nav.emottak.utils.serialization.LENIENT_JSON_PARSER
@@ -399,10 +398,8 @@ fun Application.ebmsProviderModule(
         registerHealthEndpoints()
         registerPrometheusEndpoint(appMicrometerRegistry)
         registerNavCheckStatus()
-        if (!isProdEnv()) {
-            forceRetryMessageIn(retryService)
-            forceRetryMessageOut(retryService)
-        }
+        forceRetryMessageIn(retryService)
+        forceRetryMessageOut(retryService)
         retryErrorsIncoming(retryService, messageFilterService)
         retryErrorsOutgoing(retryService, payloadMessageService)
         rerunIncoming(retryService, messageFilterService)
