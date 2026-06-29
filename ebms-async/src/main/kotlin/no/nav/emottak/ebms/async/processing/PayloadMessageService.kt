@@ -129,15 +129,17 @@ class PayloadMessageService(
     private suspend fun routeDependingOnMessageType(processedPayload: PayloadMessage, validationResult: ValidationResult) {
         when (val messageType = messageTypeByServiceName(processedPayload.addressing.service)) {
             MessageType.HAR_BORGER_FRIKORT_MENGDE, MessageType.INNTEKTSFORESPORSEL -> {
-                log.debug(processedPayload.marker(), "Calling SendIn SYNCHRONOUSLY for $messageType")
+                log.info(processedPayload.marker(), "Calling SendIn SYNCHRONOUSLY for $messageType")
                 payloadMessageForwardingService.forwardMessageWithSyncResponse(processedPayload)
             }
-            MessageType.TREKKOPPLYSNING, MessageType.SYKMELDING, MessageType.LEGEMELDING -> {
-                log.debug(processedPayload.marker(), "Calling SendIn ASYNCHRONOUSLY for $messageType")
+            MessageType.TREKKOPPLYSNING, MessageType.SYKMELDING, MessageType.LEGEMELDING, MessageType.BEHANDLERKRAV, MessageType.OPPGJORSKONTROLL,
+            MessageType.DIALOGMOTE_INNKALLING, MessageType.FORESPORSEL_FRA_SAKSBEHANDLER, MessageType.HENVENDELSE_FRA_LEGE,
+            MessageType.HENVENDELSE_FRA_SAKSBEHANDLER, MessageType.OPPFOLGINGSPLAN -> {
+                log.info(processedPayload.marker(), "Calling SendIn ASYNCHRONOUSLY for $messageType")
                 payloadMessageForwardingService.forwardMessageWithAsyncResponse(processedPayload, validationResult.partnerId)
             }
             else -> {
-                log.debug(processedPayload.marker(), "Skipping SendIn for $processedPayload.addressing.service")
+                log.warn(processedPayload.marker(), "Skipping SendIn for ${processedPayload.addressing.service}")
             }
         }
     }
