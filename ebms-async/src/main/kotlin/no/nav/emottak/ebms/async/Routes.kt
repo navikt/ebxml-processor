@@ -13,6 +13,7 @@ import kotlinx.coroutines.launch
 import no.nav.emottak.ebms.StatusResponse
 import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.kafka.consumer.getRecord
+import no.nav.emottak.ebms.async.kafka.consumer.repeatRecord
 import no.nav.emottak.ebms.async.persistence.repository.MessagePendingAckRepository
 import no.nav.emottak.ebms.async.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.async.processing.MessageFilterService
@@ -250,6 +251,12 @@ fun Routing.rerunOutgoingInterval(
         )
         retryService.rerunUniqueKeysOutgoing(makeOutRetryProcessor(payloadMessageService), startOffset, endOffset)
     }
+
+fun Route.redeliverToSendIn() {
+    get("/api/redeliver/offset/{$KAFKA_OFFSET}") {
+        repeatRecord(call.parameters[KAFKA_OFFSET]!!, config().kafkaEbmsInPayloadProducer.topic, config().kafka)
+    }
+}
 
 fun Route.forceRetryMessageIn(
     retryService: RetryService
