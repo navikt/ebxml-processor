@@ -155,7 +155,7 @@ spec:
       access: read
     - team: team-emottak
       application: ebms-async
-      access: write
+      access: readwrite
     - team: team-emottak
       application: emottak-test-client-backend
       access: write
