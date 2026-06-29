@@ -398,6 +398,7 @@ fun Application.ebmsProviderModule(
         registerHealthEndpoints()
         registerPrometheusEndpoint(appMicrometerRegistry)
         registerNavCheckStatus()
+        redeliverToSendIn()
         forceRetryMessageIn(retryService)
         forceRetryMessageOut(retryService)
         retryErrorsIncoming(retryService, messageFilterService)

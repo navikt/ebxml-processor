@@ -17,6 +17,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.consumer.ConsumerRecords
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
+import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.ByteArrayDeserializer
@@ -271,6 +272,25 @@ fun getRecord(
     requestedRecords: Int = 1
 ): ReceiverRecord<String, ByteArray>? {
     return getRecords(topic, kafka, fromOffset, requestedRecords).firstOrNull()
+}
+
+fun repeatRecord(offset: String, topic: String, kafka: Kafka) {
+    KafkaProducer(
+        kafka.toProperties(),
+        StringSerializer(),
+        ByteArraySerializer()
+    ).use { producer ->
+        val record = getRecord(topic, kafka, fromOffset = offset.toLong()) ?: return@use
+        producer.send(
+            ProducerRecord(
+                topic,
+                null,
+                record.key(),
+                record.value(),
+                record.headers()
+            )
+        )
+    }
 }
 
 fun getRecords(
