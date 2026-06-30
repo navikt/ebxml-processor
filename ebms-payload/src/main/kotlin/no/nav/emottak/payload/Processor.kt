@@ -18,9 +18,9 @@ import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.getByteArrayFromDocument
 import no.nav.emottak.util.marker
 import no.nav.emottak.util.retrieveSignatureElement
-import no.nav.emottak.util.signatur.SignaturVerifisering
 import no.nav.emottak.utils.kafka.model.EventDataType
 import no.nav.emottak.utils.kafka.model.EventType
+import no.nav.emottak.validering.signatur.SignaturVerifisering
 import org.slf4j.Marker
 import java.io.ByteArrayInputStream
 

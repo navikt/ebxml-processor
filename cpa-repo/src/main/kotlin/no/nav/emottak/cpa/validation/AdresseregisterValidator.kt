@@ -8,6 +8,7 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import no.nav.emottak.cpa.configuration.Nhn
 import no.nav.emottak.cpa.configuration.config
+import no.nav.emottak.cpa.log
 import no.nav.emottak.cpa.model.Certificate
 import no.nav.emottak.cpa.model.CommunicationParty
 

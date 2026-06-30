@@ -4,7 +4,7 @@ import no.kith.xmlstds.msghead._2006_05_24.MsgHead
 import no.nav.emottak.payload.apprec.createNegativeApprec
 import no.nav.emottak.payload.apprec.message.AppRecErrorCode
 import no.nav.emottak.payload.util.unmarshal
-import no.nav.emottak.util.signatur.SignatureException
+import no.nav.emottak.validering.signatur.SignatureException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 

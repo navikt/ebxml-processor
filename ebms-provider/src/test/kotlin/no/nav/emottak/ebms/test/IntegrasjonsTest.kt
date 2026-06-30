@@ -12,6 +12,7 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.testing.testApplication
 import io.mockk.clearAllMocks
+import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.cpa.cpaApplicationModule
@@ -29,6 +30,7 @@ import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.testConfiguration
 import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.ebms.validation.MimeHeaders
+import no.nav.emottak.validering.sertifikat.SertifikatValidator
 import no.nav.security.mock.oauth2.MockOAuth2Server
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions
@@ -48,15 +50,13 @@ open class EndToEndTest {
         val cpaRepoUrl = "http://localhost:$portnoCpaRepo"
         val cpaEventRegistrationService = CpaEventRegistrationServiceFake()
 
-        val cpaRepoDbContainer: PostgreSQLContainer<Nothing>
+        val cpaRepoDbContainer: PostgreSQLContainer<Nothing> = cpaPostgres()
         lateinit var ebmsProviderServer: ApplicationEngine
         lateinit var cpaRepoServer: ApplicationEngine
         lateinit var cpaValidationService: CPAValidationService
         lateinit var processingService: ProcessingService
         lateinit var sendInService: SendInService
-        init {
-            cpaRepoDbContainer = cpaPostgres()
-        }
+        lateinit var sertifikatValidator: SertifikatValidator
 
         @JvmStatic
         @BeforeAll
@@ -74,6 +74,8 @@ open class EndToEndTest {
             val sendInClient = SendInClient(scopedAuthHttpClient(EBMS_SEND_IN_SCOPE))
             sendInService = SendInService(sendInClient)
 
+            sertifikatValidator = mockk(relaxed = true)
+
             cpaRepoServer = embeddedServer(
                 Netty,
                 port = portnoCpaRepo,
@@ -82,7 +84,8 @@ open class EndToEndTest {
                     cpaRepoDb.dataSource,
                     cpaRepoDb.dataSource,
                     cpaEventRegistrationService,
-                    null
+                    null,
+                    sertifikatValidator
                 )
             ).also {
                 it.start()
