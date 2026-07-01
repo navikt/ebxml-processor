@@ -105,6 +105,7 @@ fun cpaApplicationModule(
             getTimeStampsLastUsed(cpaRepository)
             getEncryptionCertificate(cpaRepository)
             getSigningCertificate(cpaRepository, adresseregisterValidator)
+            getCertificates(cpaRepository)
             getMessagingCharacteristics(cpaRepository)
             if (adresseregisterValidator != null) {
                 getAdresseregisterData(adresseregisterValidator)

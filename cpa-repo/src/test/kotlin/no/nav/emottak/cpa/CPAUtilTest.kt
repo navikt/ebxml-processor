@@ -3,9 +3,13 @@ package no.nav.emottak.cpa
 import no.nav.emottak.cpa.feil.CpaValidationException
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.decodeBase64
+import no.nav.emottak.utils.common.model.PartyId
 import org.junit.jupiter.api.assertThrows
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 class CPAUtilTest {
     @Test
@@ -63,5 +67,39 @@ class CPAUtilTest {
         val signatureDetails = cpa.getPartyInfoByTypeAndID(partyType = "HER", partyId = "8141253").getCertificateForSignatureValidation(role = "Behandler", service = "BehandlerKrav", action = "OppgjorsMelding")
         assertEquals("http://www.w3.org/2001/04/xmldsig-more#rsa-sha256", signatureDetails.signatureAlgorithm)
         assertEquals("http://www.w3.org/2001/04/xmlenc#sha256", signatureDetails.hashFunction)
+    }
+
+    @Test
+    fun `getCertificates returnerer signing og encryption sertifikat for partner-party`() {
+        val cpa = TestUtil.createValidTestCPA()
+        val partyInfo = cpa.getPartyInfoByTypeAndID("HER", "8141253")
+        val result = partyInfo.getCertificates()
+
+        assertContains(result.partyIds, PartyId("HER", "8141253"))
+        val signatureDetails = result.signatureDetails
+        assertNotNull(signatureDetails)
+        assertEquals("http://www.w3.org/2001/04/xmldsig-more#rsa-sha256", signatureDetails.signatureAlgorithm)
+        assertEquals("http://www.w3.org/2001/04/xmlenc#sha256", signatureDetails.hashFunction)
+        assertTrue(signatureDetails.certificate.isNotEmpty())
+        val encryptionCertificate = result.encryptionCertificate
+        assertNotNull(encryptionCertificate)
+        assertTrue(encryptionCertificate.isNotEmpty())
+    }
+
+    @Test
+    fun `getCertificates returnerer signing og encryption sertifikat for NAV-party`() {
+        val cpa = TestUtil.createValidTestCPA()
+        val partyInfo = cpa.getPartyInfoByTypeAndID("HER", "79768")
+        val result = partyInfo.getCertificates()
+
+        assertContains(result.partyIds, PartyId("HER", "79768"))
+        val signatureDetails = result.signatureDetails
+        assertNotNull(signatureDetails)
+        assertEquals("http://www.w3.org/2001/04/xmldsig-more#rsa-sha256", signatureDetails.signatureAlgorithm)
+        assertEquals("http://www.w3.org/2001/04/xmlenc#sha256", signatureDetails.hashFunction)
+        assertTrue(signatureDetails.certificate.isNotEmpty())
+        val encryptionCertificate = result.encryptionCertificate
+        assertNotNull(encryptionCertificate)
+        assertTrue(encryptionCertificate.isNotEmpty())
     }
 }
