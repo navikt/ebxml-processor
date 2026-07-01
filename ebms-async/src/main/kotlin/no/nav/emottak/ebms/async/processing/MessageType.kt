@@ -5,7 +5,14 @@ enum class MessageType(val serviceName: String) {
     INNTEKTSFORESPORSEL("Inntektsforesporsel"),
     TREKKOPPLYSNING("Trekkopplysning"),
     SYKMELDING("Sykmelding"),
-    LEGEMELDING("Legemelding")
+    LEGEMELDING("Legemelding"),
+    BEHANDLERKRAV("BehandlerKrav"),
+    OPPGJORSKONTROLL("OppgjorsKontroll"),
+    DIALOGMOTE_INNKALLING("DialogmoteInnkalling"),
+    FORESPORSEL_FRA_SAKSBEHANDLER("ForesporselFraSaksbehandler"),
+    HENVENDELSE_FRA_LEGE("HenvendelseFraLege"),
+    HENVENDELSE_FRA_SAKSBEHANDLER("HenvendelseFraSaksbehandler"),
+    OPPFOLGINGSPLAN("Oppfolgingsplan")
 }
 
 fun messageTypeByServiceName(serviceName: String): MessageType? {
