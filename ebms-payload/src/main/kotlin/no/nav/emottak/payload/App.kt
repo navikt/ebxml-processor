@@ -24,7 +24,7 @@ import no.nav.security.token.support.v3.tokenValidationSupport
 import org.slf4j.LoggerFactory
 import java.net.InetSocketAddress
 import java.net.Proxy
-import java.net.URL
+import java.net.URI
 
 internal val log = LoggerFactory.getLogger("no.nav.emottak.payload")
 fun main() {
@@ -47,7 +47,7 @@ fun defaultHttpClient(): () -> HttpClient {
             expectSuccess = true
             engine {
                 if (httpProxyUrl.isNotBlank()) {
-                    proxy = Proxy(Proxy.Type.HTTP, InetSocketAddress(URL(httpProxyUrl).host, URL(httpProxyUrl).port))
+                    proxy = Proxy(Proxy.Type.HTTP, InetSocketAddress(URI(httpProxyUrl).toURL().host, URI(httpProxyUrl).toURL().port))
                 }
             }
         }
