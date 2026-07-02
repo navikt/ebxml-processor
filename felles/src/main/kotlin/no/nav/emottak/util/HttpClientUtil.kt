@@ -1,4 +1,4 @@
-package no.nav.emottak.cpa
+package no.nav.emottak.util
 
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
@@ -6,7 +6,7 @@ import io.ktor.client.plugins.HttpRequestRetry
 import no.nav.emottak.utils.environment.getEnvVar
 import java.net.InetSocketAddress
 import java.net.Proxy
-import java.net.URL
+import java.net.URI
 
 private val httpProxyUrl = getEnvVar("HTTP_PROXY", "")
 
@@ -20,7 +20,7 @@ class HttpClientUtil {
             }
             engine {
                 if (httpProxyUrl.isNotBlank()) {
-                    proxy = Proxy(Proxy.Type.HTTP, InetSocketAddress(URL(httpProxyUrl).host, URL(httpProxyUrl).port))
+                    proxy = Proxy(Proxy.Type.HTTP, InetSocketAddress(URI(httpProxyUrl).host, URI(httpProxyUrl).port))
                 }
             }
         }
