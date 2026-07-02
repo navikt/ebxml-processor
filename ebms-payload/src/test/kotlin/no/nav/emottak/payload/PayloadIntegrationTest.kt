@@ -83,8 +83,8 @@ class PayloadIntegrationTest : PayloadTestBase() {
 
         with(response.body<PayloadResponse>()) {
             assertEquals(HttpStatusCode.BadRequest, response.status)
-            assertEquals(ErrorCode.UNKNOWN, response.body<PayloadResponse>().error!!.code)
-            assertEquals("Token does not contain required audience", response.body<PayloadResponse>().error!!.descriptionText)
+            assertEquals(ErrorCode.UNKNOWN, this.error!!.code)
+            assertEquals("Token does not contain required audience", this.error!!.descriptionText)
         }
     }
 

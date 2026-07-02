@@ -11,29 +11,33 @@ import no.nav.emottak.payload.crypto.PayloadSignering
 import no.nav.emottak.payload.crypto.getEncryptionDetails
 import no.nav.emottak.payload.helseid.NinResolver
 import no.nav.emottak.payload.juridisklogg.JuridiskLoggService
+import no.nav.emottak.payload.ocspstatus.getOrganizationNumber
 import no.nav.emottak.payload.util.EventRegistrationService
 import no.nav.emottak.payload.util.GZipUtil
 import no.nav.emottak.util.createDocument
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.getByteArrayFromDocument
 import no.nav.emottak.util.marker
+import no.nav.emottak.util.retrievePublicX509Certificate
 import no.nav.emottak.util.retrieveSignatureElement
 import no.nav.emottak.utils.kafka.model.EventDataType
 import no.nav.emottak.utils.kafka.model.EventType
-import no.nav.emottak.validering.signatur.SignaturVerifisering
+import no.nav.emottak.validering.sertifikat.SertifikatValidator
+import no.nav.emottak.validering.signatur.SignaturValidator
 import org.slf4j.Marker
 import java.io.ByteArrayInputStream
 
 class Processor(
-    private val eventRegistrationService: EventRegistrationService
-) {
-    private val kryptering: Kryptering = Kryptering()
-    private val dekryptering: Dekryptering = Dekryptering()
-    private val signering: PayloadSignering = PayloadSignering()
-    private val gZipUtil: GZipUtil = GZipUtil()
-    private val signatureVerifisering: SignaturVerifisering = SignaturVerifisering()
-    private val juridiskLogging: JuridiskLoggService = JuridiskLoggService()
+    private val eventRegistrationService: EventRegistrationService,
+    private val sertifikatValidator: SertifikatValidator,
+    private val kryptering: Kryptering = Kryptering(),
+    private val dekryptering: Dekryptering = Dekryptering(),
+    private val signering: PayloadSignering = PayloadSignering(),
+    private val gZipUtil: GZipUtil = GZipUtil(),
+    private val signatureVerifisering: SignaturValidator = SignaturValidator(),
+    private val juridiskLogging: JuridiskLoggService = JuridiskLoggService(),
     private val ninResolver: NinResolver = NinResolver()
+) {
 
     suspend fun loggMessageToJuridiskLogg(payloadRequest: PayloadRequest): String? {
         log.debug(payloadRequest.marker(), "Save message to juridisk logg")
@@ -76,34 +80,42 @@ class Processor(
         payloadRequest: PayloadRequest,
         processConfig: ProcessConfig
     ): Payload {
-        if (processConfig.signering) {
-            log.debug(marker, "Validating signature for payload")
+        with(createDocument(ByteArrayInputStream(payload.bytes))) {
+            var (signedByPid, signedByOrg) = Pair<String?, String?>(null, null)
+            if (processConfig.signering) {
+                log.debug(marker, "Validating signature for payload")
 
-            signatureVerifisering.validate(payload.bytes).also {
-                eventRegistrationService.registerEvent(
-                    EventType.SIGNATURE_CHECK_SUCCESSFUL,
-                    payloadRequest
-                )
+                signatureVerifisering.validate(this).also {
+                    eventRegistrationService.registerEvent(
+                        EventType.SIGNATURE_CHECK_SUCCESSFUL,
+                        payloadRequest
+                    )
+                }
+
+                val certificate = this.retrieveSignatureElement().retrievePublicX509Certificate()
+                sertifikatValidator.validateCertificate(certificate)
+                signedByOrg = certificate.getOrganizationNumber()
             }
-        }
-        return if (processConfig.ocspSjekk) {
-            log.debug(marker, "Validating for payload in validateOcsp flow")
-            val domDocument = createDocument(ByteArrayInputStream(payload.bytes))
+            if (processConfig.ocspSjekk) {
+                log.debug(marker, "Validating for payload in validateOcsp flow")
+                signedByPid = ninResolver.resolve(
+                    document = this,
+                    certificate = this.retrieveSignatureElement().keyInfo.x509Certificate
+                ).also {
+                    eventRegistrationService.registerEvent(
+                        EventType.OCSP_CHECK_SUCCESSFUL,
+                        payloadRequest
+                    )
+                }
 
-            val signedByFnr: String? = ninResolver.resolve(
-                domDocument,
-                domDocument.retrieveSignatureElement().keyInfo.x509Certificate
+                log.debug(marker, "Validating OCSP for payload: Step 5 copy")
+            }
+
+            return payload.copy(
+                signedBy = signedByPid,
+                signedByPid = signedByPid,
+                signedByOrg = signedByOrg
             )
-
-            log.debug(marker, "Validating OCSP for payload: Step 5 copy")
-            payload.copy(signedBy = signedByFnr).also {
-                eventRegistrationService.registerEvent(
-                    EventType.OCSP_CHECK_SUCCESSFUL,
-                    payloadRequest
-                )
-            }
-        } else {
-            payload
         }
     }
 
