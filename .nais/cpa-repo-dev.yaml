@@ -116,7 +116,8 @@ spec:
     - name: NHN_KEYPAIR_PATH
       value: "/var/run/secrets/emottak-ar-klient-secret/key"
     - name: NHN_TOKEN_ENDPOINT
-      value: "https://helseid-sts.test.nhn.no/connect/token"
+      value: "https://samsvarstesting-sts-test.helseid.sky.nhn.no/88312bd7-f8c7-4f02-a1b5-17e724bdbbca/connect/token"
+#      value: "https://helseid-sts.test.nhn.no/connect/token"
     - name: NHN_CLIENT_KEY_ID
       value: "xMd3Jezu0PaRNBIxUZK8j8wBh7N7Bc6c-9MOt5AchbU"
     - name: NHN_CLIENT_ID
