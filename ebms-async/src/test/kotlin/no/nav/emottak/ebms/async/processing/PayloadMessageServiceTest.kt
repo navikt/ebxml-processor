@@ -27,11 +27,11 @@ import no.nav.emottak.message.model.EbmsDocument
 import no.nav.emottak.message.model.EbmsMessage
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.model.ValidationResult
-import no.nav.emottak.util.signatur.SignatureException
 import no.nav.emottak.utils.common.model.Addressing
 import no.nav.emottak.utils.common.model.Party
 import no.nav.emottak.utils.common.model.PartyId
 import no.nav.emottak.utils.kafka.model.EventType
+import no.nav.emottak.validering.signatur.SignatureException
 import org.apache.kafka.clients.producer.RecordMetadata
 import org.apache.kafka.common.header.Headers
 import org.junit.jupiter.api.Assertions.assertTrue

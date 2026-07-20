@@ -1,8 +1,8 @@
-package no.nav.emottak.cpa.cert
+package no.nav.emottak.validering.sertifikat
 
 import kotlinx.coroutines.runBlocking
-import no.nav.emottak.cpa.validation.log
 import org.bouncycastle.asn1.x500.X500Name
+import org.slf4j.LoggerFactory
 import java.math.BigInteger
 import java.security.cert.X509CRL
 import java.security.cert.X509CRLEntry
@@ -12,11 +12,14 @@ import java.util.Date
 class CRLChecker(
     private val crlRetriever: CRLRetriever
 ) {
+    private val log = LoggerFactory.getLogger(CRLChecker::class.java)
+
     private val crlMaximumAgeInSeconds: Long = 3600L
 
     private val crlList: List<CRL> = runBlocking {
         crlRetriever.updateAllCRLs()
     }
+
     fun getCRLRevocationInfo(issuer: String, serialNumber: BigInteger) {
         getRevokedCertificate(issuer = X500Name(issuer), serialNumber = serialNumber)?.let {
             throw CertificateValidationException("Sertifikat revokert: serienummer <$serialNumber> revokert med reason <${it.revocationReason}> at <${it.revocationDate}>")

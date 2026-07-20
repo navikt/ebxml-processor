@@ -1,13 +1,8 @@
-package no.nav.emottak.cpa.validation
+package no.nav.emottak.validering.sertifikat
 
-import no.nav.emottak.cpa.HttpClientUtil
-import no.nav.emottak.cpa.cert.CRLChecker
-import no.nav.emottak.cpa.cert.CRLRetriever
-import no.nav.emottak.cpa.cert.CertificateValidationException
-import no.nav.emottak.crypto.FileKeyStoreConfig
 import no.nav.emottak.crypto.KeyStoreManager
+import no.nav.emottak.crypto.trustStoreConfig
 import no.nav.emottak.util.isSelfSigned
-import no.nav.emottak.utils.environment.getEnvVar
 import org.bouncycastle.asn1.x509.CRLDistPoint
 import org.bouncycastle.asn1.x509.Extension
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils
@@ -28,38 +23,12 @@ import java.security.cert.X509Certificate
 import java.time.Instant
 import java.util.Date
 
-internal val log = LoggerFactory.getLogger("no.nav.emottak.cpa.validation.SertifikatValidering")
-
-private fun trustStoreConfig() = FileKeyStoreConfig(
-    keyStoreFilePath = getEnvVar("TRUSTSTORE_PATH", resolveDefaultTruststorePath()),
-    keyStorePass = getEnvVar("TRUSTSTORE_PWD", "123456789").toCharArray(),
-    keyStoreType = "PKCS12"
-)
-
-fun resolveDefaultTruststorePath(): String? {
-    return when (getEnvVar("NAIS_CLUSTER_NAME", "lokaltest")) {
-        "dev-fss", "prod-fss" -> null
-        else -> "truststore.p12" // basically lokal test
-    }
-}
-
-private val sertifikatValidering = lazy {
-    SertifikatValidering(
-        CRLChecker(CRLRetriever(HttpClientUtil.client))
-    )
-}
-
-// Alexander: Jeg føler meg veldig usikkert med bruk av ekstension funksjon sammen med integrasjon + keystore.
-@Throws(CertificateValidationException::class)
-fun X509Certificate.validate() {
-    sertifikatValidering.value.validateCertificate(this)
-}
-
-class SertifikatValidering(
+class SertifikatValidator(
     private val crlChecker: CRLChecker,
     trustStore: KeyStoreManager = KeyStoreManager(trustStoreConfig()),
     private val provider: Provider = BouncyCastleProvider()
 ) {
+    private val logger = LoggerFactory.getLogger(SertifikatValidator::class.java)
     private val trustedRootCertificates: Set<X509Certificate> = trustStore.getTrustedRootCerts()
     private val intermediateCertificates: Set<X509Certificate> = trustStore.getIntermediateCerts()
 
@@ -91,7 +60,7 @@ class SertifikatValidering(
         try {
             builder.build(pkixParams) as PKIXCertPathBuilderResult
         } catch (e: CertPathBuilderException) {
-            log.warn("Sertifikatvalidering feilet <${certificate.serialNumber.toString(16)}> <${certificate.subjectX500Principal.name}> utstedt av <${certificate.issuerX500Principal.name}>", e)
+            logger.warn("Sertifikatvalidering feilet <${certificate.serialNumber.toString(16)}> <${certificate.subjectX500Principal.name}> utstedt av <${certificate.issuerX500Principal.name}>", e)
             throw CertificateValidationException("Sertifikatvalidering feilet for sertifikat utstedt av <${certificate.issuerX500Principal.name}>", e)
         }
     }
@@ -115,7 +84,7 @@ class SertifikatValidering(
             val crlDistributionPoint = certificate.getExtensionValue(Extension.cRLDistributionPoints.toString())
             val crlDistributionPoints =
                 CRLDistPoint.getInstance(JcaX509ExtensionUtils.parseExtensionValue(crlDistributionPoint))
-            log.warn("CRL for $crlDistributionPoints feilet")
+            logger.warn("CRL for $crlDistributionPoints feilet")
             throw e
         }
     }
