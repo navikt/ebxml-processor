@@ -2,8 +2,15 @@ package no.nav.emottak.ebms.async.persistence
 
 import no.nav.emottak.ebms.async.ebmsPostgres
 import no.nav.emottak.ebms.async.persistence.repository.PayloadRepository
+import no.nav.emottak.ebms.async.persistence.table.PayloadTable
+import no.nav.emottak.ebms.async.persistence.table.PayloadTable.contentId
+import no.nav.emottak.ebms.async.persistence.table.PayloadTable.referenceId
 import no.nav.emottak.ebms.async.testConfiguration
 import no.nav.emottak.message.model.AsyncPayload
+import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.jetbrains.exposed.v1.jdbc.update
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions
@@ -11,7 +18,10 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.testcontainers.containers.PostgreSQLContainer
 import java.sql.DriverManager
+import java.time.Instant
+import java.time.temporal.ChronoUnit
 import kotlin.uuid.Uuid
+import kotlin.uuid.toJavaUuid
 
 class PayloadRepositoryTest {
     companion object {
@@ -104,4 +114,66 @@ class PayloadRepositoryTest {
         Assertions.assertEquals(2, retrievedPayloads.size)
         Assertions.assertEquals(originalReferenceId, retrievedPayloads[0].referenceId)
     }
+
+    @Test
+    fun `cleanupOldPayloads should delete old payloads`() {
+        val insertPayloads = 5L
+        for (i in 1..insertPayloads) {
+            val payload = AsyncPayload(
+                referenceId = Uuid.random(),
+                contentId = "contentId$i",
+                contentType = "application/pkcs7-mime",
+                content = "Payload test content $i".toByteArray()
+            )
+            payloadRepository.updateOrInsert(payload)
+            val affectedRows = ebmsProviderDb.backdatePayload(payload, 6)
+            Assertions.assertEquals(1, affectedRows)
+        }
+        val rowsDeleted = payloadRepository.cleanupOldPayloads(keepDays = 5, batchSize = 3)
+        Assertions.assertEquals(insertPayloads, rowsDeleted)
+    }
+
+    @Test
+    fun `cleanupOldPayloads should not delete payloads newer than keepDays`() {
+        val insertPayloads = 5L
+        val referenceId = Uuid.random()
+        for (i in 1..insertPayloads) {
+            val payload = AsyncPayload(
+                referenceId = referenceId,
+                contentId = "contentId$i",
+                contentType = "application/pkcs7-mime",
+                content = "Payload test content $i".toByteArray()
+            )
+            payloadRepository.updateOrInsert(payload)
+            ebmsProviderDb.backdatePayload(payload, 6)
+        }
+        val contentId = "newContentId"
+        val payload = AsyncPayload(
+            referenceId = referenceId,
+            contentId = contentId,
+            contentType = "application/pkcs7-mime",
+            content = "Payload test new content".toByteArray()
+        )
+        payloadRepository.updateOrInsert(payload)
+        val rowsDeleted = payloadRepository.cleanupOldPayloads(keepDays = 5, batchSize = 3)
+        Assertions.assertEquals(insertPayloads, rowsDeleted)
+        val retrievedPayloads = payloadRepository.getByReferenceId(referenceId)
+        Assertions.assertNotNull(retrievedPayloads)
+        Assertions.assertEquals(1, retrievedPayloads.size)
+        Assertions.assertEquals(referenceId, retrievedPayloads[0].referenceId)
+        Assertions.assertEquals(contentId, retrievedPayloads[0].contentId)
+    }
 }
+
+/**
+ * Test helper for backdating the created_at column of payloads, bypassing the DEFAULT now()
+ * so cleanup logic can be exercised without waiting for real time to pass.
+ */
+fun Database.backdatePayload(payload: AsyncPayload, days: Long) =
+    transaction(db) {
+        PayloadTable.update(where = {
+            referenceId.eq(payload.referenceId.toJavaUuid()) and contentId.eq(payload.contentId)
+        }) {
+            it[contentAt] = Instant.now().minus(days, ChronoUnit.DAYS)
+        }
+    }
