@@ -78,13 +78,11 @@ dependencies {
     implementation("no.nav:vault-jdbc:1.3.10")
 
     testImplementation(project(":cpa-repo"))
-    testImplementation(project(":ebms-provider"))
     testImplementation(testLibs.mock.oauth2.server)
     testImplementation(testLibs.ktor.server.test.host)
     testImplementation(testLibs.junit.jupiter.api)
     testImplementation(testLibs.mockk.jvm)
     testImplementation(testLibs.mockk.dsl.jvm)
-    testImplementation(libs.apache.santuario)
     testImplementation(testLibs.testcontainers.postgresql)
     testImplementation(testLibs.testcontainers.kafka)
     testRuntimeOnly(testLibs.junit.jupiter.engine)

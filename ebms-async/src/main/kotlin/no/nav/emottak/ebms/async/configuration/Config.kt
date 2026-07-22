@@ -13,6 +13,7 @@ import org.apache.kafka.common.config.SslConfigs.SSL_KEYSTORE_TYPE_CONFIG
 import org.apache.kafka.common.config.SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG
 import org.apache.kafka.common.config.SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG
 import org.apache.kafka.common.config.SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG
+import java.time.LocalTime
 import kotlin.time.Duration
 
 data class Config(
@@ -29,7 +30,8 @@ data class Config(
     val signering: List<KeyStoreConfiguration>,
     val errorRetryPolicyIncoming: ErrorRetryPolicy,
     val errorRetryPolicyOutgoing: ErrorRetryPolicy,
-    val messageResendPolicy: MessageResendPolicy
+    val messageResendPolicy: MessageResendPolicy,
+    val cleanupPayloadsJob: CleanupPayloadsJob
 )
 
 data class MessageResendPolicy(
@@ -69,6 +71,23 @@ data class ErrorRetryPolicy(
         return retryIntervals.size
     }
 }
+
+data class CleanupPayloadsJob(
+    val enabled: Boolean,
+    val fixedInterval: Duration,
+    val startAtTime: StartAtTime,
+    val keepPayloadsDays: KeepDays,
+    val batchSize: BatchSize
+)
+
+@JvmInline
+value class StartAtTime(val value: LocalTime)
+
+@JvmInline
+value class KeepDays(val value: Int)
+
+@JvmInline
+value class BatchSize(val value: Long)
 
 fun Kafka.toProperties() =
     toProperties()
