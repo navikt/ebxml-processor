@@ -361,7 +361,7 @@ fun CoroutineScope.launchCleanupPayloadsTask(
 ) {
     if (!config.cleanupPayloadsJob.enabled) return
 
-    val initialDelay = durationUntil(config.cleanupPayloadsJob.startAtTime.value)
+    val initialDelay = config.cleanupPayloadsJob.startAtTime.value.durationUntil()
     val readableInterval = config.cleanupPayloadsJob.fixedInterval.readableInterval()
     log.info("Delaying initial payload cleanup by ${initialDelay.readableInterval()}, running every $readableInterval after that")
     timer(
@@ -385,10 +385,9 @@ fun CoroutineScope.launchCleanupPayloadsTask(
     }
 }
 
-/** Time remaining until the next occurrence of [runAtTime], today if not yet passed, otherwise tomorrow. */
-private fun durationUntil(runAtTime: LocalTime): Duration {
-    val now = LocalDateTime.now()
-    val nextRun = now.toLocalDate().atTime(runAtTime).let { todayRun ->
+/** Returnerer Duration (gjenstående tid) til neste gang klokka er det samme som LocalTime-objektet. */
+internal fun LocalTime.durationUntil(now: LocalDateTime = LocalDateTime.now()): Duration {
+    val nextRun = now.toLocalDate().atTime(this).let { todayRun ->
         if (now.isBefore(todayRun)) todayRun else todayRun.plusDays(1)
     }
     return java.time.Duration.between(now, nextRun).toKotlinDuration()
