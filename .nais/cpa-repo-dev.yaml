@@ -123,7 +123,8 @@ spec:
     - name: NHN_CLIENT_ID
       value: "ab926758-4a6f-41fa-9c69-9ae1dd095662"
     - name: NHN_CLIENT_AUDIENCE
-      value: "https://helseid-sts.test.nhn.no"
+      value: "https://samsvarstesting-sts-test.helseid.sky.nhn.no/88312bd7-f8c7-4f02-a1b5-17e724bdbbca"
+#      value: "https://helseid-sts.test.nhn.no"
     - name: NHN_CLIENT_SCOPE
       value: "nhn:communicationparty/read"
     - name: NHN_CLIENT_GRANT_TYPE
