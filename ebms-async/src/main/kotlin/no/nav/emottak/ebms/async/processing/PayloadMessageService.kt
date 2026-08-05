@@ -11,6 +11,8 @@ import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.message.model.Direction
+import no.nav.emottak.message.model.ErrorCode
+import no.nav.emottak.message.model.Feil
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.util.marker
@@ -20,6 +22,10 @@ import no.nav.emottak.utils.common.model.PartyId
 import no.nav.emottak.utils.common.parseOrGenerateUuid
 import no.nav.emottak.utils.kafka.model.EventType
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PerMessageCharacteristicsType
+import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.SeverityType
+
+// Tjenester som ikke (lenger) støttes
+val DeprecatedServices = listOf("PasientlisteForesporsel")
 
 class PayloadMessageService(
     val cpaValidationService: CPAValidationService,
@@ -37,6 +43,20 @@ class PayloadMessageService(
         ebmsPayloadMessage: PayloadMessage
     ) {
         runCatching {
+            if (serviceNotSupported(ebmsPayloadMessage)) {
+                log.warn(ebmsPayloadMessage.marker(), "Rejecting message with NOT SUPPORTED service <${ebmsPayloadMessage.addressing.service}> and reference <${ebmsPayloadMessage.requestId}>")
+                val feilList = listOf(Feil(ErrorCode.NOT_SUPPORTED, "Service ${ebmsPayloadMessage.addressing.service} is not supported", SeverityType.ERROR.value(), false))
+                val messageError = ebmsPayloadMessage.createMessageError(feilList).also {
+                    eventRegistrationService.registerEventMessageDetails(it)
+                }
+                val validationResult = cpaValidationService.validateOutgoingMessage(messageError)
+                val responseDocument = messageError.toEbmsDokument()
+                val signingCertificate = validationResult.payloadProcessing?.signingCertificate
+                responseDocument.signer(signingCertificate!!)
+                sendSignalResponseToTopic(ebmsSignalProducer, eventRegistrationService, responseDocument, validationResult.signalEmailAddress)
+                log.info(messageError.marker(), "MessageError returned")
+                return@runCatching
+            }
             if (isDuplicateMessage(ebmsPayloadMessage)) {
                 log.info(ebmsPayloadMessage.marker(), "Got duplicate payload message with reference <${ebmsPayloadMessage.requestId}>")
             } else {
@@ -57,6 +77,10 @@ class PayloadMessageService(
             log.error(ebmsPayloadMessage.marker(), exception.message ?: "Message processing error", exception)
             retryService.incomingRetryEval(record = record, payloadMessage = ebmsPayloadMessage, exception = exception)
         }
+    }
+
+    private fun serviceNotSupported(ebmsPayloadMessage: PayloadMessage): Boolean {
+        return DeprecatedServices.contains(ebmsPayloadMessage.addressing.service)
     }
 
     suspend fun processOutboundResponse(
