@@ -3,6 +3,7 @@ package no.nav.emottak.cpa.configuration
 import no.nav.emottak.utils.config.EventLogging
 import no.nav.emottak.utils.config.Kafka
 import java.net.URI
+import java.time.Duration
 
 data class Config(
     val kafka: Kafka,
@@ -44,7 +45,8 @@ data class Nhn(
     val cpApiCommunicationPartyUrl: URI,
     val cpApiCertificateUrl: URI,
     val cpApiActive: Boolean,
-    val keyPairPath: KeyPairPath
+    val keyPairPath: KeyPairPath,
+    val cpApiCacheTtl: Duration = Duration.ofDays(1)
 ) {
     @JvmInline
     value class KeyPairPath(val value: String)
