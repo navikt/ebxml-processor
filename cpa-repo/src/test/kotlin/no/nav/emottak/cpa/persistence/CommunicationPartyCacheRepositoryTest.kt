@@ -30,6 +30,7 @@ class CommunicationPartyCacheRepositoryTest : PostgresTest() {
             CommunicationPartyCacheTable.deleteAll()
         }
     }
+
     @Test
     fun `returnerer null for HerId som ikke finnes i cache`() {
         val repository = CommunicationPartyCacheRepository(postgres)
