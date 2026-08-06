@@ -12,6 +12,7 @@ import io.mockk.mockkStatic
 import io.mockk.runs
 import io.mockk.slot
 import kotlinx.coroutines.runBlocking
+import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
 import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
 import no.nav.emottak.ebms.async.persistence.repository.MessagePendingAckRepository
 import no.nav.emottak.ebms.async.persistence.repository.MessageReceivedRepository
@@ -126,7 +127,16 @@ class PayloadMessageServiceTest {
     }
 
     @Test
-    fun `process should stop processing and return error response if service is nuot supported`() = runBlocking {
+    fun `process should stop processing and return error response if service is not supported`() = runBlocking {
+        // Må bruke ordentlig retryservice her, siden error response lages/sendes av den
+        retryService = RetryService(
+            cpaValidationService = cpaValidationService,
+            eventRegistrationService = eventRegistrationService,
+            failedMessageKafkaHandler = mockk<FailedMessageKafkaHandler>(),
+            signalSender = { ebmsDocument, signalResponderEmails ->
+                sendSignalResponseToTopic(ebmsSignalProducer, eventRegistrationService, ebmsDocument, signalResponderEmails)
+            }
+        )
         initService()
         val (payloadMessage, ebmsMessageSlots, fakeResult) = setupMocks(PerMessageCharacteristicsType.ALWAYS, true, givenService = "PasientlisteForesporsel")
 
@@ -140,6 +150,7 @@ class PayloadMessageServiceTest {
         coVerify(exactly = 1) { eventRegistrationService.registerEventMessageDetails(any()) }
         assertTrue(ebmsMessageSlots[0] is MessageError)
         assertType<MessageError>(ebmsMessageSlots, 0)
+        assertTrue((ebmsMessageSlots[0] as MessageError).toString().contains("Pasientliste utfaset"))
         coVerify(exactly = 1) { cpaValidationService.validateOutgoingMessage(any()) }
         coVerify(exactly = 1) {
             eventRegistrationService.runWithEvent(
