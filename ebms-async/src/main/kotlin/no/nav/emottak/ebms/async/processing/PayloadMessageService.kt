@@ -25,7 +25,7 @@ import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PerMessageCharact
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.SeverityType
 
 // Tjenester som ikke (lenger) støttes
-val DEPRECATED_SERVICE_PASIENTLISTEFORESPORSEL = Pair("PasientlisteForesporsel","Pasientliste utfaset siden 1. april 2026")
+val DEPRECATED_SERVICE_PASIENTLISTEFORESPORSEL = Pair("PasientlisteForesporsel", "Pasientliste utfaset siden 1. april 2026")
 
 class PayloadMessageService(
     val cpaValidationService: CPAValidationService,
@@ -69,7 +69,7 @@ class PayloadMessageService(
     private fun verifyServiceIsSupported(ebmsPayloadMessage: PayloadMessage) {
         if (DEPRECATED_SERVICE_PASIENTLISTEFORESPORSEL.first == ebmsPayloadMessage.addressing.service) {
             log.warn(ebmsPayloadMessage.marker(), "Rejecting message with NOT SUPPORTED service <${ebmsPayloadMessage.addressing.service}> and reference <${ebmsPayloadMessage.requestId}>")
-            throw EbmsException (
+            throw EbmsException(
                 message = DEPRECATED_SERVICE_PASIENTLISTEFORESPORSEL.second,
                 errorCode = ErrorCode.NOT_SUPPORTED,
                 severity = SeverityType.ERROR.value()!!,
