@@ -138,19 +138,22 @@ class PayloadMessageServiceTest {
             }
         )
         initService()
-        val (payloadMessage, ebmsMessageSlots, fakeResult) = setupMocks(PerMessageCharacteristicsType.ALWAYS, true, givenService = "PasientlisteForesporsel")
+        val (payloadMessage, ebmsMessageSlots, fakeResult) = setupMocks(PerMessageCharacteristicsType.ALWAYS, false, givenService = "PasientlisteForesporsel")
 
         service.process(setupReceiverRecordWithoutRetryCountMock(), payloadMessage)
 
-        coVerify(exactly = 0) { cpaValidationService.getDuplicateEliminationStrategy(payloadMessage) }
-        coVerify(exactly = 0) { messageReceivedRepository.isAcknowledged(payloadMessage) }
+        coVerify(exactly = 1) { cpaValidationService.getDuplicateEliminationStrategy(payloadMessage) }
+        coVerify(exactly = 1) { messageReceivedRepository.isAcknowledged(payloadMessage) }
         coVerify(exactly = 0) { messageReceivedRepository.messageAcknowledged(payloadMessage) }
         coVerify(exactly = 0) { processingService.processAsync(any(), any()) }
         coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithAsyncResponse(any()) }
-        coVerify(exactly = 1) { eventRegistrationService.registerEventMessageDetails(any()) }
-        assertTrue(ebmsMessageSlots[0] is MessageError)
-        assertType<MessageError>(ebmsMessageSlots, 0)
-        assertTrue((ebmsMessageSlots[0] as MessageError).toString().contains("Pasientliste utfaset"))
+        coVerify(exactly = 2) { eventRegistrationService.registerEventMessageDetails(any()) }
+        println(ebmsMessageSlots[0].toString())
+        assertTrue(ebmsMessageSlots[0] is PayloadMessage)
+        assertTrue(ebmsMessageSlots[1] is MessageError)
+        assertType<PayloadMessage>(ebmsMessageSlots, 0)
+        assertType<MessageError>(ebmsMessageSlots, 1)
+        assertTrue((ebmsMessageSlots[1] as MessageError).toString().contains("Pasientliste utfaset"))
         coVerify(exactly = 1) { cpaValidationService.validateOutgoingMessage(any()) }
         coVerify(exactly = 1) {
             eventRegistrationService.runWithEvent(

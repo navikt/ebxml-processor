@@ -43,11 +43,12 @@ class PayloadMessageService(
         ebmsPayloadMessage: PayloadMessage
     ) {
         runCatching {
-            verifyServiceIsSupported(ebmsPayloadMessage)
             if (isDuplicateMessage(ebmsPayloadMessage)) {
                 log.info(ebmsPayloadMessage.marker(), "Got duplicate payload message with reference <${ebmsPayloadMessage.requestId}>")
             } else {
                 messageReceivedRepository.messageReceived(ebmsPayloadMessage)
+                eventRegistrationService.registerEventMessageDetails(ebmsPayloadMessage)
+                verifyServiceIsSupported(ebmsPayloadMessage)
                 if (record.retryCount() > 0) {
                     eventRegistrationService.registerEvent(
                         eventType = EventType.RETRY_TRIGGED,
@@ -134,7 +135,6 @@ class PayloadMessageService(
 
     private suspend fun processPayloadMessage(ebmsPayloadMessage: PayloadMessage) {
         log.info(ebmsPayloadMessage.marker(), "Got payload message with reference <${ebmsPayloadMessage.requestId}>")
-        eventRegistrationService.registerEventMessageDetails(ebmsPayloadMessage)
         val validationResult = cpaValidationService.validateIncomingMessage(ebmsPayloadMessage)
         val (processedPayload, direction) = processingService.processAsync(ebmsPayloadMessage, validationResult.payloadProcessing)
         when (direction) {
