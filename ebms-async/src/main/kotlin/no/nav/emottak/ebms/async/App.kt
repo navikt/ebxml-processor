@@ -50,6 +50,7 @@ import no.nav.emottak.ebms.async.processing.SignalMessageService
 import no.nav.emottak.ebms.async.processing.sendSignalResponseToTopic
 import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.ebms.async.util.EventRegistrationServiceImpl
+import no.nav.emottak.ebms.async.util.durationUntil
 import no.nav.emottak.ebms.async.util.readableInterval
 import no.nav.emottak.ebms.defaultHttpClient
 import no.nav.emottak.ebms.processing.ProcessingService
@@ -67,11 +68,9 @@ import no.nav.emottak.utils.kafka.client.EventPublisherClient
 import no.nav.emottak.utils.kafka.service.EventLoggingService
 import no.nav.emottak.utils.serialization.LENIENT_JSON_PARSER
 import org.slf4j.LoggerFactory
-import java.time.LocalDateTime
-import java.time.LocalTime
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.concurrent.fixedRateTimer
 import kotlin.concurrent.timer
-import kotlin.time.Duration
-import kotlin.time.toKotlinDuration
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.async.App")
 
@@ -360,17 +359,21 @@ fun CoroutineScope.launchCleanupPayloadsTask(
     payloadRepository: PayloadRepository
 ) {
     if (!config.cleanupPayloadsJob.enabled) return
-
+    val cleanupPayloadsIsRunning = AtomicBoolean(false)
     val initialDelay = config.cleanupPayloadsJob.startAtTime.value.durationUntil()
     val readableInterval = config.cleanupPayloadsJob.fixedInterval.readableInterval()
     log.info("Delaying initial payload cleanup by ${initialDelay.readableInterval()}, running every $readableInterval after that")
-    timer(
+    fixedRateTimer(
         name = "Cleanup Payloads Timer Job",
         initialDelay = initialDelay.inWholeMilliseconds,
         period = config.cleanupPayloadsJob.fixedInterval.inWholeMilliseconds,
         daemon = true
     ) {
         launch(Dispatchers.IO) {
+            if (!cleanupPayloadsIsRunning.compareAndSet(false, true)) {
+                log.info("Previous CleanupPayloadsJob is still running, skip starting a new one.")
+                return@launch
+            }
             log.info("=== CleanupPayloadsJob starting...")
             try {
                 val deleted = payloadRepository.cleanupOldPayloads(
@@ -380,17 +383,11 @@ fun CoroutineScope.launchCleanupPayloadsTask(
                 log.info("CleanupPayloadsJob deleted $deleted payload(s) older than ${config.cleanupPayloadsJob.keepPayloadsDays.value} days")
             } catch (e: Exception) {
                 log.error("CleanupPayloadsJob failed", e)
+            } finally {
+                cleanupPayloadsIsRunning.set(false)
             }
         }
     }
-}
-
-/** Returnerer Duration (gjenstående tid) til neste gang klokka er det samme som LocalTime-objektet. */
-internal fun LocalTime.durationUntil(now: LocalDateTime = LocalDateTime.now()): Duration {
-    val nextRun = now.toLocalDate().atTime(this).let { todayRun ->
-        if (now.isBefore(todayRun)) todayRun else todayRun.plusDays(1)
-    }
-    return java.time.Duration.between(now, nextRun).toKotlinDuration()
 }
 
 fun CoroutineScope.launchMesssageResendTask(

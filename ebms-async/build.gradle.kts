@@ -85,6 +85,7 @@ dependencies {
     testImplementation(testLibs.mockk.dsl.jvm)
     testImplementation(testLibs.testcontainers.postgresql)
     testImplementation(testLibs.testcontainers.kafka)
+    testImplementation(testLibs.kotest.runner.junit5)
     testRuntimeOnly(testLibs.junit.jupiter.engine)
 }
 

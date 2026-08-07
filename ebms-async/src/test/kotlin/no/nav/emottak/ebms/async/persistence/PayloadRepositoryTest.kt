@@ -117,7 +117,7 @@ class PayloadRepositoryTest {
 
     @Test
     fun `cleanupOldPayloads should delete old payloads`() {
-        val insertPayloads = 5L
+        val insertPayloads = 15L
         for (i in 1..insertPayloads) {
             val payload = AsyncPayload(
                 referenceId = Uuid.random(),
