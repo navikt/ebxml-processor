@@ -109,21 +109,17 @@ spec:
       value: /secrets/oracle/creds
     - name: ORACLE_CONFIG_SECRET_PATH
       value: /secrets/oracle/config
-    - name: CPAPI_BASE_URL
-      value: https://cpapi.test.grunndata.nhn.no
-    - name: CPAPI_ACTIVE
-      value: "true"
     - name: NHN_KEYPAIR_PATH
       value: "/var/run/secrets/emottak-ar-klient-secret/key"
     - name: NHN_CLIENT_KEY_ID
       value: "xMd3Jezu0PaRNBIxUZK8j8wBh7N7Bc6c-9MOt5AchbU"
     - name: NHN_CLIENT_ID
       value: "ab926758-4a6f-41fa-9c69-9ae1dd095662"
-    - name: NHN_CLIENT_WELL_KNOWN_URL
-      value: "https://helseid-sts.test.nhn.no/.well-known/openid-configuration"
     - name: NHN_CLIENT_SCOPE
       value: "nhn:communicationparty/read"
     - name: NHN_CLIENT_GRANT_TYPE
       value: "client_credentials"
     - name: NHN_CLIENT_ASSERTION_TYPE
       value: "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+  envFrom:
+    - configmap: cpa-repo-config
