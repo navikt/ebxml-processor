@@ -10,7 +10,9 @@ import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.validation.CPAValidationService
+import no.nav.emottak.message.exception.EbmsException
 import no.nav.emottak.message.model.Direction
+import no.nav.emottak.message.model.ErrorCode
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.util.marker
@@ -20,6 +22,10 @@ import no.nav.emottak.utils.common.model.PartyId
 import no.nav.emottak.utils.common.parseOrGenerateUuid
 import no.nav.emottak.utils.kafka.model.EventType
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PerMessageCharacteristicsType
+import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.SeverityType
+
+// Tjenester som ikke (lenger) støttes
+val DEPRECATED_SERVICE_PASIENTLISTEFORESPORSEL = Pair("PasientlisteForesporsel", "Pasientliste utfaset siden 1. april 2026")
 
 class PayloadMessageService(
     val cpaValidationService: CPAValidationService,
@@ -41,6 +47,8 @@ class PayloadMessageService(
                 log.info(ebmsPayloadMessage.marker(), "Got duplicate payload message with reference <${ebmsPayloadMessage.requestId}>")
             } else {
                 messageReceivedRepository.messageReceived(ebmsPayloadMessage)
+                eventRegistrationService.registerEventMessageDetails(ebmsPayloadMessage)
+                verifyServiceIsSupported(ebmsPayloadMessage)
                 if (record.retryCount() > 0) {
                     eventRegistrationService.registerEvent(
                         eventType = EventType.RETRY_TRIGGED,
@@ -56,6 +64,18 @@ class PayloadMessageService(
         }.onFailure { exception ->
             log.error(ebmsPayloadMessage.marker(), exception.message ?: "Message processing error", exception)
             retryService.incomingRetryEval(record = record, payloadMessage = ebmsPayloadMessage, exception = exception)
+        }
+    }
+
+    private fun verifyServiceIsSupported(ebmsPayloadMessage: PayloadMessage) {
+        if (DEPRECATED_SERVICE_PASIENTLISTEFORESPORSEL.first == ebmsPayloadMessage.addressing.service) {
+            log.warn(ebmsPayloadMessage.marker(), "Rejecting message with NOT SUPPORTED service <${ebmsPayloadMessage.addressing.service}> and reference <${ebmsPayloadMessage.requestId}>")
+            throw EbmsException(
+                message = DEPRECATED_SERVICE_PASIENTLISTEFORESPORSEL.second,
+                errorCode = ErrorCode.NOT_SUPPORTED,
+                severity = SeverityType.ERROR.value()!!,
+                recoverable = false
+            )
         }
     }
 
@@ -115,7 +135,6 @@ class PayloadMessageService(
 
     private suspend fun processPayloadMessage(ebmsPayloadMessage: PayloadMessage) {
         log.info(ebmsPayloadMessage.marker(), "Got payload message with reference <${ebmsPayloadMessage.requestId}>")
-        eventRegistrationService.registerEventMessageDetails(ebmsPayloadMessage)
         val validationResult = cpaValidationService.validateIncomingMessage(ebmsPayloadMessage)
         val (processedPayload, direction) = processingService.processAsync(ebmsPayloadMessage, validationResult.payloadProcessing)
         when (direction) {
