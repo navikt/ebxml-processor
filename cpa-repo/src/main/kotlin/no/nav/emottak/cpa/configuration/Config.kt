@@ -8,10 +8,28 @@ import java.time.Duration
 data class Config(
     val kafka: Kafka,
     val eventLogging: EventLogging,
-    val nhnOAuth: NhnOAuth,
+    val nhnOAuth: NhnOAuthConfig,
     val nhn: Nhn
 )
 
+/**
+ * OAuth settings as loaded from configuration. [audience] and [tokenEndpoint] are deliberately not
+ * part of this class - they are derived at runtime from the OpenID discovery document found at
+ * [wellKnownUrl], see [NhnOAuthConfig.resolve].
+ */
+data class NhnOAuthConfig(
+    val keyId: NhnOAuth.KeyId,
+    val clientId: NhnOAuth.ClientId,
+    val wellKnownUrl: URI,
+    val scope: NhnOAuth.Scope,
+    val grantType: NhnOAuth.GrantType,
+    val clientAssertionType: NhnOAuth.ClientAssertionType
+)
+
+/**
+ * Fully resolved OAuth settings, ready to be used to authenticate against NHN. [audience] and
+ * [tokenEndpoint] are resolved from the OpenID discovery document, see [NhnOAuthConfig.resolve].
+ */
 data class NhnOAuth(
     val keyId: KeyId,
     val clientId: ClientId,
