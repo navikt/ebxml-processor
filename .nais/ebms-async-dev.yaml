@@ -66,6 +66,8 @@ spec:
       rules:
         - application: smtp-transport
   env:
+    - name: TZ
+      value: Europe/Oslo
     - name: KEYSTORE_FILE_SIGN_2025
       value: /var/run/secrets/ebms-keystore-2025/nav_signing_test.p12
     - name: EMOTTAK_LOGGING_LEVEL
