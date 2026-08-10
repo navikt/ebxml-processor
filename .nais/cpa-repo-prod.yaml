@@ -115,3 +115,5 @@ spec:
       value: "client_credentials"
     - name: NHN_CLIENT_ASSERTION_TYPE
       value: "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+  envFrom:
+    - configmap: cpa-repo-config
