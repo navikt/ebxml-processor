@@ -50,6 +50,8 @@ import no.nav.emottak.ebms.async.processing.SignalMessageService
 import no.nav.emottak.ebms.async.processing.sendSignalResponseToTopic
 import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.ebms.async.util.EventRegistrationServiceImpl
+import no.nav.emottak.ebms.async.util.durationUntil
+import no.nav.emottak.ebms.async.util.readableInterval
 import no.nav.emottak.ebms.defaultHttpClient
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.registerHealthEndpoints
@@ -66,6 +68,8 @@ import no.nav.emottak.utils.kafka.client.EventPublisherClient
 import no.nav.emottak.utils.kafka.service.EventLoggingService
 import no.nav.emottak.utils.serialization.LENIENT_JSON_PARSER
 import org.slf4j.LoggerFactory
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.concurrent.fixedRateTimer
 import kotlin.concurrent.timer
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.async.App")
@@ -180,6 +184,10 @@ fun main() = SuspendApp {
                 messagePendingAckRepository = messagePendingAckRepository,
                 payloadMessageForwardingService = payloadMessageForwardingService,
                 meterRegistry = appMicrometerRegistry
+            )
+            launchCleanupPayloadsTask(
+                config = config,
+                payloadRepository = payloadRepository
             )
 
             server(
@@ -341,6 +349,42 @@ fun CoroutineScope.launchErrorRetryTaskOutgoing(
                 )
             } catch (e: Exception) {
                 log.error("RetryErrorsTaskOutgoing failed", e)
+            }
+        }
+    }
+}
+
+fun CoroutineScope.launchCleanupPayloadsTask(
+    config: Config,
+    payloadRepository: PayloadRepository
+) {
+    if (!config.cleanupPayloadsJob.enabled) return
+    val cleanupPayloadsIsRunning = AtomicBoolean(false)
+    val initialDelay = config.cleanupPayloadsJob.startAtTime.value.durationUntil()
+    val readableInterval = config.cleanupPayloadsJob.fixedInterval.readableInterval()
+    log.info("Delaying initial payload cleanup by ${initialDelay.readableInterval()}, running every $readableInterval after that")
+    fixedRateTimer(
+        name = "Cleanup Payloads Timer Job",
+        initialDelay = initialDelay.inWholeMilliseconds,
+        period = config.cleanupPayloadsJob.fixedInterval.inWholeMilliseconds,
+        daemon = true
+    ) {
+        launch(Dispatchers.IO) {
+            if (!cleanupPayloadsIsRunning.compareAndSet(false, true)) {
+                log.info("Previous CleanupPayloadsJob is still running, skip starting a new one.")
+                return@launch
+            }
+            log.info("=== CleanupPayloadsJob starting...")
+            try {
+                val deleted = payloadRepository.cleanupOldPayloads(
+                    config.cleanupPayloadsJob.keepPayloadsDays.value,
+                    config.cleanupPayloadsJob.batchSize.value.toInt()
+                )
+                log.info("CleanupPayloadsJob deleted $deleted payload(s) older than ${config.cleanupPayloadsJob.keepPayloadsDays.value} days")
+            } catch (e: Exception) {
+                log.error("CleanupPayloadsJob failed", e)
+            } finally {
+                cleanupPayloadsIsRunning.set(false)
             }
         }
     }

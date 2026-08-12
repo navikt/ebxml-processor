@@ -1,5 +1,7 @@
 package no.nav.emottak.ebms.async.persistence.repository
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.asExecutor
 import no.nav.emottak.ebms.async.persistence.Database
 import no.nav.emottak.ebms.async.persistence.table.PayloadTable
 import no.nav.emottak.ebms.async.persistence.table.PayloadTable.contentId
@@ -40,6 +42,24 @@ class PayloadRepository(private val database: Database) {
                         it[PayloadTable.content]
                     )
                 }
+        }
+    }
+
+    /**
+     * Deletes payloads older than [keepDays], in batches of [batchSize], until no more
+     * matching rows remain. Returns the total number of deleted payloads.
+     */
+    fun cleanupOldPayloads(keepDays: Int, batchSize: Int): Long {
+        database.dataSource.connection.use { connection ->
+            connection.autoCommit = true
+            connection.setNetworkTimeout(Dispatchers.IO.asExecutor(), 0)
+            connection.prepareCall("CALL delete_old_payloads(?, ?, ?)").use { stmt ->
+                stmt.setInt(1, keepDays)
+                stmt.setInt(2, batchSize)
+                stmt.registerOutParameter(3, java.sql.Types.BIGINT)
+                stmt.executeUpdate()
+                return stmt.getLong(3)
+            }
         }
     }
 }

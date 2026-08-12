@@ -66,6 +66,8 @@ spec:
       rules:
         - application: smtp-transport
   env:
+    - name: TZ
+      value: Europe/Oslo
     - name: VIRKSOMHETSSERTIFIKAT_PATH
       value: /secret/virksomhetssertifikat/prod/Arbeids-og-velferdsetaten
     - name: VIRKSOMHETSSERTIFIKAT_SIGNERING_2022
