@@ -171,6 +171,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
             install(ContentNegotiation) {
                 jsonLenient()
             }
+            installCpaRepoAuthentication()
         }
         val response = runValidateCpa(
             httpClient,
@@ -197,6 +198,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
             install(ContentNegotiation) {
                 jsonLenient()
             }
+            installCpaRepoAuthentication()
         }
         val response = runValidateCpa(
             httpClient,
@@ -221,6 +223,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
             install(ContentNegotiation) {
                 jsonLenient()
             }
+            installCpaRepoAuthentication()
         }
         val response = runValidateCpa(
             httpClient,
@@ -248,6 +251,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
             install(ContentNegotiation) {
                 jsonLenient()
             }
+            installCpaRepoAuthentication()
         }
         val response = runValidateCpa(
             httpClient,
@@ -279,6 +283,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
             install(ContentNegotiation) {
                 jsonLenient()
             }
+            installCpaRepoAuthentication()
         }
         val response = runValidateCpa(
             httpClient,
@@ -306,6 +311,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
             install(ContentNegotiation) {
                 jsonLenient()
             }
+            installCpaRepoAuthentication()
         }
         val response = runValidateCpa(
             httpClient,
@@ -662,6 +668,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
             install(ContentNegotiation) {
                 jsonLenient()
             }
+            installCpaRepoAuthentication()
         }
 
         var lastUsedMap = getLastUsedMap(httpClient)

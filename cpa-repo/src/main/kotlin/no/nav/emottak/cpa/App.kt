@@ -96,7 +96,6 @@ fun cpaApplicationModule(
         routing {
             if (oracleDb != null) {
                 partnerId(PartnerRepository(oracleDb), cpaRepository)
-                validateCpa(cpaRepository, PartnerRepository(oracleDb), eventRegistrationService, adresseregisterValidator)
             }
             getCPA(cpaRepository)
             getCpaView(cpaRepository)
@@ -118,6 +117,9 @@ fun cpaApplicationModule(
             if (canInitAuthenticatedRoutes().also { log.info("INIT AZURE ENDPOINTS: [$it]") }) {
                 authenticate(AZURE_AD_AUTH) {
                     whoAmI()
+                    if (oracleDb != null) {
+                        validateCpa(cpaRepository, PartnerRepository(oracleDb), eventRegistrationService, adresseregisterValidator)
+                    }
                     deleteCpa(cpaRepository)
                     deleteAllCPA(cpaRepository)
                     postCpa(cpaRepository)

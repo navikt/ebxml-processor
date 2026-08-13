@@ -23,6 +23,7 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.launch
 import no.nav.emottak.ebms.AZURE_AD_AUTH
 import no.nav.emottak.ebms.CpaRepoClient
+import no.nav.emottak.ebms.EBMS_CPA_REPO_SCOPE
 import no.nav.emottak.ebms.EBMS_PAYLOAD_SCOPE
 import no.nav.emottak.ebms.EBMS_SEND_IN_SCOPE
 import no.nav.emottak.ebms.PayloadProcessingClient
@@ -52,7 +53,6 @@ import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.ebms.async.util.EventRegistrationServiceImpl
 import no.nav.emottak.ebms.async.util.durationUntil
 import no.nav.emottak.ebms.async.util.readableInterval
-import no.nav.emottak.ebms.defaultHttpClient
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.registerHealthEndpoints
 import no.nav.emottak.ebms.registerNavCheckStatus
@@ -90,7 +90,7 @@ fun main() = SuspendApp {
         httpClient = PayloadProcessingClient(scopedAuthHttpClient(EBMS_PAYLOAD_SCOPE))
     )
     val cpaValidationService = CPAValidationService(
-        httpClient = CpaRepoClient(defaultHttpClient())
+        httpClient = CpaRepoClient(scopedAuthHttpClient(EBMS_CPA_REPO_SCOPE))
     )
     val sendInService = SendInService(
         httpClient = SendInClient(scopedAuthHttpClient(EBMS_SEND_IN_SCOPE))
