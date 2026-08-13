@@ -24,7 +24,7 @@ dependencyResolutionManagement {
             version("logback", "1.5.17")
             version("logstash", "8.0")
             version("fasterxml-jackson", "2.18.2")
-            version("jwt", "4.4.0")
+            version("jwt", "4.6.0")
             version("emottak-utils", "0.4.0")
 
             library("jwt", "com.auth0", "java-jwt").versionRef("jwt")

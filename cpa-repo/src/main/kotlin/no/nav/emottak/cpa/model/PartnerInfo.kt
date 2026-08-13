@@ -54,7 +54,7 @@ data class Type(
     val codeListID: String? = null,
     val value: String,
     val name: String? = null,
-    val url: String
+    val url: String? = null
 )
 
 @Serializable

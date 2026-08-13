@@ -22,6 +22,7 @@ import no.nav.emottak.cpa.auth.AuthConfig
 import no.nav.emottak.cpa.configuration.config
 import no.nav.emottak.cpa.nhn.adresseregisteret.nhnArHttpClient
 import no.nav.emottak.cpa.persistence.CPARepository
+import no.nav.emottak.cpa.persistence.CommunicationPartyCacheRepository
 import no.nav.emottak.cpa.persistence.Database
 import no.nav.emottak.cpa.persistence.cpaDbConfig
 import no.nav.emottak.cpa.persistence.cpaMigrationConfig
@@ -57,7 +58,8 @@ fun main() {
     val adresseregisterValidator = if (config.nhn.cpApiActive) {
         AdresseregisterValidator(
             httpClient = nhnArHttpClient(config.nhnOAuth, config.nhn),
-            nhnConfig = config.nhn
+            nhnConfig = config.nhn,
+            cache = CommunicationPartyCacheRepository(Database(cpaDbConfig.value), config.nhn.cpApiCacheTtl)
         )
     } else {
         null

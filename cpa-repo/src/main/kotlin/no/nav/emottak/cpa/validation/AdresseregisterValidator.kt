@@ -11,23 +11,37 @@ import no.nav.emottak.cpa.configuration.config
 import no.nav.emottak.cpa.log
 import no.nav.emottak.cpa.model.Certificate
 import no.nav.emottak.cpa.model.CommunicationParty
+import no.nav.emottak.cpa.persistence.CommunicationPartyCacheRepository
 
 class AdresseregisterValidator(
     val httpClient: HttpClient,
-    nhnConfig: Nhn = config.nhn
+    nhnConfig: Nhn = config.nhn,
+    private val cache: CommunicationPartyCacheRepository? = null
 ) {
     private val cpapiCommunicationPartyUrl = nhnConfig.cpApiCommunicationPartyUrl
     private val cpapiCertificateUrl = nhnConfig.cpApiCertificateUrl
     val cpapiActive = nhnConfig.cpApiActive
 
-    suspend fun getCommunicationParty(herId: String): CommunicationParty =
-        httpClient.getDataFromArAPI("$cpapiCommunicationPartyUrl/$herId").body<CommunicationParty>()
+    suspend fun getCommunicationParty(herId: String): CommunicationParty {
+        cache?.findCommunicationParty(herId.toLong())?.let { return it }
+        return httpClient.getDataFromArAPI("$cpapiCommunicationPartyUrl/$herId")
+            .body<CommunicationParty>()
+            .also { cache?.upsertCommunicationParty(herId.toLong(), it) }
+    }
 
-    suspend fun getSigningCertificate(herId: String): Certificate =
-        httpClient.getDataFromArAPI("$cpapiCertificateUrl/$herId/signing").body<Certificate>()
+    suspend fun getSigningCertificate(herId: String): Certificate {
+        cache?.findSigningCertificate(herId.toLong())?.let { return it }
+        return httpClient.getDataFromArAPI("$cpapiCertificateUrl/$herId/signing")
+            .body<Certificate>()
+            .also { cache?.upsertSigningCertificate(herId.toLong(), it) }
+    }
 
-    suspend fun getEncryptionCertificate(herId: String): Certificate =
-        httpClient.getDataFromArAPI("$cpapiCertificateUrl/$herId/encryption").body<Certificate>()
+    suspend fun getEncryptionCertificate(herId: String): Certificate {
+        cache?.findEncryptionCertificate(herId.toLong())?.let { return it }
+        return httpClient.getDataFromArAPI("$cpapiCertificateUrl/$herId/encryption")
+            .body<Certificate>()
+            .also { cache?.upsertEncryptionCertificate(herId.toLong(), it) }
+    }
 
     suspend fun getEdiAddress(herId: String): String? = getCommunicationParty(herId).ediAddress
 

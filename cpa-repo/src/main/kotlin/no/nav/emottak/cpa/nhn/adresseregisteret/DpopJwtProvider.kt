@@ -2,7 +2,7 @@ package no.nav.emottak.cpa.nhn.adresseregisteret
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
-import com.nimbusds.jose.JWSAlgorithm.RS256
+import com.nimbusds.jose.JWSAlgorithm.PS256
 import com.nimbusds.jose.JWSHeader
 import com.nimbusds.jose.crypto.RSASSASigner
 import com.nimbusds.jose.jwk.RSAKey
@@ -70,7 +70,7 @@ class DpopJwtProvider(
             .withHeader(
                 mapOf(
                     "typ" to "client-authentication+jwt",
-                    "alg" to "RS256",
+                    "alg" to "PS256",
                     "kid" to nhnOAuth.keyId.value
                 )
             )
@@ -78,9 +78,10 @@ class DpopJwtProvider(
             .withSubject(nhnOAuth.clientId.value)
             .withAudience(nhnOAuth.audience.value)
             .withJWTId(Uuid.random().toString())
+            .withNotBefore(from(now))
             .withIssuedAt(from(now))
             .withExpiresAt(from(now.plusSeconds(60)))
-            .sign(Algorithm.RSA256(parseKeyPair(nhn.keyPairPath.value).toRSAPrivateKey()))
+            .sign(Algorithm.RSA256PSS(parseKeyPair(nhn.keyPairPath.value).toRSAPrivateKey()))
     }
 
     private fun dpopProof(
@@ -119,7 +120,7 @@ class DpopJwtProvider(
 
     private fun jwsHeader(publicRSAJwk: RSAKey): JWSHeader =
         JWSHeader
-            .Builder(RS256)
+            .Builder(PS256)
             .type(TYPE)
             .jwk(publicRSAJwk.toPublicJWK())
             .build()
@@ -130,7 +131,7 @@ class DpopJwtProvider(
                 parseKeyPair(nhn.keyPairPath.value)
                     .toRSAPublicKey()
             )
-            .algorithm(RS256)
+            .algorithm(PS256)
             .build()
 
     internal fun accessTokenHash(accessToken: String): String =
