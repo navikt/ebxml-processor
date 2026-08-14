@@ -171,6 +171,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
             install(ContentNegotiation) {
                 jsonLenient()
             }
+            installCpaRepoAuthentication()
         }
         val response = runValidateCpa(
             httpClient,
@@ -197,6 +198,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
             install(ContentNegotiation) {
                 jsonLenient()
             }
+            installCpaRepoAuthentication()
         }
         val response = runValidateCpa(
             httpClient,
@@ -221,6 +223,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
             install(ContentNegotiation) {
                 jsonLenient()
             }
+            installCpaRepoAuthentication()
         }
         val response = runValidateCpa(
             httpClient,
@@ -248,6 +251,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
             install(ContentNegotiation) {
                 jsonLenient()
             }
+            installCpaRepoAuthentication()
         }
         val response = runValidateCpa(
             httpClient,
@@ -279,6 +283,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
             install(ContentNegotiation) {
                 jsonLenient()
             }
+            installCpaRepoAuthentication()
         }
         val response = runValidateCpa(
             httpClient,
@@ -306,6 +311,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
             install(ContentNegotiation) {
                 jsonLenient()
             }
+            installCpaRepoAuthentication()
         }
         val response = runValidateCpa(
             httpClient,
@@ -662,6 +668,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
             install(ContentNegotiation) {
                 jsonLenient()
             }
+            installCpaRepoAuthentication()
         }
 
         var lastUsedMap = getLastUsedMap(httpClient)
@@ -843,6 +850,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
             install(ContentNegotiation) {
                 jsonLenient()
             }
+            installCpaRepoAuthentication()
         }
 
         val url = "/cpa/adresseregister/her/8141253"
@@ -859,6 +867,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
             install(ContentNegotiation) {
                 jsonLenient()
             }
+            installCpaRepoAuthentication()
         }
 
         val url = "/cpa/adresseregister/her/8141253/signing"
@@ -876,6 +885,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
             install(ContentNegotiation) {
                 jsonLenient()
             }
+            installCpaRepoAuthentication()
         }
 
         val url = "/cpa/adresseregister/her/8141253/encryption"
@@ -893,6 +903,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
             install(ContentNegotiation) {
                 jsonLenient()
             }
+            installCpaRepoAuthentication()
         }
         val response = httpClient.get("/cpa/nav:qass:350652")
         if (response.status == HttpStatusCode.NotFound) {
@@ -921,6 +932,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
             install(ContentNegotiation) {
                 jsonLenient()
             }
+            installCpaRepoAuthentication()
         }
 
         val response = httpClient.post("/signing/certificate") {

@@ -119,6 +119,10 @@ val SMTP_TRANSPORT_SCOPE = getEnvVar(
     "SMTP_TRANSPORT_SCOPE",
     "api://" + getEnvVar("NAIS_CLUSTER_NAME", "dev-fss") + ".team-emottak.smtp-transport/.default"
 )
+val EBMS_CPA_REPO_SCOPE = getEnvVar(
+    "EBMS_CPA_REPO_SCOPE",
+    "api://" + getEnvVar("NAIS_CLUSTER_NAME", "dev-fss") + ".team-emottak.cpa-repo/.default"
+)
 
 fun defaultHttpClient(): () -> HttpClient {
     return {

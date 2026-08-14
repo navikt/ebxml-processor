@@ -96,7 +96,6 @@ fun cpaApplicationModule(
         routing {
             if (oracleDb != null) {
                 partnerId(PartnerRepository(oracleDb), cpaRepository)
-                validateCpa(cpaRepository, PartnerRepository(oracleDb), eventRegistrationService, adresseregisterValidator)
             }
             getCPA(cpaRepository)
             getCpaView(cpaRepository)
@@ -108,16 +107,19 @@ fun cpaApplicationModule(
             getEncryptionCertificate(cpaRepository)
             getSigningCertificate(cpaRepository, adresseregisterValidator)
             getMessagingCharacteristics(cpaRepository)
-            if (adresseregisterValidator != null) {
-                getAdresseregisterData(adresseregisterValidator)
-                getARSignCertificate(adresseregisterValidator)
-                getAREncryptCertificate(adresseregisterValidator)
-            }
             registerHealthEndpoints(appMicrometerRegistry, cpaRepository)
 
             if (canInitAuthenticatedRoutes().also { log.info("INIT AZURE ENDPOINTS: [$it]") }) {
                 authenticate(AZURE_AD_AUTH) {
                     whoAmI()
+                    if (oracleDb != null) {
+                        validateCpa(cpaRepository, PartnerRepository(oracleDb), eventRegistrationService, adresseregisterValidator)
+                    }
+                    if (adresseregisterValidator != null) {
+                        getAdresseregisterData(adresseregisterValidator)
+                        getARSignCertificate(adresseregisterValidator)
+                        getAREncryptCertificate(adresseregisterValidator)
+                    }
                     deleteCpa(cpaRepository)
                     deleteAllCPA(cpaRepository)
                     postCpa(cpaRepository)
