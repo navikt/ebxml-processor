@@ -106,6 +106,7 @@ fun cpaApplicationModule(
             getTimeStampsLastUsed(cpaRepository)
             getEncryptionCertificate(cpaRepository)
             getSigningCertificate(cpaRepository, adresseregisterValidator)
+            getCertificates(cpaRepository)
             getMessagingCharacteristics(cpaRepository)
             registerHealthEndpoints(appMicrometerRegistry, cpaRepository)
 

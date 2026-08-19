@@ -38,14 +38,14 @@ class SignalMessageServiceTest {
             attachments = emptyList()
         ).transform() as Acknowledgment
 
-        coEvery { cpaValidationService.validateIncomingMessage(acknowledgment) } returns mockk(relaxed = true)
+        coEvery { cpaValidationService.validateIncomingSignalSignature(acknowledgment) } returns mockk(relaxed = true)
         coEvery { messagePendingAckRepository.registerAckForMessage(any()) } returns mockk(relaxed = true)
 
         runBlocking {
             signalMessageService.processSignal(requestId, acknowledgment)
         }
 
-        coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(acknowledgment) }
+        coVerify(exactly = 1) { cpaValidationService.validateIncomingSignalSignature(acknowledgment) }
         coVerify(exactly = 1) { signalMessageService.processAcknowledgment(acknowledgment) }
         coVerify(exactly = 1) { messagePendingAckRepository.registerAckForMessage(acknowledgment.refToMessageId) }
     }
@@ -64,13 +64,13 @@ class SignalMessageServiceTest {
             attachments = emptyList()
         ).transform() as MessageError
 
-        coEvery { cpaValidationService.validateIncomingMessage(messageError) } returns mockk(relaxed = true)
+        coEvery { cpaValidationService.validateIncomingSignalSignature(messageError) } returns mockk(relaxed = true)
 
         runBlocking {
             signalMessageService.processSignal(requestId, messageError)
         }
 
-        coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(messageError) }
+        coVerify(exactly = 1) { cpaValidationService.validateIncomingSignalSignature(messageError) }
         coVerify(exactly = 1) { signalMessageService.processMessageError(messageError) }
     }
 

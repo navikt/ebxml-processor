@@ -22,6 +22,35 @@ val log = LoggerFactory.getLogger("no.nav.emottak.ebms.validation.CPAValidationS
 
 open class CPAValidationService(val httpClient: CpaRepoClient) {
 
+    suspend fun validateIncomingSignalSignature(signalMessage: EbmsMessage) {
+        val partyCertificates = withContext(Dispatchers.IO) {
+            httpClient.getPartyCertificates(signalMessage.cpaId)
+        }
+
+        val failures = mutableListOf<Throwable>()
+        for (cert in partyCertificates) {
+            val signatureDetails = cert.signatureDetails ?: continue
+            runCatching {
+                signalMessage.validateSignature(signatureDetails)
+            }.onSuccess {
+                log.info("Signatursjekk OK for signalmelding ${signalMessage.messageId}")
+                return
+            }.onFailure {
+                failures.add(it)
+            }
+        }
+
+        if (failures.isNotEmpty()) {
+            throw EbmsException(
+                listOf(Feil(ErrorCode.SECURITY_FAILURE, "Signaturvalidering feilet for signalmelding ${signalMessage.messageId}")),
+                failures.first()
+            )
+        }
+        throw EbmsException(
+            listOf(Feil(ErrorCode.SECURITY_FAILURE, "Ingen signeringssertifikater funnet for signalmelding ${signalMessage.messageId}"))
+        )
+    }
+
     suspend fun validateIncomingMessage(message: EbmsMessage): ValidationResult =
         getValidationResult(IN, message).also {
             validateResult(
