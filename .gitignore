@@ -38,7 +38,6 @@ build/
 
 # Ignore Gradle build output directory
 build
-buildSrc/
 ebms-provider/out/
 cpa-repo/out/
 felles/out/
