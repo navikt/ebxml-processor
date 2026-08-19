@@ -22,10 +22,10 @@ import no.nav.emottak.payload.helseid.util.OpenIdConfigProvider
 import no.nav.emottak.payload.helseid.util.XPathEvaluator
 import no.nav.emottak.payload.helseid.util.msgHeadNamespaceContext
 import no.nav.emottak.payload.log
-import no.nav.emottak.utils.common.zoneOslo
 import org.w3c.dom.Document
 import java.text.ParseException
 import java.time.Instant
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Base64
 import java.util.Date
@@ -99,7 +99,11 @@ class HelseIdTokenValidator(
         }
         claims.issueTime?.let { iat ->
             if (messageGenerationDate.time > iat.time + allowedClockSkewInMs + allowedMessageGenerationGapInMs) {
-                error("Message generation time should be within ${allowedMessageGenerationGapInMs / 1000} seconds after token issued time")
+                error(
+                    "Message generation time ${timePrefix(messageGenerationDate)}" +
+                        " should be within ${allowedMessageGenerationGapInMs / 1000} seconds after" +
+                        " token issued time ${timePrefix(iat)}"
+                )
             }
         }
         claims.expirationTime?.let { exp ->
@@ -159,7 +163,7 @@ class HelseIdTokenValidator(
         private val DATE_FMT: DateTimeFormatter =
             DateTimeFormatter
                 .ofPattern("EEE MMM dd HH:mm:ss zzz yyyy", Locale.US)
-                .withZone(zoneOslo())
+                .withZone(ZoneId.of("Europe/Oslo"))
         private val SUPPORTED_ALGORITHMS = listOf(
             JWSAlgorithm.RS256,
             JWSAlgorithm.RS384,
