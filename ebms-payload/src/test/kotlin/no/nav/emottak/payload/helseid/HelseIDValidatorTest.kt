@@ -20,8 +20,8 @@ import no.nav.emottak.payload.helseid.testutils.HelseIDCreator
 import no.nav.emottak.payload.helseid.testutils.ResourceUtil
 import no.nav.emottak.payload.helseid.testutils.SecurityUtils
 import no.nav.emottak.payload.helseid.testutils.XMLUtil
-import org.hamcrest.CoreMatchers.`is`
 import org.hamcrest.CoreMatchers.containsString
+import org.hamcrest.CoreMatchers.`is`
 import org.hamcrest.CoreMatchers.notNullValue
 import org.hamcrest.CoreMatchers.nullValue
 import org.hamcrest.MatcherAssert.assertThat
