@@ -21,6 +21,7 @@ import no.nav.emottak.payload.helseid.testutils.ResourceUtil
 import no.nav.emottak.payload.helseid.testutils.SecurityUtils
 import no.nav.emottak.payload.helseid.testutils.XMLUtil
 import org.hamcrest.CoreMatchers.`is`
+import org.hamcrest.CoreMatchers.containsString
 import org.hamcrest.CoreMatchers.notNullValue
 import org.hamcrest.CoreMatchers.nullValue
 import org.hamcrest.MatcherAssert.assertThat
@@ -36,6 +37,7 @@ import java.time.Instant
 import java.time.OffsetDateTime
 import java.util.Base64
 import java.util.Date
+import java.util.TimeZone
 import java.util.concurrent.TimeUnit
 import kotlin.test.assertTrue
 
@@ -183,11 +185,43 @@ internal class HelseIDValidatorTest {
 
     @Test
     fun `validate helseID with long message generation lag`() {
-        validateHomeMadeHelseId(
-            validator,
-            messageGenerationLagSec = 20,
-            errMsg = "Message generation time should be within 10 seconds after token issued time"
-        )
+        val t = assertThrows<RuntimeException> {
+            validateHomeMadeHelseId(
+                validator,
+                messageGenerationLagSec = 20
+            )
+        }
+        assertThat(t.message, containsString("Message generation time"))
+        assertThat(t.message, containsString("should be within 10 seconds after"))
+        assertThat(t.message, containsString("token issued time"))
+    }
+
+    @Test
+    fun `validate helseID error timestamps are always formatted in Europe-Oslo timezone`() {
+        val defaultTimeZone = TimeZone.getDefault()
+        val osloAbbreviation = java.time.format.DateTimeFormatter
+            .ofPattern("zzz", java.util.Locale.US)
+            .withZone(java.time.ZoneId.of("Europe/Oslo"))
+            .format(Instant.now())
+        val newYorkAbbreviation = java.time.format.DateTimeFormatter
+            .ofPattern("zzz", java.util.Locale.US)
+            .withZone(java.time.ZoneId.of("America/New_York"))
+            .format(Instant.now())
+        try {
+            // Set the JVM default timezone to something other than Europe/Oslo to verify
+            // that timestamps in error messages are not affected by the system default timezone.
+            TimeZone.setDefault(TimeZone.getTimeZone("America/New_York"))
+            val t = assertThrows<RuntimeException> {
+                validateHomeMadeHelseId(
+                    validator,
+                    messageGenerationLagSec = 20
+                )
+            }
+            assertThat(t.message, containsString(osloAbbreviation))
+            assertThat(t.message, org.hamcrest.CoreMatchers.not(containsString(newYorkAbbreviation)))
+        } finally {
+            TimeZone.setDefault(defaultTimeZone)
+        }
     }
 
     @Suppress("LongParameterList")
