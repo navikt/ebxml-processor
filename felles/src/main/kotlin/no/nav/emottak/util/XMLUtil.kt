@@ -1,7 +1,7 @@
 package no.nav.emottak.util
 
 import no.nav.emottak.message.model.SignatureDetails
-import no.nav.emottak.util.signatur.SignatureException
+import no.nav.emottak.validering.signatur.SignatureException
 import org.apache.xml.security.signature.XMLSignature
 import org.apache.xml.security.utils.Constants
 import org.w3c.dom.Document

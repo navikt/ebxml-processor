@@ -6,10 +6,12 @@ import io.ktor.client.request.get
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
+import io.mockk.mockk
 import no.nav.emottak.cpa.databasetest.PostgresOracleTest
 import no.nav.emottak.cpa.persistence.gammel.PARTNER_CPA
 import no.nav.emottak.cpa.util.EventRegistrationServiceFake
 import no.nav.emottak.util.jsonLenient
+import no.nav.emottak.validering.sertifikat.SertifikatValidator
 import org.jetbrains.exposed.v1.jdbc.deleteAll
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
@@ -37,6 +39,7 @@ class PartnerIntegrationTest : PostgresOracleTest() {
 
     fun <T> cpaRepoTestApp(testBlock: suspend ApplicationTestBuilder.() -> T) = testApplication {
         val eventRegistrationService = EventRegistrationServiceFake()
+        val sertifikatValidator = mockk<SertifikatValidator>()
 
         application(
             cpaApplicationModule(
@@ -44,7 +47,8 @@ class PartnerIntegrationTest : PostgresOracleTest() {
                 postgres.dataSource,
                 oracle.dataSource,
                 eventRegistrationService,
-                null
+                null,
+                sertifikatValidator
             )
         )
         testBlock()
