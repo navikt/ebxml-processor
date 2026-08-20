@@ -27,6 +27,7 @@ import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
 import kotlin.uuid.Uuid
+import no.nav.emottak.ebms.async.kafka.consumer.REASON_FORCED_RETRY
 
 private const val REFERENCE_ID = "referenceId"
 private const val RETRY_LIMIT = "retryLimit"
@@ -274,7 +275,7 @@ fun Route.forceRetryMessageIn(
             )
             retryService.failedMessageKafkaHandler.sendToRetryQueueIncoming(
                 record = record ?: throw Exception("No Record found. Offset: ${call.parameters[KAFKA_OFFSET]}"),
-                reason = "Forced Retry"
+                reason = REASON_FORCED_RETRY
             )
             call.respondText(
                 status = HttpStatusCode.OK,
@@ -299,7 +300,7 @@ fun Route.forceRetryMessageOut(
             )
             retryService.failedMessageKafkaHandler.sendToRetryQueueOutgoing(
                 record = record ?: throw Exception("No Record found. Offset: ${call.parameters[KAFKA_OFFSET]}"),
-                reason = "Forced Retry"
+                reason = REASON_FORCED_RETRY
             )
             call.respondText(
                 status = HttpStatusCode.OK,

@@ -37,6 +37,7 @@ import kotlin.collections.map
 const val RETRY_COUNT_HEADER = "retryCount"
 const val RETRY_AFTER = "retryableAfter"
 const val RETRY_REASON = "retryReason"
+const val REASON_FORCED_RETRY = "Forced Retry"
 
 val logger: Logger = LoggerFactory.getLogger(FailedMessageKafkaHandler::class.java)
 
@@ -149,11 +150,16 @@ class FailedMessageKafkaHandler(
         logger.info("Committed offset $offsetToCommit for record with key ${record.key()}")
     }
 
+
     suspend fun sendToRetryQueueIncoming(
         record: ReceiverRecord<String, ByteArray>,
         reason: String? = null,
         nextRetryTime: String? = null
     ) {
+        if(record.retryCount() > 0 && reason == REASON_FORCED_RETRY) {
+            logger.warn("Message with key ${record.key()} already retried. Not retrying again. Reason: $reason")
+            return
+        }
         sendToRetry(
             record,
             reason = reason,
