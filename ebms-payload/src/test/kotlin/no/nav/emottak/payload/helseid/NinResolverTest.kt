@@ -13,7 +13,10 @@ import no.nav.emottak.payload.ocspstatus.SertifikatInfo
 import org.junit.jupiter.api.Test
 import java.security.cert.X509Certificate
 import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
 import java.util.Base64
+import java.util.TimeZone
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
@@ -49,6 +52,29 @@ class NinResolverTest {
         val resolver = NinResolver()
         assertFailsWith(IllegalStateException::class, "Token does not contain required audience") {
             resolver.resolve(Base64.getEncoder().encodeToString(token.toByteArray()), Instant.now())
+        }
+    }
+
+    @Test
+    fun `parseDateOrThrow interprets zoneless GenDate as Europe-Oslo regardless of system default timezone`() {
+        val defaultTimeZone = TimeZone.getDefault()
+        val zonelessDate = "2024-06-15T10:00:00"
+        val expectedInstant = LocalDateTime.parse(zonelessDate).atZone(ZoneId.of("Europe/Oslo")).toInstant()
+
+        val method = NinResolver::class.java.getDeclaredMethod("parseDateOrThrow", String::class.java)
+        method.isAccessible = true
+
+        try {
+            // Set the JVM default timezone to something other than Europe/Oslo to verify
+            // that the fallback parsing of a zoneless GenDate is not affected by it.
+            TimeZone.setDefault(TimeZone.getTimeZone("America/New_York"))
+
+            val resolver = NinResolver()
+            val actualInstant = method.invoke(resolver, zonelessDate) as Instant
+
+            assertEquals(expectedInstant, actualInstant)
+        } finally {
+            TimeZone.setDefault(defaultTimeZone)
         }
     }
 
