@@ -145,10 +145,10 @@ class PayloadMessageService(
             )
             log.info(
                 "Enriched outgoing payload: Message ID: ${enrichedMessage.messageId}, Service: ${enrichedMessage.addressing.service}, " +
-                        "Refto Message ID: ${enrichedMessage.refToMessageId}, Role: ${enrichedMessage.addressing.from.role}, " +
-                        "Action: ${enrichedMessage.addressing.action}, From: ${enrichedMessage.addressing.from.partyId}, " +
-                        "Conversation ID (from inbound): ${enrichedMessage.conversationId}, CPA ID (from inbound): ${enrichedMessage.cpaId}, " +
-                        "To-role (from inbound): ${enrichedMessage.addressing.to.role}, To (from inbound): ${enrichedMessage.addressing.to.partyId}"
+                    "Refto Message ID: ${enrichedMessage.refToMessageId}, Role: ${enrichedMessage.addressing.from.role}, " +
+                    "Action: ${enrichedMessage.addressing.action}, From: ${enrichedMessage.addressing.from.partyId}, " +
+                    "Conversation ID (from inbound): ${enrichedMessage.conversationId}, CPA ID (from inbound): ${enrichedMessage.cpaId}, " +
+                    "To-role (from inbound): ${enrichedMessage.addressing.to.role}, To (from inbound): ${enrichedMessage.addressing.to.partyId}"
             )
             payloadMessageForwardingService.returnMessageResponse(enrichedMessage)
         }
@@ -224,8 +224,10 @@ class PayloadMessageService(
             }
 
             PerMessageCharacteristicsType.PER_MESSAGE -> {
-                ebmsPayloadMessage.duplicateElimination && (messageReceivedRepository.isAcknowledged(ebmsPayloadMessage)
-                    ?: false)
+                ebmsPayloadMessage.duplicateElimination && (
+                    messageReceivedRepository.isAcknowledged(ebmsPayloadMessage)
+                        ?: false
+                    )
             }
 
             PerMessageCharacteristicsType.NEVER -> false

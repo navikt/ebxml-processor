@@ -12,6 +12,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import no.nav.emottak.ebms.StatusResponse
 import no.nav.emottak.ebms.async.configuration.config
+import no.nav.emottak.ebms.async.kafka.consumer.REASON_FORCED_RETRY
 import no.nav.emottak.ebms.async.kafka.consumer.getRecord
 import no.nav.emottak.ebms.async.kafka.consumer.repeatRecord
 import no.nav.emottak.ebms.async.persistence.repository.MessagePendingAckRepository
@@ -27,7 +28,6 @@ import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
 import kotlin.uuid.Uuid
-import no.nav.emottak.ebms.async.kafka.consumer.REASON_FORCED_RETRY
 
 private const val REFERENCE_ID = "referenceId"
 private const val RETRY_LIMIT = "retryLimit"
