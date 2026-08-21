@@ -4,6 +4,8 @@ import io.github.nomisRev.kafka.receiver.ReceiverRecord
 import kotlinx.serialization.json.Json
 import no.nav.emottak.ebms.SmtpTransportClient
 import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
+import no.nav.emottak.ebms.async.kafka.consumer.REASON_FORCED_RETRY
+import no.nav.emottak.ebms.async.kafka.consumer.RETRY_REASON
 import no.nav.emottak.ebms.async.log
 import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.message.model.Acknowledgment
@@ -49,8 +51,11 @@ open class MessageFilterService(
             ),
             conversationId = ebmsMessage.conversationId
         )
+        val forceSkipDuplicateCheck = record.headers().lastHeader(RETRY_REASON)?.value()?.let {
+            String(it) == REASON_FORCED_RETRY
+        } ?: false
         when (ebmsMessage) {
-            is PayloadMessage -> payloadMessageService.process(record, ebmsMessage)
+            is PayloadMessage -> payloadMessageService.process(record, ebmsMessage, forceSkipDuplicateCheck)
             is Acknowledgment -> signalMessageService.processSignal(record.key(), ebmsMessage)
             is MessageError -> signalMessageService.processSignal(record.key(), ebmsMessage)
         }

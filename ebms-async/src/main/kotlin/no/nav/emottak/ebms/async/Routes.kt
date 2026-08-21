@@ -10,8 +10,10 @@ import io.ktor.server.routing.get
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import no.nav.emottak.ebms.StatusResponse
 import no.nav.emottak.ebms.async.configuration.config
+import no.nav.emottak.ebms.async.kafka.consumer.REASON_FORCED_RETRY
 import no.nav.emottak.ebms.async.kafka.consumer.getRecord
 import no.nav.emottak.ebms.async.kafka.consumer.repeatRecord
 import no.nav.emottak.ebms.async.persistence.repository.MessagePendingAckRepository
@@ -255,6 +257,7 @@ fun Routing.rerunOutgoingInterval(
 fun Route.redeliverToSendIn() {
     get("/api/redeliver/offset/{$KAFKA_OFFSET}") {
         repeatRecord(call.parameters[KAFKA_OFFSET]!!, config().kafkaEbmsInPayloadProducer.topic, config().kafka)
+        call.respond(HttpStatusCode.OK)
     }
 }
 
@@ -266,7 +269,7 @@ fun Route.forceRetryMessageIn(
             call.respondText(status = HttpStatusCode.ServiceUnavailable, text = "Incoming retry queue not active.")
             return@get
         }
-        CoroutineScope(Dispatchers.IO).launch() {
+        withContext(Dispatchers.IO) {
             val record = getRecord(
                 config().kafkaPayloadReceiver.topic,
                 config().kafka.copy(groupId = "ebms-provider-retry"),
@@ -274,11 +277,11 @@ fun Route.forceRetryMessageIn(
             )
             retryService.failedMessageKafkaHandler.sendToRetryQueueIncoming(
                 record = record ?: throw Exception("No Record found. Offset: ${call.parameters[KAFKA_OFFSET]}"),
-                reason = "Forced Retry"
+                reason = REASON_FORCED_RETRY
             )
             call.respondText(
                 status = HttpStatusCode.OK,
-                text = "Payload message with offset ${call.parameters[KAFKA_OFFSET]} has been added to incoming retry queue"
+                text = "Payload message with offset ${call.parameters[KAFKA_OFFSET]} and key ${record.key()} has been added to incoming retry queue"
             )
         }
     }
@@ -299,13 +302,13 @@ fun Route.forceRetryMessageOut(
             )
             retryService.failedMessageKafkaHandler.sendToRetryQueueOutgoing(
                 record = record ?: throw Exception("No Record found. Offset: ${call.parameters[KAFKA_OFFSET]}"),
-                reason = "Forced Retry"
+                reason = REASON_FORCED_RETRY
             )
             call.respondText(
                 status = HttpStatusCode.OK,
                 text = "Payload message with offset ${call.parameters[KAFKA_OFFSET]} has been added to outgoing retry queue"
             )
-        }
+        }.join()
     }
 
 fun Route.pauseRetries(

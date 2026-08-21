@@ -127,6 +127,34 @@ class PayloadMessageServiceTest {
     }
 
     @Test
+    fun `process should bypass duplicate check and skip acknowledgment when forceSkipDuplicateCheck is true`() = runBlocking {
+        initService()
+        // isDuplicate=true simulates a message that would normally be rejected as a duplicate
+        val (payloadMessage, _, _) = setupMocks(PerMessageCharacteristicsType.ALWAYS, true, direction = Direction.IN)
+
+        service.process(setupReceiverRecordWithoutRetryCountMock(), payloadMessage, forceSkipDuplicateCheck = true)
+
+        coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(payloadMessage) }
+        coVerify(exactly = 1) { processingService.processAsync(payloadMessage, any()) }
+        // ...but no acknowledgment is sent back to the sender, since this is an internal rerun
+        coVerify(exactly = 0) { messageReceivedRepository.messageAcknowledged(any()) }
+        coVerify(exactly = 0) { cpaValidationService.validateOutgoingMessage(any()) }
+        coVerify(exactly = 0) { ebmsSignalProducer.publishMessage(key = any(), value = any(), headers = any()) }
+    }
+
+    @Test
+    fun `process should still return acknowledgment for duplicate message when forceSkipDuplicateCheck is false`() = runBlocking {
+        initService()
+        val (payloadMessage, _, _) = setupMocks(PerMessageCharacteristicsType.ALWAYS, true, direction = Direction.IN)
+
+        service.process(setupReceiverRecordWithoutRetryCountMock(), payloadMessage, forceSkipDuplicateCheck = false)
+
+        coVerify(exactly = 0) { messageReceivedRepository.messageReceived(any()) }
+        coVerify(exactly = 1) { messageReceivedRepository.messageAcknowledged(payloadMessage) }
+        coVerify(exactly = 1) { ebmsSignalProducer.publishMessage(key = any(), value = any(), headers = any()) }
+    }
+
+    @Test
     fun `process should stop processing and return error response if service is not supported`() = runBlocking {
         // Må bruke ordentlig retryservice her, siden error response lages/sendes av den
         retryService = RetryService(
