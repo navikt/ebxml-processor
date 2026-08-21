@@ -95,7 +95,7 @@ class PayloadMessageService(
             processPayloadMessage(ebmsPayloadMessage)
         }.onFailure { exception ->
             log.error(ebmsPayloadMessage.marker(), exception.message ?: "Message processing error", exception)
-            retryService.incomingRetryEval(record = record, payloadMessage = ebmsPayloadMessage, exception = exception)
+            log.warn(ebmsPayloadMessage.marker(), "ErrorSignal will not be sent. Message will not be retried.")
         }
     }
 
