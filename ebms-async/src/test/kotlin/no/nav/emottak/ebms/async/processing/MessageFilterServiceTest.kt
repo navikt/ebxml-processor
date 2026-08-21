@@ -9,6 +9,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import no.nav.emottak.ebms.SmtpTransportClient
 import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
+import no.nav.emottak.ebms.async.kafka.consumer.REASON_FORCED_RETRY
 import no.nav.emottak.ebms.async.util.EventRegistrationServiceFake
 import no.nav.emottak.message.model.AsyncPayload
 import org.apache.kafka.common.header.internals.RecordHeaders
@@ -78,6 +79,53 @@ class MessageFilterServiceTest {
 
         coVerify(exactly = 1) {
             payloadMessageService.process(record, any())
+        }
+    }
+
+    @Test
+    fun `Payload message with forced retry header is processed with forceSkipDuplicateCheck true`() {
+        val message = this::class.java.classLoader
+            .getResourceAsStream("signaltest/payloadmessage.xml")
+
+        val record = mockk<ReceiverRecord<String, ByteArray>>()
+        val headers = RecordHeaders().add("reason", REASON_FORCED_RETRY.toByteArray())
+
+        every { record.key() } returns Uuid.random().toString()
+        every { record.value() } returns message!!.readAllBytes()
+        every { record.topic() } returns "topic"
+        every { record.headers() } returns headers
+        coEvery { smtpTransportClient.getPayload(any()) } returns listOf(createAsyncPayload())
+        coEvery { payloadMessageService.process(any(), any(), any()) } returns Unit
+
+        runBlocking {
+            messageFilterService.filterMessage(record)
+        }
+
+        coVerify(exactly = 1) {
+            payloadMessageService.process(record, any(), true)
+        }
+    }
+
+    @Test
+    fun `Payload message without forced retry header is processed with forceSkipDuplicateCheck false`() {
+        val message = this::class.java.classLoader
+            .getResourceAsStream("signaltest/payloadmessage.xml")
+
+        val record = mockk<ReceiverRecord<String, ByteArray>>()
+
+        every { record.key() } returns Uuid.random().toString()
+        every { record.value() } returns message!!.readAllBytes()
+        every { record.topic() } returns "topic"
+        every { record.headers() } returns RecordHeaders()
+        coEvery { smtpTransportClient.getPayload(any()) } returns listOf(createAsyncPayload())
+        coEvery { payloadMessageService.process(any(), any(), any()) } returns Unit
+
+        runBlocking {
+            messageFilterService.filterMessage(record)
+        }
+
+        coVerify(exactly = 1) {
+            payloadMessageService.process(record, any(), false)
         }
     }
 
