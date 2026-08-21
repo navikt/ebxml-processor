@@ -134,8 +134,6 @@ class PayloadMessageServiceTest {
 
         service.process(setupReceiverRecordWithoutRetryCountMock(), payloadMessage, forceSkipDuplicateCheck = true)
 
-        // Message is processed as if it were not a duplicate...
-        coVerify(exactly = 1) { messageReceivedRepository.messageReceived(payloadMessage) }
         coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(payloadMessage) }
         coVerify(exactly = 1) { processingService.processAsync(payloadMessage, any()) }
         // ...but no acknowledgment is sent back to the sender, since this is an internal rerun

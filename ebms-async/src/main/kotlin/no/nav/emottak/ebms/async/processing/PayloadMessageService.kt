@@ -45,7 +45,11 @@ class PayloadMessageService(
         forceSkipDuplicateCheck: Boolean = false
     ) {
         runCatching {
-            if (isDuplicateMessage(ebmsPayloadMessage) && !forceSkipDuplicateCheck) {
+            if (forceSkipDuplicateCheck) {
+                processWithoutAcknow(record, ebmsPayloadMessage)
+                return
+            }
+            if (isDuplicateMessage(ebmsPayloadMessage)) {
                 log.info(
                     ebmsPayloadMessage.marker(),
                     "Got duplicate payload message with reference <${ebmsPayloadMessage.requestId}>"
@@ -64,12 +68,30 @@ class PayloadMessageService(
                 }
                 processPayloadMessage(ebmsPayloadMessage)
             }
-            if (forceSkipDuplicateCheck) {
-                return
-            } else {
-                messageReceivedRepository.messageAcknowledged(ebmsPayloadMessage)
-                returnAcknowledgment(ebmsPayloadMessage)
+            messageReceivedRepository.messageAcknowledged(ebmsPayloadMessage)
+            returnAcknowledgment(ebmsPayloadMessage)
+        }.onFailure { exception ->
+            log.error(ebmsPayloadMessage.marker(), exception.message ?: "Message processing error", exception)
+            retryService.incomingRetryEval(record = record, payloadMessage = ebmsPayloadMessage, exception = exception)
+        }
+    }
+
+    suspend fun processWithoutAcknow(
+        record: ReceiverRecord<String, ByteArray>,
+        ebmsPayloadMessage: PayloadMessage
+    ) {
+        runCatching {
+            eventRegistrationService.registerEventMessageDetails(ebmsPayloadMessage)
+            verifyServiceIsSupported(ebmsPayloadMessage)
+            if (record.retryCount() > 0) {
+                eventRegistrationService.registerEvent(
+                    eventType = EventType.RETRY_TRIGGED,
+                    requestId = ebmsPayloadMessage.requestId.parseOrGenerateUuid(),
+                    messageId = ebmsPayloadMessage.messageId,
+                    conversationId = ebmsPayloadMessage.conversationId
+                )
             }
+            processPayloadMessage(ebmsPayloadMessage)
         }.onFailure { exception ->
             log.error(ebmsPayloadMessage.marker(), exception.message ?: "Message processing error", exception)
             retryService.incomingRetryEval(record = record, payloadMessage = ebmsPayloadMessage, exception = exception)

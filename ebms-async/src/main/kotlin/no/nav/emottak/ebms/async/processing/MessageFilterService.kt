@@ -50,7 +50,9 @@ open class MessageFilterService(
             ),
             conversationId = ebmsMessage.conversationId
         )
-        val forceSkipDuplicateCheck = record.headers().any { it.key() == "reason" && String(it.value()) == REASON_FORCED_RETRY }
+        val forceSkipDuplicateCheck = record.headers().lastHeader("retryReason")?.value()?.let {
+            String(it) == REASON_FORCED_RETRY
+        } ?: false
         when (ebmsMessage) {
             is PayloadMessage -> payloadMessageService.process(record, ebmsMessage, forceSkipDuplicateCheck)
             is Acknowledgment -> signalMessageService.processSignal(record.key(), ebmsMessage)

@@ -88,7 +88,7 @@ class MessageFilterServiceTest {
             .getResourceAsStream("signaltest/payloadmessage.xml")
 
         val record = mockk<ReceiverRecord<String, ByteArray>>()
-        val headers = RecordHeaders().add("reason", REASON_FORCED_RETRY.toByteArray())
+        val headers = RecordHeaders().add("retryReason", REASON_FORCED_RETRY.toByteArray())
 
         every { record.key() } returns Uuid.random().toString()
         every { record.value() } returns message!!.readAllBytes()
