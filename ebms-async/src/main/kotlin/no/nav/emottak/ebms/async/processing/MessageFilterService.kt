@@ -21,6 +21,7 @@ import no.nav.emottak.utils.kafka.model.EventDataType
 import no.nav.emottak.utils.kafka.model.EventType
 import org.w3c.dom.Document
 import kotlin.uuid.Uuid
+import no.nav.emottak.ebms.async.kafka.consumer.RETRY_REASON
 
 open class MessageFilterService(
     val payloadMessageService: PayloadMessageService,
@@ -50,7 +51,7 @@ open class MessageFilterService(
             ),
             conversationId = ebmsMessage.conversationId
         )
-        val forceSkipDuplicateCheck = record.headers().lastHeader("retryReason")?.value()?.let {
+        val forceSkipDuplicateCheck = record.headers().lastHeader(RETRY_REASON)?.value()?.let {
             String(it) == REASON_FORCED_RETRY
         } ?: false
         when (ebmsMessage) {

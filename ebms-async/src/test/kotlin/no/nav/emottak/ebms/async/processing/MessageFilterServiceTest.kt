@@ -16,6 +16,7 @@ import org.apache.kafka.common.header.internals.RecordHeaders
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import kotlin.uuid.Uuid
+import no.nav.emottak.ebms.async.kafka.consumer.RETRY_REASON
 
 class MessageFilterServiceTest {
 
@@ -88,7 +89,7 @@ class MessageFilterServiceTest {
             .getResourceAsStream("signaltest/payloadmessage.xml")
 
         val record = mockk<ReceiverRecord<String, ByteArray>>()
-        val headers = RecordHeaders().add("retryReason", REASON_FORCED_RETRY.toByteArray())
+        val headers = RecordHeaders().add(RETRY_REASON, REASON_FORCED_RETRY.toByteArray())
 
         every { record.key() } returns Uuid.random().toString()
         every { record.value() } returns message!!.readAllBytes()
