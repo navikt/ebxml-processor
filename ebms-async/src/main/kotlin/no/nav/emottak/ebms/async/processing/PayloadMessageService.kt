@@ -46,6 +46,7 @@ class PayloadMessageService(
     ) {
         runCatching {
             if (forceSkipDuplicateCheck) {
+                log.warn(ebmsPayloadMessage.marker(), "Skipping duplicate check. (forceSkipDuplicateCheck = true). Bypassing Acknowlegment.")
                 processWithoutAcknow(record, ebmsPayloadMessage)
                 return
             }
@@ -76,7 +77,7 @@ class PayloadMessageService(
         }
     }
 
-    suspend fun processWithoutAcknow(
+    private suspend fun processWithoutAcknow(
         record: ReceiverRecord<String, ByteArray>,
         ebmsPayloadMessage: PayloadMessage
     ) {
