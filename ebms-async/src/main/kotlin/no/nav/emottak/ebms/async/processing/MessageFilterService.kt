@@ -5,6 +5,7 @@ import kotlinx.serialization.json.Json
 import no.nav.emottak.ebms.SmtpTransportClient
 import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
 import no.nav.emottak.ebms.async.kafka.consumer.REASON_FORCED_RETRY
+import no.nav.emottak.ebms.async.kafka.consumer.RETRY_REASON
 import no.nav.emottak.ebms.async.log
 import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.message.model.Acknowledgment
@@ -21,7 +22,6 @@ import no.nav.emottak.utils.kafka.model.EventDataType
 import no.nav.emottak.utils.kafka.model.EventType
 import org.w3c.dom.Document
 import kotlin.uuid.Uuid
-import no.nav.emottak.ebms.async.kafka.consumer.RETRY_REASON
 
 open class MessageFilterService(
     val payloadMessageService: PayloadMessageService,

@@ -10,13 +10,13 @@ import kotlinx.coroutines.runBlocking
 import no.nav.emottak.ebms.SmtpTransportClient
 import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
 import no.nav.emottak.ebms.async.kafka.consumer.REASON_FORCED_RETRY
+import no.nav.emottak.ebms.async.kafka.consumer.RETRY_REASON
 import no.nav.emottak.ebms.async.util.EventRegistrationServiceFake
 import no.nav.emottak.message.model.AsyncPayload
 import org.apache.kafka.common.header.internals.RecordHeaders
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import kotlin.uuid.Uuid
-import no.nav.emottak.ebms.async.kafka.consumer.RETRY_REASON
 
 class MessageFilterServiceTest {
 
