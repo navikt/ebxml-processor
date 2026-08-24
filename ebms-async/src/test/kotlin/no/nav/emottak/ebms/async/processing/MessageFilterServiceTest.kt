@@ -8,6 +8,7 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import no.nav.emottak.ebms.SmtpTransportClient
+import no.nav.emottak.ebms.async.incrementFirstFailure
 import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
 import no.nav.emottak.ebms.async.kafka.consumer.REASON_FORCED_RETRY
 import no.nav.emottak.ebms.async.kafka.consumer.RETRY_REASON
@@ -51,6 +52,7 @@ class MessageFilterServiceTest {
         every { record.value() } returns message!!.readAllBytes()
         every { record.headers() } returns RecordHeaders()
         coEvery { failedMessageKafkaHandler.sendToRetryQueueIncoming(record, any(), any()) } returns Unit
+        coEvery { failedMessageKafkaHandler.meterRegistry.incrementFirstFailure(any(), any(), any()) } returns Unit
 
         runBlocking {
             messageFilterService.filterMessage(record)
