@@ -27,6 +27,7 @@ import no.nav.emottak.message.model.EbmsAttachment
 import no.nav.emottak.message.model.EbmsDocument
 import no.nav.emottak.message.model.EbmsMessage
 import no.nav.emottak.message.model.MessageError
+import no.nav.emottak.message.model.MessagingCharacteristicsResponse
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.util.signatur.SignatureException
@@ -101,7 +102,7 @@ class PayloadMessageServiceTest {
 
         service.process(setupReceiverRecordWithoutRetryCountMock(), payloadMessage)
 
-        coVerify(exactly = 1) { cpaValidationService.getDuplicateEliminationStrategy(payloadMessage) }
+        coVerify(exactly = 1) { cpaValidationService.getMessageCharacteristicsType(payloadMessage) }
         coVerify(exactly = 1) { messageReceivedRepository.isAcknowledged(payloadMessage) }
         coVerify(exactly = 1) { messageReceivedRepository.messageAcknowledged(payloadMessage) }
         coVerify(exactly = 0) { processingService.processAsync(any(), any()) }
@@ -170,7 +171,7 @@ class PayloadMessageServiceTest {
 
         service.process(setupReceiverRecordWithoutRetryCountMock(), payloadMessage)
 
-        coVerify(exactly = 1) { cpaValidationService.getDuplicateEliminationStrategy(payloadMessage) }
+        coVerify(exactly = 1) { cpaValidationService.getMessageCharacteristicsType(payloadMessage) }
         coVerify(exactly = 1) { messageReceivedRepository.isAcknowledged(payloadMessage) }
         coVerify(exactly = 0) { messageReceivedRepository.messageAcknowledged(payloadMessage) }
         coVerify(exactly = 0) { processingService.processAsync(any(), any()) }
@@ -390,7 +391,7 @@ class PayloadMessageServiceTest {
 
         service.process(setupReceiverRecordWithoutRetryCountMock(), payloadMessage)
 
-        coVerify(exactly = 1) { cpaValidationService.getDuplicateEliminationStrategy(payloadMessage) }
+        coVerify(exactly = 1) { cpaValidationService.getMessageCharacteristicsType(payloadMessage) }
         coVerify(exactly = 1) { messageReceivedRepository.isAcknowledged(payloadMessage) }
         coVerify(exactly = 0) { processingService.processAsync(any(), any()) }
         coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithAsyncResponse(any()) }
@@ -453,7 +454,8 @@ class PayloadMessageServiceTest {
     fun `isDuplicateMessage returns true for PerMessage strategy with message duplicateElimination`() = runBlocking {
         initService(enableSignalProducer = false)
         val payloadMessage = createPayloadMessage()
-        coEvery { cpaValidationService.getDuplicateEliminationStrategy(payloadMessage) } returns PerMessageCharacteristicsType.PER_MESSAGE
+        coEvery { cpaValidationService.getMessageCharacteristicsType(payloadMessage) } returns
+            createMessageCharacteristicsResponse(duplicateElimination = PerMessageCharacteristicsType.PER_MESSAGE)
         coEvery { messageReceivedRepository.isAcknowledged(payloadMessage) } returns true
 
         val result = service.isDuplicateMessage(payloadMessage)
@@ -466,7 +468,8 @@ class PayloadMessageServiceTest {
         initService(enableSignalProducer = false)
         val payloadMessage = mockk<PayloadMessage>(relaxed = true)
         every { payloadMessage.duplicateElimination } returns false
-        coEvery { cpaValidationService.getDuplicateEliminationStrategy(payloadMessage) } returns PerMessageCharacteristicsType.PER_MESSAGE
+        coEvery { cpaValidationService.getMessageCharacteristicsType(payloadMessage) } returns
+            createMessageCharacteristicsResponse(duplicateElimination = PerMessageCharacteristicsType.PER_MESSAGE)
 
         val result = service.isDuplicateMessage(payloadMessage)
 
@@ -477,7 +480,8 @@ class PayloadMessageServiceTest {
     fun `isDuplicateMessage returns true for ALWAYS strategy`() = runBlocking {
         initService(enableSignalProducer = false)
         val payloadMessage = createPayloadMessage()
-        coEvery { cpaValidationService.getDuplicateEliminationStrategy(payloadMessage) } returns PerMessageCharacteristicsType.ALWAYS
+        coEvery { cpaValidationService.getMessageCharacteristicsType(payloadMessage) } returns
+            createMessageCharacteristicsResponse(duplicateElimination = PerMessageCharacteristicsType.ALWAYS)
         coEvery { messageReceivedRepository.isAcknowledged(payloadMessage) } returns true
 
         val result = service.isDuplicateMessage(payloadMessage)
@@ -489,7 +493,8 @@ class PayloadMessageServiceTest {
     fun `isDuplicateMessage returns false for no duplicate strategy`() = runBlocking {
         initService(enableSignalProducer = false)
         val payloadMessage = mockk<PayloadMessage>(relaxed = true)
-        coEvery { cpaValidationService.getDuplicateEliminationStrategy(payloadMessage) } returns PerMessageCharacteristicsType.NEVER
+        coEvery { cpaValidationService.getMessageCharacteristicsType(payloadMessage) } returns
+            createMessageCharacteristicsResponse(duplicateElimination = PerMessageCharacteristicsType.NEVER)
 
         val result = service.isDuplicateMessage(payloadMessage)
 
@@ -512,7 +517,7 @@ class PayloadMessageServiceTest {
         val lambdaSlot = slot<(suspend () -> Result<RecordMetadata>)>()
         val isDuplicateResult: Boolean? = if (isDuplicate) true else null
 
-        coEvery { cpaValidationService.getDuplicateEliminationStrategy(payloadMessage) } returns duplicateEliminationStrategy
+        coEvery { cpaValidationService.getMessageCharacteristicsType(payloadMessage) } returns createMessageCharacteristicsResponse(duplicateElimination = duplicateEliminationStrategy)
         coEvery { messageReceivedRepository.messageReceived(payloadMessage) } returns payloadMessage.requestId
         coEvery { messageReceivedRepository.messageAcknowledged(payloadMessage) } returns payloadMessage.requestId
         coEvery { messageReceivedRepository.isAcknowledged(payloadMessage) } returns isDuplicateResult
@@ -645,4 +650,15 @@ fun createValidAddressing(givenService: String) = Addressing(
     ),
     service = givenService,
     action = "EgenandelForesporsel"
+)
+
+fun createMessageCharacteristicsResponse(
+    ackRequested: PerMessageCharacteristicsType = PerMessageCharacteristicsType.PER_MESSAGE,
+    ackSignatureRequested: PerMessageCharacteristicsType = PerMessageCharacteristicsType.PER_MESSAGE,
+    duplicateElimination: PerMessageCharacteristicsType = PerMessageCharacteristicsType.PER_MESSAGE
+) = MessagingCharacteristicsResponse(
+    requestId = Uuid.random().toString(),
+    ackRequested = ackRequested,
+    ackSignatureRequested = ackSignatureRequested,
+    duplicateElimination = duplicateElimination
 )

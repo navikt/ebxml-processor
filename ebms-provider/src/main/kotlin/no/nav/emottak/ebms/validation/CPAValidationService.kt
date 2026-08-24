@@ -12,10 +12,10 @@ import no.nav.emottak.message.model.EbmsMessage
 import no.nav.emottak.message.model.ErrorCode
 import no.nav.emottak.message.model.Feil
 import no.nav.emottak.message.model.MessagingCharacteristicsRequest
+import no.nav.emottak.message.model.MessagingCharacteristicsResponse
 import no.nav.emottak.message.model.ValidationRequest
 import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.util.marker
-import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PerMessageCharacteristicsType
 import org.slf4j.LoggerFactory
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.validation.CPAValidationService")
@@ -40,22 +40,25 @@ open class CPAValidationService(val httpClient: CpaRepoClient) {
             )
         }
 
-    suspend fun getDuplicateEliminationStrategy(message: EbmsMessage): PerMessageCharacteristicsType? {
-        val messagingCharacteristicsRequest = MessagingCharacteristicsRequest(
-            requestId = message.requestId,
-            cpaId = message.cpaId,
-            partyIds = message.addressing.from.partyId,
-            role = message.addressing.from.role,
-            service = message.addressing.service,
-            action = message.addressing.action
+    suspend fun getMessageCharacteristicsType(message: EbmsMessage): MessagingCharacteristicsResponse = withContext(Dispatchers.IO) {
+        httpClient.getMessagingCharacteristics(
+            request = MessagingCharacteristicsRequest(
+                requestId = message.requestId,
+                cpaId = message.cpaId,
+                partyIds = message.addressing.from.partyId,
+                role = message.addressing.from.role,
+                service = message.addressing.service,
+                action = message.addressing.action
+            )
         )
-
-        val messagingCharacteristicsResponse = withContext(Dispatchers.IO) {
-            httpClient.getMessagingCharacteristics(messagingCharacteristicsRequest)
-        }
-
-        log.debug("Duplicate elimination strategy for message ${message.requestId}: ${messagingCharacteristicsResponse.duplicateElimination}")
-        return messagingCharacteristicsResponse.duplicateElimination
+    }.also {
+        log.debug(
+            "Message characteristics strategy for message {}: duplicateElimination={}, ackRequested={}, ackSignatureRequested={}",
+            message.requestId,
+            it.duplicateElimination,
+            it.ackRequested,
+            it.ackSignatureRequested
+        )
     }
 
     private suspend fun getValidationResult(direction: Direction, message: EbmsMessage): ValidationResult {

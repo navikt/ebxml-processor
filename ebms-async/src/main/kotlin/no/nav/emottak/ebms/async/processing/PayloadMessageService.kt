@@ -235,7 +235,7 @@ class PayloadMessageService(
 
     suspend fun isDuplicateMessage(ebmsPayloadMessage: PayloadMessage): Boolean {
         val duplicateEliminationStrategy = try {
-            cpaValidationService.getDuplicateEliminationStrategy(ebmsPayloadMessage)
+            cpaValidationService.getMessageCharacteristicsType(ebmsPayloadMessage).duplicateElimination
         } catch (e: Exception) {
             log.warn(ebmsPayloadMessage.marker(), "Error checking duplicate status", e)
             null

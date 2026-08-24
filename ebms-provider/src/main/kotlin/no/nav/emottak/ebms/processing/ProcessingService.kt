@@ -16,6 +16,8 @@ import no.nav.emottak.message.model.PayloadRequest
 import no.nav.emottak.message.model.PayloadResponse
 import no.nav.emottak.util.marker
 import no.nav.emottak.utils.common.model.Addressing
+import java.time.Instant
+import kotlin.uuid.Uuid
 
 class ProcessingService(private val httpClient: PayloadProcessingClient) {
 
@@ -131,5 +133,9 @@ private fun PayloadMessage.convertToErrorActionMessage(payload: Payload, errorAc
             action = errorAction,
             to = this.addressing.from,
             from = this.addressing.to
-        )
+        ),
+        refToMessageId = this.messageId,
+        messageId = Uuid.random().toString(),
+        requestId = Uuid.random().toString(),
+        sentAt = Instant.now()
     )
