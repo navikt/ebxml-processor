@@ -96,6 +96,7 @@ class SignalMessageServiceTest {
             attachments = emptyList()
         ).transform() as MessageError
 
+        every { messagePendingAckRepository.existsForMessageId(any()) } returns true
         coEvery { cpaValidationService.validateIncomingMessage(messageError) } returns mockk(relaxed = true)
 
         runBlocking {

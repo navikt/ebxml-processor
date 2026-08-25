@@ -60,6 +60,10 @@ class SignalMessageService(
     }
 
     suspend fun processMessageError(messageError: MessageError) {
+        if (!messagePendingAckRepository.existsForMessageId(messageError.refToMessageId)) {
+            log.info(messageError.marker(), "No pending message found for messageId <${messageError.refToMessageId}>")
+            return
+        }
         cpaValidationService.validateIncomingMessage(messageError)
         log.info(messageError.marker(), "Got MessageError with requestId <${messageError.requestId}>")
         messageError.feil.forEach { error ->
