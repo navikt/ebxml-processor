@@ -88,6 +88,30 @@ class MessagePendingAckRepositoryTest {
     }
 
     @Test
+    fun `Verify wasAckSignatureRequested`() {
+        val requestId = Uuid.random()
+        val payload = "theContent"
+        val messageHeader = readMessageHeaderFromTestFile("signaltest/acknowledgment.xml")
+        val messageId = messageHeader.messageData.messageId
+        val emailList = listOf(EmailAddress("ab@cd.com", EndpointTypeType.RESPONSE))
+
+        Assertions.assertNull(messagePendingAckRepository.wasAckSignatureRequested(messageId))
+        Assertions.assertNull(messagePendingAckRepository.wasAckSignatureRequested("not-a-uuid"))
+
+        messagePendingAckRepository.storeMessagePendingAck(
+            requestId,
+            messageHeader,
+            payload.toByteArray(),
+            emailList,
+            ackReceived = false,
+            ackSignatureRequested = false
+        )
+
+        Assertions.assertEquals(false, messagePendingAckRepository.wasAckSignatureRequested(messageId))
+        Assertions.assertEquals(false, messagePendingAckRepository.findMessagesToResend(Instant.now())[0].ackSignatureRequested)
+    }
+
+    @Test
     fun `Verify markResent`() {
         val requestId = Uuid.random()
         val payload = "theContent"

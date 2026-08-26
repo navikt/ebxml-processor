@@ -30,6 +30,8 @@ data class MessagePendingAck(
     val requestId: String,
     // Flag indicating whether an Ack has been received or not
     val ackReceived: Boolean = false,
+    // Flag indicating whether we asked the receiver to sign the Ack (AckRequested/@signed)
+    val ackSignatureRequested: Boolean = true,
     // Message contents (needed for resend): header, contents, address
     val messageHeader: MessageHeader,
     val messageContent: ByteArray,
@@ -70,7 +72,8 @@ class MessagePendingAckRepository(
         header: MessageHeader,
         content: ByteArray,
         receiverEmailAddress: List<EmailAddress>,
-        ackReceived: Boolean = false
+        ackReceived: Boolean = false,
+        ackSignatureRequested: Boolean = true
     ) {
         val addressListAsStringList: List<String> = receiverEmailAddress.map { a -> a.emailAddress }
         val addressesAsString = addressListAsStringList.joinToString(",")
@@ -81,6 +84,7 @@ class MessagePendingAckRepository(
                     it[messageId] = Uuid.parse(header.messageData.messageId).toJavaUuid()
                     it[requestId] = id.toJavaUuid()
                     it[MessagePendingAckTable.ackReceived] = ackReceived
+                    it[MessagePendingAckTable.ackSignatureRequested] = ackSignatureRequested
                     it[messageHeader] = xmlMarshaller.marshal(header)
                     it[messageContent] = content
                     it[emailAddressList] = addressesAsString
@@ -117,6 +121,24 @@ class MessagePendingAckRepository(
                 .update(where = { MessagePendingAckTable.messageId.eq(messageIdAsUuid) }) {
                     it[ackReceived] = true
                 }
+        }
+    }
+
+    // Whether we asked the receiver to sign the Ack for the given message id.
+    // Returns null if we have no record of the message (e.g. an Ack for a message we did not send).
+    fun wasAckSignatureRequested(messageId: String): Boolean? {
+        val messageIdAsUuid: UUID
+        try {
+            messageIdAsUuid = Uuid.parse(messageId).toJavaUuid()
+        } catch (e: Exception) {
+            return null
+        }
+        return transaction(database.db) {
+            MessagePendingAckTable
+                .select(MessagePendingAckTable.ackSignatureRequested)
+                .where { MessagePendingAckTable.messageId.eq(messageIdAsUuid) }
+                .firstOrNull()
+                ?.get(MessagePendingAckTable.ackSignatureRequested)
         }
     }
 
@@ -208,15 +230,16 @@ class MessagePendingAckRepository(
                 }
                 .map {
                     MessagePendingAck(
-                        it[MessagePendingAckTable.messageId].toString(),
-                        it[MessagePendingAckTable.requestId].toString(),
-                        it[MessagePendingAckTable.ackReceived],
-                        xmlMarshaller.unmarshal(it[MessagePendingAckTable.messageHeader], MessageHeader::class.java),
-                        it[MessagePendingAckTable.messageContent],
-                        it[MessagePendingAckTable.emailAddressList].split(","),
-                        it[MessagePendingAckTable.firstSent],
-                        it[MessagePendingAckTable.lastSent],
-                        it[MessagePendingAckTable.resentCount]
+                        messageId = it[MessagePendingAckTable.messageId].toString(),
+                        requestId = it[MessagePendingAckTable.requestId].toString(),
+                        ackReceived = it[MessagePendingAckTable.ackReceived],
+                        ackSignatureRequested = it[MessagePendingAckTable.ackSignatureRequested],
+                        messageHeader = xmlMarshaller.unmarshal(it[MessagePendingAckTable.messageHeader], MessageHeader::class.java),
+                        messageContent = it[MessagePendingAckTable.messageContent],
+                        emailAddressList = it[MessagePendingAckTable.emailAddressList].split(","),
+                        firstSent = it[MessagePendingAckTable.firstSent],
+                        lastSent = it[MessagePendingAckTable.lastSent],
+                        resentCount = it[MessagePendingAckTable.resentCount]
                     )
                 }
         }

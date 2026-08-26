@@ -22,12 +22,12 @@ val log = LoggerFactory.getLogger("no.nav.emottak.ebms.validation.CPAValidationS
 
 open class CPAValidationService(val httpClient: CpaRepoClient) {
 
-    suspend fun validateIncomingMessage(message: EbmsMessage): ValidationResult =
+    suspend fun validateIncomingMessage(message: EbmsMessage, checkSignature: Boolean = true): ValidationResult =
         getValidationResult(IN, message).also {
             validateResult(
                 validationResult = it,
                 message = message,
-                checkSignature = true
+                checkSignature = checkSignature
             )
         }
 
