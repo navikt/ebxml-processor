@@ -41,13 +41,12 @@ class SignalMessageService(
 
     suspend fun processAcknowledgment(acknowledgment: Acknowledgment) {
         cpaValidationService.validateIncomingMessage(acknowledgment)
-        if (acknowledgment.addressing.from.role == "Not applicable") {
-            eventRegistrationService.registerEvent(
-                eventType = EventType.MESSAGEFLOW_COMPLETED,
-                conversationId = acknowledgment.conversationId,
-                requestId = acknowledgment.requestId.parseOrGenerateUuid()
-            )
-        }
+        eventRegistrationService.registerEvent(
+            eventType = EventType.MESSAGEFLOW_COMPLETED,
+            conversationId = acknowledgment.conversationId,
+            messageId = acknowledgment.refToMessageId,
+            requestId = acknowledgment.requestId.parseOrGenerateUuid()
+        )
         log.info(acknowledgment.marker(), "Got acknowledgment with requestId <${acknowledgment.requestId}>")
         messagePendingAckRepository.registerAckForMessage(acknowledgment.refToMessageId)
     }
@@ -60,7 +59,7 @@ class SignalMessageService(
             eventRegistrationService.registerEvent(
                 eventType = EventType.UNKNOWN_ERROR_OCCURRED,
                 requestId = messageError.requestId.parseOrGenerateUuid(),
-                messageId = messageError.messageId,
+                messageId = messageError.refToMessageId,
                 eventData = Json.encodeToString(
                     mapOf(
                         EventDataType.ERROR_MESSAGE to "${error.code}: ${error.descriptionText}"
