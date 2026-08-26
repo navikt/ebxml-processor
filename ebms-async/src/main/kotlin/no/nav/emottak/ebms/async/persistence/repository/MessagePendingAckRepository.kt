@@ -65,7 +65,13 @@ class MessagePendingAckRepository(
     val maxResends: Int
 ) {
 
-    fun storeMessagePendingAck(id: Uuid, header: MessageHeader, content: ByteArray, receiverEmailAddress: List<EmailAddress>) {
+    fun storeMessagePendingAck(
+        id: Uuid,
+        header: MessageHeader,
+        content: ByteArray,
+        receiverEmailAddress: List<EmailAddress>,
+        ackReceived: Boolean = false
+    ) {
         val addressListAsStringList: List<String> = receiverEmailAddress.map { a -> a.emailAddress }
         val addressesAsString = addressListAsStringList.joinToString(",")
         val now = Instant.now()
@@ -74,7 +80,7 @@ class MessagePendingAckRepository(
                 .insert {
                     it[messageId] = Uuid.parse(header.messageData.messageId).toJavaUuid()
                     it[requestId] = id.toJavaUuid()
-                    it[ackReceived] = false
+                    it[MessagePendingAckTable.ackReceived] = ackReceived
                     it[messageHeader] = xmlMarshaller.marshal(header)
                     it[messageContent] = content
                     it[emailAddressList] = addressesAsString
