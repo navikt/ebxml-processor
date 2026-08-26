@@ -100,7 +100,8 @@ class ErrorHandlerTest {
         mockk(),
         mockk(),
         mockk(),
-        mockk()
+        mockk(),
+        messageReceivedRepository = mockk()
     ) {
         override suspend fun filterMessage(record: ReceiverRecord<String, ByteArray>) {
             // Fail and send to retry if key starts with "fail", until retried 2 times

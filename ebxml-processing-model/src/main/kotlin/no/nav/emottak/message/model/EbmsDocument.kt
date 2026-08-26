@@ -68,7 +68,7 @@ data class EbmsDocument(val requestId: String, val document: Document, val attac
                 MessageError(
                     requestId,
                     messageHeader.messageData.messageId,
-                    messageHeader.messageData.refToMessageId!!,
+                    messageHeader.messageData.refToMessageId,
                     messageHeader.conversationId,
                     messageHeader.cpaId!!,
                     messageHeader.addressing(isRoleApplicable = false),

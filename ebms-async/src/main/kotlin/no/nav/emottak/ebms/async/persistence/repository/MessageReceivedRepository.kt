@@ -6,6 +6,7 @@ import no.nav.emottak.ebms.async.persistence.table.MessageReceivedTable
 import no.nav.emottak.ebms.async.util.getPreferredPartyId
 import no.nav.emottak.message.model.PayloadMessage
 import org.jetbrains.exposed.v1.core.ResultRow
+import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.select
@@ -60,6 +61,17 @@ class MessageReceivedRepository(private val database: Database) {
             .where {
                 MessageReceivedTable.messageId eq messageId
             }
+            .map { it.toMessageReceived() }
+            .firstOrNull()
+    }
+
+    fun getFirstByConversationId(conversationId: String): MessageReceived? = transaction(database.db) {
+        MessageReceivedTable
+            .selectAll()
+            .where {
+                MessageReceivedTable.conversationId eq conversationId
+            }
+            .orderBy(MessageReceivedTable.receivedAt, SortOrder.ASC)
             .map { it.toMessageReceived() }
             .firstOrNull()
     }

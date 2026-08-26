@@ -6,17 +6,22 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
 import kotlinx.coroutines.runBlocking
 import no.nav.emottak.ebms.SmtpTransportClient
 import no.nav.emottak.ebms.async.incrementFirstFailure
 import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
 import no.nav.emottak.ebms.async.kafka.consumer.REASON_FORCED_RETRY
 import no.nav.emottak.ebms.async.kafka.consumer.RETRY_REASON
+import no.nav.emottak.ebms.async.model.MessageReceived
+import no.nav.emottak.ebms.async.persistence.repository.MessageReceivedRepository
 import no.nav.emottak.ebms.async.util.EventRegistrationServiceFake
 import no.nav.emottak.message.model.AsyncPayload
+import no.nav.emottak.message.model.EbmsMessage
 import org.apache.kafka.common.header.internals.RecordHeaders
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import kotlin.test.assertEquals
 import kotlin.uuid.Uuid
 
 class MessageFilterServiceTest {
@@ -26,12 +31,14 @@ class MessageFilterServiceTest {
     val smtpTransportClient = mockk<SmtpTransportClient>()
     val eventRegistrationService = EventRegistrationServiceFake()
     val failedMessageKafkaHandler = mockk<FailedMessageKafkaHandler>()
+    val messageReceivedRepository = mockk<MessageReceivedRepository>()
     val messageFilterService = MessageFilterService(
         payloadMessageService,
         signalMessageService,
         smtpTransportClient,
         eventRegistrationService,
-        failedMessageKafkaHandler
+        failedMessageKafkaHandler,
+        messageReceivedRepository
     )
 
     @BeforeEach
@@ -151,6 +158,55 @@ class MessageFilterServiceTest {
         coVerify(exactly = 1) {
             signalMessageService.processSignal(any(), any())
         }
+    }
+
+    @Test
+    fun `Error message processed as signal message`() {
+        val message = this::class.java.classLoader
+            .getResourceAsStream("signaltest/messageerror.xml")
+
+        val record = mockk<ReceiverRecord<String, ByteArray>>()
+
+        every { record.key() } returns Uuid.random().toString()
+        every { record.value() } returns message!!.readAllBytes()
+        every { record.topic() } returns "topic"
+        every { record.headers() } returns RecordHeaders()
+
+        runBlocking {
+            messageFilterService.filterMessage(record)
+        }
+
+        coVerify(exactly = 1) {
+            signalMessageService.processSignal(any(), any())
+        }
+    }
+
+    @Test
+    fun `Error message with missing refToMessageId processed as signal message, with looked-up refToMessageId`() {
+        val message = this::class.java.classLoader
+            .getResourceAsStream("signaltest/messageerror_withNoRefToMessageId.xml")
+
+        val record = mockk<ReceiverRecord<String, ByteArray>>()
+        val incomingMessage : MessageReceived = mockk()
+
+        every { record.key() } returns Uuid.random().toString()
+        every { record.value() } returns message!!.readAllBytes()
+        every { record.topic() } returns "topic"
+        every { record.headers() } returns RecordHeaders()
+        // When looking up the original message in the conversation, you get a message with messageId = "originalMessageId"
+        every { incomingMessage.messageId } returns "originalMessageId"
+        every { messageReceivedRepository.getFirstByConversationId("20140607-214220-751-0") } returns incomingMessage
+
+        runBlocking {
+            messageFilterService.filterMessage(record)
+        }
+
+        // The message should be processed as a signal message, and contain the looked-up refToMessageId
+        val processedMessageSlot = slot<EbmsMessage>()
+        coVerify(exactly = 1) {
+            signalMessageService.processSignal(any(), capture(processedMessageSlot))
+        }
+        assertEquals("originalMessageId", processedMessageSlot.captured.refToMessageId)
     }
 }
 
