@@ -13,7 +13,7 @@ import java.time.Instant
 data class MessageError(
     override val requestId: String,
     override val messageId: String,
-    override val refToMessageId: String?,
+    override val refToMessageId: String,
     override val conversationId: String,
     override val cpaId: String,
     override val addressing: Addressing,

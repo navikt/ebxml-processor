@@ -28,7 +28,7 @@ fun main() = SuspendApp {
     val processingClient = PayloadProcessingClient(scopedAuthHttpClient(EBMS_PAYLOAD_SCOPE))
     val processingService = ProcessingService(processingClient)
 
-    val cpaClient = CpaRepoClient(defaultHttpClient())
+    val cpaClient = CpaRepoClient(scopedAuthHttpClient(EBMS_CPA_REPO_SCOPE))
     val cpaValidationService = CPAValidationService(cpaClient)
 
     val sendInClient = SendInClient(scopedAuthHttpClient(EBMS_SEND_IN_SCOPE))

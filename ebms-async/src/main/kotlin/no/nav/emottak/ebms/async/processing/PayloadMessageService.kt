@@ -10,7 +10,9 @@ import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.validation.CPAValidationService
+import no.nav.emottak.message.exception.EbmsException
 import no.nav.emottak.message.model.Direction
+import no.nav.emottak.message.model.ErrorCode
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.util.marker
@@ -20,6 +22,11 @@ import no.nav.emottak.utils.common.model.PartyId
 import no.nav.emottak.utils.common.parseOrGenerateUuid
 import no.nav.emottak.utils.kafka.model.EventType
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PerMessageCharacteristicsType
+import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.SeverityType
+
+// Tjenester som ikke (lenger) støttes
+val DEPRECATED_SERVICE_PASIENTLISTEFORESPORSEL =
+    Pair("PasientlisteForesporsel", "Pasientliste utfaset siden 1. april 2026")
 
 class PayloadMessageService(
     val cpaValidationService: CPAValidationService,
@@ -34,13 +41,24 @@ class PayloadMessageService(
 
     suspend fun process(
         record: ReceiverRecord<String, ByteArray>,
-        ebmsPayloadMessage: PayloadMessage
+        ebmsPayloadMessage: PayloadMessage,
+        forceSkipDuplicateCheck: Boolean = false
     ) {
         runCatching {
+            if (forceSkipDuplicateCheck) {
+                log.warn(ebmsPayloadMessage.marker(), "Skipping duplicate check. (forceSkipDuplicateCheck = true). Bypassing Acknowlegment.")
+                processWithoutAcknow(record, ebmsPayloadMessage)
+                return
+            }
             if (isDuplicateMessage(ebmsPayloadMessage)) {
-                log.info(ebmsPayloadMessage.marker(), "Got duplicate payload message with reference <${ebmsPayloadMessage.requestId}>")
+                log.info(
+                    ebmsPayloadMessage.marker(),
+                    "Got duplicate payload message with reference <${ebmsPayloadMessage.requestId}>"
+                )
             } else {
                 messageReceivedRepository.messageReceived(ebmsPayloadMessage)
+                eventRegistrationService.registerEventMessageDetails(ebmsPayloadMessage)
+                verifyServiceIsSupported(ebmsPayloadMessage)
                 if (record.retryCount() > 0) {
                     eventRegistrationService.registerEvent(
                         eventType = EventType.RETRY_TRIGGED,
@@ -59,14 +77,57 @@ class PayloadMessageService(
         }
     }
 
+    private suspend fun processWithoutAcknow(
+        record: ReceiverRecord<String, ByteArray>,
+        ebmsPayloadMessage: PayloadMessage
+    ) {
+        runCatching {
+            eventRegistrationService.registerEventMessageDetails(ebmsPayloadMessage)
+            verifyServiceIsSupported(ebmsPayloadMessage)
+            if (record.retryCount() > 0) {
+                eventRegistrationService.registerEvent(
+                    eventType = EventType.RETRY_TRIGGED,
+                    requestId = ebmsPayloadMessage.requestId.parseOrGenerateUuid(),
+                    messageId = ebmsPayloadMessage.messageId,
+                    conversationId = ebmsPayloadMessage.conversationId
+                )
+            }
+            processPayloadMessage(ebmsPayloadMessage)
+        }.onFailure { exception ->
+            log.error(ebmsPayloadMessage.marker(), exception.message ?: "Message processing error", exception)
+            log.warn(ebmsPayloadMessage.marker(), "ErrorSignal will not be sent. Message will not be retried.")
+        }
+    }
+
+    private fun verifyServiceIsSupported(ebmsPayloadMessage: PayloadMessage) {
+        if (DEPRECATED_SERVICE_PASIENTLISTEFORESPORSEL.first == ebmsPayloadMessage.addressing.service) {
+            log.warn(
+                ebmsPayloadMessage.marker(),
+                "Rejecting message with NOT SUPPORTED service <${ebmsPayloadMessage.addressing.service}> and reference <${ebmsPayloadMessage.requestId}>"
+            )
+            throw EbmsException(
+                message = DEPRECATED_SERVICE_PASIENTLISTEFORESPORSEL.second,
+                errorCode = ErrorCode.NOT_SUPPORTED,
+                severity = SeverityType.ERROR.value()!!,
+                recoverable = false
+            )
+        }
+    }
+
     suspend fun processOutboundResponse(
         record: ReceiverRecord<String, ByteArray>,
         ebmsPayloadMessage: PayloadMessage
     ) {
         runCatching {
-            log.info(ebmsPayloadMessage.marker(), "Got outbound response message from ebms.out.payload with reference <${ebmsPayloadMessage.requestId}>")
+            log.info(
+                ebmsPayloadMessage.marker(),
+                "Got outbound response message from ebms.out.payload with reference <${ebmsPayloadMessage.requestId}>"
+            )
             if (messagePendingAckRepository.existsForMessageId(ebmsPayloadMessage.messageId)) {
-                log.info(ebmsPayloadMessage.marker(), "Outgoing message ${ebmsPayloadMessage.messageId} has already been processed successfully, skipping")
+                log.info(
+                    ebmsPayloadMessage.marker(),
+                    "Outgoing message ${ebmsPayloadMessage.messageId} has already been processed successfully, skipping"
+                )
                 return@runCatching
             }
 
@@ -83,7 +144,10 @@ class PayloadMessageService(
     }
 
     private suspend fun returnEnrichedMessage(ebmsPayloadMessage: PayloadMessage) {
-        log.debug(ebmsPayloadMessage.marker(), "Looking up incoming data for outbound response ${ebmsPayloadMessage.addressing.service} message ${ebmsPayloadMessage.messageId}, ref to ${ebmsPayloadMessage.refToMessageId}")
+        log.debug(
+            ebmsPayloadMessage.marker(),
+            "Looking up incoming data for outbound response ${ebmsPayloadMessage.addressing.service} message ${ebmsPayloadMessage.messageId}, ref to ${ebmsPayloadMessage.refToMessageId}"
+        )
         val incomingMessage = messageReceivedRepository.getByMessageId(ebmsPayloadMessage.refToMessageId!!)
         if (incomingMessage == null) {
             log.warn("Could not find incoming message with message id ${ebmsPayloadMessage.refToMessageId}")
@@ -115,29 +179,42 @@ class PayloadMessageService(
 
     private suspend fun processPayloadMessage(ebmsPayloadMessage: PayloadMessage) {
         log.info(ebmsPayloadMessage.marker(), "Got payload message with reference <${ebmsPayloadMessage.requestId}>")
-        eventRegistrationService.registerEventMessageDetails(ebmsPayloadMessage)
         val validationResult = cpaValidationService.validateIncomingMessage(ebmsPayloadMessage)
-        val (processedPayload, direction) = processingService.processAsync(ebmsPayloadMessage, validationResult.payloadProcessing)
+        val (processedPayload, direction) = processingService.processAsync(
+            ebmsPayloadMessage,
+            validationResult.payloadProcessing
+        )
         when (direction) {
             Direction.IN -> {
                 routeDependingOnMessageType(processedPayload, validationResult)
             }
+
             Direction.OUT -> payloadMessageForwardingService.returnMessageResponse(processedPayload)
         }
     }
 
-    private suspend fun routeDependingOnMessageType(processedPayload: PayloadMessage, validationResult: ValidationResult) {
+    private suspend fun routeDependingOnMessageType(
+        processedPayload: PayloadMessage,
+        validationResult: ValidationResult
+    ) {
         when (val messageType = messageTypeByServiceName(processedPayload.addressing.service)) {
             MessageType.HAR_BORGER_FRIKORT_MENGDE, MessageType.INNTEKTSFORESPORSEL -> {
-                log.debug(processedPayload.marker(), "Calling SendIn SYNCHRONOUSLY for $messageType")
+                log.info(processedPayload.marker(), "Calling SendIn SYNCHRONOUSLY for $messageType")
                 payloadMessageForwardingService.forwardMessageWithSyncResponse(processedPayload)
             }
-            MessageType.TREKKOPPLYSNING, MessageType.SYKMELDING, MessageType.LEGEMELDING -> {
-                log.debug(processedPayload.marker(), "Calling SendIn ASYNCHRONOUSLY for $messageType")
-                payloadMessageForwardingService.forwardMessageWithAsyncResponse(processedPayload, validationResult.partnerId)
+
+            MessageType.TREKKOPPLYSNING, MessageType.SYKMELDING, MessageType.LEGEMELDING, MessageType.BEHANDLERKRAV, MessageType.OPPGJORSKONTROLL,
+            MessageType.DIALOGMOTE_INNKALLING, MessageType.FORESPORSEL_FRA_SAKSBEHANDLER, MessageType.HENVENDELSE_FRA_LEGE,
+            MessageType.HENVENDELSE_FRA_SAKSBEHANDLER, MessageType.OPPFOLGINGSPLAN -> {
+                log.info(processedPayload.marker(), "Calling SendIn ASYNCHRONOUSLY for $messageType")
+                payloadMessageForwardingService.forwardMessageWithAsyncResponse(
+                    processedPayload,
+                    validationResult.partnerId
+                )
             }
+
             else -> {
-                log.debug(processedPayload.marker(), "Skipping SendIn for $processedPayload.addressing.service")
+                log.warn(processedPayload.marker(), "Skipping SendIn for ${processedPayload.addressing.service}")
             }
         }
     }
@@ -158,7 +235,7 @@ class PayloadMessageService(
 
     suspend fun isDuplicateMessage(ebmsPayloadMessage: PayloadMessage): Boolean {
         val duplicateEliminationStrategy = try {
-            cpaValidationService.getDuplicateEliminationStrategy(ebmsPayloadMessage)
+            cpaValidationService.getMessageCharacteristicsType(ebmsPayloadMessage).duplicateElimination
         } catch (e: Exception) {
             log.warn(ebmsPayloadMessage.marker(), "Error checking duplicate status", e)
             null
@@ -170,7 +247,10 @@ class PayloadMessageService(
             }
 
             PerMessageCharacteristicsType.PER_MESSAGE -> {
-                ebmsPayloadMessage.duplicateElimination && (messageReceivedRepository.isAcknowledged(ebmsPayloadMessage) ?: false)
+                ebmsPayloadMessage.duplicateElimination && (
+                    messageReceivedRepository.isAcknowledged(ebmsPayloadMessage)
+                        ?: false
+                    )
             }
 
             PerMessageCharacteristicsType.NEVER -> false

@@ -22,6 +22,7 @@ import no.nav.emottak.cpa.auth.AuthConfig
 import no.nav.emottak.cpa.configuration.config
 import no.nav.emottak.cpa.nhn.adresseregisteret.nhnArHttpClient
 import no.nav.emottak.cpa.persistence.CPARepository
+import no.nav.emottak.cpa.persistence.CommunicationPartyCacheRepository
 import no.nav.emottak.cpa.persistence.Database
 import no.nav.emottak.cpa.persistence.cpaDbConfig
 import no.nav.emottak.cpa.persistence.cpaMigrationConfig
@@ -45,7 +46,8 @@ fun main() {
     val adresseregisterValidator = if (config.nhn.cpApiActive) {
         AdresseregisterValidator(
             httpClient = nhnArHttpClient(config.nhnOAuth, config.nhn),
-            nhnConfig = config.nhn
+            nhnConfig = config.nhn,
+            cache = CommunicationPartyCacheRepository(Database(cpaDbConfig.value), config.nhn.cpApiCacheTtl)
         )
     } else {
         null
@@ -94,7 +96,6 @@ fun cpaApplicationModule(
         routing {
             if (oracleDb != null) {
                 partnerId(PartnerRepository(oracleDb), cpaRepository)
-                validateCpa(cpaRepository, PartnerRepository(oracleDb), eventRegistrationService, adresseregisterValidator)
             }
             getCPA(cpaRepository)
             getCpaView(cpaRepository)
@@ -106,16 +107,19 @@ fun cpaApplicationModule(
             getEncryptionCertificate(cpaRepository)
             getSigningCertificate(cpaRepository, adresseregisterValidator)
             getMessagingCharacteristics(cpaRepository)
-            if (adresseregisterValidator != null) {
-                getAdresseregisterData(adresseregisterValidator)
-                getARSignCertificate(adresseregisterValidator)
-                getAREncryptCertificate(adresseregisterValidator)
-            }
             registerHealthEndpoints(appMicrometerRegistry, cpaRepository)
 
             if (canInitAuthenticatedRoutes().also { log.info("INIT AZURE ENDPOINTS: [$it]") }) {
                 authenticate(AZURE_AD_AUTH) {
                     whoAmI()
+                    if (oracleDb != null) {
+                        validateCpa(cpaRepository, PartnerRepository(oracleDb), eventRegistrationService, adresseregisterValidator)
+                    }
+                    if (adresseregisterValidator != null) {
+                        getAdresseregisterData(adresseregisterValidator)
+                        getARSignCertificate(adresseregisterValidator)
+                        getAREncryptCertificate(adresseregisterValidator)
+                    }
                     deleteCpa(cpaRepository)
                     deleteAllCPA(cpaRepository)
                     postCpa(cpaRepository)

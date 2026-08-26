@@ -17,6 +17,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.consumer.ConsumerRecords
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
+import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.ByteArrayDeserializer
@@ -36,6 +37,7 @@ import kotlin.collections.map
 const val RETRY_COUNT_HEADER = "retryCount"
 const val RETRY_AFTER = "retryableAfter"
 const val RETRY_REASON = "retryReason"
+const val REASON_FORCED_RETRY = "Forced Retry"
 
 val logger: Logger = LoggerFactory.getLogger(FailedMessageKafkaHandler::class.java)
 
@@ -153,6 +155,10 @@ class FailedMessageKafkaHandler(
         reason: String? = null,
         nextRetryTime: String? = null
     ) {
+        if (record.retryCount() > 0 && reason == REASON_FORCED_RETRY) {
+            logger.warn("Message with key ${record.key()} already retried. Not retrying again. Reason: $reason")
+            return
+        }
         sendToRetry(
             record,
             reason = reason,
@@ -271,6 +277,25 @@ fun getRecord(
     requestedRecords: Int = 1
 ): ReceiverRecord<String, ByteArray>? {
     return getRecords(topic, kafka, fromOffset, requestedRecords).firstOrNull()
+}
+
+fun repeatRecord(offset: String, topic: String, kafka: Kafka) {
+    KafkaProducer(
+        kafka.toProperties(),
+        StringSerializer(),
+        ByteArraySerializer()
+    ).use { producer ->
+        val record = getRecord(topic, kafka, fromOffset = offset.toLong()) ?: return@use
+        producer.send(
+            ProducerRecord(
+                topic,
+                null,
+                record.key(),
+                record.value(),
+                record.headers()
+            )
+        )
+    }
 }
 
 fun getRecords(
