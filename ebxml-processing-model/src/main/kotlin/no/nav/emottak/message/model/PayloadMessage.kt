@@ -20,13 +20,15 @@ data class PayloadMessage(
     override val sentAt: Instant? = null,
     val timeToLive: Instant? = null,
     val duplicateElimination: Boolean,
-    val ackRequested: Boolean = false
+    val ackRequested: Boolean = false,
+    val ackSignatureRequested: Boolean = false
 ) : EbmsMessage() {
 
     override fun toEbmsDokument(): EbmsDocument {
         return createEbmsDocument(
             createMessageHeader(
                 withAckRequestedElement = ackRequested,
+                ackSignatureRequested = ackSignatureRequested,
                 withDuplicateEliminationElement = duplicateElimination
             ),
             this.payload
