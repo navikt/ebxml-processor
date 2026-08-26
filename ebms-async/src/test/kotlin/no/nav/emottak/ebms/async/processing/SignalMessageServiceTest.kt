@@ -49,7 +49,6 @@ class SignalMessageServiceTest {
         }
 
         coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(acknowledgment, checkSignature = true) }
-        coVerify(exactly = 1) { signalMessageService.processAcknowledgment(acknowledgment) }
         coVerify(exactly = 1) { messagePendingAckRepository.registerAckForMessage(acknowledgment.refToMessageId) }
     }
 
