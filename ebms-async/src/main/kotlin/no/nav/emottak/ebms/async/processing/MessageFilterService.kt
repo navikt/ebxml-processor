@@ -93,7 +93,9 @@ open class MessageFilterService(
         // Dette er ikke lov, men vi er istand til å finne original melding via conversationId og kan da akseptere slike
         if (message is MessageError && message.refToMessageId == null) {
             val firstByConversationId = messageReceivedRepository.getFirstByConversationId(message.conversationId)
-            return message.copy(refToMessageId = firstByConversationId?.messageId)
+            if (firstByConversationId != null) {
+                return message.copy(refToMessageId = firstByConversationId.messageId)
+            }
         }
         return message
     }
