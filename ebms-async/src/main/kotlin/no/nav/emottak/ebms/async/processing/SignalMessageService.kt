@@ -39,14 +39,15 @@ class SignalMessageService(
     }
 
     suspend fun processAcknowledgment(acknowledgment: Acknowledgment) {
-        if (!messagePendingAckRepository.existsForMessageId(acknowledgment.refToMessageId)) {
+        val checkSignature = messagePendingAckRepository.wasAckSignatureRequested(acknowledgment.refToMessageId)
+        if (checkSignature == null) {
             log.info(acknowledgment.marker(), "No pending message found for messageId <${acknowledgment.refToMessageId}>")
             return
         }
         eventRegistrationService.registerEventMessageDetails(acknowledgment)
         cpaValidationService.validateIncomingMessage(
             message = acknowledgment,
-            checkSignature = messagePendingAckRepository.wasAckSignatureRequested(acknowledgment.refToMessageId) ?: true
+            checkSignature = checkSignature
         )
         if (acknowledgment.addressing.from.role == "Not applicable") {
             eventRegistrationService.registerEvent(
