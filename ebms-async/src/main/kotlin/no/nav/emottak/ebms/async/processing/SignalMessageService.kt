@@ -22,7 +22,6 @@ class SignalMessageService(
 
     suspend fun processSignal(requestId: String, ebxmlSignalMessage: EbmsMessage) {
         try {
-            eventRegistrationService.registerEventMessageDetails(ebxmlSignalMessage)
             when (ebxmlSignalMessage) {
                 is Acknowledgment -> processAcknowledgment(ebxmlSignalMessage)
                 is MessageError -> processMessageError(ebxmlSignalMessage)
@@ -40,7 +39,16 @@ class SignalMessageService(
     }
 
     suspend fun processAcknowledgment(acknowledgment: Acknowledgment) {
-        cpaValidationService.validateIncomingMessage(acknowledgment)
+        val checkSignature = messagePendingAckRepository.wasAckSignatureRequested(acknowledgment.refToMessageId)
+        if (checkSignature == null) {
+            log.info(acknowledgment.marker(), "No pending message found for messageId <${acknowledgment.refToMessageId}>")
+            return
+        }
+        eventRegistrationService.registerEventMessageDetails(acknowledgment)
+        cpaValidationService.validateIncomingMessage(
+            message = acknowledgment,
+            checkSignature = checkSignature
+        )
         eventRegistrationService.registerEvent(
             eventType = EventType.MESSAGEFLOW_COMPLETED,
             conversationId = acknowledgment.conversationId,
@@ -52,6 +60,11 @@ class SignalMessageService(
     }
 
     suspend fun processMessageError(messageError: MessageError) {
+        if (!messagePendingAckRepository.existsForMessageId(messageError.refToMessageId)) {
+            log.info(messageError.marker(), "No pending message found for messageId <${messageError.refToMessageId}>")
+            return
+        }
+        eventRegistrationService.registerEventMessageDetails(messageError)
         cpaValidationService.validateIncomingMessage(messageError)
         log.info(messageError.marker(), "Got MessageError with requestId <${messageError.requestId}>")
         messageError.feil.forEach { error ->
