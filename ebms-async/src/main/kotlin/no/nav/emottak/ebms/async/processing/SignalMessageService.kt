@@ -40,7 +40,7 @@ class SignalMessageService(
     }
 
     suspend fun processAcknowledgment(acknowledgment: Acknowledgment) {
-        cpaValidationService.validateIncomingMessage(acknowledgment)
+        cpaValidationService.validateIncomingSignalSignature(acknowledgment)
         if (acknowledgment.addressing.from.role == "Not applicable") {
             eventRegistrationService.registerEvent(
                 eventType = EventType.MESSAGEFLOW_COMPLETED,
@@ -53,7 +53,7 @@ class SignalMessageService(
     }
 
     suspend fun processMessageError(messageError: MessageError) {
-        cpaValidationService.validateIncomingMessage(messageError)
+        cpaValidationService.validateIncomingSignalSignature(messageError)
         log.info(messageError.marker(), "Got MessageError with requestId <${messageError.requestId}>")
         messageError.feil.forEach { error ->
             log.warn(messageError.marker(), "Code: ${error.code}, Description: ${error.descriptionText}")
