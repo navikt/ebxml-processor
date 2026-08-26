@@ -187,7 +187,7 @@ class MessageFilterServiceTest {
             .getResourceAsStream("signaltest/messageerror_withNoRefToMessageId.xml")
 
         val record = mockk<ReceiverRecord<String, ByteArray>>()
-        val incomingMessage : MessageReceived = mockk()
+        val incomingMessage: MessageReceived = mockk()
 
         every { record.key() } returns Uuid.random().toString()
         every { record.value() } returns message!!.readAllBytes()
