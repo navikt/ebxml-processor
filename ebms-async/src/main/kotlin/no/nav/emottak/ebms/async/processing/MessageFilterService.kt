@@ -3,9 +3,12 @@ package no.nav.emottak.ebms.async.processing
 import io.github.nomisRev.kafka.receiver.ReceiverRecord
 import kotlinx.serialization.json.Json
 import no.nav.emottak.ebms.SmtpTransportClient
+import no.nav.emottak.ebms.async.configuration.config
+import no.nav.emottak.ebms.async.incrementFirstFailure
 import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
 import no.nav.emottak.ebms.async.kafka.consumer.REASON_FORCED_RETRY
 import no.nav.emottak.ebms.async.kafka.consumer.RETRY_REASON
+import no.nav.emottak.ebms.async.kafka.consumer.retryCount
 import no.nav.emottak.ebms.async.log
 import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.message.model.Acknowledgment
@@ -39,7 +42,14 @@ open class MessageFilterService(
             )
         } catch (e: Exception) {
             log.error("Failed to create ebmsDocument", e)
-            failedMessageKafkaHandler.sendToRetryQueueIncoming(record, e.localizedMessage)
+            if (record.retryCount() == 0) {
+                failedMessageKafkaHandler.meterRegistry.incrementFirstFailure("incoming", "unknown_service_unparseable_EBXML", "unknown_action_unparseable_EBXML")
+            }
+            if (record.retryCount() < config().errorRetryPolicyIncoming.maxRetries) {
+                failedMessageKafkaHandler.sendToRetryQueueIncoming(record, e.localizedMessage)
+            } else {
+                log.error("Failed to create ebmsDocument and max number of retries performed, giving up message! Offset in retry topic: ${record.offset}", e)
+            }
             return
         }
         eventRegistrationService.registerEvent(
