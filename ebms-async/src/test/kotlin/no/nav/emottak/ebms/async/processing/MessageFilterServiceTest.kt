@@ -21,6 +21,7 @@ import no.nav.emottak.message.model.EbmsMessage
 import org.apache.kafka.common.header.internals.RecordHeaders
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.uuid.Uuid
 
@@ -187,14 +188,27 @@ class MessageFilterServiceTest {
             .getResourceAsStream("signaltest/messageerror_withNoRefToMessageId.xml")
 
         val record = mockk<ReceiverRecord<String, ByteArray>>()
-        val incomingMessage: MessageReceived = mockk()
+        // When looking up the original message in the conversation, you get a message with messageId = "originalMessageId"
+        val incomingMessage = MessageReceived(
+            referenceId = Uuid.random(),
+            conversationId = "20140607-214220-751-0",
+            messageId = "originalMessageId",
+            refToMessageId = null,
+            cpaId = "unknown",
+            senderRole = "Frikortregister",
+            senderId = "79768",
+            receiverRole = "Behandler",
+            receiverId = "987654321",
+            service = "urn:oasis:names:tc:ebxml-msg:service",
+            action = "MessageError",
+            receivedAt = Instant.now(),
+            acknowledged = false
+        )
 
         every { record.key() } returns Uuid.random().toString()
         every { record.value() } returns message!!.readAllBytes()
         every { record.topic() } returns "topic"
         every { record.headers() } returns RecordHeaders()
-        // When looking up the original message in the conversation, you get a message with messageId = "originalMessageId"
-        every { incomingMessage.messageId } returns "originalMessageId"
         every { messageReceivedRepository.getFirstByConversationId("20140607-214220-751-0") } returns incomingMessage
 
         runBlocking {
