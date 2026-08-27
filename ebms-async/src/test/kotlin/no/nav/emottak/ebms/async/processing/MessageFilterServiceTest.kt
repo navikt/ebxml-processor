@@ -226,7 +226,8 @@ fun dummyMessageReceived(id: String): MessageReceived {
         service = "urn:oasis:names:tc:ebxml-msg:service",
         action = "MessageError",
         receivedAt = java.time.Instant.now(),
-        acknowledged = false)
+        acknowledged = false
+    )
 }
 
 fun createAsyncPayload() = AsyncPayload(
