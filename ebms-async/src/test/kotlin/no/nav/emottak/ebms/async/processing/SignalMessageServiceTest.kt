@@ -2,6 +2,7 @@ package no.nav.emottak.ebms.async.processing
 
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import no.nav.emottak.ebms.async.persistence.repository.MessagePendingAckRepository
@@ -39,14 +40,44 @@ class SignalMessageServiceTest {
         ).transform() as Acknowledgment
 
         coEvery { cpaValidationService.validateIncomingMessage(acknowledgment) } returns mockk(relaxed = true)
+        every { messagePendingAckRepository.existsForMessageId(any()) } returns true
+        every { messagePendingAckRepository.wasAckSignatureRequested(any()) } returns true
         coEvery { messagePendingAckRepository.registerAckForMessage(any()) } returns mockk(relaxed = true)
 
         runBlocking {
             signalMessageService.processSignal(requestId, acknowledgment)
         }
 
-        coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(acknowledgment) }
-        coVerify(exactly = 1) { signalMessageService.processAcknowledgment(acknowledgment) }
+        coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(acknowledgment, checkSignature = true) }
+        coVerify(exactly = 1) { messagePendingAckRepository.registerAckForMessage(acknowledgment.refToMessageId) }
+    }
+
+    @Test
+    fun `Acknowledgment is not signature validated when signed Ack was not requested`() {
+        val document = runBlocking {
+            this::class.java.classLoader
+                .getResourceAsStream("signaltest/acknowledgment.xml")!!.readAllBytes().createDocument()
+        }
+
+        val requestId = Uuid.random().toString()
+        val acknowledgment = EbmsDocument(
+            requestId = requestId,
+            document = document,
+            attachments = emptyList()
+        ).transform() as Acknowledgment
+
+        coEvery {
+            cpaValidationService.validateIncomingMessage(acknowledgment, checkSignature = false)
+        } returns mockk(relaxed = true)
+        every { messagePendingAckRepository.existsForMessageId(any()) } returns true
+        every { messagePendingAckRepository.wasAckSignatureRequested(acknowledgment.refToMessageId) } returns false
+        coEvery { messagePendingAckRepository.registerAckForMessage(any()) } returns mockk(relaxed = true)
+
+        runBlocking {
+            signalMessageService.processSignal(requestId, acknowledgment)
+        }
+
+        coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(acknowledgment, checkSignature = false) }
         coVerify(exactly = 1) { messagePendingAckRepository.registerAckForMessage(acknowledgment.refToMessageId) }
     }
 
@@ -64,6 +95,7 @@ class SignalMessageServiceTest {
             attachments = emptyList()
         ).transform() as MessageError
 
+        every { messagePendingAckRepository.existsForMessageId(any()) } returns true
         coEvery { cpaValidationService.validateIncomingMessage(messageError) } returns mockk(relaxed = true)
 
         runBlocking {

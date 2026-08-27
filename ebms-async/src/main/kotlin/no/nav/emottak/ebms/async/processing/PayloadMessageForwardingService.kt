@@ -134,7 +134,8 @@ class PayloadMessageForwardingService(
         storeMessagePendingAck(
             signedEbmsDocument,
             validationResult.receiverEmailAddress,
-            ackReceived = !processedMessage.ackRequested
+            ackReceived = !processedMessage.ackRequested,
+            ackSignatureRequested = processedMessage.ackSignatureRequested
         )
         log.info(processedMessage.marker(), "Payload message response returned successfully")
     }
@@ -233,7 +234,8 @@ class PayloadMessageForwardingService(
     private fun storeMessagePendingAck(
         ebmsDocument: EbmsDocument,
         receiverEmailAddress: List<EmailAddress>,
-        ackReceived: Boolean = false
+        ackReceived: Boolean = false,
+        ackSignatureRequested: Boolean = true
     ) {
         try {
             messagePendingAckRepository.storeMessagePendingAck(
@@ -241,7 +243,8 @@ class PayloadMessageForwardingService(
                 ebmsDocument.messageHeader(),
                 ebmsDocument.document.toByteArray(),
                 receiverEmailAddress,
-                ackReceived
+                ackReceived,
+                ackSignatureRequested
             )
         } catch (e: Exception) {
             log.warn("Failed to store message pending ack, probably a duplicate", e)
