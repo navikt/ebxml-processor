@@ -42,9 +42,11 @@ data class EbmsDocument(val requestId: String, val document: Document, val attac
         return xmlMarshaller.unmarshal(node)
     }
 
-    fun transform(): EbmsMessage {
+    fun transform(useRefToMessageId: String? = null): EbmsMessage {
         val header = envelope.value.header!!
         val messageHeader = header.messageHeader()
+
+        val refToMessageId = useRefToMessageId ?: messageHeader.messageData.refToMessageId
 
         return when (documentType()) {
             DocumentType.PAYLOAD -> PayloadMessage(
@@ -68,7 +70,7 @@ data class EbmsDocument(val requestId: String, val document: Document, val attac
                 MessageError(
                     requestId,
                     messageHeader.messageData.messageId,
-                    messageHeader.messageData.refToMessageId,
+                    refToMessageId,
                     messageHeader.conversationId,
                     messageHeader.cpaId!!,
                     messageHeader.addressing(isRoleApplicable = false),

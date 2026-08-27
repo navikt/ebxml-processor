@@ -80,7 +80,7 @@ open class MessageFilterService(
         requestId: String,
         document: Document
     ): EbmsMessage {
-        val message = EbmsDocument(
+        val document = EbmsDocument(
             requestId = requestId,
             document = document,
             attachments = if (document.documentType() == DocumentType.PAYLOAD) {
@@ -88,15 +88,17 @@ open class MessageFilterService(
             } else {
                 emptyList()
             }
-        ).transform()
+        )
         // Prodfeil 26/8-2026: Mottok MessageError uten refToMessageId.
         // Dette er ikke lov, men vi er istand til å finne original melding via conversationId og kan da akseptere slike
-        if (message is MessageError && message.refToMessageId == null) {
-            val firstByConversationId = messageReceivedRepository.getFirstByConversationId(message.conversationId)
+        var refToMessageId = document.messageHeader().messageData.refToMessageId
+        if (document.documentType() == DocumentType.MESSAGE_ERROR && refToMessageId == null) {
+            val firstByConversationId = messageReceivedRepository.getFirstByConversationId(document.messageHeader().conversationId)
             if (firstByConversationId != null) {
-                return message.copy(refToMessageId = firstByConversationId.messageId)
+                refToMessageId = firstByConversationId.messageId
             }
         }
+        val message = document.transform(refToMessageId)
         return message
     }
 
