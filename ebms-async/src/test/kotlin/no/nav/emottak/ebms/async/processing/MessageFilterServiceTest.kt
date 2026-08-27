@@ -187,14 +187,16 @@ class MessageFilterServiceTest {
             .getResourceAsStream("signaltest/messageerror_withNoRefToMessageId.xml")
 
         val record = mockk<ReceiverRecord<String, ByteArray>>()
-        val incomingMessage: MessageReceived = mockk()
+        // Dette feiler ved bygg i github, ifølge copilot kan vi ikke mocke MessageReceived, må lage dummy objekt istedenfor
+//        val incomingMessage: MessageReceived = mockk()
+//        every { incomingMessage.messageId } returns "originalMessageId"
+        val incomingMessage = dummyMessageReceived("originalMessageId")
 
         every { record.key() } returns Uuid.random().toString()
         every { record.value() } returns message!!.readAllBytes()
         every { record.topic() } returns "topic"
         every { record.headers() } returns RecordHeaders()
         // When looking up the original message in the conversation, you get a message with messageId = "originalMessageId"
-        every { incomingMessage.messageId } returns "originalMessageId"
         every { messageReceivedRepository.getFirstByConversationId("20140607-214220-751-0") } returns incomingMessage
 
         runBlocking {
@@ -208,6 +210,23 @@ class MessageFilterServiceTest {
         }
         assertEquals("originalMessageId", processedMessageSlot.captured.refToMessageId)
     }
+}
+
+fun dummyMessageReceived(id: String): MessageReceived {
+    return MessageReceived(
+        referenceId = Uuid.random(),
+        conversationId = "20140607-214220-751-0",
+        messageId = id,
+        refToMessageId = null,
+        cpaId = "unknown",
+        senderRole = "Frikortregister",
+        senderId = "79768",
+        receiverRole = "Behandler",
+        receiverId = "987654321",
+        service = "urn:oasis:names:tc:ebxml-msg:service",
+        action = "MessageError",
+        receivedAt = java.time.Instant.now(),
+        acknowledged = false)
 }
 
 fun createAsyncPayload() = AsyncPayload(
