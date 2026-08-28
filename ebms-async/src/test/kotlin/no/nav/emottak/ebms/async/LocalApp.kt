@@ -256,8 +256,7 @@ class DummyMessageFilterService(
     signalMessageService: SignalMessageService,
     smtpTransportClient: DummySmtpTransportClient,
     eventRegistrationService: EventRegistrationServiceFake,
-    failedMessageKafkaHandler: FailedMessageKafkaHandler,
-    messageReceivedRepository: MessageReceivedRepository
+    failedMessageKafkaHandler: FailedMessageKafkaHandler
 ) : MessageFilterService(
     payloadMessageService,
     signalMessageService,
