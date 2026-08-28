@@ -174,8 +174,7 @@ fun main() = SuspendApp {
         signalMessageService = signalMessageService,
         smtpTransportClient = smtpTransportClient,
         eventRegistrationService = eventRegistrationService,
-        failedMessageKafkaHandler = failedMessageQueue,
-        messageReceivedRepository = messageReceivedRepository
+        failedMessageKafkaHandler = failedMessageQueue
     )
 
     val pauseRetryErrorsTimerFlag = PauseRetryErrorsTimerFlag()
@@ -264,8 +263,7 @@ class DummyMessageFilterService(
     signalMessageService,
     smtpTransportClient,
     eventRegistrationService,
-    failedMessageKafkaHandler,
-    messageReceivedRepository
+    failedMessageKafkaHandler
 ) {
     override suspend fun filterMessage(record: ReceiverRecord<String, ByteArray>) {
         println("--DUMMY Processing message with requestId: ${record.key()} and offset ${record.offset()}:\n" + record.value().decodeToString().substring(0, 100))

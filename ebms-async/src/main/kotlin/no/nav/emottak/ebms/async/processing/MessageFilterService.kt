@@ -9,7 +9,6 @@ import no.nav.emottak.ebms.async.kafka.consumer.REASON_FORCED_RETRY
 import no.nav.emottak.ebms.async.kafka.consumer.RETRY_REASON
 import no.nav.emottak.ebms.async.kafka.consumer.retryCount
 import no.nav.emottak.ebms.async.log
-import no.nav.emottak.ebms.async.persistence.repository.MessageReceivedRepository
 import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.message.model.Acknowledgment
 import no.nav.emottak.message.model.DocumentType
@@ -35,8 +34,7 @@ open class MessageFilterService(
     val signalMessageService: SignalMessageService,
     val smtpTransportClient: SmtpTransportClient,
     val eventRegistrationService: EventRegistrationService,
-    val failedMessageKafkaHandler: FailedMessageKafkaHandler,
-    val messageReceivedRepository: MessageReceivedRepository
+    val failedMessageKafkaHandler: FailedMessageKafkaHandler
 ) {
 
     open suspend fun filterMessage(record: ReceiverRecord<String, ByteArray>) {
@@ -79,28 +77,15 @@ open class MessageFilterService(
     private suspend fun createEbmsDocument(
         requestId: String,
         document: Document
-    ): EbmsMessage {
-        val document = EbmsDocument(
-            requestId = requestId,
-            document = document,
-            attachments = if (document.documentType() == DocumentType.PAYLOAD) {
-                retrievePayloads(requestId.parseOrGenerateUuid())
-            } else {
-                emptyList()
-            }
-        )
-        // Prodfeil 26/8-2026: Mottok MessageError uten refToMessageId.
-        // Dette er ikke lov, men vi er istand til å finne original melding via conversationId og kan da akseptere slike
-        var refToMessageId = document.messageHeader().messageData.refToMessageId
-        if (document.documentType() == DocumentType.MESSAGE_ERROR && refToMessageId == null) {
-            val firstByConversationId = messageReceivedRepository.getFirstByConversationId(document.messageHeader().conversationId)
-            if (firstByConversationId != null) {
-                refToMessageId = firstByConversationId.messageId
-            }
+    ): EbmsMessage = EbmsDocument(
+        requestId = requestId,
+        document = document,
+        attachments = if (document.documentType() == DocumentType.PAYLOAD) {
+            retrievePayloads(requestId.parseOrGenerateUuid())
+        } else {
+            emptyList()
         }
-        val message = document.transform(refToMessageId)
-        return message
-    }
+    ).transform()
 
     private suspend fun retrievePayloads(reference: Uuid): List<Payload> {
         return smtpTransportClient.getPayload(reference)
