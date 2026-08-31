@@ -160,8 +160,11 @@ enum class ErrorCode(val value: String, val description: String) {
     companion object {
         fun fromString(string: String): ErrorCode {
             return ErrorCode.entries.find {
-                it.value.equals(string)
-            } ?: throw IllegalArgumentException("unrecognized error code value: $string")
+                it.value == string
+            } ?: run {
+                log.warn("Unknown error code: $string")
+                UNKNOWN
+            }
         }
     }
     fun createEbxmlError(
