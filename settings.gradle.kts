@@ -24,7 +24,7 @@ dependencyResolutionManagement {
             version("logback", "1.5.17")
             version("logstash", "8.0")
             version("fasterxml-jackson", "2.18.2")
-            version("jwt", "4.4.0")
+            version("jwt", "4.6.0")
             version("emottak-utils", "0.4.0")
 
             library("jwt", "com.auth0", "java-jwt").versionRef("jwt")
@@ -72,7 +72,7 @@ dependencyResolutionManagement {
             library("jackson-module-kotlin", "com.fasterxml.jackson.module", "jackson-module-kotlin").versionRef("fasterxml-jackson")
             library("jackson-dataformat-yaml", "com.fasterxml.jackson.dataformat", "jackson-dataformat-yaml").versionRef("fasterxml-jackson")
 
-            library("ebxml-protokoll", "no.nav.emottak:ebxml-protokoll:0.0.7")
+            library("ebxml-protokoll", "no.nav.emottak:ebxml-protokoll:0.0.8")
             library("emottak-payload-xsd", "no.nav.emottak:emottak-payload-xsd:0.0.11")
             library("emottak-utils", "no.nav.emottak", "emottak-utils").versionRef("emottak-utils")
             library("hikari", "com.zaxxer:HikariCP:5.0.1")

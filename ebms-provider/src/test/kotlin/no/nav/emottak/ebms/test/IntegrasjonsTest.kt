@@ -17,6 +17,7 @@ import kotlinx.coroutines.runBlocking
 import no.nav.emottak.constants.SMTPHeaders
 import no.nav.emottak.cpa.cpaApplicationModule
 import no.nav.emottak.ebms.CpaRepoClient
+import no.nav.emottak.ebms.EBMS_CPA_REPO_SCOPE
 import no.nav.emottak.ebms.EBMS_PAYLOAD_SCOPE
 import no.nav.emottak.ebms.EBMS_SEND_IN_SCOPE
 import no.nav.emottak.ebms.PayloadProcessingClient
@@ -68,7 +69,7 @@ open class EndToEndTest {
             val processingClient = PayloadProcessingClient(scopedAuthHttpClient(EBMS_PAYLOAD_SCOPE))
             processingService = ProcessingService(processingClient)
 
-            val cpaClient = CpaRepoClient(defaultHttpClient())
+            val cpaClient = CpaRepoClient(scopedAuthHttpClient(EBMS_CPA_REPO_SCOPE))
             cpaValidationService = CPAValidationService(cpaClient)
 
             val sendInClient = SendInClient(scopedAuthHttpClient(EBMS_SEND_IN_SCOPE))

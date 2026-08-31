@@ -12,6 +12,7 @@ import io.mockk.mockkStatic
 import io.mockk.runs
 import io.mockk.slot
 import kotlinx.coroutines.runBlocking
+import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
 import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
 import no.nav.emottak.ebms.async.persistence.repository.MessagePendingAckRepository
 import no.nav.emottak.ebms.async.persistence.repository.MessageReceivedRepository
@@ -25,6 +26,8 @@ import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.EbmsAttachment
 import no.nav.emottak.message.model.EbmsDocument
 import no.nav.emottak.message.model.EbmsMessage
+import no.nav.emottak.message.model.MessageError
+import no.nav.emottak.message.model.MessagingCharacteristicsResponse
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.utils.common.model.Addressing
@@ -99,7 +102,7 @@ class PayloadMessageServiceTest {
 
         service.process(setupReceiverRecordWithoutRetryCountMock(), payloadMessage)
 
-        coVerify(exactly = 1) { cpaValidationService.getDuplicateEliminationStrategy(payloadMessage) }
+        coVerify(exactly = 1) { cpaValidationService.getMessageCharacteristicsType(payloadMessage) }
         coVerify(exactly = 1) { messageReceivedRepository.isAcknowledged(payloadMessage) }
         coVerify(exactly = 1) { messageReceivedRepository.messageAcknowledged(payloadMessage) }
         coVerify(exactly = 0) { processingService.processAsync(any(), any()) }
@@ -107,6 +110,79 @@ class PayloadMessageServiceTest {
         coVerify(exactly = 1) { eventRegistrationService.registerEventMessageDetails(any()) }
         assertTrue(ebmsMessageSlots[0] is Acknowledgment)
         assertType<Acknowledgment>(ebmsMessageSlots, 0)
+        coVerify(exactly = 1) { cpaValidationService.validateOutgoingMessage(any()) }
+        coVerify(exactly = 1) {
+            eventRegistrationService.runWithEvent(
+                EventType.MESSAGE_PLACED_IN_QUEUE,
+                EventType.ERROR_WHILE_STORING_MESSAGE_IN_QUEUE,
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any()
+            )
+        }
+        assertTrue(fakeResult.isSuccess)
+        coVerify(exactly = 1) { ebmsSignalProducer.publishMessage(key = any(), value = any(), headers = any()) }
+    }
+
+    @Test
+    fun `process should bypass duplicate check and skip acknowledgment when forceSkipDuplicateCheck is true`() = runBlocking {
+        initService()
+        // isDuplicate=true simulates a message that would normally be rejected as a duplicate
+        val (payloadMessage, _, _) = setupMocks(PerMessageCharacteristicsType.ALWAYS, true, direction = Direction.IN)
+
+        service.process(setupReceiverRecordWithoutRetryCountMock(), payloadMessage, forceSkipDuplicateCheck = true)
+
+        coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(payloadMessage) }
+        coVerify(exactly = 1) { processingService.processAsync(payloadMessage, any()) }
+        // ...but no acknowledgment is sent back to the sender, since this is an internal rerun
+        coVerify(exactly = 0) { messageReceivedRepository.messageAcknowledged(any()) }
+        coVerify(exactly = 0) { cpaValidationService.validateOutgoingMessage(any()) }
+        coVerify(exactly = 0) { ebmsSignalProducer.publishMessage(key = any(), value = any(), headers = any()) }
+    }
+
+    @Test
+    fun `process should still return acknowledgment for duplicate message when forceSkipDuplicateCheck is false`() = runBlocking {
+        initService()
+        val (payloadMessage, _, _) = setupMocks(PerMessageCharacteristicsType.ALWAYS, true, direction = Direction.IN)
+
+        service.process(setupReceiverRecordWithoutRetryCountMock(), payloadMessage, forceSkipDuplicateCheck = false)
+
+        coVerify(exactly = 0) { messageReceivedRepository.messageReceived(any()) }
+        coVerify(exactly = 1) { messageReceivedRepository.messageAcknowledged(payloadMessage) }
+        coVerify(exactly = 1) { ebmsSignalProducer.publishMessage(key = any(), value = any(), headers = any()) }
+    }
+
+    @Test
+    fun `process should stop processing and return error response if service is not supported`() = runBlocking {
+        // Må bruke ordentlig retryservice her, siden error response lages/sendes av den
+        retryService = RetryService(
+            cpaValidationService = cpaValidationService,
+            eventRegistrationService = eventRegistrationService,
+            failedMessageKafkaHandler = mockk<FailedMessageKafkaHandler>(),
+            signalSender = { ebmsDocument, signalResponderEmails ->
+                sendSignalResponseToTopic(ebmsSignalProducer, eventRegistrationService, ebmsDocument, signalResponderEmails)
+            }
+        )
+        initService()
+        val (payloadMessage, ebmsMessageSlots, fakeResult) = setupMocks(PerMessageCharacteristicsType.ALWAYS, false, givenService = "PasientlisteForesporsel")
+
+        service.process(setupReceiverRecordWithoutRetryCountMock(), payloadMessage)
+
+        coVerify(exactly = 1) { cpaValidationService.getMessageCharacteristicsType(payloadMessage) }
+        coVerify(exactly = 1) { messageReceivedRepository.isAcknowledged(payloadMessage) }
+        coVerify(exactly = 0) { messageReceivedRepository.messageAcknowledged(payloadMessage) }
+        coVerify(exactly = 0) { processingService.processAsync(any(), any()) }
+        coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithAsyncResponse(any()) }
+        coVerify(exactly = 2) { eventRegistrationService.registerEventMessageDetails(any()) }
+        println(ebmsMessageSlots[0].toString())
+        assertTrue(ebmsMessageSlots[0] is PayloadMessage)
+        assertTrue(ebmsMessageSlots[1] is MessageError)
+        assertType<PayloadMessage>(ebmsMessageSlots, 0)
+        assertType<MessageError>(ebmsMessageSlots, 1)
+        assertTrue((ebmsMessageSlots[1] as MessageError).toString().contains("Pasientliste utfaset"))
         coVerify(exactly = 1) { cpaValidationService.validateOutgoingMessage(any()) }
         coVerify(exactly = 1) {
             eventRegistrationService.runWithEvent(
@@ -315,7 +391,7 @@ class PayloadMessageServiceTest {
 
         service.process(setupReceiverRecordWithoutRetryCountMock(), payloadMessage)
 
-        coVerify(exactly = 1) { cpaValidationService.getDuplicateEliminationStrategy(payloadMessage) }
+        coVerify(exactly = 1) { cpaValidationService.getMessageCharacteristicsType(payloadMessage) }
         coVerify(exactly = 1) { messageReceivedRepository.isAcknowledged(payloadMessage) }
         coVerify(exactly = 0) { processingService.processAsync(any(), any()) }
         coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithAsyncResponse(any()) }
@@ -378,7 +454,8 @@ class PayloadMessageServiceTest {
     fun `isDuplicateMessage returns true for PerMessage strategy with message duplicateElimination`() = runBlocking {
         initService(enableSignalProducer = false)
         val payloadMessage = createPayloadMessage()
-        coEvery { cpaValidationService.getDuplicateEliminationStrategy(payloadMessage) } returns PerMessageCharacteristicsType.PER_MESSAGE
+        coEvery { cpaValidationService.getMessageCharacteristicsType(payloadMessage) } returns
+            createMessageCharacteristicsResponse(duplicateElimination = PerMessageCharacteristicsType.PER_MESSAGE)
         coEvery { messageReceivedRepository.isAcknowledged(payloadMessage) } returns true
 
         val result = service.isDuplicateMessage(payloadMessage)
@@ -391,7 +468,8 @@ class PayloadMessageServiceTest {
         initService(enableSignalProducer = false)
         val payloadMessage = mockk<PayloadMessage>(relaxed = true)
         every { payloadMessage.duplicateElimination } returns false
-        coEvery { cpaValidationService.getDuplicateEliminationStrategy(payloadMessage) } returns PerMessageCharacteristicsType.PER_MESSAGE
+        coEvery { cpaValidationService.getMessageCharacteristicsType(payloadMessage) } returns
+            createMessageCharacteristicsResponse(duplicateElimination = PerMessageCharacteristicsType.PER_MESSAGE)
 
         val result = service.isDuplicateMessage(payloadMessage)
 
@@ -402,7 +480,8 @@ class PayloadMessageServiceTest {
     fun `isDuplicateMessage returns true for ALWAYS strategy`() = runBlocking {
         initService(enableSignalProducer = false)
         val payloadMessage = createPayloadMessage()
-        coEvery { cpaValidationService.getDuplicateEliminationStrategy(payloadMessage) } returns PerMessageCharacteristicsType.ALWAYS
+        coEvery { cpaValidationService.getMessageCharacteristicsType(payloadMessage) } returns
+            createMessageCharacteristicsResponse(duplicateElimination = PerMessageCharacteristicsType.ALWAYS)
         coEvery { messageReceivedRepository.isAcknowledged(payloadMessage) } returns true
 
         val result = service.isDuplicateMessage(payloadMessage)
@@ -414,7 +493,8 @@ class PayloadMessageServiceTest {
     fun `isDuplicateMessage returns false for no duplicate strategy`() = runBlocking {
         initService(enableSignalProducer = false)
         val payloadMessage = mockk<PayloadMessage>(relaxed = true)
-        coEvery { cpaValidationService.getDuplicateEliminationStrategy(payloadMessage) } returns PerMessageCharacteristicsType.NEVER
+        coEvery { cpaValidationService.getMessageCharacteristicsType(payloadMessage) } returns
+            createMessageCharacteristicsResponse(duplicateElimination = PerMessageCharacteristicsType.NEVER)
 
         val result = service.isDuplicateMessage(payloadMessage)
 
@@ -428,15 +508,16 @@ class PayloadMessageServiceTest {
         processAsyncThrowsEbmsException: Boolean = false,
         processAsyncThrowsSignatureException: Boolean = false,
         processSyncThrowsUnknownException: Boolean = false,
-        validateOutgoingThrowsException: Boolean = false
+        validateOutgoingThrowsException: Boolean = false,
+        givenService: String? = "HarBorgerFrikortMengde"
     ): Triple<PayloadMessage, MutableList<EbmsMessage>, Result<RecordMetadata>> {
-        val payloadMessage = createPayloadMessage()
+        val payloadMessage = createPayloadMessage(givenService = givenService)
         val ebmsMessageSlots = mutableListOf<EbmsMessage>()
         val fakeResult = Result.success(mockk<RecordMetadata>())
         val lambdaSlot = slot<(suspend () -> Result<RecordMetadata>)>()
         val isDuplicateResult: Boolean? = if (isDuplicate) true else null
 
-        coEvery { cpaValidationService.getDuplicateEliminationStrategy(payloadMessage) } returns duplicateEliminationStrategy
+        coEvery { cpaValidationService.getMessageCharacteristicsType(payloadMessage) } returns createMessageCharacteristicsResponse(duplicateElimination = duplicateEliminationStrategy)
         coEvery { messageReceivedRepository.messageReceived(payloadMessage) } returns payloadMessage.requestId
         coEvery { messageReceivedRepository.messageAcknowledged(payloadMessage) } returns payloadMessage.requestId
         coEvery { messageReceivedRepository.isAcknowledged(payloadMessage) } returns isDuplicateResult
@@ -533,12 +614,12 @@ class PayloadMessageServiceTest {
     }
 }
 
-fun createPayloadMessage(document: Document? = null) = PayloadMessage(
+fun createPayloadMessage(document: Document? = null, givenService: String? = "HarBorgerFrikortMengde") = PayloadMessage(
     requestId = Uuid.random().toString(),
     messageId = Uuid.random().toString(),
     conversationId = Uuid.random().toString(),
     cpaId = "123",
-    addressing = createValidAddressing(),
+    addressing = createValidAddressing(givenService!!),
     payload = EbmsAttachment(
         bytes = byteArrayOf(),
         contentType = ""
@@ -548,7 +629,7 @@ fun createPayloadMessage(document: Document? = null) = PayloadMessage(
     duplicateElimination = true
 )
 
-fun createValidAddressing() = Addressing(
+fun createValidAddressing(givenService: String) = Addressing(
     to = Party(
         listOf(
             PartyId(
@@ -567,6 +648,17 @@ fun createValidAddressing() = Addressing(
         ),
         role = "Behandler"
     ),
-    service = "HarBorgerFrikortMengde",
+    service = givenService,
     action = "EgenandelForesporsel"
+)
+
+fun createMessageCharacteristicsResponse(
+    ackRequested: PerMessageCharacteristicsType = PerMessageCharacteristicsType.PER_MESSAGE,
+    ackSignatureRequested: PerMessageCharacteristicsType = PerMessageCharacteristicsType.PER_MESSAGE,
+    duplicateElimination: PerMessageCharacteristicsType = PerMessageCharacteristicsType.PER_MESSAGE
+) = MessagingCharacteristicsResponse(
+    requestId = Uuid.random().toString(),
+    ackRequested = ackRequested,
+    ackSignatureRequested = ackSignatureRequested,
+    duplicateElimination = duplicateElimination
 )

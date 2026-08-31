@@ -62,7 +62,8 @@ fun EbmsMessage.createMessageHeader(
     newAddressing: Addressing = this.addressing,
     withSyncReplyElement: Boolean = false,
     withAckRequestedElement: Boolean = false,
-    withDuplicateEliminationElement: Boolean = false
+    withDuplicateEliminationElement: Boolean = false,
+    ackSignatureRequested: Boolean = false
 ): Header {
     val messageData = MessageData().apply {
         this.messageId = this@createMessageHeader.messageId
@@ -113,7 +114,7 @@ fun EbmsMessage.createMessageHeader(
     return Header().apply {
         this.any.add(messageHeader)
         if (withSyncReplyElement) this.any.add(createSyncReplyElement())
-        if (withAckRequestedElement) this.any.add(createAckRequestedElement())
+        if (withAckRequestedElement) this.any.add(createAckRequestedElement(ackSignatureRequested))
     }
 }
 
@@ -134,8 +135,8 @@ private fun createSyncReplyElement() = SyncReply().apply {
     this.version = "2.0"
 }
 
-private fun createAckRequestedElement() = AckRequested().apply {
-    this.isSigned = true
+private fun createAckRequestedElement(ackSignatureRequested: Boolean) = AckRequested().apply {
+    this.isSigned = ackSignatureRequested
     this.actor = "urn:oasis:names:tc:ebxml-msg:actor:toPartyMSH"
     this.isMustUnderstand = true
     this.version = "2.0"

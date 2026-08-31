@@ -103,17 +103,22 @@ class PayloadMessageForwardingService(
 
     // Used to send OUT a response from NAV
     suspend fun returnMessageResponse(payloadMessage: PayloadMessage) {
+        eventRegistrationService.registerEventMessageDetails(payloadMessage)
         val validationResult = cpaValidationService.validateOutgoingMessage(payloadMessage)
-        val elimStrat: PerMessageCharacteristicsType? = cpaValidationService.getDuplicateEliminationStrategy(payloadMessage)
-        val duplicateElimination: Boolean = when (elimStrat) {
-            PerMessageCharacteristicsType.NEVER -> false
-            else -> true
+        val (duplicateElimination, ackRequested, ackSignatureRequested) = with(cpaValidationService.getMessageCharacteristicsType(payloadMessage)) {
+            Triple(
+                this.duplicateElimination != PerMessageCharacteristicsType.NEVER,
+                this.ackRequested != PerMessageCharacteristicsType.NEVER,
+                this.ackSignatureRequested != PerMessageCharacteristicsType.NEVER
+            )
         }
 
         val processedMessage = processingService.proccessSyncOut(
             payloadMessage.copy(
                 addressing = validationResult.cpaAddressing!!,
-                duplicateElimination = duplicateElimination
+                duplicateElimination = duplicateElimination,
+                ackRequested = ackRequested,
+                ackSignatureRequested = ackSignatureRequested
             ),
             validationResult.payloadProcessing
         )
@@ -126,9 +131,12 @@ class PayloadMessageForwardingService(
             signedEbmsDocument.attachments
         )
         sendMessageResponseToPayloadTopic(signedEbmsDocument, validationResult.receiverEmailAddress, payloadMessage.conversationId)
-        if (processedMessage.ackRequested) {
-            storeMessagePendingAck(signedEbmsDocument, validationResult.receiverEmailAddress)
-        }
+        storeMessagePendingAck(
+            signedEbmsDocument,
+            validationResult.receiverEmailAddress,
+            ackReceived = !processedMessage.ackRequested,
+            ackSignatureRequested = processedMessage.ackSignatureRequested
+        )
         log.info(processedMessage.marker(), "Payload message response returned successfully")
     }
 
@@ -223,13 +231,20 @@ class PayloadMessageForwardingService(
         }
     }
 
-    private fun storeMessagePendingAck(ebmsDocument: EbmsDocument, receiverEmailAddress: List<EmailAddress>) {
+    private fun storeMessagePendingAck(
+        ebmsDocument: EbmsDocument,
+        receiverEmailAddress: List<EmailAddress>,
+        ackReceived: Boolean = false,
+        ackSignatureRequested: Boolean = true
+    ) {
         try {
             messagePendingAckRepository.storeMessagePendingAck(
                 Uuid.parse(ebmsDocument.requestId),
                 ebmsDocument.messageHeader(),
                 ebmsDocument.document.toByteArray(),
-                receiverEmailAddress
+                receiverEmailAddress,
+                ackReceived,
+                ackSignatureRequested
             )
         } catch (e: Exception) {
             log.warn("Failed to store message pending ack, probably a duplicate", e)
