@@ -72,7 +72,7 @@ dependencyResolutionManagement {
             library("jackson-module-kotlin", "com.fasterxml.jackson.module", "jackson-module-kotlin").versionRef("fasterxml-jackson")
             library("jackson-dataformat-yaml", "com.fasterxml.jackson.dataformat", "jackson-dataformat-yaml").versionRef("fasterxml-jackson")
 
-            library("ebxml-protokoll", "no.nav.emottak:ebxml-protokoll:0.0.7")
+            library("ebxml-protokoll", "no.nav.emottak:ebxml-protokoll:0.0.8")
             library("emottak-payload-xsd", "no.nav.emottak:emottak-payload-xsd:0.0.11")
             library("emottak-utils", "no.nav.emottak", "emottak-utils").versionRef("emottak-utils")
             library("hikari", "com.zaxxer:HikariCP:5.0.1")
