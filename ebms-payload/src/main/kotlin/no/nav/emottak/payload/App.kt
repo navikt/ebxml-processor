@@ -20,6 +20,10 @@ import no.nav.emottak.util.jsonLenient
 import no.nav.emottak.utils.environment.getEnvVar
 import no.nav.emottak.utils.kafka.client.EventPublisherClient
 import no.nav.emottak.utils.kafka.service.EventLoggingService
+import no.nav.emottak.validering.sertifikat.CRLChecker
+import no.nav.emottak.validering.sertifikat.CRLRetriever
+import no.nav.emottak.validering.sertifikat.SertifikatValidator
+import no.nav.emottak.validering.sertifikat.defaultCRLLists
 import no.nav.security.token.support.v3.tokenValidationSupport
 import org.slf4j.LoggerFactory
 import java.net.InetSocketAddress
@@ -31,8 +35,16 @@ fun main() {
     val kafkaPublisherClient = EventPublisherClient(config().kafka)
     val eventLoggingService = EventLoggingService(config().eventLogging, kafkaPublisherClient)
     val eventRegistrationService = EventRegistrationServiceImpl(eventLoggingService)
+    val sertifikatValidator = SertifikatValidator(
+        crlChecker = CRLChecker(
+            crlRetriever = CRLRetriever(
+                httpClient = defaultHttpClient().invoke(),
+                issuerList = defaultCRLLists
+            )
+        )
+    )
 
-    val processor = Processor(eventRegistrationService)
+    val processor = Processor(eventRegistrationService, sertifikatValidator)
 
     embeddedServer(
         factory = Netty,
@@ -41,14 +53,12 @@ fun main() {
     ).start(wait = true)
 }
 private val httpProxyUrl = getEnvVar("HTTP_PROXY", "")
-fun defaultHttpClient(): () -> HttpClient {
-    return {
-        HttpClient(CIO) {
-            expectSuccess = true
-            engine {
-                if (httpProxyUrl.isNotBlank()) {
-                    proxy = Proxy(Proxy.Type.HTTP, InetSocketAddress(URL(httpProxyUrl).host, URL(httpProxyUrl).port))
-                }
+fun defaultHttpClient(): () -> HttpClient = {
+    HttpClient(CIO) {
+        expectSuccess = true
+        engine {
+            if (httpProxyUrl.isNotBlank()) {
+                proxy = Proxy(Proxy.Type.HTTP, InetSocketAddress(URL(httpProxyUrl).host, URL(httpProxyUrl).port))
             }
         }
     }

@@ -131,7 +131,9 @@ data class Payload(
     val bytes: ByteArray,
     val contentType: String,
     val contentId: String = "att-${createUniqueMimeMessageId()}",
-    val signedBy: String? = null
+    val signedBy: String? = null, // TODO fas ut denne når signedByPid og signedByOrg er rullet ut og tatt i bruk overalt
+    val signedByPid: String? = null,
+    val signedByOrg: String? = null
 )
 
 @Serializable

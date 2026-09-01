@@ -1,22 +1,19 @@
 package no.nav.emottak.validering.signatur
 
-import no.nav.emottak.util.createDocument
 import no.nav.emottak.util.retrieveSignatureElement
 import org.apache.xml.security.Init
 import org.apache.xml.security.signature.MissingResourceFailureException
-import java.io.ByteArrayInputStream
+import org.w3c.dom.Document
 
-class SignaturVerifisering {
+class SignaturValidator {
     init {
         System.setProperty("org.apache.xml.security.ignoreLineBreaks", "true")
         Init.init()
     }
 
     @Throws(SignatureException::class)
-    fun validate(document: ByteArray) {
-        // TODO Sjekk isNonRepudiation?
-        val dom = createDocument(ByteArrayInputStream(document))
-        val signature = dom.retrieveSignatureElement()
+    fun validate(document: Document) {
+        val signature = document.retrieveSignatureElement()
         val certificateFromSignature = signature.keyInfo.x509Certificate
 
         try {

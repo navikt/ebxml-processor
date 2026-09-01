@@ -9,4 +9,5 @@ internal fun setupEnv() {
     System.setProperty("KEYSTORE_FILE_SIGN", "src/test/resources/keystore/test_keystore2024.p12")
     System.setProperty("KEYSTORE_PWD_FILE", "src/test/resources/keystore/credentials-test.json")
     System.setProperty("SIGNER_ALIAS", "test_signer_2023")
+    System.setProperty("TRUSTSTORE_PATH", "keystore/test_truststore2024.p12")
 }
