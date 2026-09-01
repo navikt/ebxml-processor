@@ -25,7 +25,7 @@ data class Acknowledgment(
     override fun toEbmsDokument(): EbmsDocument {
         return createEbmsDocument(
             createMessageHeader().apply {
-                this.any.add(createAcknowledgementElement())
+                this.any!!.add(createAcknowledgementElement())
             }
         ).also {
             val acknowledgmentElement = it.document
