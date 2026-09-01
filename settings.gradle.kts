@@ -15,7 +15,7 @@ dependencyResolutionManagement {
         create("libs") {
             version("bouncycastle", "1.76")
             version("exposed", "1.0.0-rc-3")
-            version("ktor", "3.4.3")
+            version("ktor", "3.5.2")
             version("token-validation-ktor", "6.0.12")
             version("arrow", "1.2.4")
             version("suspendapp", "0.5.0")
@@ -99,7 +99,7 @@ dependencyResolutionManagement {
             version("mockk", "1.13.10")
             version("testcontainers", "1.21.4")
             version("xmlunit", "2.9.1")
-            version("ktor-server-test", "3.4.3")
+            version("ktor-server-test", "3.5.2")
             version("kotest", "5.9.1")
 
             library("ktor-server-test-host", "io.ktor", "ktor-server-test-host").versionRef("ktor-server-test")
