@@ -15,8 +15,8 @@ dependencyResolutionManagement {
         create("libs") {
             version("bouncycastle", "1.76")
             version("exposed", "1.0.0-rc-3")
-            version("ktor", "3.0.3")
-            version("token-validation-ktor", "5.0.15")
+            version("ktor", "3.4.3")
+            version("token-validation-ktor", "6.0.12")
             version("arrow", "1.2.4")
             version("suspendapp", "0.5.0")
             version("kotlin-kafka", "0.4.1")
@@ -26,6 +26,7 @@ dependencyResolutionManagement {
             version("fasterxml-jackson", "2.18.2")
             version("jwt", "4.6.0")
             version("emottak-utils", "0.4.0")
+            version("kotlinx-datetime", "0.8.0")
 
             library("jwt", "com.auth0", "java-jwt").versionRef("jwt")
             library("bcpkix-jdk18on", "org.bouncycastle", "bcpkix-jdk18on").versionRef("bouncycastle")
@@ -84,6 +85,7 @@ dependencyResolutionManagement {
             library("jakarta.xml.ws-api", "jakarta.xml.ws:jakarta.xml.ws-api:2.3.3")
             library("ojdbc8", "com.oracle.ojdbc:ojdbc8:19.3.0.0")
             library("guava", "com.google.guava:guava:33.4.0-jre")
+            library("kotlinx-datetime", "org.jetbrains.kotlinx", "kotlinx-datetime").versionRef("kotlinx-datetime")
 
             bundle("prometheus", listOf("ktor-server-metrics-micrometer", "micrometer-registry-prometheus"))
             bundle("bouncycastle", listOf("bcpkix-jdk18on", "bcprov-jdk18on"))
@@ -97,13 +99,14 @@ dependencyResolutionManagement {
             version("mockk", "1.13.10")
             version("testcontainers", "1.21.4")
             version("xmlunit", "2.9.1")
-            version("ktor-server-test", "3.0.3")
+            version("ktor-server-test", "3.4.3")
             version("kotest", "5.9.1")
 
             library("ktor-server-test-host", "io.ktor", "ktor-server-test-host").versionRef("ktor-server-test")
             library("junit-jupiter-api", "org.junit.jupiter", "junit-jupiter-api").versionRef("junit")
             library("junit-jupiter-engine", "org.junit.jupiter", "junit-jupiter-engine").versionRef("junit")
             library("junit-jupiter-params", "org.junit.jupiter", "junit-jupiter-params").versionRef("junit")
+            library("junit-platform-launcher", "org.junit.platform", "junit-platform-launcher").withoutVersion()
             library("mock-oauth2-server", "no.nav.security:mock-oauth2-server:2.1.2")
             library("ktor-client-mock", "io.ktor", "ktor-client-mock").versionRef("ktor-server-test")
 
