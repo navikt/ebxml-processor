@@ -161,9 +161,8 @@ enum class ErrorCode(val value: String, val description: String) {
         fun fromString(string: String): ErrorCode {
             return ErrorCode.entries.find {
                 it.value == string
-            } ?: run {
+            } ?: UNKNOWN.also {
                 log.warn("Unknown error code: $string")
-                UNKNOWN
             }
         }
     }
