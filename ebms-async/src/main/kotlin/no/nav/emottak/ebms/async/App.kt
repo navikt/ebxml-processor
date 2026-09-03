@@ -20,6 +20,7 @@ import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import no.nav.emottak.ebms.AZURE_AD_AUTH
 import no.nav.emottak.ebms.CpaRepoClient
@@ -71,6 +72,10 @@ import org.slf4j.LoggerFactory
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.fixedRateTimer
 import kotlin.concurrent.timer
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TimeSource
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.async.App")
 
@@ -165,7 +170,8 @@ fun main() = SuspendApp {
             )
             launchEbmsOutPayloadReceiver(
                 config = config,
-                payloadMessageService = payloadMessageService
+                payloadMessageService = payloadMessageService,
+                failedMessageKafkaHandler = failedMessageQueue
             )
             launchErrorRetryTaskIncoming(
                 config = config,
@@ -222,32 +228,71 @@ class PauseRetryErrorsTimerFlag {
     var paused = false
 }
 
+suspend fun runReceiverWithRetry(
+    name: String,
+    initialDelay: Duration = 1.seconds,
+    maxDelay: Duration = 1.minutes,
+    resetAfter: Duration = 1.minutes,
+    block: suspend () -> Unit
+) {
+    var currentDelay = initialDelay
+    while (true) {
+        val startedAt = TimeSource.Monotonic.markNow()
+        var completedNormally = false
+        var failure: Exception? = null
+        try {
+            block()
+            completedNormally = true
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            failure = e
+        }
+        if (startedAt.elapsedNow() >= resetAfter) {
+            currentDelay = initialDelay
+        }
+        if (completedNormally) {
+            log.warn("$name completed unexpectedly, restarting in $currentDelay")
+        } else {
+            log.error("$name failed, restarting in $currentDelay", failure)
+        }
+        delay(currentDelay)
+        currentDelay = (currentDelay * 2).coerceAtMost(maxDelay)
+    }
+}
+
 fun CoroutineScope.launchPayloadReceiver(
     config: Config,
     messageFilterService: MessageFilterService
 ) {
     if (config.kafkaPayloadReceiver.active) {
         launch(Dispatchers.IO) {
-            startPayloadReceiver(
-                config.kafkaPayloadReceiver.topic,
-                config.kafka,
-                messageFilterService
-            )
+            runReceiverWithRetry("PayloadReceiver") {
+                startPayloadReceiver(
+                    config.kafkaPayloadReceiver.topic,
+                    config.kafka,
+                    messageFilterService
+                )
+            }
         }
     }
 }
 
 fun CoroutineScope.launchEbmsOutPayloadReceiver(
     config: Config,
-    payloadMessageService: PayloadMessageService
+    payloadMessageService: PayloadMessageService,
+    failedMessageKafkaHandler: FailedMessageKafkaHandler
 ) {
     if (config.kafkaEbmsOutPayloadReceiver.active) {
         launch(Dispatchers.IO) {
-            startEbmsOutPayloadReceiver(
-                config.kafkaEbmsOutPayloadReceiver.topic,
-                config.kafka,
-                payloadMessageService
-            )
+            runReceiverWithRetry("EbmsOutPayloadReceiver") {
+                startEbmsOutPayloadReceiver(
+                    config.kafkaEbmsOutPayloadReceiver.topic,
+                    config.kafka,
+                    payloadMessageService,
+                    failedMessageKafkaHandler
+                )
+            }
         }
     }
 }
@@ -258,11 +303,13 @@ fun CoroutineScope.launchSignalReceiver(
 ) {
     if (config.kafkaSignalReceiver.active) {
         launch(Dispatchers.IO) {
-            startSignalReceiver(
-                config.kafkaSignalReceiver.topic,
-                config.kafka,
-                messageFilterService = messageFilterService
-            )
+            runReceiverWithRetry("SignalReceiver") {
+                startSignalReceiver(
+                    config.kafkaSignalReceiver.topic,
+                    config.kafka,
+                    messageFilterService = messageFilterService
+                )
+            }
         }
     }
 }
