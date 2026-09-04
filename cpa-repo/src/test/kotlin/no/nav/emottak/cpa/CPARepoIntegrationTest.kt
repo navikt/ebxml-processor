@@ -33,8 +33,8 @@ import io.mockk.mockk
 import no.nav.emottak.cpa.auth.AZURE_AD_AUTH
 import no.nav.emottak.cpa.auth.AuthConfig
 import no.nav.emottak.cpa.databasetest.PostgresOracleTest
-import no.nav.emottak.cpa.model.Certificate
-import no.nav.emottak.cpa.model.CommunicationParty
+import no.nav.emottak.cpa.nhn.adresseregisteret.model.Certificate
+import no.nav.emottak.cpa.nhn.adresseregisteret.model.CommunicationParty
 import no.nav.emottak.cpa.persistence.CPARepository
 import no.nav.emottak.cpa.persistence.gammel.PartnerRepository
 import no.nav.emottak.cpa.util.EventRegistrationServiceFake

@@ -1,8 +1,8 @@
 package no.nav.emottak.cpa.persistence
 
 import no.nav.emottak.cpa.databasetest.PostgresTest
-import no.nav.emottak.cpa.model.CommunicationParty
-import no.nav.emottak.cpa.model.CurrentCertificate
+import no.nav.emottak.cpa.nhn.adresseregisteret.model.CommunicationParty
+import no.nav.emottak.cpa.nhn.adresseregisteret.model.CurrentCertificate
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.deleteAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
