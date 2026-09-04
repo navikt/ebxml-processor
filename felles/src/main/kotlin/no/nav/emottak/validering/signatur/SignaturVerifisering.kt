@@ -1,14 +1,15 @@
-package no.nav.emottak.util.signatur
+package no.nav.emottak.validering.signatur
 
 import no.nav.emottak.util.createDocument
 import no.nav.emottak.util.retrieveSignatureElement
+import org.apache.xml.security.Init
 import org.apache.xml.security.signature.MissingResourceFailureException
 import java.io.ByteArrayInputStream
 
 class SignaturVerifisering {
     init {
         System.setProperty("org.apache.xml.security.ignoreLineBreaks", "true")
-        org.apache.xml.security.Init.init()
+        Init.init()
     }
 
     @Throws(SignatureException::class)

@@ -59,6 +59,7 @@ import no.nav.emottak.utils.common.model.PartyId
 import no.nav.emottak.utils.common.zoneOslo
 import no.nav.emottak.utils.environment.getEnvVar
 import no.nav.emottak.utils.serialization.LENIENT_JSON_PARSER
+import no.nav.emottak.validering.sertifikat.SertifikatValidator
 import no.nav.security.mock.oauth2.MockOAuth2Server
 import org.apache.commons.lang3.StringUtils
 import org.junit.jupiter.api.Disabled
@@ -82,6 +83,7 @@ import kotlin.uuid.Uuid
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class CPARepoIntegrationTest : PostgresOracleTest() {
     val eventRegistrationService = EventRegistrationServiceFake()
+    private val sertifikatValidatorMock: SertifikatValidator = mockk(relaxed = true)
     private lateinit var cpaRepositoryMock: CPARepository
     private lateinit var partnerRepositoryMock: PartnerRepository
 
@@ -98,7 +100,8 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
                             jsonLenient()
                         }
                     }
-                )
+                ),
+                sertifikatValidatorMock
             )
         )
         testBlock()
@@ -117,21 +120,22 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
 
         cpaRepositoryMock = mockk()
         partnerRepositoryMock = mockk(relaxed = true)
-        application(validateCpaApplicationModule(cpaRepositoryMock, partnerRepositoryMock, adresseregisterValidator))
+        application(validateCpaApplicationModule(cpaRepositoryMock, partnerRepositoryMock, adresseregisterValidator, sertifikatValidatorMock))
         testBlock()
     }
 
     private fun validateCpaApplicationModule(
         cpaRepository: CPARepository,
         partnerRepository: PartnerRepository,
-        adresseregisterValidator: AdresseregisterValidator
+        adresseregisterValidator: AdresseregisterValidator,
+        sertifikatValidator: SertifikatValidator
     ): Application.() -> Unit {
         return {
             install(io.ktor.server.plugins.contentnegotiation.ContentNegotiation) {
                 jsonLenient()
             }
             routing {
-                validateCpa(cpaRepository, partnerRepository, eventRegistrationService, adresseregisterValidator)
+                validateCpa(cpaRepository, partnerRepository, eventRegistrationService, sertifikatValidator, adresseregisterValidator)
             }
         }
     }

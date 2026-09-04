@@ -1,6 +1,6 @@
 package no.nav.emottak.payload.apprec.message
 
-import no.nav.emottak.util.signatur.SignatureException
+import no.nav.emottak.validering.signatur.SignatureException
 
 enum class AppRecErrorCode(val description: String) {
     X99("Annen feil"),

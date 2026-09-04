@@ -3,8 +3,6 @@ package no.nav.emottak.cpa
 import no.nav.emottak.message.model.Direction.IN
 import no.nav.emottak.message.model.Header
 import no.nav.emottak.message.model.ValidationRequest
-import no.nav.emottak.util.createCRLFile
-import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.utils.common.model.Addressing
 import no.nav.emottak.utils.common.model.Party
 import no.nav.emottak.utils.common.model.PartyId
@@ -16,13 +14,6 @@ class TestUtil {
             val testCpaString = String(this::class.java.classLoader.getResource("cpa/nav-qass-35065.xml").readBytes())
             return unmarshal(testCpaString, CollaborationProtocolAgreement::class.java)
         }
-
-        val validCertificate = createX509Certificate(this::class.java.classLoader.getResource("certificates/valid.qcevident.ca23.ssl.buypass.no.cer").readBytes())
-        val expiredCertificate = createX509Certificate(this::class.java.classLoader.getResource("certificates/expired.qcevident.ca23.ssl.buypass.no.cer").readBytes())
-        val revokedCertificate = createX509Certificate(this::class.java.classLoader.getResource("certificates/revoked.qcevident.ca23.ssl.buypass.no.cer").readBytes())
-        val selfSignedCertificate = createX509Certificate(this::class.java.classLoader.getResource("certificates/cert_selfsigned.pem").readBytes())
-
-        val crlFile = createCRLFile(this::class.java.classLoader.getResource("crl/BPClass3CA2.crl").readBytes())
     }
 }
 

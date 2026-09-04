@@ -2,6 +2,7 @@ package no.nav.emottak.crypto
 
 import com.google.common.collect.Iterators
 import com.google.common.collect.Iterators.asEnumeration
+import no.nav.emottak.util.isSelfSigned
 import org.bouncycastle.cert.X509CertificateHolder
 import org.bouncycastle.cert.jcajce.JcaX509CertificateHolder
 import org.bouncycastle.jce.provider.BouncyCastleProvider
@@ -156,4 +157,16 @@ class KeyStoreManager(private vararg val keyStoreConfig: KeyStoreConfig) {
     fun getKey(alias: String) =
         keyStores.first { (store) -> store.isKeyEntry(alias) }
             .let { (store, config) -> store.getKey(alias, config.keyStorePass) } as PrivateKey
+
+    fun getTrustedRootCerts(): Set<X509Certificate> {
+        return getPublicCertificates().values.filter { isSelfSigned(it) }.toSet().onEach {
+            log.info("Loaded root certificate: <${it.serialNumber.toString(16)}> <${it.subjectX500Principal.name}> <${it.issuerX500Principal}>")
+        }
+    }
+
+    fun getIntermediateCerts(): Set<X509Certificate> {
+        return getPublicCertificates().values.filter { !isSelfSigned(it) }.toSet().onEach {
+            log.info("Loaded intermediate certificate: <${it.serialNumber.toString(16)}> <${it.subjectX500Principal.name}> <${it.issuerX500Principal}>")
+        }
+    }
 }
