@@ -16,6 +16,7 @@ dependencies {
     api(libs.bundles.bouncycastle)
     testImplementation(testLibs.junit.jupiter.api)
     testImplementation(testLibs.junit.jupiter.engine)
+    testRuntimeOnly(testLibs.junit.platform.launcher)
 
     runtimeOnly("org.postgresql:postgresql:42.7.3")
 }
