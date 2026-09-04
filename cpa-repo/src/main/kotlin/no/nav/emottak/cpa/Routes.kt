@@ -319,8 +319,28 @@ fun Route.validateCpa(
         log.info(validateRequest.marker(), "Validerer ebms mot CPA")
         val (cpa, lastUsed) = cpaRepository.findCpaAndLastUsed(validateRequest.cpaId)
         if (cpa == null) {
+            if (adresseregisterValidator == null || !adresseregisterValidator.cpapiActive) {
+                log.error(validateRequest.marker(), "Fant ikke CPA med ID: ${validateRequest.cpaId}, Addresseregistervalidator ikke initialisert.")
+                eventRegistrationService.registerEvent(
+                    EventType.VALIDATION_AGAINST_CPA_FAILED,
+                    validateRequest,
+                    requestId,
+                    Json.encodeToString(
+                        mapOf(EventDataType.ERROR_MESSAGE.value to "Fant ikke CPA med ID: ${validateRequest.cpaId}")
+                    )
+                )
+                call.respond(
+                    HttpStatusCode.OK,
+                    ValidationResult(
+                        error = listOf(
+                            Feil(ErrorCode.DELIVERY_FAILURE, "Fant ikke CPA med ID: ${validateRequest.cpaId}")
+                        )
+                    )
+                )
+                return@post
+            }
             call.respond(
-                adresseregisterValidator?.validateWithAR(cpaRepository, validateRequest) ?: throw NotFoundException("Fant ikke CPA. Addresseregistervalidator ikke initialisert.")
+                adresseregisterValidator.validateWithAR(cpaRepository, validateRequest)
             )
             return@post
         }
