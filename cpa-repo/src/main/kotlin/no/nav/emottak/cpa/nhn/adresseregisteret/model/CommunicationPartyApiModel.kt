@@ -1,4 +1,4 @@
-package no.nav.emottak.cpa.model
+package no.nav.emottak.cpa.nhn.adresseregisteret.model
 
 import kotlinx.serialization.Serializable
 
@@ -7,14 +7,14 @@ data class CommunicationParty(
     val herId: Long,
     val name: String? = null,
     val displayName: String? = null,
-    val type: String? = null,
+    val type: String,
     val organizationDetails: OrganizationDetails? = null,
     val personDetails: PersonDetails? = null,
     val serviceDetails: ServiceDetails? = null,
     val currentSigningCertificate: CurrentCertificate? = null,
-    val currentEncryptionCertificate: CurrentCertificate,
+    val currentEncryptionCertificate: CurrentCertificate? = null,
     val email: String? = null,
-    val homepageURL: String? = null,
+    val homepageUrl: String? = null,
     val phoneNumber: String? = null,
     val faxNumber: String? = null,
     val ediAddress: String? = null,
@@ -28,30 +28,30 @@ data class CommunicationParty(
 
 @Serializable
 data class AMQPAddress(
-    val amqpSyncQueue: String,
-    val amqpSyncReplyQueue: String,
-    val amqpAsyncQueue: String,
-    val amqpErrorQueue: String
+    val amqpSyncQueue: String? = null,
+    val amqpSyncReplyQueue: String? = null,
+    val amqpAsyncQueue: String? = null,
+    val amqpErrorQueue: String? = null
 )
 
 @Serializable
 data class CurrentCertificate(
-    val thumbprint: String,
-    val validFrom: String,
-    val validTo: String
+    val thumbprint: String? = null,
+    val validFrom: String? = null,
+    val validTo: String? = null
 )
 
 @Serializable
 data class OrganizationDetails(
-    val organizationNumber: String,
+    val organizationNumber: String? = null,
     val businessType: Type,
-    val persons: List<Long>,
-    val services: List<Long>
+    val persons: List<Long>? = null,
+    val services: List<Long>? = null
 )
 
 @Serializable
 data class Type(
-    val codeListID: String? = null,
+    val codeListId: String? = null,
     val value: String,
     val name: String? = null,
     val url: String? = null
@@ -67,34 +67,34 @@ data class PersonDetails(
 data class ParentOrganization(
     val name: String,
     val herId: Long,
-    val organizationNumber: String
+    val organizationNumber: String? = null
 )
 
 @Serializable
 data class PostalAddress(
-    val address: String,
-    val postalBox: String,
-    val postalCode: String,
-    val city: String
+    val address: String? = null,
+    val postalBox: String? = null,
+    val postalCode: String? = null,
+    val city: String? = null
 )
 
 @Serializable
 data class ServiceDetails(
     val serviceType: Type,
-    val interMunicipalityCoverageArea: InterMunicipalityCoverageArea,
-    val serviceSpecification: String,
+    val interMunicipalityCoverageArea: InterMunicipalityCoverageArea? = null,
+    val serviceSpecification: String? = null,
     val parentOrganization: ParentOrganization
 )
 
 @Serializable
 data class InterMunicipalityCoverageArea(
-    val municipalityHerIDS: List<Long>
+    val municipalityHerIds: List<Long>? = null
 )
 
 @Serializable
 data class Certificate(
-    val thumbprint: String,
-    val validFrom: String,
-    val validTo: String,
-    val certificateValue: String
+    val thumbprint: String? = null,
+    val validFrom: String? = null,
+    val validTo: String? = null,
+    val certificateValue: String? = null
 )

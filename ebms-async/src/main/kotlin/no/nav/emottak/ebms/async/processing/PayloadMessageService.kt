@@ -150,10 +150,15 @@ class PayloadMessageService(
         )
         val incomingMessage = messageReceivedRepository.getByMessageId(ebmsPayloadMessage.refToMessageId!!)
         if (incomingMessage == null) {
-            log.warn("Could not find incoming message with message id ${ebmsPayloadMessage.refToMessageId}")
+            log.warn(ebmsPayloadMessage.marker(), "Could not find incoming message with message id ${ebmsPayloadMessage.refToMessageId}")
             payloadMessageForwardingService.returnMessageResponse(ebmsPayloadMessage)
         } else {
-            log.debug("Found incoming message with message id ${ebmsPayloadMessage.refToMessageId}: $incomingMessage")
+            log.debug(
+                ebmsPayloadMessage.marker(),
+                "Found incoming message with message id {}: {}",
+                ebmsPayloadMessage.refToMessageId,
+                incomingMessage
+            )
             val toParty = Party(listOf(PartyId("", incomingMessage.senderId)), incomingMessage.senderRole)
             val addressing = Addressing(
                 toParty,
@@ -167,6 +172,7 @@ class PayloadMessageService(
                 addressing = addressing
             )
             log.info(
+                enrichedMessage.marker(),
                 "Enriched outgoing payload: Message ID: ${enrichedMessage.messageId}, Service: ${enrichedMessage.addressing.service}, " +
                     "Refto Message ID: ${enrichedMessage.refToMessageId}, Role: ${enrichedMessage.addressing.from.role}, " +
                     "Action: ${enrichedMessage.addressing.action}, From: ${enrichedMessage.addressing.from.partyId}, " +
