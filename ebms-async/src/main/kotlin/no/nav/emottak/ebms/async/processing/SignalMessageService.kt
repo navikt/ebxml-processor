@@ -31,7 +31,7 @@ class SignalMessageService(
                 }
             }
         } catch (e: EbmsException) {
-            log.error("EbmsException processing signal requestId [$requestId]. Message: ${e.message}" , e)
+            log.error("EbmsException processing signal requestId [$requestId]. Message: ${e.message}", e)
         } catch (e: Exception) {
             log.error("Unknown error processing signal requestId [$requestId]. Message: ${e.message}", e)
             throw e
