@@ -8,8 +8,8 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import no.nav.emottak.cpa.configuration.Nhn
 import no.nav.emottak.cpa.configuration.config
-import no.nav.emottak.cpa.model.Certificate
-import no.nav.emottak.cpa.model.CommunicationParty
+import no.nav.emottak.cpa.nhn.adresseregisteret.model.Certificate
+import no.nav.emottak.cpa.nhn.adresseregisteret.model.CommunicationParty
 import no.nav.emottak.cpa.persistence.CommunicationPartyCacheRepository
 
 class AdresseregisterValidator(
