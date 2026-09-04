@@ -7,7 +7,7 @@ data class CommunicationParty(
     val herId: Long,
     val name: String? = null,
     val displayName: String? = null,
-    val type: String? = null,
+    val type: String,
     val organizationDetails: OrganizationDetails? = null,
     val personDetails: PersonDetails? = null,
     val serviceDetails: ServiceDetails? = null,
@@ -28,15 +28,15 @@ data class CommunicationParty(
 
 @Serializable
 data class AMQPAddress(
-    val amqpSyncQueue: String,
-    val amqpSyncReplyQueue: String,
-    val amqpAsyncQueue: String,
-    val amqpErrorQueue: String
+    val amqpSyncQueue: String? = null,
+    val amqpSyncReplyQueue: String? = null,
+    val amqpAsyncQueue: String? = null,
+    val amqpErrorQueue: String? = null
 )
 
 @Serializable
 data class CurrentCertificate(
-    val thumbprint: String,
+    val thumbprint: String? = null,
     val validFrom: String? = null,
     val validTo: String? = null
 )
@@ -74,8 +74,8 @@ data class ParentOrganization(
 data class PostalAddress(
     val address: String? = null,
     val postalBox: String? = null,
-    val postalCode: String,
-    val city: String
+    val postalCode: String? = null,
+    val city: String? = null
 )
 
 @Serializable
@@ -93,8 +93,8 @@ data class InterMunicipalityCoverageArea(
 
 @Serializable
 data class Certificate(
-    val thumbprint: String,
+    val thumbprint: String? = null,
     val validFrom: String? = null,
     val validTo: String? = null,
-    val certificateValue: String
+    val certificateValue: String? = null
 )

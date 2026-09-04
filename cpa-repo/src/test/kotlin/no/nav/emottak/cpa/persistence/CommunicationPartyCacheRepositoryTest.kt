@@ -21,6 +21,7 @@ class CommunicationPartyCacheRepositoryTest : PostgresTest() {
     private fun communicationParty(name: String) = CommunicationParty(
         herId = herId,
         name = name,
+        type = "Organization",
         currentEncryptionCertificate = CurrentCertificate("thumb", "2020-01-01", "2030-01-01")
     )
 
