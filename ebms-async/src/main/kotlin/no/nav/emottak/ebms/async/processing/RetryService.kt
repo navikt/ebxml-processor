@@ -1,6 +1,7 @@
 package no.nav.emottak.ebms.async.processing
 
 import io.github.nomisRev.kafka.receiver.ReceiverRecord
+import kotlinx.coroutines.CancellationException
 import no.nav.emottak.ebms.async.configuration.ErrorRetryPolicy
 import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.incrementFirstFailure
@@ -95,7 +96,7 @@ class RetryService(
                 failedMessageKafkaHandler.sendToRetryQueueIncoming(record, retryReason, getNextRetryTime(record, config().errorRetryPolicyIncoming))
             }
             RetryDecision.TTL_EXPIRED -> {
-                returnMessageError(
+                returnMessageErrorSafely(
                     payloadMessage,
                     EbmsException(
                         "TimeToLive expired",
@@ -106,7 +107,7 @@ class RetryService(
                 log.error("MESSAGE_GIVEN_UP: incoming with key ${record.key()} at offset ${record.offset()}, retried $retryCount times, TTL expired")
             }
             RetryDecision.MAX_RETRIES_EXCEEDED -> {
-                returnMessageError(
+                returnMessageErrorSafely(
                     payloadMessage,
                     exception as? EbmsException
                         ?: EbmsException(
@@ -118,9 +119,14 @@ class RetryService(
                 log.error("MESSAGE_GIVEN_UP: incoming with key ${record.key()} at offset ${record.offset()}, retried $retryCount times, max retries exceeded")
             }
             RetryDecision.NO_RETRY -> {
-                returnMessageError(
+                returnMessageErrorSafely(
                     payloadMessage,
-                    exception as EbmsException
+                    exception as? EbmsException
+                        ?: EbmsException(
+                            "Unknown delivery failure",
+                            errorCode = ErrorCode.DELIVERY_FAILURE,
+                            exception = exception
+                        )
                 )
                 log.error("MESSAGE_GIVEN_UP: incoming with key ${record.key()} at offset ${record.offset()}, NO RETRY for this error")
             }
@@ -289,11 +295,30 @@ class RetryService(
         }
         val validationResult = cpaValidationService.validateOutgoingMessage(messageError)
         val signingCertificate = validationResult.payloadProcessing?.signingCertificate
+            ?: throw EbmsException(
+                "No signing certificate available for outgoing MessageError",
+                errorCode = ErrorCode.DELIVERY_FAILURE,
+                recoverable = false
+            )
         signalSender(
-            messageError.toEbmsDokument().signer(signingCertificate!!),
+            messageError.toEbmsDokument().signer(signingCertificate),
             validationResult.signalEmailAddress
         )
         log.warn(messageError.marker(), "MessageError returned", ebmsException)
+    }
+
+    private suspend fun returnMessageErrorSafely(ebmsPayloadMessage: EbmsMessage, ebmsException: EbmsException) {
+        try {
+            returnMessageError(ebmsPayloadMessage, ebmsException)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            log.error(
+                ebmsPayloadMessage.marker(),
+                "Failed to return MessageError for message ${ebmsPayloadMessage.messageId}, giving up on the signal",
+                e
+            )
+        }
     }
 }
 

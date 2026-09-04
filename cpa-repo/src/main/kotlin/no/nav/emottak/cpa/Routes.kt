@@ -251,7 +251,7 @@ suspend fun AdresseregisterValidator.validateWithAR(
     try {
         val validSignatureDetails = SignatureDetails(
             certificate = decodeBase64(
-                getSigningCertificate(fromHerId).certificateValue.toByteArray()
+                (getSigningCertificate(fromHerId).certificateValue ?: throw NotFoundException("Fant ikke signeringssertifikat for $fromHerId")).toByteArray()
             ),
             signatureAlgorithm = XMLSignature.ALGO_ID_SIGNATURE_RSA_SHA256,
             hashFunction = MessageDigestAlgorithm.ALGO_ID_DIGEST_SHA256
@@ -268,7 +268,7 @@ suspend fun AdresseregisterValidator.validateWithAR(
             PayloadProcessing(
                 validSignatureDetails,
                 decodeBase64(
-                    getEncryptionCertificate(toHerId).certificateValue.toByteArray()
+                    (getEncryptionCertificate(toHerId).certificateValue ?: throw NotFoundException("Fant ikke krypteringssertifikat for $toHerId")).toByteArray()
                 ),
                 cpaRepository.getProcessConfig(
                     validateRequest.addressing.from.role,
@@ -471,7 +471,7 @@ fun Route.getSigningCertificate(
         val herid = signatureDetailsRequest.partyId
         try {
             val signingCertificate = decodeBase64(
-                adresseregisterValidator.getSigningCertificate(herid).certificateValue.toByteArray()
+                (adresseregisterValidator.getSigningCertificate(herid).certificateValue ?: throw NotFoundException("Fant ikke signeringssertifikat for $herid")).toByteArray()
             )
             runCatching {
                 sertifikatValidator.validateCertificate(createX509Certificate(signingCertificate))
