@@ -45,8 +45,9 @@ class SignalMessageService(
             return
         }
         eventRegistrationService.registerEventMessageDetails(acknowledgment)
-        cpaValidationService.validateIncomingMessage(
+        validateIncomingSignal(
             message = acknowledgment,
+            refToMessageId = acknowledgment.refToMessageId,
             checkSignature = checkSignature
         )
         eventRegistrationService.registerEvent(
@@ -65,7 +66,11 @@ class SignalMessageService(
             return
         }
         eventRegistrationService.registerEventMessageDetails(messageError)
-        cpaValidationService.validateIncomingMessage(messageError)
+        validateIncomingSignal(
+            message = messageError,
+            refToMessageId = messageError.refToMessageId,
+            checkSignature = true
+        )
         log.info(messageError.marker(), "Got MessageError with requestId <${messageError.requestId}>")
         messageError.feil.forEach { error ->
             log.warn(messageError.marker(), "Code: ${error.code}, Description: ${error.descriptionText}")
@@ -79,6 +84,41 @@ class SignalMessageService(
                     )
                 ),
                 conversationId = messageError.conversationId
+            )
+        }
+    }
+
+    private suspend fun validateIncomingSignal(
+        message: EbmsMessage,
+        refToMessageId: String,
+        checkSignature: Boolean
+    ) {
+        val validationResult = cpaValidationService.validateIncomingMessage(message, checkSignature = false)
+        if (!checkSignature) return
+
+        try {
+            cpaValidationService.validateResult(
+                validationResult = validationResult,
+                message = message,
+                checkSignature = true
+            )
+        } catch (e: EbmsException) {
+            log.warn(
+                message.marker(),
+                "Signature validation failed for signal with requestId <${message.requestId}>, " +
+                    "continuing processing: ${e.message}",
+                e
+            )
+            eventRegistrationService.registerEvent(
+                eventType = EventType.SIGNATURE_CHECK_FAILED,
+                conversationId = message.conversationId,
+                messageId = refToMessageId,
+                requestId = message.requestId.parseOrGenerateUuid(),
+                eventData = Json.encodeToString(
+                    mapOf(
+                        EventDataType.ERROR_MESSAGE to "Signeringsfeil: ${e.message}"
+                    )
+                )
             )
         }
     }
