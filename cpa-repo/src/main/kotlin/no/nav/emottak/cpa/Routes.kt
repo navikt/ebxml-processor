@@ -251,7 +251,7 @@ suspend fun AdresseregisterValidator.validateWithAR(
     try {
         val validSignatureDetails = SignatureDetails(
             certificate = decodeBase64(
-                getSigningCertificate(fromHerId).certificateValue.toByteArray()
+                (getSigningCertificate(fromHerId).certificateValue ?: throw NotFoundException("Fant ikke signeringssertifikat for $fromHerId")).toByteArray()
             ),
             signatureAlgorithm = XMLSignature.ALGO_ID_SIGNATURE_RSA_SHA256,
             hashFunction = MessageDigestAlgorithm.ALGO_ID_DIGEST_SHA256
@@ -268,7 +268,7 @@ suspend fun AdresseregisterValidator.validateWithAR(
             PayloadProcessing(
                 validSignatureDetails,
                 decodeBase64(
-                    getEncryptionCertificate(toHerId).certificateValue.toByteArray()
+                    (getEncryptionCertificate(toHerId).certificateValue ?: throw NotFoundException("Fant ikke krypteringssertifikat for $toHerId")).toByteArray()
                 ),
                 cpaRepository.getProcessConfig(
                     validateRequest.addressing.from.role,
@@ -325,9 +325,28 @@ fun Route.validateCpa(
         log.info(validateRequest.marker(), "Validerer ebms mot CPA")
         val (cpa, lastUsed) = cpaRepository.findCpaAndLastUsed(validateRequest.cpaId)
         if (cpa == null) {
+            if (adresseregisterValidator == null || !adresseregisterValidator.cpapiActive) {
+                log.error(validateRequest.marker(), "Fant ikke CPA med ID: ${validateRequest.cpaId}, Addresseregistervalidator ikke initialisert.")
+                eventRegistrationService.registerEvent(
+                    EventType.VALIDATION_AGAINST_CPA_FAILED,
+                    validateRequest,
+                    requestId,
+                    Json.encodeToString(
+                        mapOf(EventDataType.ERROR_MESSAGE.value to "Fant ikke CPA med ID: ${validateRequest.cpaId}")
+                    )
+                )
+                call.respond(
+                    HttpStatusCode.OK,
+                    ValidationResult(
+                        error = listOf(
+                            Feil(ErrorCode.DELIVERY_FAILURE, "Fant ikke CPA med ID: ${validateRequest.cpaId}")
+                        )
+                    )
+                )
+                return@post
+            }
             call.respond(
-                adresseregisterValidator?.validateWithAR(cpaRepository, validateRequest, sertifikatValidator)
-                    ?: throw NotFoundException("Fant ikke CPA. Addresseregistervalidator ikke initialisert.")
+                adresseregisterValidator.validateWithAR(cpaRepository, validateRequest, sertifikatValidator)
             )
             return@post
         }
@@ -471,7 +490,7 @@ fun Route.getSigningCertificate(
         val herid = signatureDetailsRequest.partyId
         try {
             val signingCertificate = decodeBase64(
-                adresseregisterValidator.getSigningCertificate(herid).certificateValue.toByteArray()
+                (adresseregisterValidator.getSigningCertificate(herid).certificateValue ?: throw NotFoundException("Fant ikke signeringssertifikat for $herid")).toByteArray()
             )
             runCatching {
                 sertifikatValidator.validateCertificate(createX509Certificate(signingCertificate))
@@ -517,8 +536,13 @@ fun Route.getMessagingCharacteristics(cpaRepository: CPARepository) =
         val request = call.receive(MessagingCharacteristicsRequest::class)
 
         val cpa = cpaRepository.findCpa(request.cpaId) ?: throw NotFoundException("CPA not found for ID ${request.cpaId}")
-        val fromParty = cpa.getValidPartyInfosSender(request.service, request.action).firstOrNull() ?: throw BadRequestException("Fant ikke gyldig fromParty for service ${request.service} og action ${request.action}")
-        val deliveryChannel = fromParty.getSendDeliveryChannel(request.role, request.service, request.action)
+        val fromParty = cpa.getValidPartyInfosSender(request.service, request.action).firstOrNull()
+            ?: throw BadRequestException("Fant ikke gyldig fromParty for service ${request.service} og action ${request.action}")
+        val deliveryChannel = runCatching {
+            fromParty.getSendDeliveryChannel(request.role, request.service, request.action)
+        }.onFailure {
+            throw BadRequestException("Fant ingen gyldig delivery channel for role ${request.role}, service ${request.service} og action ${request.action}")
+        }.getOrThrow()
 
         val response = MessagingCharacteristicsResponse(
             requestId = request.requestId,

@@ -112,9 +112,9 @@ fun EbmsMessage.createMessageHeader(
     }
 
     return Header().apply {
-        this.any.add(messageHeader)
-        if (withSyncReplyElement) this.any.add(createSyncReplyElement())
-        if (withAckRequestedElement) this.any.add(createAckRequestedElement(ackSignatureRequested))
+        this.any!!.add(messageHeader)
+        if (withSyncReplyElement) this.any!!.add(createSyncReplyElement())
+        if (withAckRequestedElement) this.any!!.add(createAckRequestedElement(ackSignatureRequested))
     }
 }
 
@@ -145,12 +145,11 @@ private fun createAckRequestedElement(ackSignatureRequested: Boolean) = AckReque
 @OptIn(ExperimentalUuidApi::class)
 fun EbmsMessage.createEbmsDocument(ebxmlDokument: Header, payload: EbmsAttachment? = null): EbmsDocument {
     val envelope = Envelope()
-    val attachmentUid = Uuid.random().toString()
     envelope.header = ebxmlDokument
 
     envelope.body = Body().apply {
         if (payload != null) {
-            this.any.add(
+            this.any!!.add(
                 Manifest().apply {
                     this.version = "2.0"
                     this.reference.add(

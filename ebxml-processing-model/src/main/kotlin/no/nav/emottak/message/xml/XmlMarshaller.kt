@@ -60,6 +60,7 @@ class XmlMarshaller {
         }
     }
 
+    @Suppress("UNCHECKED_CAST")
     fun <T> unmarshal(document: Node): T {
         val unmarshalled = synchronized(unmarshlingMonitor) {
             unmarshaller.unmarshal(document)

@@ -24,11 +24,13 @@ data class MessageError(
 ) : EbmsMessage() {
 
     override fun toEbmsDokument(): EbmsDocument {
-        val header = this.createMessageHeader(this.addressing.copy(action = EbXMLConstants.MESSAGE_ERROR_ACTION, service = EbXMLConstants.EBMS_SERVICE_URI))
+        val header = this.createMessageHeader(
+            newAddressing = this.addressing.copy(action = EbXMLConstants.MESSAGE_ERROR_ACTION, service = EbXMLConstants.EBMS_SERVICE_URI)
+        ).apply {
+            this.any!!.add(this@MessageError.feil.asErrorList())
+        }
         return ObjectFactory().createEnvelope()!!.apply {
-            this.header = header.apply {
-                this@apply.any.add(this@MessageError.feil.asErrorList())
-            }
+            this.header = header
             this.body = Body()
         }.let {
             xmlMarshaller.marshal(it)

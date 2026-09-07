@@ -1,7 +1,7 @@
 package no.nav.emottak.cpa.persistence
 
-import no.nav.emottak.cpa.model.Certificate
-import no.nav.emottak.cpa.model.CommunicationParty
+import no.nav.emottak.cpa.nhn.adresseregisteret.model.Certificate
+import no.nav.emottak.cpa.nhn.adresseregisteret.model.CommunicationParty
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction

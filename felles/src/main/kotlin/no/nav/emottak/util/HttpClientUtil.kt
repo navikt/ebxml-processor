@@ -20,7 +20,7 @@ class HttpClientUtil {
             }
             engine {
                 if (httpProxyUrl.isNotBlank()) {
-                    proxy = Proxy(Proxy.Type.HTTP, InetSocketAddress(URI(httpProxyUrl).host, URI(httpProxyUrl).port))
+                    proxy = Proxy(Proxy.Type.HTTP, InetSocketAddress(URI(httpProxyUrl).toURL().host, URI(httpProxyUrl).toURL().port))
                 }
             }
         }

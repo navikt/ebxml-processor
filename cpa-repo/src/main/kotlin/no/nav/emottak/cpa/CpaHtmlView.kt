@@ -23,6 +23,7 @@ import kotlinx.html.th
 import kotlinx.html.thead
 import kotlinx.html.title
 import kotlinx.html.tr
+import kotlinx.html.unsafe
 import no.nav.emottak.util.createX509Certificate
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.DeliveryChannel
@@ -42,7 +43,7 @@ fun HTML.renderCpa(cpa: CollaborationProtocolAgreement) = renderCpaView(cpa)
 fun HTML.renderCpaView(cpa: CollaborationProtocolAgreement? = null, notFound: String? = null) {
     head {
         title { +(if (cpa != null) "CPA: ${cpa.cpaid}" else "CPA Viewer") }
-        style { +CPA_STYLES }
+        style { unsafe { +CPA_STYLES } }
     }
     body {
         div("container") {

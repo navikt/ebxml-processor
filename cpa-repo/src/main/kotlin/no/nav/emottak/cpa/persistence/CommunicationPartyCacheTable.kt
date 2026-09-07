@@ -1,8 +1,8 @@
 package no.nav.emottak.cpa.persistence
 
 import kotlinx.serialization.KSerializer
-import no.nav.emottak.cpa.model.Certificate
-import no.nav.emottak.cpa.model.CommunicationParty
+import no.nav.emottak.cpa.nhn.adresseregisteret.model.Certificate
+import no.nav.emottak.cpa.nhn.adresseregisteret.model.CommunicationParty
 import no.nav.emottak.utils.serialization.LENIENT_JSON_PARSER
 import org.jetbrains.exposed.v1.core.Column
 import org.jetbrains.exposed.v1.core.ColumnType

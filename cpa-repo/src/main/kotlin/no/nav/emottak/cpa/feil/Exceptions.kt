@@ -7,7 +7,7 @@ import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.SeverityType
 open class CpaValidationException(
     message: String,
     errorCode: ErrorCode = ErrorCode.DELIVERY_FAILURE,
-    severity: String = SeverityType.ERROR.value(),
+    severity: String = SeverityType.ERROR.value()!!,
     exception: Exception? = null
 ) : EbmsException(
     message = message,
@@ -19,7 +19,7 @@ open class CpaValidationException(
 open class SecurityException(
     message: String,
     errorCode: ErrorCode = ErrorCode.SECURITY_FAILURE,
-    severity: String = SeverityType.ERROR.value(),
+    severity: String = SeverityType.ERROR.value()!!,
     exception: java.lang.Exception? = null
 ) : EbmsException(
     message = message,
