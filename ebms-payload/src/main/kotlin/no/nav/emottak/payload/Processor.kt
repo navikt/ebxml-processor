@@ -8,7 +8,6 @@ import no.nav.emottak.message.model.ProcessConfig
 import no.nav.emottak.payload.crypto.Dekryptering
 import no.nav.emottak.payload.crypto.Kryptering
 import no.nav.emottak.payload.crypto.PayloadSignering
-import no.nav.emottak.payload.crypto.getEncryptionDetails
 import no.nav.emottak.payload.helseid.NinResolver
 import no.nav.emottak.payload.juridisklogg.JuridiskLoggService
 import no.nav.emottak.payload.util.EventRegistrationService
@@ -16,6 +15,7 @@ import no.nav.emottak.payload.util.GZipUtil
 import no.nav.emottak.util.createDocument
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.getByteArrayFromDocument
+import no.nav.emottak.util.mapCertificateDetails
 import no.nav.emottak.util.marker
 import no.nav.emottak.util.retrieveSignatureElement
 import no.nav.emottak.utils.kafka.model.EventDataType
@@ -146,9 +146,7 @@ class Processor(
             eventRegistrationService.registerEvent(
                 EventType.MESSAGE_ENCRYPTED,
                 payloadRequest,
-                Json.encodeToString(
-                    mapOf(EventDataType.ENCRYPTION_DETAILS.value to getEncryptionDetails(certificate))
-                )
+                Json.encodeToString(certificate.mapCertificateDetails())
             )
         }
     }
