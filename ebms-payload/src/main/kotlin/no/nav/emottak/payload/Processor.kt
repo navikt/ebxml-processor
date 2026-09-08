@@ -85,15 +85,22 @@ class Processor(
             if (processConfig.signering) {
                 log.debug(marker, "Validating signature for payload")
 
-                signatureVerifisering.validate(this).also {
-                    eventRegistrationService.registerEvent(
-                        EventType.SIGNATURE_CHECK_SUCCESSFUL,
-                        payloadRequest
-                    )
-                }
-
+                signatureVerifisering.validate(this)
                 val certificate = this.retrieveSignatureElement().retrievePublicX509Certificate()
                 sertifikatValidator.validateCertificate(certificate)
+                eventRegistrationService.registerEvent(
+                    eventType = EventType.SIGNATURE_CHECK_SUCCESSFUL,
+                    payloadRequest = payloadRequest,
+                    eventData = Json.encodeToString(
+                        mapOf(
+                            "subject" to certificate.subjectX500Principal.name,
+                            "issuer" to certificate.issuerX500Principal.name,
+                            "serialNumber" to certificate.serialNumber.toString(),
+                            "validFrom" to certificate.notBefore.toString(),
+                            "validTo" to certificate.notAfter.toString()
+                        )
+                    )
+                )
                 signedByOrg = certificate.getOrganizationNumber()
             }
             if (processConfig.ocspSjekk) {
