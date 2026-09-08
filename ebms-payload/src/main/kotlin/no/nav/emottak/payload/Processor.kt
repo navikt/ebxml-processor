@@ -91,15 +91,7 @@ class Processor(
                 eventRegistrationService.registerEvent(
                     eventType = EventType.SIGNATURE_CHECK_SUCCESSFUL,
                     payloadRequest = payloadRequest,
-                    eventData = Json.encodeToString(
-                        mapOf(
-                            "subject" to certificate.subjectX500Principal.name,
-                            "issuer" to certificate.issuerX500Principal.name,
-                            "serialNumber" to certificate.serialNumber.toString(),
-                            "validFrom" to certificate.notBefore.toString(),
-                            "validTo" to certificate.notAfter.toString()
-                        )
-                    )
+                    eventData = Json.encodeToString(certificate.mapCertificateDetails())
                 )
                 signedByOrg = certificate.getOrganizationNumber()
             }
