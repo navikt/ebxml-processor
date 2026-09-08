@@ -32,3 +32,13 @@ fun X509Certificate.thumbprint(): String {
     val digest = MessageDigest.getInstance("SHA-1")
     return digest.digest(encoded).joinToString("") { "%02X".format(it) }
 }
+
+fun X509Certificate.mapCertificateDetails(): Map<String, String> {
+    return mapOf(
+        "subject" to this.subjectX500Principal.name,
+        "issuer" to this.issuerX500Principal.name,
+        "serialNumber" to this.serialNumber.toString(),
+        "validFrom" to this.notBefore.time.toString(),
+        "validTo" to this.notAfter.time.toString()
+    )
+}
