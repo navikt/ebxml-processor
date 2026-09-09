@@ -3,8 +3,15 @@
  */
 package no.nav.emottak.ebms
 
+import no.nav.emottak.message.ebxml.effectiveErrorCode
+import no.nav.emottak.message.ebxml.effectiveSeverity
+import no.nav.emottak.message.ebxml.errorList
+import no.nav.emottak.message.model.ErrorCode
+import no.nav.emottak.message.model.Feil
+import no.nav.emottak.message.xml.getDocumentBuilder
 import no.nav.emottak.message.xml.marshal
 import no.nav.emottak.message.xml.unmarshal
+import no.nav.emottak.message.xml.xmlMarshaller
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -18,13 +25,6 @@ import java.net.URL
 import javax.xml.XMLConstants
 import javax.xml.transform.stream.StreamSource
 import javax.xml.validation.SchemaFactory
-import no.nav.emottak.message.ebxml.effectiveErrorCode
-import no.nav.emottak.message.ebxml.effectiveSeverity
-import no.nav.emottak.message.ebxml.errorList
-import no.nav.emottak.message.model.ErrorCode
-import no.nav.emottak.message.model.Feil
-import no.nav.emottak.message.xml.getDocumentBuilder
-import no.nav.emottak.message.xml.xmlMarshaller
 
 class XmlMarshallerTest {
     @Test
