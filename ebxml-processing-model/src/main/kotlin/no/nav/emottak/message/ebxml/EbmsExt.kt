@@ -6,6 +6,7 @@ import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Error
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ErrorList
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Manifest
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
+import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.SeverityType
 import org.xmlsoap.schemas.soap.envelope.Envelope
 import org.xmlsoap.schemas.soap.envelope.Header
 
@@ -38,6 +39,14 @@ fun Header.errorList(): ErrorList? {
  */
 fun Error.effectiveErrorCode(): String? {
     return this.errorCode ?: this.otherAttributes?.entries?.firstOrNull { it.key.localPart == "errorCode" }?.value
+}
+
+/**
+ * Same fallback as [effectiveErrorCode], but for the `severity` attribute.
+ */
+fun Error.effectiveSeverity(): String? {
+    val severity: SeverityType? = this.severity
+    return severity?.value() ?: this.otherAttributes?.entries?.firstOrNull { it.key.localPart == "severity" }?.value
 }
 
 fun MessageHeader.getAckRequestedSigned(): Boolean? {

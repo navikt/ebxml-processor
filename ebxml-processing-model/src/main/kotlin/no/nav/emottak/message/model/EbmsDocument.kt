@@ -20,6 +20,7 @@ import no.nav.emottak.message.ebxml.EbXMLConstants.OASIS_EBXML_MSG_HEADER_XSD_NS
 import no.nav.emottak.message.ebxml.acknowledgment
 import no.nav.emottak.message.ebxml.addressing
 import no.nav.emottak.message.ebxml.effectiveErrorCode
+import no.nav.emottak.message.ebxml.effectiveSeverity
 import no.nav.emottak.message.ebxml.errorList
 import no.nav.emottak.message.ebxml.messageHeader
 import no.nav.emottak.message.xml.xmlMarshaller
@@ -64,7 +65,11 @@ data class EbmsDocument(val requestId: String, val document: Document, val attac
 
             DocumentType.MESSAGE_ERROR -> {
                 val errorList = header.errorList()!!.error.map {
-                    Feil(ErrorCode.fromString(it.effectiveErrorCode() ?: ""), it.description!!.value!!)
+                    Feil(
+                        ErrorCode.fromString(it.effectiveErrorCode() ?: ""),
+                        it.description!!.value!!,
+                        it.effectiveSeverity()
+                    )
                 }.toList()
                 MessageError(
                     requestId,
