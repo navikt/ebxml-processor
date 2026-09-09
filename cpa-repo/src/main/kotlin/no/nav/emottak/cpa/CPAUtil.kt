@@ -271,8 +271,10 @@ fun CollaborationProtocolAgreement.getPartyInfoByTypeAndID(partyId: List<PartyId
  * Resolves the sending [PartyInfo] for an inbound message. If the message's `From`-partyId does
  * not match anything in the CPA and [ignorePartyIdMismatch] is `true` (i.e. this CPA is a known,
  * static exception for a partner that sends a wrong `From`-partyId for technical reasons - see
- * `PARTY_ID_MISMATCH_IGNORED_CPA_IDS`), falls back to resolving the sender by role/service/action
- * instead, the same way [getValidPartyInfosSender] already does for outbound messages.
+ * `PARTY_ID_MISMATCH_IGNORED_CPA_IDS`), falls back to resolving the sender by matching
+ * role/service/action combos only (see [findValidComboSender]). Unlike [getValidPartyInfosSender],
+ * this deliberately does not fall back further to NAV's own party, since NAV is never the external
+ * sender of an inbound message; if no combo match is found, the original mismatch is thrown.
  */
 fun CollaborationProtocolAgreement.getFromPartyInfo(addressing: Addressing, ignorePartyIdMismatch: Boolean): PartyInfo {
     return try {
@@ -285,7 +287,7 @@ fun CollaborationProtocolAgreement.getFromPartyInfo(addressing: Addressing, igno
             "Ingen match for from-partyId ${addressing.from.partyId} i CPA ${this.cpaid}, men CPA er i " +
                 "PARTY_ID_MISMATCH_IGNORED_CPA_IDS. Slår opp avsender basert på role/service/action i stedet."
         )
-        this.getValidPartyInfosSender(addressing.service, addressing.action).firstOrNull()
+        this.partyInfo.findValidComboSender(addressing.service, addressing.action).firstOrNull()
             ?: throw partyIdMismatch
     }
 }
