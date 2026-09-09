@@ -32,6 +32,7 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import no.nav.emottak.cpa.auth.AZURE_AD_AUTH
 import no.nav.emottak.cpa.auth.AuthConfig
+import no.nav.emottak.cpa.configuration.PartyIdMismatchConfig
 import no.nav.emottak.cpa.databasetest.PostgresOracleTest
 import no.nav.emottak.cpa.nhn.adresseregisteret.model.Certificate
 import no.nav.emottak.cpa.nhn.adresseregisteret.model.CommunicationParty
@@ -85,7 +86,10 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
     private lateinit var cpaRepositoryMock: CPARepository
     private lateinit var partnerRepositoryMock: PartnerRepository
 
-    private fun <T> cpaRepoTestApp(testBlock: suspend ApplicationTestBuilder.() -> T) = testApplication {
+    private fun <T> cpaRepoTestApp(
+        partyIdMismatchConfig: PartyIdMismatchConfig = PartyIdMismatchConfig(),
+        testBlock: suspend ApplicationTestBuilder.() -> T
+    ) = testApplication {
         application(
             cpaApplicationModule(
                 postgres.dataSource,
@@ -98,7 +102,8 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
                             jsonLenient()
                         }
                     }
-                )
+                ),
+                partyIdMismatchConfig
             )
         )
         testBlock()
@@ -190,6 +195,63 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         assertEquals(1, validationResult.signalEmailAddress.size)
         assertEquals("mailto://mottak-qass@test-es.nav.no", validationResult.signalEmailAddress.first().emailAddress)
         assertTrue(validationResult.receiverEmailAddress.isEmpty()) // Channel-protokoll er HTTP
+    }
+
+    @Test
+    fun `Ukjent from-HER for CPA som ikke er unntatt feiler fortsatt`() = cpaRepoTestApp {
+        val httpClient = createClient {
+            install(ContentNegotiation) {
+                jsonLenient()
+            }
+            installCpaRepoAuthentication()
+        }
+        val response = runValidateCpa(
+            httpClient,
+            Addressing(
+                Party(listOf(PartyId("HER", "79768")), "Frikortregister"),
+                Party(listOf(PartyId("HER", "999999")), "Utleverer"),
+                "HarBorgerEgenandelFritak",
+                "EgenandelForesporsel"
+            ),
+            "nav:qass:31162"
+        )
+
+        val validationResult = response.body<ValidationResult>()
+        assertNotNull(validationResult)
+        assertNotNull(validationResult.error)
+        assertEquals(ErrorCode.DELIVERY_FAILURE, validationResult.error?.first()?.code)
+    }
+
+    @Test
+    fun `Ukjent from-HER for CPA i partyIdMismatchIgnoredCpaIds valideres OK`() = cpaRepoTestApp(
+        partyIdMismatchConfig = PartyIdMismatchConfig(
+            service = "HarBorgerEgenandelFritak",
+            ignoredCpaIds = setOf("nav:qass:31162")
+        )
+    ) {
+        val httpClient = createClient {
+            install(ContentNegotiation) {
+                jsonLenient()
+            }
+            installCpaRepoAuthentication()
+        }
+        val response = runValidateCpa(
+            httpClient,
+            Addressing(
+                Party(listOf(PartyId("HER", "79768")), "Frikortregister"),
+                Party(listOf(PartyId("HER", "999999")), "Utleverer"),
+                "HarBorgerEgenandelFritak",
+                "EgenandelForesporsel"
+            ),
+            "nav:qass:31162"
+        )
+
+        val validationResult = response.body<ValidationResult>()
+        assertNotNull(validationResult)
+        assertNull(validationResult.error)
+
+        assertEquals(1, validationResult.signalEmailAddress.size)
+        assertEquals("mailto://mottak-qass@test-es.nav.no", validationResult.signalEmailAddress.first().emailAddress)
     }
 
     @Test

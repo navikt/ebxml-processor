@@ -9,7 +9,20 @@ data class Config(
     val kafka: Kafka,
     val eventLogging: EventLogging,
     val nhnOAuth: NhnOAuthConfig,
-    val nhn: Nhn
+    val nhn: Nhn,
+    val partyIdMismatch: PartyIdMismatchConfig
+)
+
+/**
+ * Raw configuration for the temporary "wrong HER in fromParty" workaround. [ignoredCpaIds] is a
+ * comma-separated list of CPA ids for which a `From`-partyId that does not match anything in the
+ * CPA is tolerated - the sender's PartyInfo is instead resolved by role/service/action, same as
+ * for outgoing messages. Hoplite decodes the comma-separated env var value directly into a
+ * `List<String>`. Empty/blank means no CPAs are exempted.
+ */
+data class PartyIdMismatchConfig(
+    val service: String = "NoService",
+    val ignoredCpaIds: Set<String> = emptySet()
 )
 
 /**

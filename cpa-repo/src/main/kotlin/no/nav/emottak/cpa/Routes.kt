@@ -20,6 +20,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import no.nav.emottak.cpa.auth.AZURE_AD_AUTH
+import no.nav.emottak.cpa.configuration.PartyIdMismatchConfig
 import no.nav.emottak.cpa.feil.CpaValidationException
 import no.nav.emottak.cpa.feil.MultiplePartnerException
 import no.nav.emottak.cpa.feil.PartnerNotFoundException
@@ -280,7 +281,7 @@ suspend fun AdresseregisterValidator.validateWithAR(
     }
 }
 
-fun ValidationRequest.getToFromPartyInfo(cpa: CollaborationProtocolAgreement): Triple<PartyInfo, PartyInfo, Addressing?> {
+fun ValidationRequest.getToFromPartyInfo(cpa: CollaborationProtocolAgreement, ignorePartyIdMismatch: Boolean = false): Triple<PartyInfo, PartyInfo, Addressing?> {
     val toParty: PartyInfo
     val fromParty: PartyInfo
     var cpaAddressing: Addressing? = null
@@ -301,7 +302,7 @@ fun ValidationRequest.getToFromPartyInfo(cpa: CollaborationProtocolAgreement): T
             addressing.action
         )
     } else {
-        fromParty = cpa.getPartyInfoByTypeAndID(addressing.from.partyId) // Delivery Failure
+        fromParty = cpa.getFromPartyInfo(addressing, ignorePartyIdMismatch) // Delivery Failure
         toParty = cpa.getPartyInfoByTypeAndID(addressing.to.partyId) // Delivery Failure
     }
     return Triple(toParty, fromParty, cpaAddressing)
@@ -311,7 +312,8 @@ fun Route.validateCpa(
     cpaRepository: CPARepository,
     partnerRepository: PartnerRepository,
     eventRegistrationService: EventRegistrationService,
-    adresseregisterValidator: AdresseregisterValidator?
+    adresseregisterValidator: AdresseregisterValidator?,
+    partyIdMismatchConfig: PartyIdMismatchConfig = PartyIdMismatchConfig()
 ) = post("/cpa/validate/{$REQUEST_ID}") {
     var validateRequest = call.receive(ValidationRequest::class)
     val requestId = call.parameters[REQUEST_ID] ?: throw BadRequestException("Mangler $REQUEST_ID")
@@ -345,7 +347,8 @@ fun Route.validateCpa(
             return@post
         }
         updateLastUsed(cpaRepository, lastUsed, validateRequest)
-        val (toParty, fromParty, cpaAddressing) = validateRequest.getToFromPartyInfo(cpa)
+        val ignorePartyIdMismatch = validateRequest.addressing.service == partyIdMismatchConfig.service && validateRequest.cpaId in partyIdMismatchConfig.ignoredCpaIds
+        val (toParty, fromParty, cpaAddressing) = validateRequest.getToFromPartyInfo(cpa, ignorePartyIdMismatch)
         if (cpaAddressing != null) {
             validateRequest = validateRequest.copy(
                 addressing = cpaAddressing
@@ -353,7 +356,7 @@ fun Route.validateCpa(
         }
 
         if (!validateRequest.isSignalMessage()) {
-            cpa.validate(validateRequest)
+            cpa.validate(validateRequest, ignorePartyIdMismatch)
         } // Delivery Failure
         val encryptionCertificate = toParty.getCertificateForEncryption()
         val signingCertificate = fromParty.getCertificateForSignatureValidation(

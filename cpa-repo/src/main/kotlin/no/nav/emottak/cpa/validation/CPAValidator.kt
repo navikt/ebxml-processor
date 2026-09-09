@@ -1,6 +1,7 @@
 package no.nav.emottak.cpa.validation
 
 import no.nav.emottak.cpa.feil.CpaValidationException
+import no.nav.emottak.cpa.getFromPartyInfo
 import no.nav.emottak.cpa.getPartyInfoByTypeAndID
 import no.nav.emottak.message.ebxml.EbXMLConstants.ACKNOWLEDGMENT_ACTION
 import no.nav.emottak.message.ebxml.EbXMLConstants.EBMS_SERVICE_URI
@@ -12,21 +13,21 @@ import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PartyInfo
 import java.time.Instant
 import java.util.Date
 
-fun CollaborationProtocolAgreement.validate(validationRequest: ValidationRequest) {
+fun CollaborationProtocolAgreement.validate(validationRequest: ValidationRequest, ignorePartyIdMismatch: Boolean = false) {
     validateCpaId(validationRequest.cpaId)
     validateCpaDatoGyldig()
-    hasRoleServiceActionCombo(validationRequest.addressing)
+    hasRoleServiceActionCombo(validationRequest.addressing, ignorePartyIdMismatch)
 }
 
 @Throws(CpaValidationException::class)
-fun CollaborationProtocolAgreement.hasRoleServiceActionCombo(addressing: Addressing) {
+fun CollaborationProtocolAgreement.hasRoleServiceActionCombo(addressing: Addressing, ignorePartyIdMismatch: Boolean = false) {
     if (addressing.service == EBMS_SERVICE_URI) {
         if (addressing.action != ACKNOWLEDGMENT_ACTION && addressing.action != MESSAGE_ERROR_ACTION) {
             throw CpaValidationException("Service $EBMS_SERVICE_URI støtter ikke action ${addressing.action}")
         }
         return
     }
-    val fromParty = this.getPartyInfoByTypeAndID(addressing.from.partyId)
+    val fromParty = this.getFromPartyInfo(addressing, ignorePartyIdMismatch)
     val fromRole = addressing.from.role
 
     val toParty = this.getPartyInfoByTypeAndID(addressing.to.partyId)

@@ -8,6 +8,7 @@ import no.nav.emottak.message.ebxml.PartyTypeEnum
 import no.nav.emottak.message.model.EmailAddress
 import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.message.model.ValidationRequest
+import no.nav.emottak.utils.common.model.Addressing
 import no.nav.emottak.utils.common.model.Party
 import no.nav.emottak.utils.common.model.PartyId
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.Certificate
@@ -264,6 +265,29 @@ fun CollaborationProtocolAgreement.getPartyInfoByTypeAndID(partyId: List<PartyId
             partyId.contains(PartyId(party.type!!, party.value!!)) // TODO O(n^2)...
         }
     } ?: throw CpaValidationException("Ingen match blant $partyId i CPA")
+}
+
+/**
+ * Resolves the sending [PartyInfo] for an inbound message. If the message's `From`-partyId does
+ * not match anything in the CPA and [ignorePartyIdMismatch] is `true` (i.e. this CPA is a known,
+ * static exception for a partner that sends a wrong `From`-partyId for technical reasons - see
+ * `PARTY_ID_MISMATCH_IGNORED_CPA_IDS`), falls back to resolving the sender by role/service/action
+ * instead, the same way [getValidPartyInfosSender] already does for outbound messages.
+ */
+fun CollaborationProtocolAgreement.getFromPartyInfo(addressing: Addressing, ignorePartyIdMismatch: Boolean): PartyInfo {
+    return try {
+        this.getPartyInfoByTypeAndID(addressing.from.partyId)
+    } catch (partyIdMismatch: CpaValidationException) {
+        if (!ignorePartyIdMismatch) {
+            throw partyIdMismatch
+        }
+        log.warn(
+            "Ingen match for from-partyId ${addressing.from.partyId} i CPA ${this.cpaid}, men CPA er i " +
+                "PARTY_ID_MISMATCH_IGNORED_CPA_IDS. Slår opp avsender basert på role/service/action i stedet."
+        )
+        this.getValidPartyInfosSender(addressing.service, addressing.action).firstOrNull()
+            ?: throw partyIdMismatch
+    }
 }
 
 fun Certificate.getX509Certificate(): ByteArray {

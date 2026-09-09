@@ -19,6 +19,7 @@ import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import kotlinx.coroutines.runBlocking
 import no.nav.emottak.cpa.auth.AZURE_AD_AUTH
 import no.nav.emottak.cpa.auth.AuthConfig
+import no.nav.emottak.cpa.configuration.PartyIdMismatchConfig
 import no.nav.emottak.cpa.configuration.config
 import no.nav.emottak.cpa.nhn.adresseregisteret.nhnArHttpClient
 import no.nav.emottak.cpa.persistence.CPARepository
@@ -52,6 +53,8 @@ fun main() {
     } else {
         null
     }
+    val partyIdMismatchConfig = config.partyIdMismatch
+        .also { log.info("Ignorerer from-partyId mismatch for service(er) ${it.service} og ${it.ignoredCpaIds.size} CPA(er): ${it.ignoredCpaIds}") }
 
     embeddedServer(
         Netty,
@@ -61,7 +64,8 @@ fun main() {
             cpaMigrationConfig.value,
             oracleConfig.value,
             eventRegistrationService,
-            adresseregisterValidator
+            adresseregisterValidator,
+            partyIdMismatchConfig
         )
     ).start(wait = true)
 }
@@ -71,7 +75,8 @@ fun cpaApplicationModule(
     cpaMigrationConfig: HikariConfig,
     emottakDbConfig: HikariConfig? = null,
     eventRegistrationService: EventRegistrationService,
-    adresseregisterValidator: AdresseregisterValidator?
+    adresseregisterValidator: AdresseregisterValidator?,
+    partyIdMismatchConfig: PartyIdMismatchConfig = PartyIdMismatchConfig()
 ): Application.() -> Unit {
     return {
         val database = Database(cpaDbConfig)
@@ -113,7 +118,7 @@ fun cpaApplicationModule(
                 authenticate(AZURE_AD_AUTH) {
                     whoAmI()
                     if (oracleDb != null) {
-                        validateCpa(cpaRepository, PartnerRepository(oracleDb), eventRegistrationService, adresseregisterValidator)
+                        validateCpa(cpaRepository, PartnerRepository(oracleDb), eventRegistrationService, adresseregisterValidator, partyIdMismatchConfig)
                     }
                     if (adresseregisterValidator != null) {
                         getAdresseregisterData(adresseregisterValidator)
