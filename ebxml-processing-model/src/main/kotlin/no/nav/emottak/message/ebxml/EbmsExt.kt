@@ -2,6 +2,7 @@ package no.nav.emottak.message.ebxml
 
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.AckRequested
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Acknowledgment
+import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Error
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ErrorList
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Manifest
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
@@ -28,6 +29,15 @@ fun Header.acknowledgment(): Acknowledgment? {
 
 fun Header.errorList(): ErrorList? {
     return this.any!!.filterIsInstance<ErrorList>().firstOrNull()
+}
+
+/**
+ * Some non-conformant senders emit the `errorCode` attribute without the expected `eb` namespace
+ * qualification. JAXB then leaves [Error.errorCode] null and instead captures the value in
+ * [Error.otherAttributes] under a QName with no namespace. Fall back to that when needed.
+ */
+fun Error.effectiveErrorCode(): String? {
+    return this.errorCode ?: this.otherAttributes?.entries?.firstOrNull { it.key.localPart == "errorCode" }?.value
 }
 
 fun MessageHeader.getAckRequestedSigned(): Boolean? {
