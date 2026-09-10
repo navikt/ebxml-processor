@@ -9,6 +9,7 @@ import no.nav.emottak.message.exception.EbmsException
 import no.nav.emottak.message.model.Acknowledgment
 import no.nav.emottak.message.model.EbmsMessage
 import no.nav.emottak.message.model.MessageError
+import no.nav.emottak.message.model.REF_TO_MESSAGE_ID_NOT_SET
 import no.nav.emottak.util.marker
 import no.nav.emottak.utils.common.parseOrGenerateUuid
 import no.nav.emottak.utils.kafka.model.EventDataType
@@ -61,14 +62,19 @@ class SignalMessageService(
     }
 
     suspend fun processMessageError(messageError: MessageError) {
-        if (!messagePendingAckRepository.existsForMessageId(messageError.refToMessageId)) {
-            log.info(messageError.marker(), "No pending message found for messageId <${messageError.refToMessageId}>")
+        val refToMessageId = if (messageError.refToMessageId == REF_TO_MESSAGE_ID_NOT_SET) {
+            messagePendingAckRepository.findPendingMessageIdByCpaAndConversationId(messageError.cpaId, messageError.conversationId)
+        } else {
+            messageError.refToMessageId
+        }
+        if (refToMessageId == null || !messagePendingAckRepository.existsForMessageId(refToMessageId)) {
+            log.info(messageError.marker(), "No pending message found for messageId <$refToMessageId>")
             return
         }
         eventRegistrationService.registerEventMessageDetails(messageError)
         validateIncomingSignal(
             message = messageError,
-            refToMessageId = messageError.refToMessageId,
+            refToMessageId = refToMessageId,
             checkSignature = true
         )
         log.info(messageError.marker(), "Got MessageError with requestId <${messageError.requestId}>")
@@ -77,7 +83,7 @@ class SignalMessageService(
             eventRegistrationService.registerEvent(
                 eventType = EventType.UNKNOWN_ERROR_OCCURRED,
                 requestId = messageError.requestId.parseOrGenerateUuid(),
-                messageId = messageError.refToMessageId,
+                messageId = refToMessageId,
                 eventData = Json.encodeToString(
                     mapOf(
                         EventDataType.ERROR_MESSAGE to "${error.code}: ${error.descriptionText}"
