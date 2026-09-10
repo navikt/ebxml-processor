@@ -86,6 +86,8 @@ class MessagePendingAckRepository(
                     it[MessagePendingAckTable.ackReceived] = ackReceived
                     it[MessagePendingAckTable.ackSignatureRequested] = ackSignatureRequested
                     it[messageHeader] = xmlMarshaller.marshal(header)
+                    it[cpaId] = header.cpaId
+                    it[conversationId] = header.conversationId
                     it[messageContent] = content
                     it[emailAddressList] = addressesAsString
                     it[firstSent] = now
@@ -154,6 +156,35 @@ class MessagePendingAckRepository(
                 .select(MessagePendingAckTable.messageId)
                 .where { MessagePendingAckTable.messageId.eq(messageIdAsUuid) }
                 .count() > 0
+        }
+    }
+
+    // Used as a fallback lookup for incoming MessageErrors where RefToMessageId is missing.
+    // Returns the messageId of the (single) not-yet-acknowledged pending message matching the given CPA and conversation id,
+    // or null if there is no match, or more than one match (ambiguous).
+    fun findPendingMessageIdByCpaAndConversationId(cpaId: String, conversationId: String): String? {
+        return transaction(database.db) {
+            val matches = MessagePendingAckTable
+                .select(MessagePendingAckTable.messageId)
+                .where {
+                    MessagePendingAckTable.cpaId.eq(cpaId)
+                        .and(MessagePendingAckTable.conversationId.eq(conversationId))
+                        .and(MessagePendingAckTable.ackReceived.eq(false))
+                }
+                .map { it[MessagePendingAckTable.messageId].toString() }
+            when {
+                matches.isEmpty() -> null
+                matches.size == 1 -> matches.first()
+                else -> {
+                    log.warn(
+                        "Found {} pending messages for cpaId <{}> and conversationId <{}>, cannot uniquely resolve RefToMessageId",
+                        matches.size,
+                        cpaId,
+                        conversationId
+                    )
+                    null
+                }
+            }
         }
     }
 
