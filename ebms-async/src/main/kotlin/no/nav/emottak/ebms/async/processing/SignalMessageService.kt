@@ -68,10 +68,13 @@ class SignalMessageService(
             messageError.refToMessageId
         }
         if (refToMessageId == null || !messagePendingAckRepository.existsForMessageId(refToMessageId)) {
-            log.info(messageError.marker(), "No pending message found for messageId <$refToMessageId>")
+            log.info(
+                messageError.marker(),
+                "No pending message found for messageId <$refToMessageId> (cpaId <${messageError.cpaId}>, conversationId <${messageError.conversationId}>)"
+            )
             return
         }
-        eventRegistrationService.registerEventMessageDetails(messageError)
+        eventRegistrationService.registerEventMessageDetails(messageError.copy(refToMessageId = refToMessageId))
         validateIncomingSignal(
             message = messageError,
             refToMessageId = refToMessageId,
