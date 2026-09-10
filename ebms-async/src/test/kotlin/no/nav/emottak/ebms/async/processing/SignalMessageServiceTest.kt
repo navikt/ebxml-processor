@@ -17,6 +17,7 @@ import no.nav.emottak.message.model.ErrorCode
 import no.nav.emottak.message.model.Feil
 import no.nav.emottak.message.model.MessageError
 import no.nav.emottak.message.model.Payload
+import no.nav.emottak.message.model.REF_TO_MESSAGE_ID_NOT_SET
 import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.message.xml.createDocument
 import no.nav.emottak.utils.common.parseOrGenerateUuid
@@ -244,6 +245,65 @@ class SignalMessageServiceTest {
                 conversationId = messageError.conversationId
             )
         }
+    }
+
+    @Test
+    fun `MessageError with missing RefToMessageId is resolved via cpaId and conversationId`() {
+        val requestId = Uuid.random().toString()
+        val originalMessageError = messageError(requestId)
+        val resolvedMessageId = Uuid.random().toString()
+        val messageError = originalMessageError.copy(refToMessageId = REF_TO_MESSAGE_ID_NOT_SET)
+        val validationResult = ValidationResult()
+
+        every {
+            messagePendingAckRepository.findPendingMessageIdByCpaAndConversationId(messageError.cpaId, messageError.conversationId)
+        } returns resolvedMessageId
+        every { messagePendingAckRepository.existsForMessageId(resolvedMessageId) } returns true
+        coEvery {
+            cpaValidationService.validateIncomingMessage(messageError, checkSignature = false)
+        } returns validationResult
+        every {
+            cpaValidationService.validateResult(validationResult, messageError, checkSignature = true)
+        } returns validationResult
+
+        runBlocking {
+            signalMessageService.processSignal(requestId, messageError)
+        }
+
+        coVerify(exactly = 1) {
+            eventRegistrationService.registerEventMessageDetails(messageError.copy(refToMessageId = resolvedMessageId))
+        }
+        coVerify(exactly = messageError.feil.size) {
+            eventRegistrationService.registerEvent(
+                eventType = EventType.UNKNOWN_ERROR_OCCURRED,
+                requestId = any(),
+                contentId = any(),
+                messageId = resolvedMessageId,
+                eventData = any(),
+                conversationId = messageError.conversationId
+            )
+        }
+    }
+
+    @Test
+    fun `MessageError with missing RefToMessageId is ignored when no pending message can be uniquely resolved`() {
+        val requestId = Uuid.random().toString()
+        val originalMessageError = messageError(requestId)
+        val messageError = originalMessageError.copy(refToMessageId = REF_TO_MESSAGE_ID_NOT_SET)
+
+        every {
+            messagePendingAckRepository.findPendingMessageIdByCpaAndConversationId(messageError.cpaId, messageError.conversationId)
+        } returns null
+
+        runBlocking {
+            signalMessageService.processSignal(requestId, messageError)
+        }
+
+        coVerify(exactly = 0) { eventRegistrationService.registerEventMessageDetails(any()) }
+        coVerify(exactly = 0) {
+            cpaValidationService.validateIncomingMessage(any(), checkSignature = any())
+        }
+        verify(exactly = 0) { messagePendingAckRepository.existsForMessageId(any()) }
     }
 
     @Test
