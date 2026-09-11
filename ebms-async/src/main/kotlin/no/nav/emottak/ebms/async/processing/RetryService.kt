@@ -25,12 +25,17 @@ import no.nav.emottak.message.model.ErrorCode
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.util.marker
 import org.apache.kafka.clients.consumer.ConsumerRecord
+import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.EndpointTypeType
 import java.time.Instant
 import java.time.LocalDateTime
 import kotlin.time.toJavaDuration
 
 // Special logging/warning after 10 retries, which normally means a message has been retried for 5 hours
 const val RETRY_MANY_TIMES_LOGGING_THRESHOLD = 10
+
+// Header set by the SMTP mottak (if the message arrived via email), used as a fallback recipient
+// for an error signal when the CPA-ID cannot be resolved to a signal email address.
+private const val SENDER_ADDRESS_HEADER = "senderAddress"
 
 class RetryService(
     val cpaValidationService: CPAValidationService,
@@ -82,6 +87,7 @@ class RetryService(
         retryReason: String = exception.message ?: "Unknown error"
     ) {
         val retryCount = record.retryCount()
+        val senderAddress = record.headers().lastHeader(SENDER_ADDRESS_HEADER)?.value()?.let { String(it) }
         val (decision, reason) = decideRetry(
             ttl = payloadMessage.timeToLive,
             retriedAlready = retryCount,
@@ -102,7 +108,8 @@ class RetryService(
                         "TimeToLive expired",
                         errorCode = ErrorCode.TIME_TO_LIVE_EXPIRED,
                         exception = exception
-                    )
+                    ),
+                    senderAddress
                 )
                 log.error("MESSAGE_GIVEN_UP: incoming with key ${record.key()} at offset ${record.offset()}, retried $retryCount times, TTL expired")
             }
@@ -114,7 +121,8 @@ class RetryService(
                             "Max Retries expired",
                             errorCode = ErrorCode.DELIVERY_FAILURE,
                             exception = exception
-                        )
+                        ),
+                    senderAddress
                 )
                 log.error("MESSAGE_GIVEN_UP: incoming with key ${record.key()} at offset ${record.offset()}, retried $retryCount times, max retries exceeded")
             }
@@ -126,7 +134,8 @@ class RetryService(
                             "Unknown delivery failure",
                             errorCode = ErrorCode.DELIVERY_FAILURE,
                             exception = exception
-                        )
+                        ),
+                    senderAddress
                 )
                 log.error("MESSAGE_GIVEN_UP: incoming with key ${record.key()} at offset ${record.offset()}, NO RETRY for this error")
             }
@@ -289,27 +298,39 @@ class RetryService(
         return ttl <= Instant.now()
     }
 
-    suspend fun returnMessageError(ebmsPayloadMessage: EbmsMessage, ebmsException: EbmsException) {
+    suspend fun returnMessageError(ebmsPayloadMessage: EbmsMessage, ebmsException: EbmsException, originEmailAddress: String? = null) {
         val messageError = ebmsPayloadMessage.createMessageError(ebmsException.feil).also {
             eventRegistrationService.registerEventMessageDetails(it)
         }
-        val validationResult = cpaValidationService.validateOutgoingMessage(messageError)
-        val signingCertificate = validationResult.payloadProcessing?.signingCertificate
-            ?: throw EbmsException(
-                "No signing certificate available for outgoing MessageError",
-                errorCode = ErrorCode.DELIVERY_FAILURE,
-                recoverable = false
+        val validationResult = cpaValidationService.validateOutgoingMessage(messageError, throwOnInvalidCpaId = false)
+        val recipientAddresses = validationResult.signalEmailAddress.ifEmpty {
+            originEmailAddress?.let {
+                listOf(EmailAddress(it, EndpointTypeType.ERROR))
+            } ?: emptyList()
+        }
+        if (recipientAddresses.isEmpty()) {
+            log.warn(
+                messageError.marker(),
+                "No recipient address available for outgoing MessageError for message ${messageError.messageId} " +
+                    "(CPA validation failed and no origin email address to fall back on)"
             )
-        signalSender(
-            messageError.toEbmsDokument().signer(signingCertificate),
-            validationResult.signalEmailAddress
-        )
+        }
+        val ebmsDocument = messageError.toEbmsDokument()
+        val outgoingDocument = validationResult.payloadProcessing?.signingCertificate?.let {
+            ebmsDocument.signer(it)
+        } ?: ebmsDocument.also {
+            log.warn(
+                messageError.marker(),
+                "No signing certificate available for outgoing MessageError for message ${messageError.messageId}, sending unsigned"
+            )
+        }
+        signalSender(outgoingDocument, recipientAddresses)
         log.warn(messageError.marker(), "MessageError returned", ebmsException)
     }
 
-    private suspend fun returnMessageErrorSafely(ebmsPayloadMessage: EbmsMessage, ebmsException: EbmsException) {
+    private suspend fun returnMessageErrorSafely(ebmsPayloadMessage: EbmsMessage, ebmsException: EbmsException, originEmailAddress: String? = null) {
         try {
-            returnMessageError(ebmsPayloadMessage, ebmsException)
+            returnMessageError(ebmsPayloadMessage, ebmsException, originEmailAddress)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {

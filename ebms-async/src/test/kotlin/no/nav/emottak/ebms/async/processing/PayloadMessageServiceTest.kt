@@ -183,7 +183,7 @@ class PayloadMessageServiceTest {
         assertType<PayloadMessage>(ebmsMessageSlots, 0)
         assertType<MessageError>(ebmsMessageSlots, 1)
         assertTrue((ebmsMessageSlots[1] as MessageError).toString().contains("Pasientliste utfaset"))
-        coVerify(exactly = 1) { cpaValidationService.validateOutgoingMessage(any()) }
+        coVerify(exactly = 1) { cpaValidationService.validateOutgoingMessage(any(), false) }
         coVerify(exactly = 1) {
             eventRegistrationService.runWithEvent(
                 EventType.MESSAGE_PLACED_IN_QUEUE,
@@ -526,8 +526,10 @@ class PayloadMessageServiceTest {
 
         if (validateOutgoingThrowsException) {
             coEvery { cpaValidationService.validateOutgoingMessage(any()) } throws Exception("Unexpected exception")
+            coEvery { cpaValidationService.validateOutgoingMessage(any(), any()) } throws Exception("Unexpected exception")
         } else {
             coEvery { cpaValidationService.validateOutgoingMessage(any()) } returns mockk(relaxed = true)
+            coEvery { cpaValidationService.validateOutgoingMessage(any(), any()) } returns mockk(relaxed = true)
         }
 
         if (processAsyncThrowsEbmsException) {
