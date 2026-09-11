@@ -4,7 +4,7 @@ import no.nav.emottak.crypto.KeyStoreManager
 import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.payload.configuration.config
 import no.nav.emottak.util.createX509Certificate
-import no.nav.emottak.util.signatur.SignatureException
+import no.nav.emottak.validering.signatur.SignatureException
 import org.w3c.dom.Document
 import java.security.cert.X509Certificate
 import javax.xml.crypto.dsig.Reference

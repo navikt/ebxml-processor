@@ -3,7 +3,7 @@ package no.nav.emottak.ebms.model
 import no.nav.emottak.ebms.xml.ebmsSigning
 import no.nav.emottak.message.model.EbmsDocument
 import no.nav.emottak.message.model.SignatureDetails
-import no.nav.emottak.util.signatur.SignatureException
+import no.nav.emottak.validering.signatur.SignatureException
 
 fun EbmsDocument.signer(signatureDetails: SignatureDetails): EbmsDocument =
     try {

@@ -4,7 +4,7 @@ import no.nav.emottak.message.model.EbmsAttachment
 import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.util.retrievePublicX509Certificate
 import no.nav.emottak.util.retrieveSignatureElement
-import no.nav.emottak.util.signatur.SignatureException
+import no.nav.emottak.validering.signatur.SignatureException
 import org.apache.xml.security.algorithms.MessageDigestAlgorithm
 import org.apache.xml.security.algorithms.SignatureAlgorithm
 import org.apache.xml.security.keys.KeyInfo

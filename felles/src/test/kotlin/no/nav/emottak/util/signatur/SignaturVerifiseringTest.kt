@@ -1,5 +1,6 @@
 package no.nav.emottak.util.signatur
 
+import no.nav.emottak.validering.signatur.SignaturVerifisering
 import org.junit.jupiter.api.Test
 
 class SignaturVerifiseringTest {

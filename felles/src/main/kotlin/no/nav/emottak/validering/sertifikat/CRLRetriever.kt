@@ -1,4 +1,4 @@
-package no.nav.emottak.cpa.cert
+package no.nav.emottak.validering.sertifikat
 
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -8,15 +8,17 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
-import no.nav.emottak.cpa.validation.log
 import no.nav.emottak.util.createCRLFile
 import org.bouncycastle.asn1.x500.X500Name
+import org.slf4j.LoggerFactory
 import java.security.cert.X509CRL
 
 class CRLRetriever(
     private val httpClient: HttpClient,
     private val issuerList: Map<String, String> = defaultCRLLists
 ) {
+    private val log = LoggerFactory.getLogger(CRLRetriever::class.java)
+
     suspend fun updateAllCRLs(): List<CRL> {
         log.info("Oppdatering av alle CRLer startet...")
         return mutableListOf<Deferred<CRL>>().also { list ->
@@ -48,7 +50,7 @@ class CRLRetriever(
                 log.info("CRL fra <$crlUrl> oppdatert")
             }
         } catch (e: Exception) {
-            throw RuntimeException("$crlUrl: Kunne ikke oppdatere CRL", e)
+            throw RuntimeException("Kunne ikke oppdatere CRL fra $crlUrl", e)
         }
     }
 }

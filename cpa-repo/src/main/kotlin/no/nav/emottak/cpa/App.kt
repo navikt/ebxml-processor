@@ -34,6 +34,10 @@ import no.nav.emottak.cpa.validation.AdresseregisterValidator
 import no.nav.emottak.util.jsonLenient
 import no.nav.emottak.utils.kafka.client.EventPublisherClient
 import no.nav.emottak.utils.kafka.service.EventLoggingService
+import no.nav.emottak.validering.sertifikat.CRLChecker
+import no.nav.emottak.validering.sertifikat.CRLRetriever
+import no.nav.emottak.validering.sertifikat.SertifikatValidator
+import no.nav.emottak.validering.sertifikat.defaultCRLLists
 import no.nav.security.token.support.v3.tokenValidationSupport
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 import org.slf4j.LoggerFactory
@@ -43,6 +47,14 @@ fun main() {
     val kafkaPublisherClient = EventPublisherClient(config.kafka)
     val eventLoggingService = EventLoggingService(config.eventLogging, kafkaPublisherClient)
     val eventRegistrationService = EventRegistrationServiceImpl(eventLoggingService)
+    val sertifikatValidator = SertifikatValidator(
+        crlChecker = CRLChecker(
+            crlRetriever = CRLRetriever(
+                httpClient = HttpClientUtil.client,
+                issuerList = defaultCRLLists
+            )
+        )
+    )
     val adresseregisterValidator = if (config.nhn.cpApiActive) {
         AdresseregisterValidator(
             httpClient = nhnArHttpClient(config.nhnOAuth, config.nhn),
@@ -61,7 +73,8 @@ fun main() {
             cpaMigrationConfig.value,
             oracleConfig.value,
             eventRegistrationService,
-            adresseregisterValidator
+            adresseregisterValidator,
+            sertifikatValidator
         )
     ).start(wait = true)
 }
@@ -71,7 +84,8 @@ fun cpaApplicationModule(
     cpaMigrationConfig: HikariConfig,
     emottakDbConfig: HikariConfig? = null,
     eventRegistrationService: EventRegistrationService,
-    adresseregisterValidator: AdresseregisterValidator?
+    adresseregisterValidator: AdresseregisterValidator?,
+    sertifikatValidator: SertifikatValidator
 ): Application.() -> Unit {
     return {
         val database = Database(cpaDbConfig)
@@ -95,7 +109,7 @@ fun cpaApplicationModule(
 
         routing {
             if (oracleDb != null) {
-                partnerId(PartnerRepository(oracleDb), cpaRepository)
+                partnerId(PartnerRepository(oracleDb), cpaRepository, sertifikatValidator)
             }
             getCPA(cpaRepository)
             getCpaView(cpaRepository)
@@ -105,7 +119,7 @@ fun cpaApplicationModule(
             getTimeStampsLatest(cpaRepository)
             getTimeStampsLastUsed(cpaRepository)
             getEncryptionCertificate(cpaRepository)
-            getSigningCertificate(cpaRepository, adresseregisterValidator)
+            getSigningCertificate(cpaRepository, sertifikatValidator, adresseregisterValidator)
             getMessagingCharacteristics(cpaRepository)
             registerHealthEndpoints(appMicrometerRegistry, cpaRepository)
 
@@ -113,7 +127,7 @@ fun cpaApplicationModule(
                 authenticate(AZURE_AD_AUTH) {
                     whoAmI()
                     if (oracleDb != null) {
-                        validateCpa(cpaRepository, PartnerRepository(oracleDb), eventRegistrationService, adresseregisterValidator)
+                        validateCpa(cpaRepository, PartnerRepository(oracleDb), eventRegistrationService, sertifikatValidator, adresseregisterValidator)
                     }
                     if (adresseregisterValidator != null) {
                         getAdresseregisterData(adresseregisterValidator)

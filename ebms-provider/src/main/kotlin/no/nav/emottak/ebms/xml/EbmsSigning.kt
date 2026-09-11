@@ -10,7 +10,7 @@ import no.nav.emottak.message.model.EbmsDocument
 import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.getFirstChildElement
-import no.nav.emottak.util.signatur.SignatureException
+import no.nav.emottak.validering.signatur.SignatureException
 import org.apache.xml.security.algorithms.MessageDigestAlgorithm
 import org.apache.xml.security.exceptions.XMLSecurityException
 import org.apache.xml.security.signature.XMLSignature

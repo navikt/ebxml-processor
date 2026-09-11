@@ -1,4 +1,4 @@
-package no.nav.emottak.cpa.cert
+package no.nav.emottak.validering.sertifikat
 
 import no.nav.emottak.message.exception.EbmsException
 import no.nav.emottak.message.model.ErrorCode

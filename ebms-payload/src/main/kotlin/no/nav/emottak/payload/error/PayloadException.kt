@@ -2,8 +2,8 @@ package no.nav.emottak.payload.error
 
 import no.nav.emottak.message.model.ErrorCode
 import no.nav.emottak.message.model.Feil
-import no.nav.emottak.util.signatur.SignatureException
 import no.nav.emottak.utils.kafka.model.EventType
+import no.nav.emottak.validering.signatur.SignatureException
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.SeverityType
 import java.math.BigInteger
 

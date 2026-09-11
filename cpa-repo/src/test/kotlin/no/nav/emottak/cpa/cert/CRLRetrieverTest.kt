@@ -2,6 +2,8 @@ package no.nav.emottak.cpa.cert
 
 import io.kotest.common.runBlocking
 import no.nav.emottak.cpa.HttpClientUtil
+import no.nav.emottak.validering.sertifikat.CRLRetriever
+import no.nav.emottak.validering.sertifikat.defaultCRLLists
 import org.bouncycastle.asn1.x500.X500Name
 import kotlin.test.Test
 import kotlin.test.assertContains
