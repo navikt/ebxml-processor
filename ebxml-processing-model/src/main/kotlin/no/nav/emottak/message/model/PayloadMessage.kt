@@ -18,7 +18,6 @@ data class PayloadMessage(
     override val document: Document? = null,
     override val refToMessageId: String? = null,
     override val sentAt: Instant? = null,
-    override val originEmailAddress: String? = null,
     val timeToLive: Instant? = null,
     val duplicateElimination: Boolean,
     val ackRequested: Boolean = false,

@@ -19,8 +19,7 @@ data class MessageError(
     override val addressing: Addressing,
     val feil: List<Feil>,
     override val document: Document? = null,
-    override val sentAt: Instant? = null,
-    override val originEmailAddress: String? = null
+    override val sentAt: Instant? = null
 
 ) : EbmsMessage() {
 
