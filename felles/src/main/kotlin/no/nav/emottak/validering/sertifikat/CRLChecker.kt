@@ -16,8 +16,10 @@ class CRLChecker(
 
     private val crlMaximumAgeInSeconds: Long = 3600L
 
-    private val crlList: List<CRL> = runBlocking {
-        crlRetriever.updateAllCRLs()
+    private val crlList: List<CRL> by lazy {
+        runBlocking {
+            crlRetriever.updateAllCRLs()
+        }
     }
 
     fun getCRLRevocationInfo(issuer: String, serialNumber: BigInteger) {
