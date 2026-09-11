@@ -1,13 +1,11 @@
-package no.nav.emottak.cpa.cert
+package no.nav.emottak.validering.sertifikat
 
 import io.kotest.common.runBlocking
-import no.nav.emottak.cpa.HttpClientUtil
-import no.nav.emottak.validering.sertifikat.CRLRetriever
-import no.nav.emottak.validering.sertifikat.defaultCRLLists
+import no.nav.emottak.util.HttpClientUtil
 import org.bouncycastle.asn1.x500.X500Name
-import kotlin.test.Test
-import kotlin.test.assertContains
-import kotlin.test.assertEquals
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
 
 class CRLRetrieverTest {
     @Test
@@ -19,7 +17,7 @@ class CRLRetrieverTest {
         assert(defaultCRLLists.isNotEmpty())
         assertEquals(defaultCRLLists.size, list.size)
         defaultCRLLists.forEach { caEntry ->
-            assertContains(list.map { it.x500Name }, X500Name(caEntry.key), "List of CRL should contain entry for ${caEntry.key}")
+            assertTrue(list.map { it.x500Name }.contains(X500Name(caEntry.key)), "List of CRL should contain entry for ${caEntry.key}")
         }
     }
 }
