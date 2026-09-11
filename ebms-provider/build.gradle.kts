@@ -49,7 +49,9 @@ dependencies {
     testImplementation(libs.apache.santuario)
     testImplementation(libs.hikari)
     testImplementation(testLibs.testcontainers.postgresql)
+    testImplementation(kotlin("test"))
     testRuntimeOnly(testLibs.junit.jupiter.engine)
+    testRuntimeOnly(testLibs.junit.platform.launcher)
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().all {
