@@ -3,6 +3,7 @@ package no.nav.emottak.util
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.HttpRequestRetry
+import io.ktor.client.plugins.HttpTimeout
 import no.nav.emottak.utils.environment.getEnvVar
 import java.net.InetSocketAddress
 import java.net.Proxy
@@ -17,6 +18,11 @@ class HttpClientUtil {
             install(HttpRequestRetry) {
                 retryOnServerErrors(maxRetries = 1)
                 exponentialDelay()
+            }
+            install(HttpTimeout) {
+                connectTimeoutMillis = 5_000
+                socketTimeoutMillis = 20_000
+                requestTimeoutMillis = 30_000
             }
             engine {
                 if (httpProxyUrl.isNotBlank()) {

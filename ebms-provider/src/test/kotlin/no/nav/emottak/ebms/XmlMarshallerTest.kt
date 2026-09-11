@@ -3,8 +3,15 @@
  */
 package no.nav.emottak.ebms
 
+import no.nav.emottak.message.ebxml.effectiveErrorCode
+import no.nav.emottak.message.ebxml.effectiveSeverity
+import no.nav.emottak.message.ebxml.errorList
+import no.nav.emottak.message.model.ErrorCode
+import no.nav.emottak.message.model.Feil
+import no.nav.emottak.message.xml.getDocumentBuilder
 import no.nav.emottak.message.xml.marshal
 import no.nav.emottak.message.xml.unmarshal
+import no.nav.emottak.message.xml.xmlMarshaller
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -60,6 +67,31 @@ class XmlMarshallerTest {
             )
             .newValidator()
             .validate(StreamSource(xmlString.byteInputStream()))
+    }
+
+    @Test
+    fun `Error attributer uten eb-namespace-kvalifisering blir likevel mappet korrekt til Feil`() {
+        val document = getDocumentBuilder().parse(
+            this::class.java.getResourceAsStream("/weird-error-code.xml")
+        )
+        val envelope = xmlMarshaller.unmarshal<Envelope>(document)
+        val header = envelope.header!!
+
+        // Samme mapping som EbmsDocument.transform() gjør for DocumentType.MESSAGE_ERROR
+        val feilListe = header.errorList()!!.error.map {
+            Feil(
+                ErrorCode.fromString(it.effectiveErrorCode() ?: ""),
+                it.description!!.value!!,
+                it.effectiveSeverity()
+            )
+        }
+        val feil = feilListe.first()
+
+        // errorCode="T01" er ikke en gyldig ErrorCode-verdi, så den mappes til UNKNOWN,
+        // men mappingen skal likevel plukke opp verdien fra otherAttributes og ikke feile stille.
+        assertEquals(ErrorCode.UNKNOWN, feil.code)
+        assertEquals("Warning", feil.severity)
+        assertEquals("Ikke XML / ikke 'well formed' / uleselig", feil.descriptionText)
     }
 
     fun getResourceURL(resource: String): URL? {
