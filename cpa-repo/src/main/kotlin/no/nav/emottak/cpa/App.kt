@@ -37,7 +37,6 @@ import no.nav.emottak.utils.kafka.service.EventLoggingService
 import no.nav.emottak.validering.sertifikat.CRLChecker
 import no.nav.emottak.validering.sertifikat.CRLRetriever
 import no.nav.emottak.validering.sertifikat.SertifikatValidator
-import no.nav.emottak.validering.sertifikat.defaultCRLLists
 import no.nav.security.token.support.v3.tokenValidationSupport
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 import org.slf4j.LoggerFactory
@@ -51,7 +50,7 @@ fun main() {
         crlChecker = CRLChecker(
             crlRetriever = CRLRetriever(
                 httpClient = HttpClientUtil.client,
-                issuerList = defaultCRLLists
+                issuerList = config.caList.filter { it.crlUrl != null }.associate { it.dn to it.crlUrl!! }
             )
         )
     )
