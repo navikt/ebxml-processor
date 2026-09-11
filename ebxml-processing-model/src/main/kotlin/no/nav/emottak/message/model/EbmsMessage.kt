@@ -36,6 +36,7 @@ abstract class EbmsMessage {
     abstract val refToMessageId: String?
     abstract val document: Document?
     abstract val sentAt: Instant?
+    abstract val originEmailAddress: String?
     open fun toEbmsDokument(): EbmsDocument {
         return createEbmsDocument(createMessageHeader())
     }
@@ -52,7 +53,8 @@ abstract class EbmsMessage {
                 action = EbXMLConstants.MESSAGE_ERROR_ACTION
             ),
             feil = errorList,
-            sentAt = Instant.now()
+            sentAt = Instant.now(),
+            originEmailAddress = this.originEmailAddress
         )
     }
 }

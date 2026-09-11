@@ -41,7 +41,8 @@ open class MessageFilterService(
         val ebmsMessage = try {
             createEbmsDocument(
                 requestId = record.key(),
-                document = record.value().createDocument()
+                document = record.value().createDocument(),
+                originEmailAddress = record.headers().lastHeader("senderAddress")?.value()?.let { String(it) }
             )
         } catch (e: Exception) {
             log.error("Failed to create ebmsDocument", e)
@@ -76,7 +77,8 @@ open class MessageFilterService(
 
     private suspend fun createEbmsDocument(
         requestId: String,
-        document: Document
+        document: Document,
+        originEmailAddress: String? = null
     ): EbmsMessage = EbmsDocument(
         requestId = requestId,
         document = document,
@@ -85,7 +87,7 @@ open class MessageFilterService(
         } else {
             emptyList()
         }
-    ).transform()
+    ).transform(originEmailAddress)
 
     private suspend fun retrievePayloads(reference: Uuid): List<Payload> {
         return smtpTransportClient.getPayload(reference)

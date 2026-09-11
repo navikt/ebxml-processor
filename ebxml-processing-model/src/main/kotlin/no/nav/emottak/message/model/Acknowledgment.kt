@@ -19,6 +19,7 @@ data class Acknowledgment(
     override val addressing: Addressing,
     override val document: Document? = null,
     override val sentAt: Instant? = null,
+    override val originEmailAddress: String? = null,
     val referenceList: NodeList? = null
 ) : EbmsMessage() {
 

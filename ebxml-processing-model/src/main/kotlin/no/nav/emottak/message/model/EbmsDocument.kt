@@ -44,7 +44,7 @@ data class EbmsDocument(val requestId: String, val document: Document, val attac
         return xmlMarshaller.unmarshal(node)
     }
 
-    fun transform(): EbmsMessage {
+    fun transform(originEmailAddress: String? = null): EbmsMessage {
         val header = envelope.value.header!!
         val messageHeader = header.messageHeader()
 
@@ -59,6 +59,7 @@ data class EbmsDocument(val requestId: String, val document: Document, val attac
                 document,
                 messageHeader.messageData.refToMessageId,
                 messageHeader.messageData.timestamp.toInstant(),
+                originEmailAddress,
                 messageHeader.messageData.timeToLive?.toInstant(),
                 messageHeader.duplicateElimination != null
             )
@@ -80,7 +81,8 @@ data class EbmsDocument(val requestId: String, val document: Document, val attac
                     messageHeader.addressing(isRoleApplicable = false),
                     errorList,
                     document,
-                    messageHeader.messageData.timestamp.toInstant()
+                    messageHeader.messageData.timestamp.toInstant(),
+                    originEmailAddress
                 )
             }
 
@@ -93,7 +95,8 @@ data class EbmsDocument(val requestId: String, val document: Document, val attac
                     messageHeader.cpaId!!,
                     messageHeader.addressing(isRoleApplicable = false),
                     document,
-                    messageHeader.messageData.timestamp.toInstant()
+                    messageHeader.messageData.timestamp.toInstant(),
+                    originEmailAddress
                 )
             }
 
