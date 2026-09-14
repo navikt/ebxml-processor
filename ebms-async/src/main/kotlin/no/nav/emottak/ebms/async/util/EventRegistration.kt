@@ -51,6 +51,9 @@ interface EventRegistrationService {
         conversationId: String? = null,
         function: suspend () -> T
     ): T
+
+    suspend fun registerMessageCompleted(ebmsPayloadMessage: PayloadMessage)
+    suspend fun registerMessageRetried(ebmsPayloadMessage: PayloadMessage, retryCount: Int)
 }
 
 class EventRegistrationServiceImpl(
@@ -177,6 +180,32 @@ class EventRegistrationServiceImpl(
         }.getOrThrow()
     }
 
+    override suspend fun registerMessageCompleted(ebmsPayloadMessage: PayloadMessage) {
+        registerEvent(
+            EventType.MESSAGEFLOW_COMPLETED,
+            requestId = ebmsPayloadMessage.requestId.parseOrGenerateUuid(),
+            contentId = ebmsPayloadMessage.payload.contentId,
+            messageId = ebmsPayloadMessage.messageId,
+            conversationId = ebmsPayloadMessage.conversationId
+        )
+    }
+
+    override suspend fun registerMessageRetried(
+        ebmsPayloadMessage: PayloadMessage,
+        retryCount: Int
+    ) {
+        registerEvent(
+            eventType = EventType.RETRY_TRIGGED,
+            requestId = ebmsPayloadMessage.requestId.parseOrGenerateUuid(),
+            contentId = ebmsPayloadMessage.payload.contentId,
+            messageId = ebmsPayloadMessage.messageId,
+            eventData = Json.encodeToString(
+                mapOf("retryCount" to retryCount.toString())
+            ),
+            conversationId = ebmsPayloadMessage.conversationId
+        )
+    }
+
     private suspend fun registerEvent(event: Event) {
         try {
             log.debug(event.marker(), "Registering event: {}", event)
@@ -259,5 +288,16 @@ class EventRegistrationServiceFake : EventRegistrationService {
             eventData
         )
         return function.invoke()
+    }
+
+    override suspend fun registerMessageCompleted(ebmsPayloadMessage: PayloadMessage) {
+        log.debug("Registering message completed for ebmsDocument: {}", ebmsPayloadMessage)
+    }
+
+    override suspend fun registerMessageRetried(
+        ebmsPayloadMessage: PayloadMessage,
+        retryCount: Int
+    ) {
+        log.debug("Registering message retried for ebmsDocument: {} with retryCount: {}", ebmsPayloadMessage, retryCount)
     }
 }
