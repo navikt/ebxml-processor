@@ -24,6 +24,7 @@ import no.nav.emottak.cpa.feil.CpaValidationException
 import no.nav.emottak.cpa.feil.MultiplePartnerException
 import no.nav.emottak.cpa.feil.PartnerNotFoundException
 import no.nav.emottak.cpa.persistence.CPARepository
+import no.nav.emottak.cpa.persistence.PreferredSource
 import no.nav.emottak.cpa.persistence.gammel.PartnerRepository
 import no.nav.emottak.cpa.util.EventRegistrationService
 import no.nav.emottak.cpa.validation.AdresseregisterValidator
@@ -171,6 +172,20 @@ fun Route.deleteCpa(cpaRepository: CPARepository): Route = delete("/cpa/delete/{
         call.respond(it)
     }
 }
+
+fun Route.updatePreferredSource(cpaRepository: CPARepository): Route =
+    post("/cpa/{$CPA_ID}/preferredSource/{$PREFERRED_SOURCE}") {
+        val cpaId = call.parameters[CPA_ID] ?: throw BadRequestException("Mangler $CPA_ID")
+        val preferredSource = call.parameters[PREFERRED_SOURCE]?.let {
+            runCatching { PreferredSource.valueOf(it.uppercase()) }.getOrNull()
+        } ?: throw BadRequestException("Mangler eller ugyldig $PREFERRED_SOURCE, må være en av ${PreferredSource.entries}")
+        if (cpaRepository.updatePreferredSource(cpaId, preferredSource)) {
+            log.info("Satt preferred_source=$preferredSource for CPA $cpaId")
+            call.respond(HttpStatusCode.OK, "Satt preferred_source=$preferredSource for CPA $cpaId")
+        } else {
+            throw NotFoundException("Fant ikke CPA $cpaId")
+        }
+    }
 
 fun Route.getTimeStampsDeprecated(): Route = get("/cpa/timestamps") {
     log.warn("Timestamps last_updated (deprecated endpoint)")
@@ -323,8 +338,9 @@ fun Route.validateCpa(
     val requestId = call.parameters[REQUEST_ID] ?: throw BadRequestException("Mangler $REQUEST_ID")
     try {
         log.info(validateRequest.marker(), "Validerer ebms mot CPA")
-        val (cpa, lastUsed) = cpaRepository.findCpaAndLastUsed(validateRequest.cpaId)
-        if (cpa == null) {
+        val (cpa, lastUsed, preferredSource) = cpaRepository.findCpaWithPreferredSource(validateRequest.cpaId)
+            ?: CPARepository.CpaAndPreferredSource(null, null, PreferredSource.CPA)
+        if (cpa == null || preferredSource == PreferredSource.ADRESSEREGISTERET) {
             if (adresseregisterValidator == null || !adresseregisterValidator.cpapiActive) {
                 log.error(validateRequest.marker(), "Fant ikke CPA med ID: ${validateRequest.cpaId}, Addresseregistervalidator ikke initialisert.")
                 eventRegistrationService.registerEvent(
@@ -344,6 +360,9 @@ fun Route.validateCpa(
                     )
                 )
                 return@post
+            }
+            if (preferredSource == PreferredSource.ADRESSEREGISTERET) {
+                log.info(validateRequest.marker(), "CPA ${validateRequest.cpaId} er satt til å foretrekke Adresseregisteret fremfor CPA-oppslag.")
             }
             call.respond(
                 adresseregisterValidator.validateWithAR(cpaRepository, validateRequest, sertifikatValidator)
@@ -622,6 +641,7 @@ fun Route.partnerID(cpaRepository: CPARepository) = get("/cpa/partnerId/{$HER_ID
 }
 
 private const val CPA_ID = "cpaId"
+private const val PREFERRED_SOURCE = "preferredSource"
 private const val CPA_IDS = "cpaIds"
 private const val PARTY_TYPE = "partyType"
 private const val PARTY_ID = "partyId"

@@ -36,6 +36,7 @@ import no.nav.emottak.cpa.databasetest.PostgresOracleTest
 import no.nav.emottak.cpa.nhn.adresseregisteret.model.Certificate
 import no.nav.emottak.cpa.nhn.adresseregisteret.model.CommunicationParty
 import no.nav.emottak.cpa.persistence.CPARepository
+import no.nav.emottak.cpa.persistence.PreferredSource
 import no.nav.emottak.cpa.persistence.gammel.PartnerRepository
 import no.nav.emottak.cpa.util.EventRegistrationServiceFake
 import no.nav.emottak.cpa.validation.AdresseregisterValidator
@@ -767,9 +768,9 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         val cpaId = "nav:qass:31162"
         val cpa = loadTestCPA("nav-qass-31162.xml")
         val timestamp = Instant.now()
-        val firstResult = Pair(cpa, timestamp.minus(1, ChronoUnit.DAYS)) // Last used: Yesterday
-        val secondResult = Pair(cpa, timestamp.minus(1, ChronoUnit.HOURS)) // Last used: An hour ago
-        val thirdResult = Pair(cpa, timestamp.minus(2, ChronoUnit.MINUTES)) // Last used: Two minutes ago
+        val firstResult = CPARepository.CpaAndPreferredSource(cpa, timestamp.minus(1, ChronoUnit.DAYS), PreferredSource.CPA) // Last used: Yesterday
+        val secondResult = CPARepository.CpaAndPreferredSource(cpa, timestamp.minus(1, ChronoUnit.HOURS), PreferredSource.CPA) // Last used: An hour ago
+        val thirdResult = CPARepository.CpaAndPreferredSource(cpa, timestamp.minus(2, ChronoUnit.MINUTES), PreferredSource.CPA) // Last used: Two minutes ago
         val processConfig = ProcessConfig(
             kryptering = false,
             komprimering = false,
@@ -783,7 +784,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
             errorAction = null
         )
 
-        coEvery { cpaRepositoryMock.findCpaAndLastUsed(cpaId) } returnsMany listOf(firstResult, secondResult, thirdResult)
+        coEvery { cpaRepositoryMock.findCpaWithPreferredSource(cpaId) } returnsMany listOf(firstResult, secondResult, thirdResult)
         coEvery { cpaRepositoryMock.updateCpaLastUsed(cpaId) } returns true
         coEvery { partnerRepositoryMock.findPartnerId(cpaId) } returns 12345L
         coEvery { cpaRepositoryMock.getProcessConfig(any(), any(), any()) } returns processConfig
@@ -804,7 +805,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         runValidateCpa(httpClient, addressing, cpaId) // Last used: Two minutes ago - do not update the lastUsed-timestamp
         coVerify(exactly = 2) { cpaRepositoryMock.updateCpaLastUsed(cpaId) }
 
-        coVerify(exactly = 3) { cpaRepositoryMock.findCpaAndLastUsed(cpaId) }
+        coVerify(exactly = 3) { cpaRepositoryMock.findCpaWithPreferredSource(cpaId) }
     }
 
     suspend fun getCpaRepoToken(): BearerTokens {
