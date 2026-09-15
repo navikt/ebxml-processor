@@ -46,7 +46,7 @@ class PayloadMessageForwardingService(
     suspend fun forwardMessageWithSyncResponse(payloadMessage: PayloadMessage) {
         when (val messageType = messageTypeByServiceName(payloadMessage.addressing.service)) {
             MessageType.HAR_BORGER_FRIKORT_MENGDE, MessageType.INNTEKTSFORESPORSEL, MessageType.TREKKOPPLYSNING -> {
-                log.debug(payloadMessage.marker(), "Starting SendIn for $messageType")
+                log.debug(payloadMessage.marker(), "Starting SendIn for {}", messageType)
                 sendInService.sendIn(payloadMessage).let { sendInResponse ->
                     PayloadMessage(
                         requestId = sendInResponse.requestId,
@@ -64,7 +64,7 @@ class PayloadMessageForwardingService(
                 }
             }
             else -> {
-                log.debug(payloadMessage.marker(), "Skipping SendIn for $payloadMessage.addressing.service")
+                log.warn(payloadMessage.marker(), "Skipping SendIn for {}", payloadMessage.addressing.service)
             }
         }
     }
