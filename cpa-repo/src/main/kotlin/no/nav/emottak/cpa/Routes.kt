@@ -243,10 +243,10 @@ suspend fun AdresseregisterValidator.validateWithAR(
     if (!cpapiActive) {
         throw NotFoundException("Fant ikke CPA og adreseregisterValidator er deaktivert.")
     }
-    val fromHerId = validateRequest.addressing.from.partyId.filter { it.type == "HER" }.firstOrNull()?.value
-        ?: throw BadRequestException("Mangler avsender HER")
-    val toHerId = validateRequest.addressing.to.partyId.filter { it.type == "HER" }.firstOrNull()?.value
-        ?: throw BadRequestException("Mangler mottaker HER")
+    val fromHerId = validateRequest.addressing.from.partyId.firstOrNull { it.type == "HER" }?.value
+        ?: throw NotFoundException("Melding mangler From party av type HER")
+    val toHerId = validateRequest.addressing.to.partyId.firstOrNull { it.type == "HER" }?.value
+        ?: throw NotFoundException("Melding mangler To party av type HER")
     log.warn("Cpa finnes ikke for Partner $fromHerId. Forsøker å hente informasjon fra adresseregisteret.")
     try {
         val validSignatureDetails = SignatureDetails(
