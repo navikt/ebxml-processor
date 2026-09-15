@@ -241,10 +241,9 @@ class CPAValidationServiceWithoutSignatureValidation(
     override fun validateResult(
         validationResult: ValidationResult,
         message: EbmsMessage,
-        checkSignature: Boolean,
-        throwOnInvalidCpaId: Boolean
+        checkSignature: Boolean
     ): ValidationResult {
-        return super.validateResult(validationResult, message, false, throwOnInvalidCpaId)
+        return super.validateResult(validationResult, message, false)
     }
 }
 
