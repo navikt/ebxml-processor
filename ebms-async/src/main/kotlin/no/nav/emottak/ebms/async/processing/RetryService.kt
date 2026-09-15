@@ -302,7 +302,14 @@ class RetryService(
         val messageError = ebmsPayloadMessage.createMessageError(ebmsException.feil).also {
             eventRegistrationService.registerEventMessageDetails(it)
         }
-        val validationResult = cpaValidationService.validateOutgoingMessage(messageError, throwOnInvalidCpaId = false)
+
+        val validationResult = cpaValidationService.getValidationResult(Direction.OUT, messageError)
+        if (!validationResult.valid()) {
+            log.warn(
+                "Validationresult was: " +
+                    validationResult.error?.joinToString(",") { it.descriptionText }
+            )
+        }
         val recipientAddresses = validationResult.signalEmailAddress.ifEmpty {
             originEmailAddress?.let {
                 listOf(EmailAddress(it, EndpointTypeType.ERROR))

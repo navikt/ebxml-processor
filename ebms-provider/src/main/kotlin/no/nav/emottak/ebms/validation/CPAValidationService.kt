@@ -31,13 +31,12 @@ open class CPAValidationService(val httpClient: CpaRepoClient) {
             )
         }
 
-    suspend fun validateOutgoingMessage(message: EbmsMessage, throwOnInvalidCpaId: Boolean = true): ValidationResult =
+    suspend fun validateOutgoingMessage(message: EbmsMessage): ValidationResult =
         getValidationResult(OUT, message).also {
             validateResult(
                 validationResult = it,
                 message = message,
-                checkSignature = false,
-                throwOnInvalidCpaId = throwOnInvalidCpaId
+                checkSignature = false
             )
         }
 
@@ -62,7 +61,7 @@ open class CPAValidationService(val httpClient: CpaRepoClient) {
         )
     }
 
-    private suspend fun getValidationResult(direction: Direction, message: EbmsMessage): ValidationResult {
+    suspend fun getValidationResult(direction: Direction, message: EbmsMessage): ValidationResult {
         val validationRequest = ValidationRequest(
             direction,
             message.messageId,
@@ -77,22 +76,8 @@ open class CPAValidationService(val httpClient: CpaRepoClient) {
         return validationResult
     }
 
-    open fun validateResult(
-        validationResult: ValidationResult,
-        message: EbmsMessage,
-        checkSignature: Boolean,
-        throwOnInvalidCpaId: Boolean = true
-    ): ValidationResult {
-        if (!validationResult.valid()) {
-            if (!throwOnInvalidCpaId) {
-                log.warn(
-                    message.marker(),
-                    "CPA validation failed for message ${message.messageId}, returning failed ValidationResult instead of throwing: ${validationResult.error}"
-                )
-                return validationResult
-            }
-            throw EbmsException(validationResult.error!!)
-        }
+    open fun validateResult(validationResult: ValidationResult, message: EbmsMessage, checkSignature: Boolean): ValidationResult {
+        if (!validationResult.valid()) throw EbmsException(validationResult.error!!)
         if (checkSignature) {
             runCatching {
                 message.validateSignature(validationResult.payloadProcessing!!.signingCertificate)
