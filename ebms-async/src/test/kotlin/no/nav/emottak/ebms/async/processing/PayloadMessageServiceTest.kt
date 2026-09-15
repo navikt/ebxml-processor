@@ -523,12 +523,11 @@ class PayloadMessageServiceTest {
         coEvery { messageReceivedRepository.isAcknowledged(payloadMessage) } returns isDuplicateResult
         coEvery { eventRegistrationService.registerEventMessageDetails(capture(ebmsMessageSlots)) } returns Unit
         coEvery { cpaValidationService.validateIncomingMessage(payloadMessage) } returns mockk<ValidationResult>(relaxed = true)
+        coEvery { cpaValidationService.getValidationResult(any(), any()) } returns mockk<ValidationResult>(relaxed = true)
 
         if (validateOutgoingThrowsException) {
             coEvery { cpaValidationService.validateOutgoingMessage(any()) } throws Exception("Unexpected exception")
-            coEvery { cpaValidationService.validateOutgoingMessage(any()) } throws Exception("Unexpected exception")
         } else {
-            coEvery { cpaValidationService.validateOutgoingMessage(any()) } returns mockk(relaxed = true)
             coEvery { cpaValidationService.validateOutgoingMessage(any()) } returns mockk(relaxed = true)
         }
 
