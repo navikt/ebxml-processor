@@ -4,7 +4,6 @@ import no.nav.emottak.utils.vault.VaultUtil
 import no.nav.emottak.utils.vault.parseVaultJsonObject
 import java.io.InputStream
 import kotlin.io.encoding.Base64
-import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.io.encoding.decodingWith
 
 class VaultKeyStoreConfig(
@@ -17,7 +16,6 @@ class VaultKeyStoreConfig(
     override val keyStorePass: CharArray = keystoreVaultMap[keyStorePassResource]!!.parseVaultJsonObject("password").toCharArray()
     override val keyStoreType: String = keystoreVaultMap[keyStorePassResource]!!.parseVaultJsonObject("type")
 
-    @OptIn(ExperimentalEncodingApi::class)
     private fun Map<String, String>.getDecodedVaultKeyStoreFile(keyStoreFileResource: String): InputStream =
         this[keyStoreFileResource]!!.byteInputStream().decodingWith(Base64.Mime)
 }

@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalUuidApi::class)
-
 package no.nav.emottak.payload
 
 import com.nimbusds.jwt.SignedJWT
@@ -53,7 +51,6 @@ import java.security.PrivateKey
 import java.security.cert.X509Certificate
 import java.time.Instant
 import java.util.Date
-import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 val testKeystore = KeyStoreManager(*config().signering.map { it.resolveKeyStoreConfiguration() }.toTypedArray())

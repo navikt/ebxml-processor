@@ -15,7 +15,6 @@ import no.nav.emottak.payload.apprec.message.AppRecErrorCode
 import no.nav.emottak.util.toXMLGregorianCalendar
 import org.apache.commons.lang3.StringUtils
 import java.time.Instant
-import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 private val objectFactory = ObjectFactory()
@@ -45,7 +44,6 @@ fun createNegativeApprec(msgHead: MsgHead, exception: Exception): AppRec = creat
     it.error.add(createApprecError(AppRecErrorCode.getCode(exception), exception.message))
 }
 
-@OptIn(ExperimentalUuidApi::class)
 private fun createBaseApprec(msgHead: MsgHead): AppRec = objectFactory.createAppRec().also { apprec ->
     apprec.genDate = Instant.now().toXMLGregorianCalendar()
     apprec.id = Uuid.random().toString()

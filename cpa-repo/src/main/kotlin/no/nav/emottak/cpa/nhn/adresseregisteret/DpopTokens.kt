@@ -7,10 +7,8 @@ import kotlinx.serialization.Serializable
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
-import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
-@OptIn(ExperimentalTime::class)
 data class DpopTokens(
     val accessToken: DPoPAccessToken,
     val expiresAt: Instant,
@@ -19,7 +17,6 @@ data class DpopTokens(
     fun isExpired(): Boolean = Clock.System.now() >= (expiresAt - bufferSeconds)
 }
 
-@OptIn(ExperimentalTime::class)
 fun TokenInfo.toDpopTokens(): DpopTokens =
     DpopTokens(
         accessToken = DPoPAccessToken(accessToken, expiresIn.toLong(), Scope()),

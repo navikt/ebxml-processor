@@ -23,10 +23,7 @@ import org.xmlsoap.schemas.soap.envelope.Header
 import java.io.StringReader
 import java.time.Instant
 import java.util.Date
-import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 
-@OptIn(ExperimentalUuidApi::class)
 abstract class EbmsMessage {
     abstract val requestId: String
     abstract val messageId: String
@@ -39,25 +36,8 @@ abstract class EbmsMessage {
     open fun toEbmsDokument(): EbmsDocument {
         return createEbmsDocument(createMessageHeader())
     }
-
-    open fun createMessageError(errorList: List<Feil>): MessageError {
-        return MessageError(
-            requestId = Uuid.random().toString(),
-            messageId = Uuid.random().toString(),
-            refToMessageId = this.messageId,
-            conversationId = this.conversationId,
-            cpaId = this.cpaId,
-            addressing = this.addressing.replyTo(
-                service = EbXMLConstants.EBMS_SERVICE_URI,
-                action = EbXMLConstants.MESSAGE_ERROR_ACTION
-            ),
-            feil = errorList,
-            sentAt = Instant.now()
-        )
-    }
 }
 
-@OptIn(ExperimentalUuidApi::class)
 fun EbmsMessage.createMessageHeader(
     newAddressing: Addressing = this.addressing,
     withSyncReplyElement: Boolean = false,
@@ -142,7 +122,6 @@ private fun createAckRequestedElement(ackSignatureRequested: Boolean) = AckReque
     this.version = "2.0"
 }
 
-@OptIn(ExperimentalUuidApi::class)
 fun EbmsMessage.createEbmsDocument(ebxmlDokument: Header, payload: EbmsAttachment? = null): EbmsDocument {
     val envelope = Envelope()
     envelope.header = ebxmlDokument

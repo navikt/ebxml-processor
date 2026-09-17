@@ -5,7 +5,6 @@ import no.nav.emottak.utils.common.model.Addressing
 import org.w3c.dom.Document
 import org.w3c.dom.NodeList
 import java.time.Instant
-import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 data class PayloadMessage(
@@ -24,33 +23,42 @@ data class PayloadMessage(
     val ackSignatureRequested: Boolean = false
 ) : EbmsMessage() {
 
-    override fun toEbmsDokument(): EbmsDocument {
-        return createEbmsDocument(
-            createMessageHeader(
-                withAckRequestedElement = ackRequested,
-                ackSignatureRequested = ackSignatureRequested,
-                withDuplicateEliminationElement = duplicateElimination
-            ),
-            this.payload
-        )
-    }
+    override fun toEbmsDokument(): EbmsDocument = createEbmsDocument(
+        createMessageHeader(
+            withAckRequestedElement = ackRequested,
+            ackSignatureRequested = ackSignatureRequested,
+            withDuplicateEliminationElement = duplicateElimination
+        ),
+        this.payload
+    )
 
-    @OptIn(ExperimentalUuidApi::class)
-    fun createAcknowledgment(): Acknowledgment {
-        return Acknowledgment(
-            requestId = Uuid.random().toString(),
-            messageId = Uuid.random().toString(),
-            refToMessageId = this.messageId,
-            conversationId = this.conversationId,
-            cpaId = this.cpaId,
-            addressing = this.addressing.replyTo(
-                service = EbXMLConstants.EBMS_SERVICE_URI,
-                action = EbXMLConstants.ACKNOWLEDGMENT_ACTION
-            ),
-            sentAt = Instant.now(),
-            referenceList = this.document?.getSignatureReferenceNodeList()
-        )
-    }
+    fun createAcknowledgment(): Acknowledgment = Acknowledgment(
+        requestId = Uuid.random().toString(),
+        messageId = Uuid.random().toString(),
+        refToMessageId = this.messageId,
+        conversationId = this.conversationId,
+        cpaId = this.cpaId,
+        addressing = this.addressing.replyTo(
+            service = EbXMLConstants.EBMS_SERVICE_URI,
+            action = EbXMLConstants.ACKNOWLEDGMENT_ACTION
+        ),
+        sentAt = Instant.now(),
+        referenceList = this.document?.getSignatureReferenceNodeList()
+    )
+
+    fun createMessageError(errorList: List<Feil>): MessageError = MessageError(
+        requestId = Uuid.random().toString(),
+        messageId = Uuid.random().toString(),
+        refToMessageId = this.messageId,
+        conversationId = this.conversationId,
+        cpaId = this.cpaId,
+        addressing = this.addressing.replyTo(
+            service = EbXMLConstants.EBMS_SERVICE_URI,
+            action = EbXMLConstants.MESSAGE_ERROR_ACTION
+        ),
+        feil = errorList,
+        sentAt = Instant.now()
+    )
 
     private fun Document.getSignatureReferenceNodeList(): NodeList =
         this.getElementsByTagNameNS(EbXMLConstants.XMLDSIG_NS_URI, EbXMLConstants.XMLDSIG_TAG_REFERENCE)

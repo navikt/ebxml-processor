@@ -55,5 +55,6 @@ dependencies {
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().all {
     compilerOptions {
         optIn.add("kotlin.uuid.ExperimentalUuidApi")
+        optIn.add("com.sksamuel.hoplite.ExperimentalHoplite")
     }
 }

@@ -19,7 +19,6 @@ import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.message.exception.EbmsException
 import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.EbmsDocument
-import no.nav.emottak.message.model.EbmsMessage
 import no.nav.emottak.message.model.EmailAddress
 import no.nav.emottak.message.model.ErrorCode
 import no.nav.emottak.message.model.PayloadMessage
@@ -289,10 +288,9 @@ class RetryService(
         return ttl <= Instant.now()
     }
 
-    suspend fun returnMessageError(ebmsPayloadMessage: EbmsMessage, ebmsException: EbmsException) {
-        val messageError = ebmsPayloadMessage.createMessageError(ebmsException.feil).also {
-            eventRegistrationService.registerEventMessageDetails(it)
-        }
+    suspend fun returnMessageError(ebmsPayloadMessage: PayloadMessage, ebmsException: EbmsException) {
+        val messageError = ebmsPayloadMessage.createMessageError(ebmsException.feil)
+        eventRegistrationService.registerEventMessageDetails(messageError)
         val validationResult = cpaValidationService.validateOutgoingMessage(messageError)
         val signingCertificate = validationResult.payloadProcessing?.signingCertificate
             ?: throw EbmsException(
@@ -307,7 +305,7 @@ class RetryService(
         log.warn(messageError.marker(), "MessageError returned", ebmsException)
     }
 
-    private suspend fun returnMessageErrorSafely(ebmsPayloadMessage: EbmsMessage, ebmsException: EbmsException) {
+    private suspend fun returnMessageErrorSafely(ebmsPayloadMessage: PayloadMessage, ebmsException: EbmsException) {
         try {
             returnMessageError(ebmsPayloadMessage, ebmsException)
         } catch (e: CancellationException) {

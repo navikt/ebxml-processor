@@ -10,7 +10,6 @@ import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.EndpointTypeType
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Description
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Error
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.SeverityType
-import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 @Serializable
@@ -43,27 +42,7 @@ data class Feil(
     val descriptionText: String,
     val severity: String? = null,
     val recoverable: Boolean = true
-) {
-
-    fun asEbxmlError(location: String? = null): Error {
-        val error = org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.Error()
-        error.errorCode = this.code.value
-        val description = Description()
-        description.lang = "no" // Default verdi fra spec.
-        description.value = descriptionText
-        error.description = description
-
-        error.severity = this.severity.takeIf { severity != null }?.let {
-            SeverityType.fromValue(it)
-        } ?: SeverityType.ERROR
-        error.location = location // Content-ID hvis error er i Payload. Hvis ebxml så er det XPath
-        error.id = "ERROR_ID" // Element Id
-        // error.any             // Unused?
-        // error.otherAttributes // Unused?
-        // error.codeContext = "urn:oasis:names:tc:ebxml-msg:service:errors" // Skal være default ifølge spec. Trenger ikke overstyre / sette
-        return error
-    }
-}
+)
 
 @Serializable
 data class ValidationRequest(
@@ -135,7 +114,6 @@ data class Payload(
 )
 
 @Serializable
-@OptIn(ExperimentalUuidApi::class)
 data class AsyncPayload(
     @Contextual
     val referenceId: Uuid,
@@ -166,22 +144,19 @@ enum class ErrorCode(val value: String, val description: String) {
             }
         }
     }
+
     fun createEbxmlError(
         descriptionText: String? = this.description,
         severityType: SeverityType? = null,
         location: String? = null
-    ): Error {
-        val error = Error()
-        error.errorCode = this.value
-        val description = Description()
-        description.lang = "no" // Default verdi fra spec.
-        description.value = descriptionText
-        error.description = description
-        error.severity = severityType ?: SeverityType.ERROR
-        error.location = location // Content-ID hvis error er i Payload. Hvis ebxml så er det XPath
-        error.id = "ERROR_ID" // Element Id
-        // error.any             // Unused?
-        // error.otherAttributes // Unused?
-        return error
+    ): Error = Error().apply {
+        errorCode = this@ErrorCode.value
+        description = Description().apply {
+            lang = "no"
+            value = descriptionText ?: this@ErrorCode.description
+        }
+        severity = severityType ?: SeverityType.ERROR
+        this.location = location
+        id = "ERROR_ID"
     }
 }

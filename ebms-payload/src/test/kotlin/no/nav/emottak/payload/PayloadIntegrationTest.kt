@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalUuidApi::class)
-
 package no.nav.emottak.payload
 
 import com.nimbusds.jwt.SignedJWT
@@ -17,7 +15,6 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import kotlin.uuid.ExperimentalUuidApi
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class PayloadIntegrationTest : PayloadTestBase() {
