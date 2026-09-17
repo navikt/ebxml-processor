@@ -42,7 +42,7 @@ abstract class EbmsMessage {
 
     open fun createMessageError(errorList: List<Feil>): MessageError {
         return MessageError(
-            requestId = requestId,
+            requestId = Uuid.random().toString(),
             messageId = Uuid.random().toString(),
             refToMessageId = this.messageId,
             conversationId = this.conversationId,
