@@ -206,14 +206,15 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
             }
             installCpaRepoAuthentication()
         }
+        val addressing = Addressing(
+            Party(listOf(PartyId("HER", "79768")), "Frikortregister"),
+            Party(listOf(PartyId("HER", "8141253")), "Behandler"),
+            "BehandlerKrav",
+            "OppgjorsMelding"
+        )
         val response = runValidateCpa(
             httpClient,
-            Addressing(
-                Party(listOf(PartyId("HER", "79768")), "Frikortregister"),
-                Party(listOf(PartyId("HER", "8141253")), "Behandler"),
-                "BehandlerKrav",
-                "OppgjorsMelding"
-            ),
+            addressing,
             "no:such:cpa"
         )
 
@@ -221,6 +222,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         assertNotNull(validationResult)
 
         assertEquals(true, validationResult.valid())
+        assertEquals(addressing, validationResult.cpaAddressing)
     }
 
     @Test
@@ -232,14 +234,15 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
             }
             installCpaRepoAuthentication()
         }
+        val addressing = Addressing(
+            Party(listOf(PartyId("HER", "79768")), "Frikortregister"),
+            Party(listOf(PartyId("HER", "8141253")), "Behandler"),
+            "BehandlerKrav",
+            "OppgjorsMelding"
+        )
         val response = runValidateCpa(
             httpClient,
-            Addressing(
-                Party(listOf(PartyId("HER", "79768")), "Frikortregister"),
-                Party(listOf(PartyId("HER", "8141253")), "Behandler"),
-                "BehandlerKrav",
-                "OppgjorsMelding"
-            ),
+            addressing,
             "no:such:cpa"
         )
 
@@ -250,6 +253,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         assertEquals(1, validationResult.receiverEmailAddress.size)
         assertEquals("mailto://mottak-qass@test-es.nav.no", "mailto://" + validationResult.receiverEmailAddress.first().emailAddress)
         assertEquals("mailto://mottak-qass@test-es.nav.no", "mailto://" + validationResult.signalEmailAddress.first().emailAddress)
+        assertEquals(addressing, validationResult.cpaAddressing)
     }
 
     @Test
