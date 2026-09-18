@@ -15,7 +15,7 @@ import java.security.cert.X509CRL
 
 class CRLRetriever(
     private val httpClient: HttpClient,
-    private val issuerList: Map<String, String> = defaultCRLLists
+    private val issuerList: Map<String, String>
 ) {
     private val log = LoggerFactory.getLogger(CRLRetriever::class.java)
 
