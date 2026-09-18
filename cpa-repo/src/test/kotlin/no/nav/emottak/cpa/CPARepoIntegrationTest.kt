@@ -198,6 +198,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
     }
 
     @Test
+    @Disabled // TODO denne testen kan innkommenteres når alle meldinger, også dem uten CPA skal validers mot AR
     fun `Validation of certificate given by AR when cpa does not exist`() = cpaRepoTestApp {
         val httpClient = createClient {
             install(ContentNegotiation) {
@@ -223,6 +224,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
     }
 
     @Test
+    @Disabled // TODO denne testen kan innkommenteres når alle meldinger, også dem uten CPA skal validers mot AR
     fun `Validation of edi address given by AR when cpa does not exist`() = cpaRepoTestApp {
         val httpClient = createClient {
             install(ContentNegotiation) {
