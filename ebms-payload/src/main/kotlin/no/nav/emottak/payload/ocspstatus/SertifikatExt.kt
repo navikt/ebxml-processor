@@ -58,7 +58,7 @@ internal fun X509Certificate.getOrganizationNumber(): String? {
 }
 
 internal fun X509Certificate.isVirksomhetssertifikat(): Boolean {
-    val bytes = this.getExtensionValue(Extension.certificatePolicies.id)
+    val bytes = this.getExtensionValue(Extension.certificatePolicies.id) ?: return false
     val octetString = ASN1Primitive.fromByteArray(bytes) as ASN1OctetString
     val policies = ASN1Primitive.fromByteArray(octetString.octets) as DLSequence
     return policies.map { policy ->

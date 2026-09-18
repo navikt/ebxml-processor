@@ -1,16 +1,20 @@
 package no.nav.emottak.payload
 
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.runs
 import kotlinx.coroutines.runBlocking
 import no.nav.emottak.message.model.Payload
+import no.nav.emottak.payload.helseid.NinResolver
 import no.nav.emottak.payload.util.EventRegistrationServiceFake
 import no.nav.emottak.util.marker
 import no.nav.emottak.validering.sertifikat.CRLChecker
 import no.nav.emottak.validering.sertifikat.SertifikatValidator
 import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import kotlin.test.assertFalse
@@ -22,10 +26,14 @@ class ProcessorTest : PayloadTestBase() {
     @AfterAll
     fun tearDown() = mockOAuth2Server.shutdown()
 
-    private fun buildProcessor(): Processor {
+    private fun buildProcessor(ninResolver: NinResolver = mockk()): Processor {
         val crlChecker = mockk<CRLChecker>()
         every { crlChecker.getCRLRevocationInfo(any(), any()) } just runs
-        return Processor(EventRegistrationServiceFake(), SertifikatValidator(crlChecker = crlChecker))
+        return Processor(
+            EventRegistrationServiceFake(),
+            SertifikatValidator(crlChecker = crlChecker),
+            ninResolver = ninResolver
+        )
     }
 
     @Test
@@ -48,5 +56,61 @@ class ProcessorTest : PayloadTestBase() {
 
         assertTrue(result.bytes.contentEquals(readablePayload.bytes), "Expected returned payload bytes to match the readable (decrypted/decompressed) payload")
         assertFalse(result.bytes.contentEquals(originalRequestPayload.bytes), "Returned payload bytes must not be the original, unprocessed request payload bytes")
+    }
+
+    @Test
+    fun `validateReadablePayload populates signedByOrg when signering is enabled and leaves signedByPid null when ocspSjekk is disabled`() = runBlocking {
+        setupEnv()
+        val processor = buildProcessor()
+        val payload: Payload = Fixtures.validEgenandelForesporsel()
+        val request = baseRequest(payload = payload) // signering = true, ocspSjekk = false by default
+
+        val result = processor.validateReadablePayload(request.marker(), payload, request, request.processing.processConfig)
+
+        assertNull(result.signedByPid, "signedByPid must stay null when ocspSjekk is disabled")
+        assertEquals("", result.signedByOrg, "signedByOrg should be populated (even if empty) from the signing certificate when signering is enabled")
+    }
+
+    @Test
+    fun `validateReadablePayload populates signedByPid via ninResolver when ocspSjekk is enabled and leaves signedByOrg null when signering is disabled`() = runBlocking {
+        setupEnv()
+        val expectedPid = "01010112345"
+        val ninResolver = mockk<NinResolver>()
+        coEvery { ninResolver.resolve(any<org.w3c.dom.Document>(), any()) } returns expectedPid
+        val processor = buildProcessor(ninResolver)
+
+        val payload: Payload = Fixtures.validEgenandelForesporsel()
+        val request = baseRequest(payload = payload).let {
+            it.copy(
+                processing = it.processing.copy(
+                    processConfig = it.processing.processConfig.copy(signering = false, ocspSjekk = true)
+                )
+            )
+        }
+
+        val result = processor.validateReadablePayload(request.marker(), payload, request, request.processing.processConfig)
+
+        assertNull(result.signedByOrg, "signedByOrg must stay null when signering is disabled")
+        assertEquals(expectedPid, result.signedByPid, "signedByPid must be populated from the ninResolver when ocspSjekk is enabled")
+        assertEquals(expectedPid, result.signedBy, "legacy signedBy field must remain in sync with signedByPid")
+    }
+
+    @Test
+    fun `validateReadablePayload leaves both signedByPid and signedByOrg null when neither signering nor ocspSjekk is enabled`() = runBlocking {
+        setupEnv()
+        val processor = buildProcessor()
+        val payload: Payload = Fixtures.validEgenandelForesporsel()
+        val request = baseRequest(payload = payload).let {
+            it.copy(
+                processing = it.processing.copy(
+                    processConfig = it.processing.processConfig.copy(signering = false, ocspSjekk = false)
+                )
+            )
+        }
+
+        val result = processor.validateReadablePayload(request.marker(), payload, request, request.processing.processConfig)
+
+        assertNull(result.signedByPid)
+        assertNull(result.signedByOrg)
     }
 }
