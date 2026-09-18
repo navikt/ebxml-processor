@@ -140,7 +140,7 @@ class OcspStatusService(
                 it.responseObject as BasicOCSPResp
             }.let {
                 val ssn = getSSN(it)
-                validateFnr(ssn)
+                if (!certificate.isVirksomhetssertifikat()) validateFnr(ssn)
                 createSertifikatInfoFromOCSPResponse(certificate, it.responses[0], ssn)
             }
         } catch (e: CertificateException) {
