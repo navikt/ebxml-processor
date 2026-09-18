@@ -341,8 +341,25 @@ fun Route.validateCpa(
         val (cpa, lastUsed, preferredSource) = cpaRepository.findCpaWithPreferredSource(validateRequest.cpaId)
             ?: CPARepository.CpaAndPreferredSource(null, null, PreferredSource.CPA)
         if (cpa == null || preferredSource == PreferredSource.ADRESSEREGISTERET) {
-            if (adresseregisterValidator == null || !adresseregisterValidator.cpapiActive) {
-                log.error(validateRequest.marker(), "Fant ikke CPA med ID: ${validateRequest.cpaId}, Addresseregistervalidator ikke initialisert.")
+            if (preferredSource == PreferredSource.ADRESSEREGISTERET && // TODO, fjern denne når alle uten CPA skal valideres mot AR.
+                adresseregisterValidator != null && adresseregisterValidator.cpapiActive
+            ) {
+                log.info(validateRequest.marker(), "CPA ${validateRequest.cpaId} er satt til å foretrekke Adresseregisteret fremfor CPA-oppslag.")
+                runCatching {
+                    adresseregisterValidator.validateWithAR(cpaRepository, validateRequest, sertifikatValidator)
+                }.onSuccess { arValidationResult ->
+                    if(arValidationResult.valid()) {
+                        call.respond(arValidationResult)
+                        return@post
+                    } else {
+                        log.error(validateRequest.marker(), arValidationResult.error?.joinToString(",") { it.descriptionText })
+                    }
+                }.onFailure {
+                    log.error(validateRequest.marker(), "Error validering CPA ${validateRequest.cpaId} mot adresseregisteret. ${it.localizedMessage}", it)
+                }
+            }
+            if (cpa == null) {
+                log.error(validateRequest.marker(), "Fant ikke CPA med ID: ${validateRequest.cpaId}.")
                 eventRegistrationService.registerEvent(
                     EventType.VALIDATION_AGAINST_CPA_FAILED,
                     validateRequest,
@@ -361,13 +378,6 @@ fun Route.validateCpa(
                 )
                 return@post
             }
-            if (preferredSource == PreferredSource.ADRESSEREGISTERET) {
-                log.info(validateRequest.marker(), "CPA ${validateRequest.cpaId} er satt til å foretrekke Adresseregisteret fremfor CPA-oppslag.")
-            }
-            call.respond(
-                adresseregisterValidator.validateWithAR(cpaRepository, validateRequest, sertifikatValidator)
-            )
-            return@post
         }
         updateLastUsed(cpaRepository, lastUsed, validateRequest)
         val (toParty, fromParty, cpaAddressing) = validateRequest.getToFromPartyInfo(cpa)
