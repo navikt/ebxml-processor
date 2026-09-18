@@ -116,4 +116,33 @@ class CPARepositoryTest : PostgresTest() {
         assertNotNull(map[CPA_ID])
         assertNull(map["nav-qass-31162"]) // Aldri brukt
     }
+
+    @Test
+    fun `CPA db entry har preferredSource CPA som default`() {
+        val cpaRepository = CPARepository(postgres)
+        assertEquals(PreferredSource.CPA, cpaRepository.findCpaEntry(CPA_ID)?.preferredSource)
+    }
+
+    @Test
+    fun `CPA db entry preferredSource kan settes til ADRESSEREGISTERET`() {
+        val cpaRepository = CPARepository(postgres)
+        assertTrue(cpaRepository.updatePreferredSource(CPA_ID, PreferredSource.ADRESSEREGISTERET))
+        assertEquals(PreferredSource.ADRESSEREGISTERET, cpaRepository.findCpaEntry(CPA_ID)?.preferredSource)
+        assertEquals(PreferredSource.ADRESSEREGISTERET, cpaRepository.findCpaWithPreferredSource(CPA_ID)?.preferredSource)
+    }
+
+    @Test
+    fun `updatePreferredSource returnerer false for ukjent CPA`() {
+        val cpaRepository = CPARepository(postgres)
+        assertEquals(false, cpaRepository.updatePreferredSource("ukjent-cpa-id", PreferredSource.ADRESSEREGISTERET))
+    }
+
+    @Test
+    fun `preferredSource bevares ved re-synkronisering av CPA`() {
+        val cpaRepository = CPARepository(postgres)
+        cpaRepository.updatePreferredSource(CPA_ID, PreferredSource.ADRESSEREGISTERET)
+        val existingEntry = cpaRepository.findCpaEntry(CPA_ID)!!
+        cpaRepository.updateOrInsert(existingEntry.copy(preferredSource = PreferredSource.CPA))
+        assertEquals(PreferredSource.ADRESSEREGISTERET, cpaRepository.findCpaEntry(CPA_ID)?.preferredSource)
+    }
 }

@@ -1,0 +1,2 @@
+ALTER TABLE cpa
+    ADD preferred_source VARCHAR(20) NOT NULL DEFAULT 'CPA';

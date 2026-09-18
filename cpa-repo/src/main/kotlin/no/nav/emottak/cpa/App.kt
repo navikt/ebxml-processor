@@ -138,6 +138,7 @@ fun cpaApplicationModule(
                     deleteCpa(cpaRepository)
                     deleteAllCPA(cpaRepository)
                     postCpa(cpaRepository)
+                    updatePreferredSource(cpaRepository)
                 }
             }
         }
