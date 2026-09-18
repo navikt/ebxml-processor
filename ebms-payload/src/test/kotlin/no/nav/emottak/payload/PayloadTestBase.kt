@@ -28,6 +28,7 @@ import no.nav.emottak.payload.ocspstatus.OcspStatusService
 import no.nav.emottak.payload.ocspstatus.ssnPolicyID
 import no.nav.emottak.payload.util.EventRegistrationServiceFake
 import no.nav.emottak.util.createDocument
+import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.jsonLenient
 import no.nav.emottak.utils.common.model.Addressing
 import no.nav.emottak.utils.common.model.Party
@@ -203,7 +204,7 @@ abstract class PayloadTestBase {
                 createDocument(
                     object {}::class.java.classLoader.getResource(resource)!!.openStream()
                 ),
-                signatureDetails()
+                createX509Certificate(signatureDetails().certificate)
             ).asByteArray(),
             contentType = ""
         )

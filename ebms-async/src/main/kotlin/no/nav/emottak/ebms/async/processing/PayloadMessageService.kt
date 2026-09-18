@@ -15,6 +15,7 @@ import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.ErrorCode
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.model.ValidationResult
+import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.marker
 import no.nav.emottak.utils.common.model.Addressing
 import no.nav.emottak.utils.common.model.Party
@@ -185,7 +186,11 @@ class PayloadMessageService(
 
     private suspend fun processPayloadMessage(ebmsPayloadMessage: PayloadMessage) {
         log.info(ebmsPayloadMessage.marker(), "Got payload message with reference <${ebmsPayloadMessage.requestId}>")
-        val validationResult = cpaValidationService.validateIncomingMessage(ebmsPayloadMessage)
+        val validationResult = cpaValidationService.validateIncomingMessage(ebmsPayloadMessage, true)
+        eventRegistrationService.registerSignatureValidated(
+            ebmsPayloadMessage,
+            createX509Certificate(validationResult.payloadProcessing!!.signingCertificate.certificate)
+        )
         val (processedPayload, direction) = processingService.processAsync(
             ebmsPayloadMessage,
             validationResult.payloadProcessing

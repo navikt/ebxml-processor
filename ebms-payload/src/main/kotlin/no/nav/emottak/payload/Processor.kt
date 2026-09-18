@@ -15,7 +15,6 @@ import no.nav.emottak.payload.util.GZipUtil
 import no.nav.emottak.util.createDocument
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.getByteArrayFromDocument
-import no.nav.emottak.util.mapCertificateDetails
 import no.nav.emottak.util.marker
 import no.nav.emottak.util.retrieveSignatureElement
 import no.nav.emottak.utils.kafka.model.EventDataType
@@ -111,15 +110,7 @@ class Processor(
         val processConfig = payloadRequest.processing.processConfig
         return payloadRequest.payload.let {
             when (processConfig.signering) {
-                true -> {
-                    getByteArrayFromDocument(
-                        signering.signerXML(
-                            createDocument(ByteArrayInputStream(it.bytes)),
-                            payloadRequest.processing.signingCertificate
-                        )
-                    )
-                        .also { log.info(payloadRequest.marker(), "Payload signert") }
-                }
+                true -> sign(it.bytes, payloadRequest)
                 false -> it.bytes
             }
         }.let {
@@ -135,48 +126,40 @@ class Processor(
         }
     }
 
+    private fun sign(payload: ByteArray, payloadRequest: PayloadRequest): ByteArray {
+        val certificate = createX509Certificate(payloadRequest.processing.signingCertificate.certificate)
+        return getByteArrayFromDocument(
+            signering.signerXML(
+                createDocument(ByteArrayInputStream(payload)),
+                certificate
+            )
+        ).also {
+            log.info(payloadRequest.marker(), "Payload signert av ${certificate.subjectX500Principal.name}")
+        }
+    }
+
     private suspend fun encrypt(payload: ByteArray, payloadRequest: PayloadRequest): Payload {
         val certificate = createX509Certificate(payloadRequest.processing.encryptionCertificate)
-        return with(certificate) {
-            kryptering.krypter(payload, this).let { kryptertPayload ->
-                log.info(payloadRequest.marker(), "Payload kryptert for ${this.subjectX500Principal.name}")
-                payloadRequest.payload.copy(bytes = kryptertPayload, contentType = "application/pkcs7-mime")
-            }
+        return kryptering.krypter(payload, certificate).let { kryptertPayload ->
+            payloadRequest.payload.copy(bytes = kryptertPayload, contentType = "application/pkcs7-mime")
         }.also {
-            eventRegistrationService.registerEvent(
-                EventType.MESSAGE_ENCRYPTED,
-                payloadRequest,
-                Json.encodeToString(certificate.mapCertificateDetails())
-            )
+            log.info(payloadRequest.marker(), "Payload kryptert for ${certificate.subjectX500Principal.name}")
+            eventRegistrationService.registerPayloadEncrypted(payloadRequest, certificate)
         }
     }
 
-    private suspend fun decrypt(payload: ByteArray, payloadRequest: PayloadRequest): ByteArray {
-        return dekryptering.dekrypter(payload, false).also {
-            eventRegistrationService.registerEvent(
-                EventType.MESSAGE_DECRYPTED,
-                payloadRequest
-            )
+    private suspend fun decrypt(payload: ByteArray, payloadRequest: PayloadRequest): ByteArray =
+        dekryptering.dekrypter(payload, false).also {
+            eventRegistrationService.registerPayloadDecrypted(payloadRequest)
         }
-    }
 
-    private suspend fun compress(payload: ByteArray, payloadRequest: PayloadRequest): ByteArray {
-        return gZipUtil.compress(payload)
-            .also { log.info(payloadRequest.marker(), "Payload komprimert") }
-            .also {
-                eventRegistrationService.registerEvent(
-                    EventType.MESSAGE_COMPRESSED,
-                    payloadRequest
-                )
-            }
-    }
-
-    private suspend fun decompress(payload: ByteArray, payloadRequest: PayloadRequest): ByteArray {
-        return gZipUtil.uncompress(payload).also {
-            eventRegistrationService.registerEvent(
-                EventType.MESSAGE_DECOMPRESSED,
-                payloadRequest
-            )
+    private suspend fun compress(payload: ByteArray, payloadRequest: PayloadRequest): ByteArray =
+        gZipUtil.compress(payload).also {
+            eventRegistrationService.registerPayloadCompressed(payloadRequest)
         }
-    }
+
+    private suspend fun decompress(payload: ByteArray, payloadRequest: PayloadRequest): ByteArray =
+        gZipUtil.uncompress(payload).also {
+            eventRegistrationService.registerPayloadDecompressed(payloadRequest)
+        }
 }
