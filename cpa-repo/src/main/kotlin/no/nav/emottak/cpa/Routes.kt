@@ -279,8 +279,8 @@ suspend fun AdresseregisterValidator.validateWithAR(
         val allPurposeEdiEndpoint =
             EmailAddress(getEdiAddress(toHerId) ?: "", EndpointTypeType.ALL_PURPOSE)
         return ValidationResult(
-            EbmsProcessing(),
-            PayloadProcessing(
+            ebmsProcessing = EbmsProcessing(),
+            payloadProcessing = PayloadProcessing(
                 validSignatureDetails,
                 decodeBase64(
                     (getEncryptionCertificate(toHerId).certificateValue ?: throw NotFoundException("Fant ikke krypteringssertifikat for $toHerId")).toByteArray()
@@ -291,8 +291,9 @@ suspend fun AdresseregisterValidator.validateWithAR(
                     validateRequest.addressing.action
                 )
             ),
-            listOf(allPurposeEdiEndpoint),
-            listOf(allPurposeEdiEndpoint)
+            signalEmailAddress = listOf(allPurposeEdiEndpoint),
+            receiverEmailAddress = listOf(allPurposeEdiEndpoint),
+            cpaAddressing = validateRequest.addressing
         )
     } catch (ex: Exception) {
         log.error("Error while fetching arSignCertificate ", ex)
