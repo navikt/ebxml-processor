@@ -32,6 +32,10 @@ import org.xmlsoap.schemas.soap.envelope.Envelope
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.model")
 
+// Used as a placeholder for MessageError.refToMessageId when RefToMessageId is missing from the incoming MessageHeader,
+// since MessageError requires a non-null refToMessageId. Callers should fall back to CPA id + conversation id lookup.
+const val REF_TO_MESSAGE_ID_NOT_SET = "NOT_SET"
+
 data class EbmsDocument(val requestId: String, val document: Document, val attachments: List<Payload>) {
 
     private val envelope = lazy { xmlMarshaller.unmarshal(this.document) as Envelope }
@@ -74,7 +78,7 @@ data class EbmsDocument(val requestId: String, val document: Document, val attac
                 MessageError(
                     requestId,
                     messageHeader.messageData.messageId,
-                    messageHeader.messageData.refToMessageId!!,
+                    messageHeader.messageData.refToMessageId ?: REF_TO_MESSAGE_ID_NOT_SET,
                     messageHeader.conversationId,
                     messageHeader.cpaId!!,
                     messageHeader.addressing(isRoleApplicable = false),
