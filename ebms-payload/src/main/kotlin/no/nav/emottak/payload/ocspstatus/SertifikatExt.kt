@@ -1,6 +1,7 @@
 package no.nav.emottak.payload.ocspstatus
 
 import no.nav.emottak.payload.error.CertificateException
+import no.nav.emottak.payload.log
 import org.bouncycastle.asn1.ASN1OctetString
 import org.bouncycastle.asn1.ASN1Primitive
 import org.bouncycastle.asn1.ASN1Sequence
@@ -74,7 +75,7 @@ private fun newLdapName(name: String): LdapName {
     }
 }
 
-private fun getOrganizationNumberFromDN(dn: String): String {
+private fun getOrganizationNumberFromDN(dn: String): String? {
     try {
         val name: LdapName = newLdapName(dn)
         DN_TYPES_IN_SEARCHORDER.forEach { type ->
@@ -82,9 +83,10 @@ private fun getOrganizationNumberFromDN(dn: String): String {
             if (number != null) return number
         }
     } catch (e: Exception) {
-        return ""
+        log.warn("Klarte ikke å hente organisasjonsnummer fra DN", e)
+        return null
     }
-    return ""
+    return null
 }
 
 private fun getOrganizationNumberFromRDN(rdns: List<Rdn>, type: String): String? {

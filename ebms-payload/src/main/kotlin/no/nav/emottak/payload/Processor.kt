@@ -80,6 +80,8 @@ class Processor(
         payloadRequest: PayloadRequest,
         processConfig: ProcessConfig
     ): Payload {
+        if (!processConfig.signering && !processConfig.ocspSjekk) return payload
+
         with(createDocument(ByteArrayInputStream(payload.bytes))) {
             var (signedByPid, signedByOrg) = Pair<String?, String?>(null, null)
             if (processConfig.signering) {

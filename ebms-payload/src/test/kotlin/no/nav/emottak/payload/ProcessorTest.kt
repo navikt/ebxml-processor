@@ -59,7 +59,7 @@ class ProcessorTest : PayloadTestBase() {
     }
 
     @Test
-    fun `validateReadablePayload populates signedByOrg when signering is enabled and leaves signedByPid null when ocspSjekk is disabled`() = runBlocking {
+    fun `validateReadablePayload leaves signedByOrg null when the signing certificate has no org number and leaves signedByPid null when ocspSjekk is disabled`() = runBlocking {
         setupEnv()
         val processor = buildProcessor()
         val payload: Payload = Fixtures.validEgenandelForesporsel()
@@ -68,7 +68,7 @@ class ProcessorTest : PayloadTestBase() {
         val result = processor.validateReadablePayload(request.marker(), payload, request, request.processing.processConfig)
 
         assertNull(result.signedByPid, "signedByPid must stay null when ocspSjekk is disabled")
-        assertEquals("", result.signedByOrg, "signedByOrg should be populated (even if empty) from the signing certificate when signering is enabled")
+        assertNull(result.signedByOrg, "signedByOrg must be null when no org number can be extracted from the signing certificate")
     }
 
     @Test

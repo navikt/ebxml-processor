@@ -62,9 +62,9 @@ class SertifikatExtTest {
     }
 
     @Test
-    fun `getOrganizationNumber returns empty string for a virksomhet certificate without a matching org number field`() {
+    fun `getOrganizationNumber returns null for a virksomhet certificate without a matching org number field`() {
         val cert = certificateWithPolicy("O=Some Company Name", "2.16.578.1.26.1.0.9.9")
-        assertEquals("", cert.getOrganizationNumber())
+        assertEquals(null, cert.getOrganizationNumber())
     }
 
     private fun certificateWithPolicy(subjectDn: String, policyOid: String): X509Certificate {
