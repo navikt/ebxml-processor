@@ -348,7 +348,7 @@ fun Route.validateCpa(
                 runCatching {
                     adresseregisterValidator.validateWithAR(cpaRepository, validateRequest, sertifikatValidator)
                 }.onSuccess { arValidationResult ->
-                    if(arValidationResult.valid()) {
+                    if (arValidationResult.valid()) {
                         call.respond(arValidationResult)
                         return@post
                     } else {
