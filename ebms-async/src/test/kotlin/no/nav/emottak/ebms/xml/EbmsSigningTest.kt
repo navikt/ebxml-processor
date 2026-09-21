@@ -8,7 +8,7 @@ import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.message.xml.getDocumentBuilder
 import no.nav.emottak.util.decodeBase64
 import no.nav.emottak.util.retrieveSignatureElement
-import no.nav.emottak.util.signatur.SignatureException
+import no.nav.emottak.validering.signatur.SignatureException
 import org.apache.xml.security.algorithms.MessageDigestAlgorithm
 import org.apache.xml.security.signature.XMLSignature
 import org.junit.jupiter.api.Test

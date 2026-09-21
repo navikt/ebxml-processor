@@ -1,5 +1,4 @@
-
-package no.nav.emottak.cpa.validation
+package no.nav.emottak.validering.sertifikat
 
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
@@ -11,18 +10,14 @@ import io.mockk.just
 import io.mockk.mockk
 import io.mockk.runs
 import kotlinx.coroutines.runBlocking
-import no.nav.emottak.cpa.TestUtil
-import no.nav.emottak.cpa.TestUtil.Companion.crlFile
-import no.nav.emottak.cpa.cert.CRL
-import no.nav.emottak.cpa.cert.CRLChecker
-import no.nav.emottak.cpa.cert.CRLRetriever
-import no.nav.emottak.cpa.cert.CertificateValidationException
+import no.nav.emottak.util.TestUtil
+import no.nav.emottak.util.TestUtil.Companion.crlFile
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.decodeBase64
 import org.bouncycastle.asn1.x500.X500Name
 import java.time.Instant
 
-class SertifikatValideringTest : FunSpec({
+class SertifikatValidatorTest : FunSpec({
 
     context("Sertifikatsjekk med mocked CRLChecker") {
         val crlChecker = mockk<CRLChecker>()
@@ -30,7 +25,7 @@ class SertifikatValideringTest : FunSpec({
             crlChecker.getCRLRevocationInfo(any(), any())
         } just runs
         System.setProperty("TRUSTSTORE_PATH", "truststore.p12")
-        val sertifikatValidering = SertifikatValidering(crlChecker)
+        val sertifikatValidering = SertifikatValidator(crlChecker)
 
         withData(
             mapOf(
@@ -69,7 +64,7 @@ class SertifikatValideringTest : FunSpec({
             }
         } returns listOf(crl)
         val crlChecker = CRLChecker(crlRetriever)
-        val sertifikatValidering = SertifikatValidering(crlChecker)
+        val sertifikatValidering = SertifikatValidator(crlChecker)
 
         withData(
             mapOf(

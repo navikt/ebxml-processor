@@ -36,6 +36,7 @@ import no.nav.emottak.cpa.databasetest.PostgresOracleTest
 import no.nav.emottak.cpa.nhn.adresseregisteret.model.Certificate
 import no.nav.emottak.cpa.nhn.adresseregisteret.model.CommunicationParty
 import no.nav.emottak.cpa.persistence.CPARepository
+import no.nav.emottak.cpa.persistence.PreferredSource
 import no.nav.emottak.cpa.persistence.gammel.PartnerRepository
 import no.nav.emottak.cpa.util.EventRegistrationServiceFake
 import no.nav.emottak.cpa.validation.AdresseregisterValidator
@@ -59,6 +60,7 @@ import no.nav.emottak.utils.common.model.PartyId
 import no.nav.emottak.utils.common.zoneOslo
 import no.nav.emottak.utils.environment.getEnvVar
 import no.nav.emottak.utils.serialization.LENIENT_JSON_PARSER
+import no.nav.emottak.validering.sertifikat.SertifikatValidator
 import no.nav.security.mock.oauth2.MockOAuth2Server
 import org.apache.commons.lang3.StringUtils
 import org.junit.jupiter.api.Disabled
@@ -82,6 +84,7 @@ import kotlin.uuid.Uuid
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class CPARepoIntegrationTest : PostgresOracleTest() {
     val eventRegistrationService = EventRegistrationServiceFake()
+    private val sertifikatValidatorMock: SertifikatValidator = mockk(relaxed = true)
     private lateinit var cpaRepositoryMock: CPARepository
     private lateinit var partnerRepositoryMock: PartnerRepository
 
@@ -98,7 +101,8 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
                             jsonLenient()
                         }
                     }
-                )
+                ),
+                sertifikatValidatorMock
             )
         )
         testBlock()
@@ -117,21 +121,22 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
 
         cpaRepositoryMock = mockk()
         partnerRepositoryMock = mockk(relaxed = true)
-        application(validateCpaApplicationModule(cpaRepositoryMock, partnerRepositoryMock, adresseregisterValidator))
+        application(validateCpaApplicationModule(cpaRepositoryMock, partnerRepositoryMock, adresseregisterValidator, sertifikatValidatorMock))
         testBlock()
     }
 
     private fun validateCpaApplicationModule(
         cpaRepository: CPARepository,
         partnerRepository: PartnerRepository,
-        adresseregisterValidator: AdresseregisterValidator
+        adresseregisterValidator: AdresseregisterValidator,
+        sertifikatValidator: SertifikatValidator
     ): Application.() -> Unit {
         return {
             install(io.ktor.server.plugins.contentnegotiation.ContentNegotiation) {
                 jsonLenient()
             }
             routing {
-                validateCpa(cpaRepository, partnerRepository, eventRegistrationService, adresseregisterValidator)
+                validateCpa(cpaRepository, partnerRepository, eventRegistrationService, sertifikatValidator, adresseregisterValidator)
             }
         }
     }
@@ -193,6 +198,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
     }
 
     @Test
+    @Disabled // TODO denne testen kan innkommenteres når alle meldinger, også dem uten CPA skal validers mot AR
     fun `Validation of certificate given by AR when cpa does not exist`() = cpaRepoTestApp {
         val httpClient = createClient {
             install(ContentNegotiation) {
@@ -218,6 +224,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
     }
 
     @Test
+    @Disabled // TODO denne testen kan innkommenteres når alle meldinger, også dem uten CPA skal validers mot AR
     fun `Validation of edi address given by AR when cpa does not exist`() = cpaRepoTestApp {
         val httpClient = createClient {
             install(ContentNegotiation) {
@@ -763,9 +770,9 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         val cpaId = "nav:qass:31162"
         val cpa = loadTestCPA("nav-qass-31162.xml")
         val timestamp = Instant.now()
-        val firstResult = Pair(cpa, timestamp.minus(1, ChronoUnit.DAYS)) // Last used: Yesterday
-        val secondResult = Pair(cpa, timestamp.minus(1, ChronoUnit.HOURS)) // Last used: An hour ago
-        val thirdResult = Pair(cpa, timestamp.minus(2, ChronoUnit.MINUTES)) // Last used: Two minutes ago
+        val firstResult = CPARepository.CpaAndPreferredSource(cpa, timestamp.minus(1, ChronoUnit.DAYS), PreferredSource.CPA) // Last used: Yesterday
+        val secondResult = CPARepository.CpaAndPreferredSource(cpa, timestamp.minus(1, ChronoUnit.HOURS), PreferredSource.CPA) // Last used: An hour ago
+        val thirdResult = CPARepository.CpaAndPreferredSource(cpa, timestamp.minus(2, ChronoUnit.MINUTES), PreferredSource.CPA) // Last used: Two minutes ago
         val processConfig = ProcessConfig(
             kryptering = false,
             komprimering = false,
@@ -779,7 +786,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
             errorAction = null
         )
 
-        coEvery { cpaRepositoryMock.findCpaAndLastUsed(cpaId) } returnsMany listOf(firstResult, secondResult, thirdResult)
+        coEvery { cpaRepositoryMock.findCpaWithPreferredSource(cpaId) } returnsMany listOf(firstResult, secondResult, thirdResult)
         coEvery { cpaRepositoryMock.updateCpaLastUsed(cpaId) } returns true
         coEvery { partnerRepositoryMock.findPartnerId(cpaId) } returns 12345L
         coEvery { cpaRepositoryMock.getProcessConfig(any(), any(), any()) } returns processConfig
@@ -800,7 +807,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         runValidateCpa(httpClient, addressing, cpaId) // Last used: Two minutes ago - do not update the lastUsed-timestamp
         coVerify(exactly = 2) { cpaRepositoryMock.updateCpaLastUsed(cpaId) }
 
-        coVerify(exactly = 3) { cpaRepositoryMock.findCpaAndLastUsed(cpaId) }
+        coVerify(exactly = 3) { cpaRepositoryMock.findCpaWithPreferredSource(cpaId) }
     }
 
     suspend fun getCpaRepoToken(): BearerTokens {

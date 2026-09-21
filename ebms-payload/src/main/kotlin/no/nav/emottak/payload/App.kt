@@ -1,7 +1,5 @@
 package no.nav.emottak.payload
 
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.auth.Authentication
@@ -16,42 +14,38 @@ import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import no.nav.emottak.payload.configuration.config
 import no.nav.emottak.payload.util.EventRegistrationService
 import no.nav.emottak.payload.util.EventRegistrationServiceImpl
+import no.nav.emottak.util.HttpClientUtil
 import no.nav.emottak.util.jsonLenient
-import no.nav.emottak.utils.environment.getEnvVar
 import no.nav.emottak.utils.kafka.client.EventPublisherClient
 import no.nav.emottak.utils.kafka.service.EventLoggingService
+import no.nav.emottak.validering.sertifikat.CRLChecker
+import no.nav.emottak.validering.sertifikat.CRLRetriever
+import no.nav.emottak.validering.sertifikat.SertifikatValidator
+import no.nav.emottak.validering.sertifikat.defaultCRLLists
 import no.nav.security.token.support.v3.tokenValidationSupport
 import org.slf4j.LoggerFactory
-import java.net.InetSocketAddress
-import java.net.Proxy
-import java.net.URI
 
 internal val log = LoggerFactory.getLogger("no.nav.emottak.payload")
 fun main() {
     val kafkaPublisherClient = EventPublisherClient(config().kafka)
     val eventLoggingService = EventLoggingService(config().eventLogging, kafkaPublisherClient)
     val eventRegistrationService = EventRegistrationServiceImpl(eventLoggingService)
+    val sertifikatValidator = SertifikatValidator(
+        crlChecker = CRLChecker(
+            crlRetriever = CRLRetriever(
+                httpClient = HttpClientUtil.client,
+                issuerList = defaultCRLLists
+            )
+        )
+    )
 
-    val processor = Processor(eventRegistrationService)
+    val processor = Processor(eventRegistrationService, sertifikatValidator)
 
     embeddedServer(
         factory = Netty,
         port = 8080,
         module = payloadApplicationModule(processor, eventRegistrationService)
     ).start(wait = true)
-}
-private val httpProxyUrl = getEnvVar("HTTP_PROXY", "")
-fun defaultHttpClient(): () -> HttpClient {
-    return {
-        HttpClient(CIO) {
-            expectSuccess = true
-            engine {
-                if (httpProxyUrl.isNotBlank()) {
-                    proxy = Proxy(Proxy.Type.HTTP, InetSocketAddress(URI(httpProxyUrl).toURL().host, URI(httpProxyUrl).toURL().port))
-                }
-            }
-        }
-    }
 }
 
 fun payloadApplicationModule(

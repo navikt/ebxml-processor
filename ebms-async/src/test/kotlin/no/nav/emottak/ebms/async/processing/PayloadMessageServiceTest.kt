@@ -30,11 +30,11 @@ import no.nav.emottak.message.model.MessageError
 import no.nav.emottak.message.model.MessagingCharacteristicsResponse
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.model.ValidationResult
-import no.nav.emottak.util.signatur.SignatureException
 import no.nav.emottak.utils.common.model.Addressing
 import no.nav.emottak.utils.common.model.Party
 import no.nav.emottak.utils.common.model.PartyId
 import no.nav.emottak.utils.kafka.model.EventType
+import no.nav.emottak.validering.signatur.SignatureException
 import org.apache.kafka.clients.producer.RecordMetadata
 import org.apache.kafka.common.header.Headers
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -183,7 +183,7 @@ class PayloadMessageServiceTest {
         assertType<PayloadMessage>(ebmsMessageSlots, 0)
         assertType<MessageError>(ebmsMessageSlots, 1)
         assertTrue((ebmsMessageSlots[1] as MessageError).toString().contains("Pasientliste utfaset"))
-        coVerify(exactly = 1) { cpaValidationService.validateOutgoingMessage(any()) }
+        coVerify(exactly = 1) { cpaValidationService.getValidationResult(any(), any()) }
         coVerify(exactly = 1) {
             eventRegistrationService.runWithEvent(
                 EventType.MESSAGE_PLACED_IN_QUEUE,
@@ -523,6 +523,7 @@ class PayloadMessageServiceTest {
         coEvery { messageReceivedRepository.isAcknowledged(payloadMessage) } returns isDuplicateResult
         coEvery { eventRegistrationService.registerEventMessageDetails(capture(ebmsMessageSlots)) } returns Unit
         coEvery { cpaValidationService.validateIncomingMessage(payloadMessage) } returns mockk<ValidationResult>(relaxed = true)
+        coEvery { cpaValidationService.getValidationResult(any(), any()) } returns mockk<ValidationResult>(relaxed = true)
 
         if (validateOutgoingThrowsException) {
             coEvery { cpaValidationService.validateOutgoingMessage(any()) } throws Exception("Unexpected exception")

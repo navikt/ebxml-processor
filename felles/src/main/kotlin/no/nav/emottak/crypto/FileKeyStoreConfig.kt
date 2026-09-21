@@ -29,3 +29,16 @@ class FileKeyStoreConfig(
         }
     }
 }
+
+internal fun trustStoreConfig() = FileKeyStoreConfig(
+    keyStoreFilePath = getEnvVar("TRUSTSTORE_PATH", resolveDefaultTruststorePath()),
+    keyStorePass = getEnvVar("TRUSTSTORE_PWD", "123456789").toCharArray(),
+    keyStoreType = "PKCS12"
+)
+
+private fun resolveDefaultTruststorePath(): String? {
+    return when (getEnvVar("NAIS_CLUSTER_NAME", "lokaltest")) {
+        "dev-fss", "prod-fss" -> null
+        else -> "truststore.p12" // basically lokal test
+    }
+}

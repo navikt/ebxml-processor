@@ -24,11 +24,11 @@ import no.nav.emottak.cpa.feil.CpaValidationException
 import no.nav.emottak.cpa.feil.MultiplePartnerException
 import no.nav.emottak.cpa.feil.PartnerNotFoundException
 import no.nav.emottak.cpa.persistence.CPARepository
+import no.nav.emottak.cpa.persistence.PreferredSource
 import no.nav.emottak.cpa.persistence.gammel.PartnerRepository
 import no.nav.emottak.cpa.util.EventRegistrationService
 import no.nav.emottak.cpa.validation.AdresseregisterValidator
 import no.nav.emottak.cpa.validation.MessageDirection
-import no.nav.emottak.cpa.validation.log
 import no.nav.emottak.cpa.validation.partyInfoHasRoleServiceActionCombo
 import no.nav.emottak.cpa.validation.validate
 import no.nav.emottak.message.ebxml.EbXMLConstants.ACKNOWLEDGMENT_ACTION
@@ -58,6 +58,7 @@ import no.nav.emottak.utils.environment.getEnvVar
 import no.nav.emottak.utils.kafka.model.EventDataType
 import no.nav.emottak.utils.kafka.model.EventType
 import no.nav.emottak.utils.serialization.toEventDataJson
+import no.nav.emottak.validering.sertifikat.SertifikatValidator
 import no.nav.security.token.support.v3.TokenValidationContextPrincipal
 import org.apache.xml.security.algorithms.MessageDigestAlgorithm
 import org.apache.xml.security.signature.XMLSignature
@@ -103,7 +104,11 @@ fun Route.deleteAllCPA(cpaRepository: CPARepository): Route = get("/cpa/deleteAl
     call.respond("Number of deleted cpa ${cpaRepository.deleteAll()}")
 }
 
-fun Route.partnerId(partnerRepository: PartnerRepository, cpaRepository: CPARepository): Route =
+fun Route.partnerId(
+    partnerRepository: PartnerRepository,
+    cpaRepository: CPARepository,
+    sertifikatValidator: SertifikatValidator
+): Route =
     get("/partner/her/{$HER_ID}") {
         val herId = call.parameters[HER_ID] ?: throw BadRequestException("Mangler $HER_ID")
         val role = call.request.queryParameters[ROLE] ?: throw BadRequestException("Mangler $ROLE")
@@ -121,7 +126,7 @@ fun Route.partnerId(partnerRepository: PartnerRepository, cpaRepository: CPARepo
                 // filter out alle med revokert sertifikat
                 val partyInfo = it.value.getPartyInfoByTypeAndID(PartyTypeEnum.HER.type, herId)
                 runCatching {
-                    createX509Certificate(partyInfo.getCertificateForEncryption()).validate()
+                    sertifikatValidator.validateCertificate(createX509Certificate(partyInfo.getCertificateForEncryption()))
                 }.isSuccess
             }.filter {
                 // Sjekker at partner kan motta angitt melding
@@ -167,6 +172,20 @@ fun Route.deleteCpa(cpaRepository: CPARepository): Route = delete("/cpa/delete/{
         call.respond(it)
     }
 }
+
+fun Route.updatePreferredSource(cpaRepository: CPARepository): Route =
+    post("/cpa/{$CPA_ID}/preferredSource/{$PREFERRED_SOURCE}") {
+        val cpaId = call.parameters[CPA_ID] ?: throw BadRequestException("Mangler $CPA_ID")
+        val preferredSource = call.parameters[PREFERRED_SOURCE]?.let {
+            runCatching { PreferredSource.valueOf(it.uppercase()) }.getOrNull()
+        } ?: throw BadRequestException("Mangler eller ugyldig $PREFERRED_SOURCE, må være en av ${PreferredSource.entries}")
+        if (cpaRepository.updatePreferredSource(cpaId, preferredSource)) {
+            log.info("Satt preferred_source=$preferredSource for CPA $cpaId")
+            call.respond(HttpStatusCode.OK, "Satt preferred_source=$preferredSource for CPA $cpaId")
+        } else {
+            throw NotFoundException("Fant ikke CPA $cpaId")
+        }
+    }
 
 fun Route.getTimeStampsDeprecated(): Route = get("/cpa/timestamps") {
     log.warn("Timestamps last_updated (deprecated endpoint)")
@@ -233,15 +252,16 @@ fun Route.postCpa(cpaRepository: CPARepository) = post("/cpa") {
 
 suspend fun AdresseregisterValidator.validateWithAR(
     cpaRepository: CPARepository,
-    validateRequest: ValidationRequest
+    validateRequest: ValidationRequest,
+    sertifikatValidator: SertifikatValidator
 ): ValidationResult {
     if (!cpapiActive) {
         throw NotFoundException("Fant ikke CPA og adreseregisterValidator er deaktivert.")
     }
-    val fromHerId = validateRequest.addressing.from.partyId.filter { it.type == "HER" }.firstOrNull()?.value
-        ?: throw BadRequestException("Mangler avsender HER")
-    val toHerId = validateRequest.addressing.to.partyId.filter { it.type == "HER" }.firstOrNull()?.value
-        ?: throw BadRequestException("Mangler mottaker HER")
+    val fromHerId = validateRequest.addressing.from.partyId.firstOrNull { it.type == "HER" }?.value
+        ?: throw NotFoundException("Melding mangler From party av type HER")
+    val toHerId = validateRequest.addressing.to.partyId.firstOrNull { it.type == "HER" }?.value
+        ?: throw NotFoundException("Melding mangler To party av type HER")
     log.warn("Cpa finnes ikke for Partner $fromHerId. Forsøker å hente informasjon fra adresseregisteret.")
     try {
         val validSignatureDetails = SignatureDetails(
@@ -252,7 +272,7 @@ suspend fun AdresseregisterValidator.validateWithAR(
             hashFunction = MessageDigestAlgorithm.ALGO_ID_DIGEST_SHA256
         )
         runCatching {
-            createX509Certificate(validSignatureDetails.certificate).validate()
+            sertifikatValidator.validateCertificate(createX509Certificate(validSignatureDetails.certificate))
         }.onFailure {
             log.warn(validateRequest.marker(), "Signatursjekk feilet", it)
         }
@@ -311,16 +331,35 @@ fun Route.validateCpa(
     cpaRepository: CPARepository,
     partnerRepository: PartnerRepository,
     eventRegistrationService: EventRegistrationService,
+    sertifikatValidator: SertifikatValidator,
     adresseregisterValidator: AdresseregisterValidator?
 ) = post("/cpa/validate/{$REQUEST_ID}") {
     var validateRequest = call.receive(ValidationRequest::class)
     val requestId = call.parameters[REQUEST_ID] ?: throw BadRequestException("Mangler $REQUEST_ID")
     try {
         log.info(validateRequest.marker(), "Validerer ebms mot CPA")
-        val (cpa, lastUsed) = cpaRepository.findCpaAndLastUsed(validateRequest.cpaId)
-        if (cpa == null) {
-            if (adresseregisterValidator == null || !adresseregisterValidator.cpapiActive) {
-                log.error(validateRequest.marker(), "Fant ikke CPA med ID: ${validateRequest.cpaId}, Addresseregistervalidator ikke initialisert.")
+        val (cpa, lastUsed, preferredSource) = cpaRepository.findCpaWithPreferredSource(validateRequest.cpaId)
+            ?: CPARepository.CpaAndPreferredSource(null, null, PreferredSource.CPA)
+        if (cpa == null || preferredSource == PreferredSource.ADRESSEREGISTERET) {
+            if (preferredSource == PreferredSource.ADRESSEREGISTERET && // TODO, fjern denne når alle uten CPA skal valideres mot AR.
+                adresseregisterValidator != null && adresseregisterValidator.cpapiActive
+            ) {
+                log.info(validateRequest.marker(), "CPA ${validateRequest.cpaId} er satt til å foretrekke Adresseregisteret fremfor CPA-oppslag.")
+                runCatching {
+                    adresseregisterValidator.validateWithAR(cpaRepository, validateRequest, sertifikatValidator)
+                }.onSuccess { arValidationResult ->
+                    if (arValidationResult.valid()) {
+                        call.respond(arValidationResult)
+                        return@post
+                    } else {
+                        log.error(validateRequest.marker(), arValidationResult.error?.joinToString(",") { it.descriptionText })
+                    }
+                }.onFailure {
+                    log.error(validateRequest.marker(), "Error validering CPA ${validateRequest.cpaId} mot adresseregisteret. ${it.localizedMessage}", it)
+                }
+            }
+            if (cpa == null) {
+                log.error(validateRequest.marker(), "Fant ikke CPA med ID: ${validateRequest.cpaId}.")
                 eventRegistrationService.registerEvent(
                     EventType.VALIDATION_AGAINST_CPA_FAILED,
                     validateRequest,
@@ -339,10 +378,6 @@ fun Route.validateCpa(
                 )
                 return@post
             }
-            call.respond(
-                adresseregisterValidator.validateWithAR(cpaRepository, validateRequest)
-            )
-            return@post
         }
         updateLastUsed(cpaRepository, lastUsed, validateRequest)
         val (toParty, fromParty, cpaAddressing) = validateRequest.getToFromPartyInfo(cpa)
@@ -363,11 +398,11 @@ fun Route.validateCpa(
         ) // Security Failure
 
         runCatching {
-            createX509Certificate(signingCertificate.certificate)
-                .also { log.info(validateRequest.marker(), "SigningCertificate: $it") }
-                .also {
-                    log.debug("signingCertificate: {}", it)
-                }.validate()
+            sertifikatValidator.validateCertificate(
+                createX509Certificate(signingCertificate.certificate).also {
+                    log.debug(validateRequest.marker(), "signingCertificate: {}", it)
+                }
+            )
         }.onFailure {
             log.error(validateRequest.marker(), "Validation feilet i sertifikat sjekk", it)
             throw it
@@ -469,58 +504,61 @@ fun Route.getEncryptionCertificate(cpaRepository: CPARepository) =
         call.respond(partyInfo.getCertificateForEncryption())
     }
 
-fun Route.getSigningCertificate(cpaRepository: CPARepository, adresseregisterValidator: AdresseregisterValidator?) =
-    post("/signing/certificate") {
-        val signatureDetailsRequest = call.receive(SignatureDetailsRequest::class)
-        val cpa = cpaRepository.findCpa(signatureDetailsRequest.cpaId)
+fun Route.getSigningCertificate(
+    cpaRepository: CPARepository,
+    sertifikatValidator: SertifikatValidator,
+    adresseregisterValidator: AdresseregisterValidator?
+) = post("/signing/certificate") {
+    val signatureDetailsRequest = call.receive(SignatureDetailsRequest::class)
+    val cpa = cpaRepository.findCpa(signatureDetailsRequest.cpaId)
 
-        if (cpa == null) {
-            if (adresseregisterValidator == null || !adresseregisterValidator.cpapiActive) {
-                throw NotFoundException("Ingen CPA med ID ${signatureDetailsRequest.cpaId} funnet")
-            }
-            val herid = signatureDetailsRequest.partyId
-            try {
-                val signingCertificate = decodeBase64(
-                    (adresseregisterValidator.getSigningCertificate(herid).certificateValue ?: throw NotFoundException("Fant ikke signeringssertifikat for $herid")).toByteArray()
-                )
-                runCatching {
-                    createX509Certificate(signingCertificate).validate()
-                }.onFailure {
-                    log.warn(signatureDetailsRequest.marker(), "Signatursjekk feilet", it)
-                }
-                call.respond(
-                    SignatureDetails(
-                        certificate = signingCertificate,
-                        signatureAlgorithm = XMLSignature.ALGO_ID_SIGNATURE_RSA_SHA256,
-                        hashFunction = MessageDigestAlgorithm.ALGO_ID_DIGEST_SHA256
-                    )
-                )
-            } catch (ex: Exception) {
-                log.error("Error while fetching arSignCertificate <$herid>", ex)
-                call.respondText(ex.localizedMessage, ContentType.Text.Plain, HttpStatusCode.InternalServerError)
-            }
-            return@post
+    if (cpa == null) {
+        if (adresseregisterValidator == null || !adresseregisterValidator.cpapiActive) {
+            throw NotFoundException("Ingen CPA med ID ${signatureDetailsRequest.cpaId} funnet")
         }
+        val herid = signatureDetailsRequest.partyId
         try {
-            val partyInfo =
-                cpa.getPartyInfoByTypeAndID(signatureDetailsRequest.partyType, signatureDetailsRequest.partyId)
-            val signatureDetails = partyInfo.getCertificateForSignatureValidation(
-                signatureDetailsRequest.role,
-                signatureDetailsRequest.service,
-                signatureDetailsRequest.action
+            val signingCertificate = decodeBase64(
+                (adresseregisterValidator.getSigningCertificate(herid).certificateValue ?: throw NotFoundException("Fant ikke signeringssertifikat for $herid")).toByteArray()
             )
-            // TODO Strengere signatursjekk. Nå er den snill og resultatet logges bare
             runCatching {
-                createX509Certificate(signatureDetails.certificate).validate()
+                sertifikatValidator.validateCertificate(createX509Certificate(signingCertificate))
             }.onFailure {
                 log.warn(signatureDetailsRequest.marker(), "Signatursjekk feilet", it)
             }
-            call.respond(signatureDetails)
-        } catch (ex: CpaValidationException) {
-            log.warn(signatureDetailsRequest.marker(), ex.message, ex)
-            call.respond(HttpStatusCode.BadRequest, ex.localizedMessage)
+            call.respond(
+                SignatureDetails(
+                    certificate = signingCertificate,
+                    signatureAlgorithm = XMLSignature.ALGO_ID_SIGNATURE_RSA_SHA256,
+                    hashFunction = MessageDigestAlgorithm.ALGO_ID_DIGEST_SHA256
+                )
+            )
+        } catch (ex: Exception) {
+            log.error("Error while fetching arSignCertificate <$herid>", ex)
+            call.respondText(ex.localizedMessage, ContentType.Text.Plain, HttpStatusCode.InternalServerError)
         }
+        return@post
     }
+    try {
+        val partyInfo =
+            cpa.getPartyInfoByTypeAndID(signatureDetailsRequest.partyType, signatureDetailsRequest.partyId)
+        val signatureDetails = partyInfo.getCertificateForSignatureValidation(
+            signatureDetailsRequest.role,
+            signatureDetailsRequest.service,
+            signatureDetailsRequest.action
+        )
+        // TODO Strengere signatursjekk. Nå er den snill og resultatet logges bare
+        runCatching {
+            sertifikatValidator.validateCertificate(createX509Certificate(signatureDetails.certificate))
+        }.onFailure {
+            log.warn(signatureDetailsRequest.marker(), "Signatursjekk feilet", it)
+        }
+        call.respond(signatureDetails)
+    } catch (ex: CpaValidationException) {
+        log.warn(signatureDetailsRequest.marker(), ex.message, ex)
+        call.respond(HttpStatusCode.BadRequest, ex.localizedMessage)
+    }
+}
 
 fun Route.getMessagingCharacteristics(cpaRepository: CPARepository) =
     post("/cpa/messagingCharacteristics") {
@@ -613,6 +651,7 @@ fun Route.partnerID(cpaRepository: CPARepository) = get("/cpa/partnerId/{$HER_ID
 }
 
 private const val CPA_ID = "cpaId"
+private const val PREFERRED_SOURCE = "preferredSource"
 private const val CPA_IDS = "cpaIds"
 private const val PARTY_TYPE = "partyType"
 private const val PARTY_ID = "partyId"

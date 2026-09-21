@@ -17,6 +17,9 @@ dependencies {
     testImplementation(testLibs.junit.jupiter.api)
     testImplementation(testLibs.junit.jupiter.engine)
     testRuntimeOnly(testLibs.junit.platform.launcher)
+    testImplementation(testLibs.mockk.jvm)
+    testImplementation(testLibs.mockk.dsl.jvm)
+    testImplementation(testLibs.bundles.kotest)
 
     runtimeOnly("org.postgresql:postgresql:42.7.3")
 }
