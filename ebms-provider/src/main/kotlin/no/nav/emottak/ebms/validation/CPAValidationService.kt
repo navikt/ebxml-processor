@@ -61,7 +61,7 @@ open class CPAValidationService(val httpClient: CpaRepoClient) {
         )
     }
 
-    private suspend fun getValidationResult(direction: Direction, message: EbmsMessage): ValidationResult {
+    suspend fun getValidationResult(direction: Direction, message: EbmsMessage): ValidationResult {
         val validationRequest = ValidationRequest(
             direction,
             message.messageId,

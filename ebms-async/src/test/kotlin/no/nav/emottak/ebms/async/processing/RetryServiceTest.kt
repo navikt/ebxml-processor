@@ -164,6 +164,7 @@ class RetryServiceTest {
         val headers = mockk<Headers>()
         every { receiverRecord.headers() } returns headers
         every { headers.lastHeader("retryCount") } returns null
+        every { headers.lastHeader("senderAddress") } returns null
 
         val payload = createPayloadMessageWithTtl(Instant.now().plusSeconds(3600))
         val unrecoverable = EbmsException("Dekryptering feilet", recoverable = false)
@@ -183,6 +184,7 @@ class RetryServiceTest {
         val headers = mockk<Headers>()
         every { receiverRecord.headers() } returns headers
         every { headers.lastHeader("retryCount") } returns null
+        every { headers.lastHeader("senderAddress") } returns null
 
         val payload = createPayloadMessageWithTtl(Instant.now().minusSeconds(10))
 
@@ -204,6 +206,7 @@ class RetryServiceTest {
         val headers2 = mockk<Headers>()
         every { receiverRecord.headers() } returns headers2
         every { headers2.lastHeader("retryCount") } returns RecordHeader("retryCount", "1".toByteArray())
+        every { headers2.lastHeader("senderAddress") } returns null
 
         val payload = createPayloadMessageWithTtl(Instant.now().plusSeconds(3600))
 
@@ -221,6 +224,7 @@ class RetryServiceTest {
         val headers3 = mockk<Headers>()
         every { receiverRecord.headers() } returns headers3
         every { headers3.lastHeader("retryCount") } returns null
+        every { headers3.lastHeader("senderAddress") } returns null
 
         val payload = createPayloadMessageWithTtl(null)
 
@@ -241,6 +245,7 @@ class RetryServiceTest {
         val headers = mockk<Headers>()
         every { receiverRecord.headers() } returns headers
         every { headers.lastHeader("retryCount") } returns null
+        every { headers.lastHeader("senderAddress") } returns null
 
         val payload = createPayloadMessageWithTtl(null)
 
@@ -255,6 +260,7 @@ class RetryServiceTest {
         val headers = mockk<Headers>()
         every { receiverRecord.headers() } returns headers
         every { headers.lastHeader("retryCount") } returns RecordHeader("retryCount", "1".toByteArray())
+        every { headers.lastHeader("senderAddress") } returns null
 
         val payload = createPayloadMessageWithTtl(Instant.now().plusSeconds(3600))
 
@@ -269,6 +275,7 @@ class RetryServiceTest {
         val headers = mockk<Headers>()
         every { receiverRecord.headers() } returns headers
         every { headers.lastHeader("retryCount") } returns null
+        every { headers.lastHeader("senderAddress") } returns null
 
         val payload = createPayloadMessageWithTtl(Instant.now().plusSeconds(3600))
         val unrecoverable = EbmsException("Dekryptering feilet", recoverable = false)
