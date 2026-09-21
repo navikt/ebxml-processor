@@ -123,6 +123,7 @@ fun cpaApplicationModule(
             getSigningCertificate(cpaRepository, sertifikatValidator, adresseregisterValidator)
             getMessagingCharacteristics(cpaRepository)
             registerHealthEndpoints(appMicrometerRegistry, cpaRepository)
+            updatePreferredSource(cpaRepository)
 
             if (canInitAuthenticatedRoutes().also { log.info("INIT AZURE ENDPOINTS: [$it]") }) {
                 authenticate(AZURE_AD_AUTH) {
@@ -138,7 +139,6 @@ fun cpaApplicationModule(
                     deleteCpa(cpaRepository)
                     deleteAllCPA(cpaRepository)
                     postCpa(cpaRepository)
-                    updatePreferredSource(cpaRepository)
                 }
             }
         }
