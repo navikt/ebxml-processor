@@ -100,9 +100,9 @@ spec:
     - name: NHN_KEYPAIR_PATH
       value: "/var/run/secrets/emottak-ar-klient-secret/key"
     - name: NHN_CLIENT_KEY_ID
-      value: "placeholderKeyId"
+      value: "_tbS6p6Zx24mEnugN-kAiyBqn458Y39CMoPolotucO4"
     - name: NHN_CLIENT_ID
-      value: "placeholderClientId"
+      value: "4ff5357f-8955-4b15-9cb7-0ca4082f4b61"
     - name: NHN_CLIENT_SCOPE
       value: "nhn:communicationparty/read"
     - name: NHN_CLIENT_GRANT_TYPE
