@@ -15,6 +15,22 @@ object CPA : Table("cpa") {
     val updated_date = timestamp("updated_date")
     val entryCreated = timestamp("create_date")
     val lastUsed: Column<java.time.Instant?> = timestamp("last_used").nullable()
+    val preferredSource: Column<PreferredSource> = customEnumeration(
+        name = "preferred_source",
+        sql = "VARCHAR(20)",
+        fromDb = { PreferredSource.valueOf(it as String) },
+        toDb = { it.name }
+    ).default(PreferredSource.CPA)
+}
+
+/**
+ * Styrer hvilken kilde som skal brukes for å validere/utlede meldingsinformasjon for en gitt CPA.
+ * CPA: Bruk informasjonen i CPA-oppslaget (standard oppførsel).
+ * ADRESSEREGISTERET: Ignorer CPA-innholdet og hent informasjon (sertifikater, EDI-adresse) fra Adresseregisteret.
+ */
+enum class PreferredSource {
+    CPA,
+    ADRESSEREGISTERET
 }
 
 fun <T : Any> Table.json(

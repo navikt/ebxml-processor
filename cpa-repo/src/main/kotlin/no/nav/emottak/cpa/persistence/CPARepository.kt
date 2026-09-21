@@ -37,6 +37,19 @@ class CPARepository(val database: Database) {
         return Pair(resultRow?.get(CPA.cpa), resultRow?.get(CPA.lastUsed))
     }
 
+    fun findCpaWithPreferredSource(cpaId: String): CpaAndPreferredSource? {
+        val resultRow = transaction(db = database.db) {
+            CPA.selectAll().where {
+                CPA.id.eq(cpaId)
+            }.firstOrNull()
+        } ?: return null
+        return CpaAndPreferredSource(
+            resultRow[CPA.cpa],
+            resultRow[CPA.lastUsed],
+            resultRow[CPA.preferredSource]
+        )
+    }
+
     fun findTimestampsCpaUpdated(idList: List<String>): Map<String, String> {
         return transaction(db = database.db) {
             if (idList.isNotEmpty()) {
@@ -69,7 +82,8 @@ class CPARepository(val database: Database) {
                     it[CPA.updated_date],
                     it[CPA.entryCreated],
                     it[CPA.herId],
-                    it[CPA.lastUsed]
+                    it[CPA.lastUsed],
+                    it[CPA.preferredSource]
                 )
             }
         }
@@ -80,7 +94,9 @@ class CPARepository(val database: Database) {
             cpa.cpa ?: throw IllegalArgumentException("Kan ikke sette null verdi for CPA i DB")
             CPA.upsert(
                 CPA.id,
-                onUpdateExclude = listOf(CPA.lastUsed)
+                // preferredSource administreres separat (se updatePreferredSource) og skal ikke
+                // tilbakestilles når CPA-en synkroniseres/oppdateres på nytt.
+                onUpdateExclude = listOf(CPA.lastUsed, CPA.preferredSource)
             ) {
                 it[id] = cpa.id
                 it[CPA.cpa] = cpa.cpa
@@ -88,9 +104,20 @@ class CPARepository(val database: Database) {
                 it[updated_date] = cpa.updatedDate
                 it[herId] = cpa.herId
                 it[lastUsed] = null
+                it[preferredSource] = cpa.preferredSource
             }
         }
         return cpa.id
+    }
+
+    fun updatePreferredSource(cpaId: String, preferredSource: PreferredSource): Boolean {
+        return 1 == transaction(database.db) {
+            CPA.update({
+                CPA.id eq cpaId
+            }) {
+                it[CPA.preferredSource] = preferredSource
+            }
+        }
     }
 
     fun deleteCpa(cpaId: String): String {
@@ -184,7 +211,8 @@ class CPARepository(val database: Database) {
         val updatedDate: Instant,
         val createdDate: Instant,
         val herId: String?,
-        val lastUsed: Instant?
+        val lastUsed: Instant?,
+        val preferredSource: PreferredSource = PreferredSource.CPA
     ) {
         constructor(cpa: CollaborationProtocolAgreement, updatedDateString: String?) : this(
             id = cpa.cpaid,
@@ -192,7 +220,8 @@ class CPARepository(val database: Database) {
             updatedDate = parseOrDefault(updatedDateString),
             createdDate = Instant.now().truncatedTo(ChronoUnit.SECONDS),
             herId = cpa.getPartnerPartyIdByType(PartyTypeEnum.HER)?.value,
-            lastUsed = null
+            lastUsed = null,
+            preferredSource = PreferredSource.CPA
         )
 
         companion object {
@@ -205,4 +234,10 @@ class CPARepository(val database: Database) {
             }
         }
     }
+
+    data class CpaAndPreferredSource(
+        val cpa: CollaborationProtocolAgreement?,
+        val lastUsed: Instant?,
+        val preferredSource: PreferredSource
+    )
 }
