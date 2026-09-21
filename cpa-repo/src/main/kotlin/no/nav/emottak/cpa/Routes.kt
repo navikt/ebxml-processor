@@ -187,6 +187,13 @@ fun Route.updatePreferredSource(cpaRepository: CPARepository): Route =
         }
     }
 
+fun Route.getCpasWithPreferredSourceAdresseregisteret(cpaRepository: CPARepository): Route =
+    get("/cpa/preferredSource/adresseregisteret") {
+        val cpaIds = cpaRepository.findCpaIdsByPreferredSource(PreferredSource.ADRESSEREGISTERET)
+        log.info("Fant ${cpaIds.size} CPA(er) med preferredSource=${PreferredSource.ADRESSEREGISTERET}")
+        call.respond(HttpStatusCode.OK, cpaIds)
+    }
+
 fun Route.getTimeStampsDeprecated(): Route = get("/cpa/timestamps") {
     log.warn("Timestamps last_updated (deprecated endpoint)")
     call.respondRedirect("/cpa/timestamps/last_updated", permanent = true)
