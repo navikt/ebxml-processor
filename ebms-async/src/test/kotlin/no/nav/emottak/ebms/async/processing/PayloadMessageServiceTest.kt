@@ -527,6 +527,7 @@ class PayloadMessageServiceTest {
         coEvery { messageReceivedRepository.isAcknowledged(payloadMessage) } returns isDuplicateResult
         coEvery { eventRegistrationService.registerEventMessageDetails(capture(ebmsMessageSlots)) } returns Unit
         coEvery { cpaValidationService.validateIncomingMessage(payloadMessage, true) } returns validValidationResult()
+        coEvery { cpaValidationService.getValidationResult(any(), any()) } returns validValidationResult()
         coEvery { eventRegistrationService.registerSignatureValidated(payloadMessage, any()) } returns Unit
 
         if (validateOutgoingThrowsException) {

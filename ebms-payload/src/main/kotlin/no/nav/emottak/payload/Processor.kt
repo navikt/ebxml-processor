@@ -16,6 +16,7 @@ import no.nav.emottak.payload.util.GZipUtil
 import no.nav.emottak.util.createDocument
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.getByteArrayFromDocument
+import no.nav.emottak.util.mapCertificateDetails
 import no.nav.emottak.util.marker
 import no.nav.emottak.util.retrievePublicX509Certificate
 import no.nav.emottak.util.retrieveSignatureElement
