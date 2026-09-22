@@ -31,6 +31,7 @@ import no.nav.emottak.cpa.persistence.oracleConfig
 import no.nav.emottak.cpa.util.EventRegistrationService
 import no.nav.emottak.cpa.util.EventRegistrationServiceImpl
 import no.nav.emottak.cpa.validation.AdresseregisterValidator
+import no.nav.emottak.util.HttpClientUtil
 import no.nav.emottak.util.jsonLenient
 import no.nav.emottak.utils.kafka.client.EventPublisherClient
 import no.nav.emottak.utils.kafka.service.EventLoggingService
@@ -122,6 +123,8 @@ fun cpaApplicationModule(
             getSigningCertificate(cpaRepository, sertifikatValidator, adresseregisterValidator)
             getMessagingCharacteristics(cpaRepository)
             registerHealthEndpoints(appMicrometerRegistry, cpaRepository)
+            updatePreferredSource(cpaRepository)
+            getCpasWithPreferredSourceAdresseregisteret(cpaRepository)
 
             if (canInitAuthenticatedRoutes().also { log.info("INIT AZURE ENDPOINTS: [$it]") }) {
                 authenticate(AZURE_AD_AUTH) {

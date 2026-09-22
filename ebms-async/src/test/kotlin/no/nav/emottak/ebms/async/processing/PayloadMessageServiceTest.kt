@@ -187,7 +187,7 @@ class PayloadMessageServiceTest {
         assertType<PayloadMessage>(ebmsMessageSlots, 0)
         assertType<MessageError>(ebmsMessageSlots, 1)
         assertTrue((ebmsMessageSlots[1] as MessageError).toString().contains("Pasientliste utfaset"))
-        coVerify(exactly = 1) { cpaValidationService.validateOutgoingMessage(any()) }
+        coVerify(exactly = 1) { cpaValidationService.getValidationResult(any(), any()) }
         coVerify(exactly = 1) {
             eventRegistrationService.runWithEvent(
                 EventType.MESSAGE_PLACED_IN_QUEUE,
