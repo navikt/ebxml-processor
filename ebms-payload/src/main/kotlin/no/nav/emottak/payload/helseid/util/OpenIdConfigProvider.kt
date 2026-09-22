@@ -9,8 +9,8 @@ import java.net.URL
 import java.time.Instant
 
 object OpenIdConfigProvider {
-    private val nhnUrl: String = config().helseId.nhnUrl
-    private val cacheTimeInSec = config().helseId.openIdConfigCacheTimeInSec
+    private val nhnUrl: String = config.helseId.nhnUrl
+    private val cacheTimeInSec = config.helseId.openIdConfigCacheTimeInSec
     private var cachedConfig: OIDCProviderMetadata? = null
     private var lastFetched: Instant? = null
 
@@ -19,7 +19,7 @@ object OpenIdConfigProvider {
             try {
                 return this.getConfig().issuer.value
             } catch (e: Exception) {
-                val defaultIssuer = config().helseId.issuerDefaultValue
+                val defaultIssuer = config.helseId.issuerDefaultValue
                 log.warn("Failed to get OpenID issuer from $nhnUrl, use default value $defaultIssuer", e)
                 return defaultIssuer
             }
@@ -30,7 +30,7 @@ object OpenIdConfigProvider {
             try {
                 return this.getConfig().jwkSetURI.toURL()
             } catch (e: Exception) {
-                val defaultJwksUrl = config().helseId.jwksUrlDefaultValue
+                val defaultJwksUrl = config.helseId.jwksUrlDefaultValue
                 log.warn("Failed to get OpenID JWK set URL from $nhnUrl, use default value $defaultJwksUrl", e)
                 return URI.create(defaultJwksUrl).toURL()
             }

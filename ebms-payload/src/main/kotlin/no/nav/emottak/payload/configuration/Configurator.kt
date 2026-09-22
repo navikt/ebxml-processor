@@ -7,14 +7,16 @@ import com.sksamuel.hoplite.addResourceSource
 import no.nav.emottak.utils.environment.getEnvVar
 
 @OptIn(ExperimentalHoplite::class)
-fun config() = ConfigLoader.builder()
-    .addEnvironmentSource()
-    .addResourceSource("/kafka_common.conf")
-    .addResourceSource(caListResourceForCluster())
-    .addResourceSource(configurationFileResolver())
-    .withExplicitSealedTypes()
-    .build()
-    .loadConfigOrThrow<Config>()
+val config by lazy {
+    ConfigLoader.builder()
+        .addEnvironmentSource()
+        .addResourceSource("/kafka_common.conf")
+        .addResourceSource(caListResourceForCluster())
+        .addResourceSource(configurationFileResolver())
+        .withExplicitSealedTypes()
+        .build()
+        .loadConfigOrThrow<Config>()
+}
 
 private fun configurationFileResolver() = when (getEnvVar("NAIS_CLUSTER_NAME", "local")) {
     "prod-fss" -> "/application_prod.conf"
