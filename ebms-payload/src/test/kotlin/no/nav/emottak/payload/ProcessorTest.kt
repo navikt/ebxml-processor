@@ -1,7 +1,6 @@
 package no.nav.emottak.payload
 
 import io.mockk.coEvery
-import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.runs
@@ -28,7 +27,7 @@ class ProcessorTest : PayloadTestBase() {
 
     private fun buildProcessor(ninResolver: NinResolver = mockk()): Processor {
         val crlChecker = mockk<CRLChecker>()
-        every { crlChecker.getCRLRevocationInfo(any(), any()) } just runs
+        coEvery { crlChecker.getCRLRevocationInfo(any(), any()) } just runs
         return Processor(
             EventRegistrationServiceFake(),
             SertifikatValidator(crlChecker = crlChecker),

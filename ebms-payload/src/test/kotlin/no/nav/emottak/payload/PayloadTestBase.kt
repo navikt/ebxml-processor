@@ -12,7 +12,6 @@ import io.ktor.http.contentType
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import io.mockk.coEvery
-import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.mockkConstructor
@@ -99,7 +98,7 @@ abstract class PayloadTestBase {
 
             val eventRegistrationService = EventRegistrationServiceFake()
             val crlChecker = mockk<CRLChecker>()
-            every { crlChecker.getCRLRevocationInfo(any(), any()) } just runs
+            coEvery { crlChecker.getCRLRevocationInfo(any(), any()) } just runs
             val sertifikatValidator = SertifikatValidator(crlChecker = crlChecker)
             val processor = Processor(eventRegistrationService, sertifikatValidator)
 
