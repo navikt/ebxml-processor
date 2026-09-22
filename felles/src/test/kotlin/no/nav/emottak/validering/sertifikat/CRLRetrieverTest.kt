@@ -9,9 +9,6 @@ import org.junit.jupiter.api.Test
 
 class CRLRetrieverTest {
 
-    // Mirrors the test CAs with a crlUrl in ca_list_local.conf. Kept local to felles to avoid a
-    // dependency on the modules (cpa-repo/ebms-payload) that load that config, which would create
-    // a circular module dependency.
     private val testCaListWithCrl = listOf(
         CertificateAuthority(
             dn = "CN=Buypass Class 3 Test4 CA G2 ST Business, O=Buypass AS, OID.2.5.4.97=NTRNO-983163327, C=NO",
