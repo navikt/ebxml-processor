@@ -1,4 +1,4 @@
-package no.nav.emottak.cpa
+package no.nav.emottak.util
 
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO

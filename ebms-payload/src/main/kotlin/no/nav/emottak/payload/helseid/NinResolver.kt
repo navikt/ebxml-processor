@@ -1,12 +1,11 @@
 package no.nav.emottak.payload.helseid
 
-import kotlinx.datetime.LocalDateTime
 import no.nav.emottak.crypto.KeyStoreManager
 import no.nav.emottak.payload.configuration.config
-import no.nav.emottak.payload.defaultHttpClient
 import no.nav.emottak.payload.helseid.util.msgHeadNamespaceContext
 import no.nav.emottak.payload.log
 import no.nav.emottak.payload.ocspstatus.OcspStatusService
+import no.nav.emottak.util.HttpClientUtil
 import org.w3c.dom.Document
 import java.security.cert.X509Certificate
 import java.time.Instant
@@ -17,7 +16,7 @@ import java.time.format.DateTimeFormatter
 class NinResolver(
     private val tokenValidator: HelseIdTokenValidator = HelseIdTokenValidator(),
     private val ocspStatusService: OcspStatusService = OcspStatusService(
-        defaultHttpClient().invoke(),
+        HttpClientUtil.client,
         KeyStoreManager(*config().signering.map { it.resolveKeyStoreConfiguration() }.toTypedArray())
     )
 ) {

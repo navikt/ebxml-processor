@@ -12,7 +12,11 @@ import io.ktor.http.contentType
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import io.mockk.coEvery
+import io.mockk.every
+import io.mockk.just
+import io.mockk.mockk
 import io.mockk.mockkConstructor
+import io.mockk.runs
 import io.mockk.slot
 import no.nav.emottak.crypto.KeyStoreManager
 import no.nav.emottak.message.model.Direction
@@ -32,6 +36,8 @@ import no.nav.emottak.util.jsonLenient
 import no.nav.emottak.utils.common.model.Addressing
 import no.nav.emottak.utils.common.model.Party
 import no.nav.emottak.utils.common.model.PartyId
+import no.nav.emottak.validering.sertifikat.CRLChecker
+import no.nav.emottak.validering.sertifikat.SertifikatValidator
 import no.nav.security.mock.oauth2.MockOAuth2Server
 import org.bouncycastle.asn1.ASN1Encodable
 import org.bouncycastle.asn1.DEROctetString
@@ -92,7 +98,10 @@ abstract class PayloadTestBase {
             configureOcspStatusService()
 
             val eventRegistrationService = EventRegistrationServiceFake()
-            val processor = Processor(eventRegistrationService)
+            val crlChecker = mockk<CRLChecker>()
+            every { crlChecker.getCRLRevocationInfo(any(), any()) } just runs
+            val sertifikatValidator = SertifikatValidator(crlChecker = crlChecker)
+            val processor = Processor(eventRegistrationService, sertifikatValidator)
 
             application(payloadApplicationModule(processor, eventRegistrationService))
             testBlock()
