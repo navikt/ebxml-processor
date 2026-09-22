@@ -65,6 +65,7 @@ open class EndToEndTest {
             System.setProperty("CPA_REPO_URL", cpaRepoUrl)
             cpaRepoDbContainer.start()
             val cpaRepoDb = CpaDatabase(cpaRepoDbContainer.testConfiguration())
+            cpaRepoDb.migrate(cpaRepoDbContainer.testConfiguration())
 
             val processingClient = PayloadProcessingClient(scopedAuthHttpClient(EBMS_PAYLOAD_SCOPE))
             processingService = ProcessingService(processingClient)
@@ -81,8 +82,7 @@ open class EndToEndTest {
                 Netty,
                 port = portnoCpaRepo,
                 module = cpaApplicationModule(
-                    cpaRepoDb.dataSource,
-                    cpaRepoDb.dataSource,
+                    cpaRepoDb,
                     cpaRepoDb.dataSource,
                     cpaEventRegistrationService,
                     null,
