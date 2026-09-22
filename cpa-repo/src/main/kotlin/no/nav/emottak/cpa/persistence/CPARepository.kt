@@ -120,6 +120,15 @@ class CPARepository(val database: Database) {
         }
     }
 
+    fun findCpaIdsByPreferredSource(preferredSource: PreferredSource): List<String> {
+        return transaction(db = database.db) {
+            CPA.select(CPA.id)
+                .where { CPA.preferredSource eq preferredSource }
+                .orderBy(CPA.id, SortOrder.ASC)
+                .map { it[CPA.id] }
+        }
+    }
+
     fun deleteCpa(cpaId: String): String {
         transaction(database.db) {
             CPA.deleteWhere { id.eq(cpaId) }
