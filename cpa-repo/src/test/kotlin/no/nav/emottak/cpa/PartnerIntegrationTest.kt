@@ -43,8 +43,7 @@ class PartnerIntegrationTest : PostgresOracleTest() {
 
         application(
             cpaApplicationModule(
-                postgres.dataSource,
-                postgres.dataSource,
+                postgres,
                 oracle.dataSource,
                 eventRegistrationService,
                 null,
