@@ -41,6 +41,7 @@ spec:
     scalingStrategy:
       cpu:
         thresholdPercentage: 30
+      scaleUpStabilizationWindowSeconds: 30
     min: 4
     max: 12
   resources:
