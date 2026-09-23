@@ -29,6 +29,8 @@ class CRLChecker(
     private val crlList: List<CRL> by lazy {
         runBlocking {
             crlRetriever.updateAllCRLs()
+        }.onEach { crl ->
+            crl.file?.let { validateCRL(crl, it) }
         }
     }
 
@@ -60,7 +62,8 @@ class CRLChecker(
                     updateCRL(this)
                 }
             }
-            validate(findIssuerCertificate(issuer), provider).let { file!! }
+            crl.validateValidityWindow(file!!)
+            file!!
         }
     }
 
@@ -71,13 +74,20 @@ class CRLChecker(
 
     private fun updateCRL(crl: CRL) {
         try {
-            crl.file = runBlocking {
+            val downloaded = runBlocking {
                 crlRetriever.updateCRL(crl.url)
             }
+            validateCRL(crl, downloaded)
+            crl.file = downloaded
             crl.updated = Instant.now()
         } catch (e: Exception) {
             log.warn("Oppdatering av CRL for ${crl.x500Name} feilet!", e)
         }
+    }
+
+    private fun validateCRL(crl: CRL, crlFile: X509CRL) {
+        crl.validate(crlFile, findIssuerCertificate(crl.x500Name), provider)
+        crl.validateValidityWindow(crlFile)
     }
 }
 
@@ -91,9 +101,7 @@ data class CRL(
      * Validerer at CRL-filen finnes, er utstedt av forventet issuer, er signert av angitt
      * CA-sertifikat, og at CRL-ens gyldighetsvindu (thisUpdate/nextUpdate) er innenfor nå.
      */
-    fun validate(issuerCertificate: X509Certificate, provider: Provider) {
-        val crlFile = file
-            ?: throw CertificateValidationException("Issuer $x500Name støttet, men henting av CRL har feilet")
+    fun validate(crlFile: X509CRL, issuerCertificate: X509Certificate, provider: Provider) {
         if (x500Name != X500Name(crlFile.issuerX500Principal.name)) {
             throw CertificateValidationException("CRL-fil utstedt av ${crlFile.issuerX500Principal.name}, men forventet $x500Name! Dette skal ikke skje!")
         }
@@ -102,6 +110,9 @@ data class CRL(
         } catch (e: Exception) {
             throw CertificateValidationException("CRL-signatur for $x500Name kunne ikke verifiseres mot CA-sertifikat <${issuerCertificate.subjectX500Principal.name}>", e)
         }
+    }
+
+    internal fun validateValidityWindow(crlFile: X509CRL) {
         val now = Date.from(Instant.now())
         if (crlFile.nextUpdate != null && crlFile.nextUpdate.before(now)) {
             throw CertificateValidationException("CRL for $x500Name er utløpt (nextUpdate <${crlFile.nextUpdate}>)")
