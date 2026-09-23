@@ -22,6 +22,8 @@ private fun basicHttpClient(): HttpClient =
     HttpClient(CIO) {
         install(HttpTimeout) {
             connectTimeoutMillis = 2000
+            socketTimeoutMillis = 10_000
+            requestTimeoutMillis = 15_000
         }
         install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
         engine {
@@ -37,6 +39,8 @@ private fun dpopHttpClient(
 ): HttpClient = HttpClient(CIO) {
     install(HttpTimeout) {
         connectTimeoutMillis = 3000
+        socketTimeoutMillis = 10_000
+        requestTimeoutMillis = 15_000
     }
     install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
     install(DpopAuth) {
