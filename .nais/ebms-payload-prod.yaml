@@ -39,7 +39,10 @@ spec:
   replicas:
     min: 2
     max: 5
-    cpuThresholdPercentage: 50
+    scalingStrategy:
+      cpu:
+        thresholdPercentage: 50
+      scaleUpStabilizationWindowSeconds: 30
   resources:
     limits:
       memory: "1024Mi"
