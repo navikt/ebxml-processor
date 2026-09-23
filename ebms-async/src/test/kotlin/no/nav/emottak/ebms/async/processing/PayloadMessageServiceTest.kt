@@ -249,7 +249,6 @@ class PayloadMessageServiceTest {
         }
         assertTrue(fakeResult.isSuccess)
         coVerify(exactly = 1) { ebmsSignalProducer.publishMessage(key = any(), value = any(), headers = any()) }
-        coVerify(exactly = 1) { eventRegistrationService.registerMessageCompleted(payloadMessage) }
         coVerify(exactly = 0) { eventRegistrationService.registerMessageRetried(any(), any()) }
     }
 
@@ -265,7 +264,6 @@ class PayloadMessageServiceTest {
         service.process(setupReceiverRecordWithRetryCountMock(retryCount = 2), payloadMessage)
 
         coVerify(exactly = 1) { eventRegistrationService.registerMessageRetried(payloadMessage, 2) }
-        coVerify(exactly = 1) { eventRegistrationService.registerMessageCompleted(payloadMessage) }
     }
 
     @Test
@@ -317,7 +315,6 @@ class PayloadMessageServiceTest {
         }
         assertTrue(fakeResult.isSuccess)
         coVerify(exactly = 1) { ebmsSignalProducer.publishMessage(key = any(), value = any(), headers = any()) }
-        coVerify(exactly = 1) { eventRegistrationService.registerMessageCompleted(payloadMessage) }
     }
 
     @Test

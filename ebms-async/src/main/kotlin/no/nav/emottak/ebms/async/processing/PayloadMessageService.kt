@@ -64,7 +64,6 @@ class PayloadMessageService(
             }
             messageReceivedRepository.messageAcknowledged(ebmsPayloadMessage)
             returnAcknowledgment(ebmsPayloadMessage)
-            eventRegistrationService.registerMessageCompleted(ebmsPayloadMessage)
         }.onFailure { exception ->
             log.error(ebmsPayloadMessage.marker(), exception.message ?: "Message processing error", exception)
             retryService.incomingRetryEval(record = record, payloadMessage = ebmsPayloadMessage, exception = exception)
