@@ -11,5 +11,5 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:2.3.21")
     implementation("org.jetbrains.kotlin:kotlin-serialization:2.3.21")
     implementation("org.jlleitschuh.gradle:ktlint-gradle:11.6.1")
-    implementation("io.ktor.plugin:io.ktor.plugin.gradle.plugin:3.0.3")
+    implementation("io.ktor.plugin:io.ktor.plugin.gradle.plugin:3.5.2")
 }

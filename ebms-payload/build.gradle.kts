@@ -29,6 +29,7 @@ dependencies {
     implementation(libs.bundles.prometheus)
     implementation(libs.emottak.payload.xsd)
     implementation(libs.emottak.utils)
+    implementation(libs.kotlinx.datetime)
     implementation("net.sf.saxon:Saxon-HE:12.7")
     implementation(libs.jackson.module.kotlin)
     implementation(libs.jackson.dataformat.yaml)
@@ -36,8 +37,11 @@ dependencies {
     runtimeOnly("net.java.dev.jna:jna:5.12.1")
 
     testImplementation(testLibs.junit.jupiter.api)
+    testImplementation(testLibs.junit.jupiter.params)
     testImplementation(testLibs.ktor.server.test.host)
     testImplementation(testLibs.mock.oauth2.server)
     testImplementation(testLibs.mockk.jvm)
+    testImplementation(kotlin("test"))
     testRuntimeOnly(testLibs.junit.jupiter.engine)
+    testRuntimeOnly(testLibs.junit.platform.launcher)
 }
