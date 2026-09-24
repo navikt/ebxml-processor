@@ -56,7 +56,9 @@ dependencies {
     testImplementation(testLibs.testcontainers.postgresql)
     testImplementation(testLibs.testcontainers.kafka)
     testImplementation(testLibs.kotest.runner.junit5)
+    testImplementation(kotlin("test"))
     testRuntimeOnly(testLibs.junit.jupiter.engine)
+    testRuntimeOnly(testLibs.junit.platform.launcher)
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().all {
