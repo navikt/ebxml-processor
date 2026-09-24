@@ -5,6 +5,7 @@ import no.nav.emottak.ebms.async.log
 import no.nav.emottak.message.model.AsyncPayload
 import no.nav.emottak.message.model.EbmsMessage
 import no.nav.emottak.message.model.PayloadMessage
+import no.nav.emottak.util.mapCertificateDetails
 import no.nav.emottak.util.marker
 import no.nav.emottak.utils.common.parseOrGenerateUuid
 import no.nav.emottak.utils.kafka.model.EbmsMessageDetail
@@ -12,6 +13,7 @@ import no.nav.emottak.utils.kafka.model.Event
 import no.nav.emottak.utils.kafka.model.EventDataType
 import no.nav.emottak.utils.kafka.model.EventType
 import no.nav.emottak.utils.kafka.service.EventLoggingService
+import java.security.cert.X509Certificate
 import kotlin.uuid.Uuid
 
 interface EventRegistrationService {
@@ -51,6 +53,8 @@ interface EventRegistrationService {
         conversationId: String? = null,
         function: suspend () -> T
     ): T
+
+    suspend fun registerSignatureValidated(ebmsPayloadMessage: PayloadMessage, certificate: X509Certificate)
 }
 
 class EventRegistrationServiceImpl(
@@ -177,6 +181,16 @@ class EventRegistrationServiceImpl(
         }.getOrThrow()
     }
 
+    override suspend fun registerSignatureValidated(
+        ebmsPayloadMessage: PayloadMessage,
+        certificate: X509Certificate
+    ) = registerEvent(
+        eventType = EventType.SIGNATURE_CHECK_SUCCESSFUL,
+        payloadMessage = ebmsPayloadMessage,
+        eventData = Json.encodeToString(certificate.mapCertificateDetails()),
+        conversationId = ebmsPayloadMessage.conversationId
+    )
+
     private suspend fun registerEvent(event: Event) {
         try {
             log.debug(event.marker(), "Registering event: {}", event)
@@ -260,4 +274,9 @@ class EventRegistrationServiceFake : EventRegistrationService {
         )
         return function.invoke()
     }
+
+    override suspend fun registerSignatureValidated(
+        ebmsPayloadMessage: PayloadMessage,
+        certificate: X509Certificate
+    ) = log.debug("Registering signature validated: {}", ebmsPayloadMessage)
 }

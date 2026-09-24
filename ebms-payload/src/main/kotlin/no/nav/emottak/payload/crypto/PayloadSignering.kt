@@ -1,9 +1,7 @@
 package no.nav.emottak.payload.crypto
 
 import no.nav.emottak.crypto.KeyStoreManager
-import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.payload.configuration.config
-import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.validering.signatur.SignatureException
 import org.w3c.dom.Document
 import java.security.cert.X509Certificate
@@ -27,8 +25,7 @@ class PayloadSignering(
 
     private val factory = XMLSignatureFactory.getInstance("DOM")
 
-    fun signerXML(document: Document, signatureDetails: SignatureDetails): Document {
-        val signerCertificate: X509Certificate = createX509Certificate(signatureDetails.certificate)
+    fun signerXML(document: Document, signerCertificate: X509Certificate): Document {
         val signingContext = buildSigningContext(signerCertificate, document)
         val signature = buildXmlSignature(signerCertificate)
         signature.sign(signingContext)
