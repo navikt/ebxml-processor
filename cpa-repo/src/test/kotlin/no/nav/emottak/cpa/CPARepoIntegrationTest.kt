@@ -91,8 +91,7 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
     private fun <T> cpaRepoTestApp(testBlock: suspend ApplicationTestBuilder.() -> T) = testApplication {
         application(
             cpaApplicationModule(
-                postgres.dataSource,
-                postgres.dataSource,
+                postgres,
                 oracle.dataSource,
                 eventRegistrationService,
                 AdresseregisterValidator(

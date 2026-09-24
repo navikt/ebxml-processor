@@ -55,11 +55,15 @@ fun main() {
             )
         )
     )
+    // Delt Database/HikariCP-pool for CPARepository og AR-cachen, slik at vi ikke
+    // åpner to separate connection pools mot samme database fra samme instans.
+    val database = Database(cpaDbConfig.value)
+    database.migrate(cpaMigrationConfig.value)
     val adresseregisterValidator = if (config.nhn.cpApiActive) {
         AdresseregisterValidator(
             httpClient = nhnArHttpClient(config.nhnOAuth, config.nhn),
             nhnConfig = config.nhn,
-            cache = CommunicationPartyCacheRepository(Database(cpaDbConfig.value), config.nhn.cpApiCacheTtl)
+            cache = CommunicationPartyCacheRepository(database, config.nhn.cpApiCacheTtl)
         )
     } else {
         null
@@ -69,8 +73,7 @@ fun main() {
         Netty,
         port = 8080,
         module = cpaApplicationModule(
-            cpaDbConfig.value,
-            cpaMigrationConfig.value,
+            database,
             oracleConfig.value,
             eventRegistrationService,
             adresseregisterValidator,
@@ -80,16 +83,13 @@ fun main() {
 }
 
 fun cpaApplicationModule(
-    cpaDbConfig: HikariConfig,
-    cpaMigrationConfig: HikariConfig,
+    database: Database,
     emottakDbConfig: HikariConfig? = null,
     eventRegistrationService: EventRegistrationService,
     adresseregisterValidator: AdresseregisterValidator?,
     sertifikatValidator: SertifikatValidator
 ): Application.() -> Unit {
     return {
-        val database = Database(cpaDbConfig)
-        database.migrate(cpaMigrationConfig)
         val cpaRepository = CPARepository(database)
         val oracleDb = if (emottakDbConfig != null) Database(emottakDbConfig) else null
 

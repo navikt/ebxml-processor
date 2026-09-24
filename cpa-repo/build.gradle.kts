@@ -39,6 +39,7 @@ dependencies {
     implementation(libs.emottak.utils)
     implementation(libs.apache.santuario)
     testRuntimeOnly(testLibs.junit.jupiter.engine)
+    testRuntimeOnly(testLibs.junit.platform.launcher)
     testImplementation(testLibs.mock.oauth2.server)
     testImplementation(testLibs.mockk.jvm)
     testImplementation(testLibs.mockk.dsl.jvm)
