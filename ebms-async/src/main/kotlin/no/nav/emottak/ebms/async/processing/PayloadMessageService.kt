@@ -90,8 +90,8 @@ class PayloadMessageService(
     }
 
     private fun verifyServiceIsSupported(ebmsPayloadMessage: PayloadMessage) {
-        if (UNSUPPORTED_SERVICE_PASIENTLISTEFORESPORSEL.first == ebmsPayloadMessage.addressing.service) {
-            throw UnsupportedServiceException(UNSUPPORTED_SERVICE_PASIENTLISTEFORESPORSEL.second)
+        when (ebmsPayloadMessage.addressing.service) {
+            UNSUPPORTED_SERVICE_PASIENTLISTEFORESPORSEL.first -> throw UnsupportedServiceException(UNSUPPORTED_SERVICE_PASIENTLISTEFORESPORSEL.second)
         }
     }
 
