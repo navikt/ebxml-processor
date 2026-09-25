@@ -33,8 +33,8 @@ import java.util.Locale
 
 class HelseIdTokenValidator(
     private val issuer: String = OpenIdConfigProvider.issuer,
-    private val allowedClockSkewInMs: Long = config().helseId.allowedClockSkewInMs,
-    private val allowedMessageGenerationGapInMs: Long = config().helseId.allowedMessageGenerationGapInMs,
+    private val allowedClockSkewInMs: Long = config.helseId.allowedClockSkewInMs,
+    private val allowedMessageGenerationGapInMs: Long = config.helseId.allowedMessageGenerationGapInMs,
     private val helseIdJwkSource: JWKSource<SecurityContext> = JWKSourceBuilder<SecurityContext>
         .create<SecurityContext>(OpenIdConfigProvider.jwksUrl).build()
 ) {

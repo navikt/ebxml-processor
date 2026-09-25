@@ -16,7 +16,7 @@ import javax.xml.crypto.dsig.spec.TransformParameterSpec
 
 class PayloadSignering(
     private val keyStore: KeyStoreManager =
-        KeyStoreManager(*config().signering.map { it.resolveKeyStoreConfiguration() }.toTypedArray())
+        KeyStoreManager(*config.signering.map { it.resolveKeyStoreConfiguration() }.toTypedArray())
 ) {
 
     private val digestAlgorithm: String = "http://www.w3.org/2001/04/xmlenc#sha256"
