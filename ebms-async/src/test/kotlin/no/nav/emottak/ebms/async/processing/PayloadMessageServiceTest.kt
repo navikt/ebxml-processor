@@ -199,7 +199,7 @@ class PayloadMessageServiceTest {
         assertTrue(ebmsMessageSlots[1] is MessageError)
         assertType<PayloadMessage>(ebmsMessageSlots, 0)
         assertType<MessageError>(ebmsMessageSlots, 1)
-        assertTrue((ebmsMessageSlots[1] as MessageError).toString().contains("Pasientliste utfaset"))
+        assertTrue((ebmsMessageSlots[1] as MessageError).toString().contains("Tjeneste PasientlisteForesporsel utfaset siden 1. april 2026. Kontakt HDIR for mer informasjon"))
         coVerify(exactly = 1) { cpaValidationService.getValidationResult(any(), any()) }
         coVerify(exactly = 1) {
             eventRegistrationService.runWithEvent(
