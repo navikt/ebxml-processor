@@ -5,6 +5,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.data.row
 import io.kotest.datatest.withData
 import io.kotest.matchers.string.shouldStartWith
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
@@ -21,7 +22,7 @@ class SertifikatValidatorTest : FunSpec({
 
     context("Sertifikatsjekk med mocked CRLChecker") {
         val crlChecker = mockk<CRLChecker>()
-        every {
+        coEvery {
             crlChecker.getCRLRevocationInfo(any(), any())
         } just runs
         System.setProperty("TRUSTSTORE_PATH", "truststore.p12")
