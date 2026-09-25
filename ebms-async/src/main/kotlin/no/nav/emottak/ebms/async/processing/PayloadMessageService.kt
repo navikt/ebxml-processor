@@ -15,12 +15,11 @@ import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.ErrorCode
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.model.ValidationResult
+import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.marker
 import no.nav.emottak.utils.common.model.Addressing
 import no.nav.emottak.utils.common.model.Party
 import no.nav.emottak.utils.common.model.PartyId
-import no.nav.emottak.utils.common.parseOrGenerateUuid
-import no.nav.emottak.utils.kafka.model.EventType
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PerMessageCharacteristicsType
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.SeverityType
 
@@ -60,12 +59,7 @@ class PayloadMessageService(
                 eventRegistrationService.registerEventMessageDetails(ebmsPayloadMessage)
                 verifyServiceIsSupported(ebmsPayloadMessage)
                 if (record.retryCount() > 0) {
-                    eventRegistrationService.registerEvent(
-                        eventType = EventType.RETRY_TRIGGED,
-                        requestId = ebmsPayloadMessage.requestId.parseOrGenerateUuid(),
-                        messageId = ebmsPayloadMessage.messageId,
-                        conversationId = ebmsPayloadMessage.conversationId
-                    )
+                    eventRegistrationService.registerMessageRetried(ebmsPayloadMessage, record.retryCount())
                 }
                 processPayloadMessage(ebmsPayloadMessage)
             }
@@ -85,12 +79,7 @@ class PayloadMessageService(
             eventRegistrationService.registerEventMessageDetails(ebmsPayloadMessage)
             verifyServiceIsSupported(ebmsPayloadMessage)
             if (record.retryCount() > 0) {
-                eventRegistrationService.registerEvent(
-                    eventType = EventType.RETRY_TRIGGED,
-                    requestId = ebmsPayloadMessage.requestId.parseOrGenerateUuid(),
-                    messageId = ebmsPayloadMessage.messageId,
-                    conversationId = ebmsPayloadMessage.conversationId
-                )
+                eventRegistrationService.registerMessageRetried(ebmsPayloadMessage, record.retryCount())
             }
             processPayloadMessage(ebmsPayloadMessage)
         }.onFailure { exception ->
@@ -185,7 +174,11 @@ class PayloadMessageService(
 
     private suspend fun processPayloadMessage(ebmsPayloadMessage: PayloadMessage) {
         log.info(ebmsPayloadMessage.marker(), "Got payload message with reference <${ebmsPayloadMessage.requestId}>")
-        val validationResult = cpaValidationService.validateIncomingMessage(ebmsPayloadMessage)
+        val validationResult = cpaValidationService.validateIncomingMessage(ebmsPayloadMessage, true)
+        eventRegistrationService.registerSignatureValidated(
+            ebmsPayloadMessage,
+            createX509Certificate(validationResult.payloadProcessing!!.signingCertificate.certificate)
+        )
         val (processedPayload, direction) = processingService.processAsync(
             ebmsPayloadMessage,
             validationResult.payloadProcessing
