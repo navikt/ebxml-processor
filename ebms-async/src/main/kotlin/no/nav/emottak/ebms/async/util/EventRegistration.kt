@@ -54,6 +54,8 @@ interface EventRegistrationService {
         function: suspend () -> T
     ): T
 
+    suspend fun registerMessageCompleted(ebmsPayloadMessage: PayloadMessage)
+    suspend fun registerMessageRetried(ebmsPayloadMessage: PayloadMessage, retryCount: Int)
     suspend fun registerSignatureValidated(ebmsPayloadMessage: PayloadMessage, certificate: X509Certificate)
 }
 
@@ -181,6 +183,32 @@ class EventRegistrationServiceImpl(
         }.getOrThrow()
     }
 
+    override suspend fun registerMessageCompleted(ebmsPayloadMessage: PayloadMessage) {
+        registerEvent(
+            EventType.MESSAGEFLOW_COMPLETED,
+            requestId = ebmsPayloadMessage.requestId.parseOrGenerateUuid(),
+            contentId = ebmsPayloadMessage.payload.contentId,
+            messageId = ebmsPayloadMessage.messageId,
+            conversationId = ebmsPayloadMessage.conversationId
+        )
+    }
+
+    override suspend fun registerMessageRetried(
+        ebmsPayloadMessage: PayloadMessage,
+        retryCount: Int
+    ) {
+        registerEvent(
+            eventType = EventType.RETRY_TRIGGED,
+            requestId = ebmsPayloadMessage.requestId.parseOrGenerateUuid(),
+            contentId = ebmsPayloadMessage.payload.contentId,
+            messageId = ebmsPayloadMessage.messageId,
+            eventData = Json.encodeToString(
+                mapOf("retryCount" to retryCount.toString())
+            ),
+            conversationId = ebmsPayloadMessage.conversationId
+        )
+    }
+
     override suspend fun registerSignatureValidated(
         ebmsPayloadMessage: PayloadMessage,
         certificate: X509Certificate
@@ -273,6 +301,17 @@ class EventRegistrationServiceFake : EventRegistrationService {
             eventData
         )
         return function.invoke()
+    }
+
+    override suspend fun registerMessageCompleted(ebmsPayloadMessage: PayloadMessage) {
+        log.debug("Registering message completed for ebmsDocument: {}", ebmsPayloadMessage)
+    }
+
+    override suspend fun registerMessageRetried(
+        ebmsPayloadMessage: PayloadMessage,
+        retryCount: Int
+    ) {
+        log.debug("Registering message retried for ebmsDocument: {} with retryCount: {}", ebmsPayloadMessage, retryCount)
     }
 
     override suspend fun registerSignatureValidated(

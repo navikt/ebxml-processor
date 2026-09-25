@@ -13,6 +13,7 @@ import io.mockk.runs
 import io.mockk.slot
 import kotlinx.coroutines.runBlocking
 import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
+import no.nav.emottak.ebms.async.kafka.consumer.RETRY_COUNT_HEADER
 import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
 import no.nav.emottak.ebms.async.persistence.repository.MessagePendingAckRepository
 import no.nav.emottak.ebms.async.persistence.repository.MessageReceivedRepository
@@ -148,6 +149,18 @@ class PayloadMessageServiceTest {
     }
 
     @Test
+    fun `process with forceSkipDuplicateCheck should register retry event when retryCount is greater than 0`() = runBlocking {
+        initService()
+        val (payloadMessage, _, _) = setupMocks(PerMessageCharacteristicsType.ALWAYS, true, direction = Direction.IN)
+
+        service.process(setupReceiverRecordWithRetryCountMock(retryCount = 1), payloadMessage, forceSkipDuplicateCheck = true)
+
+        coVerify(exactly = 1) { eventRegistrationService.registerMessageRetried(payloadMessage, 1) }
+        // processWithoutAcknow never sends an acknowledgment, so completion is not registered here
+        coVerify(exactly = 0) { eventRegistrationService.registerMessageCompleted(any()) }
+    }
+
+    @Test
     fun `process should still return acknowledgment for duplicate message when forceSkipDuplicateCheck is false`() = runBlocking {
         initService()
         val (payloadMessage, _, _) = setupMocks(PerMessageCharacteristicsType.ALWAYS, true, direction = Direction.IN)
@@ -240,6 +253,35 @@ class PayloadMessageServiceTest {
         }
         assertTrue(fakeResult.isSuccess)
         coVerify(exactly = 1) { ebmsSignalProducer.publishMessage(key = any(), value = any(), headers = any()) }
+        coVerify(exactly = 0) { eventRegistrationService.registerMessageRetried(any(), any()) }
+    }
+
+    @Test
+    fun `process should register retry event and still complete when retryCount is greater than 0`() = runBlocking {
+        initService()
+        val (payloadMessage, _, _) = setupMocks(
+            PerMessageCharacteristicsType.PER_MESSAGE,
+            false,
+            direction = Direction.IN
+        )
+
+        service.process(setupReceiverRecordWithRetryCountMock(retryCount = 2), payloadMessage)
+
+        coVerify(exactly = 1) { eventRegistrationService.registerMessageRetried(payloadMessage, 2) }
+    }
+
+    @Test
+    fun `process should not register message completed when processing fails`() = runBlocking {
+        initService()
+        val (payloadMessage, _, _) = setupMocks(
+            PerMessageCharacteristicsType.PER_MESSAGE,
+            false,
+            processAsyncThrowsEbmsException = true
+        )
+
+        service.process(setupReceiverRecordWithRetryServiceMock(), payloadMessage)
+
+        coVerify(exactly = 0) { eventRegistrationService.registerMessageCompleted(any()) }
     }
 
     @Test
@@ -553,6 +595,8 @@ class PayloadMessageServiceTest {
         coEvery { payloadMessageForwardingService.forwardMessageWithAsyncResponse(any(), any()) } just Runs
         coEvery { payloadMessageForwardingService.returnMessageResponse(any()) } just Runs
         coEvery { eventRegistrationService.registerEventMessageDetails(capture(ebmsMessageSlots)) } returns Unit
+        coEvery { eventRegistrationService.registerMessageCompleted(any()) } returns Unit
+        coEvery { eventRegistrationService.registerMessageRetried(any(), any()) } returns Unit
         coEvery { ebmsSignalProducer.publishMessage(any(), any(), any()) } returns fakeResult
         coEvery {
             eventRegistrationService.runWithEvent<Result<RecordMetadata>>(
@@ -573,6 +617,16 @@ class PayloadMessageServiceTest {
         val receiverRecord = mockk<ReceiverRecord<String, ByteArray>>(relaxed = true)
         val headers = mockk<Headers>()
         coEvery { headers.lastHeader(any()) } returns null
+        coEvery { receiverRecord.headers() } returns headers
+        return receiverRecord
+    }
+
+    private fun setupReceiverRecordWithRetryCountMock(retryCount: Int): ReceiverRecord<String, ByteArray> {
+        val receiverRecord = mockk<ReceiverRecord<String, ByteArray>>(relaxed = true)
+        val headers = mockk<Headers>(relaxed = true)
+        val retryCountHeader = mockk<org.apache.kafka.common.header.Header>()
+        coEvery { retryCountHeader.value() } returns retryCount.toString().toByteArray()
+        coEvery { headers.lastHeader(RETRY_COUNT_HEADER) } returns retryCountHeader
         coEvery { receiverRecord.headers() } returns headers
         return receiverRecord
     }
