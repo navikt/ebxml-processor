@@ -16,6 +16,7 @@ dependencies {
     api(libs.bundles.bouncycastle)
     testImplementation(testLibs.junit.jupiter.api)
     testImplementation(testLibs.junit.jupiter.engine)
+    testRuntimeOnly(testLibs.junit.platform.launcher)
     testImplementation(testLibs.mockk.jvm)
     testImplementation(testLibs.mockk.dsl.jvm)
     testImplementation(testLibs.bundles.kotest)

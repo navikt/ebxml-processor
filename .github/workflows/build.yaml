@@ -90,7 +90,7 @@ jobs:
     steps:
       - uses: "actions/checkout@v7"
       - name: "Deploy to DEV"
-        uses: "nais/deploy/actions/deploy@v2"
+        uses: "nais/deploy/actions/deploy@v3"
         env:
           CLUSTER: "dev-fss"
           RESOURCE: ".nais/ebms-async-dev.yaml"
@@ -105,7 +105,7 @@ jobs:
     steps:
       - uses: "actions/checkout@v7"
       - name: "Deploy to DEV"
-        uses: "nais/deploy/actions/deploy@v2"
+        uses: "nais/deploy/actions/deploy@v3"
         env:
           CLUSTER: "dev-fss"
           RESOURCE: ".nais/ebms-provider-dev.yaml"
@@ -120,7 +120,7 @@ jobs:
     steps:
       - uses: "actions/checkout@v7"
       - name: "Deploy to DEV"
-        uses: "nais/deploy/actions/deploy@v2"
+        uses: "nais/deploy/actions/deploy@v3"
         env:
           CLUSTER: "dev-fss"
           RESOURCE: ".nais/cpa-repo-dev.yaml"
@@ -135,7 +135,7 @@ jobs:
     steps:
       - uses: "actions/checkout@v7"
       - name: "Deploy to DEV"
-        uses: "nais/deploy/actions/deploy@v2"
+        uses: "nais/deploy/actions/deploy@v3"
         env:
           CLUSTER: "dev-fss"
           RESOURCE: ".nais/ebms-payload-dev.yaml"
