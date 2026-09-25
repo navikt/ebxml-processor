@@ -30,7 +30,11 @@ import no.nav.emottak.message.model.EbmsMessage
 import no.nav.emottak.message.model.MessageError
 import no.nav.emottak.message.model.MessagingCharacteristicsResponse
 import no.nav.emottak.message.model.PayloadMessage
+import no.nav.emottak.message.model.PayloadProcessing
+import no.nav.emottak.message.model.ProcessConfig
+import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.message.model.ValidationResult
+import no.nav.emottak.util.decodeBase64
 import no.nav.emottak.utils.common.model.Addressing
 import no.nav.emottak.utils.common.model.Party
 import no.nav.emottak.utils.common.model.PartyId
@@ -136,7 +140,7 @@ class PayloadMessageServiceTest {
 
         service.process(setupReceiverRecordWithoutRetryCountMock(), payloadMessage, forceSkipDuplicateCheck = true)
 
-        coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(payloadMessage) }
+        coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(payloadMessage, true) }
         coVerify(exactly = 1) { processingService.processAsync(payloadMessage, any()) }
         // ...but no acknowledgment is sent back to the sender, since this is an internal rerun
         coVerify(exactly = 0) { messageReceivedRepository.messageAcknowledged(any()) }
@@ -229,7 +233,7 @@ class PayloadMessageServiceTest {
         assertType<PayloadMessage>(ebmsMessageSlots, 0)
         coVerify(exactly = 1) { messageReceivedRepository.messageAcknowledged(payloadMessage) }
         assertType<Acknowledgment>(ebmsMessageSlots, 1)
-        coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(payloadMessage) }
+        coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(payloadMessage, true) }
         coVerify(exactly = 1) { processingService.processAsync(payloadMessage, any()) }
         coVerify(exactly = 1) { payloadMessageForwardingService.forwardMessageWithSyncResponse(payloadMessage) }
         coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithAsyncResponse(payloadMessage, any()) }
@@ -296,7 +300,7 @@ class PayloadMessageServiceTest {
         assertType<PayloadMessage>(ebmsMessageSlots, 0)
         coVerify(exactly = 1) { messageReceivedRepository.messageAcknowledged(payloadMessage) }
         assertType<Acknowledgment>(ebmsMessageSlots, 1)
-        coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(payloadMessage) }
+        coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(payloadMessage, true) }
         coVerify(exactly = 1) { processingService.processAsync(payloadMessage, any()) }
         coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithAsyncResponse(payloadMessage) }
         coVerify(exactly = 1) { payloadMessageForwardingService.returnMessageResponse(payloadMessage) }
@@ -332,7 +336,7 @@ class PayloadMessageServiceTest {
         coVerify(exactly = 1) { eventRegistrationService.registerEventMessageDetails(any()) }
         assertType<PayloadMessage>(ebmsMessageSlots, 0)
         coVerify(exactly = 0) { messageReceivedRepository.messageAcknowledged(any()) }
-        coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(payloadMessage) }
+        coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(payloadMessage, true) }
         coVerify(exactly = 1) { processingService.processAsync(payloadMessage, any()) }
         coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithAsyncResponse(payloadMessage) }
         coVerify(exactly = 0) { payloadMessageForwardingService.returnMessageResponse(payloadMessage) }
@@ -368,7 +372,7 @@ class PayloadMessageServiceTest {
         coVerify(exactly = 1) { eventRegistrationService.registerEventMessageDetails(any()) }
         assertType<PayloadMessage>(ebmsMessageSlots, 0)
         coVerify(exactly = 0) { messageReceivedRepository.messageAcknowledged(any()) }
-        coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(payloadMessage) }
+        coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(payloadMessage, true) }
         coVerify(exactly = 1) { processingService.processAsync(payloadMessage, any()) }
         coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithAsyncResponse(payloadMessage) }
         coVerify(exactly = 0) { payloadMessageForwardingService.returnMessageResponse(payloadMessage) }
@@ -403,7 +407,7 @@ class PayloadMessageServiceTest {
         coVerify(exactly = 1) { eventRegistrationService.registerEventMessageDetails(any()) }
         assertType<PayloadMessage>(ebmsMessageSlots, 0)
         coVerify(exactly = 0) { messageReceivedRepository.messageAcknowledged(any()) }
-        coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(payloadMessage) }
+        coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(payloadMessage, true) }
         coVerify(exactly = 1) { processingService.processAsync(payloadMessage, any()) }
         coVerify(exactly = 1) { payloadMessageForwardingService.forwardMessageWithSyncResponse(payloadMessage) }
         coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithAsyncResponse(payloadMessage, any()) }
@@ -471,7 +475,7 @@ class PayloadMessageServiceTest {
         coVerify(exactly = 1) { eventRegistrationService.registerEventMessageDetails(any()) }
         assertType<PayloadMessage>(ebmsMessageSlots, 0)
         coVerify(exactly = 0) { messageReceivedRepository.messageAcknowledged(any()) }
-        coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(payloadMessage) }
+        coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(payloadMessage, true) }
         coVerify(exactly = 1) { processingService.processAsync(payloadMessage, any()) }
         coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithAsyncResponse(payloadMessage) }
         coVerify(exactly = 0) { payloadMessageForwardingService.returnMessageResponse(payloadMessage) }
@@ -564,8 +568,9 @@ class PayloadMessageServiceTest {
         coEvery { messageReceivedRepository.messageAcknowledged(payloadMessage) } returns payloadMessage.requestId
         coEvery { messageReceivedRepository.isAcknowledged(payloadMessage) } returns isDuplicateResult
         coEvery { eventRegistrationService.registerEventMessageDetails(capture(ebmsMessageSlots)) } returns Unit
-        coEvery { cpaValidationService.validateIncomingMessage(payloadMessage) } returns mockk<ValidationResult>(relaxed = true)
-        coEvery { cpaValidationService.getValidationResult(any(), any()) } returns mockk<ValidationResult>(relaxed = true)
+        coEvery { cpaValidationService.validateIncomingMessage(payloadMessage, true) } returns validValidationResult()
+        coEvery { cpaValidationService.getValidationResult(any(), any()) } returns validValidationResult()
+        coEvery { eventRegistrationService.registerSignatureValidated(payloadMessage, any()) } returns Unit
 
         if (validateOutgoingThrowsException) {
             coEvery { cpaValidationService.validateOutgoingMessage(any()) } throws Exception("Unexpected exception")
@@ -668,6 +673,31 @@ class PayloadMessageServiceTest {
         coVerify(exactly = 1) { payloadMessageForwardingService.returnMessageResponse(payloadMessage) }
     }
 }
+
+fun validValidationResult() = ValidationResult(
+    payloadProcessing = PayloadProcessing(
+        signingCertificate = SignatureDetails(
+            certificate = decodeBase64(
+                "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".toByteArray()
+            ),
+            signatureAlgorithm = "sha256WithRSAEncryption",
+            hashFunction = ""
+        ),
+        encryptionCertificate = byteArrayOf(),
+        processConfig = ProcessConfig(
+            kryptering = false,
+            komprimering = false,
+            signering = false,
+            internformat = false,
+            validering = false,
+            apprec = false,
+            ocspSjekk = false,
+            juridiskLogg = false,
+            adapter = null,
+            errorAction = null
+        )
+    )
+)
 
 fun createPayloadMessage(document: Document? = null, givenService: String? = "HarBorgerFrikortMengde") = PayloadMessage(
     requestId = Uuid.random().toString(),

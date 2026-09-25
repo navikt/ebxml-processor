@@ -1,10 +1,10 @@
 package no.nav.emottak.payload
 
 import no.nav.emottak.crypto.KeyStoreManager
-import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.payload.configuration.config
 import no.nav.emottak.payload.crypto.PayloadSignering
 import no.nav.emottak.util.createDocument
+import no.nav.emottak.util.createX509Certificate
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
@@ -22,11 +22,7 @@ class SigneringTest {
 
         val signertDokument = signering.signerXML(
             document = usignertDokument,
-            SignatureDetails(
-                certificate = ksm.getCertificate("nav_virksomhet").encoded,
-                signatureAlgorithm = "sha256WithRSAEncryption",
-                hashFunction = ""
-            )
+            createX509Certificate(ksm.getCertificate("nav_virksomhet").encoded)
         )
         assertEquals(1, signertDokument.getElementsByTagName("Signature").length)
     }
