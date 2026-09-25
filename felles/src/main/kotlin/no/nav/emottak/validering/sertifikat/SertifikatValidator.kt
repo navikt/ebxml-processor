@@ -2,6 +2,7 @@ package no.nav.emottak.validering.sertifikat
 
 import no.nav.emottak.crypto.KeyStoreManager
 import no.nav.emottak.crypto.trustStoreConfig
+import no.nav.emottak.message.exception.CertificateValidationException
 import no.nav.emottak.util.isSelfSigned
 import org.bouncycastle.asn1.x509.CRLDistPoint
 import org.bouncycastle.asn1.x509.Extension
@@ -61,7 +62,10 @@ class SertifikatValidator(
             builder.build(pkixParams) as PKIXCertPathBuilderResult
         } catch (e: CertPathBuilderException) {
             logger.warn("Sertifikatvalidering feilet <${certificate.serialNumber.toString(16)}> <${certificate.subjectX500Principal.name}> utstedt av <${certificate.issuerX500Principal.name}>", e)
-            throw CertificateValidationException("Sertifikatvalidering feilet for sertifikat utstedt av <${certificate.issuerX500Principal.name}>", e)
+            throw CertificateValidationException(
+                "Sertifikatvalidering feilet for sertifikat utstedt av <${certificate.issuerX500Principal.name}>",
+                e
+            )
         }
     }
 

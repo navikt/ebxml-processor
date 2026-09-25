@@ -1,6 +1,7 @@
 package no.nav.emottak.validering.sertifikat
 
 import kotlinx.coroutines.runBlocking
+import no.nav.emottak.message.exception.CertificateValidationException
 import org.bouncycastle.asn1.x500.X500Name
 import org.slf4j.LoggerFactory
 import java.math.BigInteger

@@ -2,7 +2,7 @@ package no.nav.emottak.payload.crypto
 
 import no.nav.emottak.crypto.KeyStoreManager
 import no.nav.emottak.payload.configuration.config
-import no.nav.emottak.validering.signatur.SignatureException
+import no.nav.emottak.payload.error.SignatureException
 import org.w3c.dom.Document
 import java.security.cert.X509Certificate
 import javax.xml.crypto.dsig.Reference

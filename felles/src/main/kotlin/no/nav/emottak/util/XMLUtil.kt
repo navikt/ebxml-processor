@@ -1,7 +1,7 @@
 package no.nav.emottak.util
 
+import no.nav.emottak.message.exception.SignatureValidationException
 import no.nav.emottak.message.model.SignatureDetails
-import no.nav.emottak.validering.signatur.SignatureException
 import org.apache.xml.security.signature.XMLSignature
 import org.apache.xml.security.utils.Constants
 import org.w3c.dom.Document
@@ -24,7 +24,7 @@ import javax.xml.transform.stream.StreamResult
 fun Document.retrieveSignatureElement(): XMLSignature {
     val nodeList: NodeList = this.getElementsByTagNameNS(Constants.SignatureSpecNS, Constants._TAG_SIGNATURE)
     // Regel ID 45, 52
-    if (nodeList.length != 1) throw SignatureException("${nodeList.length} signaturer i dokumentet! Skal være nøyaktig 1")
+    if (nodeList.length != 1) throw SignatureValidationException("${nodeList.length} signaturer i dokumentet! Skal være nøyaktig 1")
     // Regel ID 363, 42, 32
     return XMLSignature(nodeList.item(0) as Element, Constants.SignatureSpecNS)
 }

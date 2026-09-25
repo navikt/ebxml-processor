@@ -5,12 +5,12 @@ import no.nav.emottak.crypto.KeyStoreManager
 import no.nav.emottak.ebms.configuration.config
 import no.nav.emottak.ebms.validation.CID_PREFIX
 import no.nav.emottak.ebms.validation.EbMSAttachmentResolver
+import no.nav.emottak.message.exception.SignatureValidationException
 import no.nav.emottak.message.model.EbmsAttachment
 import no.nav.emottak.message.model.EbmsDocument
 import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.getFirstChildElement
-import no.nav.emottak.validering.signatur.SignatureException
 import org.apache.xml.security.algorithms.MessageDigestAlgorithm
 import org.apache.xml.security.exceptions.XMLSecurityException
 import org.apache.xml.security.signature.XMLSignature
@@ -87,7 +87,7 @@ class EbmsSigning(
 
     private fun getPublicCertFromKeyStore(publicCertificate: X509Certificate): PublicKey =
         keyStore.getCertificate(publicCertificate.serialNumber)?.publicKey
-            ?: throw SignatureException(
+            ?: throw SignatureValidationException(
                 "Could not find certificate with " +
                     "subject <${publicCertificate.subjectX500Principal.name}> and " +
                     "issuer <${publicCertificate.issuerX500Principal.name}> in keystore"
