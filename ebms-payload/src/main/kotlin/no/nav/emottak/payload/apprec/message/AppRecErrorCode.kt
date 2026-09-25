@@ -1,7 +1,6 @@
 package no.nav.emottak.payload.apprec.message
 
 import no.nav.emottak.payload.error.CertificateException
-import no.nav.emottak.payload.error.CertificateRevokedException
 import no.nav.emottak.payload.error.SignatureException
 
 enum class AppRecErrorCode(val description: String) {
@@ -24,7 +23,6 @@ enum class AppRecErrorCode(val description: String) {
             when (exception) {
                 is SignatureException -> S01
                 is CertificateException -> S02
-                is CertificateRevokedException -> S03
                 else -> X99
             }
     }

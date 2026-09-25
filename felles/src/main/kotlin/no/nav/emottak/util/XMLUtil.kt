@@ -29,13 +29,9 @@ fun Document.retrieveSignatureElement(): XMLSignature {
     return XMLSignature(nodeList.item(0) as Element, Constants.SignatureSpecNS)
 }
 
-fun SignatureDetails.retrievePublicX509Certificate(): X509Certificate {
-    return createX509Certificate(this.certificate)
-}
+fun SignatureDetails.retrievePublicX509Certificate(): X509Certificate = createX509Certificate(this.certificate)
 
-fun XMLSignature.retrievePublicX509Certificate(): X509Certificate {
-    return this.keyInfo.x509Certificate
-}
+fun XMLSignature.retrievePublicX509Certificate(): X509Certificate = this.keyInfo.x509Certificate
 
 fun createDocument(inputstream: InputStream): Document {
     val dbf = DocumentBuilderFactory.newInstance()

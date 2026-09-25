@@ -1,6 +1,8 @@
 package no.nav.emottak.payload
 
 import kotlinx.serialization.json.Json
+import no.nav.emottak.message.exception.CertificateValidationException
+import no.nav.emottak.message.exception.SignatureValidationException
 import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadRequest
 import no.nav.emottak.message.model.ProcessConfig
@@ -85,14 +87,21 @@ class Processor(
 
         with(createDocument(ByteArrayInputStream(payload.bytes))) {
             var (signedByPid, signedByOrg) = Pair<String?, String?>(null, null)
-            val signatureElement = runCatching { this.retrieveSignatureElement() }
-                .onFailure { throw SignatureException("No signature element found in payload", it as? Exception) }.getOrThrow()
+            val signatureElement = try {
+                this.retrieveSignatureElement()
+            } catch (e: SignatureValidationException) {
+                throw SignatureException("No signature element found in payload", e)
+            }
             if (processConfig.signering) {
                 log.debug(marker, "Validating signature for payload")
                 signaturValidator.validate(signatureElement)
-                val certificate = signatureElement.retrievePublicX509Certificate()
-                runCatching { sertifikatValidator.validateCertificate(certificate) }
-                    .onFailure { throw CertificateException(it.localizedMessage, it as? Exception) }.getOrThrow()
+                val certificate = try {
+                    signatureElement.retrievePublicX509Certificate().also {
+                        sertifikatValidator.validateCertificate(it)
+                    }
+                } catch (e: CertificateValidationException) {
+                    throw CertificateException(e.localizedMessage, e)
+                }
                 eventRegistrationService.registerEvent(
                     eventType = EventType.SIGNATURE_CHECK_SUCCESSFUL,
                     payloadRequest = payloadRequest,

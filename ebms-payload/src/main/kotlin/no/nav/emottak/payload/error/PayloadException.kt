@@ -9,7 +9,6 @@ import java.math.BigInteger
 open class PayloadException(message: String?, cause: Throwable?, val recoverable: Boolean) : Exception(message, cause)
 
 class CertificateException(message: String, cause: Exception? = null) : PayloadException(message, cause, true)
-class CertificateRevokedException(message: String, cause: Exception? = null) : PayloadException(message, cause, true)
 class OCSPValidationFnrBlankError(message: String, cause: Exception? = null) : PayloadException(message, cause, true)
 class CompressionException(message: String, cause: Exception? = null) : PayloadException(message, cause, true)
 class DecompressionException(message: String, cause: Exception? = null) : PayloadException(message, cause, false)
