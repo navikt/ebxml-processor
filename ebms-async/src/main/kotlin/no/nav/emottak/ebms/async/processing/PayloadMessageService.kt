@@ -81,7 +81,10 @@ class PayloadMessageService(
             }
             processPayloadMessage(ebmsPayloadMessage)
         }.onFailure { exception ->
-            log.error(ebmsPayloadMessage.marker(), exception.message ?: "Message processing error", exception)
+            when (exception) {
+                is UnsupportedServiceException -> log.warn(ebmsPayloadMessage.marker(), exception.message)
+                else -> log.error(ebmsPayloadMessage.marker(), exception.message ?: "Message processing error", exception)
+            }
             log.warn(ebmsPayloadMessage.marker(), "ErrorSignal will not be sent. Message will not be retried.")
         }
     }
