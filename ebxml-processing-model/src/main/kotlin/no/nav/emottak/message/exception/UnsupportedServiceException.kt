@@ -9,7 +9,7 @@ val UNSUPPORTED_SERVICE_PASIENTLISTEFORESPORSEL = "PasientlisteForesporsel" to "
 class UnsupportedServiceException(override val message: String) :
     EbmsException(
         message = message,
-        errorCode = ErrorCode.DELIVERY_FAILURE,
+        errorCode = ErrorCode.NOT_SUPPORTED,
         severity = SeverityType.ERROR.value()!!,
         recoverable = false
     )
