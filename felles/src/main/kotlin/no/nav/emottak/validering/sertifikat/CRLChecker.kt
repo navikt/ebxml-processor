@@ -30,7 +30,18 @@ class CRLChecker(
         runBlocking {
             crlRetriever.updateAllCRLs()
         }.onEach { crl ->
-            crl.file?.let { validateCRL(crl, it) }
+            crl.file?.let {
+                try {
+                    validateCRL(crl, it)
+                    crl.validationError = null
+                } catch (e: CertificateValidationException) {
+                    // En ugyldig CRL for en issuer skal ikke hindre de andre issuerne i listen fra å
+                    // bli tatt i bruk. Den konkrete feilen lagres og kastes på nytt kun når nettopp
+                    // denne issueren spørres opp, uten å tvinge frem gjentatt nedlasting av hele listen.
+                    log.warn("Validering av CRL for ${crl.x500Name} feilet ved oppstart!", e)
+                    crl.validationError = e
+                }
+            }
         }
     }
 
@@ -62,8 +73,11 @@ class CRLChecker(
                     updateCRL(this)
                 }
             }
-            crl.validateValidityWindow(file!!)
-            file!!
+            val validatedFile = file
+                ?: throw CertificateValidationException("Issuer $issuer støttet, men henting av CRL har feilet")
+            validationError?.let { throw it }
+            crl.validateValidityWindow(validatedFile)
+            validatedFile
         }
     }
 
@@ -80,8 +94,12 @@ class CRLChecker(
             validateCRL(crl, downloaded)
             crl.file = downloaded
             crl.updated = Instant.now()
+            crl.validationError = null
         } catch (e: Exception) {
             log.warn("Oppdatering av CRL for ${crl.x500Name} feilet!", e)
+            if (e is CertificateValidationException) {
+                crl.validationError = e
+            }
         }
     }
 
@@ -95,7 +113,8 @@ data class CRL(
     val x500Name: X500Name,
     val url: String,
     var file: X509CRL?,
-    var updated: Instant = Instant.now()
+    var updated: Instant = Instant.now(),
+    var validationError: CertificateValidationException? = null
 ) {
     /**
      * Validerer at CRL-filen finnes, er utstedt av forventet issuer, er signert av angitt
