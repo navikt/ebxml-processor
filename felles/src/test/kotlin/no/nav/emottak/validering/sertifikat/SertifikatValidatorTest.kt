@@ -10,6 +10,7 @@ import io.mockk.just
 import io.mockk.mockk
 import io.mockk.runs
 import kotlinx.coroutines.runBlocking
+import no.nav.emottak.message.exception.CertificateValidationException
 import no.nav.emottak.util.TestUtil
 import no.nav.emottak.util.TestUtil.Companion.crlFile
 import no.nav.emottak.util.createX509Certificate

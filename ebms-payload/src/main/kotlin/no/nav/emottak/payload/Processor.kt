@@ -1,13 +1,17 @@
 package no.nav.emottak.payload
 
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import no.nav.emottak.message.exception.CertificateValidationException
+import no.nav.emottak.message.exception.SignatureValidationException
 import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadRequest
 import no.nav.emottak.message.model.ProcessConfig
 import no.nav.emottak.payload.crypto.Dekryptering
 import no.nav.emottak.payload.crypto.Kryptering
 import no.nav.emottak.payload.crypto.PayloadSignering
+import no.nav.emottak.payload.crypto.SignatureValidator
+import no.nav.emottak.payload.error.CertificateException
+import no.nav.emottak.payload.error.SignatureException
 import no.nav.emottak.payload.helseid.NinResolver
 import no.nav.emottak.payload.juridisklogg.JuridiskLoggService
 import no.nav.emottak.payload.ocspstatus.getOrganizationNumber
@@ -23,7 +27,6 @@ import no.nav.emottak.util.retrieveSignatureElement
 import no.nav.emottak.utils.kafka.model.EventDataType
 import no.nav.emottak.utils.kafka.model.EventType
 import no.nav.emottak.validering.sertifikat.SertifikatValidator
-import no.nav.emottak.validering.signatur.SignaturValidator
 import org.slf4j.Marker
 import java.io.ByteArrayInputStream
 
@@ -34,7 +37,7 @@ class Processor(
     private val dekryptering: Dekryptering = Dekryptering(),
     private val signering: PayloadSignering = PayloadSignering(),
     private val gZipUtil: GZipUtil = GZipUtil(),
-    private val signatureVerifisering: SignaturValidator = SignaturValidator(),
+    private val signaturValidator: SignatureValidator = SignatureValidator(),
     private val juridiskLogging: JuridiskLoggService = JuridiskLoggService(),
     private val ninResolver: NinResolver = NinResolver()
 ) {
@@ -84,12 +87,21 @@ class Processor(
 
         with(createDocument(ByteArrayInputStream(payload.bytes))) {
             var (signedByPid, signedByOrg) = Pair<String?, String?>(null, null)
+            val signatureElement = try {
+                this.retrieveSignatureElement()
+            } catch (e: SignatureValidationException) {
+                throw SignatureException("No signature element found in payload", e)
+            }
             if (processConfig.signering) {
                 log.debug(marker, "Validating signature for payload")
-
-                signatureVerifisering.validate(this)
-                val certificate = this.retrieveSignatureElement().retrievePublicX509Certificate()
-                sertifikatValidator.validateCertificate(certificate)
+                signaturValidator.validate(signatureElement)
+                val certificate = try {
+                    signatureElement.retrievePublicX509Certificate().also {
+                        sertifikatValidator.validateCertificate(it)
+                    }
+                } catch (e: CertificateValidationException) {
+                    throw CertificateException(e.localizedMessage, e)
+                }
                 eventRegistrationService.registerEvent(
                     eventType = EventType.SIGNATURE_CHECK_SUCCESSFUL,
                     payloadRequest = payloadRequest,
@@ -101,7 +113,7 @@ class Processor(
                 log.debug(marker, "Validating for payload in validateOcsp flow")
                 signedByPid = ninResolver.resolve(
                     document = this,
-                    certificate = this.retrieveSignatureElement().keyInfo.x509Certificate
+                    certificate = signatureElement.keyInfo.x509Certificate
                 ).also {
                     eventRegistrationService.registerEvent(
                         EventType.OCSP_CHECK_SUCCESSFUL,

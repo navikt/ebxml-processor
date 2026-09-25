@@ -1,6 +1,7 @@
 package no.nav.emottak.validering.sertifikat
 
 import kotlinx.coroutines.runBlocking
+import no.nav.emottak.message.exception.CertificateValidationException
 import org.bouncycastle.asn1.x500.X500Name
 import org.slf4j.LoggerFactory
 import java.math.BigInteger
@@ -75,9 +76,11 @@ data class CRL(
     fun validate() {
         when {
             file == null ->
-                throw CertificateValidationException("Issuer $x500Name støttet, men henting av CRL har feilet")
+                throw CRLException("Issuer $x500Name støttet, men henting av CRL har feilet")
             x500Name != X500Name(file!!.issuerX500Principal.name) ->
-                throw CertificateValidationException("CRL-fil utstedt av ${file!!.issuerX500Principal.name}, men forventet $x500Name! Dette skal ikke skje!")
+                throw CRLException("CRL-fil utstedt av ${file!!.issuerX500Principal.name}, men forventet $x500Name! Dette skal ikke skje!")
         }
     }
 }
+
+class CRLException(message: String, cause: Throwable? = null) : Exception(message, cause)

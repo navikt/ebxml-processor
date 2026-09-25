@@ -2,6 +2,7 @@ package no.nav.emottak.validering.sertifikat
 
 import no.nav.emottak.crypto.KeyStoreManager
 import no.nav.emottak.crypto.trustStoreConfig
+import no.nav.emottak.message.exception.CertificateValidationException
 import no.nav.emottak.util.isSelfSigned
 import org.bouncycastle.asn1.x509.CRLDistPoint
 import org.bouncycastle.asn1.x509.Extension
@@ -61,7 +62,10 @@ class SertifikatValidator(
             builder.build(pkixParams) as PKIXCertPathBuilderResult
         } catch (e: CertPathBuilderException) {
             logger.warn("Sertifikatvalidering feilet <${certificate.serialNumber.toString(16)}> <${certificate.subjectX500Principal.name}> utstedt av <${certificate.issuerX500Principal.name}>", e)
-            throw CertificateValidationException("Sertifikatvalidering feilet for sertifikat utstedt av <${certificate.issuerX500Principal.name}>", e)
+            throw CertificateValidationException(
+                "Sertifikatvalidering feilet for sertifikat utstedt av <${certificate.issuerX500Principal.name}>",
+                e
+            )
         }
     }
 
@@ -81,10 +85,14 @@ class SertifikatValidator(
         } catch (e: CertificateValidationException) {
             throw e
         } catch (e: Exception) {
-            val crlDistributionPoint = certificate.getExtensionValue(Extension.cRLDistributionPoints.toString())
-            val crlDistributionPoints =
+            runCatching {
+                val crlDistributionPoint = certificate.getExtensionValue(Extension.cRLDistributionPoints.toString())
                 CRLDistPoint.getInstance(JcaX509ExtensionUtils.parseExtensionValue(crlDistributionPoint))
-            logger.warn("CRL for $crlDistributionPoints feilet")
+            }.onSuccess {
+                logger.warn("CRL for $it feilet", e)
+            }.onFailure {
+                logger.warn("CRL-sjekk feilet for sertifikat <${certificate.serialNumber.toString(16)}>", e)
+            }
             throw e
         }
     }
