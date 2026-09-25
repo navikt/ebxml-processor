@@ -85,10 +85,14 @@ class SertifikatValidator(
         } catch (e: CertificateValidationException) {
             throw e
         } catch (e: Exception) {
-            val crlDistributionPoint = certificate.getExtensionValue(Extension.cRLDistributionPoints.toString())
-            val crlDistributionPoints =
+            runCatching {
+                val crlDistributionPoint = certificate.getExtensionValue(Extension.cRLDistributionPoints.toString())
                 CRLDistPoint.getInstance(JcaX509ExtensionUtils.parseExtensionValue(crlDistributionPoint))
-            logger.warn("CRL for $crlDistributionPoints feilet")
+            }.onSuccess {
+                logger.warn("CRL for $it feilet", e)
+            }.onFailure {
+                logger.warn("CRL-sjekk feilet for sertifikat <${certificate.serialNumber.toString(16)}>", e)
+            }
             throw e
         }
     }

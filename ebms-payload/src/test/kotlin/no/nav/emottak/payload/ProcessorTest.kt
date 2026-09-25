@@ -11,12 +11,14 @@ import no.nav.emottak.payload.helseid.NinResolver
 import no.nav.emottak.payload.util.EventRegistrationServiceFake
 import no.nav.emottak.util.marker
 import no.nav.emottak.validering.sertifikat.CRLChecker
+import no.nav.emottak.validering.sertifikat.CRLException
 import no.nav.emottak.validering.sertifikat.SertifikatValidator
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.assertThrows
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -112,5 +114,25 @@ class ProcessorTest : PayloadTestBase() {
 
         assertNull(result.signedByPid)
         assertNull(result.signedByOrg)
+    }
+
+    @Test
+    fun `validateReadablePayload propagates technical CRL fetch failures instead of converting them into a PayloadException`() = runBlocking {
+        setupEnv()
+        val crlChecker = mockk<CRLChecker>()
+        every { crlChecker.getCRLRevocationInfo(any(), any()) } throws CRLException("CRL endpoint unreachable")
+        val processor = Processor(
+            EventRegistrationServiceFake(),
+            SertifikatValidator(crlChecker = crlChecker)
+        )
+        val payload: Payload = Fixtures.validEgenandelForesporsel()
+        val request = baseRequest(payload = payload) // signering = true by default
+
+        // A technical/transient CRL retrieval failure must propagate as-is (not be wrapped in a
+        // PayloadException/AppRec-producing exception), so ebms-async's retry service can retry it.
+        val thrown = assertThrows<CRLException> {
+            processor.validateReadablePayload(request.marker(), payload, request, request.processing.processConfig)
+        }
+        assertEquals("CRL endpoint unreachable", thrown.message)
     }
 }
