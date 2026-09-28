@@ -10,6 +10,7 @@ import no.nav.emottak.utils.environment.getEnvVar
 fun config() = ConfigLoader.builder()
     .addEnvironmentSource()
     .addResourceSource("/kafka_common.conf")
+    .addResourceSource("/application.conf")
     .addResourceSource(configurationFileResolver())
     .withExplicitSealedTypes()
     .build()

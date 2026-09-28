@@ -10,13 +10,14 @@ import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.runs
-import kotlinx.coroutines.runBlocking
 import no.nav.emottak.util.TestUtil
 import no.nav.emottak.util.TestUtil.Companion.crlFile
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.decodeBase64
 import org.bouncycastle.asn1.x500.X500Name
+import java.security.cert.X509CRL
 import java.time.Instant
+import java.util.Date
 
 class SertifikatValidatorTest : FunSpec({
 
@@ -51,20 +52,20 @@ class SertifikatValidatorTest : FunSpec({
     }
 
     context("Sertifikatsjekk med CRLChecker med CRL fil") {
+        val validCrlFile = mockk<X509CRL>()
+        every { validCrlFile.issuerX500Principal } returns crlFile.issuerX500Principal
+        every { validCrlFile.nextUpdate } returns Date.from(Instant.now().plusSeconds(3600))
+        every { validCrlFile.getRevokedCertificate(any<java.math.BigInteger>()) } answers {
+            crlFile.getRevokedCertificate(firstArg<java.math.BigInteger>())
+        }
         val crl = CRL(
             X500Name("CN=Buypass Class 3 CA 2, O=Buypass AS-983163327, C=NO"),
             "url",
-            crlFile,
+            validCrlFile,
             Instant.now()
         )
         System.setProperty("TRUSTSTORE_PATH", "truststore.p12")
-        val crlRetriever = mockk<CRLRetriever>()
-        every {
-            runBlocking {
-                crlRetriever.updateAllCRLs()
-            }
-        } returns listOf(crl)
-        val crlChecker = CRLChecker(crlRetriever)
+        val crlChecker = CRLChecker(CRLStore(listOf(crl)))
         val sertifikatValidering = SertifikatValidator(crlChecker)
 
         withData(

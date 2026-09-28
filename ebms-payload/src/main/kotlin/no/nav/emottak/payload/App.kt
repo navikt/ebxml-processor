@@ -11,6 +11,11 @@ import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.routing.routing
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.runBlocking
 import no.nav.emottak.payload.configuration.config
 import no.nav.emottak.payload.util.EventRegistrationService
 import no.nav.emottak.payload.util.EventRegistrationServiceImpl
@@ -19,7 +24,8 @@ import no.nav.emottak.util.jsonLenient
 import no.nav.emottak.utils.kafka.client.EventPublisherClient
 import no.nav.emottak.utils.kafka.service.EventLoggingService
 import no.nav.emottak.validering.sertifikat.CRLChecker
-import no.nav.emottak.validering.sertifikat.CRLRetriever
+import no.nav.emottak.validering.sertifikat.CRLStore
+import no.nav.emottak.validering.sertifikat.CRLUpdater
 import no.nav.emottak.validering.sertifikat.SertifikatValidator
 import no.nav.emottak.validering.sertifikat.defaultCRLLists
 import no.nav.security.token.support.v3.tokenValidationSupport
@@ -27,25 +33,37 @@ import org.slf4j.LoggerFactory
 
 internal val log = LoggerFactory.getLogger("no.nav.emottak.payload")
 fun main() {
-    val kafkaPublisherClient = EventPublisherClient(config().kafka)
-    val eventLoggingService = EventLoggingService(config().eventLogging, kafkaPublisherClient)
+    val appConfig = config()
+    val kafkaPublisherClient = EventPublisherClient(appConfig.kafka)
+    val eventLoggingService = EventLoggingService(appConfig.eventLogging, kafkaPublisherClient)
     val eventRegistrationService = EventRegistrationServiceImpl(eventLoggingService)
+    val crlStore = CRLStore(defaultCRLLists)
+    val crlUpdater = CRLUpdater(
+        httpClient = HttpClientUtil.client,
+        crlStore = crlStore,
+        refreshInterval = appConfig.crl.refreshInterval,
+        issuerList = defaultCRLLists
+    )
+    runBlocking {
+        crlUpdater.refresh()
+    }
     val sertifikatValidator = SertifikatValidator(
-        crlChecker = CRLChecker(
-            crlRetriever = CRLRetriever(
-                httpClient = HttpClientUtil.client,
-                issuerList = defaultCRLLists
-            )
-        )
+        crlChecker = CRLChecker(crlStore)
     )
 
     val processor = Processor(eventRegistrationService, sertifikatValidator)
 
-    embeddedServer(
-        factory = Netty,
-        port = 8080,
-        module = payloadApplicationModule(processor, eventRegistrationService)
-    ).start(wait = true)
+    val crlUpdaterScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    crlUpdater.startIn(crlUpdaterScope)
+    try {
+        embeddedServer(
+            factory = Netty,
+            port = 8080,
+            module = payloadApplicationModule(processor, eventRegistrationService)
+        ).start(wait = true)
+    } finally {
+        crlUpdaterScope.cancel()
+    }
 }
 
 fun payloadApplicationModule(

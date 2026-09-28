@@ -2,6 +2,7 @@ package no.nav.emottak.cpa.configuration
 
 import no.nav.emottak.utils.config.EventLogging
 import no.nav.emottak.utils.config.Kafka
+import no.nav.emottak.validering.sertifikat.CRLConfig
 import java.net.URI
 import java.time.Duration
 
@@ -9,7 +10,8 @@ data class Config(
     val kafka: Kafka,
     val eventLogging: EventLogging,
     val nhnOAuth: NhnOAuthConfig,
-    val nhn: Nhn
+    val nhn: Nhn,
+    val crl: CRLConfig = CRLConfig()
 )
 
 /**
