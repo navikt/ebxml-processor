@@ -111,7 +111,7 @@ class RetryService(
                     ),
                     senderAddress
                 )
-                log.error("MESSAGE_GIVEN_UP: incoming with key ${record.key()} at offset ${record.offset()}, retried $retryCount times, TTL expired")
+                log.error(payloadMessage.marker(), "MESSAGE_GIVEN_UP: TTL expired: incoming with key ${record.key()} at offset ${record.offset()}, retried $retryCount times", exception)
             }
             RetryDecision.MAX_RETRIES_EXCEEDED -> {
                 returnMessageErrorSafely(
@@ -124,7 +124,7 @@ class RetryService(
                         ),
                     senderAddress
                 )
-                log.error("MESSAGE_GIVEN_UP: incoming with key ${record.key()} at offset ${record.offset()}, retried $retryCount times, max retries exceeded")
+                log.error(payloadMessage.marker(), "MESSAGE_GIVEN_UP: Max Retry Exceeded: incoming with key ${record.key()} at offset ${record.offset()}, retried $retryCount times", exception)
             }
             RetryDecision.NO_RETRY -> {
                 returnMessageErrorSafely(
@@ -137,7 +137,7 @@ class RetryService(
                         ),
                     senderAddress
                 )
-                log.error("MESSAGE_GIVEN_UP: incoming with key ${record.key()} at offset ${record.offset()}, NO RETRY for this error")
+                log.error(payloadMessage.marker(), "MESSAGE_GIVEN_UP: No Retry: incoming with key ${record.key()} at offset ${record.offset()}", exception)
             }
         }
         log.info("Decision [$decision]:\n" + "Failing payload sent at ${payloadMessage.sentAt ?: "unknown"}, error type: ${exception::class.simpleName ?: "Unknown error"}, reason: $retryReason, retries already performed: $retryCount. Decision reason: $reason")
