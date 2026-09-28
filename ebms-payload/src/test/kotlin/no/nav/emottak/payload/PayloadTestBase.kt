@@ -12,7 +12,6 @@ import io.ktor.http.contentType
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import io.mockk.coEvery
-import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.mockkConstructor
@@ -63,7 +62,7 @@ import java.util.Date
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
-val testKeystore = KeyStoreManager(*config().signering.map { it.resolveKeyStoreConfiguration() }.toTypedArray())
+val testKeystore = KeyStoreManager(*config.signering.map { it.resolveKeyStoreConfiguration() }.toTypedArray())
 
 abstract class PayloadTestBase {
 
@@ -100,7 +99,7 @@ abstract class PayloadTestBase {
 
             val eventRegistrationService = EventRegistrationServiceFake()
             val crlChecker = mockk<CRLChecker>()
-            every { crlChecker.getCRLRevocationInfo(any(), any()) } just runs
+            coEvery { crlChecker.getCRLRevocationInfo(any(), any()) } just runs
             val sertifikatValidator = SertifikatValidator(crlChecker = crlChecker)
             val processor = Processor(eventRegistrationService, sertifikatValidator)
 

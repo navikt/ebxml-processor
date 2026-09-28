@@ -21,20 +21,19 @@ import no.nav.emottak.utils.kafka.service.EventLoggingService
 import no.nav.emottak.validering.sertifikat.CRLChecker
 import no.nav.emottak.validering.sertifikat.CRLRetriever
 import no.nav.emottak.validering.sertifikat.SertifikatValidator
-import no.nav.emottak.validering.sertifikat.defaultCRLLists
 import no.nav.security.token.support.v3.tokenValidationSupport
 import org.slf4j.LoggerFactory
 
 internal val log = LoggerFactory.getLogger("no.nav.emottak.payload")
 fun main() {
-    val kafkaPublisherClient = EventPublisherClient(config().kafka)
-    val eventLoggingService = EventLoggingService(config().eventLogging, kafkaPublisherClient)
+    val kafkaPublisherClient = EventPublisherClient(config.kafka)
+    val eventLoggingService = EventLoggingService(config.eventLogging, kafkaPublisherClient)
     val eventRegistrationService = EventRegistrationServiceImpl(eventLoggingService)
     val sertifikatValidator = SertifikatValidator(
         crlChecker = CRLChecker(
             crlRetriever = CRLRetriever(
                 httpClient = HttpClientUtil.client,
-                issuerList = defaultCRLLists
+                issuerList = config.caList.filter { it.crlUrl != null }.associate { it.dn to it.crlUrl!! }
             )
         )
     )

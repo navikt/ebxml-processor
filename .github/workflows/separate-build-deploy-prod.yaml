@@ -69,7 +69,7 @@ jobs:
     steps:
       - uses: "actions/checkout@v7"
       - name: "Deploy to PROD"
-        uses: "nais/deploy/actions/deploy@v2"
+        uses: "nais/deploy/actions/deploy@v3"
         env:
           CLUSTER: "prod-fss"
           RESOURCE: ".nais/${{ github.event.inputs.project }}-prod.yaml"

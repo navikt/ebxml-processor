@@ -33,7 +33,7 @@ class SertifikatValidator(
     private val trustedRootCertificates: Set<X509Certificate> = trustStore.getTrustedRootCerts()
     private val intermediateCertificates: Set<X509Certificate> = trustStore.getIntermediateCerts()
 
-    fun validateCertificate(certificate: X509Certificate) {
+    suspend fun validateCertificate(certificate: X509Certificate) {
         if (isSelfSigned(certificate)) {
             throw CertificateValidationException("Sertifikat er selvsignert")
         }
@@ -79,7 +79,7 @@ class SertifikatValidator(
         }
     }
 
-    fun sjekkCRL(certificate: X509Certificate) {
+    suspend fun sjekkCRL(certificate: X509Certificate) {
         try {
             crlChecker.getCRLRevocationInfo(certificate.issuerX500Principal.name, certificate.serialNumber)
         } catch (e: CertificateValidationException) {
