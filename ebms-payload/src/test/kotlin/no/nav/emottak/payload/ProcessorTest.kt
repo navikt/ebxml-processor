@@ -119,7 +119,7 @@ class ProcessorTest : PayloadTestBase() {
     fun `validateReadablePayload propagates technical CRL fetch failures instead of converting them into a PayloadException`() = runBlocking {
         setupEnv()
         val crlChecker = mockk<CRLChecker>()
-        every { crlChecker.getCRLRevocationInfo(any(), any()) } throws CRLException("CRL endpoint unreachable")
+        coEvery { crlChecker.getCRLRevocationInfo(any(), any()) } throws CRLException("CRL endpoint unreachable")
         val processor = Processor(
             EventRegistrationServiceFake(),
             SertifikatValidator(crlChecker = crlChecker)
