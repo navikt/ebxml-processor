@@ -17,7 +17,7 @@ class NinResolver(
     private val tokenValidator: HelseIdTokenValidator = HelseIdTokenValidator(),
     private val ocspStatusService: OcspStatusService = OcspStatusService(
         HttpClientUtil.client,
-        KeyStoreManager(*config().signering.map { it.resolveKeyStoreConfiguration() }.toTypedArray())
+        KeyStoreManager(*config.signering.map { it.resolveKeyStoreConfiguration() }.toTypedArray())
     )
 ) {
     fun resolve(token: String, messageGenerationDate: Instant): String? {

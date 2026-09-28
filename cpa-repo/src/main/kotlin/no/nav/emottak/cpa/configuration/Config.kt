@@ -2,10 +2,12 @@ package no.nav.emottak.cpa.configuration
 
 import no.nav.emottak.utils.config.EventLogging
 import no.nav.emottak.utils.config.Kafka
+import no.nav.emottak.validering.sertifikat.CertificateAuthority
 import java.net.URI
 import java.time.Duration
 
 data class Config(
+    val caList: List<CertificateAuthority>,
     val kafka: Kafka,
     val eventLogging: EventLogging,
     val nhnOAuth: NhnOAuthConfig,

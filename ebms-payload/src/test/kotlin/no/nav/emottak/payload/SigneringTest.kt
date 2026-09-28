@@ -13,7 +13,7 @@ class SigneringTest {
 
     @Test
     fun testSigneringAvDokument() {
-        val ksm = KeyStoreManager(*config().signering.map { it.resolveKeyStoreConfiguration() }.toTypedArray())
+        val ksm = KeyStoreManager(*config.signering.map { it.resolveKeyStoreConfiguration() }.toTypedArray())
         val signering = PayloadSignering()
         val usignertXMLInputStream = SigneringTest::class.java.classLoader
             .getResourceAsStream("xml/test.xml")
