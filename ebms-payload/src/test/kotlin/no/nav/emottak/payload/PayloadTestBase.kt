@@ -62,7 +62,7 @@ import java.util.Date
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
-val testKeystore = KeyStoreManager(*config().signering.map { it.resolveKeyStoreConfiguration() }.toTypedArray())
+val testKeystore = KeyStoreManager(*config.signering.map { it.resolveKeyStoreConfiguration() }.toTypedArray())
 
 abstract class PayloadTestBase {
 

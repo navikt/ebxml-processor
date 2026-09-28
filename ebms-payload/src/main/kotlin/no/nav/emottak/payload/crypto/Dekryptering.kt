@@ -21,7 +21,7 @@ import java.security.Security
  */
 class Dekryptering(
     private val keyStore: KeyStoreManager =
-        KeyStoreManager(*config().dekryptering.map { it.resolveKeyStoreConfiguration() }.toTypedArray())
+        KeyStoreManager(*config.dekryptering.map { it.resolveKeyStoreConfiguration() }.toTypedArray())
 ) {
 
     init {
