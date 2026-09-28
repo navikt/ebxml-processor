@@ -1,5 +1,7 @@
 package no.nav.emottak.validering.sertifikat
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.runBlocking
 import no.nav.emottak.crypto.KeyStoreManager
 import no.nav.emottak.crypto.trustStoreConfig
@@ -13,6 +15,7 @@ import java.security.cert.X509CRLEntry
 import java.security.cert.X509Certificate
 import java.time.Instant
 import java.util.Date
+import java.util.concurrent.ConcurrentHashMap
 
 class CRLChecker(
     private val crlRetriever: CRLRetriever,
@@ -26,59 +29,68 @@ class CRLChecker(
     private val trustedCertificates: Set<X509Certificate> =
         trustStore.getTrustedRootCerts() + trustStore.getIntermediateCerts()
 
-    private val crlList: List<CRL> by lazy {
-        runBlocking {
-            crlRetriever.updateAllCRLs()
-        }.onEach { crl ->
-            crl.file?.let {
-                try {
-                    validateCRL(crl, it)
-                    crl.validationError = null
-                } catch (e: CertificateValidationException) {
-                    // En ugyldig CRL for en issuer skal ikke hindre de andre issuerne i listen fra å
-                    // bli tatt i bruk. Den konkrete feilen lagres og kastes på nytt kun når nettopp
-                    // denne issueren spørres opp, uten å tvinge frem gjentatt nedlasting av hele listen.
-                    log.warn("Validering av CRL for ${crl.x500Name} feilet ved oppstart!", e)
-                    crl.validationError = e
+    // Én mutex per issuer sørger for at samtidige requests mot en utdatert/manglende CRL
+    // ikke alle utløser parallelle oppdateringer ("thundering herd") mot CRL-utsteder.
+    private val updateLocks = ConcurrentHashMap<X500Name, Mutex>()
+
+    private var crlList: List<CRL>? = null
+    private val initLock = Mutex()
+
+    private suspend fun getCrlList(): List<CRL> {
+        crlList?.let { return it }
+        return initLock.withLock {
+            crlList ?: crlRetriever.updateAllCRLs().onEach { crl ->
+                crl.file?.let {
+                    try {
+                        validateCRL(crl, it)
+                        crl.validationError = null
+                    } catch (e: CertificateValidationException) {
+                        // En ugyldig CRL for en issuer skal ikke hindre de andre issuerne i listen fra å
+                        // bli tatt i bruk. Den konkrete feilen lagres og kastes på nytt kun når nettopp
+                        // denne issueren spørres opp, uten å tvinge frem gjentatt nedlasting av hele listen.
+                        log.warn("Validering av CRL for ${crl.x500Name} feilet ved oppstart!", e)
+                        crl.validationError = e
+                    }
                 }
-            }
+            }.also { crlList = it }
         }
     }
 
-    fun getCRLRevocationInfo(issuer: String, serialNumber: BigInteger) {
+    suspend fun getCRLRevocationInfo(issuer: String, serialNumber: BigInteger) {
         getRevokedCertificate(issuer = X500Name(issuer), serialNumber = serialNumber)?.let {
             throw CertificateValidationException("Sertifikat revokert: serienummer <$serialNumber> revokert med reason <${it.revocationReason}> at <${it.revocationDate}>")
         }
     }
 
-    private fun getRevokedCertificate(issuer: X500Name, serialNumber: BigInteger): X509CRLEntry? {
+    private suspend fun getRevokedCertificate(issuer: X500Name, serialNumber: BigInteger): X509CRLEntry? {
         return getCRLFile(issuer).getRevokedCertificate(serialNumber)
     }
 
-    private fun getCRLFile(issuer: X500Name): X509CRL {
-        val crl = crlList.firstOrNull { it.x500Name == issuer }
+    private suspend fun getCRLFile(issuer: X500Name): X509CRL {
+        val crl = getCrlList().firstOrNull { it.x500Name == issuer }
             ?: throw CertificateValidationException("Issuer $issuer ikke støttet. CRL liste må oppdateres med issuer om denne skal støttes")
-        return with(crl) {
+        val needsUpdate = with(crl) {
             when {
                 file == null -> {
                     log.warn("Issuer $issuer støttet, men CRL er null. Forsøker oppdatering")
-                    updateCRL(this)
+                    true
                 }
                 file!!.nextUpdate?.before(Date.from(Instant.now())) == true -> {
                     log.info("CRL for Issuer $issuer utdatert ${file!!.nextUpdate}. Forsøker oppdatering")
-                    updateCRL(this)
+                    true
                 }
                 updated.isBefore(Instant.now().minusSeconds(crlMaximumAgeInSeconds)) -> {
                     log.info("CRL for Issuer $issuer er eldre enn $crlMaximumAgeInSeconds sekunder. Forsøker oppdatering")
-                    updateCRL(this)
+                    true
                 }
+                else -> false
             }
-            val validatedFile = file
-                ?: throw CertificateValidationException("Issuer $issuer støttet, men henting av CRL har feilet")
-            validationError?.let { throw it }
-            crl.validateValidityWindow(validatedFile)
-            validatedFile
         }
+        if (needsUpdate) {
+            updateCRL(crl)
+        }
+        crl.validate()
+        return crl.file!!
     }
 
     private fun findIssuerCertificate(issuer: X500Name): X509Certificate {
@@ -86,19 +98,23 @@ class CRLChecker(
             ?: throw CertificateValidationException("Fant ikke CA-sertifikat for issuer $issuer i truststore. Kan ikke verifisere CRL-signatur")
     }
 
-    private fun updateCRL(crl: CRL) {
-        try {
-            val downloaded = runBlocking {
-                crlRetriever.updateCRL(crl.url)
+    private suspend fun updateCRL(crl: CRL) {
+        val lock = updateLocks.computeIfAbsent(crl.x500Name) { Mutex() }
+        lock.withLock {
+            // Sjekk på nytt inni låsen, i tilfelle en annen coroutine allerede oppdaterte mens vi ventet
+            if (crl.file != null && crl.updated.isAfter(Instant.now().minusSeconds(crlMaximumAgeInSeconds)) &&
+                crl.file!!.nextUpdate?.after(Date.from(Instant.now())) != false
+            ) {
+                return
             }
-            validateCRL(crl, downloaded)
-            crl.file = downloaded
-            crl.updated = Instant.now()
-            crl.validationError = null
-        } catch (e: Exception) {
-            log.warn("Oppdatering av CRL for ${crl.x500Name} feilet!", e)
-            if (e is CertificateValidationException) {
-                crl.validationError = e
+            try {
+                val downloadedCrl = crlRetriever.updateCRL(crl.url)
+                validateCRL(crl, downloadedCrl)
+                crl.file = downloadedCrl
+                crl.updated = Instant.now()
+                crl.validationError = null
+            } catch (e: Exception) {
+                log.warn("Oppdatering av CRL for ${crl.x500Name} feilet!", e)
             }
         }
     }
