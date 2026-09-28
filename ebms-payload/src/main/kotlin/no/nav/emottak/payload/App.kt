@@ -12,6 +12,7 @@ import io.ktor.server.routing.routing
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import no.nav.emottak.payload.configuration.config
+import no.nav.emottak.payload.helseid.checkHelseIdJwksConnection
 import no.nav.emottak.payload.util.EventRegistrationService
 import no.nav.emottak.payload.util.EventRegistrationServiceImpl
 import no.nav.emottak.util.HttpClientUtil
@@ -49,7 +50,8 @@ fun main() {
 
 fun payloadApplicationModule(
     processor: Processor,
-    eventRegistrationService: EventRegistrationService
+    eventRegistrationService: EventRegistrationService,
+    helseIdConnectionCheck: () -> Unit = ::checkHelseIdJwksConnection
 ): Application.() -> Unit {
     return {
         install(ContentNegotiation) {
@@ -64,7 +66,7 @@ fun payloadApplicationModule(
         }
 
         routing {
-            registerHealthEndpoints(appMicrometerRegistry)
+            registerHealthEndpoints(appMicrometerRegistry, helseIdConnectionCheck)
 
             authenticate(AZURE_AD_AUTH) {
                 postPayload(processor, eventRegistrationService)
