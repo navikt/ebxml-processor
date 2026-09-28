@@ -2,8 +2,8 @@ package no.nav.emottak.cpa.configuration
 
 import no.nav.emottak.utils.config.EventLogging
 import no.nav.emottak.utils.config.Kafka
-import no.nav.emottak.validering.sertifikat.CertificateAuthority
 import no.nav.emottak.validering.sertifikat.CRLConfig
+import no.nav.emottak.validering.sertifikat.CertificateAuthority
 import java.net.URI
 import java.time.Duration
 

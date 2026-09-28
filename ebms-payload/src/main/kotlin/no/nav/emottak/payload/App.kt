@@ -32,16 +32,16 @@ import org.slf4j.LoggerFactory
 
 internal val log = LoggerFactory.getLogger("no.nav.emottak.payload")
 fun main() {
-    val appConfig = config()
-    val kafkaPublisherClient = EventPublisherClient(appConfig.kafka)
-    val eventLoggingService = EventLoggingService(appConfig.eventLogging, kafkaPublisherClient)
+    val kafkaPublisherClient = EventPublisherClient(config.kafka)
+    val eventLoggingService = EventLoggingService(config.eventLogging, kafkaPublisherClient)
     val eventRegistrationService = EventRegistrationServiceImpl(eventLoggingService)
-    val crlStore = CRLStore(defaultCRLLists)
+    val certificateAuthorities = config.caList.filter { it.crlUrl != null }.associate { it.dn to it.crlUrl!! }
+    val crlStore = CRLStore(certificateAuthorities)
     val crlUpdater = CRLUpdater(
         httpClient = HttpClientUtil.client,
         crlStore = crlStore,
-        refreshInterval = appConfig.crl.refreshInterval,
-        issuerList = config.caList.filter { it.crlUrl != null }.associate { it.dn to it.crlUrl!! }
+        refreshInterval = config.crl.refreshInterval,
+        issuerList = certificateAuthorities
     )
     runBlocking {
         crlUpdater.refresh()

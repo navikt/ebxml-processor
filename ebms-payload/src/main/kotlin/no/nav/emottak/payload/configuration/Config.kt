@@ -3,8 +3,8 @@ package no.nav.emottak.payload.configuration
 import no.nav.emottak.util.KeyStoreConfiguration
 import no.nav.emottak.utils.config.EventLogging
 import no.nav.emottak.utils.config.Kafka
-import no.nav.emottak.validering.sertifikat.CertificateAuthority
 import no.nav.emottak.validering.sertifikat.CRLConfig
+import no.nav.emottak.validering.sertifikat.CertificateAuthority
 
 data class Config(
     val caList: List<CertificateAuthority>,

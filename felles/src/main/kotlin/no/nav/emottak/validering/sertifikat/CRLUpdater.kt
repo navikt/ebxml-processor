@@ -24,7 +24,7 @@ class CRLUpdater(
     private val httpClient: HttpClient,
     private val crlStore: CRLStore,
     private val refreshInterval: Duration,
-    private val issuerList: Map<String, String> = defaultCRLLists
+    private val issuerList: Map<String, String>
 ) {
     private val log = LoggerFactory.getLogger(CRLUpdater::class.java)
 

@@ -52,12 +52,13 @@ fun main() {
     val kafkaPublisherClient = EventPublisherClient(config.kafka)
     val eventLoggingService = EventLoggingService(config.eventLogging, kafkaPublisherClient)
     val eventRegistrationService = EventRegistrationServiceImpl(eventLoggingService)
-    val crlStore = CRLStore(defaultCRLLists)
+    val certificateAuthorities = config.caList.filter { it.crlUrl != null }.associate { it.dn to it.crlUrl!! }
+    val crlStore = CRLStore(certificateAuthorities)
     val crlUpdater = CRLUpdater(
         httpClient = HttpClientUtil.client,
         crlStore = crlStore,
         refreshInterval = config.crl.refreshInterval,
-        issuerList = config.caList.filter { it.crlUrl != null }.associate { it.dn to it.crlUrl!! }
+        issuerList = certificateAuthorities
     )
     runBlocking {
         crlUpdater.refresh()
