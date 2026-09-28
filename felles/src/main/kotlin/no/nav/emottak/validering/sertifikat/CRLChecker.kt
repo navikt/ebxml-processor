@@ -2,7 +2,6 @@ package no.nav.emottak.validering.sertifikat
 
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.runBlocking
 import no.nav.emottak.crypto.KeyStoreManager
 import no.nav.emottak.crypto.trustStoreConfig
 import org.bouncycastle.asn1.x500.X500Name
@@ -89,8 +88,11 @@ class CRLChecker(
         if (needsUpdate) {
             updateCRL(crl)
         }
-        crl.validate()
-        return crl.file!!
+        crl.validationError?.let { throw it }
+        val file = crl.file
+            ?: throw CertificateValidationException("CRL for $issuer ikke tilgjengelig etter oppdatering")
+        validateCRL(crl, file)
+        return file
     }
 
     private fun findIssuerCertificate(issuer: X500Name): X509Certificate {
