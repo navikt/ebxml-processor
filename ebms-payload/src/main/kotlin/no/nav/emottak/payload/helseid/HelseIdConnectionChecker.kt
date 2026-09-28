@@ -8,7 +8,7 @@ import no.nav.emottak.payload.log
 fun checkHelseIdJwksConnection() {
     val jwksUrl = OpenIdConfigProvider.jwksUrl
     log.info("Checking HelseID JWKS connection to {}", jwksUrl)
-    val resource = DefaultResourceRetriever().retrieveResource(jwksUrl)
+    val resource = DefaultResourceRetriever(5_000, 20_000).retrieveResource(jwksUrl)
     check(JWKSet.parse(resource.content).keys.isNotEmpty()) {
         "HelseID JWKS contained no keys"
     }
