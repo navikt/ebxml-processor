@@ -156,7 +156,8 @@ private fun createNegativeAppRecOrErrorPayload(
 }.getOrThrow()
 
 fun Routing.registerHealthEndpoints(
-    collectorRegistry: PrometheusMeterRegistry
+    collectorRegistry: PrometheusMeterRegistry,
+    helseIdConnectionCheck: () -> Unit
 ) {
     get("/internal/health/liveness") {
         call.respondText("I'm alive! :)")
@@ -166,5 +167,17 @@ fun Routing.registerHealthEndpoints(
     }
     get("/prometheus") {
         call.respond(collectorRegistry.scrape())
+    }
+    get("/internal/status/helseid") {
+        try {
+            helseIdConnectionCheck()
+            call.respondText("HelseID JWKS is reachable")
+        } catch (e: Exception) {
+            log.warn("HelseID JWKS connection check failed", e)
+            call.respondText(
+                text = "HelseID JWKS is unavailable",
+                status = HttpStatusCode.ServiceUnavailable
+            )
+        }
     }
 }

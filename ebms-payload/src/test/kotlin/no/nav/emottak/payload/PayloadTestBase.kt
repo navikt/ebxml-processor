@@ -103,7 +103,7 @@ abstract class PayloadTestBase {
             val sertifikatValidator = SertifikatValidator(crlChecker = crlChecker)
             val processor = Processor(eventRegistrationService, sertifikatValidator)
 
-            application(payloadApplicationModule(processor, eventRegistrationService))
+            application(payloadApplicationModule(processor, eventRegistrationService, helseIdConnectionCheck = {}))
             testBlock()
         }
 
