@@ -44,7 +44,7 @@ class CRLChecker(
                     try {
                         validateCRL(crl, it)
                         crl.validationError = null
-                    } catch (e: CertificateValidationException) {
+                    } catch (e: CRLException) {
                         // En ugyldig CRL for en issuer skal ikke hindre de andre issuerne i listen fra å
                         // bli tatt i bruk. Den konkrete feilen lagres og kastes på nytt kun når nettopp
                         // denne issueren spørres opp, uten å tvinge frem gjentatt nedlasting av hele listen.
@@ -68,7 +68,7 @@ class CRLChecker(
 
     private suspend fun getCRLFile(issuer: X500Name): X509CRL {
         val crl = getCrlList().firstOrNull { it.x500Name == issuer }
-            ?: throw CertificateValidationException("Issuer $issuer ikke støttet. CRL liste må oppdateres med issuer om denne skal støttes")
+            ?: throw CRLException("Issuer $issuer ikke støttet. CRL liste må oppdateres med issuer om denne skal støttes")
         val needsUpdate = with(crl) {
             when {
                 file == null -> {
@@ -90,15 +90,14 @@ class CRLChecker(
             updateCRL(crl)
         }
         crl.validationError?.let { throw it }
-        val file = crl.file
-            ?: throw CertificateValidationException("CRL for $issuer ikke tilgjengelig etter oppdatering")
+        val file = crl.file ?: throw CRLException("CRL for $issuer ikke tilgjengelig etter oppdatering")
         validateCRL(crl, file)
         return file
     }
 
     private fun findIssuerCertificate(issuer: X500Name): X509Certificate {
         return trustedCertificates.firstOrNull { X500Name(it.subjectX500Principal.name) == issuer }
-            ?: throw CertificateValidationException("Fant ikke CA-sertifikat for issuer $issuer i truststore. Kan ikke verifisere CRL-signatur")
+            ?: throw CRLException("Fant ikke CA-sertifikat for issuer $issuer i truststore. Kan ikke verifisere CRL-signatur")
     }
 
     private suspend fun updateCRL(crl: CRL) {
@@ -123,7 +122,8 @@ class CRLChecker(
     }
 
     private fun validateCRL(crl: CRL, crlFile: X509CRL) {
-        crl.validate(crlFile, findIssuerCertificate(crl.x500Name), provider)
+        val issuerCertificate = findIssuerCertificate(crl.x500Name)
+        crl.validate(crlFile, issuerCertificate, provider)
         crl.validateValidityWindow(crlFile)
     }
 }
@@ -133,7 +133,7 @@ data class CRL(
     val url: String,
     var file: X509CRL?,
     var updated: Instant = Instant.now(),
-    var validationError: CertificateValidationException? = null
+    var validationError: CRLException? = null
 ) {
     /**
      * Validerer at CRL-filen finnes, er utstedt av forventet issuer, er signert av angitt
