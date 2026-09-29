@@ -20,6 +20,7 @@ import no.nav.emottak.message.model.PayloadResponse
 import no.nav.emottak.message.model.ProcessConfig
 import no.nav.emottak.payload.apprec.createNegativeApprec
 import no.nav.emottak.payload.error.DecryptionException
+import no.nav.emottak.payload.error.PayloadException
 import no.nav.emottak.payload.error.convertToFeil
 import no.nav.emottak.payload.error.getEventType
 import no.nav.emottak.payload.util.EventRegistrationService
@@ -117,10 +118,10 @@ private suspend fun createIncomingPayloadResponse(
                 if (processConfig.ocspSjekk) log.info(request.marker(), "Payload signatur ocsp sjekket")
             }
         )
-    } catch (e: Exception) {
+    } catch (e: PayloadException) {
         log.error(
             request.marker(),
-            "Feil ved validering av payload, creating AppRec or Error Payload in response instead",
+            "Feil ved validering av payload, returnerer AppRec eller Error Payload",
             e
         )
         val errorPayload: Payload? = createNegativeAppRecOrErrorPayload(processConfig, request, readablePayload, e)

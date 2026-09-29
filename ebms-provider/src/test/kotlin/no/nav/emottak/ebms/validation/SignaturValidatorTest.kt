@@ -1,11 +1,11 @@
 package no.nav.emottak.ebms.validation
 
+import no.nav.emottak.message.exception.SignatureValidationException
 import no.nav.emottak.message.model.EbmsAttachment
 import no.nav.emottak.message.model.EbmsDocument
 import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.message.xml.getDocumentBuilder
 import no.nav.emottak.util.decodeBase64
-import no.nav.emottak.validering.signatur.SignatureException
 import org.apache.xml.security.algorithms.MessageDigestAlgorithm
 import org.apache.xml.security.signature.XMLSignature
 import org.junit.jupiter.api.Test
@@ -46,7 +46,7 @@ class SignaturValidatorTest {
             listOf()
         )
 
-        org.junit.jupiter.api.assertThrows<SignatureException> {
+        org.junit.jupiter.api.assertThrows<SignatureValidationException> {
             SignaturValidator.validate(getSignatureDetailsForTest(), document, ebmsDocument.attachments)
         }
     }
