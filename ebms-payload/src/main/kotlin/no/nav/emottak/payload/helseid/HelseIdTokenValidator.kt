@@ -23,6 +23,7 @@ import no.nav.emottak.payload.helseid.util.XPathEvaluator
 import no.nav.emottak.payload.helseid.util.msgHeadNamespaceContext
 import no.nav.emottak.payload.log
 import org.w3c.dom.Document
+import java.net.URL
 import java.text.ParseException
 import java.time.Instant
 import java.time.ZoneId
@@ -35,9 +36,22 @@ class HelseIdTokenValidator(
     private val issuer: String = OpenIdConfigProvider.issuer,
     private val allowedClockSkewInMs: Long = config.helseId.allowedClockSkewInMs,
     private val allowedMessageGenerationGapInMs: Long = config.helseId.allowedMessageGenerationGapInMs,
+    private val jwksUrl: URL = OpenIdConfigProvider.jwksUrl,
     private val helseIdJwkSource: JWKSource<SecurityContext> = JWKSourceBuilder<SecurityContext>
-        .create<SecurityContext>(OpenIdConfigProvider.jwksUrl).build()
+        .create<SecurityContext>(jwksUrl).build()
 ) {
+    fun checkJwksConnection() {
+        log.info("Checking HelseID JWKS connection to {}", jwksUrl)
+        check(
+            helseIdJwkSource.get(
+                JWKSelector(JWKMatcher.Builder().build()),
+                SimpleSecurityContext()
+            ).isNotEmpty()
+        ) {
+            "HelseID JWKS contained no keys"
+        }
+    }
+
     fun getValidatedNin(base64Token: String, messageGenerationDate: Instant): String? = parseSignedJwt(base64Token)
         .also {
             validateHeader(it)
