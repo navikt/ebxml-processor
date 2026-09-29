@@ -7,6 +7,7 @@ import io.kotest.matchers.string.shouldContain
 import io.mockk.coEvery
 import io.mockk.mockk
 import no.nav.emottak.crypto.KeyStoreManager
+import no.nav.emottak.message.exception.CertificateValidationException
 import org.bouncycastle.asn1.x500.X500Name
 import java.math.BigInteger
 import java.time.Instant
@@ -75,7 +76,7 @@ class CRLCheckerTest : FunSpec({
         val crl = CRL(issuer, "url", crlFile, Instant.now())
         val checker = CRLChecker(buildRetriever(crl), trustStore)
 
-        val exception = shouldThrow<CertificateValidationException> {
+        val exception = shouldThrow<CRLException> {
             checker.getCRLRevocationInfo(issuer.toString(), BigInteger.valueOf(1))
         }
         exception.message shouldContain "kunne ikke verifiseres"
@@ -92,7 +93,7 @@ class CRLCheckerTest : FunSpec({
         val crl = CRL(issuer, "url", crlFile, Instant.now())
         val checker = CRLChecker(buildRetriever(crl, updateCRLFails = true), trustStore)
 
-        val exception = shouldThrow<CertificateValidationException> {
+        val exception = shouldThrow<CRLException> {
             checker.getCRLRevocationInfo(issuer.toString(), BigInteger.valueOf(1))
         }
         exception.message shouldContain "utløpt"
@@ -109,7 +110,7 @@ class CRLCheckerTest : FunSpec({
         val crl = CRL(issuer, "url", crlFile, Instant.now())
         val checker = CRLChecker(buildRetriever(crl), trustStore)
 
-        val exception = shouldThrow<CertificateValidationException> {
+        val exception = shouldThrow<CRLException> {
             checker.getCRLRevocationInfo(issuer.toString(), BigInteger.valueOf(1))
         }
         exception.message shouldContain "ikke gyldig enda"
