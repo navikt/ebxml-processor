@@ -4,12 +4,14 @@ import io.ktor.client.HttpClient
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.readRawBytes
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import no.nav.emottak.crypto.KeyStoreManager
 import no.nav.emottak.payload.configuration.config
 import no.nav.emottak.payload.error.CertificateException
 import no.nav.emottak.payload.error.OCSPValidationFnrBlankError
+import no.nav.emottak.payload.error.PayloadException
 import no.nav.emottak.payload.log
 import no.nav.emottak.utils.environment.getEnvVar
 import org.bouncycastle.asn1.ocsp.OCSPObjectIdentifiers
@@ -111,10 +113,12 @@ class OcspStatusService(
             }.let {
                 OCSPResp(it.readRawBytes())
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: IOException) {
-            throw CertificateException("Feil ved opprettelse av OCSP respons", cause = e)
+            throw OcspUnavailableException("Feil ved opprettelse av OCSP respons", e)
         } catch (e: Exception) {
-            throw CertificateException("Ukjent feil ved OCSP spørring. Kanskje OCSP endepunktet er nede?", e)
+            throw OcspUnavailableException("Ukjent feil ved OCSP spørring. Kanskje OCSP endepunktet er nede?", e)
         }
     }
 
@@ -143,10 +147,12 @@ class OcspStatusService(
                 if (!certificate.isVirksomhetssertifikat()) validateFnr(ssn)
                 createSertifikatInfoFromOCSPResponse(certificate, it.responses[0], ssn)
             }
-        } catch (e: CertificateException) {
-            throw CertificateException(e.message ?: "Sertifikatsjekk feilet", e)
+        } catch (e: PayloadException) {
+            throw CertificateException(e.message ?: "OCSP feilet", e)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
-            throw CertificateException(e.message ?: "Sertifikatsjekk feilet", e)
+            throw OcspUnavailableException(e.message ?: "Ukjent feil ved OCSP spørring", e)
         }
     }
 
