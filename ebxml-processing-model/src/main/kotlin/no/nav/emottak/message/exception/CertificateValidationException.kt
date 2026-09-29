@@ -1,6 +1,5 @@
-package no.nav.emottak.validering.sertifikat
+package no.nav.emottak.message.exception
 
-import no.nav.emottak.message.exception.EbmsException
 import no.nav.emottak.message.model.ErrorCode
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.SeverityType
 

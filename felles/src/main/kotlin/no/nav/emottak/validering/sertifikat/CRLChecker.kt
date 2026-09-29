@@ -4,6 +4,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import no.nav.emottak.crypto.KeyStoreManager
 import no.nav.emottak.crypto.trustStoreConfig
+import no.nav.emottak.message.exception.CertificateValidationException
 import org.bouncycastle.asn1.x500.X500Name
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.slf4j.LoggerFactory
@@ -140,22 +141,24 @@ data class CRL(
      */
     fun validate(crlFile: X509CRL, issuerCertificate: X509Certificate, provider: Provider) {
         if (x500Name != X500Name(crlFile.issuerX500Principal.name)) {
-            throw CertificateValidationException("CRL-fil utstedt av ${crlFile.issuerX500Principal.name}, men forventet $x500Name! Dette skal ikke skje!")
+            throw CRLException("CRL-fil utstedt av ${crlFile.issuerX500Principal.name}, men forventet $x500Name! Dette skal ikke skje!")
         }
         try {
             crlFile.verify(issuerCertificate.publicKey, provider.name)
         } catch (e: Exception) {
-            throw CertificateValidationException("CRL-signatur for $x500Name kunne ikke verifiseres mot CA-sertifikat <${issuerCertificate.subjectX500Principal.name}>", e)
+            throw CRLException("CRL-signatur for $x500Name kunne ikke verifiseres mot CA-sertifikat <${issuerCertificate.subjectX500Principal.name}>", e)
         }
     }
 
     internal fun validateValidityWindow(crlFile: X509CRL) {
         val now = Date.from(Instant.now())
         if (crlFile.nextUpdate != null && crlFile.nextUpdate.before(now)) {
-            throw CertificateValidationException("CRL for $x500Name er utløpt (nextUpdate <${crlFile.nextUpdate}>)")
+            throw CRLException("CRL for $x500Name er utløpt (nextUpdate <${crlFile.nextUpdate}>)")
         }
         if (crlFile.thisUpdate.after(now)) {
-            throw CertificateValidationException("CRL for $x500Name er ikke gyldig enda (thisUpdate <${crlFile.thisUpdate}>)")
+            throw CRLException("CRL for $x500Name er ikke gyldig enda (thisUpdate <${crlFile.thisUpdate}>)")
         }
     }
 }
+
+class CRLException(message: String, cause: Throwable? = null) : Exception(message, cause)

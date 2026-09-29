@@ -12,6 +12,7 @@ import io.mockk.mockk
 import io.mockk.runs
 import kotlinx.coroutines.runBlocking
 import no.nav.emottak.crypto.KeyStoreManager
+import no.nav.emottak.message.exception.CertificateValidationException
 import no.nav.emottak.util.TestUtil
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.decodeBase64

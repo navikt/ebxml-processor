@@ -10,6 +10,7 @@ import com.nimbusds.jose.crypto.factories.DefaultJWSVerifierFactory
 import com.nimbusds.jose.jwk.JWK
 import com.nimbusds.jose.jwk.JWKSelector
 import com.nimbusds.jose.jwk.JWKSet
+import com.nimbusds.jose.jwk.KeyUse
 import com.nimbusds.jose.jwk.gen.OctetSequenceKeyGenerator
 import com.nimbusds.jose.jwk.source.JWKSource
 import com.nimbusds.jose.proc.SecurityContext
@@ -32,6 +33,7 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
 import org.junit.jupiter.params.provider.ValueSource
+import java.net.URI
 import java.security.KeyStore
 import java.time.Instant
 import java.time.OffsetDateTime
@@ -73,6 +75,25 @@ internal class HelseIDValidatorTest {
                 "one:scope:more"
             )
         )
+    }
+
+    @Test
+    fun `JWKS connection check uses validator JWK source`() {
+        var sourceInvoked = false
+        val jwkSet = JWKSet(OctetSequenceKeyGenerator(256).keyUse(KeyUse.SIGNATURE).generate())
+        val jwkSource = JWKSource<SecurityContext> { selector, _ ->
+            sourceInvoked = true
+            selector.select(jwkSet)
+        }
+        val validator = HelseIdTokenValidator(
+            issuer = ISSUER,
+            jwksUrl = URI.create("https://example.test/jwks").toURL(),
+            helseIdJwkSource = jwkSource
+        )
+
+        validator.checkJwksConnection()
+
+        assertTrue(sourceInvoked)
     }
 
     @Test
