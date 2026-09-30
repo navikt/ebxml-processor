@@ -23,6 +23,7 @@ import org.bouncycastle.cert.X509v2CRLBuilder
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder
 import org.junit.jupiter.api.Test
 import java.security.KeyPairGenerator
+import java.security.PrivateKey
 import java.time.Duration
 import java.time.Instant
 import java.util.Date
@@ -84,6 +85,54 @@ class CRLUpdaterTest {
     }
 
     @Test
+    fun `CRL with invalid signature or future thisUpdate is not published`() = runBlocking<Unit> {
+        val otherKey = KeyPairGenerator.getInstance("RSA").apply { initialize(2048) }.generateKeyPair().private
+        listOf(
+            crlBytes(signingKey = otherKey),
+            crlBytes(thisUpdate = Instant.now().plusSeconds(600))
+        ).forEach { invalid ->
+            val store = CRLStore(issuerList)
+
+            updater(serving { invalid }, store).refresh()
+
+            store.get(issuer).shouldNotBeNull().file.shouldBeNull()
+        }
+    }
+
+    @Test
+    fun `CRL is not published when issuer certificate is missing from truststore`() = runBlocking<Unit> {
+        val store = CRLStore(issuerList)
+        val otherCa = CRLTestFactory.generateSelfSignedCaCertificate(X500Name("CN=Other CA"), keyPair)
+
+        CRLUpdater(
+            serving { crlBytes() },
+            store,
+            Duration.ofHours(1),
+            issuerList,
+            KeyStoreManager(InMemoryKeyStoreConfig(mapOf("other-ca" to otherCa)))
+        ).refresh()
+
+        store.get(issuer).shouldNotBeNull().file.shouldBeNull()
+    }
+
+    @Test
+    fun `invalid downloaded CRL preserves last valid CRL`() = runBlocking<Unit> {
+        val store = CRLStore(issuerList)
+        val otherKey = KeyPairGenerator.getInstance("RSA").apply { initialize(2048) }.generateKeyPair().private
+        val responses = AtomicInteger()
+        val client = serving {
+            if (responses.getAndIncrement() == 0) crlBytes() else crlBytes(signingKey = otherKey)
+        }
+        val updater = updater(client, store)
+
+        updater.refresh()
+        val existing = store.get(issuer).shouldNotBeNull()
+        updater.refresh()
+
+        store.get(issuer) shouldBe existing
+    }
+
+    @Test
     fun `periodic updater refreshes until cancelled`() = runBlocking<Unit> {
         val downloads = AtomicInteger()
         val downloadedTwice = CompletableDeferred<Unit>()
@@ -134,11 +183,13 @@ class CRLUpdaterTest {
 
     private fun crlBytes(
         crlIssuer: X500Name = issuer,
-        nextUpdate: Instant = Instant.now().plusSeconds(3600)
+        thisUpdate: Instant = Instant.now().minusSeconds(60),
+        nextUpdate: Instant = Instant.now().plusSeconds(3600),
+        signingKey: PrivateKey = keyPair.private
     ): ByteArray {
-        return X509v2CRLBuilder(crlIssuer, Date.from(Instant.now().minusSeconds(60)))
+        return X509v2CRLBuilder(crlIssuer, Date.from(thisUpdate))
             .setNextUpdate(Date.from(nextUpdate))
-            .build(JcaContentSignerBuilder("SHA256withRSA").build(keyPair.private))
+            .build(JcaContentSignerBuilder("SHA256withRSA").build(signingKey))
             .encoded
     }
 }
