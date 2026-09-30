@@ -1,7 +1,9 @@
 package no.nav.emottak.validering.sertifikat
 
 import org.bouncycastle.asn1.x500.X500Name
+import java.security.Provider
 import java.security.cert.X509CRL
+import java.security.cert.X509Certificate
 import java.time.Instant
 import java.util.Date
 import java.util.concurrent.atomic.AtomicReference
@@ -44,6 +46,22 @@ data class CRL(
                 throw CRLException("CRL-fil utstedt av ${file.issuerX500Principal.name}, men forventet $x500Name! Dette skal ikke skje!")
             file.nextUpdate?.before(Date.from(Instant.now())) == true ->
                 throw CRLException("CRL for Issuer $x500Name er utløpt ${file.nextUpdate}")
+            file.thisUpdate.after(Date.from(Instant.now())) ->
+                throw CRLException("CRL for Issuer $x500Name er ikke gyldig enda ${file.thisUpdate}")
+        }
+    }
+
+    fun validate(crlFile: X509CRL, issuerCertificate: X509Certificate, provider: Provider) {
+        if (x500Name != X500Name(crlFile.issuerX500Principal.name)) {
+            throw CRLException("CRL-fil utstedt av ${crlFile.issuerX500Principal.name}, men forventet $x500Name! Dette skal ikke skje!")
+        }
+        try {
+            crlFile.verify(issuerCertificate.publicKey, provider.name)
+        } catch (e: Exception) {
+            throw CRLException(
+                "CRL-signatur for $x500Name kunne ikke verifiseres mot CA-sertifikat <${issuerCertificate.subjectX500Principal.name}>",
+                e
+            )
         }
     }
 }

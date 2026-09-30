@@ -45,7 +45,6 @@ class SertifikatValidatorTest : FunSpec({
             sertifikatValidering.validateCertificate(certificate)
         }
     }
-
 })
 
 val sertifikat = createX509Certificate(

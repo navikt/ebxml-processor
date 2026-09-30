@@ -17,6 +17,7 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import no.nav.emottak.crypto.KeyStoreManager
 import org.bouncycastle.asn1.x500.X500Name
 import org.bouncycastle.cert.X509v2CRLBuilder
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder
@@ -113,7 +114,17 @@ class CRLUpdaterTest {
     }
 
     private fun updater(client: HttpClient, store: CRLStore, interval: Duration = Duration.ofHours(1)) =
-        CRLUpdater(client, store, interval, issuerList)
+        CRLUpdater(
+            client,
+            store,
+            interval,
+            issuerList,
+            KeyStoreManager(
+                InMemoryKeyStoreConfig(
+                    mapOf("test-ca" to CRLTestFactory.generateSelfSignedCaCertificate(issuer, keyPair))
+                )
+            )
+        )
 
     private fun serving(body: () -> ByteArray?) = HttpClient(
         MockEngine {

@@ -13,20 +13,31 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import no.nav.emottak.crypto.KeyStoreManager
+import no.nav.emottak.crypto.trustStoreConfig
 import no.nav.emottak.util.createCRLFile
 import org.bouncycastle.asn1.x500.X500Name
+import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.slf4j.LoggerFactory
+import java.security.Provider
 import java.security.cert.X509CRL
+import java.security.cert.X509Certificate
 import java.time.Duration
+import java.time.Instant
+import java.util.Date
 import kotlin.time.Duration.Companion.milliseconds
 
 class CRLUpdater(
     private val httpClient: HttpClient,
     private val crlStore: CRLStore,
     private val refreshInterval: Duration,
-    private val issuerList: Map<String, String>
+    private val issuerList: Map<String, String>,
+    trustStore: KeyStoreManager = KeyStoreManager(trustStoreConfig()),
+    private val provider: Provider = BouncyCastleProvider()
 ) {
     private val log = LoggerFactory.getLogger(CRLUpdater::class.java)
+    private val trustedCertificates: Set<X509Certificate> =
+        trustStore.getTrustedRootCerts() + trustStore.getIntermediateCerts()
 
     init {
         require(!refreshInterval.isZero && !refreshInterval.isNegative) {
@@ -71,7 +82,7 @@ class CRLUpdater(
             return CRL(issuer, url, null)
         }
         return try {
-            crl.validate()
+            validateCRL(crl, crl.file!!)
             log.info("CRL fra <$url> oppdatert")
             crl
         } catch (e: CRLException) {
@@ -82,4 +93,20 @@ class CRLUpdater(
 
     private suspend fun downloadCRL(url: String): X509CRL =
         createCRLFile(httpClient.get(url).body<ByteArray>())
+
+    private fun validateCRL(crl: CRL, crlFile: X509CRL) {
+        val issuerCertificate = trustedCertificates.firstOrNull {
+            X500Name(it.subjectX500Principal.name) == crl.x500Name
+        } ?: throw CRLException(
+            "Fant ikke CA-sertifikat for issuer ${crl.x500Name} i truststore. Kan ikke verifisere CRL-signatur"
+        )
+        crl.validate(crlFile, issuerCertificate, provider)
+        val now = Date.from(Instant.now())
+        if (crlFile.nextUpdate?.before(now) == true) {
+            throw CRLException("CRL for ${crl.x500Name} er utløpt (nextUpdate <${crlFile.nextUpdate}>)")
+        }
+        if (crlFile.thisUpdate.after(now)) {
+            throw CRLException("CRL for ${crl.x500Name} er ikke gyldig enda (thisUpdate <${crlFile.thisUpdate}>)")
+        }
+    }
 }
