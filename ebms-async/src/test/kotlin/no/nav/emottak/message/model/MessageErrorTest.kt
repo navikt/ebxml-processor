@@ -1,12 +1,16 @@
 package no.nav.emottak.message.model
 
+import kotlinx.coroutines.runBlocking
 import no.nav.emottak.ebms.async.processing.createPayloadMessage
 import no.nav.emottak.message.ebxml.EbXMLConstants
+import no.nav.emottak.message.ebxml.EbXMLConstants.OASIS_EBXML_MSG_HEADER_XSD_NS_URI
 import no.nav.emottak.message.ebxml.ackRequested
 import no.nav.emottak.message.ebxml.errorList
 import no.nav.emottak.message.ebxml.messageHeader
+import no.nav.emottak.message.xml.createDocument
 import no.nav.emottak.message.xml.xmlMarshaller
 import org.junit.jupiter.api.Test
+import org.w3c.dom.Document
 import org.xmlsoap.schemas.soap.envelope.Envelope
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -55,5 +59,36 @@ class MessageErrorTest {
         assertEquals(1, messageErrorElement.error.size, "There should be one error in the ErrorList")
         assertEquals(failureList.first().code.value, messageErrorElement.error[0].errorCode, "ErrorCode in ErrorList should match the one in failureList")
         assertEquals(failureList.first().descriptionText, messageErrorElement.error[0].description?.value, "ErrorCode in ErrorList should match the one in failureList")
+    }
+
+    @Test
+    fun `Incoming MessageError with RefToMessageId is transformed with the given RefToMessageId`() {
+        val document = readMessageErrorDocument()
+
+        val messageError = EbmsDocument("requestId", document, emptyList()).transform() as MessageError
+
+        assertEquals("autotest_tc_2_2_15", messageError.refToMessageId)
+    }
+
+    @Test
+    fun `Incoming MessageError without RefToMessageId is transformed with placeholder RefToMessageId`() {
+        val document = readMessageErrorDocument()
+        val refToMessageIdElements = document.getElementsByTagNameNS(OASIS_EBXML_MSG_HEADER_XSD_NS_URI, "RefToMessageId")
+        assertEquals(1, refToMessageIdElements.length)
+        val refToMessageIdElement = refToMessageIdElements.item(0)
+        refToMessageIdElement.parentNode.removeChild(refToMessageIdElement)
+
+        val messageError = EbmsDocument("requestId", document, emptyList()).transform() as MessageError
+
+        assertEquals(REF_TO_MESSAGE_ID_NOT_SET, messageError.refToMessageId)
+        assertEquals("20140607-214220-84523@dev.ebxml.nav.no", messageError.messageId)
+        assertEquals("unknown", messageError.cpaId)
+        assertEquals("20140607-214220-751-0", messageError.conversationId)
+        assertEquals(1, messageError.feil.size)
+    }
+
+    private fun readMessageErrorDocument(): Document = runBlocking {
+        this@MessageErrorTest::class.java.classLoader
+            .getResourceAsStream("signaltest/messageerror.xml")!!.readAllBytes().createDocument()
     }
 }
