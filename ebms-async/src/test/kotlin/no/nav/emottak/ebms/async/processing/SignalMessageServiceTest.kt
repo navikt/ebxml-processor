@@ -11,7 +11,9 @@ import no.nav.emottak.ebms.async.persistence.repository.MessagePendingAckReposit
 import no.nav.emottak.ebms.async.util.EventRegistrationServiceFake
 import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.message.exception.EbmsException
+import no.nav.emottak.message.exception.SignatureValidationException
 import no.nav.emottak.message.model.Acknowledgment
+import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.EbmsDocument
 import no.nav.emottak.message.model.ErrorCode
 import no.nav.emottak.message.model.Feil
@@ -54,12 +56,11 @@ class SignalMessageServiceTest {
         val validationResult = ValidationResult()
 
         coEvery {
-            cpaValidationService.validateIncomingMessage(acknowledgment, checkSignature = false)
+            cpaValidationService.getValidationResult(Direction.IN, acknowledgment)
         } returns validationResult
         every {
             cpaValidationService.validateResult(validationResult, acknowledgment, checkSignature = true)
         } returns validationResult
-        every { messagePendingAckRepository.existsForMessageId(any()) } returns true
         every { messagePendingAckRepository.wasAckSignatureRequested(any()) } returns true
         coEvery { messagePendingAckRepository.registerAckForMessage(any()) } returns mockk(relaxed = true)
 
@@ -72,16 +73,9 @@ class SignalMessageServiceTest {
         }
         coVerify(exactly = 1) { eventRegistrationService.registerEventMessageDetails(acknowledgment) }
         coVerify(exactly = 1) { messagePendingAckRepository.registerAckForMessage(acknowledgment.refToMessageId) }
-        coVerify(exactly = 0) {
-            eventRegistrationService.registerEvent(
-                eventType = EventType.SIGNATURE_CHECK_FAILED,
-                requestId = any(),
-                contentId = any(),
-                messageId = any(),
-                eventData = any(),
-                conversationId = any()
-            )
-        }
+        coVerify(exactly = 0) { eventRegistrationService.registerCpaValidationFailed(any(), any()) }
+        coVerify(exactly = 0) { eventRegistrationService.registerSignatureValidationFailed(any(), any(), any()) }
+        assertMessageFlowCompleted(acknowledgment)
     }
 
     @Test
@@ -91,9 +85,8 @@ class SignalMessageServiceTest {
         val validationResult = ValidationResult()
 
         coEvery {
-            cpaValidationService.validateIncomingMessage(acknowledgment, checkSignature = false)
+            cpaValidationService.getValidationResult(Direction.IN, acknowledgment)
         } returns validationResult
-        every { messagePendingAckRepository.existsForMessageId(any()) } returns true
         every { messagePendingAckRepository.wasAckSignatureRequested(acknowledgment.refToMessageId) } returns false
         coEvery { messagePendingAckRepository.registerAckForMessage(any()) } returns mockk(relaxed = true)
 
@@ -102,9 +95,9 @@ class SignalMessageServiceTest {
         }
 
         coVerify(exactly = 1) {
-            cpaValidationService.validateIncomingMessage(acknowledgment, checkSignature = false)
+            cpaValidationService.getValidationResult(Direction.IN, acknowledgment)
         }
-        verify(exactly = 0) { cpaValidationService.validateResult(any(), any(), checkSignature = true) }
+        verify(exactly = 0) { cpaValidationService.validateResult(any(), any(), any()) }
         coVerify(exactly = 1) { messagePendingAckRepository.registerAckForMessage(acknowledgment.refToMessageId) }
     }
 
@@ -115,12 +108,11 @@ class SignalMessageServiceTest {
         val validationResult = ValidationResult()
 
         coEvery {
-            cpaValidationService.validateIncomingMessage(acknowledgment, checkSignature = false)
+            cpaValidationService.getValidationResult(Direction.IN, acknowledgment)
         } returns validationResult
         every {
             cpaValidationService.validateResult(validationResult, acknowledgment, checkSignature = true)
-        } throws EbmsException(listOf(Feil(ErrorCode.SECURITY_FAILURE, "Signeringsfeil: 0 signaturer i dokumentet")))
-        every { messagePendingAckRepository.existsForMessageId(any()) } returns true
+        } throws SignatureValidationException("Signeringsfeil: 0 signaturer i dokumentet")
         every { messagePendingAckRepository.wasAckSignatureRequested(any()) } returns true
         coEvery { messagePendingAckRepository.registerAckForMessage(any()) } returns mockk(relaxed = true)
 
@@ -130,61 +122,27 @@ class SignalMessageServiceTest {
 
         coVerify(exactly = 1) { messagePendingAckRepository.registerAckForMessage(acknowledgment.refToMessageId) }
         coVerify(exactly = 1) {
-            eventRegistrationService.registerEvent(
-                eventType = EventType.SIGNATURE_CHECK_FAILED,
-                requestId = requestId.parseOrGenerateUuid(),
-                contentId = "",
-                messageId = acknowledgment.refToMessageId,
-                eventData = any(),
-                conversationId = acknowledgment.conversationId
+            eventRegistrationService.registerSignatureValidationFailed(
+                acknowledgment,
+                "Signeringsfeil: 0 signaturer i dokumentet",
+                null
             )
         }
+        assertMessageFlowCompleted(acknowledgment)
     }
 
     @Test
-    fun `Unexpected failure during signature validation is not treated as a signature failure`() {
+    fun `Acknowledgment processing continues on unexpected failure during signature validation`() {
         val requestId = Uuid.random().toString()
         val acknowledgment = acknowledgment(requestId)
         val validationResult = ValidationResult()
 
         coEvery {
-            cpaValidationService.validateIncomingMessage(acknowledgment, checkSignature = false)
+            cpaValidationService.getValidationResult(Direction.IN, acknowledgment)
         } returns validationResult
         every {
             cpaValidationService.validateResult(validationResult, acknowledgment, checkSignature = true)
         } throws NullPointerException("payloadProcessing was null")
-        every { messagePendingAckRepository.existsForMessageId(any()) } returns true
-        every { messagePendingAckRepository.wasAckSignatureRequested(any()) } returns true
-        coEvery { messagePendingAckRepository.registerAckForMessage(any()) } returns mockk(relaxed = true)
-
-        assertThrows<NullPointerException> {
-            runBlocking {
-                signalMessageService.processSignal(requestId, acknowledgment)
-            }
-        }
-
-        coVerify(exactly = 0) { messagePendingAckRepository.registerAckForMessage(any()) }
-        coVerify(exactly = 0) {
-            eventRegistrationService.registerEvent(
-                eventType = EventType.SIGNATURE_CHECK_FAILED,
-                requestId = any(),
-                contentId = any(),
-                messageId = any(),
-                eventData = any(),
-                conversationId = any()
-            )
-        }
-    }
-
-    @Test
-    fun `Acknowledgment processing aborts when CPA validation fails`() {
-        val requestId = Uuid.random().toString()
-        val acknowledgment = acknowledgment(requestId)
-
-        coEvery {
-            cpaValidationService.validateIncomingMessage(acknowledgment, checkSignature = false)
-        } throws EbmsException(listOf(Feil(ErrorCode.NOT_SUPPORTED, "CPA not found")))
-        every { messagePendingAckRepository.existsForMessageId(any()) } returns true
         every { messagePendingAckRepository.wasAckSignatureRequested(any()) } returns true
         coEvery { messagePendingAckRepository.registerAckForMessage(any()) } returns mockk(relaxed = true)
 
@@ -192,18 +150,20 @@ class SignalMessageServiceTest {
             signalMessageService.processSignal(requestId, acknowledgment)
         }
 
-        coVerify(exactly = 0) { messagePendingAckRepository.registerAckForMessage(any()) }
+        coVerify(exactly = 1) { messagePendingAckRepository.registerAckForMessage(acknowledgment.refToMessageId) }
+        coVerify(exactly = 0) { eventRegistrationService.registerSignatureValidationFailed(any(), any(), any()) }
+        assertMessageFlowCompleted(acknowledgment)
     }
 
     @Test
-    fun `Acknowledgment processing aborts when CPA validation fails with a security failure`() {
+    fun `Acknowledgment processing continues when CPA validation result is invalid`() {
         val requestId = Uuid.random().toString()
         val acknowledgment = acknowledgment(requestId)
+        val validationResult = ValidationResult(error = listOf(Feil(ErrorCode.SECURITY_FAILURE, "Sertifikat er revokert")))
 
         coEvery {
-            cpaValidationService.validateIncomingMessage(acknowledgment, checkSignature = false)
-        } throws EbmsException(listOf(Feil(ErrorCode.SECURITY_FAILURE, "Sertifikat er revokert")))
-        every { messagePendingAckRepository.existsForMessageId(any()) } returns true
+            cpaValidationService.getValidationResult(Direction.IN, acknowledgment)
+        } returns validationResult
         every { messagePendingAckRepository.wasAckSignatureRequested(any()) } returns true
         coEvery { messagePendingAckRepository.registerAckForMessage(any()) } returns mockk(relaxed = true)
 
@@ -212,7 +172,33 @@ class SignalMessageServiceTest {
         }
 
         verify(exactly = 0) { cpaValidationService.validateResult(any(), any(), any()) }
-        coVerify(exactly = 0) { messagePendingAckRepository.registerAckForMessage(any()) }
+        coVerify(exactly = 1) {
+            eventRegistrationService.registerCpaValidationFailed(acknowledgment, "SECURITY_FAILURE: Sertifikat er revokert")
+        }
+        coVerify(exactly = 0) { eventRegistrationService.registerSignatureValidationFailed(any(), any(), any()) }
+        coVerify(exactly = 1) { messagePendingAckRepository.registerAckForMessage(acknowledgment.refToMessageId) }
+        assertMessageFlowCompleted(acknowledgment)
+    }
+
+    @Test
+    fun `Acknowledgment processing continues when CPA lookup fails`() {
+        val requestId = Uuid.random().toString()
+        val acknowledgment = acknowledgment(requestId)
+
+        coEvery {
+            cpaValidationService.getValidationResult(Direction.IN, acknowledgment)
+        } throws RuntimeException("cpa-repo unavailable")
+        every { messagePendingAckRepository.wasAckSignatureRequested(any()) } returns true
+        coEvery { messagePendingAckRepository.registerAckForMessage(any()) } returns mockk(relaxed = true)
+
+        runBlocking {
+            signalMessageService.processSignal(requestId, acknowledgment)
+        }
+
+        verify(exactly = 0) { cpaValidationService.validateResult(any(), any(), any()) }
+        coVerify(exactly = 1) { eventRegistrationService.registerCpaValidationFailed(acknowledgment, "cpa-repo unavailable") }
+        coVerify(exactly = 1) { messagePendingAckRepository.registerAckForMessage(acknowledgment.refToMessageId) }
+        assertMessageFlowCompleted(acknowledgment)
     }
 
     @Test
@@ -223,7 +209,7 @@ class SignalMessageServiceTest {
 
         every { messagePendingAckRepository.existsForMessageId(any()) } returns true
         coEvery {
-            cpaValidationService.validateIncomingMessage(messageError, checkSignature = false)
+            cpaValidationService.getValidationResult(Direction.IN, messageError)
         } returns validationResult
         every {
             cpaValidationService.validateResult(validationResult, messageError, checkSignature = true)
@@ -234,16 +220,8 @@ class SignalMessageServiceTest {
         }
 
         coVerify(exactly = 1) { eventRegistrationService.registerEventMessageDetails(messageError) }
-        coVerify(exactly = messageError.feil.size) {
-            eventRegistrationService.registerEvent(
-                eventType = EventType.UNKNOWN_ERROR_OCCURRED,
-                requestId = any(),
-                contentId = any(),
-                messageId = messageError.refToMessageId,
-                eventData = any(),
-                conversationId = messageError.conversationId
-            )
-        }
+        coVerify(exactly = 0) { eventRegistrationService.registerSignatureValidationFailed(any(), any(), any()) }
+        assertMessageErrorReported(messageError)
     }
 
     @Test
@@ -254,26 +232,59 @@ class SignalMessageServiceTest {
 
         every { messagePendingAckRepository.existsForMessageId(any()) } returns true
         coEvery {
-            cpaValidationService.validateIncomingMessage(messageError, checkSignature = false)
+            cpaValidationService.getValidationResult(Direction.IN, messageError)
         } returns validationResult
         every {
             cpaValidationService.validateResult(validationResult, messageError, checkSignature = true)
-        } throws EbmsException(listOf(Feil(ErrorCode.SECURITY_FAILURE, "Signeringsfeil: 0 signaturer i dokumentet")))
+        } throws SignatureValidationException("Signeringsfeil: 0 signaturer i dokumentet")
 
         runBlocking {
             signalMessageService.processSignal(requestId, messageError)
         }
 
         coVerify(exactly = 1) {
-            eventRegistrationService.registerEvent(
-                eventType = EventType.SIGNATURE_CHECK_FAILED,
-                requestId = any(),
-                contentId = "",
-                messageId = messageError.refToMessageId,
-                eventData = any(),
-                conversationId = messageError.conversationId
+            eventRegistrationService.registerSignatureValidationFailed(
+                messageError,
+                "Signeringsfeil: 0 signaturer i dokumentet",
+                null
             )
         }
+        assertMessageErrorReported(messageError)
+    }
+
+    @Test
+    fun `MessageError contents are still reported when CPA lookup fails`() {
+        val requestId = Uuid.random().toString()
+        val messageError = messageError(requestId)
+
+        every { messagePendingAckRepository.existsForMessageId(any()) } returns true
+        coEvery {
+            cpaValidationService.getValidationResult(Direction.IN, messageError)
+        } throws EbmsException(listOf(Feil(ErrorCode.NOT_SUPPORTED, "CPA not found")))
+
+        runBlocking {
+            signalMessageService.processSignal(requestId, messageError)
+        }
+
+        verify(exactly = 0) { cpaValidationService.validateResult(any(), any(), any()) }
+        coVerify(exactly = 1) { eventRegistrationService.registerCpaValidationFailed(messageError, any()) }
+        assertMessageErrorReported(messageError)
+    }
+
+    private fun assertMessageFlowCompleted(acknowledgment: Acknowledgment) {
+        coVerify(exactly = 1) {
+            eventRegistrationService.registerEvent(
+                eventType = EventType.MESSAGEFLOW_COMPLETED,
+                requestId = acknowledgment.requestId.parseOrGenerateUuid(),
+                contentId = any(),
+                messageId = acknowledgment.refToMessageId,
+                eventData = any(),
+                conversationId = acknowledgment.conversationId
+            )
+        }
+    }
+
+    private fun assertMessageErrorReported(messageError: MessageError) {
         coVerify(exactly = messageError.feil.size) {
             eventRegistrationService.registerEvent(
                 eventType = EventType.UNKNOWN_ERROR_OCCURRED,
@@ -282,33 +293,6 @@ class SignalMessageServiceTest {
                 messageId = messageError.refToMessageId,
                 eventData = any(),
                 conversationId = messageError.conversationId
-            )
-        }
-    }
-
-    @Test
-    fun `MessageError processing aborts when CPA validation fails`() {
-        val requestId = Uuid.random().toString()
-        val messageError = messageError(requestId)
-
-        every { messagePendingAckRepository.existsForMessageId(any()) } returns true
-        coEvery {
-            cpaValidationService.validateIncomingMessage(messageError, checkSignature = false)
-        } throws EbmsException(listOf(Feil(ErrorCode.NOT_SUPPORTED, "CPA not found")))
-
-        runBlocking {
-            signalMessageService.processSignal(requestId, messageError)
-        }
-
-        verify(exactly = 0) { cpaValidationService.validateResult(any(), any(), any()) }
-        coVerify(exactly = 0) {
-            eventRegistrationService.registerEvent(
-                eventType = EventType.UNKNOWN_ERROR_OCCURRED,
-                requestId = any(),
-                contentId = any(),
-                messageId = any(),
-                eventData = any(),
-                conversationId = any()
             )
         }
     }
