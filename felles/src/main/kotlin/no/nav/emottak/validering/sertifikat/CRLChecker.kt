@@ -20,8 +20,10 @@ class CRLChecker(
 
     private fun getCRLFile(issuer: X500Name): X509CRL {
         val crl = crlStore.get(issuer)
-            ?: throw CertificateValidationException("Issuer $issuer ikke støttet. CRL liste må oppdateres med issuer om denne skal støttes")
+            ?: throw CRLException("Issuer $issuer ikke støttet. CRL liste må oppdateres med issuer om denne skal støttes")
         crl.validate()
         return crl.file!!
     }
 }
+
+class CRLException(message: String, cause: Throwable? = null) : Exception(message, cause)

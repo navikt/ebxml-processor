@@ -1,10 +1,10 @@
 package no.nav.emottak.ebms.validation
 
+import no.nav.emottak.message.exception.SignatureValidationException
 import no.nav.emottak.message.model.EbmsAttachment
 import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.util.retrievePublicX509Certificate
 import no.nav.emottak.util.retrieveSignatureElement
-import no.nav.emottak.validering.signatur.SignatureException
 import org.apache.xml.security.algorithms.MessageDigestAlgorithm
 import org.apache.xml.security.algorithms.SignatureAlgorithm
 import org.apache.xml.security.keys.KeyInfo
@@ -32,14 +32,13 @@ class SignaturValidator {
             org.apache.xml.security.Init.init()
         }
 
-        @Throws(SignatureException::class)
         fun validate(signatureDetails: SignatureDetails, dokument: Document, attachments: List<EbmsAttachment>) {
             // TODO Sjekk isNonRepudiation?
             val xmlSignature = dokument.retrieveSignatureElement()
             val sertfikatFraCPA = signatureDetails.retrievePublicX509Certificate()
             val sertifikatFraSignatur = xmlSignature.retrievePublicX509Certificate()
             if (sertifikatFraSignatur != sertfikatFraCPA) {
-                throw SignatureException(
+                throw SignatureValidationException(
                     "Signert med annet sertifikat enn definert i CPA. " +
                         "Signatur: <${sertifikatFraSignatur.serialNumber.toString(16)}>, " +
                         "CPA: <${sertfikatFraCPA.serialNumber.toString(16)}>"
@@ -52,10 +51,10 @@ class SignaturValidator {
                         attachments
                     )
                 ) {
-                    throw SignatureException("Signaturvalidering feilet")
+                    throw SignatureValidationException("Signaturvalidering feilet")
                 }
             } catch (e: MissingResourceFailureException) {
-                throw SignatureException("Signaturvalidering feilet", e)
+                throw SignatureValidationException("Signaturvalidering feilet", e)
             }
         }
 
@@ -73,14 +72,14 @@ class SignaturValidator {
 }
 
 private fun XMLSignature.validateIn() {
-    val keyInfo = this.keyInfo ?: throw SignatureException("KeyInfo mangler fra signatur")
+    val keyInfo = this.keyInfo ?: throw SignatureValidationException("KeyInfo mangler fra signatur")
     keyInfo.validateIn()
     this.signedInfo.validateIn()
 }
 
 private fun KeyInfo.validateIn() {
-    if (this.lengthX509Data() != 1) throw SignatureException("X509Data mangler fra signatur")
-    if (this.itemX509Data(0).lengthCertificate() != 1 || this.x509Certificate == null) throw SignatureException("X509Certificate mangler fra X509Data")
+    if (this.lengthX509Data() != 1) throw SignatureValidationException("X509Data mangler fra signatur")
+    if (this.itemX509Data(0).lengthCertificate() != 1 || this.x509Certificate == null) throw SignatureValidationException("X509Certificate mangler fra X509Data")
 }
 
 private fun SignedInfo.validateIn() {
@@ -91,11 +90,11 @@ private fun SignedInfo.validateIn() {
 private fun SignedInfo.validateReferences() {
     var foundRootReference = false
     val referenceLength = this.length(Constants.SignatureSpecNS, Constants._TAG_REFERENCE)
-    if (referenceLength < 1) throw SignatureException("Mangler signature reference")
+    if (referenceLength < 1) throw SignatureValidationException("Mangler signature reference")
     for (i in 0 until referenceLength) {
         val reference = this.item(i)
-        val uri = reference.uri ?: throw SignatureException("URI mangler for reference")
-        if (reference.digestValue == null || reference.digestValue.isEmpty()) throw SignatureException("Digest value mangler i reference")
+        val uri = reference.uri ?: throw SignatureValidationException("URI mangler for reference")
+        if (reference.digestValue == null || reference.digestValue.isEmpty()) throw SignatureValidationException("Digest value mangler i reference")
         reference.messageDigestAlgorithm.isValidDigestMethodAlgorithm()
         if (uri == "") {
             foundRootReference = true
@@ -105,27 +104,27 @@ private fun SignedInfo.validateReferences() {
                 for (transformIndex in 0 until reference.transforms.length) {
                     this.add(reference.transforms.item(transformIndex).uri)
                 }
-                if (!this.contains(Transforms.TRANSFORM_ENVELOPED_SIGNATURE)) throw SignatureException("Transform: ${Transforms.TRANSFORM_ENVELOPED_SIGNATURE} mangler! $this")
+                if (!this.contains(Transforms.TRANSFORM_ENVELOPED_SIGNATURE)) throw SignatureValidationException("Transform: ${Transforms.TRANSFORM_ENVELOPED_SIGNATURE} mangler! $this")
                 if (!this.contains(Transforms.TRANSFORM_XPATH)) log.warn("Transform: ${Transforms.TRANSFORM_XPATH} mangler! $this") // throw SignatureException(("Transform 2 har feil uri! ${reference.transforms.item(1).uri}"))
                 if (!this.contains(Transforms.TRANSFORM_C14N_OMIT_COMMENTS) &&
                     !this.contains(Transforms.TRANSFORM_C14N_EXCL_OMIT_COMMENTS)
                 ) {
-                    throw SignatureException(("Transform: ${Transforms.TRANSFORM_C14N_OMIT_COMMENTS} og ${Transforms.TRANSFORM_C14N_EXCL_OMIT_COMMENTS} mangler! $this"))
+                    throw SignatureValidationException(("Transform: ${Transforms.TRANSFORM_C14N_OMIT_COMMENTS} og ${Transforms.TRANSFORM_C14N_EXCL_OMIT_COMMENTS} mangler! $this"))
                 }
             }
-        } else if (!uri.startsWith(CID_PREFIX)) throw SignatureException("Ugyldig URI $uri! Kun reference uri som starter med $CID_PREFIX er tillatt")
+        } else if (!uri.startsWith(CID_PREFIX)) throw SignatureValidationException("Ugyldig URI $uri! Kun reference uri som starter med $CID_PREFIX er tillatt")
     }
-    if (!foundRootReference) throw SignatureException("Root reference mangler!")
+    if (!foundRootReference) throw SignatureValidationException("Root reference mangler!")
 }
 
 private fun SignatureAlgorithm.isValidSignatureMethodAlgorithm() {
     if (!validSignatureAlgorithms.contains(this.algorithmURI)) {
-        throw SignatureException("Ugyldig signaturalgoritme. ($algorithmURI) ikke en av $validSignatureAlgorithms")
+        throw SignatureValidationException("Ugyldig signaturalgoritme. ($algorithmURI) ikke en av $validSignatureAlgorithms")
     }
 }
 private fun MessageDigestAlgorithm.isValidDigestMethodAlgorithm() {
     if (!validMessageDigestAlgorithms.contains(this.algorithmURI)) {
-        throw SignatureException("Ugyldig digest method algoritme. ($algorithmURI) ikke en av $validMessageDigestAlgorithms\")")
+        throw SignatureValidationException("Ugyldig digest method algoritme. ($algorithmURI) ikke en av $validMessageDigestAlgorithms\")")
     }
 }
 

@@ -22,6 +22,7 @@ import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.message.exception.EbmsException
+import no.nav.emottak.message.exception.SignatureValidationException
 import no.nav.emottak.message.model.Acknowledgment
 import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.EbmsAttachment
@@ -39,7 +40,6 @@ import no.nav.emottak.utils.common.model.Addressing
 import no.nav.emottak.utils.common.model.Party
 import no.nav.emottak.utils.common.model.PartyId
 import no.nav.emottak.utils.kafka.model.EventType
-import no.nav.emottak.validering.signatur.SignatureException
 import org.apache.kafka.clients.producer.RecordMetadata
 import org.apache.kafka.common.header.Headers
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -581,7 +581,7 @@ class PayloadMessageServiceTest {
         if (processAsyncThrowsEbmsException) {
             coEvery { processingService.processAsync(any(), any()) } throws EbmsException("Processing has failed")
         } else if (processAsyncThrowsSignatureException) {
-            coEvery { processingService.processAsync(any(), any()) } throws SignatureException("Signering feilet")
+            coEvery { processingService.processAsync(any(), any()) } throws SignatureValidationException("Signering feilet")
         } else {
             coEvery { processingService.processAsync(any(), any()) } returns Pair(payloadMessage, direction)
         }

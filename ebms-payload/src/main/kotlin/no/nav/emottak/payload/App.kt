@@ -17,6 +17,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
 import no.nav.emottak.payload.configuration.config
+import no.nav.emottak.payload.helseid.HelseIdTokenValidator
+import no.nav.emottak.payload.helseid.NinResolver
 import no.nav.emottak.payload.util.EventRegistrationService
 import no.nav.emottak.payload.util.EventRegistrationServiceImpl
 import no.nav.emottak.util.HttpClientUtil
@@ -50,7 +52,12 @@ fun main() {
         crlChecker = CRLChecker(crlStore)
     )
 
-    val processor = Processor(eventRegistrationService, sertifikatValidator)
+    val helseIdTokenValidator = HelseIdTokenValidator()
+    val processor = Processor(
+        eventRegistrationService,
+        sertifikatValidator,
+        ninResolver = NinResolver(helseIdTokenValidator)
+    )
 
     val crlUpdaterScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     crlUpdater.startIn(crlUpdaterScope)
@@ -58,7 +65,11 @@ fun main() {
         embeddedServer(
             factory = Netty,
             port = 8080,
-            module = payloadApplicationModule(processor, eventRegistrationService)
+            module = payloadApplicationModule(
+            processor,
+            eventRegistrationService,
+            helseIdConnectionCheck = { helseIdTokenValidator.checkJwksConnection() }
+        )
         ).start(wait = true)
     } finally {
         crlUpdaterScope.cancel()
@@ -67,7 +78,8 @@ fun main() {
 
 fun payloadApplicationModule(
     processor: Processor,
-    eventRegistrationService: EventRegistrationService
+    eventRegistrationService: EventRegistrationService,
+    helseIdConnectionCheck: () -> Unit
 ): Application.() -> Unit {
     return {
         install(ContentNegotiation) {
@@ -82,7 +94,7 @@ fun payloadApplicationModule(
         }
 
         routing {
-            registerHealthEndpoints(appMicrometerRegistry)
+            registerHealthEndpoints(appMicrometerRegistry, helseIdConnectionCheck)
 
             authenticate(AZURE_AD_AUTH) {
                 postPayload(processor, eventRegistrationService)
