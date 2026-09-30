@@ -51,7 +51,7 @@ open class MessageFilterService(
             if (record.retryCount() < MAX_RETRIES_FOR_INVALID_EBXML) {
                 failedMessageKafkaHandler.sendToRetryQueueIncoming(record, e.javaClass.simpleName + ": " + e.localizedMessage)
             } else {
-                log.error("Failed to create ebmsDocument and max number of retries performed, giving up message! Offset in retry topic: ${record.offset}", e)
+                log.error("Failed to create ebmsDocument and max number of retries performed, giving up message! Offset in retry topic: ${record.offset()}", e)
             }
             return
         }
