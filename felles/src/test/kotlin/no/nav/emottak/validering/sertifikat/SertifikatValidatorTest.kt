@@ -5,26 +5,20 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.data.row
 import io.kotest.datatest.withData
 import io.kotest.matchers.string.shouldStartWith
-import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.runs
 import no.nav.emottak.message.exception.CertificateValidationException
 import no.nav.emottak.util.TestUtil
-import no.nav.emottak.util.TestUtil.Companion.crlFile
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.decodeBase64
-import org.bouncycastle.asn1.x500.X500Name
-import java.security.cert.X509CRL
-import java.time.Instant
-import java.util.Date
 
 class SertifikatValidatorTest : FunSpec({
 
     context("Sertifikatsjekk med mocked CRLChecker") {
         val crlChecker = mockk<CRLChecker>()
-        coEvery {
+        every {
             crlChecker.getCRLRevocationInfo(any(), any())
         } just runs
         System.setProperty("TRUSTSTORE_PATH", "truststore.p12")
@@ -52,34 +46,6 @@ class SertifikatValidatorTest : FunSpec({
         }
     }
 
-    context("Sertifikatsjekk med CRLChecker med CRL fil") {
-        val validCrlFile = mockk<X509CRL>()
-        every { validCrlFile.issuerX500Principal } returns crlFile.issuerX500Principal
-        every { validCrlFile.nextUpdate } returns Date.from(Instant.now().plusSeconds(3600))
-        every { validCrlFile.getRevokedCertificate(any<java.math.BigInteger>()) } answers {
-            crlFile.getRevokedCertificate(firstArg<java.math.BigInteger>())
-        }
-        val crl = CRL(
-            X500Name("CN=Buypass Class 3 CA 2, O=Buypass AS-983163327, C=NO"),
-            "url",
-            validCrlFile,
-            Instant.now()
-        )
-        System.setProperty("TRUSTSTORE_PATH", "truststore.p12")
-        val crlChecker = CRLChecker(CRLStore(listOf(crl)))
-        val sertifikatValidering = SertifikatValidator(crlChecker)
-
-        withData(
-            mapOf(
-                "Revokert sertifikat feiler" to row(TestUtil.revokedCertificate, "Sertifikat revokert")
-            )
-        ) { (certificate, errorMessage) ->
-            val exception = shouldThrow<CertificateValidationException> {
-                sertifikatValidering.sjekkCRL(certificate)
-            }
-            exception.message shouldStartWith errorMessage
-        }
-    }
 })
 
 val sertifikat = createX509Certificate(

@@ -6,7 +6,6 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import no.nav.emottak.message.exception.CertificateValidationException
-import no.nav.emottak.util.TestUtil
 import org.bouncycastle.asn1.x500.X500Name
 import org.junit.jupiter.api.Test
 import java.math.BigInteger
@@ -76,23 +75,25 @@ class CRLCheckerTest {
 
     @Test
     fun `revoked certificate is rejected from stored CRL`() {
-        val crlFile = mockk<X509CRL>()
-        every { crlFile.issuerX500Principal } returns TestUtil.crlFile.issuerX500Principal
-        every { crlFile.nextUpdate } returns Date.from(Instant.now().plusSeconds(3600))
-        every { crlFile.getRevokedCertificate(any<BigInteger>()) } answers {
-            TestUtil.crlFile.getRevokedCertificate(firstArg<BigInteger>())
-        }
+        val issuer = X500Name("CN=Supported")
+        val revokedSerial = BigInteger.valueOf(42)
         val crl = CRL(
-            X500Name(crlFile.issuerX500Principal.name),
+            issuer,
             "https://example.test/crl",
-            crlFile
+            CRLTestFactory.generateCrl(
+                issuer = issuer,
+                signingKeyPair = CRLTestFactory.generateKeyPair(),
+                thisUpdate = Date.from(Instant.now().minusSeconds(60)),
+                nextUpdate = Date.from(Instant.now().plusSeconds(3600)),
+                revoked = listOf(revokedSerial to Date())
+            )
         )
 
         val exception = shouldThrow<CertificateValidationException> {
             runBlocking {
                 CRLChecker(CRLStore(listOf(crl))).getCRLRevocationInfo(
-                    TestUtil.revokedCertificate.issuerX500Principal.name,
-                    TestUtil.revokedCertificate.serialNumber
+                    issuer.toString(),
+                    revokedSerial
                 )
             }
         }
