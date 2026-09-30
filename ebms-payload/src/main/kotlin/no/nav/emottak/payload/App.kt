@@ -66,10 +66,10 @@ fun main() {
             factory = Netty,
             port = 8080,
             module = payloadApplicationModule(
-            processor,
-            eventRegistrationService,
-            helseIdConnectionCheck = { helseIdTokenValidator.checkJwksConnection() }
-        )
+                processor,
+                eventRegistrationService,
+                helseIdConnectionCheck = { helseIdTokenValidator.checkJwksConnection() }
+            )
         ).start(wait = true)
     } finally {
         crlUpdaterScope.cancel()

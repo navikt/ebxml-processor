@@ -5,6 +5,7 @@ import io.kotest.matchers.string.shouldContain
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
+import no.nav.emottak.message.exception.CertificateValidationException
 import no.nav.emottak.util.TestUtil
 import org.bouncycastle.asn1.x500.X500Name
 import org.junit.jupiter.api.Test
@@ -17,7 +18,7 @@ import javax.security.auth.x500.X500Principal
 class CRLCheckerTest {
     @Test
     fun `unsupported issuer fails without retrieving CRLs`() {
-        val exception = shouldThrow<CertificateValidationException> {
+        val exception = shouldThrow<CRLException> {
             runBlocking {
                 CRLChecker(CRLStore()).getCRLRevocationInfo("CN=Unsupported", BigInteger.ONE)
             }
@@ -31,7 +32,7 @@ class CRLCheckerTest {
         val issuer = X500Name("CN=Supported")
         val crl = CRL(issuer, "https://example.test/crl", null)
 
-        val exception = shouldThrow<CertificateValidationException> {
+        val exception = shouldThrow<CRLException> {
             runBlocking {
                 CRLChecker(CRLStore(listOf(crl))).getCRLRevocationInfo(issuer.toString(), BigInteger.ONE)
             }
@@ -48,7 +49,7 @@ class CRLCheckerTest {
         every { crlFile.nextUpdate } returns Date.from(Instant.now().minusSeconds(1))
         val crl = CRL(issuer, "https://example.test/crl", crlFile)
 
-        val exception = shouldThrow<CertificateValidationException> {
+        val exception = shouldThrow<CRLException> {
             runBlocking {
                 CRLChecker(CRLStore(listOf(crl))).getCRLRevocationInfo(issuer.toString(), BigInteger.ONE)
             }
@@ -64,7 +65,7 @@ class CRLCheckerTest {
         every { crlFile.issuerX500Principal } returns X500Principal("CN=Actual")
         val crl = CRL(issuer, "https://example.test/crl", crlFile)
 
-        val exception = shouldThrow<CertificateValidationException> {
+        val exception = shouldThrow<CRLException> {
             runBlocking {
                 CRLChecker(CRLStore(listOf(crl))).getCRLRevocationInfo(issuer.toString(), BigInteger.ONE)
             }

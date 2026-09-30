@@ -1,5 +1,6 @@
 package no.nav.emottak.validering.sertifikat
 
+import no.nav.emottak.message.exception.CertificateValidationException
 import org.bouncycastle.asn1.x500.X500Name
 import java.math.BigInteger
 import java.security.cert.X509CRL

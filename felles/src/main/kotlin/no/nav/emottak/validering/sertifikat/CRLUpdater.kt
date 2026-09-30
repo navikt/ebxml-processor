@@ -74,7 +74,7 @@ class CRLUpdater(
             crl.validate()
             log.info("CRL fra <$url> oppdatert")
             crl
-        } catch (e: CertificateValidationException) {
+        } catch (e: CRLException) {
             log.warn("Nedlastet CRL for $issuer er ugyldig", e)
             crl.copy(file = null)
         }
