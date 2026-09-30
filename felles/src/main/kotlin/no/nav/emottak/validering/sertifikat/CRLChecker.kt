@@ -26,5 +26,3 @@ class CRLChecker(
         return crl.file!!
     }
 }
-
-class CRLException(message: String, cause: Throwable? = null) : Exception(message, cause)
