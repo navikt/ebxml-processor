@@ -1,0 +1,65 @@
+# Valid role / Service / Action combinations used when there is no CPA (Adresseregisteret is not a source of truth for roles).
+#   OUT (NAV -> partner): used to look up fromRole/toRole. Service+Action must be unique per direction.
+#   IN  (partner -> NAV): the message's fromRole/toRole/Service/Action must match an entry.
+# The sending role (fromRole) must have a matching row in db/migration/R__init_process_config.sql.
+validRoles:
+  # HarBorgerFrikort
+  - { direction: IN,  service: HarBorgerFrikort,            action: EgenandelForesporsel,      fromRole: Behandler,         toRole: Frikortregister }
+  - { direction: OUT, service: HarBorgerFrikort,            action: Svar,                      fromRole: Frikortregister,   toRole: Behandler }
+  - { direction: OUT, service: HarBorgerFrikort,            action: Avvisning,                 fromRole: Frikortregister,   toRole: Behandler }
+  # HarBorgerFrikortMengde
+  - { direction: IN,  service: HarBorgerFrikortMengde,      action: EgenandelForesporsel,      fromRole: Behandler,         toRole: Frikortregister }
+  - { direction: OUT, service: HarBorgerFrikortMengde,      action: Svar,                      fromRole: Frikortregister,   toRole: Behandler }
+  - { direction: OUT, service: HarBorgerFrikortMengde,      action: Avvisning,                 fromRole: Frikortregister,   toRole: Behandler }
+  # HarBorgerEgenandelFritak
+  - { direction: IN,  service: HarBorgerEgenandelFritak,    action: EgenandelForesporsel,      fromRole: Utleverer,         toRole: Frikortregister }
+  - { direction: OUT, service: HarBorgerEgenandelFritak,    action: Svar,                      fromRole: Frikortregister,   toRole: Utleverer }
+  - { direction: OUT, service: HarBorgerEgenandelFritak,    action: Avvisning,                 fromRole: Frikortregister,   toRole: Utleverer }
+  # Inntektsforesporsel
+  - { direction: IN,  service: Inntektsforesporsel,         action: Foresporsel,               fromRole: Fordringshaver,    toRole: Ytelsesutbetaler }
+  - { direction: OUT, service: Inntektsforesporsel,         action: InntektInformasjon,        fromRole: Ytelsesutbetaler,  toRole: Fordringshaver }
+  - { direction: OUT, service: Inntektsforesporsel,         action: Avvisning,                 fromRole: Ytelsesutbetaler,  toRole: Fordringshaver }
+  # Trekkopplysning
+  - { direction: IN,  service: Trekkopplysning,             action: Innmelding,                fromRole: Fordringshaver,    toRole: Ytelsesutbetaler }
+  - { direction: OUT, service: Trekkopplysning,             action: Kvittering,                fromRole: Ytelsesutbetaler,  toRole: Fordringshaver }
+  - { direction: OUT, service: Trekkopplysning,             action: Avvisning,                 fromRole: Ytelsesutbetaler,  toRole: Fordringshaver }
+  # BehandlerKrav
+  - { direction: IN,  service: BehandlerKrav,               action: OppgjorsMelding,           fromRole: Behandler,         toRole: KontrollUtbetaler }
+  - { direction: IN,  service: BehandlerKrav,               action: OppgjorsMeldingVirksomhet, fromRole: Behandler,         toRole: KontrollUtbetaler }
+  - { direction: OUT, service: BehandlerKrav,               action: Svarmelding,               fromRole: KontrollUtbetaler, toRole: Behandler }
+  # OppgjorsKontroll
+  - { direction: IN,  service: OppgjorsKontroll,            action: Oppgjorskrav,              fromRole: Utleverer,         toRole: KontrollUtbetaler }
+  - { direction: IN,  service: OppgjorsKontroll,            action: Svarmelding,               fromRole: Utleverer,         toRole: KontrollUtbetaler }
+  - { direction: OUT, service: OppgjorsKontroll,            action: Oppgjorsresultat,          fromRole: KontrollUtbetaler, toRole: Utleverer }
+  - { direction: OUT, service: OppgjorsKontroll,            action: Svarmelding,               fromRole: KontrollUtbetaler, toRole: Utleverer }
+  - { direction: OUT, service: OppgjorsKontroll,            action: Utbetaling,                fromRole: KontrollUtbetaler, toRole: Utleverer }
+  # Sykmelding
+  - { direction: IN,  service: Sykmelding,                  action: Registrering,              fromRole: Sykmelder,         toRole: Saksbehandler }
+  - { direction: OUT, service: Sykmelding,                  action: Svar,                      fromRole: Saksbehandler,     toRole: Sykmelder }
+  # Legemelding
+  - { direction: IN,  service: Legemelding,                 action: Legeerklaring,             fromRole: Lege,              toRole: Nav }
+  - { direction: OUT, service: Legemelding,                 action: Svarmelding,               fromRole: Nav,               toRole: Lege }
+  # DialogmoteInnkalling
+  - { direction: IN,  service: DialogmoteInnkalling,        action: MoteRespons,               fromRole: Sykmelder,         toRole: Saksbehandler }
+  - { direction: IN,  service: DialogmoteInnkalling,        action: Bekreftelse,               fromRole: Sykmelder,         toRole: Saksbehandler }
+  - { direction: OUT, service: DialogmoteInnkalling,        action: MoteRespons,               fromRole: Saksbehandler,     toRole: Sykmelder }
+  - { direction: OUT, service: DialogmoteInnkalling,        action: Kvittering,                fromRole: Saksbehandler,     toRole: Sykmelder }
+  # ForesporselFraSaksbehandler
+  - { direction: IN,  service: ForesporselFraSaksbehandler, action: ForesporselSvar,           fromRole: Sykmelder,         toRole: Saksbehandler }
+  - { direction: IN,  service: ForesporselFraSaksbehandler, action: Kvittering,                fromRole: Sykmelder,         toRole: Saksbehandler }
+  - { direction: IN,  service: ForesporselFraSaksbehandler, action: Svar,                      fromRole: Sykmelder,         toRole: Saksbehandler }
+  - { direction: OUT, service: ForesporselFraSaksbehandler, action: Foresporsel,               fromRole: Saksbehandler,     toRole: Sykmelder }
+  - { direction: OUT, service: ForesporselFraSaksbehandler, action: Bekreftelse,               fromRole: Saksbehandler,     toRole: Sykmelder }
+  - { direction: OUT, service: ForesporselFraSaksbehandler, action: Svar,                      fromRole: Saksbehandler,     toRole: Sykmelder }
+  # HenvendelseFraLege
+  - { direction: IN,  service: HenvendelseFraLege,          action: Henvendelse,               fromRole: Sykmelder,         toRole: Saksbehandler }
+  - { direction: OUT, service: HenvendelseFraLege,          action: Bekreftelse,               fromRole: Saksbehandler,     toRole: Sykmelder }
+  - { direction: OUT, service: HenvendelseFraLege,          action: Svar,                      fromRole: Saksbehandler,     toRole: Sykmelder }
+  # HenvendelseFraSaksbehandler
+  - { direction: IN,  service: HenvendelseFraSaksbehandler, action: Kvittering,                fromRole: Sykmelder,         toRole: Saksbehandler }
+  - { direction: IN,  service: HenvendelseFraSaksbehandler, action: Svar,                      fromRole: Sykmelder,         toRole: Saksbehandler }
+  - { direction: OUT, service: HenvendelseFraSaksbehandler, action: Henvendelse,               fromRole: Saksbehandler,     toRole: Sykmelder }
+  # Oppfolgingsplan
+  - { direction: IN,  service: Oppfolgingsplan,             action: Kvittering,                fromRole: Sykmelder,         toRole: Saksbehandler }
+  - { direction: IN,  service: Oppfolgingsplan,             action: Svar,                      fromRole: Sykmelder,         toRole: Saksbehandler }
+  - { direction: OUT, service: Oppfolgingsplan,             action: Plan,                      fromRole: Saksbehandler,     toRole: Sykmelder }

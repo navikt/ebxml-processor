@@ -20,6 +20,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import no.nav.emottak.cpa.auth.AZURE_AD_AUTH
+import no.nav.emottak.cpa.configuration.ValidRoles
+import no.nav.emottak.cpa.configuration.validRoles
 import no.nav.emottak.cpa.feil.CpaValidationException
 import no.nav.emottak.cpa.feil.MultiplePartnerException
 import no.nav.emottak.cpa.feil.PartnerNotFoundException
@@ -257,13 +259,39 @@ fun Route.postCpa(cpaRepository: CPARepository) = post("/cpa") {
         }
 }
 
+fun ValidationRequest.resolveOutgoingAddressing(validRoles: ValidRoles): Addressing {
+    if (addressing.service == EBMS_SERVICE_URI) return addressing
+    val mapping = validRoles.findOutgoing(addressing.service, addressing.action)
+        ?: throw NotFoundException("Fant ikke rollekonfigurasjon for utgående melding med service ${addressing.service} og action ${addressing.action}")
+    return addressing.copy(
+        from = addressing.from.copy(role = mapping.fromRole),
+        to = addressing.to.copy(role = mapping.toRole)
+    )
+}
+
+@Throws(CpaValidationException::class)
+fun ValidationRequest.validateIncomingRoles(validRoles: ValidRoles) {
+    if (addressing.service == EBMS_SERVICE_URI) return
+    if (!validRoles.isValidIncoming(addressing.from.role, addressing.to.role, addressing.service, addressing.action)) {
+        throw CpaValidationException(
+            "Ugyldig kombinasjon for innkommende melding: fromRole ${addressing.from.role}, toRole ${addressing.to.role}, " +
+                "service ${addressing.service}, action ${addressing.action}"
+        )
+    }
+}
+
 suspend fun AdresseregisterValidator.validateWithAR(
     cpaRepository: CPARepository,
-    validateRequest: ValidationRequest,
-    sertifikatValidator: SertifikatValidator
+    originalRequest: ValidationRequest,
+    sertifikatValidator: SertifikatValidator,
+    validRoles: ValidRoles = no.nav.emottak.cpa.configuration.validRoles
 ): ValidationResult {
     if (!cpapiActive) {
         throw NotFoundException("Fant ikke CPA og adreseregisterValidator er deaktivert.")
+    }
+    val validateRequest = when (originalRequest.direction) {
+        Direction.OUT -> originalRequest.copy(addressing = originalRequest.resolveOutgoingAddressing(validRoles))
+        Direction.IN -> originalRequest.also { it.validateIncomingRoles(validRoles) }
     }
     val fromHerId = validateRequest.addressing.from.partyId.firstOrNull { it.type == "HER" }?.value
         ?: throw NotFoundException("Melding mangler From party av type HER")
@@ -299,7 +327,8 @@ suspend fun AdresseregisterValidator.validateWithAR(
                 )
             ),
             listOf(allPurposeEdiEndpoint),
-            listOf(allPurposeEdiEndpoint)
+            listOf(allPurposeEdiEndpoint),
+            cpaAddressing = validateRequest.addressing.takeIf { validateRequest.direction == Direction.OUT }
         )
     } catch (ex: Exception) {
         log.error("Error while fetching arSignCertificate ", ex)
@@ -311,7 +340,7 @@ fun ValidationRequest.getToFromPartyInfo(cpa: CollaborationProtocolAgreement): T
     val toParty: PartyInfo
     val fromParty: PartyInfo
     var cpaAddressing: Addressing? = null
-    if (direction == Direction.OUT) {
+    if (direction == Direction.OUT) { // Uten CPA (adresseregisteret) hentes roller fra roles/valid-roles.yaml
         fromParty =
             cpa.getValidPartyInfosSender(addressing.service, addressing.action)
                 .firstOrNull()
@@ -387,7 +416,7 @@ fun Route.validateCpa(
             }
         }
         updateLastUsed(cpaRepository, lastUsed, validateRequest)
-        val (toParty, fromParty, cpaAddressing) = validateRequest.getToFromPartyInfo(cpa)
+        val (toParty, fromParty, cpaAddressing) = validateRequest.getToFromPartyInfo(cpa) // TODO: Må kunne håndteres CPA-løst
         if (cpaAddressing != null) {
             validateRequest = validateRequest.copy(
                 addressing = cpaAddressing
