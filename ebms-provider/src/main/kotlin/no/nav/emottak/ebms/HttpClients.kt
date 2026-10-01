@@ -75,7 +75,7 @@ open class SendInClient(clientProvider: () -> HttpClient) {
     private var httpClient = clientProvider.invoke()
     private val sendInEndpoint = getEnvVar("SEND_IN_URL", "http://ebms-send-in")
 
-    open suspend fun postSendIn(sendInRequest: SendInRequest): SendInResponse {
+    open suspend fun postSendInSynkron(sendInRequest: SendInRequest): SendInResponse {
         val response = httpClient.post("$sendInEndpoint/fagmelding/synkron") {
             setBody(sendInRequest)
             contentType(Json)
@@ -86,6 +86,18 @@ open class SendInClient(clientProvider: () -> HttpClient) {
             throw Exception(errorMessage)
         }
         return response.body()
+    }
+
+    open suspend fun postSendInAsynkron(sendInRequest: SendInRequest) {
+        val response = httpClient.post("$sendInEndpoint/fagmelding/asynkron") {
+            setBody(sendInRequest)
+            contentType(Json)
+        }
+        if (response.status == HttpStatusCode.BadRequest) {
+            val errorMessage = response.bodyAsText()
+            log.error("Propagerer feilmelding fra fagsystemet til brukeren: $errorMessage")
+            throw Exception(errorMessage)
+        }
     }
 }
 
