@@ -48,9 +48,10 @@ data class ErrorRetryPolicy(
     val retryIntervals: List<Duration>,
     val retriesPerInterval: List<Int>,
     val maxRetries: Int
-    // If retriesPerInterval is e.g. [3, 3, 23] and retryIntervalsMinutes is [5m, 15m, 1h, 24h],
-    // then the first 3 retries occurs 5/10/15 minutes after first failure, the next 3 retries 30/45/60 minutes after first failure,
-    // the next 23 retries 2-24 hours after first failure, and any retries after that will occur every 24 hours after the previous retry.
+    // If retriesPerInterval is e.g. [2, 2, 1, 3, 6] and retryIntervals is [30m, 1h, 3h, 6h, 12h],
+    // then the first 2 retries occur 30/60 minutes after first failure, the next 2 retries 2/3 hours after first failure,
+    // the next retry occurs 6 hours after first failure, the next 3 retries 12/18/24 hours after first failure,
+    // and the final 6 retries occur every 12 hours after that (36/48/60/72/84/96 hours after first failure).
 ) {
     fun nextInterval(retriesPerformed: Int): Duration {
         var intervalIndex = findIntervalIndex(retriesPerformed)
