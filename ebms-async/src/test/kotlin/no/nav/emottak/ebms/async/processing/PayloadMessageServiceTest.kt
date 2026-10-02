@@ -112,6 +112,7 @@ class PayloadMessageServiceTest {
         coVerify(exactly = 1) { messageReceivedRepository.messageAcknowledged(payloadMessage) }
         coVerify(exactly = 0) { processingService.processAsync(any(), any()) }
         coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithAsyncResponse(any()) }
+        coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithAsyncResponseKafka(any()) }
         coVerify(exactly = 1) { eventRegistrationService.registerEventMessageDetails(any()) }
         assertTrue(ebmsMessageSlots[0] is Acknowledgment)
         assertType<Acknowledgment>(ebmsMessageSlots, 0)
@@ -193,6 +194,7 @@ class PayloadMessageServiceTest {
         coVerify(exactly = 0) { messageReceivedRepository.messageAcknowledged(payloadMessage) }
         coVerify(exactly = 0) { processingService.processAsync(any(), any()) }
         coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithAsyncResponse(any()) }
+        coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithAsyncResponseKafka(any()) }
         coVerify(exactly = 2) { eventRegistrationService.registerEventMessageDetails(any()) }
         println(ebmsMessageSlots[0].toString())
         assertTrue(ebmsMessageSlots[0] is PayloadMessage)
@@ -237,6 +239,7 @@ class PayloadMessageServiceTest {
         coVerify(exactly = 1) { processingService.processAsync(payloadMessage, any()) }
         coVerify(exactly = 1) { payloadMessageForwardingService.forwardMessageWithSyncResponse(payloadMessage) }
         coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithAsyncResponse(payloadMessage, any()) }
+        coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithAsyncResponseKafka(payloadMessage, any()) }
         coVerify(exactly = 0) { payloadMessageForwardingService.returnMessageResponse(payloadMessage) }
         coVerify(exactly = 1) { cpaValidationService.validateOutgoingMessage(any()) }
         coVerify(exactly = 1) {
@@ -303,6 +306,7 @@ class PayloadMessageServiceTest {
         coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(payloadMessage, true) }
         coVerify(exactly = 1) { processingService.processAsync(payloadMessage, any()) }
         coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithAsyncResponse(payloadMessage) }
+        coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithAsyncResponseKafka(payloadMessage) }
         coVerify(exactly = 1) { payloadMessageForwardingService.returnMessageResponse(payloadMessage) }
         coVerify(exactly = 1) { cpaValidationService.validateOutgoingMessage(any()) }
         coVerify(exactly = 1) {
@@ -339,6 +343,7 @@ class PayloadMessageServiceTest {
         coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(payloadMessage, true) }
         coVerify(exactly = 1) { processingService.processAsync(payloadMessage, any()) }
         coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithAsyncResponse(payloadMessage) }
+        coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithAsyncResponseKafka(payloadMessage) }
         coVerify(exactly = 0) { payloadMessageForwardingService.returnMessageResponse(payloadMessage) }
         coVerify(exactly = 0) { cpaValidationService.validateOutgoingMessage(any()) }
         coVerify(exactly = 0) {
@@ -375,6 +380,7 @@ class PayloadMessageServiceTest {
         coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(payloadMessage, true) }
         coVerify(exactly = 1) { processingService.processAsync(payloadMessage, any()) }
         coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithAsyncResponse(payloadMessage) }
+        coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithAsyncResponseKafka(payloadMessage) }
         coVerify(exactly = 0) { payloadMessageForwardingService.returnMessageResponse(payloadMessage) }
         coVerify(exactly = 0) { cpaValidationService.validateOutgoingMessage(any()) }
         coVerify(exactly = 0) {
@@ -411,6 +417,7 @@ class PayloadMessageServiceTest {
         coVerify(exactly = 1) { processingService.processAsync(payloadMessage, any()) }
         coVerify(exactly = 1) { payloadMessageForwardingService.forwardMessageWithSyncResponse(payloadMessage) }
         coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithAsyncResponse(payloadMessage, any()) }
+        coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithAsyncResponseKafka(payloadMessage, any()) }
         coVerify(exactly = 0) { payloadMessageForwardingService.returnMessageResponse(payloadMessage) }
         coVerify(exactly = 0) { cpaValidationService.validateOutgoingMessage(any()) }
         coVerify(exactly = 0) {
@@ -441,6 +448,7 @@ class PayloadMessageServiceTest {
         coVerify(exactly = 1) { messageReceivedRepository.isAcknowledged(payloadMessage) }
         coVerify(exactly = 0) { processingService.processAsync(any(), any()) }
         coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithAsyncResponse(any()) }
+        coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithAsyncResponseKafka(any()) }
         coVerify(exactly = 1) { messageReceivedRepository.messageAcknowledged(payloadMessage) }
         coVerify(exactly = 1) { eventRegistrationService.registerEventMessageDetails(any()) }
         assertTrue(ebmsMessageSlots[0] is Acknowledgment)
@@ -478,6 +486,7 @@ class PayloadMessageServiceTest {
         coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(payloadMessage, true) }
         coVerify(exactly = 1) { processingService.processAsync(payloadMessage, any()) }
         coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithAsyncResponse(payloadMessage) }
+        coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithAsyncResponseKafka(payloadMessage) }
         coVerify(exactly = 0) { payloadMessageForwardingService.returnMessageResponse(payloadMessage) }
         coVerify(exactly = 0) { cpaValidationService.validateOutgoingMessage(any()) }
         coVerify(exactly = 0) {
@@ -593,6 +602,7 @@ class PayloadMessageServiceTest {
         }
 
         coEvery { payloadMessageForwardingService.forwardMessageWithAsyncResponse(any(), any()) } just Runs
+        coEvery { payloadMessageForwardingService.forwardMessageWithAsyncResponseKafka(any(), any()) } just Runs
         coEvery { payloadMessageForwardingService.returnMessageResponse(any()) } just Runs
         coEvery { eventRegistrationService.registerEventMessageDetails(capture(ebmsMessageSlots)) } returns Unit
         coEvery { eventRegistrationService.registerMessageCompleted(any()) } returns Unit
@@ -645,6 +655,76 @@ class PayloadMessageServiceTest {
             ebmsMessageSlots[i] is T,
             "ebmsMessageSlots[$i] er ikke ${T::class.simpleName}, men ${ebmsMessageSlots[0].javaClass.name}"
         )
+    }
+
+    @Test
+    fun `process should forward Sykmelding asynchronously to send-in with partnerId`() = runBlocking {
+        assertForwardedAsynchronously(MessageType.SYKMELDING)
+    }
+
+    @Test
+    fun `process should forward Trekkopplysning asynchronously to send-in with partnerId`() = runBlocking {
+        assertForwardedAsynchronously(MessageType.TREKKOPPLYSNING)
+    }
+
+    @Test
+    fun `process should forward Inntektsforesporsel synchronously to send-in`() = runBlocking {
+        initService()
+        val (payloadMessage, _, _) = setupMocks(
+            PerMessageCharacteristicsType.PER_MESSAGE,
+            false,
+            direction = Direction.IN,
+            givenService = MessageType.INNTEKTSFORESPORSEL.serviceName
+        )
+
+        service.process(setupReceiverRecordWithoutRetryCountMock(), payloadMessage)
+
+        coVerify(exactly = 1) { payloadMessageForwardingService.forwardMessageWithSyncResponse(payloadMessage) }
+        coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithAsyncResponse(any(), any()) }
+        coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithAsyncResponseKafka(any(), any()) }
+    }
+
+    @Test
+    fun `process should delegate to retryService if async send-in fails`() = runBlocking {
+        initService()
+        val (payloadMessage, ebmsMessageSlots, _) = setupMocks(
+            PerMessageCharacteristicsType.PER_MESSAGE,
+            false,
+            direction = Direction.IN,
+            givenService = MessageType.SYKMELDING.serviceName
+        )
+        coEvery {
+            payloadMessageForwardingService.forwardMessageWithAsyncResponse(any(), any())
+        } throws Exception("send-in failed")
+
+        service.process(setupReceiverRecordWithRetryServiceMock(), payloadMessage)
+
+        coVerify(exactly = 1) { payloadMessageForwardingService.forwardMessageWithAsyncResponse(payloadMessage, any()) }
+        coVerify(exactly = 1) { retryService.incomingRetryEval(any(), any(), any(), any()) }
+        coVerify(exactly = 0) { messageReceivedRepository.messageAcknowledged(payloadMessage) }
+        assertTrue(ebmsMessageSlots.none { it is Acknowledgment })
+    }
+
+    private suspend fun assertForwardedAsynchronously(messageType: MessageType) {
+        initService()
+        val (payloadMessage, ebmsMessageSlots, _) = setupMocks(
+            PerMessageCharacteristicsType.PER_MESSAGE,
+            false,
+            direction = Direction.IN,
+            givenService = messageType.serviceName
+        )
+        coEvery {
+            cpaValidationService.validateIncomingMessage(payloadMessage, true)
+        } returns validValidationResult().copy(partnerId = 42L)
+
+        service.process(setupReceiverRecordWithoutRetryCountMock(), payloadMessage)
+
+        coVerify(exactly = 1) { payloadMessageForwardingService.forwardMessageWithAsyncResponse(payloadMessage, 42L) }
+        coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithAsyncResponseKafka(any(), any()) }
+        coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithSyncResponse(any()) }
+        coVerify(exactly = 0) { payloadMessageForwardingService.returnMessageResponse(any()) }
+        coVerify(exactly = 1) { messageReceivedRepository.messageAcknowledged(payloadMessage) }
+        assertTrue(ebmsMessageSlots.any { it is Acknowledgment })
     }
 
     @Test
