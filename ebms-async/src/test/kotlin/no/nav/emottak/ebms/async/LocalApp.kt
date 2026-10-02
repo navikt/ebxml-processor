@@ -341,6 +341,10 @@ class DummySendInClient() : SendInClient(defaultHttpClient()) {
         val addressing = Addressing(sendInRequest.addressing.from, sendInRequest.addressing.to, service, action)
         return SendInResponse(responseMessageId, refToMessageId, responseConversationId, cpaId, addressing, responsePayload.toByteArray(), responseRequestId)
     }
+
+    override suspend fun postSendInAsynkron(sendInRequest: SendInRequest) {
+        println("DummySendInClient: postSendInAsynkron called with sendInRequest: $sendInRequest")
+    }
 }
 
 // Dummy SMTP transport client that always returns a hard coded payload
