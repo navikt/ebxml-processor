@@ -22,7 +22,7 @@ import no.nav.emottak.message.model.EmailAddress
 import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.util.marker
-import no.nav.emottak.utils.common.model.EbmsProcessing
+import no.nav.emottak.util.toSendInRequest
 import no.nav.emottak.utils.common.model.SendInRequest
 import no.nav.emottak.utils.common.parseOrGenerateUuid
 import no.nav.emottak.utils.kafka.model.EventDataType
@@ -74,18 +74,7 @@ class PayloadMessageForwardingService(
             log.warn(payloadMessage.marker(), "Kafka producer for ebms.in.payload is not active, skipping sending message to topic")
             return
         }
-        val sendInRequest = SendInRequest(
-            messageId = payloadMessage.messageId,
-            conversationId = payloadMessage.conversationId,
-            payloadId = payloadMessage.payload.contentId,
-            payload = payloadMessage.payload.bytes,
-            addressing = payloadMessage.addressing,
-            cpaId = payloadMessage.cpaId,
-            ebmsProcessing = EbmsProcessing(),
-            signedOf = payloadMessage.payload.signedBy,
-            requestId = payloadMessage.requestId,
-            partnerId = partnerId
-        )
+        val sendInRequest = payloadMessage.toSendInRequest(partnerId)
         val key = payloadMessage.requestId
         val value = Json.encodeToString<SendInRequest>(sendInRequest).toByteArray()
 
