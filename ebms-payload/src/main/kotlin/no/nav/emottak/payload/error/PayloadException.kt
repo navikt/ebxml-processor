@@ -16,6 +16,7 @@ class DecryptionException(message: String, cause: Exception? = null, val decrypt
 class EncryptionException(message: String, cause: Exception? = null) : PayloadException(message, cause, true)
 class JuridiskLoggException(message: String, cause: Exception? = null) : PayloadException(message, cause, true)
 class SignatureException(message: String, cause: Exception? = null) : PayloadException(message, cause, true)
+class HelseIdTokenException(message: String, cause: Exception? = null) : PayloadException(message, cause, true)
 
 fun Throwable.convertToFeil(): Feil = when (this) {
     is JuridiskLoggException -> Feil(ErrorCode.DELIVERY_FAILURE, localizedMessage, SeverityType.ERROR.value(), this.recoverable)
@@ -26,6 +27,7 @@ fun Throwable.convertToFeil(): Feil = when (this) {
     is SignatureException -> Feil(ErrorCode.SECURITY_FAILURE, localizedMessage, SeverityType.ERROR.value(), this.recoverable)
     is CertificateException -> Feil(ErrorCode.SECURITY_FAILURE, localizedMessage, SeverityType.ERROR.value(), this.recoverable)
     is OCSPValidationFnrBlankError -> Feil(ErrorCode.SECURITY_FAILURE, localizedMessage, SeverityType.ERROR.value(), this.recoverable)
+    is HelseIdTokenException -> Feil(ErrorCode.SECURITY_FAILURE, localizedMessage, SeverityType.ERROR.value(), this.recoverable)
     else -> Feil(ErrorCode.UNKNOWN, this.localizedMessage, SeverityType.ERROR.value())
 }
 
@@ -38,5 +40,6 @@ fun Throwable.getEventType(): EventType = when (this) {
     is SignatureException -> EventType.SIGNATURE_CHECK_FAILED
     is CertificateException -> EventType.OCSP_CHECK_FAILED
     is OCSPValidationFnrBlankError -> EventType.OCSP_CHECK_FAILED
+    is HelseIdTokenException -> EventType.OCSP_CHECK_FAILED
     else -> EventType.UNKNOWN_ERROR_OCCURRED
 }
