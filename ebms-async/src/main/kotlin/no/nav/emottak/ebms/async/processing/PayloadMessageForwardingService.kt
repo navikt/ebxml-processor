@@ -65,7 +65,7 @@ class PayloadMessageForwardingService(
     suspend fun forwardMessageWithAsyncResponse(payloadMessage: PayloadMessage, partnerId: Long? = null) {
         log.debug(payloadMessage.marker(), "Starting SendIn for {}", payloadMessage.addressing.service)
         sendInService.sendInAsynkron(payloadMessage, partnerId)
-        log.info(payloadMessage.marker(), "SendIn completed successfully for")
+        log.info(payloadMessage.marker(), "SendIn completed successfully")
     }
 
     suspend fun forwardMessageWithAsyncResponseKafka(payloadMessage: PayloadMessage, partnerId: Long? = null) {
