@@ -13,6 +13,8 @@ import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.runBlocking
 import no.nav.emottak.ebms.SendInClient
+import no.nav.emottak.message.exception.EbmsException
+import no.nav.emottak.message.model.ErrorCode
 import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.util.jsonLenient
@@ -25,6 +27,7 @@ import org.junit.jupiter.api.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
 
 class SendInServiceTest {
 
@@ -72,22 +75,30 @@ class SendInServiceTest {
     }
 
     @Test
-    fun `sendInAsynkron throws when send-in responds with BadRequest`() {
+    fun `sendInAsynkron throws recoverable EbmsException when send-in responds with client error`() {
         val service = sendInService { respond("Ugyldig fagmelding", HttpStatusCode.BadRequest) }
 
-        assertFailsWith<Exception> {
+        val exception = assertFailsWith<EbmsException> {
             runBlocking { service.sendInAsynkron(createPayloadMessage()) }
         }
         assertEquals("/fagmelding/asynkron", capturedRequests.single().url.encodedPath)
+        assertTrue(exception.isRecoverable())
+        assertEquals(ErrorCode.DELIVERY_FAILURE, exception.feil.single().code)
+        assertTrue(exception.message!!.contains("400"))
+        assertTrue(exception.message!!.contains("Ugyldig fagmelding"))
     }
 
     @Test
-    fun `sendInAsynkron throws when send-in responds with server error`() {
-        val service = sendInService { respond("", HttpStatusCode.InternalServerError) }
+    fun `sendInAsynkron throws recoverable EbmsException when send-in responds with server error`() {
+        val service = sendInService { respond("MQ utilgjengelig", HttpStatusCode.ServiceUnavailable) }
 
-        assertFailsWith<Exception> {
+        val exception = assertFailsWith<EbmsException> {
             runBlocking { service.sendInAsynkron(createPayloadMessage()) }
         }
+        assertTrue(exception.isRecoverable())
+        assertEquals(ErrorCode.DELIVERY_FAILURE, exception.feil.single().code)
+        assertTrue(exception.message!!.contains("503"))
+        assertTrue(exception.message!!.contains("MQ utilgjengelig"))
     }
 
     private fun createPayloadMessage() = PayloadMessage(

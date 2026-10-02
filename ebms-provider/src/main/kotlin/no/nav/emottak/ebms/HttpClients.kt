@@ -4,6 +4,7 @@ import com.nimbusds.jwt.SignedJWT
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.ResponseException
 import io.ktor.client.plugins.auth.Auth
 import io.ktor.client.plugins.auth.providers.BearerTokens
 import io.ktor.client.plugins.auth.providers.bearer
@@ -17,7 +18,9 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType.Application.Json
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
+import no.nav.emottak.message.exception.EbmsException
 import no.nav.emottak.message.model.AsyncPayload
+import no.nav.emottak.message.model.ErrorCode
 import no.nav.emottak.message.model.MessagingCharacteristicsRequest
 import no.nav.emottak.message.model.MessagingCharacteristicsResponse
 import no.nav.emottak.message.model.PayloadRequest
@@ -89,14 +92,28 @@ open class SendInClient(clientProvider: () -> HttpClient) {
     }
 
     open suspend fun postSendInAsynkron(sendInRequest: SendInRequest) {
-        val response = httpClient.post("$sendInEndpoint/fagmelding/asynkron") {
-            setBody(sendInRequest)
-            contentType(Json)
-        }
-        if (response.status == HttpStatusCode.BadRequest) {
-            val errorMessage = response.bodyAsText()
-            log.error("Propagerer feilmelding fra fagsystemet til brukeren: $errorMessage")
-            throw Exception(errorMessage)
+        try {
+            httpClient.post("$sendInEndpoint/fagmelding/asynkron") {
+                setBody(sendInRequest)
+                contentType(Json)
+            }
+        } catch (e: ResponseException) {
+            val status = e.response.status
+            val errorMessage = runCatching { e.response.bodyAsText() }.getOrDefault("")
+            if (status.value in 400..499) {
+                throw EbmsException(
+                    "Overføring til fagsystem feilet med $status: $errorMessage",
+                    errorCode = ErrorCode.DELIVERY_FAILURE,
+                    recoverable = true, // All recoverable for now
+                    exception = e
+                )
+            }
+            throw EbmsException(
+                "Overføring til fagsystem feilet med $status: $errorMessage",
+                errorCode = ErrorCode.DELIVERY_FAILURE,
+                recoverable = true,
+                exception = e
+            )
         }
     }
 }
