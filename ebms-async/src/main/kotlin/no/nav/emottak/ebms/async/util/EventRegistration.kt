@@ -57,6 +57,8 @@ interface EventRegistrationService {
     suspend fun registerMessageCompleted(ebmsPayloadMessage: PayloadMessage)
     suspend fun registerMessageRetried(ebmsPayloadMessage: PayloadMessage, retryCount: Int)
     suspend fun registerSignatureValidated(ebmsPayloadMessage: PayloadMessage, certificate: X509Certificate)
+    suspend fun registerSignatureValidationFailed(ebmsMessage: EbmsMessage, errorMessage: String?, certificate: X509Certificate?)
+    suspend fun registerCpaValidationFailed(ebmsMessage: EbmsMessage, errorMessage: String?)
 }
 
 class EventRegistrationServiceImpl(
@@ -219,6 +221,34 @@ class EventRegistrationServiceImpl(
         conversationId = ebmsPayloadMessage.conversationId
     )
 
+    override suspend fun registerSignatureValidationFailed(
+        ebmsMessage: EbmsMessage,
+        errorMessage: String?,
+        certificate: X509Certificate?
+    ) = registerEvent(
+        eventType = EventType.SIGNATURE_CHECK_FAILED,
+        requestId = ebmsMessage.requestId.parseOrGenerateUuid(),
+        messageId = ebmsMessage.refToMessageId ?: ebmsMessage.messageId,
+        eventData = Json.encodeToString(
+            (certificate?.mapCertificateDetails() ?: emptyMap())
+                .plus(EventDataType.ERROR_MESSAGE.value to "Signeringsfeil: $errorMessage")
+        ),
+        conversationId = ebmsMessage.conversationId
+    )
+
+    override suspend fun registerCpaValidationFailed(
+        ebmsMessage: EbmsMessage,
+        errorMessage: String?
+    ) = registerEvent(
+        eventType = EventType.VALIDATION_AGAINST_CPA_FAILED,
+        requestId = ebmsMessage.requestId.parseOrGenerateUuid(),
+        messageId = ebmsMessage.refToMessageId ?: ebmsMessage.messageId,
+        eventData = Json.encodeToString(
+            mapOf(EventDataType.ERROR_MESSAGE.value to errorMessage.orEmpty())
+        ),
+        conversationId = ebmsMessage.conversationId
+    )
+
     private suspend fun registerEvent(event: Event) {
         try {
             log.debug(event.marker(), "Registering event: {}", event)
@@ -318,4 +348,15 @@ class EventRegistrationServiceFake : EventRegistrationService {
         ebmsPayloadMessage: PayloadMessage,
         certificate: X509Certificate
     ) = log.debug("Registering signature validated: {}", ebmsPayloadMessage)
+
+    override suspend fun registerSignatureValidationFailed(
+        ebmsMessage: EbmsMessage,
+        errorMessage: String?,
+        certificate: X509Certificate?
+    ) = log.debug("Registering signature validation failed: {}", ebmsMessage)
+
+    override suspend fun registerCpaValidationFailed(
+        ebmsMessage: EbmsMessage,
+        errorMessage: String?
+    ) = log.debug("Registering CPA validation failed: {}", ebmsMessage)
 }
