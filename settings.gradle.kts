@@ -13,7 +13,7 @@ dependencyResolutionManagement {
 
     versionCatalogs {
         create("libs") {
-            version("bouncycastle", "1.76")
+            version("bouncycastle", "1.86")
             version("exposed", "1.0.0-rc-3")
             version("ktor", "3.5.2")
             version("token-validation-ktor", "6.0.12")
@@ -23,15 +23,16 @@ dependencyResolutionManagement {
             version("hoplite", "2.8.2")
             version("logback", "1.5.17")
             version("logstash", "8.0")
-            version("fasterxml-jackson", "2.18.2")
-            version("jwt", "4.6.0")
+            version("fasterxml-jackson", "2.22.3")
+            version("jwt", "4.6.1")
             version("emottak-utils", "0.4.0")
             version("kotlinx-datetime", "0.8.0")
+            version("santuario", "3.0.6")
 
             library("jwt", "com.auth0", "java-jwt").versionRef("jwt")
             library("bcpkix-jdk18on", "org.bouncycastle", "bcpkix-jdk18on").versionRef("bouncycastle")
             library("bcprov-jdk18on", "org.bouncycastle", "bcprov-jdk18on").versionRef("bouncycastle")
-            library("apache-santuario", "org.apache.santuario:xmlsec:3.0.5")
+            library("apache-santuario", "org.apache.santuario", "xmlsec").versionRef("santuario")
 
             library("exposed-core", "org.jetbrains.exposed", "exposed-core").versionRef("exposed")
             library("exposed-dao", "org.jetbrains.exposed", "exposed-dao").versionRef("exposed")
