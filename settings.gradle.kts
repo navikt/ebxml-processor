@@ -61,6 +61,7 @@ dependencyResolutionManagement {
 
             library("hoplite-core", "com.sksamuel.hoplite", "hoplite-core").versionRef("hoplite")
             library("hoplite-hocon", "com.sksamuel.hoplite", "hoplite-hocon").versionRef("hoplite")
+            library("hoplite-yaml", "com.sksamuel.hoplite", "hoplite-yaml").versionRef("hoplite")
 
             library("arrow-core", "io.arrow-kt", "arrow-core").versionRef("arrow")
             library("arrow-fx-coroutines", "io.arrow-kt", "arrow-fx-coroutines").versionRef("arrow")
