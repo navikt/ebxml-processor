@@ -194,11 +194,19 @@ class PayloadMessageService(
                 payloadMessageForwardingService.forwardMessageWithSyncResponse(processedPayload)
             }
 
-            MessageType.TREKKOPPLYSNING, MessageType.SYKMELDING, MessageType.LEGEMELDING, MessageType.BEHANDLERKRAV, MessageType.OPPGJORSKONTROLL,
+            MessageType.TREKKOPPLYSNING, MessageType.SYKMELDING, MessageType.LEGEMELDING -> {
+                log.info(processedPayload.marker(), "Calling SendIn ASYNCHRONOUSLY via HTTP for $messageType")
+                payloadMessageForwardingService.forwardMessageWithAsyncResponse(
+                    processedPayload,
+                    validationResult.partnerId
+                )
+            }
+
+            MessageType.BEHANDLERKRAV, MessageType.OPPGJORSKONTROLL,
             MessageType.DIALOGMOTE_INNKALLING, MessageType.FORESPORSEL_FRA_SAKSBEHANDLER, MessageType.HENVENDELSE_FRA_LEGE,
             MessageType.HENVENDELSE_FRA_SAKSBEHANDLER, MessageType.OPPFOLGINGSPLAN -> {
-                log.info(processedPayload.marker(), "Calling SendIn ASYNCHRONOUSLY for $messageType")
-                payloadMessageForwardingService.forwardMessageWithAsyncResponse(
+                log.info(processedPayload.marker(), "Calling SendIn ASYNCHRONOUSLY via Kafka for $messageType")
+                payloadMessageForwardingService.forwardMessageWithAsyncResponseKafka(
                     processedPayload,
                     validationResult.partnerId
                 )

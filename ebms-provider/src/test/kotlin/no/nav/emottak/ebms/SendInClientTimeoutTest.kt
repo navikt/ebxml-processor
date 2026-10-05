@@ -31,14 +31,14 @@ class SendInClientTimeoutTest {
 
     @Test
     fun `Service with configured timeout uses extended request timeout`() = sendInTestApp { sendInClient ->
-        val response = sendInClient.postSendIn(sendInRequest("HarBorgerFrikortMengde"))
+        val response = sendInClient.postSendInSynkron(sendInRequest("HarBorgerFrikortMengde"))
         assertEquals("HarBorgerFrikortMengde", response.addressing.service)
     }
 
     @Test
     fun `Service without configured timeout uses default request timeout`() = sendInTestApp { sendInClient ->
         assertThrows<HttpRequestTimeoutException> {
-            sendInClient.postSendIn(sendInRequest("HarBorgerEgenandelFritak"))
+            sendInClient.postSendInSynkron(sendInRequest("HarBorgerEgenandelFritak"))
         }
     }
 
