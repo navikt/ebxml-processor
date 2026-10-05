@@ -4,11 +4,13 @@ import com.nimbusds.jwt.SignedJWT
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.ResponseException
 import io.ktor.client.plugins.auth.Auth
 import io.ktor.client.plugins.auth.providers.BearerTokens
 import io.ktor.client.plugins.auth.providers.bearer
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.timeout
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.headers
@@ -38,6 +40,8 @@ import java.net.URI
 import kotlin.uuid.Uuid
 
 const val AZURE_AD_AUTH = "AZURE_AD"
+
+const val DEFAULT_REQUEST_TIMEOUT_MILLIS = 15_000L
 
 open class CpaRepoClient(clientProvider: () -> HttpClient) {
     private var httpClient = clientProvider.invoke()
@@ -74,7 +78,10 @@ open class PayloadProcessingClient(clientProvider: () -> HttpClient) {
     }
 }
 
-open class SendInClient(clientProvider: () -> HttpClient) {
+open class SendInClient(
+    clientProvider: () -> HttpClient,
+    private val requestTimeoutMillisByService: Map<String, Long> = emptyMap()
+) {
     private var httpClient = clientProvider.invoke()
     private val sendInEndpoint = getEnvVar("SEND_IN_URL", "http://ebms-send-in")
 
@@ -82,6 +89,9 @@ open class SendInClient(clientProvider: () -> HttpClient) {
         val response = httpClient.post("$sendInEndpoint/fagmelding/synkron") {
             setBody(sendInRequest)
             contentType(Json)
+            requestTimeoutMillisByService[sendInRequest.addressing.service]?.let { serviceTimeout ->
+                timeout { requestTimeoutMillis = serviceTimeout }
+            }
         }
         if (response.status == HttpStatusCode.BadRequest) {
             val errorMessage = response.bodyAsText()
@@ -172,6 +182,9 @@ fun scopedAuthHttpClient(
             expectSuccess = true
             install(ContentNegotiation) {
                 jsonLenient()
+            }
+            install(HttpTimeout) {
+                requestTimeoutMillis = DEFAULT_REQUEST_TIMEOUT_MILLIS
             }
             install(Auth) {
                 bearer {
