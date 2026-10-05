@@ -47,7 +47,7 @@ class SendInServiceTest {
             expectSuccess = true
             install(ContentNegotiation) { jsonLenient() }
         }
-        return SendInService(SendInClient { client })
+        return SendInService(SendInClient({ client }))
     }
 
     @Test
