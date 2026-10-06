@@ -43,6 +43,7 @@ dependencies {
     testImplementation(project(":cpa-repo"))
     testImplementation(testLibs.mock.oauth2.server)
     testImplementation(testLibs.ktor.server.test.host)
+    testImplementation(testLibs.ktor.client.mock)
     testImplementation(testLibs.junit.jupiter.api)
     testImplementation(testLibs.mockk.jvm)
     testImplementation(testLibs.mockk.dsl.jvm)

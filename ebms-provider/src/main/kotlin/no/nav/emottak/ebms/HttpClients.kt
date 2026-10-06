@@ -5,6 +5,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.ResponseException
 import io.ktor.client.plugins.auth.Auth
 import io.ktor.client.plugins.auth.providers.BearerTokens
 import io.ktor.client.plugins.auth.providers.bearer
@@ -19,7 +20,9 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType.Application.Json
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
+import no.nav.emottak.message.exception.EbmsException
 import no.nav.emottak.message.model.AsyncPayload
+import no.nav.emottak.message.model.ErrorCode
 import no.nav.emottak.message.model.MessagingCharacteristicsRequest
 import no.nav.emottak.message.model.MessagingCharacteristicsResponse
 import no.nav.emottak.message.model.PayloadRequest
@@ -38,7 +41,6 @@ import kotlin.uuid.Uuid
 
 const val AZURE_AD_AUTH = "AZURE_AD"
 
-// Matches the CIO engine default that applied before HttpTimeout was installed
 const val DEFAULT_REQUEST_TIMEOUT_MILLIS = 15_000L
 
 open class CpaRepoClient(clientProvider: () -> HttpClient) {
@@ -83,7 +85,7 @@ open class SendInClient(
     private var httpClient = clientProvider.invoke()
     private val sendInEndpoint = getEnvVar("SEND_IN_URL", "http://ebms-send-in")
 
-    open suspend fun postSendIn(sendInRequest: SendInRequest): SendInResponse {
+    open suspend fun postSendInSynkron(sendInRequest: SendInRequest): SendInResponse {
         val response = httpClient.post("$sendInEndpoint/fagmelding/synkron") {
             setBody(sendInRequest)
             contentType(Json)
@@ -97,6 +99,32 @@ open class SendInClient(
             throw Exception(errorMessage)
         }
         return response.body()
+    }
+
+    open suspend fun postSendInAsynkron(sendInRequest: SendInRequest) {
+        try {
+            httpClient.post("$sendInEndpoint/fagmelding/asynkron") {
+                setBody(sendInRequest)
+                contentType(Json)
+            }
+        } catch (e: ResponseException) {
+            val status = e.response.status
+            val errorMessage = runCatching { e.response.bodyAsText() }.getOrDefault("")
+            if (status.value in 400..499) {
+                throw EbmsException(
+                    "Overføring til fagsystem feilet med $status: $errorMessage",
+                    errorCode = ErrorCode.DELIVERY_FAILURE,
+                    recoverable = true, // All recoverable for now
+                    exception = e
+                )
+            }
+            throw EbmsException(
+                "Overføring til fagsystem feilet med $status: $errorMessage",
+                errorCode = ErrorCode.DELIVERY_FAILURE,
+                recoverable = true,
+                exception = e
+            )
+        }
     }
 }
 
