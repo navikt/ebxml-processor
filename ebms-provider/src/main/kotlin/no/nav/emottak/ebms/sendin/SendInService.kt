@@ -9,8 +9,13 @@ import no.nav.emottak.utils.common.model.SendInResponse
 
 class SendInService(val httpClient: SendInClient) {
 
-    suspend fun sendIn(payloadMessage: PayloadMessage, partnerId: Long? = null): SendInResponse =
+    suspend fun sendInSynkron(payloadMessage: PayloadMessage, partnerId: Long? = null): SendInResponse =
         withContext(Dispatchers.IO) {
-            httpClient.postSendIn(payloadMessage.toSendInRequest(partnerId))
+            httpClient.postSendInSynkron(payloadMessage.toSendInRequest(partnerId))
+        }
+
+    suspend fun sendInAsynkron(payloadMessage: PayloadMessage, partnerId: Long? = null) =
+        withContext(Dispatchers.IO) {
+            httpClient.postSendInAsynkron(payloadMessage.toSendInRequest(partnerId))
         }
 }

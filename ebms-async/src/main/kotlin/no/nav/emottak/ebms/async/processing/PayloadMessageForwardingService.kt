@@ -44,32 +44,31 @@ class PayloadMessageForwardingService(
 ) {
 
     suspend fun forwardMessageWithSyncResponse(payloadMessage: PayloadMessage) {
-        when (val messageType = messageTypeByServiceName(payloadMessage.addressing.service)) {
-            MessageType.HAR_BORGER_FRIKORT_MENGDE, MessageType.INNTEKTSFORESPORSEL, MessageType.TREKKOPPLYSNING -> {
-                log.debug(payloadMessage.marker(), "Starting SendIn for {}", messageType)
-                sendInService.sendIn(payloadMessage).let { sendInResponse ->
-                    PayloadMessage(
-                        requestId = sendInResponse.requestId,
-                        messageId = sendInResponse.messageId,
-                        conversationId = sendInResponse.conversationId,
-                        cpaId = payloadMessage.cpaId,
-                        addressing = sendInResponse.addressing,
-                        payload = Payload(sendInResponse.payload, ContentType.Application.Xml.toString()),
-                        refToMessageId = payloadMessage.messageId,
-                        duplicateElimination = payloadMessage.duplicateElimination,
-                        ackRequested = true
-                    )
-                }.let { payloadMessageResponse ->
-                    returnMessageResponse(payloadMessageResponse)
-                }
-            }
-            else -> {
-                log.warn(payloadMessage.marker(), "Skipping SendIn for {}", payloadMessage.addressing.service)
-            }
+        log.debug(payloadMessage.marker(), "Starting SendIn for {}", payloadMessage.addressing.service)
+        sendInService.sendInSynkron(payloadMessage).let { sendInResponse ->
+            PayloadMessage(
+                requestId = sendInResponse.requestId,
+                messageId = sendInResponse.messageId,
+                conversationId = sendInResponse.conversationId,
+                cpaId = payloadMessage.cpaId,
+                addressing = sendInResponse.addressing,
+                payload = Payload(sendInResponse.payload, ContentType.Application.Xml.toString()),
+                refToMessageId = payloadMessage.messageId,
+                duplicateElimination = payloadMessage.duplicateElimination,
+                ackRequested = true
+            )
+        }.let { payloadMessageResponse ->
+            returnMessageResponse(payloadMessageResponse)
         }
     }
 
     suspend fun forwardMessageWithAsyncResponse(payloadMessage: PayloadMessage, partnerId: Long? = null) {
+        log.debug(payloadMessage.marker(), "Starting SendIn for {}", payloadMessage.addressing.service)
+        sendInService.sendInAsynkron(payloadMessage, partnerId)
+        log.info(payloadMessage.marker(), "SendIn completed successfully")
+    }
+
+    suspend fun forwardMessageWithAsyncResponseKafka(payloadMessage: PayloadMessage, partnerId: Long? = null) {
         if (!config().kafkaEbmsInPayloadProducer.active) {
             log.warn(payloadMessage.marker(), "Kafka producer for ebms.in.payload is not active, skipping sending message to topic")
             return

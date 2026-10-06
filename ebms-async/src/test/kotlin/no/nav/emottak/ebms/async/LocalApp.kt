@@ -327,7 +327,7 @@ class DummyPayloadProcessingClient() : PayloadProcessingClient(defaultHttpClient
 
 // Dummy Sendin processing that builds a hard coded with reversed from/to addresses from the request
 class DummySendInClient() : SendInClient(defaultHttpClient()) {
-    override suspend fun postSendIn(sendInRequest: SendInRequest): SendInResponse {
+    override suspend fun postSendInSynkron(sendInRequest: SendInRequest): SendInResponse {
         println("DummySendInClient: postSendIn called with sendInRequest: $sendInRequest")
         var responsePayload = readClasspathFile("xml/harBorgerEgenandelFritakResponseFagmelding.xml")
         if (responsePayload == null) responsePayload = ""
@@ -340,6 +340,10 @@ class DummySendInClient() : SendInClient(defaultHttpClient()) {
         val action = "InntektInformasjon"
         val addressing = Addressing(sendInRequest.addressing.from, sendInRequest.addressing.to, service, action)
         return SendInResponse(responseMessageId, refToMessageId, responseConversationId, cpaId, addressing, responsePayload.toByteArray(), responseRequestId)
+    }
+
+    override suspend fun postSendInAsynkron(sendInRequest: SendInRequest) {
+        println("DummySendInClient: postSendInAsynkron called with sendInRequest: $sendInRequest")
     }
 }
 

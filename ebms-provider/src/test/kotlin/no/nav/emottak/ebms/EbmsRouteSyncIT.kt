@@ -85,7 +85,7 @@ class EbmsRouteSyncIT {
             }
         }
         val cpaRepoClient = CpaRepoClient { client }
-        val sendInClient = SendInClient { client }
+        val sendInClient = SendInClient({ client })
         val processingClient = PayloadProcessingClient { client }
 
         mockkStatic(EbmsDocument::signer)
