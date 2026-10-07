@@ -12,15 +12,13 @@ import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.upsert
 import kotlin.uuid.Uuid
-import kotlin.uuid.toJavaUuid
-import kotlin.uuid.toKotlinUuid
 
 class PayloadRepository(private val database: Database) {
 
     fun updateOrInsert(payload: AsyncPayload): Uuid {
         transaction(database.db) {
             PayloadTable.upsert(referenceId, contentId) {
-                it[referenceId] = payload.referenceId.toJavaUuid()
+                it[referenceId] = payload.referenceId
                 it[contentId] = payload.contentId
                 it[contentType] = payload.contentType
                 it[content] = payload.content
@@ -33,10 +31,10 @@ class PayloadRepository(private val database: Database) {
         return transaction(database.db) {
             PayloadTable
                 .select(PayloadTable.columns)
-                .where { PayloadTable.referenceId.eq(referenceId.toJavaUuid()) }
+                .where { PayloadTable.referenceId.eq(referenceId) }
                 .map {
                     AsyncPayload(
-                        it[PayloadTable.referenceId].toKotlinUuid(),
+                        it[PayloadTable.referenceId],
                         it[PayloadTable.contentId],
                         it[PayloadTable.contentType],
                         it[PayloadTable.content]
