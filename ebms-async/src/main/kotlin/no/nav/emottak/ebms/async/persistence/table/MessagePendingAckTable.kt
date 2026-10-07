@@ -12,6 +12,8 @@ object MessagePendingAckTable : Table("message_pending_ack") {
     val ackReceived: Column<Boolean> = bool("ack_received")
     val ackSignatureRequested: Column<Boolean> = bool("ack_signature_requested").default(true)
     val messageHeader: Column<String> = text("header")
+    val cpaId: Column<String?> = varchar("cpa_id", 256).nullable()
+    val conversationId: Column<String?> = varchar("conversation_id", 256).nullable()
     val messageContent: Column<ByteArray> = binary("content")
     val emailAddressList: Column<String> = varchar("email_list", 256)
     val firstSent: Column<Instant> = timestamp("first_sent_at")
