@@ -10,6 +10,7 @@ import no.nav.emottak.payload.crypto.Dekryptering
 import no.nav.emottak.payload.crypto.Kryptering
 import no.nav.emottak.payload.crypto.PayloadSignering
 import no.nav.emottak.payload.crypto.SignatureValidator
+import no.nav.emottak.payload.crypto.signerCertificate
 import no.nav.emottak.payload.error.CertificateException
 import no.nav.emottak.payload.error.SignatureException
 import no.nav.emottak.payload.helseid.NinResolver
@@ -22,11 +23,11 @@ import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.getByteArrayFromDocument
 import no.nav.emottak.util.mapCertificateDetails
 import no.nav.emottak.util.marker
-import no.nav.emottak.util.retrievePublicX509Certificate
 import no.nav.emottak.util.retrieveSignatureElement
 import no.nav.emottak.utils.kafka.model.EventDataType
 import no.nav.emottak.utils.kafka.model.EventType
 import no.nav.emottak.validering.sertifikat.SertifikatValidator
+import org.apache.xml.security.exceptions.XMLSecurityException
 import org.slf4j.Marker
 import java.io.ByteArrayInputStream
 
@@ -91,12 +92,14 @@ class Processor(
                 this.retrieveSignatureElement()
             } catch (e: SignatureValidationException) {
                 throw SignatureException("No signature element found in payload", e)
+            } catch (e: XMLSecurityException) {
+                throw SignatureException("Invalid signature element in payload", e)
             }
             if (processConfig.signering) {
                 log.debug(marker, "Validating signature for payload")
                 signaturValidator.validate(signatureElement)
                 val certificate = try {
-                    signatureElement.retrievePublicX509Certificate().also {
+                    signatureElement.signerCertificate().also {
                         sertifikatValidator.validateCertificate(it)
                     }
                 } catch (e: CertificateValidationException) {
@@ -113,7 +116,7 @@ class Processor(
                 log.debug(marker, "Validating for payload in validateOcsp flow")
                 signedByPid = ninResolver.resolve(
                     document = this,
-                    certificate = signatureElement.keyInfo.x509Certificate
+                    certificate = signatureElement.signerCertificate()
                 ).also {
                     eventRegistrationService.registerEvent(
                         EventType.OCSP_CHECK_SUCCESSFUL,

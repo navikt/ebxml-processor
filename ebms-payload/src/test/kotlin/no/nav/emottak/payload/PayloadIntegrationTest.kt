@@ -83,8 +83,8 @@ class PayloadIntegrationTest : PayloadTestBase() {
 
         with(response.body<PayloadResponse>()) {
             assertEquals(HttpStatusCode.BadRequest, response.status)
-            assertEquals(ErrorCode.UNKNOWN, this.error!!.code)
-            assertEquals("Token does not contain required audience", this.error!!.descriptionText)
+            assertEquals(ErrorCode.SECURITY_FAILURE, this.error!!.code)
+            assertEquals("Invalid HelseID token: Token does not contain required audience", this.error!!.descriptionText)
         }
     }
 
