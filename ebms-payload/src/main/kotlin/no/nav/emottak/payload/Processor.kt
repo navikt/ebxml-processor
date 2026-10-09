@@ -115,8 +115,9 @@ class Processor(
             }
             if (processConfig.ocspSjekk) {
                 log.debug(marker, "Validating for payload in validateOcsp flow")
-                signedByPid = ninResolver.resolve(this, signatureCertificate)
-                eventRegistrationService.registerEvent(EventType.OCSP_CHECK_SUCCESSFUL, payloadRequest)
+                val resolvedPid = ninResolver.resolve(this, signatureCertificate)
+                signedByPid = resolvedPid?.pid
+                eventRegistrationService.registerPidRetrieved(payloadRequest, resolvedPid)
                 log.debug(marker, "Validating OCSP for payload: Step 5 copy")
             }
 
