@@ -13,7 +13,7 @@ open class CpaValidationException(
     message = message,
     errorCode = errorCode,
     severity = severity,
-    exception = exception
+    cause = exception
 )
 
 open class SecurityException(
@@ -25,7 +25,7 @@ open class SecurityException(
     message = message,
     errorCode = errorCode,
     severity = severity,
-    exception = exception
+    cause = exception
 )
 
 open class PartnerNotFoundException(

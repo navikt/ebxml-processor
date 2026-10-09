@@ -115,14 +115,14 @@ open class SendInClient(
                     "Overføring til fagsystem feilet med $status: $errorMessage",
                     errorCode = ErrorCode.DELIVERY_FAILURE,
                     recoverable = true, // All recoverable for now
-                    exception = e
+                    cause = e
                 )
             }
             throw EbmsException(
                 "Overføring til fagsystem feilet med $status: $errorMessage",
                 errorCode = ErrorCode.DELIVERY_FAILURE,
                 recoverable = true,
-                exception = e
+                cause = e
             )
         }
     }
