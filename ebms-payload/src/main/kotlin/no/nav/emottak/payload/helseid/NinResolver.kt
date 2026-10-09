@@ -24,14 +24,15 @@ class NinResolver(
         return tokenValidator.getValidatedNin(token, messageGenerationDate)
     }
 
-    suspend fun resolve(document: Document, certificate: X509Certificate): String? {
+    suspend fun resolve(document: Document, certificate: X509Certificate): ResolvedPid? {
         val token = tokenValidator.getHelseIdTokenFromDocument(document)
 
         val nin = token?.let {
             tokenValidator.getValidatedNin(it, parseDateOrThrow(extractGeneratedDate(document)))
         }
 
-        return nin ?: ocspStatusService.getOCSPStatus(certificate).fnr
+        return nin?.let { ResolvedPid(it, PidSource.HelseID) }
+            ?: ocspStatusService.getOCSPStatus(certificate).fnr?.let { ResolvedPid(it, PidSource.OCSP) }
     }
 
     private fun extractGeneratedDate(document: Document): String? {
