@@ -1,12 +1,17 @@
 package no.nav.emottak.payload
 
 import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.runs
 import kotlinx.coroutines.runBlocking
 import no.nav.emottak.message.model.Payload
+import no.nav.emottak.payload.crypto.SignatureValidator
+import no.nav.emottak.payload.error.SignatureException
 import no.nav.emottak.payload.helseid.NinResolver
+import no.nav.emottak.payload.util.EventRegistrationService
 import no.nav.emottak.payload.util.EventRegistrationServiceFake
 import no.nav.emottak.util.marker
 import no.nav.emottak.validering.sertifikat.CRLChecker
@@ -120,8 +125,9 @@ class ProcessorTest : PayloadTestBase() {
         setupEnv()
         val crlChecker = mockk<CRLChecker>()
         coEvery { crlChecker.getCRLRevocationInfo(any(), any()) } throws CRLException("CRL endpoint unreachable")
+        val eventRegistrationService = mockk<EventRegistrationService>(relaxed = true)
         val processor = Processor(
-            EventRegistrationServiceFake(),
+            eventRegistrationService,
             SertifikatValidator(crlChecker = crlChecker)
         )
         val payload: Payload = Fixtures.validEgenandelForesporsel()
@@ -133,5 +139,45 @@ class ProcessorTest : PayloadTestBase() {
             processor.validateReadablePayload(request.marker(), payload, request, request.processing.processConfig)
         }
         assertEquals("CRL endpoint unreachable", thrown.message)
+        coVerify(exactly = 0) { eventRegistrationService.registerSignatureValidationFailed(any(), any(), any()) }
+        coVerify(exactly = 0) { eventRegistrationService.registerSignatureValidationSuccessful(any(), any()) }
+    }
+
+    @Test
+    fun `validateReadablePayload registers SIGNATURE_CHECK_FAILED with certificate when the XML signature is invalid`() = runBlocking {
+        setupEnv()
+        val eventRegistrationService = mockk<EventRegistrationService>(relaxed = true)
+        val signatureValidator = mockk<SignatureValidator>()
+        every { signatureValidator.validate(any()) } throws SignatureException("Invalid Signature!")
+        val processor = Processor(
+            eventRegistrationService,
+            mockk<SertifikatValidator>(),
+            signaturValidator = signatureValidator
+        )
+        val payload: Payload = Fixtures.validEgenandelForesporsel()
+        val request = baseRequest(payload = payload)
+
+        assertThrows<SignatureException> {
+            processor.validateReadablePayload(request.marker(), payload, request, request.processing.processConfig)
+        }
+
+        coVerify(exactly = 1) { eventRegistrationService.registerSignatureValidationFailed(request, isNull(inverse = true), ofType<SignatureException>()) }
+        coVerify(exactly = 0) { eventRegistrationService.registerSignatureValidationSuccessful(any(), any()) }
+    }
+
+    @Test
+    fun `validateReadablePayload registers SIGNATURE_CHECK_FAILED without certificate when the signature element is missing`() = runBlocking {
+        setupEnv()
+        val eventRegistrationService = mockk<EventRegistrationService>(relaxed = true)
+        val processor = Processor(eventRegistrationService, mockk<SertifikatValidator>())
+        val payload: Payload = Fixtures.validEgenandelForesporsel().copy(bytes = "<unsigned/>".toByteArray())
+        val request = baseRequest(payload = payload)
+
+        assertThrows<SignatureException> {
+            processor.validateReadablePayload(request.marker(), payload, request, request.processing.processConfig)
+        }
+
+        coVerify(exactly = 1) { eventRegistrationService.registerSignatureValidationFailed(request, null, any()) }
+        coVerify(exactly = 0) { eventRegistrationService.registerSignatureValidationSuccessful(any(), any()) }
     }
 }

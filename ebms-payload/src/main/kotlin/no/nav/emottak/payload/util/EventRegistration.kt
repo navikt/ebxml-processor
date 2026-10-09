@@ -7,6 +7,7 @@ import no.nav.emottak.payload.log
 import no.nav.emottak.util.mapCertificateDetails
 import no.nav.emottak.utils.common.parseOrGenerateUuid
 import no.nav.emottak.utils.kafka.model.Event
+import no.nav.emottak.utils.kafka.model.EventDataType
 import no.nav.emottak.utils.kafka.model.EventType
 import no.nav.emottak.utils.kafka.service.EventLoggingService
 import java.security.cert.X509Certificate
@@ -23,6 +24,8 @@ interface EventRegistrationService {
     suspend fun registerPayloadDecrypted(payloadRequest: PayloadRequest)
     suspend fun registerPayloadCompressed(payloadRequest: PayloadRequest)
     suspend fun registerPayloadDecompressed(payloadRequest: PayloadRequest)
+    suspend fun registerSignatureValidationSuccessful(payloadRequest: PayloadRequest, certificate: X509Certificate)
+    suspend fun registerSignatureValidationFailed(payloadRequest: PayloadRequest, certificate: X509Certificate?, exception: Exception)
 }
 
 class EventRegistrationServiceImpl(
@@ -77,6 +80,28 @@ class EventRegistrationServiceImpl(
         EventType.MESSAGE_DECOMPRESSED,
         payloadRequest
     )
+
+    override suspend fun registerSignatureValidationSuccessful(
+        payloadRequest: PayloadRequest,
+        certificate: X509Certificate
+    ) = registerEvent(
+        EventType.SIGNATURE_CHECK_SUCCESSFUL,
+        payloadRequest,
+        Json.encodeToString(certificate.mapCertificateDetails())
+    )
+
+    override suspend fun registerSignatureValidationFailed(
+        payloadRequest: PayloadRequest,
+        certificate: X509Certificate?,
+        exception: Exception
+    ) = registerEvent(
+        EventType.SIGNATURE_CHECK_FAILED,
+        payloadRequest,
+        Json.encodeToString(
+            certificate?.mapCertificateDetails().orEmpty() +
+                (EventDataType.ERROR_MESSAGE.value to (exception.localizedMessage ?: exception.javaClass.simpleName))
+        )
+    )
 }
 
 class EventRegistrationServiceFake : EventRegistrationService {
@@ -117,4 +142,22 @@ class EventRegistrationServiceFake : EventRegistrationService {
             "Registering event MESSAGE_DECOMPRESSED for validationRequest: {}",
             payloadRequest
         )
+
+    override suspend fun registerSignatureValidationSuccessful(
+        payloadRequest: PayloadRequest,
+        certificate: X509Certificate
+    ) = log.debug(
+        "Registering event SIGNATURE_CHECK_SUCCESSFUL for validationRequest: {}",
+        payloadRequest
+    )
+
+    override suspend fun registerSignatureValidationFailed(
+        payloadRequest: PayloadRequest,
+        certificate: X509Certificate?,
+        exception: Exception
+    ) = log.debug(
+        "Registering event SIGNATURE_CHECK_FAILED for validationRequest: {}, exception: {}",
+        payloadRequest,
+        exception.localizedMessage
+    )
 }
