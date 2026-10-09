@@ -14,7 +14,8 @@ class XmlMarshaller {
 
     companion object {
         private val jaxbContext = JAXBContext.newInstance(
-            no.kith.xmlstds.msghead._2006_05_24.ObjectFactory::class.java
+            no.kith.xmlstds.msghead._2006_05_24.ObjectFactory::class.java,
+            no.kith.xmlstds.apprec._2004_11_21.ObjectFactory::class.java
         )
         private val marshaller = jaxbContext.createMarshaller()
         private val unmarshaller = jaxbContext.createUnmarshaller()
