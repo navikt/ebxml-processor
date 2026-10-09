@@ -28,6 +28,8 @@ import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.EbmsAttachment
 import no.nav.emottak.message.model.EbmsDocument
 import no.nav.emottak.message.model.EbmsMessage
+import no.nav.emottak.message.model.ErrorCode
+import no.nav.emottak.message.model.Feil
 import no.nav.emottak.message.model.MessageError
 import no.nav.emottak.message.model.MessagingCharacteristicsResponse
 import no.nav.emottak.message.model.PayloadMessage
@@ -185,7 +187,12 @@ class PayloadMessageServiceTest {
             }
         )
         initService()
-        val (payloadMessage, ebmsMessageSlots, fakeResult) = setupMocks(PerMessageCharacteristicsType.ALWAYS, false, givenService = "PasientlisteForesporsel")
+        val (payloadMessage, ebmsMessageSlots, fakeResult) = setupMocks(
+            duplicateEliminationStrategy = PerMessageCharacteristicsType.ALWAYS,
+            isDuplicate = false,
+            isUnsupportedService = true,
+            givenService = "PasientlisteForesporsel"
+        )
 
         service.process(setupReceiverRecordWithoutRetryCountMock(), payloadMessage)
 
@@ -196,6 +203,14 @@ class PayloadMessageServiceTest {
         coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithAsyncResponse(any()) }
         coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithAsyncResponseKafka(any()) }
         coVerify(exactly = 2) { eventRegistrationService.registerEventMessageDetails(any()) }
+        coVerify(exactly = 1) {
+            eventRegistrationService.registerEvent(
+                eventType = EventType.UNKNOWN_ERROR_OCCURRED,
+                payloadMessage = any(),
+                conversationId = payloadMessage.conversationId,
+                eventData = "{\"error_message\": \"Tjeneste PasientlisteForesporsel utfaset siden 1. april 2026. Kontakt HDIR for mer informasjon\"}"
+            )
+        }
         println(ebmsMessageSlots[0].toString())
         assertTrue(ebmsMessageSlots[0] is PayloadMessage)
         assertTrue(ebmsMessageSlots[1] is MessageError)
@@ -366,9 +381,9 @@ class PayloadMessageServiceTest {
     fun `process should delegate to retryService if SignatureException is thrown`() = runBlocking {
         initService()
         val (payloadMessage, ebmsMessageSlots, _) = setupMocks(
-            PerMessageCharacteristicsType.PER_MESSAGE,
-            false,
-            processAsyncThrowsSignatureException = true
+            duplicateEliminationStrategy = PerMessageCharacteristicsType.PER_MESSAGE,
+            isDuplicate = false,
+            validateIncomingThrowsSignatureException = true
         )
 
         service.process(setupReceiverRecordWithRetryServiceMock(), payloadMessage)
@@ -378,7 +393,9 @@ class PayloadMessageServiceTest {
         assertType<PayloadMessage>(ebmsMessageSlots, 0)
         coVerify(exactly = 0) { messageReceivedRepository.messageAcknowledged(any()) }
         coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(payloadMessage, true) }
-        coVerify(exactly = 1) { processingService.processAsync(payloadMessage, any()) }
+        coVerify(exactly = 1) { eventRegistrationService.registerSignatureValidationFailed(any()) }
+        coVerify(exactly = 0) { eventRegistrationService.registerEvent(EventType.UNKNOWN_ERROR_OCCURRED, payloadMessage = any(), any(), any()) }
+        coVerify(exactly = 0) { processingService.processAsync(payloadMessage, any()) }
         coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithAsyncResponse(payloadMessage) }
         coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithAsyncResponseKafka(payloadMessage) }
         coVerify(exactly = 0) { payloadMessageForwardingService.returnMessageResponse(payloadMessage) }
@@ -403,8 +420,8 @@ class PayloadMessageServiceTest {
     fun `process should delegate to retryService if its not EbmsException nor SignatureException`() = runBlocking {
         initService()
         val (payloadMessage, ebmsMessageSlots, fakeResult) = setupMocks(
-            PerMessageCharacteristicsType.PER_MESSAGE,
-            false,
+            duplicateEliminationStrategy = PerMessageCharacteristicsType.PER_MESSAGE,
+            isDuplicate = false,
             processSyncThrowsUnknownException = true
         )
         service.process(setupReceiverRecordWithRetryServiceMock(), payloadMessage)
@@ -415,6 +432,14 @@ class PayloadMessageServiceTest {
         coVerify(exactly = 0) { messageReceivedRepository.messageAcknowledged(any()) }
         coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(payloadMessage, true) }
         coVerify(exactly = 1) { processingService.processAsync(payloadMessage, any()) }
+        coVerify(exactly = 1) {
+            eventRegistrationService.registerEvent(
+                eventType = EventType.UNKNOWN_ERROR_OCCURRED,
+                payloadMessage = any(),
+                conversationId = payloadMessage.conversationId,
+                eventData = "{\"error_message\": \"Unexpected exception\"}"
+            )
+        }
         coVerify(exactly = 1) { payloadMessageForwardingService.forwardMessageWithSyncResponse(payloadMessage) }
         coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithAsyncResponse(payloadMessage, any()) }
         coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithAsyncResponseKafka(payloadMessage, any()) }
@@ -472,9 +497,9 @@ class PayloadMessageServiceTest {
     fun `process should delegate to retryService if SignatureException is thrown even when kafkaErrorQueue is not active`() = runBlocking {
         initService(enableRetryQueue = false)
         val (payloadMessage, ebmsMessageSlots, _) = setupMocks(
-            PerMessageCharacteristicsType.PER_MESSAGE,
-            false,
-            processAsyncThrowsSignatureException = true
+            duplicateEliminationStrategy = PerMessageCharacteristicsType.PER_MESSAGE,
+            isDuplicate = false,
+            processAsyncThrowsEbmsException = true
         )
 
         service.process(setupReceiverRecordWithRetryServiceMock(), payloadMessage)
@@ -560,8 +585,9 @@ class PayloadMessageServiceTest {
         duplicateEliminationStrategy: PerMessageCharacteristicsType,
         isDuplicate: Boolean,
         direction: Direction = Direction.IN,
+        isUnsupportedService: Boolean = false,
         processAsyncThrowsEbmsException: Boolean = false,
-        processAsyncThrowsSignatureException: Boolean = false,
+        validateIncomingThrowsSignatureException: Boolean = false,
         processSyncThrowsUnknownException: Boolean = false,
         validateOutgoingThrowsException: Boolean = false,
         givenService: String? = "HarBorgerFrikortMengde"
@@ -577,9 +603,42 @@ class PayloadMessageServiceTest {
         coEvery { messageReceivedRepository.messageAcknowledged(payloadMessage) } returns payloadMessage.requestId
         coEvery { messageReceivedRepository.isAcknowledged(payloadMessage) } returns isDuplicateResult
         coEvery { eventRegistrationService.registerEventMessageDetails(capture(ebmsMessageSlots)) } returns Unit
-        coEvery { cpaValidationService.validateIncomingMessage(payloadMessage, true) } returns validValidationResult()
         coEvery { cpaValidationService.getValidationResult(any(), any()) } returns validValidationResult()
-        coEvery { eventRegistrationService.registerSignatureValidated(payloadMessage, any()) } returns Unit
+
+        if (isUnsupportedService && givenService == "PasientlisteForesporsel") {
+            coEvery {
+                eventRegistrationService.registerEvent(
+                    eventType = EventType.UNKNOWN_ERROR_OCCURRED, // TODO: Legge inn ny EventType i databasen for sanerte/ustøttede tjenester?
+                    payloadMessage = any(),
+                    conversationId = payloadMessage.conversationId,
+                    eventData = "{\"error_message\": \"Tjeneste PasientlisteForesporsel utfaset siden 1. april 2026. Kontakt HDIR for mer informasjon\"}"
+                )
+            } returns Unit
+        }
+
+        if (validateIncomingThrowsSignatureException) {
+            coEvery { cpaValidationService.validateIncomingMessage(payloadMessage, true) } throws EbmsException(
+                listOf(
+                    Feil(
+                        ErrorCode.SECURITY_FAILURE,
+                        "Signeringsfeil: Signering feilet"
+                    )
+                ),
+                cause = SignatureValidationException("Signering feilet")
+            )
+            coEvery { eventRegistrationService.registerSignatureValidationFailed(payloadMessage) } returns Unit
+            coEvery {
+                eventRegistrationService.registerEvent(
+                    eventType = EventType.UNKNOWN_ERROR_OCCURRED,
+                    payloadMessage = any(),
+                    conversationId = payloadMessage.conversationId,
+                    eventData = any()
+                )
+            } returns Unit
+        } else {
+            coEvery { cpaValidationService.validateIncomingMessage(payloadMessage, true) } returns validValidationResult()
+            coEvery { eventRegistrationService.registerSignatureValidated(payloadMessage, any()) } returns Unit
+        }
 
         if (validateOutgoingThrowsException) {
             coEvery { cpaValidationService.validateOutgoingMessage(any()) } throws Exception("Unexpected exception")
@@ -589,14 +648,28 @@ class PayloadMessageServiceTest {
 
         if (processAsyncThrowsEbmsException) {
             coEvery { processingService.processAsync(any(), any()) } throws EbmsException("Processing has failed")
-        } else if (processAsyncThrowsSignatureException) {
-            coEvery { processingService.processAsync(any(), any()) } throws SignatureValidationException("Signering feilet")
+            coEvery {
+                eventRegistrationService.registerEvent(
+                    eventType = EventType.UNKNOWN_ERROR_OCCURRED,
+                    payloadMessage = any(),
+                    conversationId = payloadMessage.conversationId,
+                    eventData = any()
+                )
+            } returns Unit
         } else {
             coEvery { processingService.processAsync(any(), any()) } returns Pair(payloadMessage, direction)
         }
 
         if (processSyncThrowsUnknownException) {
             coEvery { payloadMessageForwardingService.forwardMessageWithSyncResponse(any()) } throws Exception("Unexpected exception")
+            coEvery {
+                eventRegistrationService.registerEvent(
+                    eventType = EventType.UNKNOWN_ERROR_OCCURRED,
+                    payloadMessage = any(),
+                    conversationId = payloadMessage.conversationId,
+                    eventData = any()
+                )
+            } returns Unit
         } else {
             coEvery { payloadMessageForwardingService.forwardMessageWithSyncResponse(any()) } just Runs
         }
@@ -696,10 +769,26 @@ class PayloadMessageServiceTest {
         coEvery {
             payloadMessageForwardingService.forwardMessageWithAsyncResponse(any(), any())
         } throws Exception("send-in failed")
+        coEvery {
+            eventRegistrationService.registerEvent(
+                eventType = EventType.UNKNOWN_ERROR_OCCURRED,
+                payloadMessage = payloadMessage,
+                conversationId = payloadMessage.conversationId,
+                eventData = "{\"error_message\": \"send-in failed\"}"
+            )
+        } returns Unit
 
         service.process(setupReceiverRecordWithRetryServiceMock(), payloadMessage)
 
         coVerify(exactly = 1) { payloadMessageForwardingService.forwardMessageWithAsyncResponse(payloadMessage, any()) }
+        coVerify(exactly = 1) {
+            eventRegistrationService.registerEvent(
+                eventType = EventType.UNKNOWN_ERROR_OCCURRED,
+                payloadMessage = any(),
+                conversationId = payloadMessage.conversationId,
+                eventData = "{\"error_message\": \"send-in failed\"}"
+            )
+        }
         coVerify(exactly = 1) { retryService.incomingRetryEval(any(), any(), any(), any()) }
         coVerify(exactly = 0) { messageReceivedRepository.messageAcknowledged(payloadMessage) }
         assertTrue(ebmsMessageSlots.none { it is Acknowledgment })

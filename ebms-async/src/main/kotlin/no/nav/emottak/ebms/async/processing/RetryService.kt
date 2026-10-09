@@ -107,7 +107,7 @@ class RetryService(
                     EbmsException(
                         "TimeToLive expired",
                         errorCode = ErrorCode.TIME_TO_LIVE_EXPIRED,
-                        exception = exception
+                        cause = exception
                     ),
                     senderAddress
                 )
@@ -120,7 +120,7 @@ class RetryService(
                         ?: EbmsException(
                             "Max Retries expired",
                             errorCode = ErrorCode.DELIVERY_FAILURE,
-                            exception = exception
+                            cause = exception
                         ),
                     senderAddress
                 )
@@ -133,7 +133,7 @@ class RetryService(
                         ?: EbmsException(
                             "Unknown delivery failure",
                             errorCode = ErrorCode.DELIVERY_FAILURE,
-                            exception = exception
+                            cause = exception
                         ),
                     senderAddress
                 )

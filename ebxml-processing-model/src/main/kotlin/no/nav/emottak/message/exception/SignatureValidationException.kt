@@ -7,5 +7,5 @@ class SignatureValidationException(message: String, exception: Exception? = null
     message = message,
     errorCode = ErrorCode.SECURITY_FAILURE,
     severity = SeverityType.ERROR.value()!!,
-    exception = exception
+    cause = exception
 )

@@ -57,6 +57,7 @@ interface EventRegistrationService {
     suspend fun registerMessageCompleted(ebmsPayloadMessage: PayloadMessage)
     suspend fun registerMessageRetried(ebmsPayloadMessage: PayloadMessage, retryCount: Int)
     suspend fun registerSignatureValidated(ebmsPayloadMessage: PayloadMessage, certificate: X509Certificate)
+    suspend fun registerSignatureValidationFailed(ebmsPayloadMessage: PayloadMessage)
 }
 
 class EventRegistrationServiceImpl(
@@ -219,6 +220,16 @@ class EventRegistrationServiceImpl(
         conversationId = ebmsPayloadMessage.conversationId
     )
 
+    override suspend fun registerSignatureValidationFailed(ebmsPayloadMessage: PayloadMessage) {
+        registerEvent(
+            EventType.SIGNATURE_CHECK_FAILED,
+            requestId = ebmsPayloadMessage.requestId.parseOrGenerateUuid(),
+            contentId = ebmsPayloadMessage.payload.contentId,
+            messageId = ebmsPayloadMessage.messageId,
+            conversationId = ebmsPayloadMessage.conversationId
+        )
+    }
+
     private suspend fun registerEvent(event: Event) {
         try {
             log.debug(event.marker(), "Registering event: {}", event)
@@ -318,4 +329,8 @@ class EventRegistrationServiceFake : EventRegistrationService {
         ebmsPayloadMessage: PayloadMessage,
         certificate: X509Certificate
     ) = log.debug("Registering signature validated: {}", ebmsPayloadMessage)
+
+    override suspend fun registerSignatureValidationFailed(ebmsPayloadMessage: PayloadMessage) {
+        log.debug("Registering signature validation failed for ebmsDocument: {}", ebmsPayloadMessage)
+    }
 }
