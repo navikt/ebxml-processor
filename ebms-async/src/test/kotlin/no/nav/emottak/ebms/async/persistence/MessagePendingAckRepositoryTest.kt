@@ -235,11 +235,72 @@ class MessagePendingAckRepositoryTest {
         Assertions.assertFalse(messagePendingAckRepository.existsForMessageId("not-a-uuid"))
     }
 
+    @Test
+    fun `findPendingMessageIdByCpaAndConversationId returns messageId for single pending match`() {
+        val header = storePendingMessage(cpaId = "cpa-1", conversationId = "conv-1")
+
+        Assertions.assertEquals(
+            header.messageData.messageId,
+            messagePendingAckRepository.findPendingMessageIdByCpaAndConversationId("cpa-1", "conv-1")
+        )
+    }
+
+    @Test
+    fun `findPendingMessageIdByCpaAndConversationId returns null when no entry exists`() {
+        Assertions.assertNull(messagePendingAckRepository.findPendingMessageIdByCpaAndConversationId("cpa-1", "conv-1"))
+    }
+
+    @Test
+    fun `findPendingMessageIdByCpaAndConversationId does not match other cpaId or conversationId`() {
+        storePendingMessage(cpaId = "cpa-1", conversationId = "conv-1")
+
+        Assertions.assertNull(messagePendingAckRepository.findPendingMessageIdByCpaAndConversationId("cpa-2", "conv-1"))
+        Assertions.assertNull(messagePendingAckRepository.findPendingMessageIdByCpaAndConversationId("cpa-1", "conv-2"))
+    }
+
+    @Test
+    fun `findPendingMessageIdByCpaAndConversationId returns null when match is ambiguous`() {
+        storePendingMessage(cpaId = "cpa-1", conversationId = "conv-1")
+        storePendingMessage(cpaId = "cpa-1", conversationId = "conv-1")
+
+        Assertions.assertNull(messagePendingAckRepository.findPendingMessageIdByCpaAndConversationId("cpa-1", "conv-1"))
+    }
+
+    @Test
+    fun `findPendingMessageIdByCpaAndConversationId ignores acknowledged messages`() {
+        val ackedHeader = storePendingMessage(cpaId = "cpa-1", conversationId = "conv-1")
+        messagePendingAckRepository.registerAckForMessage(ackedHeader.messageData.messageId)
+
+        Assertions.assertNull(messagePendingAckRepository.findPendingMessageIdByCpaAndConversationId("cpa-1", "conv-1"))
+
+        val pendingHeader = storePendingMessage(cpaId = "cpa-1", conversationId = "conv-1")
+
+        Assertions.assertEquals(
+            pendingHeader.messageData.messageId,
+            messagePendingAckRepository.findPendingMessageIdByCpaAndConversationId("cpa-1", "conv-1")
+        )
+    }
+
+    private fun storePendingMessage(cpaId: String, conversationId: String): MessageHeader {
+        val header = readMessageHeaderFromTestFile("signaltest/acknowledgment.xml").apply {
+            this.cpaId = cpaId
+            this.conversationId = conversationId
+            messageData.messageId = Uuid.random().toString()
+        }
+        messagePendingAckRepository.storeMessagePendingAck(
+            Uuid.random(),
+            header,
+            "content".toByteArray(),
+            listOf(EmailAddress("a@b.com", EndpointTypeType.RESPONSE))
+        )
+        return header
+    }
+
     private fun readMessageHeaderFromTestFile(fileName: String): MessageHeader {
         val testMessage = String(
             this::class.java.classLoader
                 .getResourceAsStream(fileName)!!.readAllBytes()
         )
-        return xmlMarshaller.unmarshal(testMessage, Envelope::class.java).header.messageHeader()
+        return xmlMarshaller.unmarshal(testMessage, Envelope::class.java).header!!.messageHeader()
     }
 }
