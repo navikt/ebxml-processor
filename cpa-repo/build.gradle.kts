@@ -7,6 +7,7 @@ application {
 }
 
 dependencies {
+    implementation(platform(libs.jackson.bom))
     api(project(":felles"))
     api(project(":ebxml-processing-model"))
     implementation(libs.ktor.server.core)
