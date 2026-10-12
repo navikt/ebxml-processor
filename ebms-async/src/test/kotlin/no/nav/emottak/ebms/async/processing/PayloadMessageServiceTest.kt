@@ -49,6 +49,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PerMessageCharacteristicsType
 import org.w3c.dom.Document
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.uuid.Uuid
 
@@ -204,10 +205,8 @@ class PayloadMessageServiceTest {
         coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithAsyncResponseKafka(any()) }
         coVerify(exactly = 2) { eventRegistrationService.registerEventMessageDetails(any()) }
         coVerify(exactly = 1) {
-            eventRegistrationService.registerEvent(
-                eventType = EventType.MESSAGEFLOW_COMPLETED,
-                payloadMessage = any(),
-                conversationId = payloadMessage.conversationId,
+            eventRegistrationService.registerMessageCompleted(
+                ebmsPayloadMessage = any(),
                 eventData = "{\"unsupported_service\": \"Tjeneste PasientlisteForesporsel utfaset siden 1. april 2026. Kontakt HDIR for mer informasjon\"}"
             )
         }
@@ -348,6 +347,7 @@ class PayloadMessageServiceTest {
             false,
             processAsyncThrowsEbmsException = true
         )
+        val exceptionSlot = slot<Throwable>()
 
         service.process(setupReceiverRecordWithRetryServiceMock(), payloadMessage)
 
@@ -374,6 +374,9 @@ class PayloadMessageServiceTest {
             )
         }
         coVerify(exactly = 0) { ebmsSignalProducer.publishMessage(key = any(), value = any(), headers = any()) }
+        coVerify(exactly = 1) { eventRegistrationService.registerUnknownError(any(), capture(exceptionSlot)) }
+        assertEquals(EbmsException::class.java.simpleName, exceptionSlot.captured.javaClass.simpleName)
+        assertEquals("Processing has failed", exceptionSlot.captured.message)
         coVerify(exactly = 1) { retryService.incomingRetryEval(any(), any(), any(), any()) }
     }
 
@@ -385,6 +388,7 @@ class PayloadMessageServiceTest {
             isDuplicate = false,
             validateIncomingThrowsSignatureException = true
         )
+        val exceptionSlot = slot<Throwable>()
 
         service.process(setupReceiverRecordWithRetryServiceMock(), payloadMessage)
 
@@ -393,8 +397,10 @@ class PayloadMessageServiceTest {
         assertType<PayloadMessage>(ebmsMessageSlots, 0)
         coVerify(exactly = 0) { messageReceivedRepository.messageAcknowledged(any()) }
         coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(payloadMessage, true) }
-        coVerify(exactly = 1) { eventRegistrationService.registerSignatureValidationFailed(any()) }
-        coVerify(exactly = 0) { eventRegistrationService.registerEvent(EventType.UNKNOWN_ERROR_OCCURRED, payloadMessage = any(), any(), any()) }
+        coVerify(exactly = 1) { eventRegistrationService.registerSignatureValidationFailed(any(), capture(exceptionSlot)) }
+        assertEquals(EbmsException::class.simpleName, exceptionSlot.captured.javaClass.simpleName)
+        assertEquals("Signeringsfeil: Signering feilet", exceptionSlot.captured.message)
+        coVerify(exactly = 0) { eventRegistrationService.registerUnknownError(any(), any()) }
         coVerify(exactly = 0) { processingService.processAsync(payloadMessage, any()) }
         coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithAsyncResponse(payloadMessage) }
         coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithAsyncResponseKafka(payloadMessage) }
@@ -424,6 +430,8 @@ class PayloadMessageServiceTest {
             isDuplicate = false,
             processSyncThrowsUnknownException = true
         )
+        val exceptionSlot = slot<Throwable>()
+
         service.process(setupReceiverRecordWithRetryServiceMock(), payloadMessage)
 
         coVerify(exactly = 1) { messageReceivedRepository.isAcknowledged(payloadMessage) }
@@ -432,14 +440,6 @@ class PayloadMessageServiceTest {
         coVerify(exactly = 0) { messageReceivedRepository.messageAcknowledged(any()) }
         coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(payloadMessage, true) }
         coVerify(exactly = 1) { processingService.processAsync(payloadMessage, any()) }
-        coVerify(exactly = 1) {
-            eventRegistrationService.registerEvent(
-                eventType = EventType.UNKNOWN_ERROR_OCCURRED,
-                payloadMessage = any(),
-                conversationId = payloadMessage.conversationId,
-                eventData = "{\"error_message\": \"Unexpected exception\"}"
-            )
-        }
         coVerify(exactly = 1) { payloadMessageForwardingService.forwardMessageWithSyncResponse(payloadMessage) }
         coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithAsyncResponse(payloadMessage, any()) }
         coVerify(exactly = 0) { payloadMessageForwardingService.forwardMessageWithAsyncResponseKafka(payloadMessage, any()) }
@@ -459,6 +459,9 @@ class PayloadMessageServiceTest {
         }
         assertTrue(fakeResult.isSuccess)
         coVerify(exactly = 0) { ebmsSignalProducer.publishMessage(key = any(), value = any(), headers = any()) }
+        coVerify(exactly = 1) { eventRegistrationService.registerUnknownError(any(), capture(exceptionSlot)) }
+        assertEquals(Exception::class.simpleName, exceptionSlot.captured.javaClass.simpleName)
+        assertEquals("Unexpected exception", exceptionSlot.captured.message)
         coVerify(exactly = 1) { retryService.incomingRetryEval(any(), any(), any(), any()) }
     }
 
@@ -607,10 +610,8 @@ class PayloadMessageServiceTest {
 
         if (isUnsupportedService && givenService == "PasientlisteForesporsel") {
             coEvery {
-                eventRegistrationService.registerEvent(
-                    eventType = EventType.MESSAGEFLOW_COMPLETED,
-                    payloadMessage = any(),
-                    conversationId = payloadMessage.conversationId,
+                eventRegistrationService.registerMessageCompleted(
+                    ebmsPayloadMessage = any(),
                     eventData = "{\"unsupported_service\": \"Tjeneste PasientlisteForesporsel utfaset siden 1. april 2026. Kontakt HDIR for mer informasjon\"}"
                 )
             } returns Unit
@@ -626,15 +627,8 @@ class PayloadMessageServiceTest {
                 ),
                 cause = SignatureValidationException("Signering feilet")
             )
-            coEvery { eventRegistrationService.registerSignatureValidationFailed(payloadMessage) } returns Unit
-            coEvery {
-                eventRegistrationService.registerEvent(
-                    eventType = EventType.UNKNOWN_ERROR_OCCURRED,
-                    payloadMessage = any(),
-                    conversationId = payloadMessage.conversationId,
-                    eventData = any()
-                )
-            } returns Unit
+            coEvery { eventRegistrationService.registerSignatureValidationFailed(payloadMessage, any()) } returns Unit
+            coEvery { eventRegistrationService.registerUnknownError(any(), any()) } returns Unit
         } else {
             coEvery { cpaValidationService.validateIncomingMessage(payloadMessage, true) } returns validValidationResult()
             coEvery { eventRegistrationService.registerSignatureValidated(payloadMessage, any()) } returns Unit
@@ -648,28 +642,14 @@ class PayloadMessageServiceTest {
 
         if (processAsyncThrowsEbmsException) {
             coEvery { processingService.processAsync(any(), any()) } throws EbmsException("Processing has failed")
-            coEvery {
-                eventRegistrationService.registerEvent(
-                    eventType = EventType.UNKNOWN_ERROR_OCCURRED,
-                    payloadMessage = any(),
-                    conversationId = payloadMessage.conversationId,
-                    eventData = any()
-                )
-            } returns Unit
+            coEvery { eventRegistrationService.registerUnknownError(any(), any()) } returns Unit
         } else {
             coEvery { processingService.processAsync(any(), any()) } returns Pair(payloadMessage, direction)
         }
 
         if (processSyncThrowsUnknownException) {
             coEvery { payloadMessageForwardingService.forwardMessageWithSyncResponse(any()) } throws Exception("Unexpected exception")
-            coEvery {
-                eventRegistrationService.registerEvent(
-                    eventType = EventType.UNKNOWN_ERROR_OCCURRED,
-                    payloadMessage = any(),
-                    conversationId = payloadMessage.conversationId,
-                    eventData = any()
-                )
-            } returns Unit
+            coEvery { eventRegistrationService.registerUnknownError(any(), any()) } returns Unit
         } else {
             coEvery { payloadMessageForwardingService.forwardMessageWithSyncResponse(any()) } just Runs
         }
@@ -766,29 +746,21 @@ class PayloadMessageServiceTest {
             direction = Direction.IN,
             givenService = MessageType.SYKMELDING.serviceName
         )
+        val ebmsException = EbmsException("send-in failed")
         coEvery {
             payloadMessageForwardingService.forwardMessageWithAsyncResponse(any(), any())
-        } throws Exception("send-in failed")
+        } throws ebmsException
         coEvery {
-            eventRegistrationService.registerEvent(
-                eventType = EventType.UNKNOWN_ERROR_OCCURRED,
-                payloadMessage = payloadMessage,
-                conversationId = payloadMessage.conversationId,
-                eventData = "{\"error_message\": \"send-in failed\"}"
+            eventRegistrationService.registerUnknownError(
+                ebmsPayloadMessage = any(),
+                throwable = ebmsException
             )
         } returns Unit
 
         service.process(setupReceiverRecordWithRetryServiceMock(), payloadMessage)
 
         coVerify(exactly = 1) { payloadMessageForwardingService.forwardMessageWithAsyncResponse(payloadMessage, any()) }
-        coVerify(exactly = 1) {
-            eventRegistrationService.registerEvent(
-                eventType = EventType.UNKNOWN_ERROR_OCCURRED,
-                payloadMessage = any(),
-                conversationId = payloadMessage.conversationId,
-                eventData = "{\"error_message\": \"send-in failed\"}"
-            )
-        }
+        coVerify(exactly = 1) { eventRegistrationService.registerUnknownError(any(), ebmsException) }
         coVerify(exactly = 1) { retryService.incomingRetryEval(any(), any(), any(), any()) }
         coVerify(exactly = 0) { messageReceivedRepository.messageAcknowledged(payloadMessage) }
         assertTrue(ebmsMessageSlots.none { it is Acknowledgment })

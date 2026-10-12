@@ -22,7 +22,6 @@ import no.nav.emottak.util.marker
 import no.nav.emottak.utils.common.model.Addressing
 import no.nav.emottak.utils.common.model.Party
 import no.nav.emottak.utils.common.model.PartyId
-import no.nav.emottak.utils.kafka.model.EventType
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PerMessageCharacteristicsType
 
 class PayloadMessageService(
@@ -101,35 +100,20 @@ class PayloadMessageService(
     }
 
     private suspend fun handleUnsupportedServiceException(ebmsPayloadMessage: PayloadMessage, exception: EbmsException) {
-        eventRegistrationService.registerEvent(
-            eventType = EventType.MESSAGEFLOW_COMPLETED,
-            payloadMessage = ebmsPayloadMessage,
-            conversationId = ebmsPayloadMessage.conversationId,
-            eventData = "{\"unsupported_service\": \"${exception.message}\"}"
-        )
+        eventRegistrationService.registerMessageCompleted(ebmsPayloadMessage, eventData = "{\"unsupported_service\": \"${exception.message}\"}")
         log.warn(ebmsPayloadMessage.marker(), exception.message)
     }
 
     private suspend fun handleEbmsException(ebmsPayloadMessage: PayloadMessage, exception: EbmsException) {
         when (exception.cause) {
-            is SignatureValidationException -> eventRegistrationService.registerSignatureValidationFailed(ebmsPayloadMessage)
-            else -> eventRegistrationService.registerEvent(
-                eventType = EventType.UNKNOWN_ERROR_OCCURRED,
-                payloadMessage = ebmsPayloadMessage,
-                conversationId = ebmsPayloadMessage.conversationId,
-                eventData = "{\"error_message\": \"${exception.message}\"}"
-            )
+            is SignatureValidationException -> eventRegistrationService.registerSignatureValidationFailed(ebmsPayloadMessage, exception)
+            else -> eventRegistrationService.registerUnknownError(ebmsPayloadMessage, exception)
         }
         log.error(ebmsPayloadMessage.marker(), exception.message ?: "Message processing ebms error", exception)
     }
 
     private suspend fun handleUnexpectedException(ebmsPayloadMessage: PayloadMessage, exception: Throwable) {
-        eventRegistrationService.registerEvent(
-            eventType = EventType.UNKNOWN_ERROR_OCCURRED,
-            payloadMessage = ebmsPayloadMessage,
-            conversationId = ebmsPayloadMessage.conversationId,
-            eventData = "{\"error_message\": \"${exception.message}\"}"
-        )
+        eventRegistrationService.registerUnknownError(ebmsPayloadMessage, exception)
         log.error(ebmsPayloadMessage.marker(), exception.message ?: "Message processing error", exception)
     }
 
