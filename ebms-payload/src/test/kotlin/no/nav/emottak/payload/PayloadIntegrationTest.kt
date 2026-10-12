@@ -10,11 +10,19 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
+import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.mockk
 import no.nav.emottak.message.model.ErrorCode
 import no.nav.emottak.message.model.PayloadResponse
+import no.nav.emottak.payload.apprec.message.AppRecErrorCode
+import no.nav.emottak.payload.crypto.SignatureValidator
+import no.nav.emottak.payload.error.SignatureException
+import no.nav.emottak.payload.util.EventRegistrationService
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import kotlin.uuid.ExperimentalUuidApi
@@ -104,6 +112,44 @@ class PayloadIntegrationTest : PayloadTestBase() {
         assertEquals(HttpStatusCode.OK, httpResponse.status)
         assertNull(httpResponse.body<PayloadResponse>().error)
         assertEquals(ssn, httpResponse.body<PayloadResponse>().processedPayload!!.signedBy)
+    }
+
+    @Test
+    fun `Payload endepunkt med ugyldig signatur gir negativ AppRec og registrerer SIGNATURE_CHECK_FAILED en gang`() {
+        val eventRegistrationService = mockk<EventRegistrationService>(relaxed = true)
+        val signatureValidator = mockk<SignatureValidator>()
+        every { signatureValidator.validate(any()) } throws SignatureException("Invalid Signature!")
+        val request = baseRequest().let {
+            it.copy(
+                processing = it.processing.copy(
+                    processConfig = it.processing.processConfig.copy(apprec = true)
+                )
+            )
+        }
+
+        testApp(eventRegistrationService, signatureValidator) {
+            client(authenticated = true).post("/payload") {
+                setBody(request)
+            }.let { response ->
+                val body = response.body<PayloadResponse>()
+                assertEquals(HttpStatusCode.BadRequest, response.status)
+                assertEquals(ErrorCode.SECURITY_FAILURE, body.error!!.code)
+                assertEquals("Invalid Signature!", body.error!!.descriptionText)
+                assertTrue(body.apprec)
+                val apprec = String(body.processedPayload!!.bytes)
+                assertTrue(apprec.contains(AppRecErrorCode.S01.name), "Negative AppRec must contain error code S01")
+                assertTrue(apprec.contains("Invalid Signature!"), "Negative AppRec must contain the error text")
+            }
+        }
+
+        coVerify(exactly = 1) {
+            eventRegistrationService.registerSignatureValidationFailed(
+                match { it.requestId == request.requestId },
+                isNull(inverse = true),
+                ofType<SignatureException>()
+            )
+        }
+        coVerify(exactly = 0) { eventRegistrationService.registerEvent(any(), any(), any()) }
     }
 
     private fun getToken(audience: String = AuthConfig.getScope()): SignedJWT = mockOAuth2Server.issueToken(

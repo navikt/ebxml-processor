@@ -21,7 +21,6 @@ import java.sql.DriverManager
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import kotlin.uuid.Uuid
-import kotlin.uuid.toJavaUuid
 
 class PayloadRepositoryTest {
     companion object {
@@ -172,7 +171,7 @@ class PayloadRepositoryTest {
 fun Database.backdatePayload(payload: AsyncPayload, days: Long) =
     transaction(db) {
         PayloadTable.update(where = {
-            referenceId.eq(payload.referenceId.toJavaUuid()) and contentId.eq(payload.contentId)
+            referenceId.eq(payload.referenceId) and contentId.eq(payload.contentId)
         }) {
             it[contentAt] = Instant.now().minus(days, ChronoUnit.DAYS)
         }

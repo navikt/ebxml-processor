@@ -4,11 +4,11 @@ import org.jetbrains.exposed.v1.core.Column
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.javatime.timestamp
 import java.time.Instant
-import java.util.UUID
+import kotlin.uuid.Uuid
 
 object MessagePendingAckTable : Table("message_pending_ack") {
-    val messageId: Column<UUID> = uuid("message_id")
-    val requestId: Column<UUID> = uuid("request_id")
+    val messageId: Column<Uuid> = uuid("message_id")
+    val requestId: Column<Uuid> = uuid("request_id")
     val ackReceived: Column<Boolean> = bool("ack_received")
     val ackSignatureRequested: Column<Boolean> = bool("ack_signature_requested").default(true)
     val messageHeader: Column<String> = text("header")

@@ -47,7 +47,6 @@ dependencies {
     testImplementation(testLibs.junit.jupiter.api)
     testImplementation(testLibs.mockk.jvm)
     testImplementation(testLibs.mockk.dsl.jvm)
-    testImplementation(libs.apache.santuario)
     testImplementation(libs.hikari)
     testImplementation(testLibs.testcontainers.postgresql)
     testImplementation(kotlin("test"))

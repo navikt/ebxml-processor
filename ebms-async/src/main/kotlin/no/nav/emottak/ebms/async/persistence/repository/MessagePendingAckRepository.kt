@@ -17,10 +17,8 @@ import org.jetbrains.exposed.v1.jdbc.update
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader
 import org.slf4j.LoggerFactory
 import java.time.Instant
-import java.util.UUID
 import kotlin.time.Duration
 import kotlin.uuid.Uuid
-import kotlin.uuid.toJavaUuid
 
 // Entity representing an outgoing Message, whether it has been acknowledged, and any resend history
 data class MessagePendingAck(
@@ -81,8 +79,8 @@ class MessagePendingAckRepository(
         transaction(database.db) {
             MessagePendingAckTable
                 .insert {
-                    it[messageId] = Uuid.parse(header.messageData.messageId).toJavaUuid()
-                    it[requestId] = id.toJavaUuid()
+                    it[messageId] = Uuid.parse(header.messageData.messageId)
+                    it[requestId] = id
                     it[MessagePendingAckTable.ackReceived] = ackReceived
                     it[MessagePendingAckTable.ackSignatureRequested] = ackSignatureRequested
                     it[messageHeader] = xmlMarshaller.marshal(header)
@@ -98,7 +96,7 @@ class MessagePendingAckRepository(
     // Set last resent = now, and increase reset-count for message with given message id
     fun markResent(message: MessagePendingAck) {
         transaction(database.db) {
-            val messageIdAsUuid = Uuid.parse(message.messageId).toJavaUuid()
+            val messageIdAsUuid = Uuid.parse(message.messageId)
             MessagePendingAckTable
                 .update(where = { MessagePendingAckTable.messageId.eq(messageIdAsUuid) }) {
                     it[lastSent] = Instant.now()
@@ -109,10 +107,10 @@ class MessagePendingAckRepository(
 
     // Set ackReceived for message with given message id
     fun registerAckForMessage(messageId: String) {
-        var messageIdAsUuid: UUID? = null
+        val messageIdAsUuid: Uuid
         try {
             // Kan få acks med annet enn UUID, så lenge gamle emottak er i live. Disse trenger vi ikke gjøre noe med.
-            messageIdAsUuid = Uuid.parse(messageId).toJavaUuid()
+            messageIdAsUuid = Uuid.parse(messageId)
         } catch (e: Exception) {
             return
         }
@@ -127,9 +125,9 @@ class MessagePendingAckRepository(
     // Whether we asked the receiver to sign the Ack for the given message id.
     // Returns null if we have no record of the message (e.g. an Ack for a message we did not send).
     fun wasAckSignatureRequested(messageId: String): Boolean? {
-        val messageIdAsUuid: UUID
+        val messageIdAsUuid: Uuid
         try {
-            messageIdAsUuid = Uuid.parse(messageId).toJavaUuid()
+            messageIdAsUuid = Uuid.parse(messageId)
         } catch (e: Exception) {
             return null
         }
@@ -143,9 +141,9 @@ class MessagePendingAckRepository(
     }
 
     fun existsForMessageId(messageId: String): Boolean {
-        val messageIdAsUuid: UUID
+        val messageIdAsUuid: Uuid
         try {
-            messageIdAsUuid = Uuid.parse(messageId).toJavaUuid()
+            messageIdAsUuid = Uuid.parse(messageId)
         } catch (e: Exception) {
             return false
         }
@@ -159,9 +157,9 @@ class MessagePendingAckRepository(
 
     // Unset ackReceived for message with given message id, to allow resending
     fun unregisterAckForMessage(messageId: String): Boolean {
-        val messageIdAsUuid: UUID
+        val messageIdAsUuid: Uuid
         try {
-            messageIdAsUuid = Uuid.parse(messageId).toJavaUuid()
+            messageIdAsUuid = Uuid.parse(messageId)
         } catch (e: Exception) {
             log.warn("Failed to parse message ID '{}' as UUID for unacknowledge", messageId, e)
             return false

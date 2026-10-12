@@ -27,8 +27,10 @@ import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.message.xml.asByteArray
 import no.nav.emottak.payload.configuration.config
 import no.nav.emottak.payload.crypto.PayloadSignering
+import no.nav.emottak.payload.crypto.SignatureValidator
 import no.nav.emottak.payload.ocspstatus.OcspStatusService
 import no.nav.emottak.payload.ocspstatus.ssnPolicyID
+import no.nav.emottak.payload.util.EventRegistrationService
 import no.nav.emottak.payload.util.EventRegistrationServiceFake
 import no.nav.emottak.util.createDocument
 import no.nav.emottak.util.createX509Certificate
@@ -91,17 +93,20 @@ abstract class PayloadTestBase {
         subject = "testUser"
     )
 
-    protected fun <T> testApp(testBlock: suspend ApplicationTestBuilder.() -> T) =
+    protected fun <T> testApp(
+        eventRegistrationService: EventRegistrationService = EventRegistrationServiceFake(),
+        signatureValidator: SignatureValidator = SignatureValidator(),
+        testBlock: suspend ApplicationTestBuilder.() -> T
+    ) =
         testApplication {
             setupEnv()
 
             configureOcspStatusService()
 
-            val eventRegistrationService = EventRegistrationServiceFake()
             val crlChecker = mockk<CRLChecker>()
             coEvery { crlChecker.getCRLRevocationInfo(any(), any()) } just runs
             val sertifikatValidator = SertifikatValidator(crlChecker = crlChecker)
-            val processor = Processor(eventRegistrationService, sertifikatValidator)
+            val processor = Processor(eventRegistrationService, sertifikatValidator, signaturValidator = signatureValidator)
 
             application(payloadApplicationModule(processor, eventRegistrationService, helseIdConnectionCheck = {}))
             testBlock()
@@ -219,6 +224,7 @@ abstract class PayloadTestBase {
 
         fun validEgenandelForesporsel() = signedPayload("xml/egenandelforesporsel.xml")
         fun validEgenandelForesporselHelseId() = signedPayload("helseid/xml/egenandelforesporsel-helseid-ok.xml")
+        fun signingCertificate(): X509Certificate = createX509Certificate(signatureDetails().certificate)
     }
 
     protected fun PayloadRequest.withOCSP() = copy(

@@ -154,7 +154,7 @@ private fun createNegativeAppRecOrErrorPayload(
     }
 }.onFailure {
     log.error(request.marker(), "Opprettelse av negativ apprec feilet", it)
-}.getOrThrow()
+}.getOrNull()
 
 fun Routing.registerHealthEndpoints(
     collectorRegistry: PrometheusMeterRegistry,
