@@ -24,6 +24,7 @@ dependencyResolutionManagement {
             version("logback", "1.6.3")
             version("logstash", "9.0")
             version("fasterxml-jackson", "2.22.3")
+            version("jackson3", "3.2.3")
             version("jwt", "4.6.1")
             version("emottak-utils", "0.4.0")
             version("kotlinx-datetime", "0.8.0")
@@ -72,8 +73,8 @@ dependencyResolutionManagement {
 
             library("kotlin-kafka", "io.github.nomisrev", "kotlin-kafka").versionRef("kotlin-kafka")
 
-            library("jackson-module-kotlin", "com.fasterxml.jackson.module", "jackson-module-kotlin").versionRef("fasterxml-jackson")
-            library("jackson-dataformat-yaml", "com.fasterxml.jackson.dataformat", "jackson-dataformat-yaml").versionRef("fasterxml-jackson")
+            library("jackson-bom", "com.fasterxml.jackson", "jackson-bom").versionRef("fasterxml-jackson")
+            library("jackson3-databind", "tools.jackson.core", "jackson-databind").versionRef("jackson3")
 
             library("ebxml-protokoll", "no.nav.emottak:ebxml-protokoll:0.0.8")
             library("emottak-payload-xsd", "no.nav.emottak:emottak-payload-xsd:0.0.11")
@@ -92,7 +93,7 @@ dependencyResolutionManagement {
             bundle("prometheus", listOf("ktor-server-metrics-micrometer", "micrometer-registry-prometheus"))
             bundle("bouncycastle", listOf("bcpkix-jdk18on", "bcprov-jdk18on"))
             bundle("exposed", listOf("exposed-core", "exposed-dao", "exposed-java-time", "exposed-jdbc", "exposed-json"))
-            bundle("logging", listOf("logback-classic", "logback-logstash"))
+            bundle("logging", listOf("logback-classic", "logback-logstash", "jackson3-databind"))
         }
 
         create("testLibs") {
