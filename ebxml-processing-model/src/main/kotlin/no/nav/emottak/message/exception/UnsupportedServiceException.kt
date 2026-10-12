@@ -5,6 +5,12 @@ import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.SeverityType
 
 // Tjenester som ikke (lenger) støttes
 val UNSUPPORTED_SERVICE_PASIENTLISTEFORESPORSEL = "PasientlisteForesporsel" to "Tjeneste PasientlisteForesporsel utfaset siden 1. april 2026. Kontakt HDIR for mer informasjon"
+val UNSUPPORTED_SERVICES = mapOf(
+    "S-LOM" to "BehandleKrav",
+    "S-EgenandelForesporsel" to "HarBorgerFrikortMengde",
+    "S-SYKEMELD" to "Sykmelding"
+)
+const val UNSUPPORTED_SERVICE_TEMPLATE = "Tjeneste '{}' støttes ikke i Nav. Bruk i stedet '{}'."
 
 class UnsupportedServiceException(override val message: String) :
     EbmsException(
