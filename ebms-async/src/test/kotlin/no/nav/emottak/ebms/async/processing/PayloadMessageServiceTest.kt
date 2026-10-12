@@ -205,10 +205,10 @@ class PayloadMessageServiceTest {
         coVerify(exactly = 2) { eventRegistrationService.registerEventMessageDetails(any()) }
         coVerify(exactly = 1) {
             eventRegistrationService.registerEvent(
-                eventType = EventType.UNKNOWN_ERROR_OCCURRED,
+                eventType = EventType.MESSAGEFLOW_COMPLETED,
                 payloadMessage = any(),
                 conversationId = payloadMessage.conversationId,
-                eventData = "{\"error_message\": \"Tjeneste PasientlisteForesporsel utfaset siden 1. april 2026. Kontakt HDIR for mer informasjon\"}"
+                eventData = "{\"unsupported_service\": \"Tjeneste PasientlisteForesporsel utfaset siden 1. april 2026. Kontakt HDIR for mer informasjon\"}"
             )
         }
         println(ebmsMessageSlots[0].toString())
@@ -608,10 +608,10 @@ class PayloadMessageServiceTest {
         if (isUnsupportedService && givenService == "PasientlisteForesporsel") {
             coEvery {
                 eventRegistrationService.registerEvent(
-                    eventType = EventType.UNKNOWN_ERROR_OCCURRED, // TODO: Legge inn ny EventType i databasen for sanerte/ustøttede tjenester?
+                    eventType = EventType.MESSAGEFLOW_COMPLETED,
                     payloadMessage = any(),
                     conversationId = payloadMessage.conversationId,
-                    eventData = "{\"error_message\": \"Tjeneste PasientlisteForesporsel utfaset siden 1. april 2026. Kontakt HDIR for mer informasjon\"}"
+                    eventData = "{\"unsupported_service\": \"Tjeneste PasientlisteForesporsel utfaset siden 1. april 2026. Kontakt HDIR for mer informasjon\"}"
                 )
             } returns Unit
         }

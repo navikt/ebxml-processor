@@ -102,10 +102,10 @@ class PayloadMessageService(
 
     private suspend fun handleUnsupportedServiceException(ebmsPayloadMessage: PayloadMessage, exception: EbmsException) {
         eventRegistrationService.registerEvent(
-            eventType = EventType.UNKNOWN_ERROR_OCCURRED, // TODO: Legge inn ny EventType i databasen for sanerte/ustøttede tjenester?
+            eventType = EventType.MESSAGEFLOW_COMPLETED,
             payloadMessage = ebmsPayloadMessage,
             conversationId = ebmsPayloadMessage.conversationId,
-            eventData = "{\"error_message\": \"${exception.message}\"}"
+            eventData = "{\"unsupported_service\": \"${exception.message}\"}"
         )
         log.warn(ebmsPayloadMessage.marker(), exception.message)
     }
