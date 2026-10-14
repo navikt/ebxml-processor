@@ -23,6 +23,7 @@ import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.message.exception.EbmsException
 import no.nav.emottak.message.exception.SignatureValidationException
+import no.nav.emottak.message.exception.UNSUPPORTED_SERVICES
 import no.nav.emottak.message.model.Acknowledgment
 import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.EbmsAttachment
@@ -244,7 +245,7 @@ class PayloadMessageServiceTest {
             }
         )
         initService()
-        val (payloadMessage, ebmsMessageSlots, _) = setupMocks(PerMessageCharacteristicsType.ALWAYS, false, givenService = "S-LOM")
+        val (payloadMessage, ebmsMessageSlots, _) = setupMocks(PerMessageCharacteristicsType.ALWAYS, false, isUnsupportedService = true, givenService = "S-LOM")
 
         service.process(setupReceiverRecordWithoutRetryCountMock(), payloadMessage)
 
@@ -268,7 +269,7 @@ class PayloadMessageServiceTest {
             }
         )
         initService()
-        val (payloadMessage, ebmsMessageSlots, _) = setupMocks(PerMessageCharacteristicsType.ALWAYS, false, givenService = "S-Svarmelding")
+        val (payloadMessage, ebmsMessageSlots, _) = setupMocks(PerMessageCharacteristicsType.ALWAYS, false, isUnsupportedService = true, givenService = "S-Svarmelding")
 
         service.process(setupReceiverRecordWithoutRetryCountMock(), payloadMessage)
 
@@ -655,11 +656,12 @@ class PayloadMessageServiceTest {
         coEvery { eventRegistrationService.registerEventMessageDetails(capture(ebmsMessageSlots)) } returns Unit
         coEvery { cpaValidationService.getValidationResult(any(), any()) } returns validValidationResult()
 
-        if (isUnsupportedService && givenService == "PasientlisteForesporsel") {
+        if (isUnsupportedService) {
+            val msg = if (UNSUPPORTED_SERVICES.containsKey(givenService)) UNSUPPORTED_SERVICES[givenService] else "Ukjent service!"
             coEvery {
                 eventRegistrationService.registerMessageCompleted(
                     ebmsPayloadMessage = any(),
-                    eventData = "{\"unsupported_service\": \"Tjeneste PasientlisteForesporsel utfaset siden 1. april 2026. Kontakt HDIR for mer informasjon\"}"
+                    eventData = "{\"unsupported_service\": \"$msg\"}"
                 )
             } returns Unit
         }
