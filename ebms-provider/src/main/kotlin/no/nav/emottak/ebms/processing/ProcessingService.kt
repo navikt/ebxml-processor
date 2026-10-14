@@ -70,16 +70,16 @@ class ProcessingService(private val httpClient: PayloadProcessingClient) {
                 throw payloadError?.let {
                     EbmsException(
                         feil = listOf(payloadError),
-                        exception = clientRequestException
+                        cause = clientRequestException
                     )
                 } ?: EbmsException(
                     message = errorMsg,
                     errorCode = errorCode,
-                    exception = clientRequestException
+                    cause = clientRequestException
                 )
             }
         } catch (exception: Exception) {
-            throw EbmsException("An unexpected error occurred", exception = exception)
+            throw EbmsException("An unexpected error occurred", cause = exception)
         }
     }
 
@@ -92,7 +92,7 @@ class ProcessingService(private val httpClient: PayloadProcessingClient) {
                 payloadResponse.apprec &&
                 payloadResponse.processedPayload != null &&
                 direction == Direction.IN
-        } ?: throw EbmsException(errorMsg, exception = this@retrieveReturnableApprecResponse)
+        } ?: throw EbmsException(errorMsg, cause = this@retrieveReturnableApprecResponse)
     }
 
     suspend fun processSyncIn(
