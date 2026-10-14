@@ -10,7 +10,7 @@ import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.validation.CPAValidationService
-import no.nav.emottak.message.exception.UNSUPPORTED_SERVICE_PASIENTLISTEFORESPORSEL
+import no.nav.emottak.message.exception.UNSUPPORTED_SERVICES
 import no.nav.emottak.message.exception.UnsupportedServiceException
 import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.PayloadMessage
@@ -90,8 +90,8 @@ class PayloadMessageService(
     }
 
     private fun verifyServiceIsSupported(ebmsPayloadMessage: PayloadMessage) {
-        when (ebmsPayloadMessage.addressing.service) {
-            UNSUPPORTED_SERVICE_PASIENTLISTEFORESPORSEL.first -> throw UnsupportedServiceException(UNSUPPORTED_SERVICE_PASIENTLISTEFORESPORSEL.second)
+        if (UNSUPPORTED_SERVICES.containsKey(ebmsPayloadMessage.addressing.service)) {
+            throw UnsupportedServiceException(UNSUPPORTED_SERVICES[ebmsPayloadMessage.addressing.service]!!)
         }
     }
 
