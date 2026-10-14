@@ -3,6 +3,8 @@ package no.nav.emottak.payload.helseid
 import com.nimbusds.jose.JOSEObjectType
 import com.nimbusds.jose.JWSAlgorithm
 import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import no.nav.emottak.payload.helseid.testutils.HelseIDCreator
@@ -96,7 +98,24 @@ class NinResolverTest {
         val resolver = NinResolver(ocspStatusService = mockOcspStatusService)
         runBlocking {
             val resolved = resolver.resolve(doc, mockCertificate)
-            assertEquals("theFnr", resolved)
+            assertEquals(ResolvedPid("theFnr", PidSource.OCSP), resolved)
         }
+    }
+
+    @Test
+    fun `resolve returns HelseID source without calling OCSP when token supplies PID`() = runBlocking {
+        val doc = XMLUtil.createDocument(
+            """<MsgHead xmlns="http://www.kith.no/xmlstds/msghead/2006-05-24"><MsgInfo><GenDate>2026-10-09T12:00:00Z</GenDate></MsgInfo></MsgHead>"""
+                .toByteArray()
+        )
+        val tokenValidator = mockk<HelseIdTokenValidator>()
+        val ocspStatusService = mockk<OcspStatusService>()
+        val certificate = mockk<X509Certificate>()
+        every { tokenValidator.getHelseIdTokenFromDocument(doc) } returns "token"
+        every { tokenValidator.getValidatedNin("token", Instant.parse("2026-10-09T12:00:00Z")) } returns "01010112345"
+        val resolver = NinResolver(tokenValidator, ocspStatusService)
+
+        assertEquals(ResolvedPid("01010112345", PidSource.HelseID), resolver.resolve(doc, certificate))
+        coVerify(exactly = 0) { ocspStatusService.getOCSPStatus(any()) }
     }
 }
