@@ -229,7 +229,9 @@ class EventRegistrationServiceImpl(
             contentId = ebmsPayloadMessage.payload.contentId,
             messageId = ebmsPayloadMessage.messageId,
             conversationId = ebmsPayloadMessage.conversationId,
-            eventData = "{\"error_message\": \"${throwable.readableName()}: ${throwable.message}\"}"
+            eventData = Json.encodeToString(
+                EventDataType.ERROR_MESSAGE.value to "${throwable.readableName()}: ${throwable.message}"
+            )
         )
     }
 
