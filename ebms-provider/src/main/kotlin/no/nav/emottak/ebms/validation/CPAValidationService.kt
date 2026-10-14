@@ -5,12 +5,11 @@ import kotlinx.coroutines.withContext
 import no.nav.emottak.ebms.CpaRepoClient
 import no.nav.emottak.ebms.model.validateSignature
 import no.nav.emottak.message.exception.EbmsException
+import no.nav.emottak.message.exception.SignatureValidationException
 import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.Direction.IN
 import no.nav.emottak.message.model.Direction.OUT
 import no.nav.emottak.message.model.EbmsMessage
-import no.nav.emottak.message.model.ErrorCode
-import no.nav.emottak.message.model.Feil
 import no.nav.emottak.message.model.MessagingCharacteristicsRequest
 import no.nav.emottak.message.model.MessagingCharacteristicsResponse
 import no.nav.emottak.message.model.ValidationRequest
@@ -83,15 +82,7 @@ open class CPAValidationService(val httpClient: CpaRepoClient) {
                 message.validateSignature(validationResult.payloadProcessing!!.signingCertificate)
             }.onFailure {
                 log.warn(message.marker(), "Signatursjekk har feilet", it)
-                throw EbmsException(
-                    (validationResult.error ?: listOf()) + listOf(
-                        Feil(
-                            ErrorCode.SECURITY_FAILURE,
-                            "Signeringsfeil: ${it.message}"
-                        )
-                    ),
-                    it
-                )
+                throw SignatureValidationException("Signeringsfeil: ${it.message}", it as? Exception)
             }
         }
         return validationResult
