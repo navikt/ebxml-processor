@@ -177,7 +177,7 @@ class PayloadMessageServiceTest {
     }
 
     @Test
-    fun `process should stop processing and return error response if service is not supported`() = runBlocking {
+    fun `process should stop processing and return error response if service is not supported (PasientlisteForesporsel)`() = runBlocking {
         // Må bruke ordentlig retryservice her, siden error response lages/sendes av den
         retryService = RetryService(
             cpaValidationService = cpaValidationService,
@@ -210,12 +210,11 @@ class PayloadMessageServiceTest {
                 eventData = "{\"unsupported_service\": \"Tjeneste PasientlisteForesporsel utfaset siden 1. april 2026. Kontakt HDIR for mer informasjon\"}"
             )
         }
-        println(ebmsMessageSlots[0].toString())
         assertTrue(ebmsMessageSlots[0] is PayloadMessage)
         assertTrue(ebmsMessageSlots[1] is MessageError)
         assertType<PayloadMessage>(ebmsMessageSlots, 0)
         assertType<MessageError>(ebmsMessageSlots, 1)
-        assertTrue((ebmsMessageSlots[1] as MessageError).toString().contains("Tjeneste PasientlisteForesporsel utfaset siden 1. april 2026. Kontakt HDIR for mer informasjon"))
+        assertMessageErrorContains(ebmsMessageSlots[1] as MessageError, "Tjeneste PasientlisteForesporsel utfaset siden 1. april 2026. Kontakt HDIR for mer informasjon")
         coVerify(exactly = 1) { cpaValidationService.getValidationResult(any(), any()) }
         coVerify(exactly = 1) {
             eventRegistrationService.runWithEvent(
@@ -231,6 +230,54 @@ class PayloadMessageServiceTest {
         }
         assertTrue(fakeResult.isSuccess)
         coVerify(exactly = 1) { ebmsSignalProducer.publishMessage(key = any(), value = any(), headers = any()) }
+    }
+
+    @Test
+    fun `process should stop processing and return error response if service is not supported (S-LOM)`() = runBlocking {
+        // Må bruke ordentlig retryservice her, siden error response lages/sendes av den
+        retryService = RetryService(
+            cpaValidationService = cpaValidationService,
+            eventRegistrationService = eventRegistrationService,
+            failedMessageKafkaHandler = mockk<FailedMessageKafkaHandler>(),
+            signalSender = { ebmsDocument, signalResponderEmails ->
+                sendSignalResponseToTopic(ebmsSignalProducer, eventRegistrationService, ebmsDocument, signalResponderEmails)
+            }
+        )
+        initService()
+        val (payloadMessage, ebmsMessageSlots, _) = setupMocks(PerMessageCharacteristicsType.ALWAYS, false, givenService = "S-LOM")
+
+        service.process(setupReceiverRecordWithoutRetryCountMock(), payloadMessage)
+
+        // Sjekker kun feilmeldingen her. Testen for PasientlisteForesporsel verifiserer det øvrige.
+        assertTrue(ebmsMessageSlots[0] is PayloadMessage)
+        assertTrue(ebmsMessageSlots[1] is MessageError)
+        assertType<PayloadMessage>(ebmsMessageSlots, 0)
+        assertType<MessageError>(ebmsMessageSlots, 1)
+        assertMessageErrorContains(ebmsMessageSlots[1] as MessageError, "Tjeneste 'S-LOM' støttes ikke i Nav. Bruk i stedet 'BehandleKrav'.")
+    }
+
+    @Test
+    fun `process should stop processing and return error response if service is not supported (S-Svarmelding)`() = runBlocking {
+        // Må bruke ordentlig retryservice her, siden error response lages/sendes av den
+        retryService = RetryService(
+            cpaValidationService = cpaValidationService,
+            eventRegistrationService = eventRegistrationService,
+            failedMessageKafkaHandler = mockk<FailedMessageKafkaHandler>(),
+            signalSender = { ebmsDocument, signalResponderEmails ->
+                sendSignalResponseToTopic(ebmsSignalProducer, eventRegistrationService, ebmsDocument, signalResponderEmails)
+            }
+        )
+        initService()
+        val (payloadMessage, ebmsMessageSlots, _) = setupMocks(PerMessageCharacteristicsType.ALWAYS, false, givenService = "S-Svarmelding")
+
+        service.process(setupReceiverRecordWithoutRetryCountMock(), payloadMessage)
+
+        // Sjekker kun feilmeldingen her. Testen for PasientlisteForesporsel verifiserer det øvrige.
+        assertTrue(ebmsMessageSlots[0] is PayloadMessage)
+        assertTrue(ebmsMessageSlots[1] is MessageError)
+        assertType<PayloadMessage>(ebmsMessageSlots, 0)
+        assertType<MessageError>(ebmsMessageSlots, 1)
+        assertMessageErrorContains(ebmsMessageSlots[1] as MessageError, "Tjeneste 'S-Svarmelding' støttes ikke i Nav.")
     }
 
     @Test
@@ -888,3 +935,10 @@ fun createMessageCharacteristicsResponse(
     ackSignatureRequested = ackSignatureRequested,
     duplicateElimination = duplicateElimination
 )
+
+private fun assertMessageErrorContains(msgError: MessageError, expected: String) {
+    assertTrue(
+        msgError.feil.toString().contains(expected),
+        "Forventet at '%s' inneholdt '%s'".format(msgError.feil, expected)
+    )
+}
