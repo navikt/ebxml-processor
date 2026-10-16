@@ -11,6 +11,7 @@ val config by lazy {
     ConfigLoader.builder()
         .addEnvironmentSource()
         .addResourceSource("/kafka_common.conf")
+        .addResourceSource("/application.conf")
         .addResourceSource(caListResourceForCluster())
         .addResourceSource(configurationFileResolver())
         .withExplicitSealedTypes()
