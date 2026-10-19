@@ -1,5 +1,6 @@
 package no.nav.emottak.ebms.validation
 
+import no.nav.emottak.message.exception.CertificateValidationException
 import no.nav.emottak.message.exception.SignatureValidationException
 import no.nav.emottak.message.model.EbmsAttachment
 import no.nav.emottak.message.model.EbmsDocument
@@ -8,12 +9,30 @@ import no.nav.emottak.message.xml.getDocumentBuilder
 import no.nav.emottak.util.decodeBase64
 import org.apache.xml.security.algorithms.MessageDigestAlgorithm
 import org.apache.xml.security.signature.XMLSignature
+import org.apache.xml.security.utils.Constants
 import org.junit.jupiter.api.Test
 
 class SignaturValidatorTest {
 
     @Test
-    fun `Validering av signatur`() {
+    fun `Manglende KeyInfo feiler unrecoverable`() {
+        val document = getDocumentBuilder().parse(
+            this::class.java.classLoader
+                .getResourceAsStream("oppgjørsmelding/2023_08_29T12_56_58_328.xml")
+        )
+        val signature = document.getElementsByTagNameNS(Constants.SignatureSpecNS, Constants._TAG_SIGNATURE).item(0)
+        val keyInfo = document.getElementsByTagNameNS(Constants.SignatureSpecNS, Constants._TAG_KEYINFO).item(0)
+        signature.removeChild(keyInfo)
+
+        val exception = org.junit.jupiter.api.assertThrows<SignatureValidationException> {
+            SignaturValidator.validate(getSignatureDetailsForTest(), document, emptyList())
+        }
+
+        kotlin.test.assertFalse(exception.isRecoverable())
+    }
+
+    @Test
+    fun `Utløpt signatursertifikat feiler unrecoverable`() {
         val document = getDocumentBuilder().parse(
             this::class.java.classLoader
                 .getResourceAsStream("oppgjørsmelding/2023_08_29T12_56_58_328.xml")
@@ -31,11 +50,15 @@ class SignaturValidatorTest {
                 )
             )
         )
-        SignaturValidator.validate(getSignatureDetailsForTest(), document, ebmsDocument.attachments)
+        val exception = org.junit.jupiter.api.assertThrows<CertificateValidationException> {
+            SignaturValidator.validate(getSignatureDetailsForTest(), document, ebmsDocument.attachments)
+        }
+
+        kotlin.test.assertFalse(exception.isRecoverable())
     }
 
     @Test
-    fun `Validering av signatur uten attachments feiler`() {
+    fun `Utløpt signatursertifikat feiler før attachments valideres`() {
         val document = getDocumentBuilder().parse(
             this::class.java.classLoader
                 .getResourceAsStream("oppgjørsmelding/2023_08_29T12_56_58_328.xml")
@@ -46,9 +69,27 @@ class SignaturValidatorTest {
             listOf()
         )
 
-        org.junit.jupiter.api.assertThrows<SignatureValidationException> {
+        org.junit.jupiter.api.assertThrows<CertificateValidationException> {
             SignaturValidator.validate(getSignatureDetailsForTest(), document, ebmsDocument.attachments)
         }
+    }
+
+    @Test
+    fun `Utløpt signatursertifikat feiler unrecoverable før CPA-sertifikatet leses`() {
+        val document = getDocumentBuilder().parse(
+            this::class.java.classLoader
+                .getResourceAsStream("oppgjørsmelding/2023_08_29T12_56_58_328.xml")
+        )
+
+        val exception = org.junit.jupiter.api.assertThrows<CertificateValidationException> {
+            SignaturValidator.validate(
+                getSignatureDetailsForTest().copy(certificate = byteArrayOf()),
+                document,
+                emptyList()
+            )
+        }
+
+        kotlin.test.assertFalse(exception.isRecoverable())
     }
 }
 

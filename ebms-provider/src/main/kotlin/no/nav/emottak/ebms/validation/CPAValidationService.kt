@@ -1,5 +1,6 @@
 package no.nav.emottak.ebms.validation
 
+import io.ktor.utils.io.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import no.nav.emottak.ebms.CpaRepoClient
@@ -15,7 +16,6 @@ import no.nav.emottak.message.model.MessagingCharacteristicsRequest
 import no.nav.emottak.message.model.MessagingCharacteristicsResponse
 import no.nav.emottak.message.model.ValidationRequest
 import no.nav.emottak.message.model.ValidationResult
-import no.nav.emottak.util.marker
 import org.slf4j.LoggerFactory
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.validation.CPAValidationService")
@@ -79,18 +79,21 @@ open class CPAValidationService(val httpClient: CpaRepoClient) {
     open fun validateResult(validationResult: ValidationResult, message: EbmsMessage, checkSignature: Boolean): ValidationResult {
         if (!validationResult.valid()) throw EbmsException(validationResult.error!!)
         if (checkSignature) {
-            runCatching {
+            try {
                 message.validateSignature(validationResult.payloadProcessing!!.signingCertificate)
-            }.onFailure {
-                log.warn(message.marker(), "Signatursjekk har feilet", it)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: EbmsException) {
+                throw e
+            } catch (e: Exception) {
                 throw EbmsException(
                     (validationResult.error ?: listOf()) + listOf(
                         Feil(
                             ErrorCode.SECURITY_FAILURE,
-                            "Signeringsfeil: ${it.message}"
+                            "Signeringsfeil: ${e.message}"
                         )
                     ),
-                    it
+                    e
                 )
             }
         }

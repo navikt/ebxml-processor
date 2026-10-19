@@ -1,5 +1,6 @@
 package no.nav.emottak.ebms.validation
 
+import no.nav.emottak.message.exception.CertificateValidationException
 import no.nav.emottak.message.exception.SignatureValidationException
 import no.nav.emottak.message.model.EbmsAttachment
 import no.nav.emottak.message.model.SignatureDetails
@@ -15,6 +16,7 @@ import org.apache.xml.security.transforms.Transforms
 import org.apache.xml.security.utils.Constants
 import org.w3c.dom.Document
 import java.security.cert.X509Certificate
+import java.util.Date
 
 /**
  * https://git.sarepta.ehelse.no/publisert/standarder/raw/master/kravdokument/ValideringAvebXMLMeldinger/HITS%201172_2017%20Validering%20av%20ebXML-meldinger%20-oppdatert.pdf
@@ -35,8 +37,15 @@ class SignaturValidator {
         fun validate(signatureDetails: SignatureDetails, dokument: Document, attachments: List<EbmsAttachment>) {
             // TODO Sjekk isNonRepudiation?
             val xmlSignature = dokument.retrieveSignatureElement()
-            val sertfikatFraCPA = signatureDetails.retrievePublicX509Certificate()
+            xmlSignature.validateIn()
             val sertifikatFraSignatur = xmlSignature.retrievePublicX509Certificate()
+            if (sertifikatFraSignatur.notAfter.before(Date())) {
+                throw CertificateValidationException(
+                    "Sertifikat utløpt <${sertifikatFraSignatur.notAfter}>",
+                    recoverable = false
+                )
+            }
+            val sertfikatFraCPA = signatureDetails.retrievePublicX509Certificate()
             if (sertifikatFraSignatur != sertfikatFraCPA) {
                 throw SignatureValidationException(
                     "Signert med annet sertifikat enn definert i CPA. " +
@@ -63,7 +72,6 @@ class SignaturValidator {
             signature: XMLSignature,
             attachments: List<EbmsAttachment>
         ): Boolean {
-            signature.validateIn()
             val resolver = EbMSAttachmentResolver(attachments)
             signature.addResourceResolver(resolver)
             return signature.checkSignatureValue(certificate)
@@ -72,14 +80,14 @@ class SignaturValidator {
 }
 
 private fun XMLSignature.validateIn() {
-    val keyInfo = this.keyInfo ?: throw SignatureValidationException("KeyInfo mangler fra signatur")
+    val keyInfo = this.keyInfo ?: throw SignatureValidationException("KeyInfo mangler fra signatur", recoverable = false)
     keyInfo.validateIn()
     this.signedInfo.validateIn()
 }
 
 private fun KeyInfo.validateIn() {
-    if (this.lengthX509Data() != 1) throw SignatureValidationException("X509Data mangler fra signatur")
-    if (this.itemX509Data(0).lengthCertificate() != 1 || this.x509Certificate == null) throw SignatureValidationException("X509Certificate mangler fra X509Data")
+    if (this.lengthX509Data() != 1) throw SignatureValidationException("X509Data mangler fra signatur", recoverable = false)
+    if (this.itemX509Data(0).lengthCertificate() != 1 || this.x509Certificate == null) throw SignatureValidationException("X509Certificate mangler fra X509Data", recoverable = false)
 }
 
 private fun SignedInfo.validateIn() {

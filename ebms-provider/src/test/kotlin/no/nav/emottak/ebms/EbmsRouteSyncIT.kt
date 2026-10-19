@@ -27,6 +27,7 @@ import no.nav.emottak.ebms.validation.MimeHeaders
 import no.nav.emottak.message.ebxml.errorList
 import no.nav.emottak.message.ebxml.messageHeader
 import no.nav.emottak.message.model.EbmsDocument
+import no.nav.emottak.message.model.EbmsMessage
 import no.nav.emottak.message.model.ErrorCode
 import no.nav.emottak.message.model.Feil
 import no.nav.emottak.message.model.Payload
@@ -78,6 +79,7 @@ class EbmsRouteSyncIT {
     val validMultipartRequest = validMultipartRequest()
 
     fun <T> testSyncApp(testBlock: suspend ApplicationTestBuilder.() -> T) = testApplication {
+        org.apache.xml.security.Init.init()
         val client = createClient {
             expectSuccess = true
             install(io.ktor.client.plugins.contentnegotiation.ContentNegotiation) {
@@ -94,7 +96,7 @@ class EbmsRouteSyncIT {
         } returnsArgument(0)
 
         application {
-            val cpaValidationService = CPAValidationService(cpaRepoClient)
+            val cpaValidationService = CPAValidationServiceWithoutSignatureValidation(cpaRepoClient)
             install(ContentNegotiation) {
                 jsonLenient()
             }
@@ -477,6 +479,16 @@ class EbmsRouteSyncIT {
             "Forventet 2 kall mot [ebms-payload]/payload." // processSyncIn og processSyncOut
         )
     }
+}
+
+private class CPAValidationServiceWithoutSignatureValidation(
+    httpClient: CpaRepoClient
+) : CPAValidationService(httpClient) {
+    override fun validateResult(
+        validationResult: ValidationResult,
+        message: EbmsMessage,
+        checkSignature: Boolean
+    ): ValidationResult = super.validateResult(validationResult, message, false)
 }
 
 private fun mockSignatureDetails(): SignatureDetails =

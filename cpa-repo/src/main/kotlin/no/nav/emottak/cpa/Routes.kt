@@ -309,7 +309,8 @@ suspend fun AdresseregisterValidator.validateWithAR(
         runCatching {
             sertifikatValidator.validateCertificate(createX509Certificate(validSignatureDetails.certificate))
         }.onFailure {
-            log.warn(validateRequest.marker(), "Signatursjekk feilet", it)
+            log.error(validateRequest.marker(), "Validation feilet i sertifikat sjekk", it)
+            throw it
         }
         val allPurposeEdiEndpoint =
             EmailAddress(getEdiAddress(toHerId) ?: "", EndpointTypeType.ALL_PURPOSE)
