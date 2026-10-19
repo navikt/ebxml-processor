@@ -48,7 +48,7 @@ spec:
       memory: "1024Mi"
     requests:
       cpu: "100m"
-      memory: "512Mi"
+      memory: "1024Mi"
   ingresses:
     - "https://ebms-async-fss.intern.nav.no"
   vault:
