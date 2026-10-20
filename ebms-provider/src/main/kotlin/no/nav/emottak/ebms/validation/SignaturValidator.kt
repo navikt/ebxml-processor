@@ -42,7 +42,8 @@ class SignaturValidator {
             if (Date().after(sertifikatFraSignatur.notAfter)) {
                 throw CertificateValidationException(
                     "Sertifikat utløpt <${sertifikatFraSignatur.notAfter}>",
-                    recoverable = false
+                    recoverable = false,
+                    x509Certificate = sertifikatFraSignatur
                 )
             }
             val sertfikatFraCPA = signatureDetails.retrievePublicX509Certificate()
