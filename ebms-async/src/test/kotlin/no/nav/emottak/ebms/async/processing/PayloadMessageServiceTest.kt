@@ -29,8 +29,6 @@ import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.EbmsAttachment
 import no.nav.emottak.message.model.EbmsDocument
 import no.nav.emottak.message.model.EbmsMessage
-import no.nav.emottak.message.model.ErrorCode
-import no.nav.emottak.message.model.Feil
 import no.nav.emottak.message.model.MessageError
 import no.nav.emottak.message.model.MessagingCharacteristicsResponse
 import no.nav.emottak.message.model.PayloadMessage
