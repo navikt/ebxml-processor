@@ -39,7 +39,7 @@ class SignaturValidator {
             val xmlSignature = dokument.retrieveSignatureElement()
             xmlSignature.validateIn()
             val sertifikatFraSignatur = xmlSignature.retrievePublicX509Certificate()
-            if (sertifikatFraSignatur.notAfter.before(Date())) {
+            if (Date().after(sertifikatFraSignatur.notAfter)) {
                 throw CertificateValidationException(
                     "Sertifikat utløpt <${sertifikatFraSignatur.notAfter}>",
                     recoverable = false
