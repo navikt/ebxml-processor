@@ -52,6 +52,7 @@ import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PerMessageCharact
 import org.w3c.dom.Document
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.uuid.Uuid
 
 class PayloadMessageServiceTest {
@@ -446,7 +447,7 @@ class PayloadMessageServiceTest {
         coVerify(exactly = 0) { messageReceivedRepository.messageAcknowledged(any()) }
         coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(payloadMessage, true) }
         coVerify(exactly = 1) { eventRegistrationService.registerSignatureValidationFailed(any(), capture(exceptionSlot)) }
-        assertEquals(EbmsException::class.simpleName, exceptionSlot.captured.javaClass.simpleName)
+        assertIs<SignatureValidationException>(exceptionSlot.captured)
         assertEquals("Signeringsfeil: Signering feilet", exceptionSlot.captured.message)
         coVerify(exactly = 0) { eventRegistrationService.registerUnknownError(any(), any()) }
         coVerify(exactly = 0) { processingService.processAsync(payloadMessage, any()) }
@@ -667,14 +668,8 @@ class PayloadMessageServiceTest {
         }
 
         if (validateIncomingThrowsSignatureException) {
-            coEvery { cpaValidationService.validateIncomingMessage(payloadMessage, true) } throws EbmsException(
-                listOf(
-                    Feil(
-                        ErrorCode.SECURITY_FAILURE,
-                        "Signeringsfeil: Signering feilet"
-                    )
-                ),
-                cause = SignatureValidationException("Signering feilet")
+            coEvery { cpaValidationService.validateIncomingMessage(payloadMessage, true) } throws SignatureValidationException(
+                "Signeringsfeil: Signering feilet"
             )
             coEvery { eventRegistrationService.registerSignatureValidationFailed(payloadMessage, any()) } returns Unit
             coEvery { eventRegistrationService.registerUnknownError(any(), any()) } returns Unit
