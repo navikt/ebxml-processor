@@ -11,6 +11,11 @@ import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.routing.routing
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.runBlocking
 import no.nav.emottak.payload.configuration.config
 import no.nav.emottak.payload.helseid.HelseIdTokenValidator
 import no.nav.emottak.payload.helseid.NinResolver
@@ -21,7 +26,8 @@ import no.nav.emottak.util.jsonLenient
 import no.nav.emottak.utils.kafka.client.EventPublisherClient
 import no.nav.emottak.utils.kafka.service.EventLoggingService
 import no.nav.emottak.validering.sertifikat.CRLChecker
-import no.nav.emottak.validering.sertifikat.CRLRetriever
+import no.nav.emottak.validering.sertifikat.CRLStore
+import no.nav.emottak.validering.sertifikat.CRLUpdater
 import no.nav.emottak.validering.sertifikat.SertifikatValidator
 import no.nav.security.token.support.v3.tokenValidationSupport
 import org.slf4j.LoggerFactory
@@ -31,13 +37,19 @@ fun main() {
     val kafkaPublisherClient = EventPublisherClient(config.kafka)
     val eventLoggingService = EventLoggingService(config.eventLogging, kafkaPublisherClient)
     val eventRegistrationService = EventRegistrationServiceImpl(eventLoggingService)
+    val certificateAuthorities = config.caList.filter { it.crlUrl != null }.associate { it.dn to it.crlUrl!! }
+    val crlStore = CRLStore(certificateAuthorities)
+    val crlUpdater = CRLUpdater(
+        httpClient = HttpClientUtil.client,
+        crlStore = crlStore,
+        refreshInterval = config.crl.refreshInterval,
+        issuerList = certificateAuthorities
+    )
+    runBlocking {
+        crlUpdater.refresh()
+    }
     val sertifikatValidator = SertifikatValidator(
-        crlChecker = CRLChecker(
-            crlRetriever = CRLRetriever(
-                httpClient = HttpClientUtil.client,
-                issuerList = config.caList.filter { it.crlUrl != null }.associate { it.dn to it.crlUrl!! }
-            )
-        )
+        crlChecker = CRLChecker(crlStore)
     )
 
     val helseIdTokenValidator = HelseIdTokenValidator()
@@ -47,15 +59,21 @@ fun main() {
         ninResolver = NinResolver(helseIdTokenValidator)
     )
 
-    embeddedServer(
-        factory = Netty,
-        port = 8080,
-        module = payloadApplicationModule(
-            processor,
-            eventRegistrationService,
-            helseIdConnectionCheck = { helseIdTokenValidator.checkJwksConnection() }
-        )
-    ).start(wait = true)
+    val crlUpdaterScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    crlUpdater.startIn(crlUpdaterScope)
+    try {
+        embeddedServer(
+            factory = Netty,
+            port = 8080,
+            module = payloadApplicationModule(
+                processor,
+                eventRegistrationService,
+                helseIdConnectionCheck = { helseIdTokenValidator.checkJwksConnection() }
+            )
+        ).start(wait = true)
+    } finally {
+        crlUpdaterScope.cancel()
+    }
 }
 
 fun payloadApplicationModule(

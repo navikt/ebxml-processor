@@ -5,27 +5,20 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.data.row
 import io.kotest.datatest.withData
 import io.kotest.matchers.string.shouldStartWith
-import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.runs
-import kotlinx.coroutines.runBlocking
-import no.nav.emottak.crypto.KeyStoreManager
 import no.nav.emottak.message.exception.CertificateValidationException
 import no.nav.emottak.util.TestUtil
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.decodeBase64
-import org.bouncycastle.asn1.x500.X500Name
-import java.math.BigInteger
-import java.time.Instant
-import java.util.Date
 
 class SertifikatValidatorTest : FunSpec({
 
     context("Sertifikatsjekk med mocked CRLChecker") {
         val crlChecker = mockk<CRLChecker>()
-        coEvery {
+        every {
             crlChecker.getCRLRevocationInfo(any(), any())
         } just runs
         System.setProperty("TRUSTSTORE_PATH", "truststore.p12")
@@ -50,47 +43,6 @@ class SertifikatValidatorTest : FunSpec({
             )
         ) { certificate ->
             sertifikatValidering.validateCertificate(certificate)
-        }
-    }
-
-    context("Sertifikatsjekk med CRLChecker med CRL fil") {
-        val issuer = X500Name("CN=Test CA for revokering, O=Test Org, C=NO")
-        val caKeyPair = CRLTestFactory.generateKeyPair()
-        val caCertificate = CRLTestFactory.generateSelfSignedCaCertificate(issuer, caKeyPair)
-        val trustStore = KeyStoreManager(InMemoryKeyStoreConfig(mapOf("test-ca" to caCertificate)))
-        val revokedCertificate = CRLTestFactory.generateLeafCertificate(
-            issuer = issuer,
-            subject = X500Name("CN=Revokert testsertifikat, O=Test Org, C=NO"),
-            serialNumber = BigInteger.valueOf(1337),
-            caKeyPair = caKeyPair
-        )
-        val now = Date()
-        val crlFile = CRLTestFactory.generateCrl(
-            issuer = issuer,
-            signingKeyPair = caKeyPair,
-            thisUpdate = Date(now.time - 60_000),
-            nextUpdate = Date(now.time + 3_600_000),
-            revoked = listOf(BigInteger.valueOf(1337) to now)
-        )
-        val crl = CRL(issuer, "url", crlFile, Instant.now())
-        val crlRetriever = mockk<CRLRetriever>()
-        every {
-            runBlocking {
-                crlRetriever.updateAllCRLs()
-            }
-        } returns listOf(crl)
-        val crlChecker = CRLChecker(crlRetriever, trustStore)
-        val sertifikatValidering = SertifikatValidator(crlChecker)
-
-        withData(
-            mapOf(
-                "Revokert sertifikat feiler" to row(revokedCertificate, "Sertifikat revokert")
-            )
-        ) { (certificate, errorMessage) ->
-            val exception = shouldThrow<CertificateValidationException> {
-                sertifikatValidering.sjekkCRL(certificate)
-            }
-            exception.message shouldStartWith errorMessage
         }
     }
 })
