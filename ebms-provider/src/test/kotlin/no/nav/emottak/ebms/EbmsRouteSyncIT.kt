@@ -27,7 +27,6 @@ import no.nav.emottak.ebms.validation.MimeHeaders
 import no.nav.emottak.message.ebxml.errorList
 import no.nav.emottak.message.ebxml.messageHeader
 import no.nav.emottak.message.model.EbmsDocument
-import no.nav.emottak.message.model.EbmsMessage
 import no.nav.emottak.message.model.ErrorCode
 import no.nav.emottak.message.model.Feil
 import no.nav.emottak.message.model.Payload
@@ -54,11 +53,18 @@ import org.junit.jupiter.api.assertThrows
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.ErrorList
 import org.xmlsoap.schemas.soap.envelope.Envelope
 import org.xmlsoap.schemas.soap.envelope.Fault
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.uuid.Uuid
 
 private const val SYNC_PATH = "/ebms/sync"
+
+// The signing certificates in the test messages expire 2025-09-22 and 2026-08-28.
+private val clockWhileTestCertificatesAreValid = Clock.fixed(Instant.parse("2024-02-12T13:05:00Z"), ZoneOffset.UTC)
+private val clockAfterTestCertificatesExpired = Clock.fixed(Instant.parse("2026-08-29T00:00:00Z"), ZoneOffset.UTC)
 private val mockProcessConfig = ProcessConfig(
     true,
     true,
@@ -78,7 +84,10 @@ class EbmsRouteSyncIT {
     var processingClientPayloadCount = 0
     val validMultipartRequest = validMultipartRequest()
 
-    fun <T> testSyncApp(testBlock: suspend ApplicationTestBuilder.() -> T) = testApplication {
+    fun <T> testSyncApp(
+        clock: Clock = clockWhileTestCertificatesAreValid,
+        testBlock: suspend ApplicationTestBuilder.() -> T
+    ) = testApplication {
         org.apache.xml.security.Init.init()
         val client = createClient {
             expectSuccess = true
@@ -96,7 +105,7 @@ class EbmsRouteSyncIT {
         } returnsArgument(0)
 
         application {
-            val cpaValidationService = CPAValidationServiceWithoutSignatureValidation(cpaRepoClient)
+            val cpaValidationService = CPAValidationService(cpaRepoClient, clock)
             install(ContentNegotiation) {
                 jsonLenient()
             }
@@ -177,6 +186,18 @@ class EbmsRouteSyncIT {
                 this.errorCode
             )
         }
+    }
+
+    @Test
+    fun `Utløpt signatursertifikat resulterer i Feil Signal uten prosessering`() = testSyncApp(clockAfterTestCertificatesExpired) {
+        val response = client.post(SYNC_PATH, TestData.HarBorgerEgenandel.harBorgerEgenandelFritakRequestWithFormItem.asHttpRequest())
+        val envelope = getEnvelope(response)
+        with(envelope.assertErrorAndGet().error.first()) {
+            Assertions.assertTrue(this.description!!.value.startsWith("Sertifikat utløpt"), this.description!!.value)
+            Assertions.assertEquals(ErrorCode.SECURITY_FAILURE.value, this.errorCode)
+        }
+        assertEquals(0, processingClientPayloadCount, "Payload skal ikke prosesseres når signatursertifikatet er utløpt")
+        assertEquals(0, sendInClientFagmeldingSynkronCount, "Melding skal ikke sendes inn når signatursertifikatet er utløpt")
     }
 
     @Test
@@ -479,16 +500,6 @@ class EbmsRouteSyncIT {
             "Forventet 2 kall mot [ebms-payload]/payload." // processSyncIn og processSyncOut
         )
     }
-}
-
-private class CPAValidationServiceWithoutSignatureValidation(
-    httpClient: CpaRepoClient
-) : CPAValidationService(httpClient) {
-    override fun validateResult(
-        validationResult: ValidationResult,
-        message: EbmsMessage,
-        checkSignature: Boolean
-    ): ValidationResult = super.validateResult(validationResult, message, false)
 }
 
 private fun mockSignatureDetails(): SignatureDetails =
