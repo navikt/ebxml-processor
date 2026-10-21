@@ -18,8 +18,8 @@ import no.nav.emottak.utils.common.model.Party
 import no.nav.emottak.utils.common.model.PartyId
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import kotlin.test.assertSame
 
 class ProcessingServiceTest {
     private val httpClient = HttpClient(MockEngine { error("No HTTP request expected") })
@@ -70,24 +70,21 @@ class ProcessingServiceTest {
         val cancellation = CancellationException("Application shutting down")
         failure = cancellation
 
-        assertSame(
-            cancellation,
-            assertFailsWith<CancellationException> { service.processSyncIn(message, processing) }
-        )
-        assertSame(
-            cancellation,
-            assertFailsWith<CancellationException> { service.proccessSyncOut(message, processing) }
-        )
-        assertSame(
-            cancellation,
+        listOf(
+            assertFailsWith<CancellationException> { service.processSyncIn(message, processing) },
+            assertFailsWith<CancellationException> { service.proccessSyncOut(message, processing) },
             assertFailsWith<CancellationException> { service.processAsync(message, processing) }
-        )
+        ).forEach { exception ->
+            assertEquals(cancellation::class, exception::class)
+            assertEquals(cancellation.message, exception.message)
+        }
     }
 
     @Test
     fun `unexpected failures are still wrapped in EbmsException`() = runBlocking {
         val exception = assertFailsWith<EbmsException> { service.processAsync(message, processing) }
 
-        assertSame(failure, exception.cause)
+        assertEquals(failure::class, exception.cause!!::class)
+        assertEquals(failure.message, exception.cause!!.message)
     }
 }
