@@ -45,10 +45,10 @@ spec:
     max: 1
   resources:
     limits:
-      memory: "1024Mi"
+      memory: "1536Mi"
     requests:
-      cpu: "100m"
-      memory: "1024Mi"
+      cpu: "150m"
+      memory: "1536Mi"
   ingresses:
     - "https://ebms-async-fss.intern.nav.no"
   vault:
@@ -67,7 +67,7 @@ spec:
         - application: smtp-transport
   env:
     - name: JDK_JAVA_OPTIONS
-      value: "-XX:MaxRAMPercentage=60.0"
+      value: "-XX:MaxRAMPercentage=75.0"
     - name: TZ
       value: Europe/Oslo
     - name: VIRKSOMHETSSERTIFIKAT_PATH
