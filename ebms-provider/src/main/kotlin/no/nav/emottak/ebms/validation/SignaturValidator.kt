@@ -16,6 +16,7 @@ import org.apache.xml.security.transforms.Transforms
 import org.apache.xml.security.utils.Constants
 import org.w3c.dom.Document
 import java.security.cert.X509Certificate
+import java.time.Clock
 import java.util.Date
 
 /**
@@ -34,12 +35,17 @@ class SignaturValidator {
             org.apache.xml.security.Init.init()
         }
 
-        fun validate(signatureDetails: SignatureDetails, dokument: Document, attachments: List<EbmsAttachment>) {
+        fun validate(
+            signatureDetails: SignatureDetails,
+            dokument: Document,
+            attachments: List<EbmsAttachment>,
+            clock: Clock = Clock.systemUTC()
+        ) {
             // TODO Sjekk isNonRepudiation?
             val xmlSignature = dokument.retrieveSignatureElement()
             xmlSignature.validateIn()
             val sertifikatFraSignatur = xmlSignature.retrievePublicX509Certificate()
-            if (Date().after(sertifikatFraSignatur.notAfter)) {
+            if (Date.from(clock.instant()).after(sertifikatFraSignatur.notAfter)) {
                 throw CertificateValidationException(
                     "Sertifikat utløpt <${sertifikatFraSignatur.notAfter}>",
                     recoverable = false,

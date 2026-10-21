@@ -1,6 +1,5 @@
 package no.nav.emottak.ebms.validation
 
-import io.ktor.utils.io.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import no.nav.emottak.ebms.CpaRepoClient
@@ -17,10 +16,14 @@ import no.nav.emottak.message.model.MessagingCharacteristicsResponse
 import no.nav.emottak.message.model.ValidationRequest
 import no.nav.emottak.message.model.ValidationResult
 import org.slf4j.LoggerFactory
+import java.time.Clock
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.validation.CPAValidationService")
 
-open class CPAValidationService(val httpClient: CpaRepoClient) {
+open class CPAValidationService(
+    val httpClient: CpaRepoClient,
+    private val clock: Clock = Clock.systemUTC()
+) {
 
     suspend fun validateIncomingMessage(message: EbmsMessage, checkSignature: Boolean = true): ValidationResult =
         getValidationResult(IN, message).also {
@@ -80,9 +83,7 @@ open class CPAValidationService(val httpClient: CpaRepoClient) {
         if (!validationResult.valid()) throw EbmsException(validationResult.error!!)
         if (checkSignature) {
             try {
-                message.validateSignature(validationResult.payloadProcessing!!.signingCertificate)
-            } catch (e: CancellationException) {
-                throw e
+                message.validateSignature(validationResult.payloadProcessing!!.signingCertificate, clock)
             } catch (e: EbmsException) {
                 throw e
             } catch (e: Exception) {
