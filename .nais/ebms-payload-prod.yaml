@@ -88,4 +88,4 @@ spec:
     - name: JURIDISKLOGG_SERVICEUSER_SECRET_PATH
       value: /var/run/secrets/nais.io/vault/serviceuser
     - name: JDK_JAVA_OPTIONS
-      value: "$(JAVA_PROXY_OPTIONS)"
+      value: "$(JAVA_PROXY_OPTIONS) -XX:MaxRAMPercentage=60.0"
