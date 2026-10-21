@@ -1,5 +1,6 @@
 package no.nav.emottak.ebms.util
 
+import kotlinx.coroutines.CancellationException
 import no.nav.emottak.ebms.log
 import no.nav.emottak.message.model.EbmsDocument
 import no.nav.emottak.message.model.EbmsMessage
@@ -58,6 +59,8 @@ class EventRegistrationServiceImpl(
 
             eventLoggingService.logEvent(event)
             log.debug("Event published successfully")
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             log.error("Error while registering event: ${e.message}", e)
         }
@@ -91,6 +94,8 @@ class EventRegistrationServiceImpl(
 
             eventLoggingService.logMessageDetails(ebmsMessageDetail)
             log.debug("Message details published successfully")
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             log.error("Error while registering message details: ${e.message}", e)
         }

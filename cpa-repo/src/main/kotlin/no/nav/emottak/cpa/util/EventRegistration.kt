@@ -1,5 +1,6 @@
 package no.nav.emottak.cpa.util
 
+import kotlinx.coroutines.CancellationException
 import no.nav.emottak.cpa.log
 import no.nav.emottak.message.model.ValidationRequest
 import no.nav.emottak.util.marker
@@ -47,6 +48,8 @@ class EventRegistrationServiceImpl(
 
             eventLoggingService.logEvent(event)
             log.debug("Event is registered successfully")
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             log.error("Error while registering event: ${e.message}", e)
         }
