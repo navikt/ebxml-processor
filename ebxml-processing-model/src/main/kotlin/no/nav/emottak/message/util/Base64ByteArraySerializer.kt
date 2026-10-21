@@ -2,7 +2,6 @@ package no.nav.emottak.message.util
 
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerializationException
-import kotlinx.serialization.builtins.ByteArraySerializer
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
@@ -16,15 +15,14 @@ import java.util.Base64
 object Base64ByteArraySerializer : KSerializer<ByteArray> {
     override val descriptor = PrimitiveSerialDescriptor("Base64ByteArray", PrimitiveKind.STRING)
 
-    // Phase 1 of the format migration: still write the legacy numeric array so pods that only read
-    // arrays keep working. Switch to encodeString(Base64) once every reader accepts both formats.
     override fun serialize(encoder: Encoder, value: ByteArray) {
-        encoder.encodeSerializableValue(ByteArraySerializer(), value)
+        encoder.encodeString(Base64.getEncoder().encodeToString(value))
     }
 
     override fun deserialize(decoder: Decoder): ByteArray {
         if (decoder !is JsonDecoder) return decodeBase64(decoder.decodeString())
         return when (val element = decoder.decodeJsonElement()) {
+            // Legacy numeric array format, still accepted from pods running an older version
             is JsonArray -> decodeLegacyArray(element)
             is JsonPrimitive -> if (element.isString) {
                 decodeBase64(element.content)
