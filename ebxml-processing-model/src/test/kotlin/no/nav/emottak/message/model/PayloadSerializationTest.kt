@@ -2,6 +2,9 @@ package no.nav.emottak.message.model
 
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import no.nav.emottak.utils.common.model.Addressing
@@ -10,6 +13,7 @@ import no.nav.emottak.utils.common.model.PartyId
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.util.Base64
 
@@ -23,7 +27,7 @@ class PayloadSerializationTest {
     )
 
     @Test
-    fun `request payload bytes are a Base64 string and round trip without metadata loss`() {
+    fun `request payload bytes are written as legacy array and round trip without metadata loss`() {
         val party = Party(listOf(PartyId("HERID", "test")), "test")
         val request = PayloadRequest(
             direction = Direction.IN,
@@ -52,8 +56,7 @@ class PayloadSerializationTest {
 
         val json = Json.encodeToString(request)
         val encodedPayload = Json.parseToJsonElement(json).jsonObject.getValue("payload").jsonObject
-        assertEquals(Base64.getEncoder().encodeToString(payload.bytes), encodedPayload.getValue("bytes").jsonPrimitive.content)
-        assertEquals(true, encodedPayload.getValue("bytes").jsonPrimitive.isString)
+        assertEquals(payload.bytes.map { it.toInt() }, encodedPayload.getValue("bytes").jsonArray.map { it.jsonPrimitive.int })
 
         val decoded = Json.decodeFromString<PayloadRequest>(json)
         assertPayloadEquals(payload, decoded.payload)
@@ -65,17 +68,16 @@ class PayloadSerializationTest {
     }
 
     @Test
-    fun `response payload bytes use Base64 including empty and padding boundaries`() {
-        for (size in listOf(0, 1, 2, 3, 256, 1024 * 1024)) {
+    fun `response payload bytes round trip including empty and large payloads`() {
+        for (size in listOf(0, 1, 256, 1024 * 1024)) {
             val original = payload.copy(bytes = ByteArray(size) { it.toByte() })
             val response = PayloadResponse(processedPayload = original, juridiskLoggRecordId = "record")
             val json = Json.encodeToString(response)
-            val encodedPayload = Json.parseToJsonElement(json).jsonObject.getValue("processedPayload").jsonObject
-            val encodedBytes = encodedPayload.getValue("bytes").jsonPrimitive
+            val encodedBytes = Json.parseToJsonElement(json).jsonObject
+                .getValue("processedPayload").jsonObject.getValue("bytes")
 
-            assertEquals(true, encodedBytes.isString)
-            assertEquals(Base64.getEncoder().encodeToString(original.bytes), encodedBytes.content)
-            assertEquals(4 * ((size + 2) / 3), encodedBytes.content.length)
+            assertTrue(encodedBytes is JsonArray)
+            assertEquals(size, encodedBytes.jsonArray.size)
 
             val decoded = Json.decodeFromString<PayloadResponse>(json)
             assertPayloadEquals(original, decoded.processedPayload!!)
@@ -84,8 +86,35 @@ class PayloadSerializationTest {
     }
 
     @Test
-    fun `invalid Base64 and legacy numeric arrays are rejected`() {
-        for (bytes in listOf("\"not!base64\"", "[0,1,2]", "null")) {
+    fun `Base64 payload bytes are accepted including padding boundaries`() {
+        for (size in listOf(0, 1, 2, 3, 256, 1024 * 1024)) {
+            val original = payload.copy(bytes = ByteArray(size) { it.toByte() })
+            val base64 = Base64.getEncoder().encodeToString(original.bytes)
+            val json = """{"processedPayload":{"bytes":"$base64","contentType":"application/xml",""" +
+                """"contentId":"attachment-test","signedByPid":"test-pid","signedByOrg":"test-org"},""" +
+                """"juridiskLoggRecordId":"record"}"""
+
+            val decoded = Json.decodeFromString<PayloadResponse>(json)
+            assertPayloadEquals(original, decoded.processedPayload!!)
+            assertEquals("record", decoded.juridiskLoggRecordId)
+        }
+    }
+
+    @Test
+    fun `legacy numeric arrays are still accepted`() {
+        val decoded = Json.decodeFromString<Payload>(
+            """{"bytes":[0,1,-128,127,-1],"contentType":"application/xml","contentId":"test"}"""
+        )
+        assertArrayEquals(byteArrayOf(0, 1, -128, 127, -1), decoded.bytes)
+
+        val legacyJson = """{"processedPayload":{"bytes":${payload.bytes.joinToString(",", "[", "]")},""" +
+            """"contentType":"application/xml","contentId":"attachment-test"}}"""
+        assertArrayEquals(payload.bytes, Json.decodeFromString<PayloadResponse>(legacyJson).processedPayload!!.bytes)
+    }
+
+    @Test
+    fun `invalid Base64 and malformed values are rejected`() {
+        for (bytes in listOf("\"not!base64\"", "null", "42", "{}", "[128]", "[-129]", "[1.5]", "[\"1\"]", "[null]")) {
             assertThrows(SerializationException::class.java) {
                 Json.decodeFromString<Payload>(
                     """{"bytes":$bytes,"contentType":"application/xml","contentId":"test"}"""
