@@ -7,24 +7,30 @@ import io.ktor.client.call.body
 import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import no.nav.emottak.message.model.ErrorCode
 import no.nav.emottak.message.model.PayloadResponse
 import no.nav.emottak.payload.apprec.message.AppRecErrorCode
 import no.nav.emottak.payload.crypto.SignatureValidator
 import no.nav.emottak.payload.error.SignatureException
 import no.nav.emottak.payload.util.EventRegistrationService
+import no.nav.emottak.utils.serialization.LENIENT_JSON_PARSER
 import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import java.util.Base64
 import kotlin.uuid.ExperimentalUuidApi
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -35,11 +41,19 @@ class PayloadIntegrationTest : PayloadTestBase() {
 
     @Test
     fun `Payload endepunkt med auth token gir 200 OK`() = testApp {
+        val request = baseRequest()
         client(authenticated = true).post("/payload") {
-            setBody(baseRequest())
+            setBody(request)
         }.apply {
             assertEquals(HttpStatusCode.OK, status)
-            assertNull(body<PayloadResponse>().error)
+            val json = bodyAsText()
+            val response = LENIENT_JSON_PARSER.decodeFromString<PayloadResponse>(json)
+            assertNull(response.error)
+            assertArrayEquals(request.payload.bytes, response.processedPayload!!.bytes)
+            val bytes = LENIENT_JSON_PARSER.parseToJsonElement(json).jsonObject
+                .getValue("processedPayload").jsonObject.getValue("bytes").jsonPrimitive
+            assertTrue(bytes.isString)
+            assertEquals(Base64.getEncoder().encodeToString(request.payload.bytes), bytes.content)
         }
     }
 
