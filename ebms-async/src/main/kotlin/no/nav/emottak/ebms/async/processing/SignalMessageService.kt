@@ -25,20 +25,21 @@ class SignalMessageService(
 ) {
 
     suspend fun processSignal(requestId: String, ebxmlSignalMessage: EbmsMessage) {
+        if (ebxmlSignalMessage !is Acknowledgment && ebxmlSignalMessage !is MessageError) {
+            log.warn(ebxmlSignalMessage.marker(), "Cannot process message as signal message: $requestId")
+            throw RuntimeException("Cannot process message as signal message: $requestId")
+        }
         try {
             when (ebxmlSignalMessage) {
                 is Acknowledgment -> processAcknowledgment(ebxmlSignalMessage)
                 is MessageError -> processMessageError(ebxmlSignalMessage)
-                else -> {
-                    log.warn(ebxmlSignalMessage.marker(), "Cannot process message as signal message: $requestId")
-                    throw RuntimeException("Cannot process message as signal message: $requestId")
-                }
             }
-        } catch (e: EbmsException) {
-            log.error("EbmsException processing signal requestId [$requestId]. Message: ${e.message}", e)
-        } catch (e: Exception) {
-            log.error("Unknown error processing signal requestId [$requestId]. Message: ${e.message}", e)
+        } catch (e: CancellationException) {
             throw e
+        } catch (e: EbmsException) {
+            log.warn("EbmsException processing signal requestId [$requestId]. Message: ${e.message}", e)
+        } catch (e: Exception) {
+            log.error("Unknown error processing signal requestId [$requestId], skipping signal. Message: ${e.message}", e)
         }
     }
 
@@ -123,8 +124,9 @@ class SignalMessageService(
                 }.getOrNull()
             )
         } catch (e: Exception) {
-            log.error(message.marker(), "Unexpected error during validation of signal, continuing processing: ${e.message}", e)
+            log.error(message.marker(), "Unexpected error during validation of signal, aborting processing: ${e.message}", e)
             eventRegistrationService.registerCpaValidationFailed(message, e)
+            throw e
         }
     }
 }

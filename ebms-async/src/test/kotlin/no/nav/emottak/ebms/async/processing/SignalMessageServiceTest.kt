@@ -24,6 +24,7 @@ import no.nav.emottak.utils.kafka.model.EventType
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import java.io.IOException
 import kotlin.uuid.Uuid
 
 class SignalMessageServiceTest {
@@ -135,7 +136,7 @@ class SignalMessageServiceTest {
     }
 
     @Test
-    fun `Unexpected failure during signature validation is not treated as a signature failure`() {
+    fun `Unexpected failure during signature validation skips the signal and is not treated as a signature failure`() {
         val requestId = Uuid.random().toString()
         val acknowledgment = acknowledgment(requestId)
         val validationResult = ValidationResult()
@@ -154,7 +155,7 @@ class SignalMessageServiceTest {
             signalMessageService.processSignal(requestId, acknowledgment)
         }
 
-        coVerify(exactly = 1) { messagePendingAckRepository.registerAckForMessage(acknowledgment.refToMessageId) }
+        coVerify(exactly = 0) { messagePendingAckRepository.registerAckForMessage(any()) }
         coVerify(exactly = 0) {
             eventRegistrationService.registerEvent(
                 eventType = EventType.SIGNATURE_CHECK_FAILED,
@@ -184,6 +185,25 @@ class SignalMessageServiceTest {
         }
 
         coVerify(exactly = 1) { messagePendingAckRepository.registerAckForMessage(acknowledgment.refToMessageId) }
+    }
+
+    @Test
+    fun `Acknowledgment is not registered when cpa-repo is unavailable`() {
+        val requestId = Uuid.random().toString()
+        val acknowledgment = acknowledgment(requestId)
+
+        coEvery {
+            cpaValidationService.getValidationResult(Direction.IN, acknowledgment)
+        } throws IOException("Connection refused")
+        every { messagePendingAckRepository.existsForMessageId(any()) } returns true
+        every { messagePendingAckRepository.wasAckSignatureRequested(any()) } returns true
+        coEvery { messagePendingAckRepository.registerAckForMessage(any()) } returns mockk(relaxed = true)
+
+        runBlocking {
+            signalMessageService.processSignal(requestId, acknowledgment)
+        }
+
+        coVerify(exactly = 0) { messagePendingAckRepository.registerAckForMessage(any()) }
     }
 
     @Test
