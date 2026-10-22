@@ -7,12 +7,16 @@ import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.ebms.validation.CPAValidationService
 import no.nav.emottak.message.exception.EbmsException
 import no.nav.emottak.message.model.Acknowledgment
+import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.EbmsMessage
 import no.nav.emottak.message.model.MessageError
+import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.util.marker
+import no.nav.emottak.util.retrievePublicX509Certificate
 import no.nav.emottak.utils.common.parseOrGenerateUuid
 import no.nav.emottak.utils.kafka.model.EventDataType
 import no.nav.emottak.utils.kafka.model.EventType
+import kotlin.coroutines.cancellation.CancellationException
 
 class SignalMessageService(
     val cpaValidationService: CPAValidationService,
@@ -47,7 +51,6 @@ class SignalMessageService(
         eventRegistrationService.registerEventMessageDetails(acknowledgment)
         validateIncomingSignal(
             message = acknowledgment,
-            refToMessageId = acknowledgment.refToMessageId,
             checkSignature = checkSignature
         )
         eventRegistrationService.registerEvent(
@@ -68,7 +71,6 @@ class SignalMessageService(
         eventRegistrationService.registerEventMessageDetails(messageError)
         validateIncomingSignal(
             message = messageError,
-            refToMessageId = messageError.refToMessageId,
             checkSignature = true
         )
         log.info(messageError.marker(), "Got MessageError with requestId <${messageError.requestId}>")
@@ -90,36 +92,39 @@ class SignalMessageService(
 
     private suspend fun validateIncomingSignal(
         message: EbmsMessage,
-        refToMessageId: String,
         checkSignature: Boolean
     ) {
-        val validationResult = cpaValidationService.validateIncomingMessage(message, checkSignature = false)
-        if (!checkSignature) return
-
+        var signatureValidationResult: ValidationResult? = null
         try {
-            cpaValidationService.validateResult(
-                validationResult = validationResult,
-                message = message,
-                checkSignature = true
-            )
-        } catch (e: EbmsException) {
-            log.warn(
-                message.marker(),
-                "Signature validation failed for signal with requestId <${message.requestId}>, " +
-                    "continuing processing: ${e.message}",
-                e
-            )
-            eventRegistrationService.registerEvent(
-                eventType = EventType.SIGNATURE_CHECK_FAILED,
-                conversationId = message.conversationId,
-                messageId = refToMessageId,
-                requestId = message.requestId.parseOrGenerateUuid(),
-                eventData = Json.encodeToString(
-                    mapOf(
-                        EventDataType.ERROR_MESSAGE to "Signeringsfeil: ${e.message}"
-                    )
+            signatureValidationResult = cpaValidationService.getValidationResult(Direction.IN, message)
+            if (signatureValidationResult.valid() && checkSignature) {
+                cpaValidationService.validateResult(
+                    validationResult = signatureValidationResult,
+                    message = message,
+                    checkSignature = true
                 )
+            }
+            if (!signatureValidationResult.valid()) {
+                val errorMessage = signatureValidationResult.error?.firstOrNull()?.let { "${it.code}: ${it.descriptionText}" } ?: "Unknown error"
+                log.warn(message.marker(), "CPA validation failed for signal, continuing processing: $errorMessage")
+                signatureValidationResult.error?.let {
+                    eventRegistrationService.registerCpaValidationFailed(message, EbmsException(it))
+                }
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: EbmsException) {
+            log.warn(message.marker(), "Signature validation failed for signal, continuing processing: ${e.message}", e)
+            eventRegistrationService.registerSignatureValidationFailed(
+                ebmsMessage = message,
+                throwable = e,
+                x509Certificate = runCatching {
+                    signatureValidationResult?.payloadProcessing?.signingCertificate?.retrievePublicX509Certificate()
+                }.getOrNull()
             )
+        } catch (e: Exception) {
+            log.error(message.marker(), "Unexpected error during validation of signal, continuing processing: ${e.message}", e)
+            eventRegistrationService.registerCpaValidationFailed(message, e)
         }
     }
 }
