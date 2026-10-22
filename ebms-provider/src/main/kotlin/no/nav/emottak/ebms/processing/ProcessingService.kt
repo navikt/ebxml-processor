@@ -15,6 +15,7 @@ import no.nav.emottak.message.model.PayloadProcessing
 import no.nav.emottak.message.model.PayloadRequest
 import no.nav.emottak.message.model.PayloadResponse
 import no.nav.emottak.util.marker
+import no.nav.emottak.util.sanitizedCause
 import no.nav.emottak.utils.common.model.Addressing
 import java.time.Instant
 import kotlin.uuid.Uuid
@@ -52,7 +53,8 @@ class ProcessingService(private val httpClient: PayloadProcessingClient) {
             val errorCode = payloadError?.code ?: ErrorCode.UNKNOWN
             logger().error(
                 payloadMessage.marker(),
-                "Processing failed: ${clientRequestException.response.status} with errorCode: $errorCode and message: $errorMsg"
+                "Processing failed: ${clientRequestException.response.status} with errorCode: $errorCode and message: $errorMsg",
+                clientRequestException.sanitizedCause()
             )
             if (payloadErrorMessage?.apprec == true) {
                 return Pair(
@@ -68,11 +70,13 @@ class ProcessingService(private val httpClient: PayloadProcessingClient) {
             } else {
                 throw payloadError?.let {
                     EbmsException(
-                        feil = listOf(payloadError)
+                        feil = listOf(payloadError),
+                        cause = clientRequestException.sanitizedCause()
                     )
                 } ?: EbmsException(
                     message = errorMsg,
-                    errorCode = errorCode
+                    errorCode = errorCode,
+                    cause = clientRequestException.sanitizedCause()
                 )
             }
         } catch (exception: Exception) {
@@ -89,7 +93,7 @@ class ProcessingService(private val httpClient: PayloadProcessingClient) {
                 payloadResponse.apprec &&
                 payloadResponse.processedPayload != null &&
                 direction == Direction.IN
-        } ?: throw EbmsException(errorMsg)
+        } ?: throw EbmsException(errorMsg, cause = this@retrieveReturnableApprecResponse.sanitizedCause())
     }
 
     suspend fun processSyncIn(
