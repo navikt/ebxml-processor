@@ -9,6 +9,7 @@ import io.mockk.mockk
 import no.nav.emottak.crypto.KeyStoreManager
 import no.nav.emottak.message.exception.CertificateValidationException
 import org.bouncycastle.asn1.x500.X500Name
+import org.bouncycastle.asn1.x509.CRLReason
 import java.math.BigInteger
 import java.time.Instant
 import java.util.Date
@@ -62,6 +63,25 @@ class CRLCheckerTest : FunSpec({
             checker.getCRLRevocationInfo(issuer.toString(), revokedSerial)
         }
         exception.message shouldContain "Sertifikat revokert"
+    }
+
+    test("Certificate hold fails with a CRLException instead of a certificate validation exception") {
+        val now = Date()
+        val revokedSerial = BigInteger.valueOf(42)
+        val crlFile = CRLTestFactory.generateCrl(
+            issuer = issuer,
+            signingKeyPair = caKeyPair,
+            thisUpdate = Date(now.time - 60_000),
+            nextUpdate = Date(now.time + 3_600_000),
+            revoked = listOf(revokedSerial to now),
+            revocationReason = CRLReason.certificateHold
+        )
+        val checker = CRLChecker(buildRetriever(CRL(issuer, "url", crlFile)), trustStore)
+
+        val exception = shouldThrow<CRLException> {
+            checker.getCRLRevocationInfo(issuer.toString(), revokedSerial)
+        }
+        exception.message shouldContain "CERTIFICATE_HOLD"
     }
 
     test("CRL signert med feil CA feiler med signaturfeil") {
