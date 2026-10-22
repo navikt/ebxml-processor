@@ -137,6 +137,7 @@ class PayloadIntegrationTest : PayloadTestBase() {
 
             val body = response.body<PayloadResponse>()
             assertEquals(HttpStatusCode.BadRequest, response.status)
+            assertEquals(ErrorCode.SECURITY_FAILURE, body.error!!.code)
             assertEquals("Sertifikat revokert med reason CERTIFICATE_HOLD", body.error!!.descriptionText)
             assertTrue(body.error!!.recoverable)
             assertFalse(body.apprec)

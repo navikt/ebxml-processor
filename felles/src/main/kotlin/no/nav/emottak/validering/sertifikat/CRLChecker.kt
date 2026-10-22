@@ -62,10 +62,10 @@ class CRLChecker(
             val message = "Sertifikat revokert: serienummer <$serialNumber> revokert med reason <${it.revocationReason}> at <${it.revocationDate}>"
             when (it.revocationReason) {
                 /*
-                    CERTIFICATE_HOLD (mis)brukes av noen CA-er for å indikere at ikke er mottatt av bruker, men på grunn av
-                    at CRL kun oppdateres noen få ganger i døgnet, kan det være at sertifikatet er gyldig og i bruk, men CRL
+                    CERTIFICATE_HOLD (mis)brukes av noen CA-er for å indikere at sertifikat ikke er mottatt av bruker.
+                    Fordi CRL kun oppdateres noen få ganger i døgnet, kan det være at sertifikatet er i bruk, men CRL
                     henger etter. Ved neste oppdatering vil det enten bli fjernet fra CRL eller få en annen revocation reason,
-                    så vi lar disse havne på retry
+                    så vi lar disse havne på retry.
                 */
                 CRLReason.CERTIFICATE_HOLD -> throw CRLException(message)
                 else -> throw CertificateValidationException(message)
