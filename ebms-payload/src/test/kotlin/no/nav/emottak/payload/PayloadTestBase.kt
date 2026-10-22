@@ -96,6 +96,9 @@ abstract class PayloadTestBase {
     protected fun <T> testApp(
         eventRegistrationService: EventRegistrationService = EventRegistrationServiceFake(),
         signatureValidator: SignatureValidator = SignatureValidator(),
+        crlChecker: CRLChecker = mockk<CRLChecker>().also {
+            coEvery { it.getCRLRevocationInfo(any(), any()) } just runs
+        },
         testBlock: suspend ApplicationTestBuilder.() -> T
     ) =
         testApplication {
@@ -103,8 +106,6 @@ abstract class PayloadTestBase {
 
             configureOcspStatusService()
 
-            val crlChecker = mockk<CRLChecker>()
-            coEvery { crlChecker.getCRLRevocationInfo(any(), any()) } just runs
             val sertifikatValidator = SertifikatValidator(crlChecker = crlChecker)
             val processor = Processor(eventRegistrationService, sertifikatValidator, signaturValidator = signatureValidator)
 

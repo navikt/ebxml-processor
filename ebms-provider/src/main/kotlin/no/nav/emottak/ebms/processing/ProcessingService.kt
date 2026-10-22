@@ -16,6 +16,7 @@ import no.nav.emottak.message.model.PayloadProcessing
 import no.nav.emottak.message.model.PayloadRequest
 import no.nav.emottak.message.model.PayloadResponse
 import no.nav.emottak.util.marker
+import no.nav.emottak.util.sanitizedCause
 import no.nav.emottak.utils.common.model.Addressing
 import java.time.Instant
 import kotlin.uuid.Uuid
@@ -47,17 +48,17 @@ class ProcessingService(private val httpClient: PayloadProcessingClient) {
                 direction
             )
         } catch (clientRequestException: ClientRequestException) {
-            logger().error(
-                payloadMessage.marker(),
-                "Processing failed: ${clientRequestException.message}",
-                clientRequestException
-            )
             val payloadErrorMessage = runCatching { clientRequestException.response.body<PayloadResponse>() }
                 .onFailure { if (it is CancellationException) throw it }
                 .getOrNull()
             val payloadError = payloadErrorMessage?.error
             val errorMsg = payloadError?.let { "${it.descriptionText} [${it.code.value}]" } ?: "Processing has failed"
             val errorCode = payloadError?.code ?: ErrorCode.UNKNOWN
+            logger().error(
+                payloadMessage.marker(),
+                "Processing failed: ${clientRequestException.response.status} with errorCode: $errorCode and message: $errorMsg",
+                clientRequestException.sanitizedCause()
+            )
             if (payloadErrorMessage?.apprec == true) {
                 return Pair(
                     payloadMessage.convertToErrorActionMessage(
@@ -73,12 +74,12 @@ class ProcessingService(private val httpClient: PayloadProcessingClient) {
                 throw payloadError?.let {
                     EbmsException(
                         feil = listOf(payloadError),
-                        cause = clientRequestException
+                        cause = clientRequestException.sanitizedCause()
                     )
                 } ?: EbmsException(
                     message = errorMsg,
                     errorCode = errorCode,
-                    cause = clientRequestException
+                    cause = clientRequestException.sanitizedCause()
                 )
             }
         } catch (exception: CancellationException) {
@@ -97,7 +98,7 @@ class ProcessingService(private val httpClient: PayloadProcessingClient) {
                 payloadResponse.apprec &&
                 payloadResponse.processedPayload != null &&
                 direction == Direction.IN
-        } ?: throw EbmsException(errorMsg, cause = this@retrieveReturnableApprecResponse)
+        } ?: throw EbmsException(errorMsg, cause = this@retrieveReturnableApprecResponse.sanitizedCause())
     }
 
     suspend fun processSyncIn(
