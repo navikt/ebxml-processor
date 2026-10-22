@@ -10,6 +10,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.slf4j.LoggerFactory
 import java.math.BigInteger
 import java.security.Provider
+import java.security.cert.CRLReason
 import java.security.cert.X509CRL
 import java.security.cert.X509CRLEntry
 import java.security.cert.X509Certificate
@@ -58,7 +59,17 @@ class CRLChecker(
 
     suspend fun getCRLRevocationInfo(issuer: String, serialNumber: BigInteger) {
         getRevokedCertificate(issuer = X500Name(issuer), serialNumber = serialNumber)?.let {
-            throw CertificateValidationException("Sertifikat revokert: serienummer <$serialNumber> revokert med reason <${it.revocationReason}> at <${it.revocationDate}>")
+            val message = "Sertifikat revokert: serienummer <$serialNumber> revokert med reason <${it.revocationReason}> at <${it.revocationDate}>"
+            when (it.revocationReason) {
+                /*
+                    CERTIFICATE_HOLD (mis)brukes av noen CA-er for å indikere at ikke er mottatt av bruker, men på grunn av
+                    at CRL kun oppdateres noen få ganger i døgnet, kan det være at sertifikatet er gyldig og i bruk, men CRL
+                    henger etter. Ved neste oppdatering vil det enten bli fjernet fra CRL eller få en annen revocation reason,
+                    så vi lar disse havne på retry
+                */
+                CRLReason.CERTIFICATE_HOLD -> throw CRLException(message)
+                else -> throw CertificateValidationException(message)
+            }
         }
     }
 
