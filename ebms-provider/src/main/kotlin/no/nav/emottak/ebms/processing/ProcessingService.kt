@@ -46,15 +46,14 @@ class ProcessingService(private val httpClient: PayloadProcessingClient) {
                 direction
             )
         } catch (clientRequestException: ClientRequestException) {
-            logger().error(
-                payloadMessage.marker(),
-                "Processing failed: ${clientRequestException.message}",
-                clientRequestException
-            )
             val payloadErrorMessage = runCatching { clientRequestException.response.body<PayloadResponse>() }.getOrNull()
             val payloadError = payloadErrorMessage?.error
             val errorMsg = payloadError?.let { "${it.descriptionText} [${it.code.value}]" } ?: "Processing has failed"
             val errorCode = payloadError?.code ?: ErrorCode.UNKNOWN
+            logger().error(
+                payloadMessage.marker(),
+                "Processing failed: ${clientRequestException.response.status} with errorCode: $errorCode and message: $errorMsg"
+            )
             if (payloadErrorMessage?.apprec == true) {
                 return Pair(
                     payloadMessage.convertToErrorActionMessage(
@@ -69,13 +68,11 @@ class ProcessingService(private val httpClient: PayloadProcessingClient) {
             } else {
                 throw payloadError?.let {
                     EbmsException(
-                        feil = listOf(payloadError),
-                        cause = clientRequestException
+                        feil = listOf(payloadError)
                     )
                 } ?: EbmsException(
                     message = errorMsg,
-                    errorCode = errorCode,
-                    cause = clientRequestException
+                    errorCode = errorCode
                 )
             }
         } catch (exception: Exception) {
@@ -92,7 +89,7 @@ class ProcessingService(private val httpClient: PayloadProcessingClient) {
                 payloadResponse.apprec &&
                 payloadResponse.processedPayload != null &&
                 direction == Direction.IN
-        } ?: throw EbmsException(errorMsg, cause = this@retrieveReturnableApprecResponse)
+        } ?: throw EbmsException(errorMsg)
     }
 
     suspend fun processSyncIn(
