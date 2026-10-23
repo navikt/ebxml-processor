@@ -15,12 +15,13 @@ import no.nav.emottak.payload.crypto.SignatureValidator
 import no.nav.emottak.payload.error.CertificateException
 import no.nav.emottak.payload.error.SignatureException
 import no.nav.emottak.payload.helseid.NinResolver
+import no.nav.emottak.payload.helseid.PidSource
+import no.nav.emottak.payload.helseid.ResolvedPid
 import no.nav.emottak.payload.util.EventRegistrationService
 import no.nav.emottak.payload.util.EventRegistrationServiceFake
 import no.nav.emottak.util.createDocument
 import no.nav.emottak.util.getByteArrayFromDocument
 import no.nav.emottak.util.marker
-import no.nav.emottak.utils.kafka.model.EventType
 import no.nav.emottak.validering.sertifikat.CRLChecker
 import no.nav.emottak.validering.sertifikat.CRLException
 import no.nav.emottak.validering.sertifikat.SertifikatValidator
@@ -90,7 +91,7 @@ class ProcessorTest : PayloadTestBase() {
         setupEnv()
         val expectedPid = "01010112345"
         val ninResolver = mockk<NinResolver>()
-        coEvery { ninResolver.resolve(any<org.w3c.dom.Document>(), any()) } returns expectedPid
+        coEvery { ninResolver.resolve(any<org.w3c.dom.Document>(), any()) } returns ResolvedPid(expectedPid, PidSource.OCSP)
         val processor = buildProcessor(ninResolver)
 
         val payload: Payload = Fixtures.validEgenandelForesporsel()
@@ -244,7 +245,8 @@ class ProcessorTest : PayloadTestBase() {
         val sertifikatValidator = mockk<SertifikatValidator>()
         coEvery { sertifikatValidator.validateCertificate(any()) } just runs
         val ninResolver = mockk<NinResolver>()
-        coEvery { ninResolver.resolve(any<org.w3c.dom.Document>(), any()) } returns "01010112345"
+        val resolvedPid = ResolvedPid("01010112345", PidSource.OCSP)
+        coEvery { ninResolver.resolve(any<org.w3c.dom.Document>(), any()) } returns resolvedPid
         val processor = Processor(
             eventRegistrationService,
             sertifikatValidator,
@@ -257,7 +259,7 @@ class ProcessorTest : PayloadTestBase() {
         processor.validateReadablePayload(request.marker(), payload, request, request.processing.processConfig)
 
         coVerify(exactly = 1) { eventRegistrationService.registerSignatureValidationSuccessful(request, Fixtures.signingCertificate()) }
-        coVerify(exactly = 1) { eventRegistrationService.registerEvent(EventType.OCSP_CHECK_SUCCESSFUL, request, any()) }
+        coVerify(exactly = 1) { eventRegistrationService.registerPidRetrieved(request, resolvedPid) }
         coVerify(exactly = 0) { eventRegistrationService.registerSignatureValidationFailed(any(), any(), any()) }
     }
 }

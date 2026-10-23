@@ -1,8 +1,9 @@
 package no.nav.emottak.payload.util
 
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import no.nav.emottak.message.model.PayloadRequest
+import no.nav.emottak.payload.helseid.PidSource
+import no.nav.emottak.payload.helseid.ResolvedPid
 import no.nav.emottak.payload.log
 import no.nav.emottak.util.mapCertificateDetails
 import no.nav.emottak.utils.common.parseOrGenerateUuid
@@ -26,6 +27,7 @@ interface EventRegistrationService {
     suspend fun registerPayloadDecompressed(payloadRequest: PayloadRequest)
     suspend fun registerSignatureValidationSuccessful(payloadRequest: PayloadRequest, certificate: X509Certificate)
     suspend fun registerSignatureValidationFailed(payloadRequest: PayloadRequest, certificate: X509Certificate?, exception: Exception)
+    suspend fun registerPidRetrieved(payloadRequest: PayloadRequest, resolvedPid: ResolvedPid?)
 }
 
 class EventRegistrationServiceImpl(
@@ -102,7 +104,24 @@ class EventRegistrationServiceImpl(
                 (EventDataType.ERROR_MESSAGE.value to (exception.localizedMessage ?: exception.javaClass.simpleName))
         )
     )
+
+    override suspend fun registerPidRetrieved(
+        payloadRequest: PayloadRequest,
+        resolvedPid: ResolvedPid?
+    ) = registerEvent(
+        eventType = when (resolvedPid?.source) {
+            PidSource.OCSP -> EventType.OCSP_CHECK_SUCCESSFUL
+            PidSource.HelseID -> EventType.OCSP_CHECK_SUCCESSFUL // TODO enten egen for HelseID eller generisk for begge?
+            null -> EventType.OCSP_CHECK_FAILED
+        },
+        payloadRequest = payloadRequest,
+        eventData = resolvedPid.toEventData()
+    )
 }
+
+private fun ResolvedPid?.toEventData(): String = Json.encodeToString(
+    this?.let { mapOf("PID" to it.maskedPid, "source" to it.source.name) }.orEmpty()
+)
 
 class EventRegistrationServiceFake : EventRegistrationService {
     override suspend fun registerEvent(
@@ -159,5 +178,14 @@ class EventRegistrationServiceFake : EventRegistrationService {
         "Registering event SIGNATURE_CHECK_FAILED for validationRequest: {}, exception: {}",
         payloadRequest,
         exception.localizedMessage
+    )
+
+    override suspend fun registerPidRetrieved(
+        payloadRequest: PayloadRequest,
+        resolvedPid: ResolvedPid?
+    ) = registerEvent(
+        EventType.OCSP_CHECK_SUCCESSFUL,
+        payloadRequest,
+        resolvedPid.toEventData()
     )
 }
