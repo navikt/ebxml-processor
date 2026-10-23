@@ -1,5 +1,6 @@
 package no.nav.emottak.payload.util
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import no.nav.emottak.message.model.PayloadRequest
@@ -52,6 +53,8 @@ class EventRegistrationServiceImpl(
 
             eventLoggingService.logEvent(event)
             log.debug("Event is registered successfully")
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             log.error("Error while registering event: ${e.message}", e)
         }

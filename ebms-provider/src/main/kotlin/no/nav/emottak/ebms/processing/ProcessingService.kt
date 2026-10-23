@@ -2,6 +2,7 @@ package no.nav.emottak.ebms.processing
 
 import io.ktor.client.call.body
 import io.ktor.client.plugins.ClientRequestException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import no.nav.emottak.ebms.PayloadProcessingClient
@@ -47,7 +48,9 @@ class ProcessingService(private val httpClient: PayloadProcessingClient) {
                 direction
             )
         } catch (clientRequestException: ClientRequestException) {
-            val payloadErrorMessage = runCatching { clientRequestException.response.body<PayloadResponse>() }.getOrNull()
+            val payloadErrorMessage = runCatching { clientRequestException.response.body<PayloadResponse>() }
+                .onFailure { if (it is CancellationException) throw it }
+                .getOrNull()
             val payloadError = payloadErrorMessage?.error
             val errorMsg = payloadError?.let { "${it.descriptionText} [${it.code.value}]" } ?: "Processing has failed"
             val errorCode = payloadError?.code ?: ErrorCode.UNKNOWN
@@ -79,6 +82,8 @@ class ProcessingService(private val httpClient: PayloadProcessingClient) {
                     cause = clientRequestException.sanitizedCause()
                 )
             }
+        } catch (exception: CancellationException) {
+            throw exception
         } catch (exception: Exception) {
             throw EbmsException("An unexpected error occurred", cause = exception)
         }
