@@ -21,7 +21,6 @@ import no.nav.emottak.payload.util.GZipUtil
 import no.nav.emottak.util.createDocument
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.getByteArrayFromDocument
-import no.nav.emottak.util.mapCertificateDetails
 import no.nav.emottak.util.marker
 import no.nav.emottak.util.retrieveSignatureElement
 import no.nav.emottak.utils.kafka.model.EventDataType
@@ -91,39 +90,36 @@ class Processor(
             val signatureElement = try {
                 this.retrieveSignatureElement()
             } catch (e: SignatureValidationException) {
+                eventRegistrationService.registerSignatureValidationFailed(payloadRequest, null, e)
                 throw SignatureException("No signature element found in payload", e)
             } catch (e: XMLSecurityException) {
                 throw SignatureException("Invalid signature element in payload", e)
             }
+            val signatureCertificate = try {
+                signatureElement.retrievePublicX509Certificate()
+            } catch (e: Exception) {
+                eventRegistrationService.registerSignatureValidationFailed(payloadRequest, null, e)
+                throw CertificateException("Failed to retrieve public X509 certificate from signature element", e)
+            }
             if (processConfig.signering) {
                 log.debug(marker, "Validating signature for payload")
-                signaturValidator.validate(signatureElement)
-                val certificate = try {
-                    signatureElement.signerCertificate().also {
-                        sertifikatValidator.validateCertificate(it)
-                    }
+                try {
+                    signaturValidator.validate(signatureElement)
+                    sertifikatValidator.validateCertificate(signatureCertificate)
+                } catch (e: SignatureException) {
+                    eventRegistrationService.registerSignatureValidationFailed(payloadRequest, signatureCertificate, e)
+                    throw e
                 } catch (e: CertificateValidationException) {
-                    throw CertificateException(e.localizedMessage, e)
+                    eventRegistrationService.registerSignatureValidationFailed(payloadRequest, signatureCertificate, e)
+                    throw CertificateException(e.localizedMessage + ", serial number: ${signatureCertificate.serialNumber.toString(16)}", e)
                 }
-                eventRegistrationService.registerEvent(
-                    eventType = EventType.SIGNATURE_CHECK_SUCCESSFUL,
-                    payloadRequest = payloadRequest,
-                    eventData = Json.encodeToString(certificate.mapCertificateDetails())
-                )
-                signedByOrg = certificate.getOrganizationNumber()
+                eventRegistrationService.registerSignatureValidationSuccessful(payloadRequest, signatureCertificate)
+                signedByOrg = signatureCertificate.getOrganizationNumber()
             }
             if (processConfig.ocspSjekk) {
                 log.debug(marker, "Validating for payload in validateOcsp flow")
-                signedByPid = ninResolver.resolve(
-                    document = this,
-                    certificate = signatureElement.signerCertificate()
-                ).also {
-                    eventRegistrationService.registerEvent(
-                        EventType.OCSP_CHECK_SUCCESSFUL,
-                        payloadRequest
-                    )
-                }
-
+                signedByPid = ninResolver.resolve(this, signatureCertificate)
+                eventRegistrationService.registerEvent(EventType.OCSP_CHECK_SUCCESSFUL, payloadRequest)
                 log.debug(marker, "Validating OCSP for payload: Step 5 copy")
             }
 

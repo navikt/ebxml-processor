@@ -3,6 +3,7 @@ package no.nav.emottak.payload.error
 import no.nav.emottak.message.model.ErrorCode
 import no.nav.emottak.message.model.Feil
 import no.nav.emottak.utils.kafka.model.EventType
+import no.nav.emottak.validering.sertifikat.CRLException
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.SeverityType
 import java.math.BigInteger
 
@@ -28,6 +29,7 @@ fun Throwable.convertToFeil(): Feil = when (this) {
     is CertificateException -> Feil(ErrorCode.SECURITY_FAILURE, localizedMessage, SeverityType.ERROR.value(), this.recoverable)
     is OCSPValidationFnrBlankError -> Feil(ErrorCode.SECURITY_FAILURE, localizedMessage, SeverityType.ERROR.value(), this.recoverable)
     is HelseIdTokenException -> Feil(ErrorCode.SECURITY_FAILURE, localizedMessage, SeverityType.ERROR.value(), this.recoverable)
+    is CRLException -> Feil(ErrorCode.SECURITY_FAILURE, localizedMessage, SeverityType.ERROR.value())
     else -> Feil(ErrorCode.UNKNOWN, this.localizedMessage, SeverityType.ERROR.value())
 }
 

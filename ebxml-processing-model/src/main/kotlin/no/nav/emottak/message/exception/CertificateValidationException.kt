@@ -7,5 +7,5 @@ class CertificateValidationException(message: String, exception: Exception? = nu
     message = message,
     errorCode = ErrorCode.SECURITY_FAILURE,
     severity = SeverityType.ERROR.value()!!,
-    exception = exception
+    cause = exception
 )

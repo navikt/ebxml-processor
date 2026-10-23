@@ -12,10 +12,7 @@ import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.upsert
-import java.util.UUID
 import kotlin.uuid.Uuid
-import kotlin.uuid.toJavaUuid
-import kotlin.uuid.toKotlinUuid
 
 class MessageReceivedRepository(private val database: Database) {
 
@@ -26,7 +23,7 @@ class MessageReceivedRepository(private val database: Database) {
     private fun updateOrInsert(ebmsPayloadMessage: PayloadMessage, acknowledged: Boolean): String {
         transaction(database.db) {
             MessageReceivedTable.upsert(MessageReceivedTable.referenceId) {
-                it[referenceId] = UUID.fromString(ebmsPayloadMessage.requestId)
+                it[referenceId] = Uuid.parse(ebmsPayloadMessage.requestId)
                 it[conversationId] = ebmsPayloadMessage.conversationId
                 it[messageId] = ebmsPayloadMessage.messageId
                 it[refToMessageId] = ebmsPayloadMessage.refToMessageId
@@ -48,7 +45,7 @@ class MessageReceivedRepository(private val database: Database) {
         MessageReceivedTable
             .selectAll()
             .where {
-                MessageReceivedTable.referenceId eq referenceId.toJavaUuid()
+                MessageReceivedTable.referenceId eq referenceId
             }
             .map { it.toMessageReceived() }
             .firstOrNull()
@@ -77,7 +74,7 @@ class MessageReceivedRepository(private val database: Database) {
     }
 
     private fun ResultRow.toMessageReceived() = MessageReceived(
-        referenceId = this[MessageReceivedTable.referenceId].toKotlinUuid(),
+        referenceId = this[MessageReceivedTable.referenceId],
         conversationId = this[MessageReceivedTable.conversationId],
         messageId = this[MessageReceivedTable.messageId],
         refToMessageId = this[MessageReceivedTable.refToMessageId],

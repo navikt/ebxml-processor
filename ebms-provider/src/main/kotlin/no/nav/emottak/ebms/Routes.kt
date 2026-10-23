@@ -45,7 +45,7 @@ fun Route.postEbmsSync(
                     .let { processedMessage ->
                         when (processedMessage.second) {
                             Direction.IN -> {
-                                sendInService.sendIn(processedMessage.first, partnerId).let { sendInResponse ->
+                                sendInService.sendInSynkron(processedMessage.first, partnerId).let { sendInResponse ->
                                     PayloadMessage(
                                         requestId = sendInResponse.requestId,
                                         messageId = sendInResponse.messageId,

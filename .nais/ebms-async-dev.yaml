@@ -66,6 +66,8 @@ spec:
       rules:
         - application: smtp-transport
   env:
+    - name: JDK_JAVA_OPTIONS
+      value: "-XX:MaxRAMPercentage=60.0"
     - name: TZ
       value: Europe/Oslo
     - name: KEYSTORE_FILE_SIGN_2025

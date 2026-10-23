@@ -60,12 +60,13 @@ object CRLTestFactory {
         signingKeyPair: KeyPair,
         thisUpdate: Date,
         nextUpdate: Date,
-        revoked: List<Pair<BigInteger, Date>> = emptyList()
+        revoked: List<Pair<BigInteger, Date>> = emptyList(),
+        revocationReason: Int = CRLReason.privilegeWithdrawn
     ): X509CRL {
         val builder = X509v2CRLBuilder(issuer, thisUpdate)
         builder.setNextUpdate(nextUpdate)
         revoked.forEach { (serial, revocationDate) ->
-            builder.addCRLEntry(serial, revocationDate, CRLReason.privilegeWithdrawn)
+            builder.addCRLEntry(serial, revocationDate, revocationReason)
         }
         val signer = JcaContentSignerBuilder("SHA256withRSA").build(signingKeyPair.private)
         return JcaX509CRLConverter().setProvider("BC").getCRL(builder.build(signer))

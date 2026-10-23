@@ -10,7 +10,9 @@ import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.validation.CPAValidationService
-import no.nav.emottak.message.exception.UNSUPPORTED_SERVICE_PASIENTLISTEFORESPORSEL
+import no.nav.emottak.message.exception.EbmsException
+import no.nav.emottak.message.exception.SignatureValidationException
+import no.nav.emottak.message.exception.UNSUPPORTED_SERVICES
 import no.nav.emottak.message.exception.UnsupportedServiceException
 import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.PayloadMessage
@@ -62,8 +64,9 @@ class PayloadMessageService(
             returnAcknowledgment(ebmsPayloadMessage)
         }.onFailure { exception ->
             when (exception) {
-                is UnsupportedServiceException -> log.warn(ebmsPayloadMessage.marker(), exception.message)
-                else -> log.error(ebmsPayloadMessage.marker(), exception.message ?: "Message processing error", exception)
+                is UnsupportedServiceException -> handleUnsupportedServiceException(ebmsPayloadMessage, exception)
+                is EbmsException -> handleEbmsException(ebmsPayloadMessage, exception)
+                else -> handleUnexpectedException(ebmsPayloadMessage, exception)
             }
             retryService.incomingRetryEval(record = record, payloadMessage = ebmsPayloadMessage, exception = exception)
         }
@@ -82,17 +85,36 @@ class PayloadMessageService(
             processPayloadMessage(ebmsPayloadMessage)
         }.onFailure { exception ->
             when (exception) {
-                is UnsupportedServiceException -> log.warn(ebmsPayloadMessage.marker(), exception.message)
-                else -> log.error(ebmsPayloadMessage.marker(), exception.message ?: "Message processing error", exception)
+                is UnsupportedServiceException -> handleUnsupportedServiceException(ebmsPayloadMessage, exception)
+                is EbmsException -> handleEbmsException(ebmsPayloadMessage, exception)
+                else -> handleUnexpectedException(ebmsPayloadMessage, exception)
             }
             log.warn(ebmsPayloadMessage.marker(), "ErrorSignal will not be sent. Message will not be retried.")
         }
     }
 
     private fun verifyServiceIsSupported(ebmsPayloadMessage: PayloadMessage) {
-        when (ebmsPayloadMessage.addressing.service) {
-            UNSUPPORTED_SERVICE_PASIENTLISTEFORESPORSEL.first -> throw UnsupportedServiceException(UNSUPPORTED_SERVICE_PASIENTLISTEFORESPORSEL.second)
+        if (UNSUPPORTED_SERVICES.containsKey(ebmsPayloadMessage.addressing.service)) {
+            throw UnsupportedServiceException(UNSUPPORTED_SERVICES[ebmsPayloadMessage.addressing.service]!!)
         }
+    }
+
+    private suspend fun handleUnsupportedServiceException(ebmsPayloadMessage: PayloadMessage, exception: EbmsException) {
+        eventRegistrationService.registerMessageCompleted(ebmsPayloadMessage, eventData = "{\"unsupported_service\": \"${exception.message}\"}")
+        log.warn(ebmsPayloadMessage.marker(), exception.message)
+    }
+
+    private suspend fun handleEbmsException(ebmsPayloadMessage: PayloadMessage, exception: EbmsException) {
+        when (exception.cause) {
+            is SignatureValidationException -> eventRegistrationService.registerSignatureValidationFailed(ebmsPayloadMessage, exception)
+            else -> eventRegistrationService.registerUnknownError(ebmsPayloadMessage, exception)
+        }
+        log.error(ebmsPayloadMessage.marker(), exception.message ?: "Message processing ebms error", exception)
+    }
+
+    private suspend fun handleUnexpectedException(ebmsPayloadMessage: PayloadMessage, exception: Throwable) {
+        eventRegistrationService.registerUnknownError(ebmsPayloadMessage, exception)
+        log.error(ebmsPayloadMessage.marker(), exception.message ?: "Message processing error", exception)
     }
 
     suspend fun processOutboundResponse(
@@ -194,11 +216,19 @@ class PayloadMessageService(
                 payloadMessageForwardingService.forwardMessageWithSyncResponse(processedPayload)
             }
 
-            MessageType.TREKKOPPLYSNING, MessageType.SYKMELDING, MessageType.LEGEMELDING, MessageType.BEHANDLERKRAV, MessageType.OPPGJORSKONTROLL,
+            MessageType.TREKKOPPLYSNING, MessageType.SYKMELDING, MessageType.LEGEMELDING -> {
+                log.info(processedPayload.marker(), "Calling SendIn ASYNCHRONOUSLY via HTTP for $messageType")
+                payloadMessageForwardingService.forwardMessageWithAsyncResponse(
+                    processedPayload,
+                    validationResult.partnerId
+                )
+            }
+
+            MessageType.BEHANDLERKRAV, MessageType.OPPGJORSKONTROLL,
             MessageType.DIALOGMOTE_INNKALLING, MessageType.FORESPORSEL_FRA_SAKSBEHANDLER, MessageType.HENVENDELSE_FRA_LEGE,
             MessageType.HENVENDELSE_FRA_SAKSBEHANDLER, MessageType.OPPFOLGINGSPLAN -> {
-                log.info(processedPayload.marker(), "Calling SendIn ASYNCHRONOUSLY for $messageType")
-                payloadMessageForwardingService.forwardMessageWithAsyncResponse(
+                log.info(processedPayload.marker(), "Calling SendIn ASYNCHRONOUSLY via Kafka for $messageType")
+                payloadMessageForwardingService.forwardMessageWithAsyncResponseKafka(
                     processedPayload,
                     validationResult.partnerId
                 )

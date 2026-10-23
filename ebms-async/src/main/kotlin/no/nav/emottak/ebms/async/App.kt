@@ -44,6 +44,7 @@ import no.nav.emottak.ebms.async.persistence.repository.MessagePendingAckReposit
 import no.nav.emottak.ebms.async.persistence.repository.MessageReceivedRepository
 import no.nav.emottak.ebms.async.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.async.processing.MessageFilterService
+import no.nav.emottak.ebms.async.processing.MessageType
 import no.nav.emottak.ebms.async.processing.PayloadMessageForwardingService
 import no.nav.emottak.ebms.async.processing.PayloadMessageService
 import no.nav.emottak.ebms.async.processing.RetryService
@@ -71,8 +72,11 @@ import org.slf4j.LoggerFactory
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.fixedRateTimer
 import kotlin.concurrent.timer
+import kotlin.time.Duration.Companion.seconds
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.async.App")
+
+private val HAR_BORGER_FRIKORT_MENGDE_TIMEOUT = 90.seconds
 
 fun main() = SuspendApp {
     val config = config()
@@ -93,7 +97,10 @@ fun main() = SuspendApp {
         httpClient = CpaRepoClient(scopedAuthHttpClient(EBMS_CPA_REPO_SCOPE))
     )
     val sendInService = SendInService(
-        httpClient = SendInClient(scopedAuthHttpClient(EBMS_SEND_IN_SCOPE))
+        httpClient = SendInClient(
+            scopedAuthHttpClient(EBMS_SEND_IN_SCOPE),
+            mapOf(MessageType.HAR_BORGER_FRIKORT_MENGDE.serviceName to HAR_BORGER_FRIKORT_MENGDE_TIMEOUT.inWholeMilliseconds)
+        )
     )
 
     val ebmsSignalProducer = EbmsMessageProducer(config.kafkaSignalProducer.topic, config.kafka)

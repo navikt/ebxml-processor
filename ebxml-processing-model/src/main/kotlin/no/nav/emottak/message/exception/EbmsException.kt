@@ -6,16 +6,16 @@ import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.SeverityType
 
 open class EbmsException(
     val feil: List<Feil>,
-    exception: Throwable? = null
-) : Exception(concatFeilmessage(feil), exception) {
+    cause: Throwable? = null
+) : Exception(concatFeilmessage(feil), cause) {
 
     constructor(
         message: String,
         errorCode: ErrorCode = ErrorCode.UNKNOWN,
         severity: String = SeverityType.ERROR.value()!!,
         recoverable: Boolean = true,
-        exception: Throwable? = null
-    ) : this(listOf(Feil(errorCode, message, severity, recoverable)), exception)
+        cause: Throwable? = null
+    ) : this(listOf(Feil(errorCode, message, severity, recoverable)), cause)
 
     companion object {
         fun concatFeilmessage(feil: List<Feil>) =
