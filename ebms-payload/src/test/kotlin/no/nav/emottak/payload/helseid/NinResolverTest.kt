@@ -2,9 +2,12 @@ package no.nav.emottak.payload.helseid
 
 import com.nimbusds.jose.JOSEObjectType
 import com.nimbusds.jose.JWSAlgorithm
+import com.nimbusds.jose.RemoteKeySourceException
 import io.mockk.coEvery
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
+import no.nav.emottak.payload.error.HelseIdTokenException
 import no.nav.emottak.payload.helseid.testutils.HelseIDCreator
 import no.nav.emottak.payload.helseid.testutils.ResourceUtil
 import no.nav.emottak.payload.helseid.testutils.XMLUtil
@@ -50,10 +53,42 @@ class NinResolverTest {
         val token = buildToken("whateverId", listOf("whatever_audience"), listOf(VALID_SCOPE))
 
         val resolver = NinResolver()
-        assertFailsWith(IllegalStateException::class, "Token does not contain required audience") {
+        val thrown = assertFailsWith<HelseIdTokenException> {
             resolver.resolve(Base64.getEncoder().encodeToString(token.toByteArray()), Instant.now())
         }
+        assertEquals("Invalid HelseID token: Token does not contain required audience", thrown.message)
     }
+
+    @Test
+    fun `invalid helseID token in document is reported as HelseIdTokenException`() {
+        val doc = helseIdDocument()
+        val tokenValidator = mockk<HelseIdTokenValidator>()
+        every { tokenValidator.getHelseIdTokenFromDocument(doc) } returns "token"
+        every { tokenValidator.getValidatedNin("token", any()) } throws IllegalStateException("Invalid issuer foo")
+
+        val resolver = NinResolver(tokenValidator = tokenValidator, ocspStatusService = mockk())
+        val thrown = assertFailsWith<HelseIdTokenException> {
+            runBlocking { resolver.resolve(doc, mockk<X509Certificate>()) }
+        }
+        assertEquals("Invalid HelseID token: Invalid issuer foo", thrown.message)
+    }
+
+    @Test
+    fun `unavailable HelseID JWKS propagates as transient error`() {
+        val doc = helseIdDocument()
+        val tokenValidator = mockk<HelseIdTokenValidator>()
+        every { tokenValidator.getHelseIdTokenFromDocument(doc) } returns "token"
+        every { tokenValidator.getValidatedNin("token", any()) } throws RemoteKeySourceException("JWKS unreachable", null)
+
+        val resolver = NinResolver(tokenValidator = tokenValidator, ocspStatusService = mockk())
+        assertFailsWith<RemoteKeySourceException> {
+            runBlocking { resolver.resolve(doc, mockk<X509Certificate>()) }
+        }
+    }
+
+    private fun helseIdDocument() = XMLUtil.createDocument(
+        Base64.getDecoder().decode(ResourceUtil.getStringClasspathResource("helseid/testdata/m1.helseid.ok.b64"))
+    )
 
     @Test
     fun `parseDateOrThrow interprets zoneless GenDate as Europe-Oslo regardless of system default timezone`() {
