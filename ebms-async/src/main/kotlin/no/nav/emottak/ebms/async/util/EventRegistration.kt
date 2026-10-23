@@ -1,5 +1,6 @@
 package no.nav.emottak.ebms.async.util
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.Json
 import no.nav.emottak.ebms.async.log
 import no.nav.emottak.message.model.AsyncPayload
@@ -87,6 +88,8 @@ class EventRegistrationServiceImpl(
 
             eventLoggingService.logMessageDetails(ebmsMessageDetail)
             log.debug(ebmsMessage.marker(), "Message details published successfully")
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             log.error(ebmsMessage.marker(), "Error while registering message details: ${e.message}", e)
         }
@@ -251,6 +254,8 @@ class EventRegistrationServiceImpl(
             log.debug(event.marker(), "Registering event: {}", event)
             eventLoggingService.logEvent(event)
             log.debug(event.marker(), "Event is registered successfully")
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             log.error(event.marker(), "Error while registering event: ${e.message}", e)
         }
