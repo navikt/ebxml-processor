@@ -7,6 +7,7 @@ application {
 }
 
 dependencies {
+    implementation(platform(libs.jackson.bom))
     implementation(project(":felles"))
     implementation(project(":ebxml-processing-model"))
     implementation(libs.ktor.server.core)
@@ -31,8 +32,6 @@ dependencies {
     implementation(libs.emottak.utils)
     implementation(libs.kotlinx.datetime)
     implementation("net.sf.saxon:Saxon-HE:12.7")
-    implementation(libs.jackson.module.kotlin)
-    implementation(libs.jackson.dataformat.yaml)
     implementation(kotlin("stdlib-jdk8"))
     runtimeOnly("net.java.dev.jna:jna:5.12.1")
 

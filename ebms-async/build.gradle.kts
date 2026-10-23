@@ -7,6 +7,7 @@ application {
 }
 
 dependencies {
+    implementation(platform(libs.jackson.bom))
     implementation(project(":felles"))
     implementation(project(":ebms-provider"))
     implementation(project(":ebxml-processing-model"))
@@ -40,7 +41,6 @@ dependencies {
     implementation(libs.hoplite.core)
     implementation(libs.hoplite.hocon)
     implementation("com.sun.xml.messaging.saaj:saaj-impl:3.0.2")
-    implementation(libs.emottak.payload.xsd)
     implementation(libs.emottak.utils)
     implementation(libs.jaxb.runtime)
     implementation(libs.ebxml.protokoll)
