@@ -25,7 +25,7 @@ dependencyResolutionManagement {
             version("logstash", "9.0")
             version("fasterxml-jackson", "2.22.3")
             version("jwt", "4.6.1")
-            version("emottak-utils", "0.4.0")
+            version("emottak-utils", "0.5.1")
             version("kotlinx-datetime", "0.8.0")
             version("santuario", "3.0.6")
 

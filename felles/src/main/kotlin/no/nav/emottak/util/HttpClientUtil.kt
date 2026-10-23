@@ -4,6 +4,9 @@ import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.HttpRequestRetry
 import io.ktor.client.plugins.HttpTimeout
+import no.nav.emottak.message.model.PayloadMessage
+import no.nav.emottak.utils.common.model.EbmsProcessing
+import no.nav.emottak.utils.common.model.SendInRequest
 import no.nav.emottak.utils.environment.getEnvVar
 import java.net.InetSocketAddress
 import java.net.Proxy
@@ -32,3 +35,18 @@ class HttpClientUtil {
         }
     }
 }
+
+fun PayloadMessage.toSendInRequest(partnerId: Long? = null): SendInRequest = SendInRequest(
+    messageId = this.messageId,
+    conversationId = this.conversationId,
+    payloadId = this.payload.contentId,
+    payload = this.payload.bytes,
+    addressing = this.addressing,
+    cpaId = this.cpaId,
+    ebmsProcessing = EbmsProcessing(),
+    signedOf = this.payload.signedBy,
+    signedByPid = this.payload.signedByPid,
+    signedByOrg = this.payload.signedByOrg,
+    requestId = this.requestId,
+    partnerId = partnerId
+)
