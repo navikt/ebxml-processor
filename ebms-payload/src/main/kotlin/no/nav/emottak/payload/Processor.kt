@@ -96,7 +96,7 @@ class Processor(
                 throw SignatureException("Invalid signature element in payload", e)
             }
             val signatureCertificate = try {
-                signatureElement.retrievePublicX509Certificate()
+                signatureElement.signerCertificate()
             } catch (e: Exception) {
                 eventRegistrationService.registerSignatureValidationFailed(payloadRequest, null, e)
                 throw CertificateException("Failed to retrieve public X509 certificate from signature element", e)
