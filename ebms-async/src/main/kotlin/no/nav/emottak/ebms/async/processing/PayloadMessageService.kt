@@ -10,6 +10,7 @@ import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.validation.CPAValidationService
+import no.nav.emottak.message.exception.CertificateValidationException
 import no.nav.emottak.message.exception.EbmsException
 import no.nav.emottak.message.exception.SignatureValidationException
 import no.nav.emottak.message.exception.UNSUPPORTED_SERVICES
@@ -105,8 +106,9 @@ class PayloadMessageService(
     }
 
     private suspend fun handleEbmsException(ebmsPayloadMessage: PayloadMessage, exception: EbmsException) {
-        when (exception.cause) {
+        when (exception) {
             is SignatureValidationException -> eventRegistrationService.registerSignatureValidationFailed(ebmsPayloadMessage, exception)
+            is CertificateValidationException -> eventRegistrationService.registerCertificateValidationFailed(ebmsPayloadMessage, exception)
             else -> eventRegistrationService.registerUnknownError(ebmsPayloadMessage, exception)
         }
         log.error(ebmsPayloadMessage.marker(), exception.message ?: "Message processing ebms error", exception)

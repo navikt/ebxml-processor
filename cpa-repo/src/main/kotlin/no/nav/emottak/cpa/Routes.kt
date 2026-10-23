@@ -306,11 +306,7 @@ suspend fun AdresseregisterValidator.validateWithAR(
             signatureAlgorithm = XMLSignature.ALGO_ID_SIGNATURE_RSA_SHA256,
             hashFunction = MessageDigestAlgorithm.ALGO_ID_DIGEST_SHA256
         )
-        runCatching {
-            sertifikatValidator.validateCertificate(createX509Certificate(validSignatureDetails.certificate))
-        }.onFailure {
-            log.warn(validateRequest.marker(), "Signatursjekk feilet", it)
-        }
+        sertifikatValidator.validateCertificate(createX509Certificate(validSignatureDetails.certificate))
         val allPurposeEdiEndpoint =
             EmailAddress(getEdiAddress(toHerId) ?: "", EndpointTypeType.ALL_PURPOSE)
         return ValidationResult(
@@ -331,7 +327,7 @@ suspend fun AdresseregisterValidator.validateWithAR(
             cpaAddressing = validateRequest.addressing.takeIf { validateRequest.direction == Direction.OUT }
         )
     } catch (ex: Exception) {
-        log.error("Error while fetching arSignCertificate ", ex)
+        log.error("Error fetching data from AR ", ex)
         throw ex
     }
 }
