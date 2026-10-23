@@ -10,6 +10,7 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
+import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
@@ -19,8 +20,11 @@ import no.nav.emottak.payload.apprec.message.AppRecErrorCode
 import no.nav.emottak.payload.crypto.SignatureValidator
 import no.nav.emottak.payload.error.SignatureException
 import no.nav.emottak.payload.util.EventRegistrationService
+import no.nav.emottak.validering.sertifikat.CRLChecker
+import no.nav.emottak.validering.sertifikat.CRLException
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -112,6 +116,33 @@ class PayloadIntegrationTest : PayloadTestBase() {
         assertEquals(HttpStatusCode.OK, httpResponse.status)
         assertNull(httpResponse.body<PayloadResponse>().error)
         assertEquals(ssn, httpResponse.body<PayloadResponse>().processedPayload!!.signedBy)
+    }
+
+    @Test
+    fun `Certificate hold returns a retryable error without a negative AppRec`() {
+        val crlChecker = mockk<CRLChecker>()
+        coEvery { crlChecker.getCRLRevocationInfo(any(), any()) } throws CRLException("Sertifikat revokert med reason CERTIFICATE_HOLD")
+
+        testApp(crlChecker = crlChecker) {
+            val request = baseRequest().let {
+                it.copy(
+                    processing = it.processing.copy(
+                        processConfig = it.processing.processConfig.copy(apprec = true)
+                    )
+                )
+            }
+            val response = client(authenticated = true).post("/payload") {
+                setBody(request)
+            }
+
+            val body = response.body<PayloadResponse>()
+            assertEquals(HttpStatusCode.BadRequest, response.status)
+            assertEquals(ErrorCode.SECURITY_FAILURE, body.error!!.code)
+            assertEquals("Sertifikat revokert med reason CERTIFICATE_HOLD", body.error!!.descriptionText)
+            assertTrue(body.error!!.recoverable)
+            assertFalse(body.apprec)
+            assertNull(body.processedPayload)
+        }
     }
 
     @Test

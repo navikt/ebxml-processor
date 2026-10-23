@@ -1,5 +1,6 @@
 package no.nav.emottak.util
 
+import io.ktor.client.plugins.ClientRequestException
 import io.ktor.http.Headers
 import net.logstash.logback.marker.LogstashMarker
 import net.logstash.logback.marker.Markers
@@ -131,5 +132,10 @@ fun SignatureDetailsRequest.marker(): LogstashMarker = Markers.appendEntries(
         FROM_PARTY to "${this.partyType}:${this.partyId}"
     )
 )
+
+fun ClientRequestException.sanitizedCause(): Exception =
+    Exception("${javaClass.name}: ${response.status}").apply {
+        stackTrace = this@sanitizedCause.stackTrace
+    }
 
 const val UKJENT_VERDI = "Ukjent" // Egentlig null
