@@ -21,6 +21,7 @@ import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.processing.ProcessingService
 import no.nav.emottak.ebms.validation.CPAValidationService
+import no.nav.emottak.message.exception.CertificateValidationException
 import no.nav.emottak.message.exception.EbmsException
 import no.nav.emottak.message.exception.SignatureValidationException
 import no.nav.emottak.message.exception.UNSUPPORTED_SERVICES
@@ -29,8 +30,6 @@ import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.EbmsAttachment
 import no.nav.emottak.message.model.EbmsDocument
 import no.nav.emottak.message.model.EbmsMessage
-import no.nav.emottak.message.model.ErrorCode
-import no.nav.emottak.message.model.Feil
 import no.nav.emottak.message.model.MessageError
 import no.nav.emottak.message.model.MessagingCharacteristicsResponse
 import no.nav.emottak.message.model.PayloadMessage
@@ -52,6 +51,7 @@ import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PerMessageCharact
 import org.w3c.dom.Document
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.uuid.Uuid
 
 class PayloadMessageServiceTest {
@@ -446,7 +446,7 @@ class PayloadMessageServiceTest {
         coVerify(exactly = 0) { messageReceivedRepository.messageAcknowledged(any()) }
         coVerify(exactly = 1) { cpaValidationService.validateIncomingMessage(payloadMessage, true) }
         coVerify(exactly = 1) { eventRegistrationService.registerSignatureValidationFailed(any(), capture(exceptionSlot)) }
-        assertEquals(EbmsException::class.simpleName, exceptionSlot.captured.javaClass.simpleName)
+        assertIs<SignatureValidationException>(exceptionSlot.captured)
         assertEquals("Signeringsfeil: Signering feilet", exceptionSlot.captured.message)
         coVerify(exactly = 0) { eventRegistrationService.registerUnknownError(any(), any()) }
         coVerify(exactly = 0) { processingService.processAsync(payloadMessage, any()) }
@@ -468,6 +468,32 @@ class PayloadMessageServiceTest {
         }
         coVerify(exactly = 0) { ebmsSignalProducer.publishMessage(key = any(), value = any(), headers = any()) }
         coVerify(exactly = 1) { retryService.incomingRetryEval(any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `process should register certificate validation failure and delegate to retryService if CertificateValidationException is thrown`() = runBlocking {
+        initService()
+        val (payloadMessage, _, _) = setupMocks(
+            duplicateEliminationStrategy = PerMessageCharacteristicsType.PER_MESSAGE,
+            isDuplicate = false,
+            validateIncomingThrowsCertificateException = true
+        )
+        val exceptionSlot = slot<CertificateValidationException>()
+        val retryExceptionSlot = slot<Throwable>()
+        coEvery { retryService.incomingRetryEval(any(), any(), capture(retryExceptionSlot), any()) } just Runs
+
+        service.process(setupReceiverRecordWithoutRetryCountMock(), payloadMessage)
+
+        coVerify(exactly = 1) { eventRegistrationService.registerCertificateValidationFailed(payloadMessage, capture(exceptionSlot)) }
+        assertEquals("Sertifikat utløpt", exceptionSlot.captured.message)
+        coVerify(exactly = 0) { eventRegistrationService.registerSignatureValidationFailed(any(), any()) }
+        coVerify(exactly = 0) { eventRegistrationService.registerUnknownError(any(), any()) }
+        coVerify(exactly = 0) { messageReceivedRepository.messageAcknowledged(any()) }
+        coVerify(exactly = 0) { processingService.processAsync(payloadMessage, any()) }
+        coVerify(exactly = 0) { ebmsSignalProducer.publishMessage(key = any(), value = any(), headers = any()) }
+        coVerify(exactly = 1) { retryService.incomingRetryEval(any(), payloadMessage, any(), any()) }
+        assertIs<CertificateValidationException>(retryExceptionSlot.captured)
+        assertFalse((retryExceptionSlot.captured as CertificateValidationException).isRecoverable())
     }
 
     @Test
@@ -639,6 +665,7 @@ class PayloadMessageServiceTest {
         isUnsupportedService: Boolean = false,
         processAsyncThrowsEbmsException: Boolean = false,
         validateIncomingThrowsSignatureException: Boolean = false,
+        validateIncomingThrowsCertificateException: Boolean = false,
         processSyncThrowsUnknownException: Boolean = false,
         validateOutgoingThrowsException: Boolean = false,
         givenService: String? = "HarBorgerFrikortMengde"
@@ -667,16 +694,18 @@ class PayloadMessageServiceTest {
         }
 
         if (validateIncomingThrowsSignatureException) {
-            coEvery { cpaValidationService.validateIncomingMessage(payloadMessage, true) } throws EbmsException(
-                listOf(
-                    Feil(
-                        ErrorCode.SECURITY_FAILURE,
-                        "Signeringsfeil: Signering feilet"
-                    )
-                ),
-                cause = SignatureValidationException("Signering feilet")
+            coEvery { cpaValidationService.validateIncomingMessage(payloadMessage, true) } throws SignatureValidationException(
+                "Signeringsfeil: Signering feilet"
             )
             coEvery { eventRegistrationService.registerSignatureValidationFailed(payloadMessage, any()) } returns Unit
+            coEvery { eventRegistrationService.registerUnknownError(any(), any()) } returns Unit
+        } else if (validateIncomingThrowsCertificateException) {
+            coEvery { cpaValidationService.validateIncomingMessage(payloadMessage, true) } throws CertificateValidationException(
+                "Sertifikat utløpt",
+                recoverable = false
+            )
+            coEvery { eventRegistrationService.registerCertificateValidationFailed(payloadMessage, any()) } returns Unit
+            coEvery { eventRegistrationService.registerSignatureValidationFailed(any(), any()) } returns Unit
             coEvery { eventRegistrationService.registerUnknownError(any(), any()) } returns Unit
         } else {
             coEvery { cpaValidationService.validateIncomingMessage(payloadMessage, true) } returns validValidationResult()
