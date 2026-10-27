@@ -161,14 +161,34 @@ open class EbmsHttpDeliveryClient(clientProvider: () -> HttpClient) {
     private var httpClient = clientProvider.invoke()
 
     open suspend fun deliver(endpoint: String, ebmsDocument: EbmsDocument): Acknowledgment {
-        val response = try {
-            httpClient.post(endpoint) {
+        try {
+            val response = httpClient.post(endpoint) {
                 header(MimeHeaders.SOAP_ACTION, "ebXML")
                 if (ebmsDocument.documentType() == DocumentType.PAYLOAD) {
                     setBody(ebmsDocument.toMultipartRelatedContent())
                 } else {
                     setBody(TextContent(ebmsDocument.document.asString(), ContentType.Text.Xml))
                 }
+            }
+            if (!response.status.isSuccess()) {
+                val responseBody = runCatching { response.bodyAsText() }.getOrDefault("")
+                throw Exception("Sending til $endpoint feilet med ${response.status}: $responseBody")
+            }
+            val responseMessage = response.receiveEbmsSyncReply()?.transform()
+            return when (responseMessage) {
+                is Acknowledgment -> {
+                    val sentMessageId = ebmsDocument.messageHeader().messageData.messageId
+                    if (responseMessage.refToMessageId != sentMessageId) {
+                        log.warn("Acknowledgment fra $endpoint refererer til ${responseMessage.refToMessageId}, men sendt melding har id $sentMessageId")
+                    }
+                    log.info("Mottaker $endpoint bekreftet mottak av $sentMessageId")
+                    responseMessage
+                }
+                is MessageError -> throw Exception(
+                    "Mottaker $endpoint svarte med MessageError: " +
+                        responseMessage.feil.joinToString { "${it.code}: ${it.descriptionText}" }
+                )
+                else -> throw Exception("Svaret fra $endpoint var verken Acknowledgment eller MessageError")
             }
         } catch (e: CancellationException) {
             throw e
@@ -180,46 +200,7 @@ open class EbmsHttpDeliveryClient(clientProvider: () -> HttpClient) {
                 cause = e
             )
         }
-        if (!response.status.isSuccess()) {
-            val responseBody = runCatching { response.bodyAsText() }.getOrDefault("")
-            throw deliveryFailure("Sending til $endpoint feilet med ${response.status}: $responseBody")
-        }
-        val reply = try {
-            response.receiveEbmsSyncReply()
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            throw deliveryFailure("Klarte ikke å lese svaret fra $endpoint: ${e.message}", e)
-        } ?: throw deliveryFailure("Svaret fra $endpoint (${response.status}) inneholdt ingen ebXML-melding")
-
-        val replyMessage = try {
-            reply.transform()
-        } catch (e: Exception) {
-            throw deliveryFailure("Klarte ikke å tolke ebXML-svaret fra $endpoint: ${e.message}", e)
-        }
-        return when (replyMessage) {
-            is Acknowledgment -> {
-                val sentMessageId = ebmsDocument.messageHeader().messageData.messageId
-                if (replyMessage.refToMessageId != sentMessageId) {
-                    log.warn("Acknowledgment fra $endpoint refererer til ${replyMessage.refToMessageId}, men sendt melding har id $sentMessageId")
-                }
-                log.info("Mottaker $endpoint bekreftet mottak av $sentMessageId")
-                replyMessage
-            }
-            is MessageError -> throw deliveryFailure(
-                "Mottaker $endpoint svarte med MessageError: " +
-                    replyMessage.feil.joinToString { "${it.code}: ${it.descriptionText}" }
-            )
-            else -> throw deliveryFailure("Svaret fra $endpoint var verken Acknowledgment eller MessageError")
-        }
     }
-
-    private fun deliveryFailure(message: String, cause: Throwable? = null) = EbmsException(
-        message,
-        errorCode = ErrorCode.DELIVERY_FAILURE,
-        recoverable = true,
-        cause = cause
-    )
 }
 
 val EBMS_SEND_IN_SCOPE = getEnvVar(
