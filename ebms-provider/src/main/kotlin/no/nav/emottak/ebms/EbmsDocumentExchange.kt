@@ -140,7 +140,10 @@ private fun String.convertToValidatedContentID(): String {
     return Regex("""<(.*?)>""").find(this)?.groups?.get(1)?.value ?: this
 }
 
-suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbmsDocument) {
+suspend fun ApplicationCall.respondEbmsDokument(
+    ebmsDokument: EbmsDocument,
+    status: HttpStatusCode = HttpStatusCode.OK
+) {
     if (ebmsDokument.documentType() == DocumentType.ACKNOWLEDGMENT) {
         log.info("Successfuly processed Payload Message")
     }
@@ -178,7 +181,7 @@ suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbmsDocument) {
         this.response.headers.append(MimeHeaders.CONTENT_TRANSFER_ENCODING, "8bit")
         val boundary = "------=_Part" + System.currentTimeMillis() + "." + System.nanoTime()
         this.respond(
-            HttpStatusCode.OK,
+            status,
             MultiPartFormDataContent(
                 parts,
                 boundary,
@@ -188,6 +191,6 @@ suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbmsDocument) {
     } else {
         this.response.headers.append(MimeHeaders.CONTENT_TYPE, ContentType.Text.Xml.toString())
         this.response.headers.append(MimeHeaders.CONTENT_TRANSFER_ENCODING, "8bit")
-        this.respondText(status = HttpStatusCode.OK, text = ebmsDokument.document.asString())
+        this.respondText(status = status, text = ebmsDokument.document.asString())
     }
 }
