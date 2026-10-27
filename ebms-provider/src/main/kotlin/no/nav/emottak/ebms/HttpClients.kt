@@ -4,6 +4,7 @@ import com.nimbusds.jwt.SignedJWT
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.cio.CIO
+import io.ktor.client.engine.cio.CIOEngineConfig
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.ResponseException
 import io.ktor.client.plugins.auth.Auth
@@ -17,18 +18,28 @@ import io.ktor.client.request.headers
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
 import io.ktor.http.ContentType.Application.Json
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.content.TextContent
 import io.ktor.http.contentType
+import io.ktor.http.isSuccess
+import kotlinx.coroutines.CancellationException
+import no.nav.emottak.ebms.validation.MimeHeaders
 import no.nav.emottak.message.exception.EbmsException
+import no.nav.emottak.message.model.Acknowledgment
 import no.nav.emottak.message.model.AsyncPayload
+import no.nav.emottak.message.model.DocumentType
+import no.nav.emottak.message.model.EbmsDocument
 import no.nav.emottak.message.model.ErrorCode
+import no.nav.emottak.message.model.MessageError
 import no.nav.emottak.message.model.MessagingCharacteristicsRequest
 import no.nav.emottak.message.model.MessagingCharacteristicsResponse
 import no.nav.emottak.message.model.PayloadRequest
 import no.nav.emottak.message.model.PayloadResponse
 import no.nav.emottak.message.model.ValidationRequest
 import no.nav.emottak.message.model.ValidationResult
+import no.nav.emottak.message.xml.asString
 import no.nav.emottak.util.jsonLenient
 import no.nav.emottak.utils.common.model.SendInRequest
 import no.nav.emottak.utils.common.model.SendInResponse
@@ -146,6 +157,71 @@ open class SmtpTransportClient(clientProvider: () -> HttpClient) {
     }
 }
 
+open class EbmsHttpDeliveryClient(clientProvider: () -> HttpClient) {
+    private var httpClient = clientProvider.invoke()
+
+    open suspend fun deliver(endpoint: String, ebmsDocument: EbmsDocument): Acknowledgment {
+        val response = try {
+            httpClient.post(endpoint) {
+                header(MimeHeaders.SOAP_ACTION, "ebXML")
+                if (ebmsDocument.documentType() == DocumentType.PAYLOAD) {
+                    setBody(ebmsDocument.toMultipartRelatedContent())
+                } else {
+                    setBody(TextContent(ebmsDocument.document.asString(), ContentType.Text.Xml))
+                }
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            throw EbmsException(
+                "Sending til $endpoint feilet: ${e.message}",
+                errorCode = ErrorCode.DELIVERY_FAILURE,
+                recoverable = true,
+                cause = e
+            )
+        }
+        if (!response.status.isSuccess()) {
+            val responseBody = runCatching { response.bodyAsText() }.getOrDefault("")
+            throw deliveryFailure("Sending til $endpoint feilet med ${response.status}: $responseBody")
+        }
+        val reply = try {
+            response.receiveEbmsSyncReply()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            throw deliveryFailure("Klarte ikke å lese svaret fra $endpoint: ${e.message}", e)
+        } ?: throw deliveryFailure("Svaret fra $endpoint (${response.status}) inneholdt ingen ebXML-melding")
+
+        val replyMessage = try {
+            reply.transform()
+        } catch (e: Exception) {
+            throw deliveryFailure("Klarte ikke å tolke ebXML-svaret fra $endpoint: ${e.message}", e)
+        }
+        return when (replyMessage) {
+            is Acknowledgment -> {
+                val sentMessageId = ebmsDocument.messageHeader().messageData.messageId
+                if (replyMessage.refToMessageId != sentMessageId) {
+                    log.warn("Acknowledgment fra $endpoint refererer til ${replyMessage.refToMessageId}, men sendt melding har id $sentMessageId")
+                }
+                log.info("Mottaker $endpoint bekreftet mottak av $sentMessageId")
+                replyMessage
+            }
+            is MessageError -> throw deliveryFailure(
+                "Mottaker $endpoint svarte med MessageError: " +
+                    replyMessage.feil.joinToString { "${it.code}: ${it.descriptionText}" }
+            )
+            else -> throw deliveryFailure("Svaret fra $endpoint var verken Acknowledgment eller MessageError")
+        }
+    }
+
+    private fun deliveryFailure(message: String, cause: Throwable? = null) = EbmsException(
+        message,
+        errorCode = ErrorCode.DELIVERY_FAILURE,
+        recoverable = true,
+        cause = cause
+    )
+}
+
 val EBMS_SEND_IN_SCOPE = getEnvVar(
     "EBMS_SEND_IN_SCOPE",
     "api://" + getEnvVar("NAIS_CLUSTER_NAME", "dev-fss") + ".team-emottak.ebms-send-in/.default"
@@ -225,14 +301,32 @@ fun scopedAuthHttpClient(
     }
 }
 
+fun ebxmlHttpDeliveryClient(): () -> HttpClient {
+    return {
+        HttpClient(CIO) {
+            expectSuccess = false
+            install(HttpTimeout) {
+                requestTimeoutMillis = DEFAULT_REQUEST_TIMEOUT_MILLIS
+            }
+            engine {
+                configureProxy()
+            }
+        }
+    }
+}
+
 private fun proxiedHttpClient() = HttpClient(CIO) {
     engine {
-        val httpProxyUrl = getEnvVar("HTTP_PROXY", "")
-        if (httpProxyUrl.isNotBlank()) {
-            proxy = Proxy(
-                Proxy.Type.HTTP,
-                InetSocketAddress(URI(httpProxyUrl).toURL().host, URI(httpProxyUrl).toURL().port)
-            )
-        }
+        configureProxy()
+    }
+}
+
+private fun CIOEngineConfig.configureProxy() {
+    val httpProxyUrl = getEnvVar("HTTP_PROXY", "")
+    if (httpProxyUrl.isNotBlank()) {
+        proxy = Proxy(
+            Proxy.Type.HTTP,
+            InetSocketAddress(URI(httpProxyUrl).toURL().host, URI(httpProxyUrl).toURL().port)
+        )
     }
 }
