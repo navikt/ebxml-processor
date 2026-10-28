@@ -12,6 +12,10 @@ Mottar og behandler synkrone ebXML-meldinger. Selve motoren i ebMS-håndteringen
 | `GET` | `/internal/status` | Statuskontroll |
 | `GET` | `/prometheus` | Prometheus-metrikker |
 
+For `Trekkopplysning` validerer og behandler `/ebms/sync` meldingen før den videresendes til `/fagmelding/asynkron` i ebms-send-in.
+Når dette lykkes, returnerer endpointet `202 Accepted` med en signert ebXML-acknowledgment. Svaret fra fagsystemet kommer asynkront.
+Andre meldingstyper beholder den synkrone svarflyten.
+
 ## Avhengigheter
 
 Kaller disse tjenestene under behandling av en melding:

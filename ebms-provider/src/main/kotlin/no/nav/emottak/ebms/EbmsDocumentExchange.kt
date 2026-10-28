@@ -3,13 +3,16 @@
  */
 package no.nav.emottak.ebms
 
+import io.ktor.client.call.body
 import io.ktor.client.request.forms.MultiPartFormDataContent
+import io.ktor.client.statement.HttpResponse
 import io.ktor.http.ContentType
 import io.ktor.http.Headers
 import io.ktor.http.HeadersBuilder
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.PartData
 import io.ktor.http.content.forEachPart
+import io.ktor.http.contentType
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.request.contentType
 import io.ktor.server.request.header
@@ -136,11 +139,69 @@ suspend fun ApplicationCall.receiveEbmsDokument(): EbmsDocument {
     }
 }
 
+/**
+ * Reads the ebXML envelope from a synchronous HTTP reply. Attachments are ignored.
+ * Returns null if the body contains no ebXML envelope.
+ */
+suspend fun HttpResponse.receiveEbmsSyncReply(): EbmsDocument? {
+    val contentType = this.contentType() ?: return null
+    val body = this.body<ByteArray>()
+    if (body.isEmpty()) return null
+    val envelope: Pair<String?, ByteArray>? = when (contentType.withoutParameters()) {
+        ContentType.parse("multipart/related") -> findMultipartRelatedEnvelope(body, contentType)
+        ContentType.Text.Xml -> Pair(
+            this.headers[MimeHeaders.CONTENT_ID],
+            body.decodeIfBase64(this.headers[MimeHeaders.CONTENT_TRANSFER_ENCODING])
+        )
+        else -> null
+    }
+    return envelope?.let { (contentId, bytes) ->
+        EbmsDocument(
+            (contentId?.convertToValidatedContentID() ?: "GENERERT-${Uuid.random()}").parseOrGenerateUuid().toString(),
+            withContext(Dispatchers.IO) { getDocumentBuilder().parse(ByteArrayInputStream(bytes)) },
+            emptyList()
+        )
+    }
+}
+
+// Ktor's client only parses multipart/form-data, so multipart/related replies are split here
+private fun findMultipartRelatedEnvelope(body: ByteArray, contentType: ContentType): Pair<String?, ByteArray>? {
+    val boundary = contentType.parameter("boundary") ?: return null
+    val text = String(body, StandardCharsets.ISO_8859_1)
+    val parts = text.split("--$boundary")
+        .drop(1)
+        .takeWhile { !it.startsWith("--") }
+        .mapNotNull { rawPart ->
+            val part = rawPart.removePrefix("\r\n").removePrefix("\n")
+            val separator = Regex("\r?\n\r?\n").find(part) ?: return@mapNotNull null
+            val headers = part.substring(0, separator.range.first).lines()
+                .mapNotNull { line ->
+                    line.indexOf(':').takeIf { it > 0 }?.let { line.substring(0, it).trim().lowercase() to line.substring(it + 1).trim() }
+                }.toMap()
+            val content = part.substring(separator.range.last + 1).removeSuffix("\n").removeSuffix("\r")
+            headers to content.toByteArray(StandardCharsets.ISO_8859_1)
+        }
+    val start = contentType.parameter("start")
+    val (headers, content) = parts.firstOrNull { start != null && it.first[MimeHeaders.CONTENT_ID.lowercase()] == start }
+        ?: parts.firstOrNull()
+        ?: return null
+    return Pair(
+        headers[MimeHeaders.CONTENT_ID.lowercase()],
+        content.decodeIfBase64(headers[MimeHeaders.CONTENT_TRANSFER_ENCODING.lowercase()])
+    )
+}
+
+private fun ByteArray.decodeIfBase64(contentTransferEncoding: String?): ByteArray =
+    if ("base64".equals(contentTransferEncoding, true)) Base64.getMimeDecoder().decode(this) else this
+
 private fun String.convertToValidatedContentID(): String {
     return Regex("""<(.*?)>""").find(this)?.groups?.get(1)?.value ?: this
 }
 
-suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbmsDocument) {
+suspend fun ApplicationCall.respondEbmsDokument(
+    ebmsDokument: EbmsDocument,
+    status: HttpStatusCode = HttpStatusCode.OK
+) {
     if (ebmsDokument.documentType() == DocumentType.ACKNOWLEDGMENT) {
         log.info("Successfuly processed Payload Message")
     }
@@ -149,45 +210,46 @@ suspend fun ApplicationCall.respondEbmsDokument(ebmsDokument: EbmsDocument) {
         this.append(MimeHeaders.SOAP_ACTION, "ebXML")
     }
     if (ebmsDokument.documentType() == DocumentType.PAYLOAD) {
-        val ebxml = Base64.getMimeEncoder().encodeToString(ebmsDokument.document.toByteArray())
-        val contentId = createUniqueMimeMessageId()
-        val ebxmlFormItem = PartData.FormItem(
-            ebxml,
-            {},
-            HeadersBuilder().apply {
-                this.append(MimeHeaders.CONTENT_ID, "<$contentId>")
-                this.append(MimeHeaders.CONTENT_TYPE, ContentType.Text.Xml.toString())
-                this.append(MimeHeaders.CONTENT_TRANSFER_ENCODING, "base64")
-            }.build()
-        )
-        val parts = mutableListOf<PartData>(ebxmlFormItem)
-        ebmsDokument.attachments.first().let {
-            PartData.FormItem(
-                // Base64.getMimeEncoder().encodeToString(it.bytes), // Implicit ISO_8859_1
-                String(Base64.getMimeEncoder().encode(it.bytes), StandardCharsets.UTF_8), // TODO verifiser
-                {},
-                HeadersBuilder().apply {
-                    append(MimeHeaders.CONTENT_TRANSFER_ENCODING, "base64")
-                    append(MimeHeaders.CONTENT_TYPE, it.contentType)
-                    append(MimeHeaders.CONTENT_ID, "<${it.contentId}>")
-                }.build()
-            ).also {
-                parts.add(it)
-            }
-        }
         this.response.headers.append(MimeHeaders.CONTENT_TRANSFER_ENCODING, "8bit")
-        val boundary = "------=_Part" + System.currentTimeMillis() + "." + System.nanoTime()
-        this.respond(
-            HttpStatusCode.OK,
-            MultiPartFormDataContent(
-                parts,
-                boundary,
-                ContentType.parse("""multipart/related;boundary="$boundary";start="<$contentId>";type="text/xml"""")
-            )
-        )
+        this.respond(status, ebmsDokument.toMultipartRelatedContent())
     } else {
         this.response.headers.append(MimeHeaders.CONTENT_TYPE, ContentType.Text.Xml.toString())
         this.response.headers.append(MimeHeaders.CONTENT_TRANSFER_ENCODING, "8bit")
-        this.respondText(status = HttpStatusCode.OK, text = ebmsDokument.document.asString())
+        this.respondText(status = status, text = ebmsDokument.document.asString())
     }
+}
+
+fun EbmsDocument.toMultipartRelatedContent(): MultiPartFormDataContent {
+    val ebxml = Base64.getMimeEncoder().encodeToString(this.document.toByteArray())
+    val contentId = createUniqueMimeMessageId()
+    val ebxmlFormItem = PartData.FormItem(
+        ebxml,
+        {},
+        HeadersBuilder().apply {
+            this.append(MimeHeaders.CONTENT_ID, "<$contentId>")
+            this.append(MimeHeaders.CONTENT_TYPE, ContentType.Text.Xml.toString())
+            this.append(MimeHeaders.CONTENT_TRANSFER_ENCODING, "base64")
+        }.build()
+    )
+    val parts = mutableListOf<PartData>(ebxmlFormItem)
+    this.attachments.first().let {
+        PartData.FormItem(
+            // Base64.getMimeEncoder().encodeToString(it.bytes), // Implicit ISO_8859_1
+            String(Base64.getMimeEncoder().encode(it.bytes), StandardCharsets.UTF_8), // TODO verifiser
+            {},
+            HeadersBuilder().apply {
+                append(MimeHeaders.CONTENT_TRANSFER_ENCODING, "base64")
+                append(MimeHeaders.CONTENT_TYPE, it.contentType)
+                append(MimeHeaders.CONTENT_ID, "<${it.contentId}>")
+            }.build()
+        ).also {
+            parts.add(it)
+        }
+    }
+    val boundary = "------=_Part" + System.currentTimeMillis() + "." + System.nanoTime()
+    return MultiPartFormDataContent(
+        parts,
+        boundary,
+        ContentType.parse("""multipart/related;boundary="$boundary";start="<$contentId>";type="text/xml"""")
+    )
 }

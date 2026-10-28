@@ -45,6 +45,19 @@ fun Route.postEbmsSync(
                     .let { processedMessage ->
                         when (processedMessage.second) {
                             Direction.IN -> {
+                                if (processedMessage.first.addressing.service == "Trekkopplysning") {
+                                    sendInService.sendInAsynkron(processedMessage.first, partnerId)
+                                    val acknowledgment = ebmsMessage.createAcknowledgment()
+                                    val acknowledgmentValidation = cpaValidationService.validateOutgoingMessage(acknowledgment)
+                                    val acknowledgmentCertificate = acknowledgmentValidation.payloadProcessing!!.signingCertificate
+                                    signingCertificate = acknowledgmentCertificate
+                                    call.respondEbmsDokument(
+                                        acknowledgment.toEbmsDokument().signer(acknowledgmentCertificate),
+                                        HttpStatusCode.Accepted
+                                    )
+                                    log.info(acknowledgment.marker(), "Acknowledgment returned")
+                                    return@post
+                                }
                                 sendInService.sendInSynkron(processedMessage.first, partnerId).let { sendInResponse ->
                                     PayloadMessage(
                                         requestId = sendInResponse.requestId,
