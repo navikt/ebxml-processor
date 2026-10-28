@@ -35,4 +35,7 @@ dependencies {
     implementation(libs.jaxb.runtime)
     implementation(libs.bundles.logging)
     runtimeOnly("org.postgresql:postgresql:42.7.3")
+    testImplementation(testLibs.junit.jupiter.api)
+    testRuntimeOnly(testLibs.junit.jupiter.engine)
+    testRuntimeOnly(testLibs.junit.platform.launcher)
 }
