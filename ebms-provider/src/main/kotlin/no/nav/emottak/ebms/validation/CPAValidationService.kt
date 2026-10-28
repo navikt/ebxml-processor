@@ -89,7 +89,6 @@ open class CPAValidationService(
             } catch (e: EbmsException) {
                 throw e
             } catch (e: Exception) {
-                log.warn(message.marker(), "Signatursjekk har feilet", e)
                 throw EbmsException("Signeringsfeil: ${e.message}", ErrorCode.SECURITY_FAILURE, cause = e)
             }
         }
