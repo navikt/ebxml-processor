@@ -15,12 +15,15 @@ import no.nav.emottak.message.model.MessagingCharacteristicsRequest
 import no.nav.emottak.message.model.MessagingCharacteristicsResponse
 import no.nav.emottak.message.model.ValidationRequest
 import no.nav.emottak.message.model.ValidationResult
-import no.nav.emottak.util.marker
 import org.slf4j.LoggerFactory
+import java.time.Clock
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.validation.CPAValidationService")
 
-open class CPAValidationService(val httpClient: CpaRepoClient) {
+open class CPAValidationService(
+    val httpClient: CpaRepoClient,
+    private val clock: Clock = Clock.systemUTC()
+) {
 
     suspend fun validateIncomingMessage(message: EbmsMessage, checkSignature: Boolean = true): ValidationResult =
         getValidationResult(IN, message).also {

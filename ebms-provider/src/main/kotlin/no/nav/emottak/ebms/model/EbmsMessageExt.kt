@@ -6,8 +6,9 @@ import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.message.model.log
 import no.nav.emottak.util.marker
+import java.time.Clock
 
-fun EbmsMessage.validateSignature(signatureDetails: SignatureDetails) {
-    SignaturValidator.validate(signatureDetails, this.document!!, if (this is PayloadMessage) listOf(this.payload) else listOf())
+fun EbmsMessage.validateSignature(signatureDetails: SignatureDetails, clock: Clock = Clock.systemUTC()) {
+    SignaturValidator.validate(signatureDetails, this.document!!, if (this is PayloadMessage) listOf(this.payload) else listOf(), clock)
     log.info(this.marker(), "Signatur OK")
 }

@@ -3,6 +3,7 @@ package no.nav.emottak.ebms.async.util
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.Json
 import no.nav.emottak.ebms.async.log
+import no.nav.emottak.message.exception.CertificateValidationException
 import no.nav.emottak.message.model.AsyncPayload
 import no.nav.emottak.message.model.EbmsMessage
 import no.nav.emottak.message.model.PayloadMessage
@@ -61,6 +62,7 @@ interface EventRegistrationService {
     suspend fun registerSignatureValidationFailed(ebmsMessage: EbmsMessage, throwable: Throwable, x509Certificate: X509Certificate? = null)
     suspend fun registerUnknownError(ebmsPayloadMessage: PayloadMessage, throwable: Throwable)
     suspend fun registerCpaValidationFailed(ebmsMessage: EbmsMessage, throwable: Throwable)
+    suspend fun registerCertificateValidationFailed(ebmsPayloadMessage: PayloadMessage, exception: CertificateValidationException)
 }
 
 class EventRegistrationServiceImpl(
@@ -246,10 +248,23 @@ class EventRegistrationServiceImpl(
             payloadMessage = ebmsPayloadMessage,
             conversationId = ebmsPayloadMessage.conversationId,
             eventData = Json.encodeToString(
-                EventDataType.ERROR_MESSAGE.value to "${throwable.readableName()}: ${throwable.message}"
+                mapOf(EventDataType.ERROR_MESSAGE.value to "${throwable.readableName()}: ${throwable.message}")
             )
         )
     }
+
+    override suspend fun registerCertificateValidationFailed(
+        ebmsPayloadMessage: PayloadMessage,
+        exception: CertificateValidationException
+    ) = registerEvent(
+        eventType = EventType.SIGNATURE_CHECK_FAILED,
+        payloadMessage = ebmsPayloadMessage,
+        conversationId = ebmsPayloadMessage.conversationId,
+        eventData = Json.encodeToString(
+            mapOf(EventDataType.ERROR_MESSAGE.value to "${exception.readableName()}: ${exception.message}") +
+                (exception.x509Certificate?.mapCertificateDetails() ?: emptyMap())
+        )
+    )
 
     override suspend fun registerCpaValidationFailed(
         ebmsMessage: EbmsMessage,
@@ -379,6 +394,11 @@ class EventRegistrationServiceFake : EventRegistrationService {
         ebmsMessage: EbmsMessage,
         throwable: Throwable
     ) = log.debug("Registering CPA validation failed for ebmsDocument: {} (throwable.message: {})", ebmsMessage, throwable.message)
+
+    override suspend fun registerCertificateValidationFailed(
+        ebmsPayloadMessage: PayloadMessage,
+        exception: CertificateValidationException
+    ) = log.debug("Registering certificate validation failed: {}", ebmsPayloadMessage)
 }
 
 private fun Throwable.readableName(): String {
