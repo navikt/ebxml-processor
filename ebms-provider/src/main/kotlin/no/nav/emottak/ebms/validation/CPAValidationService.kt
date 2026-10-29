@@ -83,7 +83,7 @@ open class CPAValidationService(
         if (!validationResult.valid()) throw EbmsException(validationResult.error!!)
         if (checkSignature) {
             try {
-                message.validateSignature(validationResult.payloadProcessing!!.signingCertificate)
+                message.validateSignature(validationResult.payloadProcessing!!.signingCertificate, clock)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: EbmsException) {
