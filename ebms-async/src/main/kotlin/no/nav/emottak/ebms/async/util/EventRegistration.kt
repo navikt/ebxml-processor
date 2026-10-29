@@ -59,8 +59,9 @@ interface EventRegistrationService {
     suspend fun registerMessageCompleted(ebmsPayloadMessage: PayloadMessage, eventData: String = "{}")
     suspend fun registerMessageRetried(ebmsPayloadMessage: PayloadMessage, retryCount: Int)
     suspend fun registerSignatureValidated(ebmsPayloadMessage: PayloadMessage, certificate: X509Certificate)
-    suspend fun registerSignatureValidationFailed(ebmsPayloadMessage: PayloadMessage, throwable: Throwable)
+    suspend fun registerSignatureValidationFailed(ebmsMessage: EbmsMessage, throwable: Throwable, x509Certificate: X509Certificate? = null)
     suspend fun registerUnknownError(ebmsPayloadMessage: PayloadMessage, throwable: Throwable)
+    suspend fun registerCpaValidationFailed(ebmsMessage: EbmsMessage, throwable: Throwable)
     suspend fun registerCertificateValidationFailed(ebmsPayloadMessage: PayloadMessage, exception: CertificateValidationException)
 }
 
@@ -227,15 +228,16 @@ class EventRegistrationServiceImpl(
         conversationId = ebmsPayloadMessage.conversationId
     )
 
-    override suspend fun registerSignatureValidationFailed(ebmsPayloadMessage: PayloadMessage, throwable: Throwable) {
+    override suspend fun registerSignatureValidationFailed(ebmsMessage: EbmsMessage, throwable: Throwable, x509Certificate: X509Certificate?) {
         registerEvent(
             EventType.SIGNATURE_CHECK_FAILED,
-            requestId = ebmsPayloadMessage.requestId.parseOrGenerateUuid(),
-            contentId = ebmsPayloadMessage.payload.contentId,
-            messageId = ebmsPayloadMessage.messageId,
-            conversationId = ebmsPayloadMessage.conversationId,
+            requestId = ebmsMessage.requestId.parseOrGenerateUuid(),
+            contentId = (ebmsMessage as? PayloadMessage)?.payload?.contentId ?: "",
+            messageId = ebmsMessage.messageId,
+            conversationId = ebmsMessage.conversationId,
             eventData = Json.encodeToString(
-                mapOf(EventDataType.ERROR_MESSAGE.value to "${throwable.readableName()}: ${throwable.message}")
+                mapOf(EventDataType.ERROR_MESSAGE.value to "${throwable.readableName()}: ${throwable.message}") +
+                    (x509Certificate?.mapCertificateDetails() ?: emptyMap())
             )
         )
     }
@@ -261,6 +263,20 @@ class EventRegistrationServiceImpl(
         eventData = Json.encodeToString(
             mapOf(EventDataType.ERROR_MESSAGE.value to "${exception.readableName()}: ${exception.message}") +
                 (exception.x509Certificate?.mapCertificateDetails() ?: emptyMap())
+        )
+    )
+
+    override suspend fun registerCpaValidationFailed(
+        ebmsMessage: EbmsMessage,
+        throwable: Throwable
+    ) = registerEvent(
+        eventType = EventType.VALIDATION_AGAINST_CPA_FAILED,
+        requestId = ebmsMessage.requestId.parseOrGenerateUuid(),
+        contentId = (ebmsMessage as? PayloadMessage)?.payload?.contentId ?: "",
+        messageId = ebmsMessage.messageId,
+        conversationId = ebmsMessage.conversationId,
+        eventData = Json.encodeToString(
+            mapOf(EventDataType.ERROR_MESSAGE.value to "${throwable.readableName()}: ${throwable.message}")
         )
     )
 
@@ -366,13 +382,18 @@ class EventRegistrationServiceFake : EventRegistrationService {
         certificate: X509Certificate
     ) = log.debug("Registering signature validated: {}", ebmsPayloadMessage)
 
-    override suspend fun registerSignatureValidationFailed(ebmsPayloadMessage: PayloadMessage, throwable: Throwable) {
-        log.debug("Registering signature validation failed for ebmsDocument: {} (throwable.message: {})", ebmsPayloadMessage, throwable.message)
+    override suspend fun registerSignatureValidationFailed(ebmsMessage: EbmsMessage, throwable: Throwable, x509Certificate: X509Certificate?) {
+        log.debug("Registering signature validation failed for ebmsDocument: {} (throwable.message: {})", ebmsMessage, throwable.message)
     }
 
     override suspend fun registerUnknownError(ebmsPayloadMessage: PayloadMessage, throwable: Throwable) {
         log.debug("Registering unknown error for ebmsDocument: {} (throwable.message: {})", ebmsPayloadMessage, throwable.message)
     }
+
+    override suspend fun registerCpaValidationFailed(
+        ebmsMessage: EbmsMessage,
+        throwable: Throwable
+    ) = log.debug("Registering CPA validation failed for ebmsDocument: {} (throwable.message: {})", ebmsMessage, throwable.message)
 
     override suspend fun registerCertificateValidationFailed(
         ebmsPayloadMessage: PayloadMessage,
