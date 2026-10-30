@@ -59,6 +59,41 @@ class MessageReceivedRepositoryTest {
     }
 
     @Test
+    fun `Any acknowledged delivery marks matching deliveries as acknowledged despite failed retries`() {
+        repeat(3) { acknowledgedIndex ->
+            val originalMessage = createPayloadMessage()
+            val deliveries = List(3) { originalMessage.copy(requestId = Uuid.random().toString()) }
+
+            deliveries.forEach { messageReceivedRepository.messageReceived(it) }
+            deliveries.forEach { Assertions.assertFalse(messageReceivedRepository.isAcknowledged(it)!!) }
+
+            messageReceivedRepository.messageAcknowledged(deliveries[acknowledgedIndex])
+
+            deliveries.forEach { Assertions.assertTrue(messageReceivedRepository.isAcknowledged(it)!!) }
+
+            deliveries.filterIndexed { index, _ -> index != acknowledgedIndex }.forEach {
+                messageReceivedRepository.messageReceived(it)
+            }
+
+            deliveries.forEach { Assertions.assertTrue(messageReceivedRepository.isAcknowledged(it)!!) }
+        }
+    }
+
+    @Test
+    fun `Acknowledged deliveries must match conversation message and CPA IDs`() {
+        val originalMessage = createPayloadMessage()
+        messageReceivedRepository.messageReceived(originalMessage)
+
+        listOf(
+            originalMessage.copy(requestId = Uuid.random().toString(), conversationId = Uuid.random().toString()),
+            originalMessage.copy(requestId = Uuid.random().toString(), messageId = Uuid.random().toString()),
+            originalMessage.copy(requestId = Uuid.random().toString(), cpaId = "other-cpa")
+        ).forEach { messageReceivedRepository.messageAcknowledged(it) }
+
+        Assertions.assertFalse(messageReceivedRepository.isAcknowledged(originalMessage)!!)
+    }
+
+    @Test
     fun `Get new incoming message returns null`() {
         val originalMessage = createPayloadMessage()
 
