@@ -266,14 +266,11 @@ class PayloadMessageService(
 
         return when (duplicateEliminationStrategy) {
             PerMessageCharacteristicsType.ALWAYS -> {
-                messageReceivedRepository.isAcknowledged(ebmsPayloadMessage) ?: false
+                messageReceivedRepository.isAcknowledged(ebmsPayloadMessage)
             }
 
             PerMessageCharacteristicsType.PER_MESSAGE -> {
-                ebmsPayloadMessage.duplicateElimination && (
-                    messageReceivedRepository.isAcknowledged(ebmsPayloadMessage)
-                        ?: false
-                    )
+                ebmsPayloadMessage.duplicateElimination && messageReceivedRepository.isAcknowledged(ebmsPayloadMessage)
             }
 
             PerMessageCharacteristicsType.NEVER -> false

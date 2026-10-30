@@ -6,7 +6,6 @@ import no.nav.emottak.ebms.async.persistence.table.MessageReceivedTable
 import no.nav.emottak.ebms.async.util.getPreferredPartyId
 import no.nav.emottak.message.model.PayloadMessage
 import org.jetbrains.exposed.v1.core.ResultRow
-import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.select
@@ -62,7 +61,7 @@ class MessageReceivedRepository(private val database: Database) {
             .firstOrNull()
     }
 
-    fun isAcknowledged(ebmsPayloadMessage: PayloadMessage): Boolean? = transaction(database.db) {
+    fun isAcknowledged(ebmsPayloadMessage: PayloadMessage): Boolean = transaction(database.db) {
         MessageReceivedTable
             .select(MessageReceivedTable.acknowledged)
             .where {
@@ -70,10 +69,7 @@ class MessageReceivedRepository(private val database: Database) {
                     (MessageReceivedTable.messageId eq ebmsPayloadMessage.messageId) and
                     (MessageReceivedTable.cpaId eq ebmsPayloadMessage.cpaId)
             }
-            .orderBy(MessageReceivedTable.acknowledged, SortOrder.DESC)
-            .limit(1)
-            .map { it[MessageReceivedTable.acknowledged] }
-            .firstOrNull()
+            .any { it[MessageReceivedTable.acknowledged] }
     }
 
     private fun ResultRow.toMessageReceived() = MessageReceived(

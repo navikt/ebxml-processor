@@ -100,6 +100,6 @@ class MessageReceivedRepositoryTest {
         val messageReceivedByReference = messageReceivedRepository.getByReferenceId(Uuid.parse(originalMessage.requestId))
         Assertions.assertNull(messageReceivedByReference)
 
-        Assertions.assertNull(messageReceivedRepository.isAcknowledged(originalMessage))
+        Assertions.assertFalse(messageReceivedRepository.isAcknowledged(originalMessage))
     }
 }
