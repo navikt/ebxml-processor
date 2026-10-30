@@ -1,55 +1,109 @@
 package no.nav.emottak.ebms.validation
 
+import no.nav.emottak.ebms.TestData
+import no.nav.emottak.message.exception.CertificateValidationException
 import no.nav.emottak.message.exception.SignatureValidationException
 import no.nav.emottak.message.model.EbmsAttachment
-import no.nav.emottak.message.model.EbmsDocument
 import no.nav.emottak.message.model.SignatureDetails
 import no.nav.emottak.message.xml.getDocumentBuilder
 import no.nav.emottak.util.decodeBase64
+import no.nav.emottak.util.retrievePublicX509Certificate
 import org.apache.xml.security.algorithms.MessageDigestAlgorithm
 import org.apache.xml.security.signature.XMLSignature
+import org.apache.xml.security.utils.Constants
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertDoesNotThrow
+import org.junit.jupiter.api.assertThrows
+import org.w3c.dom.Document
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
+
+// The signing certificate in the test message is valid from 2022-09-22 to 2025-09-22.
+private val clockWhileCertificateIsValid = Clock.fixed(Instant.parse("2023-08-29T12:57:00Z"), ZoneOffset.UTC)
+private val clockAfterCertificateExpired = Clock.fixed(Instant.parse("2025-09-23T00:00:00Z"), ZoneOffset.UTC)
 
 class SignaturValidatorTest {
 
     @Test
-    fun `Validering av signatur`() {
-        val document = getDocumentBuilder().parse(
-            this::class.java.classLoader
-                .getResourceAsStream("oppgjørsmelding/2023_08_29T12_56_58_328.xml")
-        )
-        val attachment = this::class.java.classLoader
-            .getResourceAsStream("oppgjørsmelding/2023_08_29T12_56_58_328.p7m").readAllBytes()
-        val ebmsDocument = EbmsDocument(
-            "Test",
-            document,
-            listOf(
-                EbmsAttachment(
-                    attachment,
-                    "application/pkcs7-mime",
-                    "3CTGI8UKUKU4.ADHEUDMDCY3Q3@speare.no"
-                )
-            )
-        )
-        SignaturValidator.validate(getSignatureDetailsForTest(), document, ebmsDocument.attachments)
+    fun `Gyldig signatur med vedlegg valideres`() {
+        assertDoesNotThrow {
+            SignaturValidator.validate(getSignatureDetailsForTest(), testDocument(), testAttachments(), clockWhileCertificateIsValid)
+        }
     }
 
     @Test
-    fun `Validering av signatur uten attachments feiler`() {
-        val document = getDocumentBuilder().parse(
-            this::class.java.classLoader
-                .getResourceAsStream("oppgjørsmelding/2023_08_29T12_56_58_328.xml")
-        )
-        val ebmsDocument = EbmsDocument(
-            "Test",
-            document,
-            listOf()
-        )
-
-        org.junit.jupiter.api.assertThrows<SignatureValidationException> {
-            SignaturValidator.validate(getSignatureDetailsForTest(), document, ebmsDocument.attachments)
+    fun `Signatur uten signerte vedlegg feiler`() {
+        assertThrows<SignatureValidationException> {
+            SignaturValidator.validate(getSignatureDetailsForTest(), testDocument(), emptyList(), clockWhileCertificateIsValid)
         }
     }
+
+    @Test
+    fun `Signert med annet sertifikat enn i CPA feiler`() {
+        val exception = assertThrows<SignatureValidationException> {
+            SignaturValidator.validate(
+                TestData.HarBorgerEgenandel.validSignatureDetails,
+                testDocument(),
+                testAttachments(),
+                clockWhileCertificateIsValid
+            )
+        }
+
+        assertTrue(exception.message!!.startsWith("Signert med annet sertifikat enn definert i CPA"), exception.message)
+    }
+
+    @Test
+    fun `Manglende KeyInfo feiler unrecoverable`() {
+        val document = testDocument()
+        val signature = document.getElementsByTagNameNS(Constants.SignatureSpecNS, Constants._TAG_SIGNATURE).item(0)
+        val keyInfo = document.getElementsByTagNameNS(Constants.SignatureSpecNS, Constants._TAG_KEYINFO).item(0)
+        signature.removeChild(keyInfo)
+
+        val exception = assertThrows<SignatureValidationException> {
+            SignaturValidator.validate(getSignatureDetailsForTest(), document, emptyList(), clockWhileCertificateIsValid)
+        }
+
+        assertFalse(exception.isRecoverable())
+    }
+
+    @Test
+    fun `Utløpt signatursertifikat feiler unrecoverable før CPA-sertifikat og vedlegg leses`() {
+        val exception = assertThrows<CertificateValidationException> {
+            SignaturValidator.validate(
+                getSignatureDetailsForTest().copy(certificate = byteArrayOf()),
+                testDocument(),
+                emptyList(),
+                clockAfterCertificateExpired
+            )
+        }
+
+        assertFalse(exception.isRecoverable())
+        assertTrue(exception.message!!.startsWith("Sertifikat utløpt"), exception.message)
+        assertNotNull(exception.x509Certificate)
+        assertEquals(
+            getSignatureDetailsForTest().retrievePublicX509Certificate(),
+            exception.x509Certificate
+        )
+    }
+
+    private fun testDocument(): Document = getDocumentBuilder().parse(
+        this::class.java.classLoader
+            .getResourceAsStream("oppgjørsmelding/2023_08_29T12_56_58_328.xml")
+    )
+
+    private fun testAttachments(): List<EbmsAttachment> = listOf(
+        EbmsAttachment(
+            this::class.java.classLoader
+                .getResourceAsStream("oppgjørsmelding/2023_08_29T12_56_58_328.p7m")!!.readAllBytes(),
+            "application/pkcs7-mime",
+            "3CTGI8UKUKU4.ADHEUDMDCY3Q3@speare.no"
+        )
+    )
 }
 
 fun getSignatureDetailsForTest(): SignatureDetails =
