@@ -226,7 +226,7 @@ class OcspStatusService(
         when (responseStatus) {
             OCSPResponseStatus.SUCCESSFUL -> log.info("OCSP Request successful")
             else -> {
-                throw CertificateException("OCSP request failed with status ${OCSPResponseStatus.getInstance(responseStatus)}")
+                throw OcspUnavailableException("OCSP request failed with status ${OCSPResponseStatus.getInstance(responseStatus)}")
             }
         }
     }

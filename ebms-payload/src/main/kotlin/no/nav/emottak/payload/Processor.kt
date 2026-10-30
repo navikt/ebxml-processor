@@ -10,6 +10,7 @@ import no.nav.emottak.payload.crypto.Dekryptering
 import no.nav.emottak.payload.crypto.Kryptering
 import no.nav.emottak.payload.crypto.PayloadSignering
 import no.nav.emottak.payload.crypto.SignatureValidator
+import no.nav.emottak.payload.crypto.signerCertificate
 import no.nav.emottak.payload.error.CertificateException
 import no.nav.emottak.payload.error.SignatureException
 import no.nav.emottak.payload.helseid.NinResolver
@@ -21,11 +22,11 @@ import no.nav.emottak.util.createDocument
 import no.nav.emottak.util.createX509Certificate
 import no.nav.emottak.util.getByteArrayFromDocument
 import no.nav.emottak.util.marker
-import no.nav.emottak.util.retrievePublicX509Certificate
 import no.nav.emottak.util.retrieveSignatureElement
 import no.nav.emottak.utils.kafka.model.EventDataType
 import no.nav.emottak.utils.kafka.model.EventType
 import no.nav.emottak.validering.sertifikat.SertifikatValidator
+import org.apache.xml.security.exceptions.XMLSecurityException
 import org.slf4j.Marker
 import java.io.ByteArrayInputStream
 
@@ -91,9 +92,11 @@ class Processor(
             } catch (e: SignatureValidationException) {
                 eventRegistrationService.registerSignatureValidationFailed(payloadRequest, null, e)
                 throw SignatureException("No signature element found in payload", e)
+            } catch (e: XMLSecurityException) {
+                throw SignatureException("Invalid signature element in payload", e)
             }
             val signatureCertificate = try {
-                signatureElement.retrievePublicX509Certificate()
+                signatureElement.signerCertificate()
             } catch (e: Exception) {
                 eventRegistrationService.registerSignatureValidationFailed(payloadRequest, null, e)
                 throw CertificateException("Failed to retrieve public X509 certificate from signature element", e)
