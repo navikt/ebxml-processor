@@ -61,7 +61,7 @@ class MessageReceivedRepository(private val database: Database) {
             .firstOrNull()
     }
 
-    fun isAcknowledged(ebmsPayloadMessage: PayloadMessage): Boolean? = transaction(database.db) {
+    fun isAcknowledged(ebmsPayloadMessage: PayloadMessage): Boolean = transaction(database.db) {
         MessageReceivedTable
             .select(MessageReceivedTable.acknowledged)
             .where {
@@ -69,8 +69,7 @@ class MessageReceivedRepository(private val database: Database) {
                     (MessageReceivedTable.messageId eq ebmsPayloadMessage.messageId) and
                     (MessageReceivedTable.cpaId eq ebmsPayloadMessage.cpaId)
             }
-            .map { it[MessageReceivedTable.acknowledged] }
-            .firstOrNull()
+            .any { it[MessageReceivedTable.acknowledged] }
     }
 
     private fun ResultRow.toMessageReceived() = MessageReceived(
