@@ -45,19 +45,6 @@ fun Route.postEbmsSync(
                     .let { processedMessage ->
                         when (processedMessage.second) {
                             Direction.IN -> {
-                                if (processedMessage.first.addressing.service == "Trekkopplysning") {
-                                    sendInService.sendInAsynkron(processedMessage.first, partnerId)
-                                    val acknowledgment = ebmsMessage.createAcknowledgment()
-                                    val acknowledgmentValidation = cpaValidationService.validateOutgoingMessage(acknowledgment)
-                                    val acknowledgmentCertificate = acknowledgmentValidation.payloadProcessing!!.signingCertificate
-                                    signingCertificate = acknowledgmentCertificate
-                                    call.respondEbmsDokument(
-                                        acknowledgment.toEbmsDokument().signer(acknowledgmentCertificate),
-                                        HttpStatusCode.Accepted
-                                    )
-                                    log.info(acknowledgment.marker(), "Acknowledgment returned")
-                                    return@post
-                                }
                                 sendInService.sendInSynkron(processedMessage.first, partnerId).let { sendInResponse ->
                                     PayloadMessage(
                                         requestId = sendInResponse.requestId,
@@ -111,6 +98,47 @@ fun Route.postEbmsSync(
             HttpStatusCode.InternalServerError,
             ex.convertToSoapFault()
         )
+    }
+}
+
+fun Route.postEbmsAsync(
+    cpaValidationService: CPAValidationService,
+    processingService: ProcessingService,
+    sendInService: SendInService
+): Route = post("/ebms/async") {
+    log.info("Receiving asynchronous request over HTTP")
+
+    val ebmsDocument = getEbmsDocument(call) ?: return@post
+    val ebmsMessage = ebmsDocument.transform() as PayloadMessage
+
+    var signingCertificate: SignatureDetails? = null
+    try {
+        val validationResult = cpaValidationService.validateIncomingMessage(ebmsMessage)
+        val (processedMessage, direction) = processingService.processSyncIn(ebmsMessage, validationResult.payloadProcessing)
+        if (direction != Direction.IN) {
+            throw EbmsException("Incoming processing produced an outgoing response that cannot be returned by /ebms/async")
+        }
+        sendInService.sendInAsynkron(processedMessage, validationResult.partnerId)
+
+        val acknowledgmentCertificate =
+            cpaValidationService.validateOutgoingMessage(
+                ebmsMessage.createAcknowledgment()
+            ).payloadProcessing!!.signingCertificate
+        signingCertificate = acknowledgmentCertificate
+        call.respondEbmsDokument(
+            ebmsMessage.createAcknowledgment().toEbmsDokument().signer(acknowledgmentCertificate),
+            HttpStatusCode.Accepted
+        )
+        log.info(ebmsMessage.createAcknowledgment().marker(), "Acknowledgment returned")
+    } catch (ebmsException: EbmsException) {
+        log.error(ebmsMessage.marker(), ebmsException.message, ebmsException)
+        val messageError = ebmsMessage.createMessageError(ebmsException.feil).toEbmsDokument()
+        signingCertificate?.let { messageError.signer(it) }
+        log.info(ebmsMessage.marker(), "Created MessageError response")
+        call.respondEbmsDokument(messageError)
+    } catch (ex: Exception) {
+        log.error(ebmsMessage.marker(), ex.message ?: "Unknown error during message processing", ex)
+        call.respond(HttpStatusCode.InternalServerError, ex.convertToSoapFault())
     }
 }
 
