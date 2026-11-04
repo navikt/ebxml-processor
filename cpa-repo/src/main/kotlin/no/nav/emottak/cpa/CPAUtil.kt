@@ -14,7 +14,6 @@ import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.Certificate
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.CollaborationProtocolAgreement
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.DeliveryChannel
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.DocExchange
-import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.Endpoint
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PartyInfo
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.ProtocolType
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.Transport
@@ -182,18 +181,15 @@ fun PartyInfo.getSignalEmailAddress(validateRequest: ValidationRequest): List<Em
     return getReceiverEmailAddress(deliveryChannels)
 }
 
-fun PartyInfo.getHttpEndpoint(): Endpoint? {
-    return transport.firstOrNull {
-        it.transportReceiver?.transportProtocol?.value == "HTTP"
-    }?.transportReceiver?.endpoint?.firstOrNull()
-}
-
 fun PartyInfo.getReceiveHttpEndpoint(validateRequest: ValidationRequest): String? {
     val deliveryChannels = this.getReceiveDeliveryChannels(validateRequest.addressing.to.role, validateRequest.addressing.service, validateRequest.addressing.action)
-    val receivesViaHttp = deliveryChannels.any {
-        it.getTransport().transportReceiver?.transportProtocol?.value == "HTTP"
+    return deliveryChannels.firstNotNullOfOrNull { channel ->
+        channel.getTransport().transportReceiver
+            ?.takeIf { it.transportProtocol.value == "HTTP" }
+            ?.endpoint
+            ?.firstOrNull()
+            ?.uri
     }
-    return if (receivesViaHttp) getHttpEndpoint()?.uri else null
 }
 
 private fun getReceiverEmailAddress(deliveryChannels: List<DeliveryChannel>): List<EmailAddress> {
