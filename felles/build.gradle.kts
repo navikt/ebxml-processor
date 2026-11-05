@@ -7,7 +7,6 @@ dependencies {
     implementation(libs.emottak.utils)
     implementation(libs.ebxml.protokoll)
     implementation(libs.guava)
-    implementation(libs.flyway.core)
     implementation(libs.ktor.serialization.kotlinx.json)
     implementation(libs.apache.santuario)
     implementation(libs.bundles.logging)
