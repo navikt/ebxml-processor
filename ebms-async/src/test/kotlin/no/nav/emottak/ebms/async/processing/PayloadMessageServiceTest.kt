@@ -674,12 +674,11 @@ class PayloadMessageServiceTest {
         val ebmsMessageSlots = mutableListOf<EbmsMessage>()
         val fakeResult = Result.success(mockk<RecordMetadata>())
         val lambdaSlot = slot<(suspend () -> Result<RecordMetadata>)>()
-        val isDuplicateResult: Boolean? = if (isDuplicate) true else null
 
         coEvery { cpaValidationService.getMessageCharacteristicsType(payloadMessage) } returns createMessageCharacteristicsResponse(duplicateElimination = duplicateEliminationStrategy)
         coEvery { messageReceivedRepository.messageReceived(payloadMessage) } returns payloadMessage.requestId
         coEvery { messageReceivedRepository.messageAcknowledged(payloadMessage) } returns payloadMessage.requestId
-        coEvery { messageReceivedRepository.isAcknowledged(payloadMessage) } returns isDuplicateResult
+        coEvery { messageReceivedRepository.isAcknowledged(payloadMessage) } returns isDuplicate
         coEvery { eventRegistrationService.registerEventMessageDetails(capture(ebmsMessageSlots)) } returns Unit
         coEvery { cpaValidationService.getValidationResult(any(), any()) } returns validValidationResult()
 
