@@ -120,16 +120,15 @@ fun Route.postEbmsAsync(
         }
         sendInService.sendInAsynkron(processedMessage, validationResult.partnerId)
 
-        val acknowledgmentCertificate =
-            cpaValidationService.validateOutgoingMessage(
-                ebmsMessage.createAcknowledgment()
-            ).payloadProcessing!!.signingCertificate
-        signingCertificate = acknowledgmentCertificate
+        val acknowledgment = ebmsMessage.createAcknowledgment()
+        signingCertificate = cpaValidationService.validateOutgoingMessage(
+            acknowledgment
+        ).payloadProcessing!!.signingCertificate
         call.respondEbmsDokument(
-            ebmsMessage.createAcknowledgment().toEbmsDokument().signer(acknowledgmentCertificate),
+            acknowledgment.toEbmsDokument().signer(signingCertificate),
             HttpStatusCode.Accepted
         )
-        log.info(ebmsMessage.createAcknowledgment().marker(), "Acknowledgment returned")
+        log.info(acknowledgment.marker(), "Acknowledgment returned")
     } catch (ebmsException: EbmsException) {
         log.error(ebmsMessage.marker(), ebmsException.message, ebmsException)
         val messageError = ebmsMessage.createMessageError(ebmsException.feil).toEbmsDokument()
