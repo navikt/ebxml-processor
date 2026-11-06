@@ -2,9 +2,6 @@ package no.nav.emottak.message.model
 
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.int
-import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import no.nav.emottak.utils.common.model.Addressing
@@ -27,7 +24,7 @@ class PayloadSerializationTest {
     )
 
     @Test
-    fun `request payload bytes are written as legacy array and round trip without metadata loss`() {
+    fun `request payload bytes are a Base64 string and round trip without metadata loss`() {
         val party = Party(listOf(PartyId("HERID", "test")), "test")
         val request = PayloadRequest(
             direction = Direction.IN,
@@ -56,7 +53,8 @@ class PayloadSerializationTest {
 
         val json = Json.encodeToString(request)
         val encodedPayload = Json.parseToJsonElement(json).jsonObject.getValue("payload").jsonObject
-        assertEquals(payload.bytes.map { it.toInt() }, encodedPayload.getValue("bytes").jsonArray.map { it.jsonPrimitive.int })
+        assertEquals(Base64.getEncoder().encodeToString(payload.bytes), encodedPayload.getValue("bytes").jsonPrimitive.content)
+        assertTrue(encodedPayload.getValue("bytes").jsonPrimitive.isString)
 
         val decoded = Json.decodeFromString<PayloadRequest>(json)
         assertPayloadEquals(payload, decoded.payload)
@@ -68,16 +66,17 @@ class PayloadSerializationTest {
     }
 
     @Test
-    fun `response payload bytes round trip including empty and large payloads`() {
-        for (size in listOf(0, 1, 256, 1024 * 1024)) {
+    fun `response payload bytes use Base64 including empty and padding boundaries`() {
+        for (size in listOf(0, 1, 2, 3, 256, 1024 * 1024)) {
             val original = payload.copy(bytes = ByteArray(size) { it.toByte() })
             val response = PayloadResponse(processedPayload = original, juridiskLoggRecordId = "record")
             val json = Json.encodeToString(response)
             val encodedBytes = Json.parseToJsonElement(json).jsonObject
-                .getValue("processedPayload").jsonObject.getValue("bytes")
+                .getValue("processedPayload").jsonObject.getValue("bytes").jsonPrimitive
 
-            assertTrue(encodedBytes is JsonArray)
-            assertEquals(size, encodedBytes.jsonArray.size)
+            assertTrue(encodedBytes.isString)
+            assertEquals(Base64.getEncoder().encodeToString(original.bytes), encodedBytes.content)
+            assertEquals(4 * ((size + 2) / 3), encodedBytes.content.length)
 
             val decoded = Json.decodeFromString<PayloadResponse>(json)
             assertPayloadEquals(original, decoded.processedPayload!!)

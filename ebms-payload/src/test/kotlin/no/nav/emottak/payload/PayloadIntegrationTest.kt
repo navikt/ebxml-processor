@@ -15,8 +15,6 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.serialization.json.int
-import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import no.nav.emottak.message.model.ErrorCode
@@ -36,6 +34,7 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import java.util.Base64
 import kotlin.uuid.ExperimentalUuidApi
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -56,8 +55,9 @@ class PayloadIntegrationTest : PayloadTestBase() {
             assertNull(response.error)
             assertArrayEquals(request.payload.bytes, response.processedPayload!!.bytes)
             val bytes = LENIENT_JSON_PARSER.parseToJsonElement(json).jsonObject
-                .getValue("processedPayload").jsonObject.getValue("bytes").jsonArray
-            assertEquals(request.payload.bytes.map { it.toInt() }, bytes.map { it.jsonPrimitive.int })
+                .getValue("processedPayload").jsonObject.getValue("bytes").jsonPrimitive
+            assertTrue(bytes.isString)
+            assertEquals(Base64.getEncoder().encodeToString(request.payload.bytes), bytes.content)
         }
     }
 
