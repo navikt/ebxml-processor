@@ -21,6 +21,7 @@ import no.nav.emottak.ebms.async.kafka.consumer.getRecords
 import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.ebms.model.signer
 import no.nav.emottak.ebms.validation.CPAValidationService
+import no.nav.emottak.message.exception.CertificateValidationException
 import no.nav.emottak.message.exception.EbmsException
 import no.nav.emottak.message.model.EbmsAttachment
 import no.nav.emottak.message.model.EbmsDocument
@@ -148,6 +149,14 @@ class RetryServiceTest {
         val future = Instant.now().plusSeconds(3600)
         val unrecoverable = EbmsException("Dekryptering feilet", recoverable = false)
         val (decision, _) = retryService.decideRetry(ttl = future, retriedAlready = 0, maxRetries = 5, throwable = unrecoverable)
+        assertEquals(RetryService.RetryDecision.NO_RETRY, decision)
+    }
+
+    @Test
+    fun `decideRetry returns NO_RETRY for expired signing certificate`() {
+        val future = Instant.now().plusSeconds(3600)
+        val expired = CertificateValidationException("Sertifikat utløpt", recoverable = false)
+        val (decision, _) = retryService.decideRetry(ttl = future, retriedAlready = 0, maxRetries = 5, throwable = expired)
         assertEquals(RetryService.RetryDecision.NO_RETRY, decision)
     }
 

@@ -3,6 +3,7 @@ package no.nav.emottak.ebms.async.util
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.Json
 import no.nav.emottak.ebms.async.log
+import no.nav.emottak.message.exception.CertificateValidationException
 import no.nav.emottak.message.model.AsyncPayload
 import no.nav.emottak.message.model.EbmsMessage
 import no.nav.emottak.message.model.PayloadMessage
@@ -60,6 +61,7 @@ interface EventRegistrationService {
     suspend fun registerSignatureValidated(ebmsPayloadMessage: PayloadMessage, certificate: X509Certificate)
     suspend fun registerSignatureValidationFailed(ebmsPayloadMessage: PayloadMessage, throwable: Throwable)
     suspend fun registerUnknownError(ebmsPayloadMessage: PayloadMessage, throwable: Throwable)
+    suspend fun registerCertificateValidationFailed(ebmsPayloadMessage: PayloadMessage, exception: CertificateValidationException)
 }
 
 class EventRegistrationServiceImpl(
@@ -233,7 +235,7 @@ class EventRegistrationServiceImpl(
             messageId = ebmsPayloadMessage.messageId,
             conversationId = ebmsPayloadMessage.conversationId,
             eventData = Json.encodeToString(
-                EventDataType.ERROR_MESSAGE.value to "${throwable.readableName()}: ${throwable.message}"
+                mapOf(EventDataType.ERROR_MESSAGE.value to "${throwable.readableName()}: ${throwable.message}")
             )
         )
     }
@@ -244,10 +246,23 @@ class EventRegistrationServiceImpl(
             payloadMessage = ebmsPayloadMessage,
             conversationId = ebmsPayloadMessage.conversationId,
             eventData = Json.encodeToString(
-                EventDataType.ERROR_MESSAGE.value to "${throwable.readableName()}: ${throwable.message}"
+                mapOf(EventDataType.ERROR_MESSAGE.value to "${throwable.readableName()}: ${throwable.message}")
             )
         )
     }
+
+    override suspend fun registerCertificateValidationFailed(
+        ebmsPayloadMessage: PayloadMessage,
+        exception: CertificateValidationException
+    ) = registerEvent(
+        eventType = EventType.SIGNATURE_CHECK_FAILED,
+        payloadMessage = ebmsPayloadMessage,
+        conversationId = ebmsPayloadMessage.conversationId,
+        eventData = Json.encodeToString(
+            mapOf(EventDataType.ERROR_MESSAGE.value to "${exception.readableName()}: ${exception.message}") +
+                (exception.x509Certificate?.mapCertificateDetails() ?: emptyMap())
+        )
+    )
 
     private suspend fun registerEvent(event: Event) {
         try {
@@ -358,6 +373,11 @@ class EventRegistrationServiceFake : EventRegistrationService {
     override suspend fun registerUnknownError(ebmsPayloadMessage: PayloadMessage, throwable: Throwable) {
         log.debug("Registering unknown error for ebmsDocument: {} (throwable.message: {})", ebmsPayloadMessage, throwable.message)
     }
+
+    override suspend fun registerCertificateValidationFailed(
+        ebmsPayloadMessage: PayloadMessage,
+        exception: CertificateValidationException
+    ) = log.debug("Registering certificate validation failed: {}", ebmsPayloadMessage)
 }
 
 private fun Throwable.readableName(): String {

@@ -15,12 +15,15 @@ import no.nav.emottak.message.model.MessagingCharacteristicsRequest
 import no.nav.emottak.message.model.MessagingCharacteristicsResponse
 import no.nav.emottak.message.model.ValidationRequest
 import no.nav.emottak.message.model.ValidationResult
-import no.nav.emottak.util.marker
 import org.slf4j.LoggerFactory
+import java.time.Clock
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.validation.CPAValidationService")
 
-open class CPAValidationService(val httpClient: CpaRepoClient) {
+open class CPAValidationService(
+    val httpClient: CpaRepoClient,
+    private val clock: Clock = Clock.systemUTC()
+) {
 
     suspend fun validateIncomingMessage(message: EbmsMessage, checkSignature: Boolean = true): ValidationResult =
         getValidationResult(IN, message).also {
@@ -79,18 +82,19 @@ open class CPAValidationService(val httpClient: CpaRepoClient) {
     open fun validateResult(validationResult: ValidationResult, message: EbmsMessage, checkSignature: Boolean): ValidationResult {
         if (!validationResult.valid()) throw EbmsException(validationResult.error!!)
         if (checkSignature) {
-            runCatching {
-                message.validateSignature(validationResult.payloadProcessing!!.signingCertificate)
-            }.onFailure {
-                log.warn(message.marker(), "Signatursjekk har feilet", it)
+            try {
+                message.validateSignature(validationResult.payloadProcessing!!.signingCertificate, clock)
+            } catch (e: EbmsException) {
+                throw e
+            } catch (e: Exception) {
                 throw EbmsException(
                     (validationResult.error ?: listOf()) + listOf(
                         Feil(
                             ErrorCode.SECURITY_FAILURE,
-                            "Signeringsfeil: ${it.message}"
+                            "Signeringsfeil: ${e.message}"
                         )
                     ),
-                    it
+                    e
                 )
             }
         }
