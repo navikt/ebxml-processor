@@ -181,6 +181,17 @@ fun PartyInfo.getSignalEmailAddress(validateRequest: ValidationRequest): List<Em
     return getReceiverEmailAddress(deliveryChannels)
 }
 
+fun PartyInfo.getReceiveHttpEndpoint(validateRequest: ValidationRequest): String? {
+    val deliveryChannels = this.getReceiveDeliveryChannels(validateRequest.addressing.to.role, validateRequest.addressing.service, validateRequest.addressing.action)
+    return deliveryChannels.firstNotNullOfOrNull { channel ->
+        channel.getTransport().transportReceiver
+            ?.takeIf { it.transportProtocol.value == "HTTP" }
+            ?.endpoint
+            ?.firstOrNull()
+            ?.uri
+    }
+}
+
 private fun getReceiverEmailAddress(deliveryChannels: List<DeliveryChannel>): List<EmailAddress> {
     return deliveryChannels.filter {
         it.getTransport().transportReceiver?.transportProtocol?.value == "SMTP"
