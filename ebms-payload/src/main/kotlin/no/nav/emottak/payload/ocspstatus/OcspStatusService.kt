@@ -87,7 +87,7 @@ class OcspStatusService(
                 log.debug("OCSP Request created")
             }
         } catch (e: Exception) {
-            throw CertificateException("Feil ved opprettelse av OCSP request", e)
+            throw OcspUnavailableException("Feil ved opprettelse av OCSP request", e)
         }
     }
 
@@ -100,7 +100,7 @@ class OcspStatusService(
             }
         }
         log.warn("Fant ikke issuer sertifikat for '$certificateIssuer', kan ikke gjøre OCSP-spørringer mot denne CAen")
-        throw CertificateException("Fant ikke issuer sertifikat for '$certificateIssuer'")
+        throw OcspUnavailableException("Fant ikke issuer sertifikat for '$certificateIssuer'")
     }
 
     suspend fun postOCSPRequest(url: String, encoded: ByteArray): OCSPResp {
@@ -132,7 +132,7 @@ class OcspStatusService(
             val ocspUrl = config.caList.firstOrNull {
                 log.debug("Checking: " + it.dn)
                 X500Name(it.dn) == X500Name(ocspResponderCertificate.subjectX500Principal.name)
-            }?.ocspUrl ?: throw CertificateException("${ocspResponderCertificate.subjectX500Principal.name} not found in CA-list config.")
+            }?.ocspUrl ?: throw OcspUnavailableException("${ocspResponderCertificate.subjectX500Principal.name} not found in CA-list config.")
 
             postOCSPRequest(ocspUrl, request.encoded).also {
                 validateOcspResponse(
@@ -175,7 +175,7 @@ class OcspStatusService(
         if (basicOCSPResponse.responses.size == 1) {
             basicOCSPResponse.responses[0]
         } else {
-            throw CertificateException("OCSP response included wrong number of status, expected one")
+            throw OcspUnavailableException("OCSP response included wrong number of status, expected one")
         }
     }
 
@@ -188,23 +188,23 @@ class OcspStatusService(
         try {
             if (certificates.isEmpty()) {
                 if (!basicOCSPResponse.isSignatureValid(contentVerifierProviderBuilder.build(ocspResponderCertificate))) {
-                    throw RuntimeException("OCSP response failed to verify")
+                    throw OcspUnavailableException("OCSP response failed to verify")
                 }
             } else {
                 val cert = certificates[0]
                 verifyProvider(cert, X500Name(ocspResponderCertificate.subjectX500Principal.name))
                 if (!basicOCSPResponse.isSignatureValid(contentVerifierProviderBuilder.build(cert))) {
-                    throw CertificateException("OCSP response failed to verify")
+                    throw OcspUnavailableException("OCSP response failed to verify")
                 }
             }
         } catch (e: Exception) {
-            throw CertificateException("OCSP response validation failed", cause = e)
+            throw OcspUnavailableException("OCSP response validation failed", cause = e)
         }
     }
 
     private fun verifyProvider(cert: X509CertificateHolder, provider: X500Name) {
         if (!RFC4519Style.INSTANCE.areEqual(provider, cert.issuer)) {
-            throw CertificateException("OCSP response received from unexpected provider: ${cert.issuer}")
+            throw OcspUnavailableException("OCSP response received from unexpected provider: ${cert.issuer}")
         }
     }
 
@@ -212,13 +212,13 @@ class OcspStatusService(
         return try {
             ocspresp.responseObject as BasicOCSPResp
         } catch (e: OCSPException) {
-            throw CertificateException("Feil ved opprettelse av OCSP respons", cause = e)
+            throw OcspUnavailableException("Feil ved opprettelse av OCSP respons", cause = e)
         }
     }
 
     private fun verifyNonce(requestNonce: Extension, responseNonce: Extension) {
         if (requestNonce != responseNonce) {
-            throw CertificateException("OCSP response nonce failed to validate")
+            throw OcspUnavailableException("OCSP response nonce failed to validate")
         }
     }
 
@@ -226,7 +226,7 @@ class OcspStatusService(
         when (responseStatus) {
             OCSPResponseStatus.SUCCESSFUL -> log.info("OCSP Request successful")
             else -> {
-                throw CertificateException("OCSP request failed with status ${OCSPResponseStatus.getInstance(responseStatus)}")
+                throw OcspUnavailableException("OCSP request failed with status ${OCSPResponseStatus.getInstance(responseStatus)}")
             }
         }
     }
