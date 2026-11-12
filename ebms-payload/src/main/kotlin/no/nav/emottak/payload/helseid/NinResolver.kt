@@ -1,7 +1,9 @@
 package no.nav.emottak.payload.helseid
 
+import com.nimbusds.jose.KeySourceException
 import no.nav.emottak.crypto.KeyStoreManager
 import no.nav.emottak.payload.configuration.config
+import no.nav.emottak.payload.error.HelseIdTokenException
 import no.nav.emottak.payload.helseid.util.msgHeadNamespaceContext
 import no.nav.emottak.payload.log
 import no.nav.emottak.payload.ocspstatus.OcspStatusService
@@ -20,18 +22,27 @@ class NinResolver(
         KeyStoreManager(*config.signering.map { it.resolveKeyStoreConfiguration() }.toTypedArray())
     )
 ) {
-    fun resolve(token: String, messageGenerationDate: Instant): String? {
-        return tokenValidator.getValidatedNin(token, messageGenerationDate)
+    fun resolve(token: String, messageGenerationDate: Instant): String? = validatingHelseIdToken {
+        tokenValidator.getValidatedNin(token, messageGenerationDate)
     }
 
     suspend fun resolve(document: Document, certificate: X509Certificate): String? {
-        val token = tokenValidator.getHelseIdTokenFromDocument(document)
-
-        val nin = token?.let {
-            tokenValidator.getValidatedNin(it, parseDateOrThrow(extractGeneratedDate(document)))
+        val nin = validatingHelseIdToken {
+            tokenValidator.getHelseIdTokenFromDocument(document)?.let {
+                tokenValidator.getValidatedNin(it, parseDateOrThrow(extractGeneratedDate(document)))
+            }
         }
 
         return nin ?: ocspStatusService.getOCSPStatus(certificate).fnr
+    }
+
+    private inline fun <T> validatingHelseIdToken(block: () -> T): T = try {
+        block()
+    } catch (e: KeySourceException) {
+        // HelseID JWKS unavailable: transient, propagate so the message is retried
+        throw e
+    } catch (e: Exception) {
+        throw HelseIdTokenException("Invalid HelseID token: ${e.message}", e)
     }
 
     private fun extractGeneratedDate(document: Document): String? {
