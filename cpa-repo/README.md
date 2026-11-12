@@ -22,6 +22,10 @@ Lagrer og validerer CPAer (Collaboration Protocol Agreements). Validerer innkomm
 | `GET` | `/internal/health/readiness` | Readiness-sjekk |
 | `GET` | `/prometheus` | Prometheus-metrikker |
 
+## Meldingsvalidering
+
+Ved meldingsvalidering sjekkes service og action per retning mot `src/main/resources/roles/valid-roles.yaml` før oppslag i CPA eller Adresseregisteret. Kombinasjoner som ikke er tillatt, avvises med `recoverable = false` og skal ikke forsøkes på nytt. Gyldige ebMS-signaler (`Acknowledgment` og `MessageError`) er unntatt. Roller inngår ikke i denne forhåndssjekken; eksisterende rollevalidering og rolleoppslag er uendret.
+
 ## Database
 
 Bruker Oracle (legacy, via Vault) og PostgreSQL. Skjemamigrering håndteres av Flyway.
