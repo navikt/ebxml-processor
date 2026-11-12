@@ -2,6 +2,7 @@ package no.nav.emottak.message.model
 
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
+import no.nav.emottak.message.util.Base64ByteArraySerializer
 import no.nav.emottak.message.util.createUniqueMimeMessageId
 import no.nav.emottak.utils.common.model.Addressing
 import no.nav.emottak.utils.common.model.EbmsProcessing
@@ -128,6 +129,7 @@ data class EmailAddress(
 
 @Serializable
 data class Payload(
+    @Serializable(with = Base64ByteArraySerializer::class)
     val bytes: ByteArray,
     val contentType: String,
     val contentId: String = "att-${createUniqueMimeMessageId()}",
