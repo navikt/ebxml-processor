@@ -197,6 +197,31 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
     }
 
     @Test
+    fun `Utgaende svar til mottaker med HTTP-kanal gir HTTP-endepunkt`() = cpaRepoTestApp {
+        val httpClient = createClient {
+            install(ContentNegotiation) {
+                jsonLenient()
+            }
+            installCpaRepoAuthentication()
+        }
+        val response = runValidateCpa(
+            httpClient,
+            Addressing(
+                Party(listOf(PartyId("HER", "8090595")), "Utleverer"),
+                Party(listOf(PartyId("HER", "79768")), "Frikortregister"),
+                "HarBorgerEgenandelFritak",
+                "Svar"
+            ),
+            "nav:qass:31162"
+        )
+
+        val validationResult = response.body<ValidationResult>()
+        assertTrue(validationResult.valid(), "Validering feilet: ${validationResult.error}")
+        assertEquals("http://foo.bar", validationResult.receiverHttpEndpoint)
+        assertTrue(validationResult.receiverEmailAddress.isEmpty())
+    }
+
+    @Test
     @Disabled // TODO denne testen kan innkommenteres når alle meldinger, også dem uten CPA skal validers mot AR
     fun `Validation of certificate given by AR when cpa does not exist`() = cpaRepoTestApp {
         val httpClient = createClient {

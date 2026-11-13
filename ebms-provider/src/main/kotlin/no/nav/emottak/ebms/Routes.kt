@@ -101,6 +101,46 @@ fun Route.postEbmsSync(
     }
 }
 
+fun Route.postEbmsAsync(
+    cpaValidationService: CPAValidationService,
+    processingService: ProcessingService,
+    sendInService: SendInService
+): Route = post("/ebms/async") {
+    log.info("Receiving asynchronous request over HTTP")
+
+    val ebmsDocument = getEbmsDocument(call) ?: return@post
+    val ebmsMessage = ebmsDocument.transform() as PayloadMessage
+
+    var signingCertificate: SignatureDetails? = null
+    try {
+        val validationResult = cpaValidationService.validateIncomingMessage(ebmsMessage)
+        val (processedMessage, direction) = processingService.processSyncIn(ebmsMessage, validationResult.payloadProcessing)
+        if (direction != Direction.IN) {
+            throw EbmsException("Incoming processing produced an outgoing response that cannot be returned by /ebms/async")
+        }
+        sendInService.sendInAsynkron(processedMessage, validationResult.partnerId)
+
+        val acknowledgment = ebmsMessage.createAcknowledgment()
+        signingCertificate = cpaValidationService.validateOutgoingMessage(
+            acknowledgment
+        ).payloadProcessing!!.signingCertificate
+        call.respondEbmsDokument(
+            acknowledgment.toEbmsDokument().signer(signingCertificate),
+            HttpStatusCode.Accepted
+        )
+        log.info(acknowledgment.marker(), "Acknowledgment returned")
+    } catch (ebmsException: EbmsException) {
+        log.error(ebmsMessage.marker(), ebmsException.message, ebmsException)
+        val messageError = ebmsMessage.createMessageError(ebmsException.feil).toEbmsDokument()
+        signingCertificate?.let { messageError.signer(it) }
+        log.info(ebmsMessage.marker(), "Created MessageError response")
+        call.respondEbmsDokument(messageError)
+    } catch (ex: Exception) {
+        log.error(ebmsMessage.marker(), ex.message ?: "Unknown error during message processing", ex)
+        call.respond(HttpStatusCode.InternalServerError, ex.convertToSoapFault())
+    }
+}
+
 private suspend fun getEbmsDocument(
     call: RoutingCall
 ): EbmsDocument? {
