@@ -259,6 +259,16 @@ fun Route.postCpa(cpaRepository: CPARepository) = post("/cpa") {
         }
 }
 
+fun ValidationRequest.validateServiceAction(validRoles: ValidRoles) {
+    if (isSignalMessage()) return
+    if (!validRoles.isValidServiceAction(direction, addressing.service, addressing.action)) {
+        throw CpaValidationException(
+            "Ugyldig kombinasjon for melding med retning $direction: service ${addressing.service}, action ${addressing.action}",
+            recoverable = false
+        )
+    }
+}
+
 fun ValidationRequest.resolveOutgoingAddressing(validRoles: ValidRoles): Addressing {
     if (addressing.service == EBMS_SERVICE_URI) return addressing
     val mapping = validRoles.findOutgoing(addressing.service, addressing.action)
@@ -286,6 +296,7 @@ suspend fun AdresseregisterValidator.validateWithAR(
     sertifikatValidator: SertifikatValidator,
     validRoles: ValidRoles = no.nav.emottak.cpa.configuration.validRoles
 ): ValidationResult {
+    originalRequest.validateServiceAction(validRoles)
     if (!cpapiActive) {
         throw NotFoundException("Fant ikke CPA og adreseregisterValidator er deaktivert.")
     }
@@ -370,6 +381,7 @@ fun Route.validateCpa(
     val requestId = call.parameters[REQUEST_ID] ?: throw BadRequestException("Mangler $REQUEST_ID")
     try {
         log.info(validateRequest.marker(), "Validerer ebms mot CPA")
+        validateRequest.validateServiceAction(validRoles)
         val (cpa, lastUsed, preferredSource) = cpaRepository.findCpaWithPreferredSource(validateRequest.cpaId)
             ?: CPARepository.CpaAndPreferredSource(null, null, PreferredSource.CPA)
         if (cpa == null || preferredSource == PreferredSource.ADRESSEREGISTERET) {

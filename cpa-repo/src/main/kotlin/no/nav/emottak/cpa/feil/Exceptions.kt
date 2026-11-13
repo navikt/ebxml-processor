@@ -8,11 +8,13 @@ open class CpaValidationException(
     message: String,
     errorCode: ErrorCode = ErrorCode.DELIVERY_FAILURE,
     severity: String = SeverityType.ERROR.value()!!,
-    exception: Exception? = null
+    exception: Exception? = null,
+    recoverable: Boolean = true
 ) : EbmsException(
     message = message,
     errorCode = errorCode,
     severity = severity,
+    recoverable = recoverable,
     cause = exception
 )
 

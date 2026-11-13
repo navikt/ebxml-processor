@@ -27,6 +27,9 @@ class ValidRoles(private val mappings: List<RoleMapping>) {
 
     fun findOutgoing(service: String, action: String): RoleMapping? = outgoing[service to action]
 
+    fun isValidServiceAction(direction: Direction, service: String, action: String): Boolean =
+        mappings.any { it.direction == direction && it.service == service && it.action == action }
+
     fun isValidIncoming(fromRole: String, toRole: String, service: String, action: String): Boolean =
         mappings.any {
             it.direction == Direction.IN && it.service == service && it.action == action &&
