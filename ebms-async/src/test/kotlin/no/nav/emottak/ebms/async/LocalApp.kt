@@ -18,6 +18,7 @@ import io.mockk.just
 import io.mockk.mockkObject
 import kotlinx.coroutines.awaitCancellation
 import no.nav.emottak.ebms.CpaRepoClient
+import no.nav.emottak.ebms.EbmsHttpDeliveryClient
 import no.nav.emottak.ebms.PayloadProcessingClient
 import no.nav.emottak.ebms.SendInClient
 import no.nav.emottak.ebms.SmtpTransportClient
@@ -140,7 +141,8 @@ fun main() = SuspendApp {
         ebmsPayloadProducer = ebmsPayloadProducer,
         ebmsInPayloadProducer = ebmsInPayloadProducer,
         eventRegistrationService = eventRegistrationService,
-        messagePendingAckRepository = messagePendingAckRepository
+        messagePendingAckRepository = messagePendingAckRepository,
+        ebmsHttpDeliveryClient = EbmsHttpDeliveryClient(defaultHttpClient())
     )
 
     val retryService = RetryService(

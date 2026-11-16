@@ -83,7 +83,8 @@ data class ValidationResult(
     val receiverEmailAddress: List<EmailAddress> = emptyList(),
     val partnerId: Long? = null,
     val error: List<Feil>? = null,
-    val cpaAddressing: Addressing? = null
+    val cpaAddressing: Addressing? = null,
+    val receiverHttpEndpoint: String? = null
 ) {
     fun valid(): Boolean = error == null
 }

@@ -2,6 +2,7 @@ package no.nav.emottak.ebms.async.processing
 
 import io.ktor.http.ContentType
 import kotlinx.serialization.json.Json
+import no.nav.emottak.ebms.EbmsHttpDeliveryClient
 import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
 import no.nav.emottak.ebms.async.log
@@ -40,7 +41,8 @@ class PayloadMessageForwardingService(
     val ebmsPayloadProducer: EbmsMessageProducer,
     val ebmsInPayloadProducer: EbmsMessageProducer,
     val eventRegistrationService: EventRegistrationService,
-    val messagePendingAckRepository: MessagePendingAckRepository
+    val messagePendingAckRepository: MessagePendingAckRepository,
+    val ebmsHttpDeliveryClient: EbmsHttpDeliveryClient
 ) {
 
     suspend fun forwardMessageWithSyncResponse(payloadMessage: PayloadMessage) {
@@ -129,13 +131,25 @@ class PayloadMessageForwardingService(
             payloadMessage.conversationId,
             signedEbmsDocument.attachments
         )
-        sendMessageResponseToPayloadTopic(signedEbmsDocument, validationResult.receiverEmailAddress, payloadMessage.conversationId)
-        storeMessagePendingAck(
-            signedEbmsDocument,
-            validationResult.receiverEmailAddress,
-            ackReceived = !processedMessage.ackRequested,
-            ackSignatureRequested = processedMessage.ackSignatureRequested
-        )
+        val httpEndpoint = validationResult.receiverHttpEndpoint
+        if (httpEndpoint != null) {
+            sendMessageResponseViaHttp(signedEbmsDocument, httpEndpoint, payloadMessage.conversationId)
+            // The partner acknowledged synchronously, so the message is no longer pending ack and must not be resent by email
+            storeMessagePendingAck(
+                signedEbmsDocument,
+                emptyList(),
+                ackReceived = true,
+                ackSignatureRequested = processedMessage.ackSignatureRequested
+            )
+        } else {
+            sendMessageResponseToPayloadTopic(signedEbmsDocument, validationResult.receiverEmailAddress, payloadMessage.conversationId)
+            storeMessagePendingAck(
+                signedEbmsDocument,
+                validationResult.receiverEmailAddress,
+                ackReceived = !processedMessage.ackRequested,
+                ackSignatureRequested = processedMessage.ackSignatureRequested
+            )
+        }
         log.info(processedMessage.marker(), "Payload message response returned successfully")
     }
 
@@ -192,6 +206,22 @@ class PayloadMessageForwardingService(
                 value = signedEbmsDocument.document.toByteArray(),
                 headers = buildPayloadHeaders(signedEbmsDocument.messageHeader(), receiverEmailAddress)
             ).getOrThrow()
+        }
+    }
+
+    private suspend fun sendMessageResponseViaHttp(
+        signedEbmsDocument: EbmsDocument,
+        endpoint: String,
+        conversationId: String
+    ) {
+        eventRegistrationService.runWithEvent(
+            successEvent = EventType.MESSAGE_SENT_VIA_HTTP,
+            failEvent = EventType.ERROR_WHILE_SENDING_MESSAGE_VIA_HTTP,
+            requestId = signedEbmsDocument.requestId.parseOrGenerateUuid(),
+            messageId = signedEbmsDocument.messageHeader().messageData.messageId ?: "",
+            conversationId = conversationId
+        ) {
+            ebmsHttpDeliveryClient.deliver(endpoint, signedEbmsDocument)
         }
     }
 

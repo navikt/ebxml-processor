@@ -77,5 +77,6 @@ fun Application.ebmsProviderModule(
         registerNavCheckStatus()
 
         postEbmsSync(cpaValidationService, processing, sendInService)
+        postEbmsAsync(cpaValidationService, processing, sendInService)
     }
 }
