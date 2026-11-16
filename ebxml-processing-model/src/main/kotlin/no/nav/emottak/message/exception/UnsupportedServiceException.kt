@@ -11,7 +11,8 @@ val UNSUPPORTED_SERVICES = mapOf(
     "S-SYKEMELD".unsupportedMessage("Sykmelding"),
     "S-DIALOG_FORESPORSEL".unsupportedMessage(),
     "S-DIALOG_NOTAT".unsupportedMessage(),
-    "S-Svarmelding".unsupportedMessage()
+    "S-Svarmelding".unsupportedMessage(),
+    "HarBorgerFrikort".unsupportedMessage("Frikortoppslag API eller HarBorgerFrikort (ebXML via HTTP)")
 )
 
 private fun String.unsupportedMessage(suggestedService: String? = null): Pair<String, String> {
