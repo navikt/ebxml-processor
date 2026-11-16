@@ -263,7 +263,7 @@ fun ValidationRequest.validateServiceAction(validRoles: ValidRoles) {
     if (isSignalMessage()) return
     if (!validRoles.isValidServiceAction(direction, addressing.service, addressing.action)) {
         throw CpaValidationException(
-            "Ugyldig kombinasjon for melding med retning $direction: service ${addressing.service}, action ${addressing.action}",
+            "Ugyldig kombinasjon av service ${addressing.service}, action ${addressing.action}",
             recoverable = false
         )
     }
