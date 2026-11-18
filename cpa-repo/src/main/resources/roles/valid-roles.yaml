@@ -1,4 +1,5 @@
-# Valid role / Service / Action combinations used when there is no CPA (Adresseregisteret is not a source of truth for roles).
+# Service+Action whitelist per direction, checked before CPA or Adresseregisteret lookup; unknown combinations are not retried.
+# Roles below are used when there is no CPA (Adresseregisteret is not a source of truth for roles).
 #   OUT (NAV -> partner): used to look up fromRole/toRole. Service+Action must be unique per direction.
 #   IN  (partner -> NAV): the message's fromRole/toRole/Service/Action must match an entry.
 # The sending role (fromRole) must have a matching row in db/migration/R__init_process_config.sql.

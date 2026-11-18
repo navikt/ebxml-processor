@@ -40,7 +40,7 @@ import no.nav.emottak.cpa.persistence.PreferredSource
 import no.nav.emottak.cpa.persistence.gammel.PartnerRepository
 import no.nav.emottak.cpa.util.EventRegistrationServiceFake
 import no.nav.emottak.cpa.validation.AdresseregisterValidator
-import no.nav.emottak.message.model.Direction.IN
+import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.EmailAddress
 import no.nav.emottak.message.model.ErrorCode
 import no.nav.emottak.message.model.MessagingCharacteristicsRequest
@@ -212,7 +212,8 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
                 "HarBorgerEgenandelFritak",
                 "Svar"
             ),
-            "nav:qass:31162"
+            "nav:qass:31162",
+            Direction.OUT
         )
 
         val validationResult = response.body<ValidationResult>()
@@ -982,9 +983,9 @@ class CPARepoIntegrationTest : PostgresOracleTest() {
         return xmlMarshaller.unmarshal(testCpaString, CollaborationProtocolAgreement::class.java)
     }
 
-    private suspend fun runValidateCpa(httpClient: HttpClient, addressing: Addressing, cpaId: String): HttpResponse {
+    private suspend fun runValidateCpa(httpClient: HttpClient, addressing: Addressing, cpaId: String, direction: Direction = Direction.IN): HttpResponse {
         val validationRequest = ValidationRequest(
-            IN,
+            direction,
             "e17eb03e-9e43-43fb-874c-1fde9a28c308",
             "1234",
             cpaId = cpaId,
