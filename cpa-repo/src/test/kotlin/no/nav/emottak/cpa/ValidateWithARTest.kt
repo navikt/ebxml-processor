@@ -11,11 +11,14 @@ import io.ktor.http.contentType
 import io.ktor.server.application.install
 import io.ktor.server.routing.routing
 import io.ktor.server.testing.testApplication
+import io.mockk.Called
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.runBlocking
+import no.nav.emottak.cpa.feil.CpaValidationException
 import no.nav.emottak.cpa.persistence.CPARepository
 import no.nav.emottak.cpa.persistence.PreferredSource
 import no.nav.emottak.cpa.persistence.gammel.PartnerRepository
@@ -33,6 +36,7 @@ import no.nav.emottak.validering.sertifikat.SertifikatValidator
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class ValidateWithARTest {
@@ -115,6 +119,30 @@ class ValidateWithARTest {
     }
 
     @Test
+    fun `unknown service action is rejected before adresseregister lookup without retry`() {
+        val engine = getFakeNhnAdresseregisterEngine()
+        val adresseregisterValidator = AdresseregisterValidator(HttpClient(engine))
+        val cpaRepository = mockk<CPARepository>()
+        val sertifikatValidator = mockk<SertifikatValidator>()
+        val request = createValidValidationRequest().let {
+            it.copy(addressing = it.addressing.copy(action = "UnknownAction"))
+        }
+
+        val exception = assertThrows<CpaValidationException> {
+            runBlocking {
+                adresseregisterValidator.validateWithAR(cpaRepository, request, sertifikatValidator)
+            }
+        }
+
+        assertFalse(exception.isRecoverable())
+        assertTrue(engine.requestHistory.isEmpty())
+        verify {
+            cpaRepository wasNot Called
+            sertifikatValidator wasNot Called
+        }
+    }
+
+    @Test
     fun `Ugyldig signeringssertifikat fra adresseregisteret stopper validering`() {
         val engine = getFakeNhnAdresseregisterEngine()
         val adresseregisterValidator = AdresseregisterValidator(
@@ -128,7 +156,7 @@ class ValidateWithARTest {
         val sertifikatValidator = mockk<SertifikatValidator>()
         coEvery { sertifikatValidator.validateCertificate(any()) } throws CertificateValidationException("Sertifikat revokert")
         val validationRequest = createValidValidationRequest().let {
-            it.copy(addressing = it.addressing.copy(service = EBMS_SERVICE_URI))
+            it.copy(addressing = it.addressing.copy(service = EBMS_SERVICE_URI, action = ACKNOWLEDGMENT_ACTION))
         }
 
         val exception = assertThrows<CertificateValidationException> {
