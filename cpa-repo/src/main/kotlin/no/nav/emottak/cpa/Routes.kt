@@ -384,15 +384,20 @@ fun Route.validateCpa(
         validateRequest.validateServiceAction(validRoles)
         val (cpa, lastUsed, preferredSource) = cpaRepository.findCpaWithPreferredSource(validateRequest.cpaId)
             ?: CPARepository.CpaAndPreferredSource(null, null, PreferredSource.CPA)
-        if (cpa == null || preferredSource == PreferredSource.ADRESSEREGISTERET) {
-            if (preferredSource == PreferredSource.ADRESSEREGISTERET && // TODO, fjern denne når alle uten CPA skal valideres mot AR.
+        val preferAdresseregisteret = preferredSource == PreferredSource.ADRESSEREGISTERET ||
+            (validateRequest.direction == Direction.IN && validateRequest.isSignalMessage())
+        if (cpa == null || preferAdresseregisteret) {
+            if (preferAdresseregisteret && // TODO, fjern denne når alle uten CPA skal valideres mot AR.
                 adresseregisterValidator != null && adresseregisterValidator.cpapiActive
             ) {
-                log.info(validateRequest.marker(), "CPA ${validateRequest.cpaId} er satt til å foretrekke Adresseregisteret fremfor CPA-oppslag.")
+                log.info(validateRequest.marker(), "Using Adresseregisteret instead of CPA lookup for ${validateRequest.cpaId}.")
                 runCatching {
                     adresseregisterValidator.validateWithAR(cpaRepository, validateRequest, sertifikatValidator)
                 }.onSuccess { arValidationResult ->
                     if (arValidationResult.valid()) {
+                        if (validateRequest.isSignalMessage()) {
+                            log.info(validateRequest.marker(), "Signalmelding validert OK mot AR.")
+                        }
                         call.respond(arValidationResult)
                         return@post
                     } else {
