@@ -13,7 +13,7 @@ import java.time.Instant
 data class MessageError(
     override val requestId: String,
     override val messageId: String,
-    override val refToMessageId: String,
+    override val refToMessageId: String = MISSING_REF,
     override val conversationId: String,
     override val cpaId: String,
     override val addressing: Addressing,
@@ -22,6 +22,10 @@ data class MessageError(
     override val sentAt: Instant? = null
 
 ) : EbmsMessage() {
+
+    companion object {
+        const val MISSING_REF = "MISSING_REF"
+    }
 
     override fun toEbmsDokument(): EbmsDocument {
         val header = this.createMessageHeader(

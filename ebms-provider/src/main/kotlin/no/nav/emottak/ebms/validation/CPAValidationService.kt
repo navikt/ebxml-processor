@@ -1,5 +1,6 @@
 package no.nav.emottak.ebms.validation
 
+import io.ktor.utils.io.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import no.nav.emottak.ebms.CpaRepoClient
@@ -10,7 +11,6 @@ import no.nav.emottak.message.model.Direction.IN
 import no.nav.emottak.message.model.Direction.OUT
 import no.nav.emottak.message.model.EbmsMessage
 import no.nav.emottak.message.model.ErrorCode
-import no.nav.emottak.message.model.Feil
 import no.nav.emottak.message.model.MessagingCharacteristicsRequest
 import no.nav.emottak.message.model.MessagingCharacteristicsResponse
 import no.nav.emottak.message.model.ValidationRequest
@@ -84,18 +84,12 @@ open class CPAValidationService(
         if (checkSignature) {
             try {
                 message.validateSignature(validationResult.payloadProcessing!!.signingCertificate, clock)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: EbmsException) {
                 throw e
             } catch (e: Exception) {
-                throw EbmsException(
-                    (validationResult.error ?: listOf()) + listOf(
-                        Feil(
-                            ErrorCode.SECURITY_FAILURE,
-                            "Signeringsfeil: ${e.message}"
-                        )
-                    ),
-                    e
-                )
+                throw EbmsException("Signeringsfeil: ${e.message}", ErrorCode.SECURITY_FAILURE, cause = e)
             }
         }
         return validationResult

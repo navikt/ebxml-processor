@@ -14,6 +14,30 @@ import kotlin.test.assertNotNull
 class MessageErrorTest {
 
     @Test
+    fun `Missing RefToMessageId defaults to sentinel when transforming MessageError`() {
+        val payloadMessage = createPayloadMessage()
+        val messageError = MessageError(
+            requestId = payloadMessage.requestId,
+            messageId = payloadMessage.messageId,
+            conversationId = payloadMessage.conversationId,
+            cpaId = payloadMessage.cpaId,
+            addressing = payloadMessage.addressing,
+            feil = listOf(Feil(ErrorCode.SECURITY_FAILURE, "Test error message"))
+        )
+
+        assertEquals(MessageError.MISSING_REF, messageError.refToMessageId)
+        val document = messageError.toEbmsDokument()
+        val refToMessageId = document.document.getElementsByTagNameNS(
+            EbXMLConstants.OASIS_EBXML_MSG_HEADER_XSD_NS_URI,
+            "RefToMessageId"
+        ).item(0)
+        refToMessageId.parentNode.removeChild(refToMessageId)
+
+        val transformed = document.transform() as MessageError
+        assertEquals(MessageError.MISSING_REF, transformed.refToMessageId)
+    }
+
+    @Test
     fun `MessageError from PayloadMessage has correct values set`() {
         val payloadMessage = createPayloadMessage()
         val failureList = listOf(
