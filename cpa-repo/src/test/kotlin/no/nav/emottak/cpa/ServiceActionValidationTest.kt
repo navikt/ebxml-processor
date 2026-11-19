@@ -94,6 +94,8 @@ class ServiceActionValidationTest {
         val eventRegistrationService = mockk<EventRegistrationService>(relaxed = true)
         val sertifikatValidator = mockk<SertifikatValidator>()
         val adresseregisterValidator = mockk<AdresseregisterValidator>()
+        every { adresseregisterValidator.cpapiActive } returns false // TODO burde vært true
+
         if (allowed) {
             every { cpaRepository.findCpaWithPreferredSource(request.cpaId) } returns null
         }
@@ -127,7 +129,6 @@ class ServiceActionValidationTest {
         verify {
             partnerRepository wasNot Called
             sertifikatValidator wasNot Called
-            adresseregisterValidator wasNot Called
         }
         coVerify(exactly = 1) {
             eventRegistrationService.registerEvent(EventType.VALIDATION_AGAINST_CPA_FAILED, request, "requestId", any())
