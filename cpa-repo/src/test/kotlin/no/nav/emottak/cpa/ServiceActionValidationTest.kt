@@ -11,10 +11,12 @@ import io.ktor.server.application.install
 import io.ktor.server.routing.routing
 import io.ktor.server.testing.testApplication
 import io.mockk.Called
+import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import no.nav.emottak.cpa.nhn.adresseregisteret.model.Certificate
 import no.nav.emottak.cpa.persistence.CPARepository
 import no.nav.emottak.cpa.persistence.gammel.PartnerRepository
 import no.nav.emottak.cpa.util.EventRegistrationService
@@ -24,14 +26,17 @@ import no.nav.emottak.message.ebxml.EbXMLConstants.EBMS_SERVICE_URI
 import no.nav.emottak.message.ebxml.EbXMLConstants.MESSAGE_ERROR_ACTION
 import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.ErrorCode
+import no.nav.emottak.message.model.ProcessConfig
 import no.nav.emottak.message.model.ValidationRequest
 import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.util.jsonLenient
 import no.nav.emottak.utils.kafka.model.EventType
+import no.nav.emottak.utils.serialization.LENIENT_JSON_PARSER
 import no.nav.emottak.validering.sertifikat.SertifikatValidator
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 class ServiceActionValidationTest {
     @Test
@@ -94,10 +99,26 @@ class ServiceActionValidationTest {
         val eventRegistrationService = mockk<EventRegistrationService>(relaxed = true)
         val sertifikatValidator = mockk<SertifikatValidator>()
         val adresseregisterValidator = mockk<AdresseregisterValidator>()
-        every { adresseregisterValidator.cpapiActive } returns false // TODO burde vært true
+        every { adresseregisterValidator.cpapiActive } returns true
+        val validatesWithAR = allowed && request.direction == Direction.IN && request.addressing.service == EBMS_SERVICE_URI
 
         if (allowed) {
             every { cpaRepository.findCpaWithPreferredSource(request.cpaId) } returns null
+        }
+        if (validatesWithAR) {
+            val signingCertificate = LENIENT_JSON_PARSER.decodeFromString<Certificate>(
+                javaClass.getResource("/adresseregister/SPEAREAS_qass_35065_SignCert.json")!!.readText()
+            )
+            val encryptionCertificate = LENIENT_JSON_PARSER.decodeFromString<Certificate>(
+                javaClass.getResource("/adresseregister/NavEncryptCert.json")!!.readText()
+            )
+            coEvery { adresseregisterValidator.getSigningCertificate("8141253") } returns signingCertificate
+            coEvery { sertifikatValidator.validateCertificate(any()) } returns Unit
+            coEvery { adresseregisterValidator.getEdiAddress("79768") } returns "nav@example.test"
+            coEvery { adresseregisterValidator.getEncryptionCertificate("79768") } returns encryptionCertificate
+            every {
+                cpaRepository.getProcessConfig(request.addressing.from.role, request.addressing.service, request.addressing.action)
+            } returns ProcessConfig(false, false, false, false, false, false, false, false, null, null)
         }
         application {
             install(io.ktor.server.plugins.contentnegotiation.ContentNegotiation) {
@@ -118,19 +139,27 @@ class ServiceActionValidationTest {
         }
 
         assertEquals(HttpStatusCode.OK, response.status)
-        val error = assertNotNull(response.body<ValidationResult>().error).single()
-        assertEquals(ErrorCode.DELIVERY_FAILURE, error.code)
-        assertEquals(allowed, error.recoverable)
+        val result = response.body<ValidationResult>()
+        if (validatesWithAR) {
+            assertTrue(result.valid())
+            assertNotNull(result.payloadProcessing)
+            coVerify(exactly = 1) { adresseregisterValidator.getSigningCertificate("8141253") }
+            coVerify(exactly = 1) { adresseregisterValidator.getEdiAddress("79768") }
+            coVerify(exactly = 1) { adresseregisterValidator.getEncryptionCertificate("79768") }
+            coVerify(exactly = 1) { sertifikatValidator.validateCertificate(any()) }
+        } else {
+            val error = assertNotNull(result.error).single()
+            assertEquals(ErrorCode.DELIVERY_FAILURE, error.code)
+            assertEquals(allowed, error.recoverable)
+            verify { sertifikatValidator wasNot Called }
+        }
         if (allowed) {
             verify(exactly = 1) { cpaRepository.findCpaWithPreferredSource(request.cpaId) }
         } else {
             verify { cpaRepository wasNot Called }
         }
-        verify {
-            partnerRepository wasNot Called
-            sertifikatValidator wasNot Called
-        }
-        coVerify(exactly = 1) {
+        verify { partnerRepository wasNot Called }
+        coVerify(exactly = if (validatesWithAR) 0 else 1) {
             eventRegistrationService.registerEvent(EventType.VALIDATION_AGAINST_CPA_FAILED, request, "requestId", any())
         }
     }
