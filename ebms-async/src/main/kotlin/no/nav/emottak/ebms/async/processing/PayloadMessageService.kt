@@ -43,7 +43,10 @@ class PayloadMessageService(
     ) {
         runCatching {
             if (forceSkipDuplicateCheck) {
-                log.warn(ebmsPayloadMessage.marker(), "Skipping duplicate check. (forceSkipDuplicateCheck = true). Bypassing Acknowlegment.")
+                log.warn(
+                    ebmsPayloadMessage.marker(),
+                    "Skipping duplicate check. (forceSkipDuplicateCheck = true). Bypassing Acknowlegment."
+                )
                 processWithoutAcknow(record, ebmsPayloadMessage)
                 return
             }
@@ -100,15 +103,29 @@ class PayloadMessageService(
         }
     }
 
-    private suspend fun handleUnsupportedServiceException(ebmsPayloadMessage: PayloadMessage, exception: EbmsException) {
-        eventRegistrationService.registerMessageCompleted(ebmsPayloadMessage, eventData = "{\"unsupported_service\": \"${exception.message}\"}")
+    private suspend fun handleUnsupportedServiceException(
+        ebmsPayloadMessage: PayloadMessage,
+        exception: EbmsException
+    ) {
+        eventRegistrationService.registerMessageCompleted(
+            ebmsPayloadMessage,
+            eventData = "{\"unsupported_service\": \"${exception.message}\"}"
+        )
         log.warn(ebmsPayloadMessage.marker(), exception.message)
     }
 
     private suspend fun handleEbmsException(ebmsPayloadMessage: PayloadMessage, exception: EbmsException) {
         when (exception) {
-            is SignatureValidationException -> eventRegistrationService.registerSignatureValidationFailed(ebmsPayloadMessage, exception)
-            is CertificateValidationException -> eventRegistrationService.registerCertificateValidationFailed(ebmsPayloadMessage, exception)
+            is SignatureValidationException -> eventRegistrationService.registerSignatureValidationFailed(
+                ebmsPayloadMessage,
+                exception
+            )
+
+            is CertificateValidationException -> eventRegistrationService.registerCertificateValidationFailed(
+                ebmsPayloadMessage,
+                exception
+            )
+
             else -> eventRegistrationService.registerUnknownError(ebmsPayloadMessage, exception)
         }
         log.error(ebmsPayloadMessage.marker(), exception.message ?: "Message processing ebms error", exception)
@@ -155,7 +172,10 @@ class PayloadMessageService(
         )
         val incomingMessage = messageReceivedRepository.getByMessageId(ebmsPayloadMessage.refToMessageId!!)
         if (incomingMessage == null) {
-            log.warn(ebmsPayloadMessage.marker(), "Could not find incoming message with message id ${ebmsPayloadMessage.refToMessageId}")
+            log.warn(
+                ebmsPayloadMessage.marker(),
+                "Could not find incoming message with message id ${ebmsPayloadMessage.refToMessageId}"
+            )
             payloadMessageForwardingService.returnMessageResponse(ebmsPayloadMessage)
         } else {
             log.debug(
@@ -164,7 +184,18 @@ class PayloadMessageService(
                 ebmsPayloadMessage.refToMessageId,
                 incomingMessage
             )
-            val toParty = Party(listOf(PartyId("", incomingMessage.senderId)), incomingMessage.senderRole)
+            val incomingPartyIdType =
+                incomingMessage.senderId.takeIf { it.length == 9 }?.let { "ENH" } ?: "HER" // Litt hacky men i praksis vil ikke HERID ha 9 sifer selv om de kan
+            val toParty = Party(
+                listOf(
+                    PartyId(
+                        incomingPartyIdType,
+                        incomingMessage.senderId
+                    )
+                ),
+                incomingMessage.senderRole
+            )
+
             val addressing = Addressing(
                 toParty,
                 ebmsPayloadMessage.addressing.from,

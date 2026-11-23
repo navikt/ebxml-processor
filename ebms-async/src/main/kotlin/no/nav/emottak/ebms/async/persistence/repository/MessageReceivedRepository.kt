@@ -29,7 +29,7 @@ class MessageReceivedRepository(private val database: Database) {
                 it[refToMessageId] = ebmsPayloadMessage.refToMessageId
                 it[cpaId] = ebmsPayloadMessage.cpaId
                 it[senderRole] = ebmsPayloadMessage.addressing.from.role
-                it[senderId] = ebmsPayloadMessage.addressing.from.partyId.getPreferredPartyId().value
+                it[senderId] = ebmsPayloadMessage.addressing.from.partyId.getPreferredPartyId().value // TODO burde lagre type
                 it[receiverRole] = ebmsPayloadMessage.addressing.to.role
                 it[receiverId] = ebmsPayloadMessage.addressing.to.partyId.getPreferredPartyId().value
                 it[service] = ebmsPayloadMessage.addressing.service
