@@ -112,6 +112,7 @@ fun cpaApplicationModule(
                 partnerId(PartnerRepository(oracleDb), cpaRepository, sertifikatValidator)
             }
             getCPA(cpaRepository)
+            getCPAWithHerId(cpaRepository, sertifikatValidator)
             getCpaView(cpaRepository)
             getTimeStampsDeprecated()
             getTimeStamps(cpaRepository)
