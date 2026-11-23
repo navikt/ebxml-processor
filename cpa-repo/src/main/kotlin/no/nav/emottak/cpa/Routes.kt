@@ -25,11 +25,10 @@ import no.nav.emottak.cpa.configuration.validRoles
 import no.nav.emottak.cpa.feil.CpaValidationException
 import no.nav.emottak.cpa.feil.MultiplePartnerException
 import no.nav.emottak.cpa.feil.PartnerNotFoundException
+import no.nav.emottak.cpa.persistence.CPA.cpa
+import no.nav.emottak.cpa.persistence.CPA.lastUsed
 import no.nav.emottak.cpa.persistence.CPARepository
 import no.nav.emottak.cpa.persistence.PreferredSource
-import no.nav.emottak.cpa.persistence.ProcessConfigTable.action
-import no.nav.emottak.cpa.persistence.ProcessConfigTable.role
-import no.nav.emottak.cpa.persistence.ProcessConfigTable.service
 import no.nav.emottak.cpa.persistence.gammel.PartnerRepository
 import no.nav.emottak.cpa.util.EventRegistrationService
 import no.nav.emottak.cpa.validation.AdresseregisterValidator
@@ -109,29 +108,34 @@ fun Route.deleteAllCPA(cpaRepository: CPARepository): Route = get("/cpa/deleteAl
     call.respond("Number of deleted cpa ${cpaRepository.deleteAll()}")
 }
 
+suspend fun findLatestValidCpaByHerid(herId: String, cpaRepository: CPARepository, sertifikatValidator: SertifikatValidator): CollaborationProtocolAgreement {
+    return runCatching {
+        cpaRepository.cpaByHerId(herId).onEach {
+            log.info(xmlMarshaller.marshal(it.value))
+        }.filter {
+            val now = Date()
+            it.value.start.before(now)
+            it.value.end.after(now)
+        }.filter {
+            // filter out alle med revokert sertifikat
+            val partyInfo = it.value.getPartyInfoByTypeAndID(PartyTypeEnum.HER.type, herId)
+            runCatching {
+                sertifikatValidator.validateCertificate(createX509Certificate(partyInfo.getCertificateForEncryption()))
+            }.isSuccess
+        }.maxBy {
+            it.key
+        }.value
+    }.getOrThrow()
+}
+
 fun Route.getCPAWithHerId(
     cpaRepository: CPARepository,
     sertifikatValidator: SertifikatValidator
 ): Route =
     get("/cpa/her/{$HER_ID}") {
         val herId = call.parameters[HER_ID] ?: throw BadRequestException("Mangler $HER_ID")
-        val now = Date()
-
         runCatching {
-            cpaRepository.cpaByHerId(herId).onEach {
-                log.info(xmlMarshaller.marshal(it.value))
-            }.filter {
-                it.value.start.before(now)
-                it.value.end.after(now)
-            }.filter {
-                // filter out alle med revokert sertifikat
-                val partyInfo = it.value.getPartyInfoByTypeAndID(PartyTypeEnum.HER.type, herId)
-                runCatching {
-                    sertifikatValidator.validateCertificate(createX509Certificate(partyInfo.getCertificateForEncryption()))
-                }.isSuccess
-            }.maxBy {
-                it.key
-            }.value
+            findLatestValidCpaByHerid(herId, cpaRepository, sertifikatValidator)
         }.onSuccess {
             log.info("CPA ${it.cpaid} funnet for HER ID $herId")
             call.respond(HttpStatusCode.OK, it)
@@ -405,6 +409,27 @@ fun ValidationRequest.getToFromPartyInfo(cpa: CollaborationProtocolAgreement): T
     return Triple(toParty, fromParty, cpaAddressing)
 }
 
+private suspend fun findFallbackCpaForValidationRequest(
+    validateRequest: ValidationRequest,
+    cpaRepository: CPARepository,
+    sertifikatValidator: SertifikatValidator
+): CollaborationProtocolAgreement? {
+    if (validateRequest.direction != Direction.OUT) {
+        return null
+    }
+
+    val receiverHerId = validateRequest.addressing.to.partyId
+        .firstOrNull { it.type == "HER" }
+        ?.value
+        ?: return null
+
+    return findLatestValidCpaByHerid(
+        receiverHerId,
+        cpaRepository,
+        sertifikatValidator
+    )
+}
+
 fun Route.validateCpa(
     cpaRepository: CPARepository,
     partnerRepository: PartnerRepository,
@@ -418,7 +443,11 @@ fun Route.validateCpa(
         log.info(validateRequest.marker(), "Validerer ebms mot CPA")
         validateRequest.validateServiceAction(validRoles)
         val (cpa, lastUsed, preferredSource) = cpaRepository.findCpaWithPreferredSource(validateRequest.cpaId)
-            ?: CPARepository.CpaAndPreferredSource(null, null, PreferredSource.CPA)
+            ?: CPARepository.CpaAndPreferredSource(
+                findFallbackCpaForValidationRequest(validateRequest, cpaRepository, sertifikatValidator),
+                Instant.now(),
+                PreferredSource.CPA
+            )
         val preferAdresseregisteret = preferredSource == PreferredSource.ADRESSEREGISTERET ||
             (validateRequest.direction == Direction.IN && validateRequest.isSignalMessage())
         if (cpa == null || preferAdresseregisteret) {

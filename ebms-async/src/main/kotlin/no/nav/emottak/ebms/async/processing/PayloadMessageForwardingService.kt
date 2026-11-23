@@ -105,7 +105,8 @@ class PayloadMessageForwardingService(
     // Used to send OUT a response from NAV
     suspend fun returnMessageResponse(payloadMessage: PayloadMessage) {
         eventRegistrationService.registerEventMessageDetails(payloadMessage)
-        val validationResult = cpaValidationService.validateOutgoingMessage(payloadMessage)
+
+        val validationResult = cpaValidationService.validateOutgoingMessage(payloadMessage) // TODO
         val (duplicateElimination, ackRequested, ackSignatureRequested) = with(cpaValidationService.getMessageCharacteristicsType(payloadMessage)) {
             Triple(
                 this.duplicateElimination != PerMessageCharacteristicsType.NEVER,
