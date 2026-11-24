@@ -40,7 +40,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Docker build and push ebms-provider
-        uses: nais/docker-build-push@v0
+        uses: nais/docker-build-push@v1
         id: docker-push-ebms-provider
         with:
           team: team-emottak # required
@@ -49,7 +49,7 @@ jobs:
           docker_context: ebms-provider # optional, default .
           image_suffix: ebms-provider
       - name: Docker build and push ebms-payload
-        uses: nais/docker-build-push@v0
+        uses: nais/docker-build-push@v1
         id: docker-push-ebms-payload
         with:
           team: team-emottak # required
@@ -58,7 +58,7 @@ jobs:
           docker_context: ebms-payload # optional, default .
           image_suffix: ebms-payload
       - name: Docker build and push cpa-repo
-        uses: nais/docker-build-push@v0
+        uses: nais/docker-build-push@v1
         id: docker-push-cpa-repo
         with:
           team: team-emottak # required
@@ -67,7 +67,7 @@ jobs:
           docker_context: cpa-repo # optional, default .
           image_suffix: cpa-repo
       - name: Docker build and push ebms-async
-        uses: nais/docker-build-push@v0
+        uses: nais/docker-build-push@v1
         id: docker-push-ebms-async
         with:
           team: team-emottak # required
