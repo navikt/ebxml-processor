@@ -25,8 +25,6 @@ import no.nav.emottak.cpa.configuration.validRoles
 import no.nav.emottak.cpa.feil.CpaValidationException
 import no.nav.emottak.cpa.feil.MultiplePartnerException
 import no.nav.emottak.cpa.feil.PartnerNotFoundException
-import no.nav.emottak.cpa.persistence.CPA.cpa
-import no.nav.emottak.cpa.persistence.CPA.lastUsed
 import no.nav.emottak.cpa.persistence.CPARepository
 import no.nav.emottak.cpa.persistence.PreferredSource
 import no.nav.emottak.cpa.persistence.gammel.PartnerRepository
@@ -39,6 +37,7 @@ import no.nav.emottak.message.ebxml.EbXMLConstants.ACKNOWLEDGMENT_ACTION
 import no.nav.emottak.message.ebxml.EbXMLConstants.EBMS_SERVICE_URI
 import no.nav.emottak.message.ebxml.EbXMLConstants.MESSAGE_ERROR_ACTION
 import no.nav.emottak.message.ebxml.PartyTypeEnum
+import no.nav.emottak.message.exception.CertificateValidationException
 import no.nav.emottak.message.exception.EbmsException
 import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.EmailAddress
@@ -108,24 +107,21 @@ fun Route.deleteAllCPA(cpaRepository: CPARepository): Route = get("/cpa/deleteAl
     call.respond("Number of deleted cpa ${cpaRepository.deleteAll()}")
 }
 
-suspend fun findLatestValidCpaByHerid(herId: String, cpaRepository: CPARepository, sertifikatValidator: SertifikatValidator): CollaborationProtocolAgreement {
-    return runCatching {
-        cpaRepository.cpaByHerId(herId).onEach {
-            log.info(xmlMarshaller.marshal(it.value))
-        }.filter {
-            val now = Date()
-            it.value.start.before(now)
-            it.value.end.after(now)
-        }.filter {
-            // filter out alle med revokert sertifikat
-            val partyInfo = it.value.getPartyInfoByTypeAndID(PartyTypeEnum.HER.type, herId)
-            runCatching {
+suspend fun findLatestValidCpaByHerid(herId: String, cpaRepository: CPARepository, sertifikatValidator: SertifikatValidator): CollaborationProtocolAgreement? {
+    val now = Date()
+    return cpaRepository.cpaByHerId(herId).entries
+        .filter { (updateDate, cpa) -> cpa.start.before(now) && cpa.end.after(now) }
+        .sortedByDescending { it.key }
+        .firstOrNull { (updateDate, cpa) ->
+            val partyInfo = cpa.getPartyInfoByTypeAndID(PartyTypeEnum.HER.type, herId)
+            try {
                 sertifikatValidator.validateCertificate(createX509Certificate(partyInfo.getCertificateForEncryption()))
-            }.isSuccess
-        }.maxBy {
-            it.key
-        }.value
-    }.getOrThrow()
+                true
+            } catch (ex: CertificateValidationException) {
+                log.warn("Ugyldig sertifikat for CPA ${cpa.cpaid}", ex)
+                false
+            }
+        }?.value
 }
 
 fun Route.getCPAWithHerId(
@@ -136,6 +132,7 @@ fun Route.getCPAWithHerId(
         val herId = call.parameters[HER_ID] ?: throw BadRequestException("Mangler $HER_ID")
         runCatching {
             findLatestValidCpaByHerid(herId, cpaRepository, sertifikatValidator)
+                ?: throw NotFoundException("Fant ikke CPA for $HER_ID $herId")
         }.onSuccess {
             log.info("CPA ${it.cpaid} funnet for HER ID $herId")
             call.respond(HttpStatusCode.OK, it)
@@ -442,7 +439,8 @@ fun Route.validateCpa(
     try {
         log.info(validateRequest.marker(), "Validerer ebms mot CPA")
         validateRequest.validateServiceAction(validRoles)
-        val (cpa, lastUsed, preferredSource) = cpaRepository.findCpaWithPreferredSource(validateRequest.cpaId)
+        val cpaById = cpaRepository.findCpaWithPreferredSource(validateRequest.cpaId)
+        val (cpa, lastUsed, preferredSource) = cpaById
             ?: CPARepository.CpaAndPreferredSource(
                 findFallbackCpaForValidationRequest(validateRequest, cpaRepository, sertifikatValidator),
                 Instant.now(),
@@ -501,7 +499,7 @@ fun Route.validateCpa(
         }
 
         if (!validateRequest.isSignalMessage()) {
-            cpa.validate(validateRequest)
+            cpa.validate(if (cpaById == null) validateRequest.copy(cpaId = cpa.cpaid) else validateRequest)
         } // Delivery Failure
         val encryptionCertificate = toParty.getCertificateForEncryption()
         val signingCertificate = fromParty.getCertificateForSignatureValidation(

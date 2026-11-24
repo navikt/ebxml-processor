@@ -104,6 +104,7 @@ class ServiceActionValidationTest {
 
         if (allowed) {
             every { cpaRepository.findCpaWithPreferredSource(request.cpaId) } returns null
+            every { cpaRepository.cpaByHerId(any()) } returns emptyMap()
         }
         if (validatesWithAR) {
             val signingCertificate = LENIENT_JSON_PARSER.decodeFromString<Certificate>(
