@@ -535,7 +535,8 @@ fun Route.validateCpa(
                 toParty.getReceiveEmailAddress(validateRequest),
                 this.runCatching { partnerRepository.findPartnerId(cpa.cpaid) }.getOrNull(),
                 cpaAddressing = validateRequest.addressing,
-                receiverHttpEndpoint = toParty.getReceiveHttpEndpoint(validateRequest)
+                receiverHttpEndpoint = toParty.getReceiveHttpEndpoint(validateRequest),
+                latestCpa = cpa.cpaid
             )
         )
 

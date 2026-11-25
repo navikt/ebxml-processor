@@ -122,6 +122,8 @@ class PayloadMessageForwardingService(
                 ackSignatureRequested = ackSignatureRequested
             ),
             validationResult.payloadProcessing
+        ).copy(
+            cpaId = validationResult.latestCpa,
         )
         val signedEbmsDocument = processedMessage.toEbmsDokument()
             .signer(validationResult.payloadProcessing!!.signingCertificate)
