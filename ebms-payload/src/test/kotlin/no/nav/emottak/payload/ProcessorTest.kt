@@ -31,6 +31,7 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertThrows
+import java.io.ByteArrayInputStream
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -259,5 +260,23 @@ class ProcessorTest : PayloadTestBase() {
         coVerify(exactly = 1) { eventRegistrationService.registerSignatureValidationSuccessful(request, Fixtures.signingCertificate()) }
         coVerify(exactly = 1) { eventRegistrationService.registerEvent(EventType.OCSP_CHECK_SUCCESSFUL, request, any()) }
         coVerify(exactly = 0) { eventRegistrationService.registerSignatureValidationFailed(any(), any(), any()) }
+    }
+
+    @Test
+    fun `validateReadablePayload throws SignatureException for a malformed signature element so an AppRec can be returned`() = runBlocking {
+        setupEnv()
+        val processor = buildProcessor()
+        val validPayload: Payload = Fixtures.validEgenandelForesporsel()
+        val malformedBytes = createDocument(ByteArrayInputStream(validPayload.bytes)).let { doc ->
+            val signedInfo = doc.getElementsByTagNameNS(Constants.SignatureSpecNS, Constants._TAG_SIGNEDINFO).item(0)
+            signedInfo.parentNode.removeChild(signedInfo)
+            getByteArrayFromDocument(doc)
+        }
+        val payload = validPayload.copy(bytes = malformedBytes)
+        val request = baseRequest(payload = payload)
+
+        assertThrows<SignatureException> {
+            processor.validateReadablePayload(request.marker(), payload, request, request.processing.processConfig)
+        }
     }
 }
