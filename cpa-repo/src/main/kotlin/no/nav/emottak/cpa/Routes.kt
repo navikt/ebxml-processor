@@ -371,7 +371,8 @@ suspend fun AdresseregisterValidator.validateWithAR(
             ),
             listOf(allPurposeEdiEndpoint),
             listOf(allPurposeEdiEndpoint),
-            cpaAddressing = validateRequest.addressing.takeIf { validateRequest.direction == Direction.OUT }
+            cpaAddressing = validateRequest.addressing.takeIf { validateRequest.direction == Direction.OUT },
+            latestCpa = validateRequest.cpaId
         )
     } catch (ex: Exception) {
         log.error("Error fetching data from AR ", ex)

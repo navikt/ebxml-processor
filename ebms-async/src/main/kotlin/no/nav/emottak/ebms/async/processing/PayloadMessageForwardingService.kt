@@ -9,6 +9,7 @@ import no.nav.emottak.ebms.async.log
 import no.nav.emottak.ebms.async.persistence.repository.MessagePendingAck
 import no.nav.emottak.ebms.async.persistence.repository.MessagePendingAckRepository
 import no.nav.emottak.ebms.async.persistence.repository.PayloadRepository
+import no.nav.emottak.ebms.async.persistence.table.MessageReceivedTable.cpaId
 import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.ebms.async.util.toAddressKafkaHeader
 import no.nav.emottak.ebms.async.util.toKafkaHeaders
@@ -122,9 +123,12 @@ class PayloadMessageForwardingService(
                 ackSignatureRequested = ackSignatureRequested
             ),
             validationResult.payloadProcessing
-        ).copy(
-            cpaId = validationResult.latestCpa,
-        )
+        ).let {
+            if (validationResult.latestCpa != null) {
+                return@let it.copy(cpaId = validationResult.latestCpa!!)
+            }
+            it
+        }
         val signedEbmsDocument = processedMessage.toEbmsDokument()
             .signer(validationResult.payloadProcessing!!.signingCertificate)
         savePayloadsToDatabase(
