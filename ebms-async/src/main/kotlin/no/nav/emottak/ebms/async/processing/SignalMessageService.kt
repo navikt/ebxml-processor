@@ -47,7 +47,7 @@ class SignalMessageService(
         eventRegistrationService.registerEventMessageDetails(acknowledgment)
         validateIncomingSignal(
             message = acknowledgment,
-            refToMessageId = acknowledgment.refToMessageId,
+            eventMessageId = acknowledgment.refToMessageId,
             checkSignature = checkSignature
         )
         eventRegistrationService.registerEvent(
@@ -61,14 +61,18 @@ class SignalMessageService(
     }
 
     suspend fun processMessageError(messageError: MessageError) {
-        if (!messagePendingAckRepository.existsForMessageId(messageError.refToMessageId)) {
-            log.info(messageError.marker(), "No pending message found for messageId <${messageError.refToMessageId}>")
+        val refToMessageId = messageError.refToMessageId
+        if (refToMessageId == null) {
+            log.warn(messageError.marker(), "MessageError has no RefToMessageId; reporting errors for messageId <${messageError.messageId}>")
+        } else if (!messagePendingAckRepository.existsForMessageId(refToMessageId)) {
+            log.info(messageError.marker(), "No pending message found for messageId <$refToMessageId>")
             return
         }
+        val eventMessageId = refToMessageId ?: messageError.messageId
         eventRegistrationService.registerEventMessageDetails(messageError)
         validateIncomingSignal(
             message = messageError,
-            refToMessageId = messageError.refToMessageId,
+            eventMessageId = eventMessageId,
             checkSignature = true
         )
         log.info(messageError.marker(), "Got MessageError with requestId <${messageError.requestId}>")
@@ -77,7 +81,7 @@ class SignalMessageService(
             eventRegistrationService.registerEvent(
                 eventType = EventType.UNKNOWN_ERROR_OCCURRED,
                 requestId = messageError.requestId.parseOrGenerateUuid(),
-                messageId = messageError.refToMessageId,
+                messageId = eventMessageId,
                 eventData = Json.encodeToString(
                     mapOf(
                         EventDataType.ERROR_MESSAGE to "${error.code}: ${error.descriptionText}"
@@ -90,7 +94,7 @@ class SignalMessageService(
 
     private suspend fun validateIncomingSignal(
         message: EbmsMessage,
-        refToMessageId: String,
+        eventMessageId: String,
         checkSignature: Boolean
     ) {
         val validationResult = cpaValidationService.validateIncomingMessage(message, checkSignature = false)
@@ -112,7 +116,7 @@ class SignalMessageService(
             eventRegistrationService.registerEvent(
                 eventType = EventType.SIGNATURE_CHECK_FAILED,
                 conversationId = message.conversationId,
-                messageId = refToMessageId,
+                messageId = eventMessageId,
                 requestId = message.requestId.parseOrGenerateUuid(),
                 eventData = Json.encodeToString(
                     mapOf(

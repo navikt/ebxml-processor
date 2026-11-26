@@ -10,8 +10,27 @@ import org.junit.jupiter.api.Test
 import org.xmlsoap.schemas.soap.envelope.Envelope
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 
 class MessageErrorTest {
+
+    @Test
+    fun `Incoming MessageError without RefToMessageId preserves errors and correlation fields`() {
+        val messageError = createPayloadMessage().createMessageError(
+            listOf(Feil(ErrorCode.SECURITY_FAILURE, "Test error message", "Error"))
+        ).copy(refToMessageId = null)
+
+        val document = messageError.toEbmsDokument()
+        assertNull(document.messageHeader().messageData.refToMessageId)
+
+        val incomingMessageError = document.transform() as MessageError
+        assertNull(incomingMessageError.refToMessageId)
+        assertEquals(messageError.requestId, incomingMessageError.requestId)
+        assertEquals(messageError.messageId, incomingMessageError.messageId)
+        assertEquals(messageError.conversationId, incomingMessageError.conversationId)
+        assertEquals(messageError.cpaId, incomingMessageError.cpaId)
+        assertEquals(messageError.feil, incomingMessageError.feil)
+    }
 
     @Test
     fun `MessageError from PayloadMessage has correct values set`() {
