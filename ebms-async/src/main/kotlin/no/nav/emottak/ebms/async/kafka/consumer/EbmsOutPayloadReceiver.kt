@@ -39,6 +39,7 @@ suspend fun startEbmsOutPayloadReceiver(
 
     KafkaReceiver(receiverSettings)
         .receive(topic)
+        .recoverConsumerRebalances()
         .map { record ->
             val sendInResponse = LENIENT_JSON_PARSER.decodeFromString<SendInResponse>(record.value().decodeToString())
             val payloadMessage = PayloadMessage(

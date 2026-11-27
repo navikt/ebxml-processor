@@ -1,7 +1,9 @@
 package no.nav.emottak.ebms.async
 
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.html.respondHtml
+import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
@@ -16,12 +18,15 @@ import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.kafka.consumer.REASON_FORCED_RETRY
 import no.nav.emottak.ebms.async.kafka.consumer.getRecord
 import no.nav.emottak.ebms.async.kafka.consumer.repeatRecord
+import no.nav.emottak.ebms.async.leadership.BackgroundJobUnavailable
+import no.nav.emottak.ebms.async.leadership.LeaderForwarder
 import no.nav.emottak.ebms.async.persistence.repository.MessagePendingAckRepository
 import no.nav.emottak.ebms.async.persistence.repository.PayloadRepository
 import no.nav.emottak.ebms.async.processing.MessageFilterService
 import no.nav.emottak.ebms.async.processing.PayloadMessageService
 import no.nav.emottak.ebms.async.processing.RetryService
 import no.nav.emottak.ebms.async.util.EventRegistrationService
+import no.nav.emottak.message.model.Direction
 import no.nav.emottak.utils.kafka.model.EventType
 import no.nav.emottak.utils.serialization.toEventDataJson
 import java.time.Instant
@@ -151,17 +156,22 @@ fun Route.unacknowledge(
 
 fun Routing.retryErrorsIncoming(
     retryService: RetryService,
-    messageFilterService: MessageFilterService
+    messageFilterService: MessageFilterService,
+    leaderForwarder: LeaderForwarder? = null
 ): Route =
     get("/api/retry/incoming/limit/{$RETRY_LIMIT}") {
         if (!config().kafkaErrorQueue.active) {
             call.respondText(status = HttpStatusCode.ServiceUnavailable, text = "Incoming retry not active.")
             return@get
         }
-        retryService.consumeRetryQueueIncoming(
-            limit = (call.parameters[RETRY_LIMIT])?.toInt() ?: 10,
-            processor = messageFilterService::filterMessage
-        )
+        val limit = call.retryBatchLimit() ?: return@get
+        if (leaderForwarder?.forwardIfFollower(call, Direction.IN, limit) == true) return@get
+        try {
+            retryService.consumeRetryQueueIncoming(limit, messageFilterService::filterMessage)
+        } catch (e: BackgroundJobUnavailable) {
+            call.respondText(e.message.orEmpty(), status = HttpStatusCode.ServiceUnavailable)
+            return@get
+        }
         call.respondText(
             status = HttpStatusCode.OK,
             text = "Incoming retry processing started with limit ${call.parameters[RETRY_LIMIT] ?: "default"}"
@@ -170,22 +180,37 @@ fun Routing.retryErrorsIncoming(
 
 fun Routing.retryErrorsOutgoing(
     retryService: RetryService,
-    payloadMessageService: PayloadMessageService
+    payloadMessageService: PayloadMessageService,
+    leaderForwarder: LeaderForwarder? = null
 ): Route =
     get("/api/retry/outgoing/limit/{$RETRY_LIMIT}") {
         if (!config().kafkaErrorQueueOut.active) {
             call.respondText(status = HttpStatusCode.ServiceUnavailable, text = "Outgoing retry not active.")
             return@get
         }
-        retryService.consumeRetryQueueOutgoing(
-            limit = (call.parameters[RETRY_LIMIT])?.toInt() ?: 10,
-            processor = makeOutRetryProcessor(payloadMessageService)
-        )
+        val limit = call.retryBatchLimit() ?: return@get
+        if (leaderForwarder?.forwardIfFollower(call, Direction.OUT, limit) == true) return@get
+        try {
+            retryService.consumeRetryQueueOutgoing(limit, makeOutRetryProcessor(payloadMessageService))
+        } catch (e: BackgroundJobUnavailable) {
+            call.respondText(e.message.orEmpty(), status = HttpStatusCode.ServiceUnavailable)
+            return@get
+        }
         call.respondText(
             status = HttpStatusCode.OK,
             text = "Outgoing retry processing started with limit ${call.parameters[RETRY_LIMIT] ?: "default"}"
         )
     }
+
+private suspend fun io.ktor.server.application.ApplicationCall.retryBatchLimit(): Int? {
+    response.header(HttpHeaders.CacheControl, "no-store")
+    val limit = parameters[RETRY_LIMIT]?.toIntOrNull()
+    if (limit == null || limit <= 0) {
+        respondText("Retry limit must be a positive integer.", status = HttpStatusCode.BadRequest)
+        return null
+    }
+    return limit
+}
 
 fun Routing.rerunIncoming(
     retryService: RetryService,
@@ -315,9 +340,7 @@ fun Route.pauseRetries(
     pauseRetryErrorsTimerFlag: PauseRetryErrorsTimerFlag
 ): Route =
     get("/api/pauseretry") {
-        CoroutineScope(Dispatchers.IO).launch() {
-            pauseRetryErrorsTimerFlag.paused = true
-        }
+        pauseRetryErrorsTimerFlag.paused = true
         log.info("Pausing retry task.")
         call.respond(StatusResponse("Error retries are PAUSED"))
     }
@@ -326,9 +349,7 @@ fun Route.resumeRetries(
     pauseRetryErrorsTimerFlag: PauseRetryErrorsTimerFlag
 ): Route =
     get("/api/resumeretry") {
-        CoroutineScope(Dispatchers.IO).launch() {
-            pauseRetryErrorsTimerFlag.paused = false
-        }
+        pauseRetryErrorsTimerFlag.paused = false
         log.info("Resuming retry task.")
         call.respond(StatusResponse("Error retries are RESUMED"))
     }

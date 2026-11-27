@@ -1,13 +1,14 @@
 package no.nav.emottak.ebms.async.kafka
 
 import io.github.nomisRev.kafka.receiver.ReceiverRecord
-import io.mockk.coEvery
-import io.mockk.just
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import io.mockk.mockk
-import io.mockk.runs
-import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import no.nav.emottak.ebms.async.configuration.config
-import no.nav.emottak.ebms.async.incrementMessagesQueuedForRetry
 import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
 import no.nav.emottak.ebms.async.kafka.consumer.RETRY_COUNT_HEADER
 import no.nav.emottak.ebms.async.kafka.consumer.asReceiverRecord
@@ -27,7 +28,8 @@ class ErrorHandlerTest {
 
     @Test
     fun testConsumeRetryQueue() {
-        runTest {
+        runBlocking {
+            val savedProperties = listOf("KAFKA_BROKERS", "RETRY_INIT_OFFSET").associateWith(System::getProperty)
             KafkaTestContainer.start()
             System.setProperty("KAFKA_BROKERS", KafkaTestContainer.bootstrapServers)
             KafkaTestContainer.createTopic(config().kafkaErrorQueue.topic)
@@ -43,35 +45,43 @@ class ErrorHandlerTest {
             // Need to override this by explicitly setting to earliest offset
             System.setProperty("RETRY_INIT_OFFSET", "earliest")
             // Ensure immediate retry by explicitly setting nextRetryTime
-            val mockMeterRegistry = mockk<io.micrometer.core.instrument.MeterRegistry>()
-            coEvery { mockMeterRegistry.incrementMessagesQueuedForRetry(any()) } just runs
             val errorHandler = FailedMessageKafkaHandler(
                 kafka = testcontainerKafkaConfig,
-                // errorRetryPolicy = ErrorRetryPolicy(1.seconds, 10, listOf(0.minutes), listOf(2), maxRetries = 10),
-                meterRegistry = mockMeterRegistry
+                meterRegistry = SimpleMeterRegistry()
             )
-            val retryService = RetryService(mockk<CPAValidationService>(), mockk<no.nav.emottak.ebms.async.util.EventRegistrationService>(), errorHandler, mockk())
-            val processedMessages = ArrayList<ReceiverRecord<String, ByteArray>>()
-            val messageFilterService = DummyMessageFilterService(errorHandler, processedMessages)
+            val owner = launch(Dispatchers.IO, start = CoroutineStart.UNDISPATCHED) {
+                errorHandler.runRetryConsumer(Direction.IN) { true }
+            }
+            try {
+                val retryService = RetryService(mockk<CPAValidationService>(), mockk<no.nav.emottak.ebms.async.util.EventRegistrationService>(), errorHandler, mockk())
+                val processedMessages = ArrayList<ReceiverRecord<String, ByteArray>>()
+                val messageFilterService = DummyMessageFilterService(errorHandler, processedMessages)
 
-            errorHandler.sendToRetry(newRecord("test-message"), direction = Direction.IN, nextRetryTime = Instant.now().toString())
-            val record1 = getRecordFromErrorQueueAtOffset(testcontainerKafkaConfig, 0)
-            assertTrue(record1?.key() == "test-message", "Melding sendt til feilhåndtering ligger på feilkø med offset 0")
+                errorHandler.sendToRetry(newRecord("test-message"), direction = Direction.IN, nextRetryTime = Instant.now().toString())
+                val record1 = getRecordFromErrorQueueAtOffset(testcontainerKafkaConfig, 0)
+                assertTrue(record1?.key() == "test-message", "Melding sendt til feilhåndtering ligger på feilkø med offset 0")
 
-            retryService.consumeRetryQueueIncoming(1, messageFilterService::filterMessage)
-            assertTrue(processedMessages.size == 1, "Etter prosessering av feilkø er meldingen prosessert av MessageFilterService")
+                retryService.consumeRetryQueueIncoming(1, messageFilterService::filterMessage)
+                assertTrue(processedMessages.size == 1, "Etter prosessering av feilkø er meldingen prosessert av MessageFilterService")
 
-            errorHandler.sendToRetry(newRecord("failingAtFirstRetry"), direction = Direction.IN, nextRetryTime = Instant.now().toString())
-            val record2 = getRecordFromErrorQueueAtOffset(testcontainerKafkaConfig, 1)
-            assertTrue(record2?.key() == "failingAtFirstRetry", "Melding som vil feile ligger på feilkø med offset 1")
+                errorHandler.sendToRetry(newRecord("failingAtFirstRetry"), direction = Direction.IN, nextRetryTime = Instant.now().toString())
+                val record2 = getRecordFromErrorQueueAtOffset(testcontainerKafkaConfig, 1)
+                assertTrue(record2?.key() == "failingAtFirstRetry", "Melding som vil feile ligger på feilkø med offset 1")
 
-            retryService.consumeRetryQueueIncoming(1, messageFilterService::filterMessage)
-            assertTrue(processedMessages.size == 1, "Etter prosessering av feilkø 1 gang er meldingen IKKE prosessert av MessageFilterService")
-            val record3 = getRecordFromErrorQueueAtOffset(testcontainerKafkaConfig, 2)
-            assertTrue(getRetryCountHeaderValue(record3) == 1, "Etter prosessering av feilkø 1 gang ligger meldingen igjen på feilkø med offset 2, og retrycount=1")
+                retryService.consumeRetryQueueIncoming(1, messageFilterService::filterMessage)
+                assertTrue(processedMessages.size == 1, "Etter prosessering av feilkø 1 gang er meldingen IKKE prosessert av MessageFilterService")
+                val record3 = getRecordFromErrorQueueAtOffset(testcontainerKafkaConfig, 2)
+                assertTrue(getRetryCountHeaderValue(record3) == 1, "Etter prosessering av feilkø 1 gang ligger meldingen igjen på feilkø med offset 2, og retrycount=1")
 
-            retryService.consumeRetryQueueIncoming(1, messageFilterService::filterMessage)
-            assertTrue(processedMessages.size == 2, "Etter prosessering av feilkø 2 ganger er meldingen prosessert av MessageFilterService")
+                retryService.consumeRetryQueueIncoming(1, messageFilterService::filterMessage)
+                assertTrue(processedMessages.size == 2, "Etter prosessering av feilkø 2 ganger er meldingen prosessert av MessageFilterService")
+            } finally {
+                owner.cancelAndJoin()
+                errorHandler.close()
+                savedProperties.forEach { (name, value) ->
+                    if (value == null) System.clearProperty(name) else System.setProperty(name, value)
+                }
+            }
         }
     }
 

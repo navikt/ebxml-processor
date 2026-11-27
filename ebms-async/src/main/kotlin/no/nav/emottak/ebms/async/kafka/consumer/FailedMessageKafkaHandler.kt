@@ -6,17 +6,24 @@ import io.github.nomisRev.kafka.publisher.PublisherSettings
 import io.github.nomisRev.kafka.receiver.Offset
 import io.github.nomisRev.kafka.receiver.ReceiverRecord
 import io.micrometer.core.instrument.MeterRegistry
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeout
+import no.nav.emottak.ebms.async.BackgroundJobMetrics
 import no.nav.emottak.ebms.async.configuration.KafkaErrorQueue
 import no.nav.emottak.ebms.async.configuration.config
 import no.nav.emottak.ebms.async.configuration.toProperties
 import no.nav.emottak.ebms.async.incrementMessagesQueuedForRetry
+import no.nav.emottak.ebms.async.leadership.BackgroundJobUnavailable
 import no.nav.emottak.message.model.Direction
 import no.nav.emottak.utils.config.Kafka
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.consumer.ConsumerRecords
 import org.apache.kafka.clients.consumer.KafkaConsumer
-import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.TopicPartition
@@ -30,7 +37,7 @@ import java.time.Duration
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
-import java.util.Properties
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.String
 import kotlin.collections.map
 
@@ -45,7 +52,7 @@ class FailedMessageKafkaHandler(
     val kafkaErrorQueue: KafkaErrorQueue = config().kafkaErrorQueue,
     val kafka: Kafka = config().kafka,
     val meterRegistry: MeterRegistry
-) {
+) : AutoCloseable {
 
     val publisher = KafkaPublisher(
         PublisherSettings(
@@ -57,98 +64,57 @@ class FailedMessageKafkaHandler(
         )
     )
 
-    // Set up a consumer for POLLing the retry topic. NOTE that this only polls and disconnects, it is NOT listening forever like the receivers.
-    // We get into troubles with committing if we use the same groupid as the receivers used to listen on the message topics.
-    val groupIdForRetry = kafka.groupId + "-retry"
-    val inPollerConsumer = KafkaConsumer(
-        getPollerProperties(
-            kafka.toProperties(),
-            groupIdForRetry,
-            config().errorRetryPolicyIncoming.processInterval.inWholeSeconds,
-            kafkaErrorQueue.initOffset
-        ),
-        StringDeserializer(),
-        ByteArrayDeserializer()
-    ).also { c ->
-        val partitions = c.partitionsFor(kafkaErrorQueue.topic).map { TopicPartition(it.topic(), it.partition()) }
-        c.assign(partitions)
-    }
-
-    val outPollerConsumer = KafkaConsumer(
-        getPollerProperties(
-            kafka.toProperties(),
-            "$groupIdForRetry-out",
-            config().errorRetryPolicyOutgoing.processInterval.inWholeSeconds,
-            config().kafkaErrorQueueOut.initOffset
-        ),
-        StringDeserializer(),
-        ByteArrayDeserializer()
-    ).also { c ->
-        val partitions = c.partitionsFor(config().kafkaErrorQueueOut.topic)
-            .map { TopicPartition(it.topic(), it.partition()) }
-        c.assign(partitions)
-    }
-
-    fun getPollerProperties(
-        properties: Properties,
-        groupId: String,
-        pollIntervalSeconds: Long,
-        initOffset: String
-    ): Properties {
-        properties.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false")
-        properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, groupId)
-        // Sikre at ikke Kafka anser polleren vår som "død" selv om den ikke poller så ofte som Kafka er designet for.
-        // Det vil føre til uønsket rebalansering etc, og vil tydeligvis også skje med bruk av assign() istedenfor subscribe()
-        val millisAllowedBetweenPolls = (pollIntervalSeconds * 1000) + 60000
-        properties.setProperty(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, millisAllowedBetweenPolls.toString())
-        // Hvis denne har verdi "earliest" vil man prosessere ALLE meldingene på feilkøen fra tidligste offset, første gangen app'en startes
-        // Med "latest" vil man regne alle meldingene på feilkøen som allerede prosessert, og fortsette prosessering når nye meldinger kommer
-        properties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, initOffset)
-        return properties
-    }
-
-    fun pollIncomingRetryRecords(limit: Int): List<ConsumerRecord<String, ByteArray>> {
-        logger.info(
-            "Checking for messages in error queue, current offset " + inPollerConsumer.position(
-                TopicPartition(kafkaErrorQueue.topic, 0)
-            )
-        )
-        val records = getRecordsToConsume(inPollerConsumer, limit)
-        if (records.isEmpty()) {
-            logger.info("No records to process in incoming error queue")
-        } else {
-            logger.info("At least ${records.count()} records to process in incoming error queue")
+    private val consumers = ConcurrentHashMap<Direction, RetryConsumer>()
+    private val batchLocks = Direction.entries.associateWith { Mutex() }
+    private val metrics by lazy {
+        Direction.entries.associateWith {
+            BackgroundJobMetrics(meterRegistry, "retry-${it.name.lowercase()}")
         }
-        return records
     }
 
-    fun pollOutgoingRetryRecords(limit: Int): List<ConsumerRecord<String, ByteArray>> {
-        logger.info(
-            "Checking for messages in outgoing error queue, current offset " + outPollerConsumer.position(
-                TopicPartition(config().kafkaErrorQueueOut.topic, 0)
-            )
-        )
-        val records = getRecordsToConsume(outPollerConsumer, limit)
-        if (records.isEmpty()) {
-            logger.info("No records to process in outgoing error queue")
-        } else {
-            logger.info("At least ${records.count()} records to process in outgoing error queue")
+    suspend fun runRetryConsumer(direction: Direction, isLeader: () -> Boolean) {
+        val outgoing = config().kafkaErrorQueueOut
+        val topic = if (direction == Direction.IN) kafkaErrorQueue.topic else outgoing.topic
+        val reset = if (direction == Direction.IN) kafkaErrorQueue.initOffset else outgoing.initOffset
+        val properties = kafka.toProperties().apply {
+            setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false")
+            setProperty(ConsumerConfig.GROUP_ID_CONFIG, "${kafka.groupId}-retry${if (direction == Direction.OUT) "-out" else ""}")
+            setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, reset)
+            setProperty(ConsumerConfig.DEFAULT_API_TIMEOUT_MS_CONFIG, "5000")
         }
-        return records
+        val owner = RetryConsumer(
+            topic,
+            { KafkaConsumer(properties, StringDeserializer(), ByteArrayDeserializer()) },
+            isLeader,
+            metrics.getValue(direction)::progress
+        )
+        check(consumers.putIfAbsent(direction, owner) == null) { "Retry consumer already running for $direction" }
+        try {
+            owner.run()
+        } finally {
+            consumers.remove(direction, owner)
+        }
     }
 
-    fun commitOffset(record: ConsumerRecord<String, ByteArray>, direction: Direction) {
-        val consumer = when (direction) {
-            Direction.IN -> inPollerConsumer
-            Direction.OUT -> outPollerConsumer
+    suspend fun consumeRetryRecords(
+        direction: Direction,
+        limit: Int,
+        processor: suspend (ConsumerRecord<String, ByteArray>) -> Unit
+    ) {
+        try {
+            withTimeout(10 * 60_000L) {
+                batchLocks.getValue(direction).withLock {
+                    val owner = consumers[direction] ?: throw BackgroundJobUnavailable("No leader retry consumer available for $direction")
+                    metrics.getValue(direction).record { owner.consume(limit, processor) }
+                }
+            }
+        } catch (e: TimeoutCancellationException) {
+            currentCoroutineContext().ensureActive()
+            throw BackgroundJobUnavailable("Retry batch deadline exceeded; inspect progress before repeating")
         }
-        val offsetToCommit = record.offset() + 1
-        val offsets: Map<TopicPartition, OffsetAndMetadata> = mapOf(
-            TopicPartition(record.topic(), record.partition()) to OffsetAndMetadata(offsetToCommit)
-        )
-        consumer.commitSync(offsets)
-        logger.info("Committed offset $offsetToCommit for record with key ${record.key()}")
     }
+
+    override fun close() = publisher.close()
 
     suspend fun sendToRetryQueueIncoming(
         record: ReceiverRecord<String, ByteArray>,
@@ -331,38 +297,6 @@ fun getRecords(
         }
         return recordList
     }
-}
-
-fun anyRecordsToConsume(
-    pollerConsumer: KafkaConsumer<String, ByteArray>
-): Boolean {
-    val records = pollerConsumer.poll(Duration.ofMillis(1000))
-    logger.info("${records.count()} records to process in error queue")
-    return (!records.isEmpty)
-}
-
-fun getRecordsToConsume(
-    pollerConsumer: KafkaConsumer<String, ByteArray>,
-    limit: Int
-): List<ConsumerRecord<String, ByteArray>> {
-    // poll() returnerer det den finner innen timeout, uten garanti for at det er alle som ligger på topic.
-    // Dvs den kan returnere 0-N records når det ligger N records på topic.
-    // Vi ønsker å få lest ALLE opp til angitt limit.
-    // Dette kan vi ikke få til på en garantert måte, men vi satser på at vi i alle fall finner 1 record hver gang vi gjør poll,
-    // så poller vi helt til vi ikke får flere (har da forhåpentlig lest alle) eller til vi passerer limiten.
-    var records = pollerConsumer.poll(Duration.ofMillis(500))
-    val allRecords = records.toMutableList()
-    while (!records.isEmpty && allRecords.count() < limit) {
-        records = pollerConsumer.poll(Duration.ofMillis(200))
-        allRecords.addAll(records)
-    }
-    if (allRecords.size > limit && limit > 0) {
-        val limitRecord = allRecords[limit - 1]
-        val tp = TopicPartition(limitRecord.topic(), limitRecord.partition())
-        pollerConsumer.seek(tp, limitRecord.offset() + 1)
-        return allRecords.take(limit)
-    }
-    return allRecords
 }
 
 fun KafkaConsumer<String, ByteArray>.seekFromExactOffset(
