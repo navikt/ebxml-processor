@@ -15,6 +15,7 @@ import kotlinx.coroutines.runBlocking
 import no.nav.emottak.ebms.async.kafka.consumer.FailedMessageKafkaHandler
 import no.nav.emottak.ebms.async.kafka.consumer.RETRY_COUNT_HEADER
 import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
+import no.nav.emottak.ebms.async.model.MessageReceived
 import no.nav.emottak.ebms.async.persistence.repository.MessagePendingAckRepository
 import no.nav.emottak.ebms.async.persistence.repository.MessageReceivedRepository
 import no.nav.emottak.ebms.async.util.EventRegistrationService
@@ -49,6 +50,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.PerMessageCharacteristicsType
 import org.w3c.dom.Document
+import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
@@ -889,6 +891,39 @@ class PayloadMessageServiceTest {
         service.processOutboundResponse(record, payloadMessage)
 
         coVerify(exactly = 1) { payloadMessageForwardingService.returnMessageResponse(payloadMessage) }
+    }
+
+    @Test
+    fun `outbound responses enrich receiver with sender HER or ENH ID from incoming message`() = runBlocking {
+        initService()
+        for ((senderId, type) in listOf("8090595" to "HER", "984886136" to "ENH")) {
+            val payload = createPayloadMessage(givenService = "Sykmelding").copy(refToMessageId = "incoming-$senderId")
+            val incoming = MessageReceived(
+                referenceId = Uuid.random(),
+                conversationId = "original-conversation",
+                messageId = payload.refToMessageId!!,
+                refToMessageId = null,
+                cpaId = "original-cpa",
+                senderRole = "Behandler",
+                senderId = senderId,
+                receiverRole = "NAV",
+                receiverId = "79768",
+                service = "Sykmelding",
+                action = "Sykmelding",
+                receivedAt = Instant.now(),
+                acknowledged = true
+            )
+            every { messageReceivedRepository.getByMessageId(incoming.messageId) } returns incoming
+            val forwarded = slot<PayloadMessage>()
+            coEvery { payloadMessageForwardingService.returnMessageResponse(capture(forwarded)) } just Runs
+
+            service.processOutboundResponse(setupReceiverRecordWithRetryServiceMock(), payload)
+
+            assertEquals(Party(listOf(PartyId(type, senderId)), "Behandler"), forwarded.captured.addressing.to)
+            assertEquals("original-cpa", forwarded.captured.cpaId)
+            assertEquals("original-conversation", forwarded.captured.conversationId)
+            assertEquals(payload.addressing.from, forwarded.captured.addressing.from)
+        }
     }
 }
 

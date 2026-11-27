@@ -9,6 +9,8 @@ import no.nav.emottak.ebms.async.log
 import no.nav.emottak.ebms.async.persistence.repository.MessagePendingAck
 import no.nav.emottak.ebms.async.persistence.repository.MessagePendingAckRepository
 import no.nav.emottak.ebms.async.persistence.repository.PayloadRepository
+import no.nav.emottak.ebms.async.persistence.table.MessagePendingAckTable.ackSignatureRequested
+import no.nav.emottak.ebms.async.persistence.table.MessageReceivedTable.cpaId
 import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.ebms.async.util.toAddressKafkaHeader
 import no.nav.emottak.ebms.async.util.toKafkaHeaders
@@ -105,14 +107,18 @@ class PayloadMessageForwardingService(
     // Used to send OUT a response from NAV
     suspend fun returnMessageResponse(payloadMessage: PayloadMessage) {
         eventRegistrationService.registerEventMessageDetails(payloadMessage)
+        var payloadMessage: PayloadMessage = payloadMessage
         val validationResult = cpaValidationService.validateOutgoingMessage(payloadMessage)
+        if (validationResult.latestCpa != null) {
+            payloadMessage = payloadMessage.copy(cpaId = validationResult.latestCpa!!)
+        }
         val (duplicateElimination, ackRequested, ackSignatureRequested) = with(cpaValidationService.getMessageCharacteristicsType(payloadMessage)) {
             Triple(
                 this.duplicateElimination != PerMessageCharacteristicsType.NEVER,
                 this.ackRequested != PerMessageCharacteristicsType.NEVER,
                 this.ackSignatureRequested != PerMessageCharacteristicsType.NEVER
             )
-        }
+        } // TODO henting av messagingcharacteristics vil feile i CPA-løs behandling
 
         val processedMessage = processingService.proccessSyncOut(
             payloadMessage.copy(
