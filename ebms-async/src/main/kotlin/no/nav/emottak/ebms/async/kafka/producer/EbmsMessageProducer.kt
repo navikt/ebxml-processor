@@ -12,7 +12,7 @@ import org.apache.kafka.common.serialization.ByteArraySerializer
 import org.apache.kafka.common.serialization.StringSerializer
 import org.slf4j.LoggerFactory
 
-class EbmsMessageProducer(private val topic: String, kafka: Kafka) {
+class EbmsMessageProducer(private val topic: String, kafka: Kafka) : AutoCloseable {
     private val log = LoggerFactory.getLogger("no.nav.emottak.ebms.messaging")
 
     private val kafkaPublisher = KafkaPublisher(
@@ -24,6 +24,8 @@ class EbmsMessageProducer(private val topic: String, kafka: Kafka) {
             properties = kafka.toProperties()
         )
     )
+
+    override fun close() = kafkaPublisher.close()
 
     suspend fun publishMessage(
         key: String,

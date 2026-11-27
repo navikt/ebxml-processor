@@ -20,6 +20,8 @@ import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import no.nav.emottak.ebms.AZURE_AD_AUTH
 import no.nav.emottak.ebms.CpaRepoClient
@@ -38,6 +40,10 @@ import no.nav.emottak.ebms.async.kafka.consumer.startEbmsOutPayloadReceiver
 import no.nav.emottak.ebms.async.kafka.consumer.startPayloadReceiver
 import no.nav.emottak.ebms.async.kafka.consumer.startSignalReceiver
 import no.nav.emottak.ebms.async.kafka.producer.EbmsMessageProducer
+import no.nav.emottak.ebms.async.leadership.LeaderForwarder
+import no.nav.emottak.ebms.async.leadership.Leadership
+import no.nav.emottak.ebms.async.leadership.createLeaderForwarder
+import no.nav.emottak.ebms.async.leadership.createLeadership
 import no.nav.emottak.ebms.async.persistence.Database
 import no.nav.emottak.ebms.async.persistence.ebmsDbConfig
 import no.nav.emottak.ebms.async.persistence.ebmsMigrationConfig
@@ -50,6 +56,7 @@ import no.nav.emottak.ebms.async.processing.PayloadMessageForwardingService
 import no.nav.emottak.ebms.async.processing.PayloadMessageService
 import no.nav.emottak.ebms.async.processing.RetryService
 import no.nav.emottak.ebms.async.processing.SignalMessageService
+import no.nav.emottak.ebms.async.processing.launchLeaderSchedule
 import no.nav.emottak.ebms.async.processing.sendSignalResponseToTopic
 import no.nav.emottak.ebms.async.util.EventRegistrationService
 import no.nav.emottak.ebms.async.util.EventRegistrationServiceImpl
@@ -64,6 +71,7 @@ import no.nav.emottak.ebms.registerRootEndpoint
 import no.nav.emottak.ebms.scopedAuthHttpClient
 import no.nav.emottak.ebms.sendin.SendInService
 import no.nav.emottak.ebms.validation.CPAValidationService
+import no.nav.emottak.message.model.Direction
 import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.PayloadMessage
 import no.nav.emottak.utils.common.model.SendInResponse
@@ -73,7 +81,6 @@ import no.nav.emottak.utils.serialization.LENIENT_JSON_PARSER
 import org.slf4j.LoggerFactory
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.fixedRateTimer
-import kotlin.concurrent.timer
 import kotlin.time.Duration.Companion.seconds
 
 val log = LoggerFactory.getLogger("no.nav.emottak.ebms.async.App")
@@ -162,75 +169,110 @@ fun main() = SuspendApp {
     )
 
     val pauseRetryErrorsTimerFlag = PauseRetryErrorsTimerFlag()
+    val leadership = createLeadership(appMicrometerRegistry)
+    val leaderForwarder = createLeaderForwarder(leadership)
 
-    result {
-        resourceScope {
-            launchSignalReceiver(
-                config = config,
-                messageFilterService = messageFilterService
-            )
-            launchPayloadReceiver(
-                config = config,
-                messageFilterService = messageFilterService
-            )
-            launchEbmsOutPayloadReceiver(
-                config = config,
-                payloadMessageService = payloadMessageService
-            )
-            launchErrorRetryTaskIncoming(
-                config = config,
-                retryService = retryService,
-                messageFilterService = messageFilterService,
-                pauseRetryErrorsTimerFlag = pauseRetryErrorsTimerFlag
-            )
-            launchErrorRetryTaskOutgoing(
-                config = config,
-                retryService = retryService,
-                payloadMessageService = payloadMessageService,
-                pauseRetryErrorsTimerFlag = pauseRetryErrorsTimerFlag
-            )
-            launchMesssageResendTask(
-                config = config,
-                messagePendingAckRepository = messagePendingAckRepository,
-                payloadMessageForwardingService = payloadMessageForwardingService,
-                meterRegistry = appMicrometerRegistry
-            )
-            launchCleanupPayloadsTask(
-                config = config,
-                payloadRepository = payloadRepository
-            )
+    try {
+        result {
+            resourceScope {
+                launch { leadership.watch() }
+                launchRetryConsumers(config, failedMessageQueue, leadership)
+                launchSignalReceiver(
+                    config = config,
+                    messageFilterService = messageFilterService
+                )
+                launchPayloadReceiver(
+                    config = config,
+                    messageFilterService = messageFilterService
+                )
+                launchEbmsOutPayloadReceiver(
+                    config = config,
+                    payloadMessageService = payloadMessageService
+                )
+                launchErrorRetryTaskIncoming(
+                    config = config,
+                    retryService = retryService,
+                    messageFilterService = messageFilterService,
+                    pauseRetryErrorsTimerFlag = pauseRetryErrorsTimerFlag,
+                    leadership = leadership
+                )
+                launchErrorRetryTaskOutgoing(
+                    config = config,
+                    retryService = retryService,
+                    payloadMessageService = payloadMessageService,
+                    pauseRetryErrorsTimerFlag = pauseRetryErrorsTimerFlag,
+                    leadership = leadership
+                )
+                launchMesssageResendTask(
+                    config = config,
+                    messagePendingAckRepository = messagePendingAckRepository,
+                    payloadMessageForwardingService = payloadMessageForwardingService,
+                    meterRegistry = appMicrometerRegistry,
+                    leadership = leadership
+                )
+                launchCleanupPayloadsTask(
+                    config = config,
+                    payloadRepository = payloadRepository
+                )
 
-            server(
-                Netty,
-                port = 8080,
-                module = {
-                    ebmsProviderModule(
-                        payloadRepository = payloadRepository,
-                        messageFilterService = messageFilterService,
-                        eventRegistrationService = eventRegistrationService,
-                        retryService = retryService,
-                        payloadMessageService = payloadMessageService,
-                        pauseRetryErrorsTimerFlag = pauseRetryErrorsTimerFlag,
-                        messagePendingAckRepository = messagePendingAckRepository,
-                        appMicrometerRegistry = appMicrometerRegistry
-                    )
-                }
-            ).also { it.engineConfig.maxChunkSize = 100000 }
+                server(
+                    Netty,
+                    port = 8080,
+                    module = {
+                        ebmsProviderModule(
+                            payloadRepository = payloadRepository,
+                            messageFilterService = messageFilterService,
+                            eventRegistrationService = eventRegistrationService,
+                            retryService = retryService,
+                            payloadMessageService = payloadMessageService,
+                            pauseRetryErrorsTimerFlag = pauseRetryErrorsTimerFlag,
+                            messagePendingAckRepository = messagePendingAckRepository,
+                            appMicrometerRegistry = appMicrometerRegistry,
+                            leaderForwarder = leaderForwarder
+                        )
+                    }
+                ).also { it.engineConfig.maxChunkSize = 100000 }
 
-            awaitCancellation()
-        }
-    }
-        .onFailure { error ->
-            when (error) {
-                is CancellationException -> {} // expected behaviour - normal shutdown
-                else -> log.error("Unexpected shutdown initiated", error)
+                awaitCancellation()
             }
         }
+            .onFailure { error ->
+                when (error) {
+                    is CancellationException -> {} // expected behaviour - normal shutdown
+                    else -> log.error("Unexpected shutdown initiated", error)
+                }
+            }
+    } finally {
+        leaderForwarder?.close()
+        leadership.close()
+        failedMessageQueue.close()
+        ebmsSignalProducer.close()
+        ebmsPayloadProducer.close()
+        ebmsInPayloadProducer.close()
+    }
 }
 
 class PauseRetryErrorsTimerFlag {
+    @Volatile
     var paused = false
 }
+
+fun CoroutineScope.launchRetryConsumers(config: Config, failedMessageQueue: FailedMessageKafkaHandler, leadership: Leadership) =
+    launch {
+        leadership.leader.collectLatest { leader ->
+            if (leader == leadership.podName) {
+                coroutineScope {
+                    if (config.kafkaErrorQueue.active) {
+                        launch { failedMessageQueue.runRetryConsumer(Direction.IN) { leadership.isLeader } }
+                    }
+                    if (config.kafkaErrorQueueOut.active) {
+                        launch { failedMessageQueue.runRetryConsumer(Direction.OUT) { leadership.isLeader } }
+                    }
+                    awaitCancellation()
+                }
+            }
+        }
+    }
 
 fun CoroutineScope.launchPayloadReceiver(
     config: Config,
@@ -304,30 +346,22 @@ fun CoroutineScope.launchErrorRetryTaskIncoming(
     config: Config,
     retryService: RetryService,
     messageFilterService: MessageFilterService,
-    pauseRetryErrorsTimerFlag: PauseRetryErrorsTimerFlag
+    pauseRetryErrorsTimerFlag: PauseRetryErrorsTimerFlag,
+    leadership: Leadership
 ) {
     if (!config.kafkaErrorQueue.active) return
 
-    timer(
-        name = "Retry Errors Timer Incoming",
-        initialDelay = config.errorRetryPolicyIncoming.startupDelay.inWholeMilliseconds,
-        period = config.errorRetryPolicyIncoming.processInterval.inWholeMilliseconds,
-        daemon = true
+    launchLeaderSchedule(
+        name = "Incoming retries",
+        startupDelay = config.errorRetryPolicyIncoming.startupDelay,
+        interval = config.errorRetryPolicyIncoming.processInterval,
+        leadership = leadership
     ) {
-        launch(Dispatchers.IO) {
-            log.debug("=== RetryErrorsTaskIncoming starting...")
-            try {
-                if (pauseRetryErrorsTimerFlag.paused) {
-                    log.info("Retry task is paused.")
-                    return@launch
-                }
-                retryService.consumeRetryQueueIncoming(
-                    limit = config.errorRetryPolicyIncoming.maxMessagesToProcess,
-                    processor = messageFilterService::filterMessage
-                )
-            } catch (e: Exception) {
-                log.error("RetryErrorsTaskIncoming failed", e)
-            }
+        if (!pauseRetryErrorsTimerFlag.paused) {
+            retryService.consumeRetryQueueIncoming(
+                limit = config.errorRetryPolicyIncoming.maxMessagesToProcess,
+                processor = messageFilterService::filterMessage
+            )
         }
     }
 }
@@ -336,30 +370,22 @@ fun CoroutineScope.launchErrorRetryTaskOutgoing(
     config: Config,
     retryService: RetryService,
     payloadMessageService: PayloadMessageService,
-    pauseRetryErrorsTimerFlag: PauseRetryErrorsTimerFlag
+    pauseRetryErrorsTimerFlag: PauseRetryErrorsTimerFlag,
+    leadership: Leadership
 ) {
     if (!config.kafkaErrorQueueOut.active) return
 
-    timer(
-        name = "Retry Errors Timer Outgoing",
-        initialDelay = config.errorRetryPolicyOutgoing.startupDelay.inWholeMilliseconds,
-        period = config.errorRetryPolicyOutgoing.processInterval.inWholeMilliseconds,
-        daemon = true
+    launchLeaderSchedule(
+        name = "Outgoing retries",
+        startupDelay = config.errorRetryPolicyOutgoing.startupDelay,
+        interval = config.errorRetryPolicyOutgoing.processInterval,
+        leadership = leadership
     ) {
-        launch(Dispatchers.IO) {
-            log.info("=== RetryErrorsTaskOutgoing starting...")
-            try {
-                if (pauseRetryErrorsTimerFlag.paused) {
-                    log.info("Retry task is paused.")
-                    return@launch
-                }
-                retryService.consumeRetryQueueOutgoing(
-                    limit = config.errorRetryPolicyOutgoing.maxMessagesToProcess,
-                    processor = makeOutRetryProcessor(payloadMessageService)
-                )
-            } catch (e: Exception) {
-                log.error("RetryErrorsTaskOutgoing failed", e)
-            }
+        if (!pauseRetryErrorsTimerFlag.paused) {
+            retryService.consumeRetryQueueOutgoing(
+                limit = config.errorRetryPolicyOutgoing.maxMessagesToProcess,
+                processor = makeOutRetryProcessor(payloadMessageService)
+            )
         }
     }
 }
@@ -404,30 +430,30 @@ fun CoroutineScope.launchMesssageResendTask(
     config: Config,
     messagePendingAckRepository: MessagePendingAckRepository,
     payloadMessageForwardingService: PayloadMessageForwardingService,
-    meterRegistry: MeterRegistry
+    meterRegistry: MeterRegistry,
+    leadership: Leadership
 ) {
-    timer(
-        name = "Resend Messages Timer",
-        initialDelay = config.messageResendPolicy.startupDelay.inWholeMilliseconds,
-        period = config.messageResendPolicy.processInterval.inWholeMilliseconds,
-        daemon = true
+    val metrics = BackgroundJobMetrics(meterRegistry, "ack-resend")
+    launchLeaderSchedule(
+        name = "ACK resends",
+        startupDelay = config.messageResendPolicy.startupDelay,
+        interval = config.messageResendPolicy.processInterval,
+        leadership = leadership
     ) {
-        launch(Dispatchers.IO) {
+        metrics.record {
             log.info("=== MessageResendTask starting...")
-            try {
-                val messagesToResend = messagePendingAckRepository.findMessagesToResend()
-                log.info("Found ${messagesToResend.size} messages to be resent because of missing Ack")
-                for (message in messagesToResend) {
-                    payloadMessageForwardingService.resendMessage(message)
-                    meterRegistry.incrementMessagesResent(
-                        resentCount = message.resentCount + 1,
-                        service = message.messageHeader.service.value ?: "unknown",
-                        action = message.messageHeader.action ?: "unknown"
-                    )
-                    messagePendingAckRepository.markResent(message)
-                }
-            } catch (e: Exception) {
-                log.error("MessageResendTask failed", e)
+            val messagesToResend = messagePendingAckRepository.findMessagesToResend()
+            log.info("Found ${messagesToResend.size} messages to be resent because of missing Ack")
+            for (message in messagesToResend) {
+                if (!leadership.isLeader) throw no.nav.emottak.ebms.async.leadership.BackgroundJobUnavailable("ACK resend leadership lost")
+                payloadMessageForwardingService.resendMessage(message)
+                meterRegistry.incrementMessagesResent(
+                    resentCount = message.resentCount + 1,
+                    service = message.messageHeader.service.value ?: "unknown",
+                    action = message.messageHeader.action ?: "unknown"
+                )
+                messagePendingAckRepository.markResent(message)
+                metrics.progress()
             }
         }
     }
@@ -441,7 +467,8 @@ fun Application.ebmsProviderModule(
     payloadMessageService: PayloadMessageService,
     pauseRetryErrorsTimerFlag: PauseRetryErrorsTimerFlag,
     messagePendingAckRepository: MessagePendingAckRepository,
-    appMicrometerRegistry: PrometheusMeterRegistry
+    appMicrometerRegistry: PrometheusMeterRegistry,
+    leaderForwarder: LeaderForwarder? = null
 ) {
     installMicrometerRegistry(appMicrometerRegistry)
     installContentNegotiation()
@@ -455,8 +482,8 @@ fun Application.ebmsProviderModule(
         redeliverToSendIn()
         forceRetryMessageIn(retryService)
         forceRetryMessageOut(retryService)
-        retryErrorsIncoming(retryService, messageFilterService)
-        retryErrorsOutgoing(retryService, payloadMessageService)
+        retryErrorsIncoming(retryService, messageFilterService, leaderForwarder)
+        retryErrorsOutgoing(retryService, payloadMessageService, leaderForwarder)
         rerunIncoming(retryService, messageFilterService)
         rerunOutgoing(retryService, payloadMessageService)
         rerunOutgoingInterval(retryService, payloadMessageService)

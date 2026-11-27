@@ -6,6 +6,7 @@ metadata:
   labels:
     "team": "team-emottak"
 spec:
+  leaderElection: true
   azure:
     application:
       enabled: true
@@ -58,12 +59,14 @@ spec:
   accessPolicy:
     outbound:
       rules:
+        - application: ebms-async
         - application: cpa-repo
         - application: ebms-payload
         - application: ebms-send-in
         - application: smtp-transport
     inbound:
       rules:
+        - application: ebms-async
         - application: smtp-transport
   env:
     - name: JDK_JAVA_OPTIONS
@@ -110,3 +113,65 @@ spec:
   filesFrom:
     - secret: ebms-keystore-2025
       mountPath: /var/run/secrets/ebms-keystore-2025
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ebms-async-leader-discovery
+  namespace: team-emottak
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ebms-async-leader-discovery
+  namespace: team-emottak
+subjects:
+  - kind: ServiceAccount
+    name: ebms-async
+    namespace: team-emottak
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ebms-async-leader-discovery
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: ebms-async-background-jobs
+  namespace: team-emottak
+  labels:
+    team: team-emottak
+spec:
+  groups:
+    - name: ebms-async-background-jobs
+      rules:
+        - alert: EbmsAsyncBackgroundLeaderUnavailable
+          expr: |
+            sum(background_job_leader{namespace="team-emottak",app="ebms-async"}) != 1
+            or absent(background_job_leader{namespace="team-emottak",app="ebms-async"})
+          for: 5m
+          labels:
+            namespace: team-emottak
+            severity: warning
+          annotations:
+            summary: ebms-async does not report exactly one background-job leader
+            consequence: Scheduled retries and ACK resends may not run.
+            action: Check elector and pod health. A stuck elected pod must be deleted, not only restarted.
+            runbook_url: https://github.com/navikt/ebxml-processor/blob/main/docs/ebms-async-operations.md
+        - alert: EbmsAsyncBackgroundJobStalled
+          expr: |
+            background_job_active{namespace="team-emottak",app="ebms-async"} == 1
+            and time() - background_job_last_progress_seconds{namespace="team-emottak",app="ebms-async"} > 300
+          for: 1m
+          labels:
+            namespace: team-emottak
+            severity: warning
+          annotations:
+            summary: An active ebms-async background job is not making progress
+            consequence: Retry or ACK-resend processing is stalled.
+            action: Inspect downstream calls, job errors and leader health before considering pod deletion.
+            runbook_url: https://github.com/navikt/ebxml-processor/blob/main/docs/ebms-async-operations.md

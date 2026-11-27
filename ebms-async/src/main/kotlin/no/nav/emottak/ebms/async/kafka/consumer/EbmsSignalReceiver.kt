@@ -32,6 +32,7 @@ suspend fun startSignalReceiver(
 
     KafkaReceiver(receiverSettings)
         .receive(topic)
+        .recoverConsumerRebalances()
         .map { record ->
             messageFilterService.filterMessage(record)
             record.offset.acknowledge()

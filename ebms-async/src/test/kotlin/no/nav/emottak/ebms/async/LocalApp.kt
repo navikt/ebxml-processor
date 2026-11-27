@@ -180,11 +180,13 @@ fun main() = SuspendApp {
     )
 
     val pauseRetryErrorsTimerFlag = PauseRetryErrorsTimerFlag()
+    val leadership = no.nav.emottak.ebms.async.leadership.LocalLeadership()
 
     println(" ************ Setting up Netty at 8080 ")
 
     result {
         resourceScope {
+            launchRetryConsumers(config, failedMessageQueue, leadership)
             launchSignalReceiver(
                 config = config,
                 messageFilterService = messageFilterService
@@ -197,13 +199,15 @@ fun main() = SuspendApp {
                 config = config,
                 retryService = retryService,
                 messageFilterService = messageFilterService,
-                pauseRetryErrorsTimerFlag = pauseRetryErrorsTimerFlag
+                pauseRetryErrorsTimerFlag = pauseRetryErrorsTimerFlag,
+                leadership = leadership
             )
             launchMesssageResendTask(
                 config = config,
                 messagePendingAckRepository = messagePendingAckRepository,
                 payloadMessageForwardingService = payloadMessageForwardingService,
-                meterRegistry = appMicrometerRegistry
+                meterRegistry = appMicrometerRegistry,
+                leadership = leadership
             )
 
             server(
