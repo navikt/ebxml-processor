@@ -7,9 +7,11 @@ import io.mockk.mockk
 import io.mockk.spyk
 import io.mockk.verify
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.Json
 import no.nav.emottak.ebms.async.persistence.repository.MessagePendingAckRepository
 import no.nav.emottak.ebms.async.util.EventRegistrationServiceFake
 import no.nav.emottak.ebms.validation.CPAValidationService
+import no.nav.emottak.message.ebxml.EbXMLConstants.OASIS_EBXML_MSG_HEADER_XSD_NS_URI
 import no.nav.emottak.message.exception.EbmsException
 import no.nav.emottak.message.model.Acknowledgment
 import no.nav.emottak.message.model.EbmsDocument
@@ -20,10 +22,12 @@ import no.nav.emottak.message.model.Payload
 import no.nav.emottak.message.model.ValidationResult
 import no.nav.emottak.message.xml.createDocument
 import no.nav.emottak.utils.common.parseOrGenerateUuid
+import no.nav.emottak.utils.kafka.model.EventDataType
 import no.nav.emottak.utils.kafka.model.EventType
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import kotlin.test.assertNotNull
 import kotlin.uuid.Uuid
 
 class SignalMessageServiceTest {
@@ -40,9 +44,16 @@ class SignalMessageServiceTest {
             .transform() as Acknowledgment
     }
 
-    private fun messageError(requestId: String): MessageError = runBlocking {
+    private fun messageError(requestId: String, includeRefToMessageId: Boolean = true): MessageError = runBlocking {
         val document = this@SignalMessageServiceTest::class.java.classLoader
             .getResourceAsStream("signaltest/messageerror.xml")!!.readAllBytes().createDocument()
+        if (!includeRefToMessageId) {
+            val refToMessageId = document.getElementsByTagNameNS(
+                OASIS_EBXML_MSG_HEADER_XSD_NS_URI,
+                "RefToMessageId"
+            ).item(0)
+            refToMessageId.parentNode.removeChild(refToMessageId)
+        }
         EbmsDocument(requestId = requestId, document = document, attachments = emptyList())
             .transform() as MessageError
     }
@@ -219,6 +230,7 @@ class SignalMessageServiceTest {
     fun `MessageError processed successfully`() {
         val requestId = Uuid.random().toString()
         val messageError = messageError(requestId)
+        val refToMessageId = assertNotNull(messageError.refToMessageId)
         val validationResult = ValidationResult()
 
         every { messagePendingAckRepository.existsForMessageId(any()) } returns true
@@ -239,7 +251,7 @@ class SignalMessageServiceTest {
                 eventType = EventType.UNKNOWN_ERROR_OCCURRED,
                 requestId = any(),
                 contentId = any(),
-                messageId = messageError.refToMessageId,
+                messageId = refToMessageId,
                 eventData = any(),
                 conversationId = messageError.conversationId
             )
@@ -250,6 +262,7 @@ class SignalMessageServiceTest {
     fun `MessageError contents are still reported when signature validation fails`() {
         val requestId = Uuid.random().toString()
         val messageError = messageError(requestId)
+        val refToMessageId = assertNotNull(messageError.refToMessageId)
         val validationResult = ValidationResult()
 
         every { messagePendingAckRepository.existsForMessageId(any()) } returns true
@@ -269,7 +282,7 @@ class SignalMessageServiceTest {
                 eventType = EventType.SIGNATURE_CHECK_FAILED,
                 requestId = any(),
                 contentId = "",
-                messageId = messageError.refToMessageId,
+                messageId = refToMessageId,
                 eventData = any(),
                 conversationId = messageError.conversationId
             )
@@ -279,10 +292,72 @@ class SignalMessageServiceTest {
                 eventType = EventType.UNKNOWN_ERROR_OCCURRED,
                 requestId = any(),
                 contentId = any(),
-                messageId = messageError.refToMessageId,
+                messageId = refToMessageId,
                 eventData = any(),
                 conversationId = messageError.conversationId
             )
+        }
+    }
+
+    @Test
+    fun `MessageError without RefToMessageId is processed successfully`() {
+        verifyMessageErrorWithoutReference(signatureFails = false)
+    }
+
+    @Test
+    fun `MessageError without RefToMessageId is processed when signature validation fails`() {
+        verifyMessageErrorWithoutReference(signatureFails = true)
+    }
+
+    private fun verifyMessageErrorWithoutReference(signatureFails: Boolean) {
+        val requestId = Uuid.random().toString()
+        val messageError = messageError(requestId, includeRefToMessageId = false)
+        val validationResult = ValidationResult()
+
+        coEvery {
+            cpaValidationService.validateIncomingMessage(messageError, checkSignature = false)
+        } returns validationResult
+        every {
+            cpaValidationService.validateResult(validationResult, messageError, checkSignature = true)
+        } answers {
+            if (signatureFails) {
+                throw EbmsException(listOf(Feil(ErrorCode.SECURITY_FAILURE, "Signeringsfeil: 0 signaturer i dokumentet")))
+            }
+            validationResult
+        }
+
+        runBlocking {
+            signalMessageService.processSignal(requestId, messageError)
+        }
+
+        verify(exactly = 0) { messagePendingAckRepository.existsForMessageId(any()) }
+        verify(exactly = 1) {
+            cpaValidationService.validateResult(validationResult, messageError, checkSignature = true)
+        }
+        coVerify(exactly = 1) { eventRegistrationService.registerEventMessageDetails(messageError) }
+        coVerify(exactly = if (signatureFails) 1 else 0) {
+            eventRegistrationService.registerEvent(
+                eventType = EventType.SIGNATURE_CHECK_FAILED,
+                requestId = requestId.parseOrGenerateUuid(),
+                contentId = "",
+                messageId = messageError.messageId,
+                eventData = any(),
+                conversationId = messageError.conversationId
+            )
+        }
+        messageError.feil.forEach { error ->
+            coVerify(exactly = 1) {
+                eventRegistrationService.registerEvent(
+                    eventType = EventType.UNKNOWN_ERROR_OCCURRED,
+                    requestId = requestId.parseOrGenerateUuid(),
+                    contentId = "",
+                    messageId = messageError.messageId,
+                    eventData = Json.encodeToString(
+                        mapOf(EventDataType.ERROR_MESSAGE to "${error.code}: ${error.descriptionText}")
+                    ),
+                    conversationId = messageError.conversationId
+                )
+            }
         }
     }
 
